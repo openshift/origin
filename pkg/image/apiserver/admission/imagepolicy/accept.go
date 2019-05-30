@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
@@ -84,7 +84,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 				// an objectref that is DockerImage ref will have a name that corresponds to its pull spec.  We can parse that
 				// to a docker image ref
 				if ref != nil && ref.Kind == "DockerImage" {
-					decision.attrs.Name, _ = imageapi.ParseDockerImageReference(ref.Name)
+					decision.attrs.Name, _ = reference.Parse(ref.Name)
 				}
 			}
 			decision.attrs.Resource = gr

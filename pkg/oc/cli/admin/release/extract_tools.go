@@ -30,7 +30,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/MakeNowJust/heredoc"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 )
 

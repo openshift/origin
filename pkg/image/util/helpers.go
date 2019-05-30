@@ -16,9 +16,9 @@ import (
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerapi10 "github.com/openshift/origin/pkg/image/apis/image/docker10"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
@@ -460,7 +460,7 @@ func ResolveReferenceForTagEvent(stream *imagev1.ImageStream, tag string, latest
 		}
 
 		// we must use imageapi's helper since we're calling Exact later on, which produces string
-		ref, err := imageapi.ParseDockerImageReference(local)
+		ref, err := imagereference.Parse(local)
 		if err != nil {
 			// fallback to the originating reference if the reported local repository spec is not valid
 			return latest.DockerImageReference

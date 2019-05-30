@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 
 	"github.com/openshift/api/image"
+	imageref "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -122,7 +123,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 			ref imageapi.DockerImageReference
 		)
 		if from.Name != "*" {
-			ref, err = imageapi.ParseDockerImageReference(from.Name)
+			ref, err = imageref.Parse(from.Name)
 			if err != nil {
 				isi.Status.Images[i].Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
 				continue
@@ -252,7 +253,7 @@ func (i *ImageStreamImporter) importFromRepository(ctx gocontext.Context, retrie
 		ref imageapi.DockerImageReference
 	)
 	if from.Name != "*" {
-		ref, err = imageapi.ParseDockerImageReference(from.Name)
+		ref, err = imageref.Parse(from.Name)
 		if err != nil {
 			status.Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
 			return

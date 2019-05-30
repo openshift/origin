@@ -21,6 +21,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -276,7 +277,7 @@ func (s Strategy) tagsChanged(old, stream *imageapi.ImageStream) field.ErrorList
 		// if this is not a reference tag, and the tag points to the internal registry for the other namespace, alter it to
 		// point to this stream so that pulls happen from this stream in the future.
 		if !tagRef.Reference {
-			if ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference); err == nil {
+			if ref, err := reference.Parse(event.DockerImageReference); err == nil {
 				if hasInternalRegistry && ref.Registry == internalRegistry && ref.Namespace == streamRef.Namespace && ref.Name == streamRef.Name {
 					ref.Namespace = stream.Namespace
 					ref.Name = stream.Name

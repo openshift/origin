@@ -17,7 +17,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
@@ -93,16 +93,6 @@ func ParseImageStreamTagName(istag string) (name string, tag string, err error) 
 	return
 }
 
-// ParseDockerImageReference parses a Docker pull spec string into a
-// DockerImageReference.
-func ParseDockerImageReference(spec string) (reference.DockerImageReference, error) {
-	ref, err := reference.Parse(spec)
-	if err != nil {
-		return ref, err
-	}
-	return ref, nil
-}
-
 // SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
 // It returns false if the tag was not properly specified in the name.
 func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
@@ -162,7 +152,7 @@ func DockerImageReferenceForStream(stream *ImageStream) (DockerImageReference, e
 	if len(spec) == 0 {
 		return DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", stream.Namespace, stream.Name)
 	}
-	return ParseDockerImageReference(spec)
+	return reference.Parse(spec)
 }
 
 // FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
@@ -294,7 +284,7 @@ func ResolveReferenceForTagEvent(stream *ImageStream, tag string, latest *TagEve
 			return latest.DockerImageReference
 		}
 
-		ref, err := ParseDockerImageReference(local)
+		ref, err := reference.Parse(local)
 		if err != nil {
 			// fallback to the originating reference if the reported local repository spec is not valid
 			return latest.DockerImageReference
@@ -327,7 +317,7 @@ func DockerImageReferenceForImage(stream *ImageStream, imageID string) (string, 
 	}
 	switch ref.ReferencePolicy.Type {
 	case LocalTagReferencePolicy:
-		ref, err := ParseDockerImageReference(stream.Status.DockerImageRepository)
+		ref, err := reference.Parse(stream.Status.DockerImageRepository)
 		if err != nil {
 			return event.DockerImageReference, true
 		}

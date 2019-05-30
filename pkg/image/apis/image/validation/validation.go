@@ -19,6 +19,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )
@@ -61,7 +62,7 @@ func validateImage(image *imageapi.Image, fldPath *field.Path) field.ErrorList {
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, field.Required(fldPath.Child("dockerImageReference"), ""))
 	} else {
-		if _, err := imageapi.ParseDockerImageReference(image.DockerImageReference); err != nil {
+		if _, err := imageref.Parse(image.DockerImageReference); err != nil {
 			result = append(result, field.Invalid(fldPath.Child("dockerImageReference"), image.DockerImageReference, err.Error()))
 		}
 	}
@@ -178,7 +179,7 @@ func ValidateImageStreamWithWhitelister(
 	if len(stream.Spec.DockerImageRepository) != 0 {
 		dockerImageRepositoryPath := field.NewPath("spec", "dockerImageRepository")
 		isValid := true
-		ref, err := imageapi.ParseDockerImageReference(stream.Spec.DockerImageRepository)
+		ref, err := imageref.Parse(stream.Spec.DockerImageRepository)
 		if err != nil {
 			result = append(result, field.Invalid(dockerImageRepositoryPath, stream.Spec.DockerImageRepository, err.Error()))
 			isValid = false
@@ -208,7 +209,7 @@ func ValidateImageStreamWithWhitelister(
 				result = append(result, field.Required(field.NewPath("status", "tags").Key(tag).Child("items").Index(i).Child("dockerImageReference"), ""))
 				continue
 			}
-			ref, err := imageapi.ParseDockerImageReference(tagEvent.DockerImageReference)
+			ref, err := imageref.Parse(tagEvent.DockerImageReference)
 			if err != nil {
 				result = append(result, field.Invalid(field.NewPath("status", "tags").Key(tag).Child("items").Index(i).Child("dockerImageReference"), tagEvent.DockerImageReference, err.Error()))
 				continue
@@ -244,7 +245,7 @@ func ValidateImageStreamTagReference(
 		}
 		switch tagRef.From.Kind {
 		case "DockerImage":
-			if ref, err := imageapi.ParseDockerImageReference(tagRef.From.Name); err != nil && len(tagRef.From.Name) > 0 {
+			if ref, err := imageref.Parse(tagRef.From.Name); err != nil && len(tagRef.From.Name) > 0 {
 				errs = append(errs, field.Invalid(fldPath.Child("from", "name"), tagRef.From.Name, err.Error()))
 			} else if len(ref.ID) > 0 && tagRef.ImportPolicy.Scheduled {
 				errs = append(errs, field.Invalid(fldPath.Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
@@ -320,7 +321,7 @@ func ValidateImageStreamStatusUpdateWithWhitelister(
 		if _, ok := oldRefs[refString]; ok {
 			continue
 		}
-		ref, err := imageapi.ParseDockerImageReference(refString)
+		ref, err := imageref.Parse(refString)
 		if err != nil {
 			for _, rf := range rfs {
 				errs = append(errs, field.Invalid(rf.path, refString, err.Error()))
@@ -404,7 +405,7 @@ func ValidateImageStreamMapping(mapping *imageapi.ImageStreamMapping) field.Erro
 	hasName := len(mapping.Name) != 0
 	switch {
 	case hasRepository:
-		if _, err := imageapi.ParseDockerImageReference(mapping.DockerImageRepository); err != nil {
+		if _, err := imageref.Parse(mapping.DockerImageRepository); err != nil {
 			result = append(result, field.Invalid(field.NewPath("dockerImageRepository"), mapping.DockerImageRepository, err.Error()))
 		}
 	case hasName:
@@ -521,7 +522,7 @@ func ValidateImageStreamImport(isi *imageapi.ImageStreamImport) field.ErrorList 
 				if spec.From.Name == "*" {
 					continue
 				}
-				if ref, err := imageapi.ParseDockerImageReference(spec.From.Name); err != nil {
+				if ref, err := imageref.Parse(spec.From.Name); err != nil {
 					errs = append(errs, field.Invalid(imagesPath.Index(i).Child("from", "name"), spec.From.Name, err.Error()))
 				} else {
 					if len(ref.ID) > 0 && spec.ImportPolicy.Scheduled {
@@ -541,7 +542,7 @@ func ValidateImageStreamImport(isi *imageapi.ImageStreamImport) field.ErrorList 
 			if len(spec.From.Name) == 0 {
 				errs = append(errs, field.Required(repoPath.Child("from", "name"), "Docker image references require a name"))
 			} else {
-				if ref, err := imageapi.ParseDockerImageReference(from.Name); err != nil {
+				if ref, err := imageref.Parse(from.Name); err != nil {
 					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, err.Error()))
 				} else {
 					if len(ref.ID) > 0 || len(ref.Tag) > 0 {

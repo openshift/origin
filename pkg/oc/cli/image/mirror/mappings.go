@@ -12,7 +12,7 @@ import (
 	"github.com/docker/distribution/registry/client/auth"
 	digest "github.com/opencontainers/go-digest"
 
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
+	"github.com/openshift/library-go/pkg/image/reference"
 )
 
 // ErrAlreadyExists may be returned by the blob Create function to indicate that the blob already exists.

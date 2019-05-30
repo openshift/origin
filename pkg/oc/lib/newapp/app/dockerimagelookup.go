@@ -16,6 +16,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -74,7 +75,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 		case "*":
 			ref = imageapi.DockerImageReference{Name: term}
 		default:
-			ref, err = imageapi.ParseDockerImageReference(term)
+			ref, err = reference.Parse(term)
 			if err != nil {
 				continue
 			}
@@ -244,7 +245,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 			}
 			continue
 		}
-		ref, err := imageapi.ParseDockerImageReference(term)
+		ref, err := reference.Parse(term)
 		if err != nil {
 			klog.V(4).Infof("image import failed, can't parse ref %q: %v", term, err)
 			continue
@@ -306,7 +307,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 			err error
 		)
 		if term != "*" {
-			ref, err = imageapi.ParseDockerImageReference(term)
+			ref, err = reference.Parse(term)
 			if err != nil {
 				continue
 			}
@@ -403,7 +404,7 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 			})
 			continue
 		}
-		iRef, err := imageapi.ParseDockerImageReference(s)
+		iRef, err := reference.Parse(s)
 		if err != nil {
 			continue
 		}

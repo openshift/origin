@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
+	"github.com/openshift/library-go/pkg/image/reference"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -197,7 +198,7 @@ func TestImportSuccessful(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		ref, err := imageapi.ParseDockerImageReference(test.image.DockerImageReference)
+		ref, err := reference.Parse(test.image.DockerImageReference)
 		if err != nil {
 			t.Errorf("%s: error parsing image ref: %v", name, err)
 			continue

@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
@@ -48,7 +49,7 @@ func FindImage(g osgraph.MutableUniqueGraph, imageName string) *ImageNode {
 // EnsureDockerRepositoryNode adds the named Docker repository tag reference to the graph if it does
 // not already exist. If the reference is invalid, the Name field of the graph will be used directly.
 func EnsureDockerRepositoryNode(g osgraph.MutableUniqueGraph, name, tag string) graph.Node {
-	ref, err := imageapi.ParseDockerImageReference(name)
+	ref, err := reference.Parse(name)
 	if err == nil {
 		if len(tag) != 0 {
 			ref.Tag = tag

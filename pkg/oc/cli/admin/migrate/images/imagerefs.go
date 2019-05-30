@@ -20,6 +20,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
 )
@@ -394,7 +395,7 @@ type ImageReferenceMappings []ImageReferenceMapping
 // MapReference transforms the provided Docker image reference if any mapping matches the
 // input. If the reference cannot be parsed, it will not be modified.
 func (m ImageReferenceMappings) MapReference(in string) string {
-	ref, err := imageapi.ParseDockerImageReference(in)
+	ref, err := reference.Parse(in)
 	if err != nil {
 		return in
 	}

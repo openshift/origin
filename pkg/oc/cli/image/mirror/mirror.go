@@ -23,7 +23,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"

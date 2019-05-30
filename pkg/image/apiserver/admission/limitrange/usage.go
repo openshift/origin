@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -132,7 +133,7 @@ func gatherImagesFromImageStreamSpec(is *imageapi.ImageStream) sets.String {
 func getImageReferenceForObjectReference(namespace string, objRef *kapi.ObjectReference) (string, error) {
 	switch objRef.Kind {
 	case "ImageStreamImage", "DockerImage":
-		res, err := imageapi.ParseDockerImageReference(objRef.Name)
+		res, err := reference.Parse(objRef.Name)
 		if err != nil {
 			return "", err
 		}

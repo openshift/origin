@@ -14,7 +14,7 @@ import (
 	godigest "github.com/opencontainers/go-digest"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
+	"github.com/openshift/library-go/pkg/image/reference"
 )
 
 type retrieverError struct {

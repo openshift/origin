@@ -11,6 +11,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
@@ -42,7 +43,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 		case "*":
 			ref = imageapi.DockerImageReference{Name: term}
 		default:
-			ref, err = imageapi.ParseDockerImageReference(term)
+			ref, err = reference.Parse(term)
 			if err != nil || len(ref.Registry) != 0 {
 				klog.V(2).Infof("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>], term %q did not qualify", term)
 				continue

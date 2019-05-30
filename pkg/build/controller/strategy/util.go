@@ -16,9 +16,9 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 const (

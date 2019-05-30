@@ -18,6 +18,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
@@ -51,7 +52,7 @@ func NewImageRefGenerator() ImageRefGenerator {
 
 // FromName generates an ImageRef from a given name
 func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
-	ref, err := imageapi.ParseDockerImageReference(name)
+	ref, err := reference.Parse(name)
 	if err != nil {
 		return nil, err
 	}
@@ -110,14 +111,14 @@ func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) 
 	}
 
 	if tagged := imageutil.LatestTaggedImage(stream, tag); tagged != nil {
-		if ref, err := imageapi.ParseDockerImageReference(tagged.DockerImageReference); err == nil {
+		if ref, err := reference.Parse(tagged.DockerImageReference); err == nil {
 			imageRef.ResolvedReference = &ref
 			imageRef.Reference = ref
 		}
 	}
 
 	if pullSpec := stream.Status.DockerImageRepository; len(pullSpec) != 0 {
-		ref, err := imageapi.ParseDockerImageReference(pullSpec)
+		ref, err := reference.Parse(pullSpec)
 		if err != nil {
 			return nil, err
 		}

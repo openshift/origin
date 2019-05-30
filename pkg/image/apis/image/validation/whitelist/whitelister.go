@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -113,7 +114,7 @@ func (rw *registryWhitelister) AdmitHostname(hostname string, transport Whitelis
 }
 
 func (rw *registryWhitelister) AdmitPullSpec(pullSpec string, transport WhitelistTransport) error {
-	ref, err := imageapi.ParseDockerImageReference(pullSpec)
+	ref, err := reference.Parse(pullSpec)
 	if err != nil {
 		return err
 	}

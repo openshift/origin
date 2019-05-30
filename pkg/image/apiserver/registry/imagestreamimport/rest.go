@@ -28,6 +28,7 @@ import (
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
@@ -280,12 +281,12 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			}
 
 			image := status.Image
-			ref, err := imageapi.ParseDockerImageReference(image.DockerImageReference)
+			ref, err := reference.Parse(image.DockerImageReference)
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("unable to parse image reference during import: %v", err))
 				continue
 			}
-			from, err := imageapi.ParseDockerImageReference(spec.From.Name)
+			from, err := reference.Parse(spec.From.Name)
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("unable to parse from reference during import: %v", err))
 				continue
@@ -419,7 +420,7 @@ func checkImportFailure(status imageapi.ImageImportStatus, stream *imageapi.Imag
 		if len(status.Tag) > 0 {
 			tag = status.Tag
 		} else if status.Image != nil {
-			if ref, err := imageapi.ParseDockerImageReference(status.Image.DockerImageReference); err == nil {
+			if ref, err := reference.Parse(status.Image.DockerImageReference); err == nil {
 				tag = ref.Tag
 			}
 		}
