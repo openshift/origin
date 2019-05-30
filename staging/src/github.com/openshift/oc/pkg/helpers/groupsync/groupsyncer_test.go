@@ -17,7 +17,7 @@ import (
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 )
 
 func TestMakeOpenShiftGroup(t *testing.T) {

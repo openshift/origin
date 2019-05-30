@@ -7,7 +7,7 @@ import (
 	"k8s.io/klog"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 )
 
 // GroupPruner runs a prune job on Groups

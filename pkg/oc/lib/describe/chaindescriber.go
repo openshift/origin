@@ -15,7 +15,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	dotutil "github.com/openshift/origin/pkg/oc/lib/dot"
+	dotutil "github.com/openshift/oc/pkg/helpers/dot"
 	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
 	buildanalysis "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"

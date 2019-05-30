@@ -14,8 +14,8 @@ import (
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
+	"github.com/openshift/oc/pkg/helpers/groupsync"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
 )
 

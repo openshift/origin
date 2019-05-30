@@ -3,11 +3,11 @@ package sync
 import (
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/oc/pkg/helpers/groupsync"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/rfc2307"
+	"github.com/openshift/oc/pkg/helpers/groupsync/syncerror"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/rfc2307"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
 )
 
 var _ SyncBuilder = &RFC2307Builder{}
