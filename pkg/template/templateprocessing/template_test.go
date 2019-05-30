@@ -4,16 +4,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/generator"
 )
@@ -446,5 +451,139 @@ func addParameter(t *templatev1.Template, param templatev1.Parameter) {
 		*existing = param
 	} else {
 		t.Parameters = append(t.Parameters, param)
+	}
+}
+
+func TestAddConfigLabels(t *testing.T) {
+	var nilLabels map[string]string
+
+	testCases := []struct {
+		obj            runtime.Object
+		addLabels      map[string]string
+		err            bool
+		expectedLabels map[string]string
+	}{
+		{ // [0] Test nil + nil => nil
+			obj:            &corev1.Pod{},
+			addLabels:      nilLabels,
+			err:            false,
+			expectedLabels: nilLabels,
+		},
+		{ // [1] Test nil + empty labels => empty labels
+			obj:            &corev1.Pod{},
+			addLabels:      map[string]string{},
+			err:            false,
+			expectedLabels: map[string]string{},
+		},
+		{ // [2] Test obj.Labels + nil => obj.Labels
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+			},
+			addLabels:      nilLabels,
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar"},
+		},
+		{ // [3] Test obj.Labels + empty labels => obj.Labels
+			obj: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "bar"}},
+			},
+			addLabels:      map[string]string{},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar"},
+		},
+		{ // [4] Test nil + addLabels => addLabels
+			obj:            &corev1.Pod{},
+			addLabels:      map[string]string{"foo": "bar"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar"},
+		},
+		{ // [5] Test obj.labels + addLabels => expectedLabels
+			obj: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"baz": ""}},
+			},
+			addLabels:      map[string]string{"foo": "bar"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "bar", "baz": ""},
+		},
+		{ // [6] Test conflicting keys with the same value
+			obj: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "same value"}},
+			},
+			addLabels:      map[string]string{"foo": "same value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "same value"},
+		},
+		{ // [7] Test conflicting keys with a different value
+			obj: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
+			},
+			addLabels:      map[string]string{"foo": "second value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "second value"},
+		},
+		{ // [8] Test conflicting keys with the same value in ReplicationController nested labels
+			obj: &corev1.ReplicationController{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"foo": "same value"},
+				},
+				Spec: corev1.ReplicationControllerSpec{
+					Template: &corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{},
+						},
+					},
+				},
+			},
+			addLabels:      map[string]string{"foo": "same value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "same value"},
+		},
+		{ // [9] Test adding labels to a DeploymentConfig object
+			obj: &appsv1.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"foo": "first value"},
+				},
+				Spec: appsv1.DeploymentConfigSpec{
+					Template: &corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"foo": "first value"},
+						},
+					},
+				},
+			},
+			addLabels:      map[string]string{"bar": "second value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
+		},
+	}
+
+	for i, test := range testCases {
+		err := AddObjectLabels(test.obj, test.addLabels)
+		if err != nil && !test.err {
+			t.Errorf("Unexpected error while setting labels on testCase[%v]: %v.", i, err)
+		} else if err == nil && test.err {
+			t.Errorf("Unexpected non-error while setting labels on testCase[%v].", i)
+		}
+
+		accessor, err := meta.Accessor(test.obj)
+		if err != nil {
+			t.Error(err)
+		}
+		metaLabels := accessor.GetLabels()
+		if e, a := test.expectedLabels, metaLabels; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
+		}
+
+		// must not add any new nested labels
+		switch objType := test.obj.(type) {
+		case *corev1.ReplicationController:
+			if e, a := map[string]string{}, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
+				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
+			}
+		case *appsv1.DeploymentConfig:
+			if e, a := test.expectedLabels, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
+				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
+			}
+		}
 	}
 }

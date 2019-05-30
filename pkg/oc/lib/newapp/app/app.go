@@ -20,7 +20,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
-	"github.com/openshift/origin/pkg/util"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
@@ -344,10 +343,11 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*appsv1.DeploymentConfig, erro
 	selector := map[string]string{
 		"deploymentconfig": r.Name,
 	}
-	if len(r.Labels) > 0 {
-		if err := util.MergeInto(selector, r.Labels, 0); err != nil {
-			return nil, err
+	for k, v := range r.Labels {
+		if _, ok := selector[k]; ok {
+			continue
 		}
+		selector[k] = v
 	}
 
 	triggers := []appsv1.DeploymentTriggerPolicy{

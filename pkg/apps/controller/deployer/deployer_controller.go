@@ -23,7 +23,6 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/util"
 )
 
 // maxRetryCount is the maximum number of times the controller will retry errors.
@@ -421,9 +420,19 @@ func (c *DeploymentController) makeDeployerPod(deployment *corev1.ReplicationCon
 		},
 	}
 
-	// MergeInfo will not overwrite values unless the flag OverwriteExistingDstKey is set.
-	util.MergeInto(pod.Labels, deploymentConfig.Spec.Strategy.Labels, 0)
-	util.MergeInto(pod.Annotations, deploymentConfig.Spec.Strategy.Annotations, 0)
+	// add in DC specified labels and annotations
+	for k, v := range deploymentConfig.Spec.Strategy.Labels {
+		if _, ok := pod.Labels[k]; ok {
+			continue
+		}
+		pod.Labels[k] = v
+	}
+	for k, v := range deploymentConfig.Spec.Strategy.Annotations {
+		if _, ok := pod.Annotations[k]; ok {
+			continue
+		}
+		pod.Annotations[k] = v
+	}
 
 	pod.Spec.Containers[0].ImagePullPolicy = corev1.PullIfNotPresent
 

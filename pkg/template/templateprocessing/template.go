@@ -7,13 +7,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	. "github.com/openshift/library-go/pkg/template/generator"
 	"github.com/openshift/origin/pkg/api/legacygroupification"
-	"github.com/openshift/origin/pkg/util"
 )
 
 // match ${KEY}, KEY will be grouped
@@ -99,7 +100,7 @@ func (p *Processor) Process(template *templatev1.Template) field.ErrorList {
 		legacygroupification.OAPIToGroupifiedGVK(&gvk)
 		newItem.GetObjectKind().SetGroupVersionKind(gvk)
 
-		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
+		if err := AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
 				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
 		}
@@ -246,4 +247,49 @@ func (p *Processor) GenerateParameterValues(t *templatev1.Template) field.ErrorL
 	}
 
 	return errs
+}
+
+// AddObjectLabels adds new label(s) to a single runtime.Object, overwriting
+// existing labels that have the same key.
+func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
+	if labels == nil {
+		return nil
+	}
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	metaLabels := accessor.GetLabels()
+	if metaLabels == nil {
+		metaLabels = make(map[string]string)
+	}
+	for k, v := range labels {
+		metaLabels[k] = v
+	}
+	accessor.SetLabels(metaLabels)
+
+	switch objType := obj.(type) {
+	case *appsv1.DeploymentConfig:
+		if err := addDeploymentConfigNestedLabels(objType, labels); err != nil {
+			return fmt.Errorf("unable to add nested labels to %s/%s: %v", obj.GetObjectKind().GroupVersionKind(), accessor.GetName(), err)
+		}
+	}
+
+	return nil
+}
+
+// addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
+func addDeploymentConfigNestedLabels(obj *appsv1.DeploymentConfig, labels labels.Set) error {
+	if obj.Spec.Template == nil {
+		return nil
+	}
+	if obj.Spec.Template.Labels == nil {
+		obj.Spec.Template.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		obj.Spec.Template.Labels[k] = v
+	}
+	return nil
 }
