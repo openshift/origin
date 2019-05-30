@@ -13,10 +13,10 @@ import (
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/openshift-apiserver/pkg/version"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
-	"github.com/openshift/origin/pkg/version"
 )
 
 func DefaultOpenAPIConfig(oauthMetadata *oauthutil.OauthAuthorizationServerMetadata) *openapicommon.Config {

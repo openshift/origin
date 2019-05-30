@@ -105,6 +105,7 @@ function os::build::ldflags() {
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/oc/clusterup.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
+
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
@@ -118,6 +119,20 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.buildDate" "${buildDate}"))
+
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-apiserver/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-apiserver/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-apiserver/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-apiserver/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-apiserver/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-apiserver/pkg/version.buildDate" "${buildDate}"))
+
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-controller-manager/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-controller-manager/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-controller-manager/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-controller-manager/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-controller-manager/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/openshift-controller-manager/pkg/version.buildDate" "${buildDate}"))
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMajor" "${KUBE_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMinor" "${KUBE_GIT_MINOR}"))

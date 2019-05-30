@@ -33,6 +33,7 @@ import (
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
+	"github.com/openshift/openshift-apiserver/pkg/version"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
@@ -51,7 +52,6 @@ import (
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
-	"github.com/openshift/origin/pkg/version"
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
