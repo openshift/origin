@@ -131,7 +131,7 @@ func NewDeployer(kubeClient kubernetes.Interface, images imageclientv1.Interface
 			return kubeClient.CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).
 				String()})
 		},
-		scaler: appsutil.NewReplicationControllerScaler(kubeClient),
+		scaler: kubectl.NewScaler(appsutil.NewReplicationControllerScaleClient(kubeClient)),
 		strategyFor: func(config *appsv1.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsv1.DeploymentStrategyTypeRecreate:

@@ -19,32 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	scaleclient "k8s.io/client-go/scale"
-	autoscalingv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
-	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 )
 
-// rcMapper pins preferred version to v1 and scale kind to autoscaling/v1 Scale
-// this avoids putting complete server discovery (including extension APIs) in the critical path for deployments
-type rcMapper struct{}
-
-func (rcMapper) ResourceFor(gvr schema.GroupVersionResource) (schema.GroupVersionResource, error) {
-	if gvr.Group == "" && gvr.Resource == "replicationcontrollers" {
-		return kapiv1.SchemeGroupVersion.WithResource("replicationcontrollers"), nil
-	}
-	return schema.GroupVersionResource{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
-}
-
-func (rcMapper) ScaleForResource(gvr schema.GroupVersionResource) (schema.GroupVersionKind, error) {
-	if gvr == kapiv1.SchemeGroupVersion.WithResource("replicationcontrollers") {
-		return autoscalingv1.SchemeGroupVersion.WithKind("Scale"), nil
-	}
-	return schema.GroupVersionKind{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
-}
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using annotation codec.
 // An error is returned if the controller doesn't contain an encoded config or decoding fail.
@@ -100,12 +79,8 @@ func GetTimeoutSecondsForStrategy(config *appsv1.DeploymentConfig) int64 {
 	return timeoutSeconds
 }
 
-func NewReplicationControllerScaler(client kubernetes.Interface) kubectl.Scaler {
-	return kubectl.NewScaler(NewReplicationControllerScaleClient(client))
 }
 
-func NewReplicationControllerScaleClient(client kubernetes.Interface) scaleclient.ScalesGetter {
-	return scaleclient.New(client.CoreV1().RESTClient(), rcMapper{}, dynamic.LegacyAPIPathResolverFunc, rcMapper{})
 }
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
