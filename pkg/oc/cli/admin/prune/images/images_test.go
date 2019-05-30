@@ -34,7 +34,7 @@ import (
 	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
 	fakeimageclient "github.com/openshift/client-go/image/clientset/versioned/fake"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1/fake"
-	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune/testutil"
+	imagetest "github.com/openshift/oc/pkg/helpers/image/test"
 	"github.com/openshift/origin/pkg/version"
 
 	// these are needed to make kapiref.GetReference work in the prune.go file
@@ -87,10 +87,10 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 	var level klog.Level
 	level.Set(fmt.Sprint(*logLevel))
 
-	podBad := testutil.Pod("foo", "pod1", corev1.PodRunning, "invalid image reference")
-	podGood := testutil.Pod("foo", "pod2", corev1.PodRunning, "example.com/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")
-	dep := testutil.Deployment("foo", "dep1", "do not blame me")
-	bcBad := testutil.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar:invalid-digest")
+	podBad := imagetest.Pod("foo", "pod1", corev1.PodRunning, "invalid image reference")
+	podGood := imagetest.Pod("foo", "pod2", corev1.PodRunning, "example.com/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")
+	dep := imagetest.Deployment("foo", "dep1", "do not blame me")
+	bcBad := imagetest.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar:invalid-digest")
 
 	kFake := fakekubernetes.NewSimpleClientset(&podBad, &podGood, &dep)
 	imageFake := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset().Fake)}

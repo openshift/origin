@@ -3,10 +3,10 @@ package graphview
 import (
 	"sort"
 
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 type DeploymentConfigPipeline struct {

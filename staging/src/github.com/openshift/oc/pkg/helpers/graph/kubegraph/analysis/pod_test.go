@@ -8,8 +8,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	osgraphtest "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph/test"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	osgraphtest "github.com/openshift/oc/pkg/helpers/graph/genericgraph/test"
 )
 
 func TestRestartingPodWarning(t *testing.T) {

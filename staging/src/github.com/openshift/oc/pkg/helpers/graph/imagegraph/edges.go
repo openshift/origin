@@ -6,8 +6,8 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 )
 
 const (

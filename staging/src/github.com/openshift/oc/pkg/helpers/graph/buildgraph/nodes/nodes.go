@@ -4,7 +4,7 @@ import (
 	"github.com/gonum/graph"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 )
 
 // EnsureBuildConfigNode adds a graph node for the specific build config if it does not exist

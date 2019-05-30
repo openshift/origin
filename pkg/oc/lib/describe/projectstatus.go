@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	deployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	"github.com/openshift/api/annotations"
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -39,26 +40,25 @@ import (
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	loginerrors "github.com/openshift/oc/pkg/helpers/errors"
+	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	appsanalysis "github.com/openshift/oc/pkg/helpers/graph/appsgraph/analysis"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	buildanalysis "github.com/openshift/oc/pkg/helpers/graph/buildgraph/analysis"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	"github.com/openshift/oc/pkg/helpers/graph/genericgraph/graphview"
+	imageedges "github.com/openshift/oc/pkg/helpers/graph/imagegraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
+	kubeedges "github.com/openshift/oc/pkg/helpers/graph/kubegraph"
+	kubeanalysis "github.com/openshift/oc/pkg/helpers/graph/kubegraph/analysis"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
+	routeedges "github.com/openshift/oc/pkg/helpers/graph/routegraph"
+	routeanalysis "github.com/openshift/oc/pkg/helpers/graph/routegraph/analysis"
+	routegraph "github.com/openshift/oc/pkg/helpers/graph/routegraph/nodes"
 	"github.com/openshift/oc/pkg/helpers/parallel"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
-	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	appsanalysis "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/analysis"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	buildanalysis "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/analysis"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph/graphview"
-	imageedges "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
-	kubeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/analysis"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
-	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
-	routeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/analysis"
-	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
 )
 
 const ForbiddenListWarning = "Forbidden"
@@ -717,7 +717,7 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 
 func describeProjectAndServer(f formatter, project *projectv1.Project, server string) string {
 	projectName := project.Name
-	displayName := project.Annotations[oapi.OpenShiftDisplayName]
+	displayName := project.Annotations[annotations.OpenShiftDisplayName]
 	if len(displayName) == 0 {
 		displayName = project.Annotations["displayName"]
 	}

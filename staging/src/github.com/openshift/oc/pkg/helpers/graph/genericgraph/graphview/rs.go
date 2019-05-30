@@ -3,10 +3,10 @@ package graphview
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	"github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/analysis"
-	kubenodes "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	"github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	"github.com/openshift/oc/pkg/helpers/graph/kubegraph/analysis"
+	kubenodes "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 type ReplicaSet struct {

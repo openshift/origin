@@ -13,14 +13,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
 
+	appsapi "github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 type objectifier interface {
@@ -195,6 +195,10 @@ func TestHPADCEdges(t *testing.T) {
 	g := osgraph.New()
 	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
 	dcNode := appsgraph.EnsureDeploymentConfigNode(g, dc)
+
+	// TODO get rid of legacyscheme in favor of tailred one
+	utilruntime.Must(appsapi.Install(legacyscheme.Scheme))
+	utilruntime.Must(corev1.AddToScheme(legacyscheme.Scheme))
 
 	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
 

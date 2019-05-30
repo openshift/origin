@@ -37,9 +37,9 @@ import (
 	fakeprojectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1/fake"
 	fakerouteclient "github.com/openshift/client-go/route/clientset/versioned/fake"
 	fakeroutev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/install"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
 func mustParseTime(t string) time.Time {
@@ -508,7 +508,7 @@ func TestProjectStatus(t *testing.T) {
 			if len(test.File) > 0 {
 				// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 				var err error
-				objs, err = readObjectsFromPath("../../../../pkg/oc/lib/graph/genericgraph/test/"+test.File, "example")
+				objs, err = readObjectsFromPath("../../../../staging/src/github.com/openshift/oc/pkg/helpers/graph/genericgraph/test/"+test.File, "example")
 				if err != nil {
 					t.Errorf("%s: unexpected error: %v", k, err)
 				}

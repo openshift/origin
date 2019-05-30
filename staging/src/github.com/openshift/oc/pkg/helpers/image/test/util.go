@@ -17,7 +17,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 const (
@@ -31,6 +30,10 @@ const (
 var (
 	Config1 = "sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749"
 	Config2 = "sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f"
+)
+
+const (
+	managedByOpenShiftAnnotation = "openshift.io/image.managed"
 )
 
 // ImageList turns the given images into ImageList.
@@ -79,7 +82,7 @@ func ImageWithLayers(id, ref string, configName *string, layers ...string) image
 		ObjectMeta: metav1.ObjectMeta{
 			Name: id,
 			Annotations: map[string]string{
-				imageapi.ManagedByOpenShiftAnnotation: "true",
+				managedByOpenShiftAnnotation: "true",
 			},
 		},
 		DockerImageReference:         ref,
@@ -113,7 +116,7 @@ func UnmanagedImage(id, ref string, hasAnnotations bool, annotation, value strin
 	if !hasAnnotations {
 		image.Annotations = nil
 	} else {
-		delete(image.Annotations, imageapi.ManagedByOpenShiftAnnotation)
+		delete(image.Annotations, managedByOpenShiftAnnotation)
 		image.Annotations[annotation] = value
 	}
 	return image

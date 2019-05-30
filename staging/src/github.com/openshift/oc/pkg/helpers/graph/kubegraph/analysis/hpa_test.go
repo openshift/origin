@@ -9,10 +9,10 @@ import (
 	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/openshift/api"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	osgraphtest "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph/test"
-	"github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	osgraphtest "github.com/openshift/oc/pkg/helpers/graph/genericgraph/test"
+	"github.com/openshift/oc/pkg/helpers/graph/kubegraph"
 )
 
 func TestHPAMissingCPUTargetError(t *testing.T) {

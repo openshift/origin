@@ -4,8 +4,8 @@ import (
 	"github.com/gonum/graph"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 // EnsureDeploymentConfigNode adds the provided deployment config to the graph if it does not exist

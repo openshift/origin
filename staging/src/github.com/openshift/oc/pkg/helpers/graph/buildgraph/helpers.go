@@ -6,9 +6,9 @@ import (
 	"github.com/gonum/graph"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
+	buildutil "github.com/openshift/oc/pkg/helpers/build"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 )
 
 // RelevantBuilds returns the lastSuccessful build, lastUnsuccessful build, and a list of active builds
@@ -56,13 +56,13 @@ func belongsToBuildConfig(config *buildv1.BuildConfig, b *buildv1.Build) bool {
 	if b.Labels == nil {
 		return false
 	}
-	if b.Annotations != nil && b.Annotations[buildapi.BuildConfigAnnotation] == config.Name {
+	if b.Annotations != nil && b.Annotations[buildutil.BuildConfigAnnotation] == config.Name {
 		return true
 	}
-	if b.Labels[buildapi.BuildConfigLabel] == config.Name {
+	if b.Labels[buildutil.BuildConfigLabel] == config.Name {
 		return true
 	}
-	if b.Labels[buildapi.BuildConfigLabelDeprecated] == config.Name {
+	if b.Labels[buildutil.BuildConfigLabelDeprecated] == config.Name {
 		return true
 	}
 	return false

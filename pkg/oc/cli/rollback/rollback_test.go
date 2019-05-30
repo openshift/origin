@@ -9,7 +9,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/oc/lib/appstest"
+	appstest "github.com/openshift/oc/pkg/helpers/apps/test"
 )
 
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {

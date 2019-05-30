@@ -1,10 +1,10 @@
 package graphview
 
 import (
-	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	"github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
-	kubenodes "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	"github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	"github.com/openshift/oc/pkg/helpers/graph/kubegraph"
+	kubenodes "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 type StatefulSet struct {

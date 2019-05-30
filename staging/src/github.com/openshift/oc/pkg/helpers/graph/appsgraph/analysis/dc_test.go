@@ -3,11 +3,11 @@ package analysis
 import (
 	"testing"
 
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	osgraphtest "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph/test"
-	imageedges "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph"
+	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	osgraphtest "github.com/openshift/oc/pkg/helpers/graph/genericgraph/test"
+	imageedges "github.com/openshift/oc/pkg/helpers/graph/imagegraph"
 )
 
 func TestMissingImageStreamTag(t *testing.T) {

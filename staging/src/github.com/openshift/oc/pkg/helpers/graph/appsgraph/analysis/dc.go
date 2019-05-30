@@ -8,14 +8,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imageedges "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	buildutil "github.com/openshift/oc/pkg/helpers/build"
+	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imageedges "github.com/openshift/oc/pkg/helpers/graph/imagegraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 const (

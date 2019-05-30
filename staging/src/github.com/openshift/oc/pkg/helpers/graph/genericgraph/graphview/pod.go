@@ -1,8 +1,8 @@
 package graphview
 
 import (
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 type Pod struct {

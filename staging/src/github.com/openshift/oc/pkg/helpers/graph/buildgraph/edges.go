@@ -7,10 +7,10 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	buildutil "github.com/openshift/origin/pkg/build/util"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
+	buildutil "github.com/openshift/oc/pkg/helpers/build"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 )
 
 const (

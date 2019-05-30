@@ -9,10 +9,9 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 // RelevantDeployments returns the active deployment and a list of inactive deployments (in order from newest to oldest)
@@ -55,7 +54,7 @@ func (m RecentDeploymentReferences) Less(i, j int) bool {
 type TemplateImage struct {
 	Image string
 
-	Ref *imageapi.DockerImageReference
+	Ref *reference.DockerImageReference
 
 	From *corev1.ObjectReference
 
@@ -64,7 +63,7 @@ type TemplateImage struct {
 
 // templateImageForContainer takes a container and returns a TemplateImage.
 func templateImageForContainer(container *corev1.Container, triggerFn TriggeredByFunc) (TemplateImage, error) {
-	var ref imageapi.DockerImageReference
+	var ref reference.DockerImageReference
 	if trigger, ok := triggerFn(container); ok {
 		trigger.Image = container.Image
 		trigger.Container = container

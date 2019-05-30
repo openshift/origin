@@ -16,12 +16,12 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	dotutil "github.com/openshift/oc/pkg/helpers/dot"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	buildanalysis "github.com/openshift/oc/pkg/helpers/graph/buildgraph/analysis"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	"github.com/openshift/oc/pkg/helpers/parallel"
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	buildanalysis "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/analysis"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 )
 
 // NotFoundErr is returned when the imageStreamTag (ist) of interest cannot

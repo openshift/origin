@@ -10,9 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	nodes "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
+	buildutil "github.com/openshift/oc/pkg/helpers/build"
+	nodes "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 )
 
 type objectifier interface {
@@ -31,8 +31,8 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 		b := &buildv1.Build{}
 		b.Namespace = namespace
 		b.Name = "the-build"
-		b.Labels = map[string]string{buildapi.BuildConfigLabel: "the-bc"}
-		b.Annotations = map[string]string{buildapi.BuildConfigAnnotation: "the-bc"}
+		b.Labels = map[string]string{buildutil.BuildConfigLabel: "the-bc"}
+		b.Annotations = map[string]string{buildutil.BuildConfigAnnotation: "the-bc"}
 		nodes.EnsureBuildNode(g, b)
 	}
 

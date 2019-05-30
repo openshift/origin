@@ -13,13 +13,12 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imageedges "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imageedges "github.com/openshift/oc/pkg/helpers/graph/imagegraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
+	imageutil "github.com/openshift/oc/pkg/helpers/image"
 )
 
 const (
@@ -311,7 +310,7 @@ func getImageStreamImageMarker(g osgraph.Graph, f osgraph.Namer, bcNode graph.No
 // getImageStreamImageSuggestion will return the appropriate marker Suggestion for when a BuildConfig is missing its input ImageStreamImage
 func getImageStreamImageSuggestion(imageID string, imageStream *imagev1.ImageStream) osgraph.Suggestion {
 	// check the images stream to see if any import images are in flight or have failed
-	annotation, ok := imageStream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
+	annotation, ok := imageStream.Annotations[imageutil.DockerImageRepositoryCheckAnnotation]
 	if !ok {
 		return osgraph.Suggestion(fmt.Sprintf("`oc import-image %s --from=` where `--from` specifies an image with hexadecimal ID %s", imageStream.GetName(), imageID))
 	}

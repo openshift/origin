@@ -3,9 +3,9 @@ package analysis
 import (
 	"testing"
 
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	osgraphtest "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph/test"
-	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	osgraphtest "github.com/openshift/oc/pkg/helpers/graph/genericgraph/test"
+	routeedges "github.com/openshift/oc/pkg/helpers/graph/routegraph"
 )
 
 func TestPortMappingIssues(t *testing.T) {

@@ -17,13 +17,13 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
-	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
+	routegraph "github.com/openshift/oc/pkg/helpers/graph/routegraph/nodes"
+	"github.com/openshift/oc/pkg/helpers/legacy"
 )
 
 // typeToEnsureMethod stores types to Ensure*Node methods

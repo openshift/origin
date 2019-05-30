@@ -8,7 +8,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 )
 
 func EnsurePodNode(g osgraph.MutableUniqueGraph, pod *corev1.Pod) *PodNode {

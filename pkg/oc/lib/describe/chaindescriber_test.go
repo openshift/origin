@@ -14,7 +14,7 @@ import (
 	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildclientscheme "github.com/openshift/client-go/build/clientset/versioned/scheme"
 	fakebuildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1/fake"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 )
 
 func TestChainDescriber(t *testing.T) {
@@ -39,7 +39,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "example",
 			name:             "ruby-22-centos7",
 			tag:              "latest",
-			path:             "../graph/genericgraph/test/circular.yaml",
+			path:             "../../../../staging/src/github.com/openshift/oc/pkg/helpers/graph/genericgraph/test/circular.yaml",
 			humanReadable: map[string]int{
 				"Cycle detected in build configurations: bc/ruby-22-centos7 -> istag/ruby-hello-world:latest -> bc/ruby-hello-world -> istag/ruby-something-else:latest -> bc/ruby-something-else -> istag/ruby-22-centos7:latest -> bc/ruby-22-centos7": 1,
 			},

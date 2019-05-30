@@ -1,10 +1,10 @@
 package graphview
 
 import (
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubeedges "github.com/openshift/oc/pkg/helpers/graph/kubegraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 type Deployment struct {

@@ -5,8 +5,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 // RelevantDeployments returns the active deployment and a list of inactive deployments (in order from newest to oldest)

@@ -5,11 +5,11 @@ import (
 
 	"github.com/gonum/graph"
 
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imageedges "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imageedges "github.com/openshift/oc/pkg/helpers/graph/imagegraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 )
 
 // ImagePipeline represents a build, its output, and any inputs. The input

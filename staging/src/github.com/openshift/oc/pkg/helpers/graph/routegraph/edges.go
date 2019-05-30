@@ -5,9 +5,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
-	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
+	routegraph "github.com/openshift/oc/pkg/helpers/graph/routegraph/nodes"
 )
 
 const (

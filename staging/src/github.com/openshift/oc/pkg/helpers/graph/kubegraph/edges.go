@@ -18,12 +18,12 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	appsnodes "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	"github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	appsnodes "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
+	"github.com/openshift/oc/pkg/helpers/legacy"
 )
 
 const (

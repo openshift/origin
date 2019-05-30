@@ -12,16 +12,16 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
-	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
-	buildedges "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph"
-	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
-	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	osgraphtest "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph/test"
-	imageedges "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph"
-	kubeedges "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph"
-	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
+	buildutil "github.com/openshift/oc/pkg/helpers/build"
+	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
+	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
+	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
+	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	osgraphtest "github.com/openshift/oc/pkg/helpers/graph/genericgraph/test"
+	imageedges "github.com/openshift/oc/pkg/helpers/graph/imagegraph"
+	kubeedges "github.com/openshift/oc/pkg/helpers/graph/kubegraph"
+	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 )
 
 func TestServiceGroup(t *testing.T) {
@@ -192,7 +192,7 @@ func TestGraph(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-1-abc",
-				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildutil.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-10 * time.Second)),
 			},
 			Status: buildv1.BuildStatus{
@@ -202,7 +202,7 @@ func TestGraph(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-2-abc",
-				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildutil.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-5 * time.Second)),
 			},
 			Status: buildv1.BuildStatus{
@@ -212,7 +212,7 @@ func TestGraph(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-3-abc",
-				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildutil.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-15 * time.Second)),
 			},
 			Status: buildv1.BuildStatus{
