@@ -19,7 +19,7 @@ package ports
 const (
 	// ProxyStatusPort is the default port for the proxy metrics server.
 	// May be overridden by a flag at startup.
-	ProxyStatusPort = 10249
+	ProxyStatusPort = 9101
 	// KubeletPort is the default port for the kubelet server on each host machine.
 	// May be overridden by a flag at startup.
 	KubeletPort = 10250

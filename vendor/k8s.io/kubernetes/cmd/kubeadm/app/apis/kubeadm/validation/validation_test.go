@@ -432,7 +432,7 @@ func TestValidateInitConfiguration(t *testing.T) {
 						KubeProxy: &kubeproxyconfig.KubeProxyConfiguration{
 							BindAddress:        "192.168.59.103",
 							HealthzBindAddress: "0.0.0.0:10256",
-							MetricsBindAddress: "127.0.0.1:10249",
+							MetricsBindAddress: "127.0.0.1:9101",
 							ClusterCIDR:        "192.168.59.0/24",
 							UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
 							ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},
@@ -479,7 +479,7 @@ func TestValidateInitConfiguration(t *testing.T) {
 						KubeProxy: &kubeproxyconfig.KubeProxyConfiguration{
 							BindAddress:        "192.168.59.103",
 							HealthzBindAddress: "0.0.0.0:10256",
-							MetricsBindAddress: "127.0.0.1:10249",
+							MetricsBindAddress: "127.0.0.1:9101",
 							ClusterCIDR:        "192.168.59.0/24",
 							UDPIdleTimeout:     metav1.Duration{Duration: 1 * time.Second},
 							ConfigSyncPeriod:   metav1.Duration{Duration: 1 * time.Second},

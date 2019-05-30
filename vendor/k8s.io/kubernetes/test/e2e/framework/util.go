@@ -486,7 +486,7 @@ func ProxyMode(f *Framework) (string, error) {
 	f.PodClient().CreateSync(pod)
 	defer f.PodClient().DeleteSync(pod.Name, &metav1.DeleteOptions{}, DefaultPodDeletionTimeout)
 
-	cmd := "curl -q -s --connect-timeout 1 http://localhost:10249/proxyMode"
+	cmd := "curl -q -s --connect-timeout 1 http://localhost:9101/proxyMode"
 	stdout, err := RunHostCmd(pod.Namespace, pod.Name, cmd)
 	if err != nil {
 		return "", err

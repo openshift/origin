@@ -109,7 +109,7 @@ type KubeProxyConfiguration struct {
 	// defaulting to 0.0.0.0:10256
 	HealthzBindAddress string
 	// metricsBindAddress is the IP address and port for the metrics server to serve on,
-	// defaulting to 127.0.0.1:10249 (set to 0.0.0.0 for all interfaces)
+	// defaulting to 127.0.0.1:9101 (set to 0.0.0.0 for all interfaces)
 	MetricsBindAddress string
 	// enableProfiling enables profiling via web interface on /debug/pprof handler.
 	// Profiling handlers will be handled by metrics server.

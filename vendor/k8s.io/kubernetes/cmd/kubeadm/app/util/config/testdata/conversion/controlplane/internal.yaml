@@ -60,7 +60,7 @@ ComponentConfigs:
       MinSyncPeriod: 0s
       Scheduler: ""
       SyncPeriod: 30s
-    MetricsBindAddress: 127.0.0.1:10249
+    MetricsBindAddress: 127.0.0.1:9101
     Mode: iptables
     NodePortAddresses: null
     OOMScoreAdj: -999
