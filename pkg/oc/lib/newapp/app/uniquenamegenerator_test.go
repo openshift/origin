@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
-
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+
+	"github.com/openshift/library-go/pkg/build/naming"
 )
 
 func TestUniqueNameGeneratorNameRequired(t *testing.T) {
@@ -54,8 +54,8 @@ func TestUniqueNameGeneratorEnsureValidName(t *testing.T) {
 			name:  "long name",
 			input: []string{longName, longName, longName},
 			expected: []string{longName[:kvalidation.DNS1123SubdomainMaxLength],
-				apihelpers.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "1", kvalidation.DNS1123SubdomainMaxLength),
-				apihelpers.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "2", kvalidation.DNS1123SubdomainMaxLength),
+				naming.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "1", kvalidation.DNS1123SubdomainMaxLength),
+				naming.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "2", kvalidation.DNS1123SubdomainMaxLength),
 			},
 		},
 	}

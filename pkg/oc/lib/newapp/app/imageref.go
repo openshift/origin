@@ -17,7 +17,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
@@ -422,7 +422,7 @@ func (r *ImageRef) DeployableContainer() (container *corev1.Container, triggers 
 
 		// Create volume mounts with names based on container name
 		maxDigits := len(fmt.Sprintf("%d", len(r.Info.Config.Volumes)))
-		baseName := apihelpers.GetName(container.Name, volumeNameInfix, kvalidation.LabelValueMaxLength-maxDigits-1)
+		baseName := naming.GetName(container.Name, volumeNameInfix, kvalidation.LabelValueMaxLength-maxDigits-1)
 		i := 1
 		for volume := range r.Info.Config.Volumes {
 			r.HasEmptyDir = true

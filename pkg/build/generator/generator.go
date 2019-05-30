@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +16,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
@@ -26,7 +25,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -820,7 +819,7 @@ func resolveError(kind string, namespace string, name string, err error) error {
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
 func getNextBuildName(buildConfig *buildv1.BuildConfig) string {
 	buildConfig.Status.LastVersion++
-	return apihelpers.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
+	return naming.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
 }
 
 // updateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
@@ -910,7 +909,7 @@ func getNextBuildNameFromBuild(build *buildv1.Build, buildConfig *buildv1.BuildC
 	if len(suffix) > 10 {
 		suffix = suffix[len(suffix)-10:]
 	}
-	return apihelpers.GetName(buildName, suffix, kvalidation.DNS1123SubdomainMaxLength)
+	return naming.GetName(buildName, suffix, kvalidation.DNS1123SubdomainMaxLength)
 
 }
 

@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/klog"
-
 	v1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,11 +19,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 )
 
 const (
@@ -530,12 +529,12 @@ func getGeneratedDockercfgSecretNames(serviceAccount *v1.ServiceAccount) (sets.S
 }
 
 func getDockercfgSecretNamePrefix(serviceAccountName string) string {
-	return apihelpers.GetName(serviceAccountName, "dockercfg-", maxSecretPrefixNameLength)
+	return naming.GetName(serviceAccountName, "dockercfg-", maxSecretPrefixNameLength)
 }
 
 // getTokenSecretNamePrefix creates the prefix used for the generated SA token secret. This is compatible with kube up until
 // long names, at which point we hash the SA name and leave the "token-" intact.  Upstream clips the value and generates a random
 // string.
 func getTokenSecretNamePrefix(serviceAccountName string) string {
-	return apihelpers.GetName(serviceAccountName, "token-", maxSecretPrefixNameLength)
+	return naming.GetName(serviceAccountName, "token-", maxSecretPrefixNameLength)
 }

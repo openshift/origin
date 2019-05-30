@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog"
+
+	"github.com/openshift/library-go/pkg/build/naming"
 )
 
 // the opposite of kvalidation.DNS1123LabelFmt
@@ -80,6 +81,6 @@ func (ung *uniqueNameGenerator) ensureValidName(name string) (string, error) {
 	}
 	count++
 	names[name] = count
-	newName := apihelpers.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
+	newName := naming.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
 	return newName, nil
 }

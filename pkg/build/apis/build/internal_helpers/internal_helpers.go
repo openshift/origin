@@ -3,7 +3,7 @@ package internal_helpers
 import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
@@ -49,7 +49,7 @@ func IsTerminalPhase(p buildapi.BuildPhase) bool {
 // GetBuildPodName returns name of the build pod.
 // DEPRECATED: Reserved for apiserver, do not use outside of it
 func GetBuildPodName(build *buildapi.Build) string {
-	return apihelpers.GetPodName(build.Name, buildPodSuffix)
+	return naming.GetPodName(build.Name, buildPodSuffix)
 }
 
 // DEPRECATED: Reserved for apiserver, do not use outside of it

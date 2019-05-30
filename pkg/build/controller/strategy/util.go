@@ -8,15 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/apis/policy"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/apis/policy"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
@@ -126,7 +125,7 @@ func mountSecretVolume(pod *corev1.Pod, container *corev1.Container, secretName,
 // 2. EmptyDir
 // 3. Secret
 func mountVolume(pod *corev1.Pod, container *corev1.Container, objName, mountPath, volumeSuffix string, fsType policy.FSType) {
-	volumeName := apihelpers.GetName(objName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
+	volumeName := naming.GetName(objName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
 
 	// coerce from RFC1123 subdomain to RFC1123 label.
 	volumeName = strings.Replace(volumeName, ".", "-", -1)

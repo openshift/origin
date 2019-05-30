@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/build/naming"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +24,6 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
@@ -245,7 +246,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      naming.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
 						appsv1.DeployerPodForDeploymentLabel: deploymentName,
@@ -322,7 +323,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      naming.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
 						"openshift.io/deployer-pod.type":     "hook",
@@ -383,7 +384,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      naming.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
 						"openshift.io/deployer-pod.type":     "hook",
@@ -451,7 +452,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      apihelpers.GetPodName(deploymentName, "hook"),
+					Name:      naming.GetPodName(deploymentName, "hook"),
 					Namespace: "test",
 					Labels: map[string]string{
 						deploymentPodTypeLabel:               "hook",

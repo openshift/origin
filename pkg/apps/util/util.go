@@ -25,7 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 )
 
 // rcMapper pins preferred version to v1 and scale kind to autoscaling/v1 Scale
@@ -110,7 +110,7 @@ func NewReplicationControllerScaleClient(client kubernetes.Interface) scaleclien
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment string) string {
-	return apihelpers.GetPodName(deployment, "deploy")
+	return naming.GetPodName(deployment, "deploy")
 }
 
 // NewDeploymentCondition creates a new deployment condition.

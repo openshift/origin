@@ -5,17 +5,16 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	v1lister "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 )
 
@@ -61,7 +60,7 @@ func IsFatalGeneratorError(err error) bool {
 
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildv1.Build) string {
-	return apihelpers.GetPodName(build.Name, buildPodSuffix)
+	return naming.GetPodName(build.Name, buildPodSuffix)
 }
 
 // IsBuildComplete returns whether the provided build is complete or not
