@@ -17,10 +17,17 @@ const (
 type ContextType struct {
 	ClusterLoader struct {
 		Cleanup    bool
+		Threads    int
 		Projects   []ClusterLoaderType
 		Sync       SyncObjectType  `yaml:",omitempty"`
 		TuningSets []TuningSetType `yaml:",omitempty"`
 	}
+}
+
+type ProjectMeta struct {
+	Counter int
+	ClusterLoaderType
+	ViperConfig string
 }
 
 // ClusterLoaderType struct only used for Cluster Loader test config
