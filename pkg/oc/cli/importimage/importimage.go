@@ -18,6 +18,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
@@ -228,7 +229,7 @@ func (o *ImportImageOptions) Run() error {
 					return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
 				}
 
-				info, err := describe.DescribeImage(&internalImage, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
+				info, err := describe.DescribeImage(&internalImage, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
 				if err != nil {
 					fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 				} else {
@@ -248,7 +249,7 @@ func (o *ImportImageOptions) Run() error {
 				return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
 			}
 
-			info, err := describe.DescribeImage(&internalImage, imageapi.JoinImageStreamTag(stream.Name, image.Tag))
+			info, err := describe.DescribeImage(&internalImage, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
 			if err != nil {
 				fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 			} else {
@@ -608,7 +609,7 @@ func followTagReferenceV1(stream *imagev1.ImageStream, tag string) (finalTag str
 		// The reference needs to be followed with two format patterns:
 		// a) sameis:sometag and b) sometag
 		if strings.Contains(tagRef.From.Name, ":") {
-			name, tagref, ok := imageapi.SplitImageStreamTag(tagRef.From.Name)
+			name, tagref, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
 			if !ok {
 				return tag, nil, multiple, imageapi.ErrInvalidReference
 			}

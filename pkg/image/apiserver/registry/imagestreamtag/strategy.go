@@ -12,6 +12,7 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -39,7 +40,7 @@ func (s Strategy) NamespaceScoped() bool {
 func (s Strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	if newIST.Tag != nil && len(newIST.Tag.Name) == 0 {
-		_, tag, _ := imageapi.SplitImageStreamTag(newIST.Name)
+		_, tag, _ := imageutil.SplitImageStreamTag(newIST.Name)
 		newIST.Tag.Name = tag
 	}
 	newIST.Conditions = nil

@@ -24,7 +24,7 @@ import (
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
-
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -156,7 +156,7 @@ func processTriggers(config *appsapi.DeploymentConfig, is images.ImageStreamsGet
 		}
 
 		// Tag references are already validated
-		name, tag, _ := imageapi.SplitImageStreamTag(params.From.Name)
+		name, tag, _ := imageutil.SplitImageStreamTag(params.From.Name)
 		stream, err := is.ImageStreams(params.From.Namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {

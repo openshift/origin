@@ -5,9 +5,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	newer "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func Convert_v1_BuildConfig_To_build_BuildConfig(in *v1.BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
@@ -42,7 +42,7 @@ func Convert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(in *v1.SourceBu
 	switch in.From.Kind {
 	case "ImageStream":
 		out.From.Kind = "ImageStreamTag"
-		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+		out.From.Name = imageutil.JoinImageStreamTag(in.From.Name, "")
 	}
 	return nil
 }
@@ -55,7 +55,7 @@ func Convert_v1_DockerBuildStrategy_To_build_DockerBuildStrategy(in *v1.DockerBu
 		switch in.From.Kind {
 		case "ImageStream":
 			out.From.Kind = "ImageStreamTag"
-			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+			out.From.Name = imageutil.JoinImageStreamTag(in.From.Name, "")
 		}
 	}
 	return nil
@@ -68,7 +68,7 @@ func Convert_v1_CustomBuildStrategy_To_build_CustomBuildStrategy(in *v1.CustomBu
 	switch in.From.Kind {
 	case "ImageStream":
 		out.From.Kind = "ImageStreamTag"
-		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+		out.From.Name = imageutil.JoinImageStreamTag(in.From.Name, "")
 	}
 	return nil
 }
@@ -79,7 +79,7 @@ func Convert_v1_BuildOutput_To_build_BuildOutput(in *v1.BuildOutput, out *newer.
 	}
 	if in.To != nil && (in.To.Kind == "ImageStream" || len(in.To.Kind) == 0) {
 		out.To.Kind = "ImageStreamTag"
-		out.To.Name = imageapi.JoinImageStreamTag(in.To.Name, "")
+		out.To.Name = imageutil.JoinImageStreamTag(in.To.Name, "")
 	}
 	return nil
 }

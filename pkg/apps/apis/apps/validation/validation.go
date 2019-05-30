@@ -16,9 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageval "github.com/openshift/origin/pkg/image/apis/image/validation"
 )
 
@@ -481,7 +481,7 @@ func validateImageChangeParams(params *appsapi.DeploymentTriggerImageChangeParam
 }
 
 func validateImageStreamTagName(istag string) error {
-	name, _, ok := imageapi.SplitImageStreamTag(istag)
+	name, _, ok := imageutil.SplitImageStreamTag(istag)
 	if !ok {
 		return fmt.Errorf("must be in the form of <name>:<tag>")
 	}

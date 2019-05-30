@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypedclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -143,7 +144,7 @@ var (
 // image reference
 func GetImageLabels(c imagetypedclientset.ImageStreamImageInterface, imageRepoName, imageRef string) (map[string]string, error) {
 	_, imageID, err := imageapi.ParseImageStreamImageName(imageRef)
-	image, err := c.Get(imageapi.JoinImageStreamImage(imageRepoName, imageID), metav1.GetOptions{})
+	image, err := c.Get(imageutil.JoinImageStreamImage(imageRepoName, imageID), metav1.GetOptions{})
 
 	if err != nil {
 		return map[string]string{}, err

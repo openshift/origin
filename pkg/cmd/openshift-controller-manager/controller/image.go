@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	imagesignaturecontroller "github.com/openshift/origin/pkg/image/controller/signature"
@@ -63,28 +64,28 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 		Informer:  ctx.KubernetesInformers.Apps().V1().Deployments().Informer(),
 		Store:     ctx.KubernetesInformers.Apps().V1().Deployments().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+		Reactor:   &triggerutil.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "apps", Resource: "daemonsets"},
 		Informer:  ctx.KubernetesInformers.Apps().V1().DaemonSets().Informer(),
 		Store:     ctx.KubernetesInformers.Apps().V1().DaemonSets().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+		Reactor:   &triggerutil.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "apps", Resource: "statefulsets"},
 		Informer:  ctx.KubernetesInformers.Apps().V1beta1().StatefulSets().Informer(),
 		Store:     ctx.KubernetesInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+		Reactor:   &triggerutil.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "batch", Resource: "cronjobs"},
 		Informer:  ctx.KubernetesInformers.Batch().V1beta1().CronJobs().Informer(),
 		Store:     ctx.KubernetesInformers.Batch().V1beta1().CronJobs().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+		Reactor:   &triggerutil.AnnotationReactor{Updater: updater},
 	})
 
 	go imagetriggercontroller.NewTriggerController(

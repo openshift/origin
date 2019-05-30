@@ -24,9 +24,9 @@ import (
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsedges "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -269,7 +269,7 @@ func printTriggers(triggers []appsv1.DeploymentTriggerPolicy, w *tabwriter.Write
 			printLabels = append(printLabels, "Config")
 		case appsv1.DeploymentTriggerOnImageChange:
 			if len(t.ImageChangeParams.From.Name) > 0 {
-				name, tag, _ := imageapi.SplitImageStreamTag(t.ImageChangeParams.From.Name)
+				name, tag, _ := imageutil.SplitImageStreamTag(t.ImageChangeParams.From.Name)
 				printLabels = append(printLabels, fmt.Sprintf("Image(%s@%s, auto=%v)", name, tag, t.ImageChangeParams.Automatic))
 			}
 		}

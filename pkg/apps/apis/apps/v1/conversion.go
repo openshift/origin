@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openshift/api/apps/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	newer "github.com/openshift/origin/pkg/apps/apis/apps"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in *v1.DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
@@ -21,7 +21,7 @@ func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImag
 	case "ImageStream", "ImageRepository":
 		out.From.Kind = "ImageStreamTag"
 		if !strings.Contains(out.From.Name, ":") {
-			out.From.Name = imageapi.JoinImageStreamTag(out.From.Name, imageapi.DefaultImageTag)
+			out.From.Name = imageutil.JoinImageStreamTag(out.From.Name, imageutil.DefaultImageTag)
 		}
 	default:
 		// Will be handled by validation
@@ -38,7 +38,7 @@ func Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImag
 	case "ImageStream", "ImageRepository":
 		out.From.Kind = "ImageStreamTag"
 		if !strings.Contains(out.From.Name, ":") {
-			out.From.Name = imageapi.JoinImageStreamTag(out.From.Name, imageapi.DefaultImageTag)
+			out.From.Name = imageutil.JoinImageStreamTag(out.From.Name, imageutil.DefaultImageTag)
 		}
 	default:
 		// Will be handled by validation

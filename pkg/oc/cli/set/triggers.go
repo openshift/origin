@@ -34,9 +34,8 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
-	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
-	"github.com/openshift/origin/pkg/image/trigger/annotations"
+	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
 
@@ -576,17 +575,17 @@ func NewAnnotationTriggers(obj runtime.Object) (*TriggerDefinition, error) {
 		t.ConfigChange = !typed.Spec.Paused
 	}
 
-	out, ok := m.GetAnnotations()[triggerapi.TriggerAnnotationKey]
+	out, ok := m.GetAnnotations()[triggerutil.TriggerAnnotationKey]
 	if !ok {
 		return t, nil
 	}
-	triggers := []triggerapi.ObjectFieldTrigger{}
+	triggers := []triggerutil.ObjectFieldTrigger{}
 	if err := json.Unmarshal([]byte(out), &triggers); err != nil {
 		return nil, err
 	}
 
 	for _, trigger := range triggers {
-		container, remainder, err := annotations.ContainerForObjectFieldPath(obj, trigger.FieldPath)
+		container, remainder, err := triggerutil.ContainerForObjectFieldPath(obj, trigger.FieldPath)
 		if err != nil || remainder != "image" {
 			continue
 		}
@@ -836,7 +835,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			allNames.Insert(container.Name)
 		}
 		alreadyTriggered := sets.NewString()
-		var triggers []triggerapi.ObjectFieldTrigger
+		var triggers []triggerutil.ObjectFieldTrigger
 		klog.V(4).Infof("calculated triggers: %#v", t.ImageChange)
 		for _, trigger := range t.ImageChange {
 			if len(trigger.Names) == 0 {
@@ -859,8 +858,8 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 				ns = ""
 			}
 			for _, name := range trigger.Names {
-				triggers = append(triggers, triggerapi.ObjectFieldTrigger{
-					From: triggerapi.ObjectReference{
+				triggers = append(triggers, triggerutil.ObjectFieldTrigger{
+					From: triggerutil.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Name:      trigger.From,
 						Namespace: ns,
@@ -878,7 +877,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		if a == nil {
 			a = make(map[string]string)
 		}
-		a[triggerapi.TriggerAnnotationKey] = string(out)
+		a[triggerutil.TriggerAnnotationKey] = string(out)
 		m.SetAnnotations(a)
 
 		switch typed := obj.(type) {

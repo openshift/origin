@@ -47,12 +47,13 @@ import (
 	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/library-go/pkg/git"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 
 	"github.com/openshift/oc/pkg/helpers/bulk"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
@@ -97,8 +98,8 @@ var (
 	  # Create an application based on the source code in the current git repository (with a public remote) and a Docker image
 	  %[1]s %[2]s . --docker-image=repo/langimage
 
-	  # Create an application myapp with Docker based build strategy expecting binary input 
-	  %[1]s %[2]s  --strategy=docker --binary --name myapp 
+	  # Create an application myapp with Docker based build strategy expecting binary input
+	  %[1]s %[2]s  --strategy=docker --binary --name myapp
 
 	  # Create a Ruby application based on the provided [image]~[source code] combination
 	  %[1]s %[2]s centos/ruby-25-centos7~https://github.com/sclorg/ruby-ex.git
@@ -1146,8 +1147,8 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 			if len(imageStream.Status.Tags) > 0 {
 				set := sets.NewString()
 				for _, tag := range imageStream.Status.Tags {
-					if refTag, ok := imageutil.SpecHasTag(imageStream, tag.Tag); ok {
-						if !imageutil.HasAnnotationTag(&refTag, imageapi.TagReferenceAnnotationTagHidden) {
+					if refTag, ok := imageutilinternal.SpecHasTag(imageStream, tag.Tag); ok {
+						if !imageutilinternal.HasAnnotationTag(&refTag, imageapi.TagReferenceAnnotationTagHidden) {
 							set.Insert(tag.Tag)
 						}
 					} else {
@@ -1176,7 +1177,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 		for _, match := range dockerImages {
 			image := match.DockerImage
 
-			name, tag, ok := imageapi.SplitImageStreamTag(match.Name)
+			name, tag, ok := imageutil.SplitImageStreamTag(match.Name)
 			if !ok {
 				name = match.Name
 				tag = match.ImageTag

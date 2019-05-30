@@ -7,7 +7,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 
@@ -31,7 +32,7 @@ func triggerCacheIndexer(obj interface{}) ([]string, error) {
 		if t.From.Kind != "ImageStreamTag" || len(t.From.APIVersion) != 0 || t.Paused {
 			continue
 		}
-		name, _, ok := imageapi.SplitImageStreamTag(t.From.Name)
+		name, _, ok := imageutil.SplitImageStreamTag(t.From.Name)
 		if !ok {
 			continue
 		}
@@ -47,7 +48,7 @@ func triggerCacheIndexer(obj interface{}) ([]string, error) {
 // ProcessEvents returns a ResourceEventHandler suitable for use with an Informer to maintain the cache.
 // indexer is responsible for calculating triggers and any pending changes. Operations are added to
 // the operation queue if a change is required.
-func ProcessEvents(c cache.ThreadSafeStore, indexer trigger.Indexer, queue workqueue.RateLimitingInterface, tags trigger.TagRetriever) cache.ResourceEventHandler {
+func ProcessEvents(c cache.ThreadSafeStore, indexer trigger.Indexer, queue workqueue.RateLimitingInterface, tags triggerutil.TagRetriever) cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, entry, _, err := indexer.Index(obj, nil)

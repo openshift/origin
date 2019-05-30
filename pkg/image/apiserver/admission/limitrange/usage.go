@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -171,7 +172,7 @@ func getImageReferenceForObjectReference(namespace string, objRef *kapi.ObjectRe
 		// <namespace>/<isname>:<tag>
 		return cache.MetaNamespaceKeyFunc(&metav1.ObjectMeta{
 			Namespace: ns,
-			Name:      imageapi.JoinImageStreamTag(isName, tag),
+			Name:      imageutil.JoinImageStreamTag(isName, tag),
 		})
 	}
 

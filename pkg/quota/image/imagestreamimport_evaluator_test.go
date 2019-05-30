@@ -10,7 +10,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
 
@@ -51,7 +51,7 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 					From: corev1.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "test",
-						Name:      imageapi.JoinImageStreamImage("someis", imagetest.BaseImageWith1LayerDigest),
+						Name:      imageutil.JoinImageStreamImage("someis", imagetest.BaseImageWith1LayerDigest),
 					},
 				},
 			},

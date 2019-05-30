@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
@@ -29,7 +29,7 @@ func EnsureAllImageStreamTagNodes(g osgraph.MutableUniqueGraph, is *imagev1.Imag
 	for _, tag := range is.Status.Tags {
 		ist := &imagev1.ImageStreamTag{}
 		ist.Namespace = is.Namespace
-		ist.Name = imageapi.JoinImageStreamTag(is.Name, tag.Tag)
+		ist.Name = imageutil.JoinImageStreamTag(is.Name, tag.Tag)
 
 		istNode := EnsureImageStreamTagNode(g, ist)
 		ret = append(ret, istNode)
@@ -56,7 +56,7 @@ func EnsureDockerRepositoryNode(g osgraph.MutableUniqueGraph, name, tag string) 
 		}
 		ref = ref.DockerClientDefaults()
 	} else {
-		ref = imageapi.DockerImageReference{Name: name}
+		ref = reference.DockerImageReference{Name: name}
 	}
 
 	return osgraph.EnsureUnique(g,
@@ -73,7 +73,7 @@ func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imagev1.ImageStr
 	return &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name:      imageapi.JoinImageStreamTag(name, tag),
+			Name:      imageutil.JoinImageStreamTag(name, tag),
 		},
 	}
 }

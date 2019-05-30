@@ -42,8 +42,9 @@ import (
 	configv1lister "github.com/openshift/client-go/config/listers/config/v1"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/api/imagereferencemutators"
+	"github.com/openshift/library-go/pkg/image/referencemutator"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
@@ -53,8 +54,7 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -738,7 +738,7 @@ var (
 // mutator that need to be resolved prior to the resource being accepted and returns
 // them as an array of "namespace/name" strings. If any references are invalid, an error
 // is returned.
-func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
+func unresolvedImageStreamReferences(m referencemutator.ImageReferenceMutator, defaultNamespace string) ([]string, error) {
 	var streams []string
 	fn := func(ref *corev1.ObjectReference) error {
 		switch ref.Kind {
@@ -747,7 +747,7 @@ func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMuta
 			if len(namespace) == 0 {
 				namespace = defaultNamespace
 			}
-			name, _, ok := imageapi.SplitImageStreamImage(ref.Name)
+			name, _, ok := imageutil.SplitImageStreamTag(ref.Name)
 			if !ok {
 				return errInvalidImageReferences
 			}
@@ -757,7 +757,7 @@ func unresolvedImageStreamReferences(m imagereferencemutators.ImageReferenceMuta
 			if len(namespace) == 0 {
 				namespace = defaultNamespace
 			}
-			name, _, ok := imageapi.SplitImageStreamTag(ref.Name)
+			name, _, ok := imageutil.SplitImageStreamTag(ref.Name)
 			if !ok {
 				return errInvalidImageReferences
 			}
@@ -787,15 +787,15 @@ func resolveImageStreamLocation(ref *corev1.ObjectReference, lister imagev1liste
 	switch ref.Kind {
 	case "ImageStreamImage":
 		var ok bool
-		name, _, ok = imageapi.SplitImageStreamImage(ref.Name)
+		name, _, ok = imageutil.SplitImageStreamTag(ref.Name)
 		if !ok {
 			return "", errInvalidImageReferences
 		}
 		// for backwards compatibility, image stream images will be resolved to the :latest tag
-		tag = imageapi.DefaultImageTag
+		tag = imageutil.DefaultImageTag
 	case "ImageStreamTag":
 		var ok bool
-		name, tag, ok = imageapi.SplitImageStreamTag(ref.Name)
+		name, tag, ok = imageutil.SplitImageStreamTag(ref.Name)
 		if !ok {
 			return "", errInvalidImageReferences
 		}
@@ -831,7 +831,7 @@ func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagev1lister.I
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
 	}
-	name, imageID, ok := imageapi.SplitImageStreamImage(ref.Name)
+	name, imageID, ok := imageutil.SplitImageStreamTag(ref.Name)
 	if !ok {
 		return nil, errInvalidImageReferences
 	}
@@ -842,7 +842,7 @@ func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagev1lister.I
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	event, err := imageutil.ResolveImageID(stream, imageID)
+	event, err := imageutilinternal.ResolveImageID(stream, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -857,7 +857,7 @@ func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.Ima
 	if len(namespace) == 0 {
 		namespace = defaultNamespace
 	}
-	name, tag, ok := imageapi.SplitImageStreamTag(ref.Name)
+	name, tag, ok := imageutil.SplitImageStreamTag(ref.Name)
 	if !ok {
 		return nil, errInvalidImageReferences
 	}
@@ -868,7 +868,7 @@ func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.Ima
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	if newRef, ok := imageutil.ResolveLatestTaggedImage(stream, tag); ok {
+	if newRef, ok := imageutilinternal.ResolveLatestTaggedImage(stream, tag); ok {
 		return &corev1.ObjectReference{Kind: "DockerImage", Name: newRef}, nil
 	}
 	return nil, fmt.Errorf("the referenced image stream tag %s/%s does not exist", namespace, ref.Name)
@@ -897,7 +897,7 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildv1.Buil
 // resolveImageReferences resolves references to Docker images computed from the build.Spec. It will update
 // the output spec as well if it has not already been updated.
 func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *buildUpdate) error {
-	m := imagereferencemutators.NewBuildMutator(build)
+	m := referencemutator.NewBuildMutator(build)
 
 	// get a list of all unresolved references to add to the cache
 	streams, err := unresolvedImageStreamReferences(m, build.Namespace)

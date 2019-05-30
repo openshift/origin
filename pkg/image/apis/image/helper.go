@@ -17,6 +17,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/internal/digest"
 )
@@ -93,51 +94,13 @@ func ParseImageStreamTagName(istag string) (name string, tag string, err error) 
 	return
 }
 
-// SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
-// It returns false if the tag was not properly specified in the name.
-func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
-	parts := strings.SplitN(nameAndTag, ":", 2)
-	name = parts[0]
-	if len(parts) > 1 {
-		tag = parts[1]
-	}
-	if len(tag) == 0 {
-		tag = DefaultImageTag
-	}
-	return name, tag, len(parts) == 2
-}
-
-// SplitImageStreamImage turns the name of an ImageStreamImage into Name and ID.
-// It returns false if the ID was not properly specified in the name.
-func SplitImageStreamImage(nameAndID string) (name string, id string, ok bool) {
-	parts := strings.SplitN(nameAndID, "@", 2)
-	name = parts[0]
-	if len(parts) > 1 {
-		id = parts[1]
-	}
-	return name, id, len(parts) == 2
-}
-
-// JoinImageStreamTag turns a name and tag into the name of an ImageStreamTag
-func JoinImageStreamTag(name, tag string) string {
-	if len(tag) == 0 {
-		tag = DefaultImageTag
-	}
-	return fmt.Sprintf("%s:%s", name, tag)
-}
-
-// JoinImageStreamImage creates a name for image stream image object from an image stream name and an id.
-func JoinImageStreamImage(name, id string) string {
-	return fmt.Sprintf("%s@%s", name, id)
-}
-
 // NormalizeImageStreamTag normalizes an image stream tag by defaulting to 'latest'
 // if no tag has been specified.
 func NormalizeImageStreamTag(name string) string {
-	stripped, tag, ok := SplitImageStreamTag(name)
+	stripped, tag, ok := imageutil.SplitImageStreamTag(name)
 	if !ok {
 		// Default to latest
-		return JoinImageStreamTag(stripped, tag)
+		return imageutil.JoinImageStreamTag(stripped, tag)
 	}
 	return name
 }
@@ -184,7 +147,7 @@ func FollowTagReference(stream *ImageStream, tag string) (finalTag string, ref *
 		// The reference needs to be followed with two format patterns:
 		// a) sameis:sometag and b) sometag
 		if strings.Contains(tagRef.From.Name, ":") {
-			name, tagref, ok := SplitImageStreamTag(tagRef.From.Name)
+			name, tagref, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
 			if !ok {
 				return tag, nil, multiple, ErrInvalidReference
 			}
@@ -480,7 +443,7 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 		if strings.Contains(tagRef.From.Name, ":") {
 			// <stream>:<tag>
 			ok := true
-			tagRefName, tag, ok = SplitImageStreamTag(tagRef.From.Name)
+			tagRefName, tag, ok = imageutil.SplitImageStreamTag(tagRef.From.Name)
 			if !ok {
 				klog.V(5).Infof("tagRefName %q contains invalid reference - skipping", tagRef.From.Name)
 				continue

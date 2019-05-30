@@ -5,15 +5,16 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsv1conversions "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -58,7 +59,7 @@ func OkImageChangeDetails() *appsapi.DeploymentDetails {
 			Type: appsapi.DeploymentTriggerOnImageChange,
 			ImageTrigger: &appsapi.DeploymentCauseImageTrigger{
 				From: kapi.ObjectReference{
-					Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
+					Name: imageutil.JoinImageStreamTag(ImageStreamName, imageutil.DefaultImageTag),
 					Kind: "ImageStreamTag",
 				}}}}}
 }
@@ -210,7 +211,7 @@ func OkImageChangeTrigger() appsapi.DeploymentTriggerPolicy {
 			},
 			From: kapi.ObjectReference{
 				Kind: "ImageStreamTag",
-				Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
+				Name: imageutil.JoinImageStreamTag(ImageStreamName, imageutil.DefaultImageTag),
 			},
 		},
 	}
@@ -261,7 +262,7 @@ func OkStreamForConfig(config *appsapi.DeploymentConfig) *imageapi.ImageStream {
 		}
 
 		ref := t.ImageChangeParams.From
-		name, tag, _ := imageapi.SplitImageStreamTag(ref.Name)
+		name, tag, _ := imageutil.SplitImageStreamTag(ref.Name)
 
 		return &imageapi.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
