@@ -14,6 +14,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	. "github.com/openshift/library-go/pkg/template/generator"
+
 	"github.com/openshift/origin/pkg/api/legacygroupification"
 )
 
@@ -28,7 +29,7 @@ type Processor struct {
 	Generators map[string]Generator
 }
 
-// NewProcessor creates new Processor and initializes its set of generators.
+// NewProcessor creates new Processor and initializv1es its set of generators.
 func NewProcessor(generators map[string]Generator) *Processor {
 	return &Processor{Generators: generators}
 }
@@ -100,7 +101,7 @@ func (p *Processor) Process(template *templatev1.Template) field.ErrorList {
 		legacygroupification.OAPIToGroupifiedGVK(&gvk)
 		newItem.GetObjectKind().SetGroupVersionKind(gvk)
 
-		if err := AddObjectLabels(newItem, template.ObjectLabels); err != nil {
+		if err := addObjectLabels(newItem, template.ObjectLabels); err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
 				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
 		}
@@ -249,9 +250,9 @@ func (p *Processor) GenerateParameterValues(t *templatev1.Template) field.ErrorL
 	return errs
 }
 
-// AddObjectLabels adds new label(s) to a single runtime.Object, overwriting
+// addObjectLabels adds new label(s) to a single runtime.Object, overwriting
 // existing labels that have the same key.
-func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
+func addObjectLabels(obj runtime.Object, labels labels.Set) error {
 	if labels == nil {
 		return nil
 	}

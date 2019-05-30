@@ -558,7 +558,7 @@ func TestAddConfigLabels(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		err := AddObjectLabels(test.obj, test.addLabels)
+		err := addObjectLabels(test.obj, test.addLabels)
 		if err != nil && !test.err {
 			t.Errorf("Unexpected error while setting labels on testCase[%v]: %v.", i, err)
 		} else if err == nil && test.err {
