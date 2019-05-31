@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"reflect"
 	"strings"
+
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1"
 
 	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/network/admission/apis/externalipranger"
 )
 
@@ -44,10 +45,7 @@ func RegisterExternalIP(plugins *admission.Plugins) {
 }
 
 func readConfig(reader io.Reader) (*externalipranger.ExternalIPRangerAdmissionConfig, error) {
-	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return nil, nil
-	}
-	obj, err := configlatest.ReadYAML(reader)
+	obj, err := helpers.ReadYAMLToInternal(reader, externalipranger.Install, v1.Install)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,10 @@ import (
 	"net"
 	"reflect"
 
+	v1 "github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1"
+
+	"github.com/openshift/library-go/pkg/config/helpers"
+
 	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -13,7 +17,6 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints"
 )
 
@@ -41,10 +44,7 @@ func RegisterRestrictedEndpoints(plugins *admission.Plugins) {
 }
 
 func readConfig(reader io.Reader) (*restrictedendpoints.RestrictedEndpointsAdmissionConfig, error) {
-	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return nil, nil
-	}
-	obj, err := configlatest.ReadYAML(reader)
+	obj, err := helpers.ReadYAMLToInternal(reader, restrictedendpoints.Install, v1.Install)
 	if err != nil {
 		return nil, err
 	}

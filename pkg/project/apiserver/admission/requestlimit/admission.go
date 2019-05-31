@@ -6,6 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
+
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +26,6 @@ import (
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	requestlimitapivalidation "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/validation"
@@ -52,7 +54,7 @@ func Register(plugins *admission.Plugins) {
 }
 
 func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, error) {
-	obj, err := configlatest.ReadYAML(reader)
+	obj, err := helpers.ReadYAMLToInternal(reader, requestlimitapi.Install, v1.Install)
 	if err != nil {
 		return nil, err
 	}

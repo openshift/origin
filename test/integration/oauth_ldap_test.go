@@ -9,6 +9,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -139,7 +142,7 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// read back in
-	deserializedObject, err := configapilatest.ReadYAML(bytes.NewBuffer(serializedOptions))
+	deserializedObject, err := helpers.ReadYAMLToInternal(bytes.NewBuffer(serializedOptions), configapi.InstallLegacy, v1.InstallLegacy)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
