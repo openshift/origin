@@ -1,5 +1,5 @@
 hash: 7a9743a1ddd4422e2fb49715f7f2ad907ae072d0f192ba710fee09f515770c9b
-updated: 2019-05-30T15:35:13.881518907-04:00
+updated: 2019-05-31T08:42:48.827895688-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1103,7 +1103,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: a92e51f5d57cdb8b2f54078e8a07f9e90fdaa2d7
+  version: 7e25c8e0df6f170520020ce82adde711372ccf03
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/assets
@@ -1123,6 +1123,7 @@ imports:
   - pkg/image/internal/reference
   - pkg/image/reference
   - pkg/network/networkapihelpers
+  - pkg/oauth/oauthdiscovery
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
@@ -1134,7 +1135,7 @@ imports:
   - pkg/serviceability
   - pkg/template/generator
 - name: github.com/openshift/oc
-  version: 778ec9528830243584776d7b3183ade9d1170467
+  version: c6b08b14d687af3aaf6fa5886f0ad3f6d0efa5dd
   subpackages:
   - pkg/cli/create
   - pkg/cli/create/route
@@ -1152,14 +1153,22 @@ imports:
   - pkg/helpers/clientcmd
   - pkg/helpers/cmd
   - pkg/helpers/conditions
+  - pkg/helpers/dot
   - pkg/helpers/env
   - pkg/helpers/errors
   - pkg/helpers/file
+  - pkg/helpers/groupsync
+  - pkg/helpers/groupsync/ad
+  - pkg/helpers/groupsync/groupdetector
+  - pkg/helpers/groupsync/interfaces
+  - pkg/helpers/groupsync/rfc2307
+  - pkg/helpers/groupsync/syncerror
   - pkg/helpers/kubeconfig
   - pkg/helpers/proc
   - pkg/helpers/project
   - pkg/helpers/route
   - pkg/helpers/term
+  - pkg/helpers/tokencmd
 - name: github.com/openshift/openshift-apiserver
   version: 7639c7ba7e5f70f7f1d09420a5fb887651ef61c8
   subpackages:
@@ -1771,7 +1780,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: d8002995f662df6c216b192ead7355eb9f9f63ba
+  version: f0c5ddddae39c9b6945dbd14e03f4c2460591b33
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2240,7 +2249,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: f3bee9f10d65463efa3738c2cc63014dd88a0cee
+  version: 87485e0d602a8d38d121c0f80961dbf52e3e1d74
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
