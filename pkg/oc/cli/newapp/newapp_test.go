@@ -15,7 +15,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
-	configcmd "github.com/openshift/origin/pkg/bulk"
+	configcmd "github.com/openshift/oc/pkg/helpers/bulk"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 )
 

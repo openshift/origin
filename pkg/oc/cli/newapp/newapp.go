@@ -49,8 +49,8 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 
+	"github.com/openshift/oc/pkg/helpers/bulk"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"

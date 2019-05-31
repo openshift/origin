@@ -512,7 +512,6 @@
       "github.com/openshift/origin/pkg/build/client",
       "github.com/openshift/origin/pkg/build/client/v1",
       "github.com/openshift/origin/pkg/build/util",
-      "github.com/openshift/origin/pkg/bulk",
       "github.com/openshift/origin/pkg/client/config",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
       "github.com/openshift/origin/pkg/cmd/infra/deployer",
