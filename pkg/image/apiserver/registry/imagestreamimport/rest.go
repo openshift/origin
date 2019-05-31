@@ -28,6 +28,7 @@ import (
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
@@ -35,7 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/util"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 // ImporterFunc returns an instance of the importer that should be used per invocation.
@@ -372,7 +372,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	if err != nil {
 		// if we have am admission limit error then record the conditions on the original stream.  Quota errors
 		// will be recorded by the importer.
-		if quotautil.IsErrorLimitExceeded(err) {
+		if isErrorLimitExceeded(err) {
 			originalStream := original
 			recordLimitExceededStatus(originalStream, stream, err, now, nextGeneration)
 			var limitErr error
@@ -386,6 +386,19 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 	isi.Status.Import = obj.(*imageapi.ImageStream)
 	return isi, nil
+}
+
+// isErrorLimitExceeded returns true if the given error is a limit error.
+func isErrorLimitExceeded(err error) bool {
+	if isForbidden := kapierrors.IsForbidden(err); isForbidden || kapierrors.IsInvalid(err) {
+		lowered := strings.ToLower(err.Error())
+		// the limit error message can be accompanied only by Invalid reason
+		// TODO: Make a helper in upstream and get rid of this string comparison
+		if strings.Contains(lowered, `exceeds the maximum limit`) {
+			return true
+		}
+	}
+	return false
 }
 
 // recordLimitExceededStatus adds the limit err to any new tag.

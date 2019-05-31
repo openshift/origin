@@ -13,7 +13,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -141,7 +140,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		}
 		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(quotautil.IsErrorQuotaExceeded(err)).Should(o.Equal(true))
+		o.Expect(IsErrorQuotaExceeded(err)).Should(o.Equal(true))
 
 		g.By("re-tagging the image under different tag")
 		is, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})

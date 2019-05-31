@@ -2,15 +2,19 @@ package imagestreamimport
 
 import (
 	"context"
+	"errors"
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -221,6 +225,89 @@ func TestImportSuccessful(t *testing.T) {
 		actualRefType := test.stream.Spec.Tags["mytag"].ReferencePolicy.Type
 		if actualRefType != test.expectedReferencePolicyType {
 			t.Errorf("%s: expected %#v, got %#v", name, test.expectedReferencePolicyType, actualRefType)
+		}
+	}
+}
+
+// errMessageString is a part of error message copied from quotaAdmission.Admit() method in
+// k8s.io/kubernetes/plugin/pkg/admission/resourcequota/admission.go module
+const errQuotaMessageString = `exceeded quota:`
+const errQuotaUnknownMessageString = `status unknown for quota:`
+const errLimitsMessageString = `exceeds the maximum limit`
+
+// TestIsErrorLimitExceeded tests for limit errors.
+func TestIsErrorLimitExceeded(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		err         error
+		shouldMatch bool
+	}{
+		{
+			name: "unrelated error",
+			err:  errors.New("unrelated"),
+		},
+		{
+			name: "wrong type",
+			err:  errors.New(errQuotaMessageString),
+		},
+		{
+			name: "wrong kapi type",
+			err:  kapierrors.NewUnauthorized(errQuotaMessageString),
+		},
+		{
+			name: "unrelated forbidden error",
+			err:  kapierrors.NewForbidden(kapi.Resource("imageStreams"), "is", errors.New("unrelated")),
+		},
+		{
+			name: "unrelated invalid error",
+			err: kapierrors.NewInvalid(image.Kind("imageStreams"), "is",
+				field.ErrorList{
+					field.Required(field.NewPath("imageStream").Child("Spec"), "detail"),
+				}),
+		},
+		{
+			name: "quota error not recognized with invalid reason",
+			err: kapierrors.NewInvalid(image.Kind("imageStreams"), "is",
+				field.ErrorList{
+					field.Forbidden(field.NewPath("imageStreams"), errQuotaMessageString),
+				}),
+		},
+		{
+			name: "quota unknown error not recognized with invalid reason",
+			err: kapierrors.NewInvalid(image.Kind("imageStreams"), "is",
+				field.ErrorList{
+					field.Forbidden(field.NewPath("imageStreams"), errQuotaUnknownMessageString),
+				}),
+		},
+		{
+			name: "quota exceeded error",
+			err:  kapierrors.NewForbidden(kapi.Resource("imageStream"), "is", errors.New(errQuotaMessageString)),
+		},
+		{
+			name: "quota unknown error",
+			err:  kapierrors.NewForbidden(kapi.Resource("imageStream"), "is", errors.New(errQuotaUnknownMessageString)),
+		},
+		{
+			name:        "limits exceeded error with forbidden reason",
+			err:         kapierrors.NewForbidden(image.Resource("imageStream"), "is", errors.New(errLimitsMessageString)),
+			shouldMatch: true,
+		},
+		{
+			name: "limits exceeded error with invalid reason",
+			err: kapierrors.NewInvalid(image.Kind("imageStreams"), "is",
+				field.ErrorList{
+					field.Forbidden(field.NewPath("imageStream"), errLimitsMessageString),
+				}),
+			shouldMatch: true,
+		},
+	} {
+		match := isErrorLimitExceeded(tc.err)
+
+		if !match && tc.shouldMatch {
+			t.Errorf("[%s] expected to match error [%T]: %v", tc.name, tc.err, tc.err)
+		}
+		if match && !tc.shouldMatch {
+			t.Errorf("[%s] expected not to match error [%T]: %v", tc.name, tc.err, tc.err)
 		}
 	}
 }
