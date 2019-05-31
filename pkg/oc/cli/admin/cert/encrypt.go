@@ -1,4 +1,4 @@
-package admin
+package cert
 
 import (
 	"crypto/rand"
@@ -20,7 +20,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
 const EncryptCommandName = "encrypt"
@@ -153,7 +152,7 @@ func (o *EncryptOptions) Encrypt() error {
 	var key []byte
 	switch {
 	case len(o.KeyFile) > 0:
-		if block, ok, err := pemutil.BlockFromFile(o.KeyFile, configapi.StringSourceKeyBlockType); err != nil {
+		if block, ok, err := BlockFromFile(o.KeyFile, configapi.StringSourceKeyBlockType); err != nil {
 			return err
 		} else if !ok {
 			return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, configapi.StringSourceKeyBlockType)
@@ -180,11 +179,11 @@ func (o *EncryptOptions) Encrypt() error {
 
 	// Write data
 	if len(o.EncryptedFile) > 0 {
-		if err := pemutil.BlockToFile(o.EncryptedFile, dataBlock, os.FileMode(0644)); err != nil {
+		if err := BlockToFile(o.EncryptedFile, dataBlock, os.FileMode(0644)); err != nil {
 			return err
 		}
 	} else if o.EncryptedWriter != nil {
-		encryptedBytes, err := pemutil.BlockToBytes(dataBlock)
+		encryptedBytes, err := BlockToBytes(dataBlock)
 		if err != nil {
 			return err
 		}
@@ -200,7 +199,7 @@ func (o *EncryptOptions) Encrypt() error {
 	// Write key
 	if len(o.GenKeyFile) > 0 {
 		keyBlock := &pem.Block{Bytes: key, Type: configapi.StringSourceKeyBlockType}
-		if err := pemutil.BlockToFile(o.GenKeyFile, keyBlock, os.FileMode(0600)); err != nil {
+		if err := BlockToFile(o.GenKeyFile, keyBlock, os.FileMode(0600)); err != nil {
 			return err
 		}
 	}

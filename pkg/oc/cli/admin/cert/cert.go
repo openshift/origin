@@ -5,8 +5,6 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 )
 
 const CertRecommendedName = "ca"
@@ -24,13 +22,13 @@ func NewCmdCert(name, fullName string, streams genericclioptions.IOStreams) *cob
 	}
 
 	subCommands := []*cobra.Command{
-		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
-		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
-		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams),
-		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams),
+		NewCommandCreateMasterCerts(CreateMasterCertsCommandName, fullName+" "+CreateMasterCertsCommandName, streams),
+		NewCommandCreateKeyPair(CreateKeyPairCommandName, fullName+" "+CreateKeyPairCommandName, streams),
+		NewCommandCreateServerCert(CreateServerCertCommandName, fullName+" "+CreateServerCertCommandName, streams),
+		NewCommandCreateSignerCert(CreateSignerCertCommandName, fullName+" "+CreateSignerCertCommandName, streams),
 
-		admin.NewCommandEncrypt(admin.EncryptCommandName, fullName+" "+admin.EncryptCommandName, streams),
-		admin.NewCommandDecrypt(admin.DecryptCommandName, fullName+" "+admin.DecryptCommandName, fullName+" "+admin.EncryptCommandName, streams),
+		NewCommandEncrypt(EncryptCommandName, fullName+" "+EncryptCommandName, streams),
+		NewCommandDecrypt(DecryptCommandName, fullName+" "+DecryptCommandName, fullName+" "+EncryptCommandName, streams),
 	}
 
 	for _, cmd := range subCommands {

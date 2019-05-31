@@ -45,11 +45,12 @@ import (
 	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	openshiftcontrollermanager "github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	openshiftkubeapiserver "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/oc/cli/admin/cert"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
+	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 	"github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
@@ -263,9 +264,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		return err
 	}
 
-	createMasterCerts := admin.CreateMasterCertsOptions{
+	createMasterCerts := cert.CreateMasterCertsOptions{
 		CertDir:    masterArgs.ConfigDir.Value(),
-		SignerName: admin.DefaultSignerName(),
+		SignerName: signercertoptions.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
 
 		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,

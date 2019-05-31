@@ -140,7 +140,24 @@
     ],
     "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server",
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver",
+      "github.com/openshift/origin/pkg/cmd/server/origin",
+      "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
+      "github.com/openshift/origin/pkg/oc/cli/admin",
+      "github.com/openshift/origin/pkg/oc/cli/admin/cert",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createclient",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createkubeconfig",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate",
+      "github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate",
+      "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync",
+      "github.com/openshift/origin/pkg/cmd/openshift-osinserver",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/ad",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/rfc2307",
+      "github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror",
+      "github.com/openshift/origin/pkg/oc/lib/signercertoptions"
     ],
     "forbiddenImportPackageRoots": [
       "vendor/github.com/openshift/oauth-server"
@@ -436,7 +453,6 @@
       "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/client/config",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
-      "github.com/openshift/origin/pkg/cmd/server/admin",
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",

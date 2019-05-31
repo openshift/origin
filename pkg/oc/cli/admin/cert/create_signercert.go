@@ -1,4 +1,4 @@
-package admin
+package cert
 
 import (
 	"errors"
@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 )
 
 const CreateSignerCertCommandName = "create-signer-cert"
@@ -37,7 +38,7 @@ func NewCreateSignerCertOptions(streams genericclioptions.IOStreams) *CreateSign
 		CertFile:   "openshift.local.config/master/ca.crt",
 		KeyFile:    "openshift.local.config/master/ca.key",
 		SerialFile: "openshift.local.config/master/ca.serial.txt",
-		Name:       DefaultSignerName(),
+		Name:       signercertoptions.DefaultSignerName(),
 		IOStreams:  streams,
 	}
 }

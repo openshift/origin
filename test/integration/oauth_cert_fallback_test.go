@@ -14,7 +14,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
+	admincert "github.com/openshift/origin/pkg/oc/cli/admin/cert"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -79,7 +79,7 @@ func TestOAuthCertFallback(t *testing.T) {
 	if err != nil || len(cacerts) != 1 {
 		t.Fatalf("Unexpected error or number of certs: %v, %d", err, len(cacerts))
 	}
-	fakeca, err := (&admin.CreateSignerCertOptions{
+	fakeca, err := (&admincert.CreateSignerCertOptions{
 		CertFile:   path.Join(fakecadir, "fakeca.crt"),
 		KeyFile:    path.Join(fakecadir, "fakeca.key"),
 		SerialFile: path.Join(fakecadir, "fakeca.serial"),

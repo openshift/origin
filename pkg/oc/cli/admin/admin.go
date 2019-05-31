@@ -2,7 +2,6 @@ package admin
 
 import (
 	"fmt"
-
 	"k8s.io/kubernetes/pkg/kubectl/cmd/certificates"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/taint"
 
@@ -15,12 +14,13 @@ import (
 
 	"github.com/openshift/oc/pkg/cli/options"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/admin/buildchain"
 	"github.com/openshift/origin/pkg/oc/cli/admin/cert"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate"
+	"github.com/openshift/origin/pkg/oc/cli/admin/createclient"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate"
+	"github.com/openshift/origin/pkg/oc/cli/admin/createkubeconfig"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/groups"
@@ -104,8 +104,8 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		{
 			Message: "Configuration:",
 			Commands: []*cobra.Command{
-				admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, streams),
-				admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, streams),
+				createkubeconfig.NewCommandCreateKubeConfig(createkubeconfig.CreateKubeConfigCommandName, fullName+" "+createkubeconfig.CreateKubeConfigCommandName, streams),
+				createclient.NewCommandCreateClient(createclient.CreateClientCommandName, fullName+" "+createclient.CreateClientCommandName, streams),
 
 				createbootstrapprojecttemplate.NewCommandCreateBootstrapProjectTemplate(f, createbootstrapprojecttemplate.CreateBootstrapProjectTemplateCommand, fullName+" "+createbootstrapprojecttemplate.CreateBootstrapProjectTemplateCommand, streams),
 
