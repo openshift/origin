@@ -9,6 +9,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
+
 	"github.com/openshift/library-go/pkg/config/helpers"
 	v1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 
@@ -137,7 +140,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// serialize to YAML to make sure a complex StringSource survives a round-trip
-	serializedOptions, err := configapilatest.WriteYAML(masterOptions)
+	serializedOptions, err := deprecatedWriteYAML(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -268,4 +271,18 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Errorf("Expected %q, got %q", myUserEmail, v)
 	}
 
+}
+
+// TODO: Remove this when a YAML serializer is available from upstream
+func deprecatedWriteYAML(obj runtime.Object) ([]byte, error) {
+	json, err := runtime.Encode(configapilatest.Codec, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }

@@ -9,10 +9,11 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/configflags"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/apis/apiserver"
+	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
+	"sigs.k8s.io/yaml"
 )
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
@@ -160,7 +161,7 @@ func admissionFlags(admissionConfig configv1.AdmissionConfig) (map[string][]stri
 	if err != nil {
 		return nil, err
 	}
-	configBytes, err := configapilatest.WriteYAML(upstreamAdmissionConfig)
+	configBytes, err := WriteYAML(upstreamAdmissionConfig, apiserverv1alpha1.AddToScheme)
 	if err != nil {
 		return nil, err
 	}
@@ -203,11 +204,11 @@ func unmaskArgs(args map[string]kubecontrolplanev1.Arguments) map[string][]strin
 	return ret
 }
 
-func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
-	ret := &apiserver.AdmissionConfiguration{}
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1.AdmissionPluginConfig) (*apiserverv1alpha1.AdmissionConfiguration, error) {
+	ret := &apiserverv1alpha1.AdmissionConfiguration{}
 
 	for _, pluginName := range sets.StringKeySet(in).List() {
-		kubeConfig := apiserver.AdmissionPluginConfiguration{
+		kubeConfig := apiserverv1alpha1.AdmissionPluginConfiguration{
 			Name: pluginName,
 			Path: in[pluginName].Location,
 			Configuration: &runtime.Unknown{
@@ -219,4 +220,28 @@ func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1
 	}
 
 	return ret, nil
+}
+
+type InstallFunc func(scheme *runtime.Scheme) error
+
+func WriteYAML(obj runtime.Object, schemeFns ...InstallFunc) ([]byte, error) {
+	scheme := runtime.NewScheme()
+	for _, schemeFn := range schemeFns {
+		err := schemeFn(scheme)
+		if err != nil {
+			return nil, err
+		}
+	}
+	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
+
+	json, err := runtime.Encode(codec, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }
