@@ -122,21 +122,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			// TODO stop duplicating the conversion in the test.
 			noCloudProvider := (len(obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"]) == 0 || obj.KubernetesMasterConfig.ControllerArguments["cloud-provider"][0] == "")
 			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
-				cidr := configapi.DefaultIngressIPNetworkCIDR
-				setCIDR := true
-				if configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR) {
-					setCIDR = false
-				} else {
-					for _, clusterNetwork := range obj.NetworkConfig.ClusterNetworks {
-						if configapi.CIDRsOverlap(cidr, clusterNetwork.CIDR) {
-							setCIDR = false
-							break
-						}
-					}
-				}
-				if setCIDR {
-					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
-				}
+				obj.NetworkConfig.IngressIPNetworkCIDR = "172.29.0.0/16"
 			}
 
 			// Historically, the clientCA was incorrectly used as the master's server cert CA bundle

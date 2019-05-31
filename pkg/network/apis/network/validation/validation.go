@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/library-go/pkg/network/networkutils"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
@@ -64,7 +63,7 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 				allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "subnet length must be at least 2"))
 			}
 
-			if (clusterIPNet != nil) && (serviceIPNet != nil) && configapi.CIDRsOverlap(clusterIPNet.String(), serviceIPNet.String()) {
+			if (clusterIPNet != nil) && (serviceIPNet != nil) && CIDRsOverlap(clusterIPNet.String(), serviceIPNet.String()) {
 				allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, "service network overlaps with cluster network"))
 			}
 		}
@@ -98,13 +97,13 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 		}
 
 		for _, cidr := range testedCIDRS {
-			if configapi.CIDRsOverlap(clusterIPNet.String(), cidr.String()) {
+			if CIDRsOverlap(clusterIPNet.String(), cidr.String()) {
 				allErrs = append(allErrs, field.Invalid(field.NewPath("clusterNetworks").Index(i).Child("cidr"), cn.CIDR, fmt.Sprintf("cidr range overlaps with another cidr %q", cidr.String())))
 			}
 		}
 		testedCIDRS = append(testedCIDRS, clusterIPNet)
 
-		if (clusterIPNet != nil) && (serviceIPNet != nil) && configapi.CIDRsOverlap(clusterIPNet.String(), serviceIPNet.String()) {
+		if (clusterIPNet != nil) && (serviceIPNet != nil) && CIDRsOverlap(clusterIPNet.String(), serviceIPNet.String()) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, fmt.Sprintf("service network overlaps with cluster network cidr: %s", clusterIPNet.String())))
 		}
 	}
@@ -239,4 +238,16 @@ func ValidateEgressNetworkPolicyUpdate(obj *networkapi.EgressNetworkPolicy, old 
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateEgressNetworkPolicy(obj)...)
 	return allErrs
+}
+
+func CIDRsOverlap(cidr1, cidr2 string) bool {
+	_, ipNet1, err := net.ParseCIDR(cidr1)
+	if err != nil {
+		return false
+	}
+	_, ipNet2, err := net.ParseCIDR(cidr2)
+	if err != nil {
+		return false
+	}
+	return ipNet1.Contains(ipNet2.IP) || ipNet2.Contains(ipNet1.IP)
 }

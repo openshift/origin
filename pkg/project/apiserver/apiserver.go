@@ -1,6 +1,8 @@
 package apiserver
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 
 	"k8s.io/klog"
@@ -18,7 +20,6 @@ import (
 
 	projectapiv1 "github.com/openshift/api/project/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	projectproxy "github.com/openshift/origin/pkg/project/apiserver/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -130,7 +131,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 
 	projectStorage := projectproxy.NewREST(kubeClient.CoreV1().Namespaces(), c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectCache)
 
-	namespace, templateName, err := configapi.ParseNamespaceAndName(c.ExtraConfig.ProjectRequestTemplate)
+	namespace, templateName, err := parseNamespaceAndName(c.ExtraConfig.ProjectRequestTemplate)
 	if err != nil {
 		klog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
@@ -151,4 +152,19 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["projects"] = projectStorage
 	v1Storage["projectRequests"] = projectRequestStorage
 	return v1Storage, nil
+}
+
+// parseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
+// This is useful when pointing to a particular resource inside of our config.
+func parseNamespaceAndName(in string) (string, string, error) {
+	if len(in) == 0 {
+		return "", "", nil
+	}
+
+	tokens := strings.Split(in, "/")
+	if len(tokens) != 2 {
+		return "", "", fmt.Errorf("expected input in the form <namespace>/<resource-name>, not: %v", in)
+	}
+
+	return tokens[0], tokens[1], nil
 }

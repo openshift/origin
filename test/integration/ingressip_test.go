@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,7 +40,7 @@ func TestIngressIPAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	clientConfig, err := configapi.GetClientConfig(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
+	clientConfig, err := deprecatedclient.GetClientConfig(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
 		QPS:   20,
 		Burst: 50,
 	})

@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"net"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
@@ -84,11 +86,11 @@ func SetDefaults_MasterConfig(obj *legacyconfigv1.MasterConfig) {
 	if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		cidr := internal.DefaultIngressIPNetworkCIDR
 		cidrOverlap := false
-		if internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR) {
+		if cidrsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR) {
 			cidrOverlap = true
 		} else {
 			for _, entry := range obj.NetworkConfig.ClusterNetworks {
-				if internal.CIDRsOverlap(cidr, entry.CIDR) {
+				if cidrsOverlap(cidr, entry.CIDR) {
 					cidrOverlap = true
 					break
 				}
@@ -120,6 +122,18 @@ func SetDefaults_MasterConfig(obj *legacyconfigv1.MasterConfig) {
 			obj.AuthConfig.WebhookTokenAuthenticators[i].CacheTTL = "2m"
 		}
 	}
+}
+
+func cidrsOverlap(cidr1, cidr2 string) bool {
+	_, ipNet1, err := net.ParseCIDR(cidr1)
+	if err != nil {
+		return false
+	}
+	_, ipNet2, err := net.ParseCIDR(cidr2)
+	if err != nil {
+		return false
+	}
+	return ipNet1.Contains(ipNet2.IP) || ipNet2.Contains(ipNet1.IP)
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *legacyconfigv1.KubernetesMasterConfig) {

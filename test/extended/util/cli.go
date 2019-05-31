@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -44,7 +46,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -525,7 +526,7 @@ func (c *CLI) InternalAdminKubeClient() kinternalclientset.Interface {
 }
 
 func (c *CLI) UserConfig() *restclient.Config {
-	clientConfig, err := configapi.GetClientConfig(c.configPath, nil)
+	clientConfig, err := deprecatedclient.GetClientConfig(c.configPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -533,7 +534,7 @@ func (c *CLI) UserConfig() *restclient.Config {
 }
 
 func (c *CLI) AdminConfig() *restclient.Config {
-	clientConfig, err := configapi.GetClientConfig(c.adminConfigPath, nil)
+	clientConfig, err := deprecatedclient.GetClientConfig(c.adminConfigPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}

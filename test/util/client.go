@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+
 	"github.com/pborman/uuid"
 
 	corev1 "k8s.io/api/core/v1"
@@ -24,10 +26,9 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	quota "k8s.io/kubernetes/pkg/quota/v1"
+	"k8s.io/kubernetes/pkg/quota/v1"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -57,7 +58,7 @@ func GetClusterAdminKubeClient(adminKubeConfigFile string) (kubernetes.Interface
 }
 
 func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config, error) {
-	conf, err := configapi.GetClientConfig(adminKubeConfigFile, nil)
+	conf, err := deprecatedclient.GetClientConfig(adminKubeConfigFile, nil)
 	if err != nil {
 		return nil, err
 	}
