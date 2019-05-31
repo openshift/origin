@@ -438,9 +438,12 @@ func newConfigMap(ns string, name string, vars map[string]string) *kapiv1.Config
 }
 
 // CreateTemplates creates templates in user defined namespaces with user configurable tuning sets.
-func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, template ClusterLoaderObjectType, tuning *TuningSetType) error {
+func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName, config string, template ClusterLoaderObjectType, tuning *TuningSetType) error {
 	var allArgs []string
-	templateFile := mkPath(template.File)
+	templateFile, err := mkPath(template.File, config)
+	if err != nil {
+		return err
+	}
 	e2e.Logf("We're loading file %v: ", templateFile)
 	allArgs = append(allArgs, "-f")
 	allArgs = append(allArgs, templateFile)
