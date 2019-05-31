@@ -18,10 +18,10 @@ import (
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsclienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.

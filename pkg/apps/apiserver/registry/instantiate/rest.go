@@ -24,11 +24,11 @@ import (
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
-	"github.com/openshift/library-go/pkg/image/imageutil"
+
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"

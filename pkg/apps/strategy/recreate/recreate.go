@@ -23,11 +23,11 @@ import (
 
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.

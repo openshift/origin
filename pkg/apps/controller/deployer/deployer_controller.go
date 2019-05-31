@@ -25,8 +25,8 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/apps/util/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 // maxRetryCount is the maximum number of times the controller will retry errors.

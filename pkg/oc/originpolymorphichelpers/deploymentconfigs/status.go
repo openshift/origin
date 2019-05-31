@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 func NewDeploymentConfigStatusViewer() kubectl.StatusViewer {

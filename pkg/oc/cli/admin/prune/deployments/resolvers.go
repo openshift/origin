@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune

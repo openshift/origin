@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kcorelisters "k8s.io/client-go/listers/core/v1"
 
-	"github.com/openshift/origin/pkg/apps/util"
+	util "github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 const (

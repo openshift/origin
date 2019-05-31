@@ -12,8 +12,8 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/origin/pkg/apps/strategy"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 

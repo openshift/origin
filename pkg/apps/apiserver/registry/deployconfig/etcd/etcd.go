@@ -22,10 +22,10 @@ import (
 
 	"github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 

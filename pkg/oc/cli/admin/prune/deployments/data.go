@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 // DeploymentByDeploymentConfigIndexFunc indexes Deployment items by their associated DeploymentConfig, if none, index with key "orphan"

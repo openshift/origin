@@ -27,8 +27,8 @@ import (
 
 	oapps "github.com/openshift/api/apps"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (

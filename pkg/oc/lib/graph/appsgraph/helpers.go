@@ -8,7 +8,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"

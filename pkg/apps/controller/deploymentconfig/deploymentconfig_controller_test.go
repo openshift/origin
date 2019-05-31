@@ -24,7 +24,7 @@ import (
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appslisters "github.com/openshift/client-go/apps/listers/apps/v1"
 
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 

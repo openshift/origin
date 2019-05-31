@@ -16,7 +16,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 var (
