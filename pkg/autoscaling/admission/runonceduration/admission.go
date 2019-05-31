@@ -6,9 +6,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/openshift/library-go/pkg/config/helpers"
-	v1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1"
-
 	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -17,7 +14,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/utils/integer"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
+	v1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/validation"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )

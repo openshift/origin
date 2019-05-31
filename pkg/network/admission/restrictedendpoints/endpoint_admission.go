@@ -6,18 +6,15 @@ import (
 	"net"
 	"reflect"
 
-	v1 "github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1"
-
-	"github.com/openshift/library-go/pkg/config/helpers"
-
-	"k8s.io/klog"
-
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints"
+	v1 "github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1"
 )
 
 const RestrictedEndpointsPluginName = "network.openshift.io/RestrictedEndpointsAdmission"
