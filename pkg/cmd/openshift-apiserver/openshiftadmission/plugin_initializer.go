@@ -24,10 +24,10 @@ import (
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
+	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/quota/image"
 )
 

@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
 	"github.com/openshift/origin/pkg/quota/image"
 	"k8s.io/kubernetes/pkg/controller"

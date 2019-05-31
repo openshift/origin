@@ -8,9 +8,9 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
+	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
 func NewClusterQuotaMappingController(nsInternalInformer corev1informers.NamespaceInformer, clusterQuotaInformer quotainformer.ClusterResourceQuotaInformer) *clusterquotamapping.ClusterQuotaMappingController {

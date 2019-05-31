@@ -25,8 +25,8 @@ import (
 	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
+	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
 func Register(plugins *admission.Plugins) {
