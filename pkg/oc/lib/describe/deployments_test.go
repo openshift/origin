@@ -13,11 +13,11 @@ import (
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	appsapitest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/origin/pkg/oc/lib/appstest"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {
-	config := appsapitest.OkDeploymentConfig(1)
+	config := appstest.OkDeploymentConfig(1)
 	deployment, _ := appsutil.MakeDeployment(config)
 	podList := &corev1.PodList{}
 
@@ -31,7 +31,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 		kFake.PrependReactor("list", "horizontalpodautoscalers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, &autoscaling.HorizontalPodAutoscalerList{
 				Items: []autoscaling.HorizontalPodAutoscaler{
-					*appsapitest.OkHPAForDeploymentConfig(config, 1, 3),
+					*appstest.OkHPAForDeploymentConfig(config, 1, 3),
 				}}, nil
 		})
 	*/
@@ -72,16 +72,16 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 		}
 	*/
 
-	config.Spec.Triggers = append(config.Spec.Triggers, appsapitest.OkConfigChangeTrigger())
+	config.Spec.Triggers = append(config.Spec.Triggers, appstest.OkConfigChangeTrigger())
 	describe()
 
-	config.Spec.Strategy = appsapitest.OkCustomStrategy()
+	config.Spec.Strategy = appstest.OkCustomStrategy()
 	describe()
 
 	config.Spec.Triggers[0].ImageChangeParams.From = corev1.ObjectReference{Name: "imagestream"}
 	describe()
 
-	config.Spec.Strategy = appsapitest.OkStrategy()
+	config.Spec.Strategy = appstest.OkStrategy()
 	config.Spec.Strategy.RecreateParams = &appsv1.RecreateDeploymentStrategyParams{
 		Pre: &appsv1.LifecycleHook{
 			FailurePolicy: appsv1.LifecycleHookFailurePolicyAbort,

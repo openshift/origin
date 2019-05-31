@@ -17,7 +17,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/origin/pkg/apps/strategy/util/appstest"
 )
 
 func TestRolling_deployInitial(t *testing.T) {

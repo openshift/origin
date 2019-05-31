@@ -28,7 +28,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/origin/pkg/apps/controller/appstest"
 )
 
 var (

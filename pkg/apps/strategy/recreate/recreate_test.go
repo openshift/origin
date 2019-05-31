@@ -18,7 +18,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	appsstrategy "github.com/openshift/origin/pkg/apps/strategy"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/origin/pkg/apps/strategy/util/appstest"
 )
 
 func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) appsstrategy.UpdateAcceptor {

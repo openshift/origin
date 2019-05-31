@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/origin/pkg/apps/strategy"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/origin/pkg/apps/strategy/util/appstest"
 )
 
 func TestDeployer_getDeploymentFail(t *testing.T) {

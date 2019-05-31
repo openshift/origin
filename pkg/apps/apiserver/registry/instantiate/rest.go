@@ -27,6 +27,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"

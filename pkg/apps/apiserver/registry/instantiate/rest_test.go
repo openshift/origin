@@ -17,6 +17,8 @@ import (
 	"github.com/openshift/api/image"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
