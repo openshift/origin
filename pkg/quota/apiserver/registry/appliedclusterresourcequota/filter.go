@@ -18,11 +18,11 @@ import (
 
 	"github.com/openshift/api/quota"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
+	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
 type AppliedClusterResourceQuotaREST struct {

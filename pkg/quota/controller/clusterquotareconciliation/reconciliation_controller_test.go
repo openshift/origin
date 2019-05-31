@@ -17,8 +17,8 @@ import (
 
 	quotav1 "github.com/openshift/api/quota/v1"
 	fakequotaclient "github.com/openshift/client-go/quota/clientset/versioned/fake"
+	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
 func defaultQuota() *quotav1.ClusterResourceQuota {
