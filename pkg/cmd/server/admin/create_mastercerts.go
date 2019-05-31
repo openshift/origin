@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/util/parallel"
+	"github.com/openshift/oc/pkg/helpers/parallel"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"

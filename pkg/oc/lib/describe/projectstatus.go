@@ -38,6 +38,7 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	loginerrors "github.com/openshift/oc/pkg/helpers/errors"
+	"github.com/openshift/oc/pkg/helpers/parallel"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 	oapi "github.com/openshift/origin/pkg/api"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -58,7 +59,6 @@ import (
 	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
 	routeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/analysis"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
-	"github.com/openshift/origin/pkg/util/parallel"
 )
 
 const ForbiddenListWarning = "Forbidden"
