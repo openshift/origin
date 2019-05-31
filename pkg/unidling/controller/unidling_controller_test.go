@@ -21,9 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
-	// install the APIs we need for the codecs to run correctly in order to build patches
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type fakeResults struct {

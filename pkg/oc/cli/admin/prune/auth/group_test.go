@@ -20,9 +20,6 @@ import (
 	fakesecurityclient "github.com/openshift/client-go/security/clientset/versioned/fake"
 	fakesecurityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
 	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var (

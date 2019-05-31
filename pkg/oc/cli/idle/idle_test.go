@@ -12,10 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func makePod(name string, rc metav1.Object, namespace string, t *testing.T) corev1.Pod {

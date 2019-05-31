@@ -21,9 +21,6 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var testSelector = map[string]string{"test": "rest"}

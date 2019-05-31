@@ -19,8 +19,6 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	admissionttesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestNoErrors(t *testing.T) {

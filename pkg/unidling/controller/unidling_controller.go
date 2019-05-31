@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/api"
+
 	"k8s.io/klog"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -15,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -23,7 +26,6 @@ import (
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -332,7 +334,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 
 		scale.Spec.Replicas = scalableRef.Replicas
 
-		updater := unidlingutil.NewScaleUpdater(legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
+		updater := unidlingutil.NewScaleUpdater(codecs.LegacyCodec(scheme.PrioritizedVersionsAllGroups()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
 		if err = scaleAnnotater.UpdateObjectScale(updater, info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
 			if errors.IsNotFound(err) {
 				utilruntime.HandleError(fmt.Errorf("%s %q does not exist, removing from list of scalables while unidling service %s/%s: %v", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name, err))
@@ -374,4 +376,14 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 	}
 
 	return false, nil
+}
+
+var (
+	scheme = runtime.NewScheme()
+	codecs = serializer.NewCodecFactory(scheme)
+)
+
+func init() {
+	utilruntime.Must(api.Install(scheme))
+	utilruntime.Must(api.InstallKube(scheme))
 }

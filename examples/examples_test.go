@@ -27,7 +27,6 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
