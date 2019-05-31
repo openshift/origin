@@ -128,12 +128,30 @@ func (ConsoleCustomization) SwaggerDoc() map[string]string {
 	return map_ConsoleCustomization
 }
 
+var map_ConsoleProviders = map[string]string{
+	"statuspage": "statuspage contains ID for statuspage.io page that provides status info about.",
+}
+
+func (ConsoleProviders) SwaggerDoc() map[string]string {
+	return map_ConsoleProviders
+}
+
 var map_ConsoleSpec = map[string]string{
 	"customization": "customization is used to optionally provide a small set of customization options to the web console.",
+	"providers":     "providers contains configuration for using specific service providers.",
 }
 
 func (ConsoleSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleSpec
+}
+
+var map_StatuspageProvider = map[string]string{
+	"":       "StatuspageProvider provides identity for statuspage account.",
+	"pageID": "pageID is the unique ID assigned by Statuspage for your page. This must be a public page.",
+}
+
+func (StatuspageProvider) SwaggerDoc() map[string]string {
+	return map_StatuspageProvider
 }
 
 var map_DNS = map[string]string{

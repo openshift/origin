@@ -220,6 +220,7 @@
       "vendor/k8s.io/apimachinery",
       "vendor/k8s.io/api",
       "vendor/github.com/openshift/api",
+      "vendor/github.com/openshift/library-go",
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
@@ -495,7 +496,6 @@
     "allowedImportPackages": [
       "github.com/openshift/origin/pkg/api/legacy",
       "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/api/apihelpers",
       "github.com/openshift/origin/pkg/api/imagereferencemutators",
       "github.com/openshift/origin/pkg/api/install",
       "github.com/openshift/origin/pkg/api/legacygroupification",

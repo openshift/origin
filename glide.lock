@@ -1,5 +1,5 @@
 hash: 7a9743a1ddd4422e2fb49715f7f2ad907ae072d0f192ba710fee09f515770c9b
-updated: 2019-05-29T10:31:34.665483896-04:00
+updated: 2019-05-30T15:35:13.881518907-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 2963b4d8c99701a12f3a18c2d53c28b40408d213
+  version: dafd2647cb03b7e8b3ccec0eba3f7af85df898d6
   subpackages:
   - annotations
   - apps
@@ -1103,7 +1103,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 68e7d1ee9f1c1bad3ab36217bde754127281d365
+  version: a92e51f5d57cdb8b2f54078e8a07f9e90fdaa2d7
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/assets
@@ -1111,10 +1111,12 @@ imports:
   - pkg/authentication/bootstrapauthenticator
   - pkg/authorization/authorizationutil
   - pkg/build/envresolve
+  - pkg/build/naming
   - pkg/config/client
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/leaderelection
+  - pkg/config/validation
   - pkg/crypto
   - pkg/git
   - pkg/image/internal/digest
@@ -1130,8 +1132,9 @@ imports:
   - pkg/security/ldaptestclient
   - pkg/security/ldaputil
   - pkg/serviceability
+  - pkg/template/generator
 - name: github.com/openshift/oc
-  version: 42dabe2fa2e975f25b3b5e696babebbe5b27f9bb
+  version: 778ec9528830243584776d7b3183ade9d1170467
   subpackages:
   - pkg/cli/create
   - pkg/cli/create/route
@@ -1141,6 +1144,7 @@ imports:
   - pkg/cli/logs
   - pkg/cli/observe
   - pkg/cli/options
+  - pkg/cli/recycle
   - pkg/cli/secrets
   - pkg/cli/serviceaccounts
   - pkg/cli/whoami

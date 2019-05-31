@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 )
 
 const (
@@ -16,19 +16,19 @@ const (
 
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildv1.Build) string {
-	return apihelpers.GetPodName(build.Name, buildPodSuffix)
+	return naming.GetPodName(build.Name, buildPodSuffix)
 }
 
 // GetBuildCAConfigMapName returns the name of the ConfigMap containing the build's
 // certificate authority bundles.
 func GetBuildCAConfigMapName(build *buildv1.Build) string {
-	return apihelpers.GetConfigMapName(build.Name, caConfigMapSuffix)
+	return naming.GetConfigMapName(build.Name, caConfigMapSuffix)
 }
 
 // GetBuildSystemConfigMapName returns the name of the ConfigMap containing the build's
 // registry configuration.
 func GetBuildSystemConfigMapName(build *buildv1.Build) string {
-	return apihelpers.GetConfigMapName(build.Name, sysConfigConfigMapSuffix)
+	return naming.GetConfigMapName(build.Name, sysConfigConfigMapSuffix)
 }
 
 func StrategyType(strategy buildv1.BuildStrategy) string {

@@ -1,4 +1,4 @@
-package apihelpers
+package naming
 
 import (
 	"fmt"

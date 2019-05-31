@@ -3,9 +3,9 @@ package build
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	"k8s.io/apimachinery/pkg/fields"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func BuildFieldSelector(obj runtime.Object, fieldSet fields.Set) error {
@@ -14,7 +14,7 @@ func BuildFieldSelector(obj runtime.Object, fieldSet fields.Set) error {
 		return fmt.Errorf("%T not a Build", obj)
 	}
 	fieldSet["status"] = string(build.Status.Phase)
-	fieldSet["podName"] = apihelpers.GetPodName(build.Name, "build")
+	fieldSet["podName"] = naming.GetPodName(build.Name, "build")
 
 	return nil
 }

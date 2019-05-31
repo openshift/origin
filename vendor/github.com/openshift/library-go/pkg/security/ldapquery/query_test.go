@@ -1,4 +1,4 @@
-package ldaputil
+package ldapquery
 
 import (
 	"errors"

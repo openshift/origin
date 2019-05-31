@@ -408,3 +408,23 @@ type TokenConfig struct {
 	// The current minimum allowed value for X is 300 (5 minutes)
 	AccessTokenInactivityTimeoutSeconds *int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
+type SessionSecrets struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// Secrets is a list of secrets
+	// New sessions are signed and encrypted using the first secret.
+	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
+	Secrets []SessionSecret `json:"secrets"`
+}
+
+// SessionSecret is a secret used to authenticate/decrypt cookie-based sessions
+type SessionSecret struct {
+	// Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
+	Authentication string `json:"authentication"`
+	// Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-
+	Encryption string `json:"encryption"`
+}

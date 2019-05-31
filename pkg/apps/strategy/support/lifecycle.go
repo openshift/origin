@@ -25,7 +25,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/library-go/pkg/build/naming"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
@@ -433,7 +433,7 @@ func createHookPodManifest(hook *appsv1.LifecycleHook, rc *corev1.ReplicationCon
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      apihelpers.GetPodName(rc.Name, hookType),
+			Name:      naming.GetPodName(rc.Name, hookType),
 			Namespace: rc.Namespace,
 			Annotations: map[string]string{
 				deploymentAnnotation: rc.Name,
