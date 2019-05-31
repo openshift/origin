@@ -15,7 +15,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
 	"github.com/openshift/library-go/pkg/build/envresolve"
 
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -37,7 +37,7 @@ func (b ByCreationTimestamp) Less(i, j int) bool {
 
 // HandleBuildPruning handles the deletion of old successful and failed builds
 // based on settings in the BuildConfig.
-func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildlister.BuildLister, buildConfigGetter buildlister.BuildConfigLister, buildDeleter buildclientv1.BuildsGetter) error {
+func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildlisterv1.BuildLister, buildConfigGetter buildlisterv1.BuildConfigLister, buildDeleter buildclientv1.BuildsGetter) error {
 	klog.V(4).Infof("Handling build pruning for %s/%s", namespace, buildConfigName)
 
 	buildConfig, err := buildConfigGetter.BuildConfigs(namespace).Get(buildConfigName)
@@ -49,7 +49,7 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 	var errList []error
 
 	if buildConfig.Spec.SuccessfulBuildsHistoryLimit != nil {
-		successfulBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
+		successfulBuilds, err := buildutil.BuildConfigBuildsFromLister(buildLister, namespace, buildConfigName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 	}
 
 	if buildConfig.Spec.FailedBuildsHistoryLimit != nil {
-		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildv1.Build) bool {
+		failedBuilds, err := buildutil.BuildConfigBuildsFromLister(buildLister, namespace, buildConfigName, func(build *buildv1.Build) bool {
 			return build.Status.Phase == buildv1.BuildPhaseFailed || build.Status.Phase == buildv1.BuildPhaseCancelled || build.Status.Phase == buildv1.BuildPhaseError
 		})
 		if err != nil {

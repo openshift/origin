@@ -21,12 +21,9 @@ import (
 
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
-	buildclientset "github.com/openshift/client-go/build/clientset/versioned"
 	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 
-	buildclientinternal "github.com/openshift/origin/pkg/build/client"
 	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -74,7 +71,6 @@ type CancelBuildOptions struct {
 	Mapper                  meta.RESTMapper
 	Client                  buildtv1client.BuildV1Interface
 	BuildClient             buildtv1client.BuildInterface
-	BuildLister             buildlisterv1.BuildLister
 
 	// timeout is used by unit tests to shorten the polling period
 	timeout time.Duration
@@ -159,12 +155,6 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
-	internalclient, err := buildclientset.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	o.BuildLister = buildclientinternal.NewClientBuildLister(internalclient.BuildV1())
 	o.BuildClient = o.Client.Builds(o.Namespace)
 	o.Mapper, err = f.ToRESTMapper()
 	if err != nil {
@@ -179,7 +169,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 
 		switch resource {
 		case build.Resource("buildconfigs"):
-			list, err := buildutil.BuildConfigBuilds(o.BuildLister, o.Namespace, name, nil)
+			list, err := buildutil.BuildConfigBuilds(o.Client, o.Namespace, name, nil)
 			if err != nil {
 				return err
 			}

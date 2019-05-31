@@ -55,10 +55,10 @@ func IsFatal(err error) bool {
 }
 
 type BuildConfigController struct {
-	buildLister             buildlister.BuildLister
-	buildDeleter            buildclientv1.BuildsGetter
-	buildConfigInstantiator buildclientv1.BuildConfigsGetter
-	buildConfigGetter       buildlister.BuildConfigLister
+	buildLister       buildlister.BuildLister
+	buildGetter       buildclientv1.BuildsGetter
+	buildConfigGetter buildclientv1.BuildConfigsGetter
+	buildConfigLister buildlister.BuildConfigLister
 
 	buildConfigInformer cache.SharedIndexInformer
 
@@ -77,10 +77,10 @@ func NewBuildConfigController(buildClient buildclient.Interface, kubeExternalCli
 	buildLister := buildInformer.Lister()
 
 	c := &BuildConfigController{
-		buildConfigGetter:       buildConfigGetter,
-		buildLister:             buildLister,
-		buildDeleter:            buildClient.BuildV1(),
-		buildConfigInstantiator: buildClient.BuildV1(),
+		buildConfigLister: buildConfigGetter,
+		buildLister:       buildLister,
+		buildGetter:       buildClient.BuildV1(),
+		buildConfigGetter: buildClient.BuildV1(),
 
 		buildConfigInformer: buildConfigInformer.Informer(),
 
@@ -100,7 +100,7 @@ func NewBuildConfigController(buildClient buildclient.Interface, kubeExternalCli
 func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error {
 	klog.V(4).Infof("Handling BuildConfig %s", bcDesc(bc))
 
-	if err := buildcommon.HandleBuildPruning(bc.Name, bc.Namespace, c.buildLister, c.buildConfigGetter, c.buildDeleter); err != nil {
+	if err := buildcommon.HandleBuildPruning(bc.Name, bc.Namespace, c.buildLister, c.buildConfigLister, c.buildGetter); err != nil {
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", bc.Namespace, bc.Name, err))
 	}
 
@@ -130,7 +130,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 		},
 		LastVersion: &lastVersion,
 	}
-	if _, err := c.buildConfigInstantiator.BuildConfigs(bc.Namespace).Instantiate(bc.Namespace, request); err != nil {
+	if _, err := c.buildConfigGetter.BuildConfigs(bc.Namespace).Instantiate(bc.Namespace, request); err != nil {
 		var instantiateErr error
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s due to a conflicting update: %v", bcDesc(bc), err)

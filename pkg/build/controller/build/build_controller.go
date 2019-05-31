@@ -146,7 +146,7 @@ type tomlConfig struct {
 type BuildController struct {
 	buildPatcher                buildclientv1.BuildsGetter
 	buildLister                 buildv1lister.BuildLister
-	buildConfigGetter           buildv1lister.BuildConfigLister
+	buildConfigLister           buildv1lister.BuildConfigLister
 	buildDeleter                buildclientv1.BuildsGetter
 	buildControllerConfigLister configv1lister.BuildLister
 	imageConfigLister           configv1lister.ImageLister
@@ -226,7 +226,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	c := &BuildController{
 		buildPatcher:                    params.BuildClient.BuildV1(),
 		buildLister:                     buildLister,
-		buildConfigGetter:               buildConfigGetter,
+		buildConfigLister:               buildConfigGetter,
 		buildDeleter:                    params.BuildClient.BuildV1(),
 		buildControllerConfigLister:     params.BuildControllerConfigInformer.Lister(),
 		imageConfigLister:               params.ImageConfigInformer.Lister(),
@@ -494,7 +494,7 @@ func (bc *BuildController) handleBuild(build *buildv1.Build) error {
 	// If pipeline build, handle pruning.
 	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
 		if buildutil.IsBuildComplete(build) {
-			if err := common.HandleBuildPruning(buildutil.ConfigNameForBuild(build), build.Namespace, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter); err != nil {
+			if err := common.HandleBuildPruning(buildutil.ConfigNameForBuild(build), build.Namespace, bc.buildLister, bc.buildConfigLister, bc.buildDeleter); err != nil {
 				utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", build.Namespace, build.Name, err))
 			}
 		}
@@ -1372,7 +1372,7 @@ func (bc *BuildController) updateBuild(build *buildv1.Build, update *buildUpdate
 func (bc *BuildController) handleBuildCompletion(build *buildv1.Build) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	bc.enqueueBuildConfig(build.Namespace, bcName)
-	if err := common.HandleBuildPruning(bcName, build.Namespace, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter); err != nil {
+	if err := common.HandleBuildPruning(bcName, build.Namespace, bc.buildLister, bc.buildConfigLister, bc.buildDeleter); err != nil {
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", build.Namespace, build.Name, err))
 	}
 }

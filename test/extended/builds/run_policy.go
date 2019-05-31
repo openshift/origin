@@ -12,7 +12,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -98,9 +98,8 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 					// TODO: This might introduce flakes in case the first build complete
 					// sooner or fail.
 					if build.Status.Phase == buildv1.BuildPhasePending {
-						c := buildclient.NewClientBuildLister(oc.BuildClient().BuildV1())
 						firstBuildRunning := false
-						_, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildv1.Build) bool {
+						_, err := buildutil.BuildConfigBuilds(oc.BuildClient().BuildV1(), oc.Namespace(), bcName, func(b *buildv1.Build) bool {
 							if b.Name == startedBuilds[0] && b.Status.Phase == buildv1.BuildPhaseRunning {
 								firstBuildRunning = true
 							}
@@ -165,8 +164,7 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 						}
 						// Verify there are no other running or pending builds than this
 						// build as serial build always runs alone.
-						c := buildclient.NewClientBuildLister(oc.BuildClient().BuildV1())
-						builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildv1.Build) bool {
+						builds, err := buildutil.BuildConfigBuilds(oc.BuildClient().BuildV1(), oc.Namespace(), bcName, func(b *buildv1.Build) bool {
 							if b.Name == build.Name {
 								return false
 							}
@@ -430,8 +428,7 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 						}
 						// Verify there are no other running or pending builds than this
 						// build as serial build always runs alone.
-						c := buildclient.NewClientBuildLister(oc.BuildClient().BuildV1())
-						builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildv1.Build) bool {
+						builds, err := buildutil.BuildConfigBuilds(oc.BuildClient().BuildV1(), oc.Namespace(), bcName, func(b *buildv1.Build) bool {
 							e2e.Logf("[%s] build %s is %s", build.Name, b.Name, b.Status.Phase)
 							if b.Name == build.Name {
 								return false

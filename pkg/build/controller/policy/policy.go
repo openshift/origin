@@ -49,7 +49,7 @@ func ForBuild(build *buildv1.Build, policies []RunPolicy) RunPolicy {
 // serial builds should always run alone.
 func hasRunningSerialBuild(lister buildlister.BuildLister, namespace, buildConfigName string) bool {
 	var hasRunningBuilds bool
-	buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildv1.Build) bool {
+	if _, err := buildutil.BuildConfigBuildsFromLister(lister, namespace, buildConfigName, func(b *buildv1.Build) bool {
 		switch b.Status.Phase {
 		case buildv1.BuildPhasePending, buildv1.BuildPhaseRunning:
 			switch buildRunPolicy(b) {
@@ -58,7 +58,9 @@ func hasRunningSerialBuild(lister buildlister.BuildLister, namespace, buildConfi
 			}
 		}
 		return false
-	})
+	}); err != nil {
+		klog.Errorf("Failed to list builds for %s/%s: %v", namespace, buildConfigName, err)
+	}
 	return hasRunningBuilds
 }
 
@@ -72,7 +74,7 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 		hasRunningBuilds    bool
 		previousBuildNumber int64
 	)
-	builds, err := buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildv1.Build) bool {
+	builds, err := buildutil.BuildConfigBuildsFromLister(lister, namespace, buildConfigName, func(b *buildv1.Build) bool {
 		switch b.Status.Phase {
 		case buildv1.BuildPhasePending, buildv1.BuildPhaseRunning:
 			hasRunningBuilds = true
