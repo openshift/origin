@@ -108,7 +108,6 @@ func NewRollingDeploymentStrategy(namespace string, kubeClient kubernetes.Interf
 }
 
 func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error {
-	// TODO: This should move to external once we are sure there are no replication controller left with internal version
 	config, err := appsserialization.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", appsutil.LabelForDeployment(to), err)
@@ -225,7 +224,6 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 		Timeout:         time.Duration(*params.TimeoutSeconds) * time.Second,
 		MinReadySeconds: config.Spec.MinReadySeconds,
 		CleanupPolicy:   PreserveRollingUpdateCleanupPolicy,
-		MaxUnavailable:  *params.MaxUnavailable,
 		OnProgress: func(oldRc, newRc *corev1.ReplicationController, percentage int) error {
 			if expect, ok := strat.Percentage(s.until); ok && percentage >= expect {
 				return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s (currently %d%%)", s.until, percentage))
