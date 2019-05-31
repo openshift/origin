@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"k8s.io/klog"
+	"k8s.io/utils/diff"
 
 	"k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	kcorelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -211,7 +213,7 @@ func (c *DeploymentConfigController) Handle(config *appsv1.DeploymentConfig) err
 		}
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		// We don't care about this error since we need to report the create failure.
-		cond := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.FailedRcCreateReason, err.Error())
+		cond := newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.FailedRcCreateReason, err.Error())
 		_ = c.updateStatus(config, existingDeployments, true, *cond)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err)
 	}
@@ -225,7 +227,7 @@ func (c *DeploymentConfigController) Handle(config *appsv1.DeploymentConfig) err
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
 	}
 
-	cond := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue, appsutil.NewReplicationControllerReason, msg)
+	cond := newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue, appsutil.NewReplicationControllerReason, msg)
 	return c.updateStatus(config, existingDeployments, true, *cond)
 }
 
@@ -438,14 +440,26 @@ func calculateStatus(config *appsv1.DeploymentConfig, rcs []*v1.ReplicationContr
 	return status
 }
 
+// newDeploymentCondition creates a new deployment condition.
+func newDeploymentCondition(condType appsv1.DeploymentConditionType, status v1.ConditionStatus, reason string, message string) *appsv1.DeploymentCondition {
+	return &appsv1.DeploymentCondition{
+		Type:               condType,
+		Status:             status,
+		LastUpdateTime:     metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	}
+}
+
 func updateConditions(config *appsv1.DeploymentConfig, newStatus *appsv1.DeploymentConfigStatus, latestRC *v1.ReplicationController) {
 	// Availability condition.
 	if newStatus.AvailableReplicas >= config.Spec.Replicas-appsutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
-		minAvailability := appsutil.NewDeploymentCondition(appsv1.DeploymentAvailable, v1.ConditionTrue, "",
+		minAvailability := newDeploymentCondition(appsv1.DeploymentAvailable, v1.ConditionTrue, "",
 			"Deployment config has minimum availability.")
 		appsutil.SetDeploymentCondition(newStatus, *minAvailability)
 	} else {
-		noMinAvailability := appsutil.NewDeploymentCondition(appsv1.DeploymentAvailable, v1.ConditionFalse, "",
+		noMinAvailability := newDeploymentCondition(appsv1.DeploymentAvailable, v1.ConditionFalse, "",
 			"Deployment config does not have minimum availability.")
 		appsutil.SetDeploymentCondition(newStatus, *noMinAvailability)
 	}
@@ -455,13 +469,13 @@ func updateConditions(config *appsv1.DeploymentConfig, newStatus *appsv1.Deploym
 		switch appsutil.DeploymentStatusFor(latestRC) {
 		case appsv1.DeploymentStatusPending:
 			msg := fmt.Sprintf("replication controller %q is waiting for pod %q to run", latestRC.Name, appsutil.DeployerPodNameForDeployment(latestRC.Name))
-			condition := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionUnknown, "", msg)
+			condition := newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionUnknown, "", msg)
 			appsutil.SetDeploymentCondition(newStatus, *condition)
 		case appsv1.DeploymentStatusRunning:
-			if appsutil.IsProgressing(config, newStatus) {
+			if isProgressing(config, newStatus) {
 				appsutil.RemoveDeploymentCondition(newStatus, appsv1.DeploymentProgressing)
 				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
-				condition := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue,
+				condition := newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue,
 					string(appsv1.ReplicationControllerUpdatedReason), msg)
 				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
 				// of the last time the condition transitioned to a new status. We should probably change that.
@@ -471,16 +485,16 @@ func updateConditions(config *appsv1.DeploymentConfig, newStatus *appsv1.Deploym
 			var condition *appsv1.DeploymentCondition
 			if appsutil.IsDeploymentCancelled(latestRC) {
 				msg := fmt.Sprintf("rollout of replication controller %q was cancelled", latestRC.Name)
-				condition = appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse,
+				condition = newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse,
 					appsutil.CancelledRolloutReason, msg)
 			} else {
 				msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
-				condition = appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.TimedOutReason, msg)
+				condition = newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.TimedOutReason, msg)
 			}
 			appsutil.SetDeploymentCondition(newStatus, *condition)
 		case appsv1.DeploymentStatusComplete:
 			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
-			condition := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue, appsutil.NewRcAvailableReason, msg)
+			condition := newDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionTrue, appsutil.NewRcAvailableReason, msg)
 			appsutil.SetDeploymentCondition(newStatus, *condition)
 		}
 	}
@@ -547,6 +561,32 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 	return kutilerrors.NewAggregate(deletionErrors)
 }
 
+// recordConfigChangeCause sets a deployment config cause for config change.
+func recordConfigChangeCause(config *appsv1.DeploymentConfig) {
+	config.Status.Details = &appsv1.DeploymentDetails{
+		Causes: []appsv1.DeploymentCause{
+			{
+				Type: appsv1.DeploymentTriggerOnConfigChange,
+			},
+		},
+		Message: "config change",
+	}
+}
+
+// recordImageChangeCauses sets a deployment config cause for image change. It
+// takes a list of changed images and record an cause for each image.
+func recordImageChangeCauses(config *appsv1.DeploymentConfig, imageNames []string) {
+	config.Status.Details = &appsv1.DeploymentDetails{
+		Message: "image change",
+	}
+	for _, imageName := range imageNames {
+		config.Status.Details.Causes = append(config.Status.Details.Causes, appsv1.DeploymentCause{
+			Type:         appsv1.DeploymentTriggerOnImageChange,
+			ImageTrigger: &appsv1.DeploymentCauseImageTrigger{From: v1.ObjectReference{Kind: "DockerImage", Name: imageName}},
+		})
+	}
+}
+
 // triggerActivated indicates whether we should proceed with new rollout as one of the
 // triggers were activated (config change or image change). The first bool indicates that
 // the triggers are active and second indicates if we should skip the rollout because we
@@ -573,7 +613,7 @@ func triggerActivated(config *appsv1.DeploymentConfig, latestExists bool, latest
 				klog.V(4).Infof("Rolling out initial deployment for %s/%s as it now have images available", config.Namespace, config.Name)
 				// TODO: Technically this is not a config change cause, but we will have to report the image that caused the trigger.
 				//       In some cases it might be difficult because config can have multiple ICT.
-				appsutil.RecordConfigChangeCause(config)
+				recordConfigChangeCause(config)
 				return true, false, nil
 			}
 			klog.V(4).Infof("Rolling out initial deployment for %s/%s deferred until its images are ready", config.Namespace, config.Name)
@@ -582,7 +622,7 @@ func triggerActivated(config *appsv1.DeploymentConfig, latestExists bool, latest
 		// Rollout if we only have config change trigger.
 		if configTrigger {
 			klog.V(4).Infof("Rolling out initial deployment for %s/%s", config.Namespace, config.Name)
-			appsutil.RecordConfigChangeCause(config)
+			recordConfigChangeCause(config)
 			return true, false, nil
 		}
 		// We are waiting for the initial RC to be created.
@@ -600,23 +640,72 @@ func triggerActivated(config *appsv1.DeploymentConfig, latestExists bool, latest
 	}
 
 	if imageTrigger {
-		if ok, imageNames := appsutil.HasUpdatedImages(config, latestDeployment); ok {
+		if ok, imageNames := hasUpdatedImages(config, latestDeployment); ok {
 			klog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by image changes (%s)", config.Status.LatestVersion+1, config.Namespace, config.Name, strings.Join(imageNames, ","))
-			appsutil.RecordImageChangeCauses(config, imageNames)
+			recordImageChangeCauses(config, imageNames)
 			return true, false, nil
 		}
 	}
 
 	if configTrigger {
-		isLatest, changes, err := appsserialization.HasLatestPodTemplate(config, latestDeployment)
+		isLatest, changes, err := hasLatestPodTemplate(config, latestDeployment)
 		if err != nil {
 			return false, false, fmt.Errorf("error while checking for latest pod template in replication controller: %v", err)
 		}
 		if !isLatest {
 			klog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by config change, diff: %s", config.Status.LatestVersion+1, config.Namespace, config.Name, changes)
-			appsutil.RecordConfigChangeCause(config)
+			recordConfigChangeCause(config)
 			return true, false, nil
 		}
 	}
 	return false, false, nil
+}
+
+// hasUpdatedImages indicates if the deployment configuration images were updated.
+func hasUpdatedImages(dc *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, []string) {
+	updatedImages := []string{}
+	rcImages := sets.NewString()
+	for _, c := range rc.Spec.Template.Spec.Containers {
+		rcImages.Insert(c.Image)
+	}
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		if !rcImages.Has(c.Image) {
+			updatedImages = append(updatedImages, c.Image)
+		}
+	}
+	if len(updatedImages) == 0 {
+		return false, nil
+	}
+	return true, updatedImages
+}
+
+// hasLatestPodTemplate checks for differences between current deployment config
+// template and deployment config template encoded in the latest replication
+// controller. If they are different it will return an string diff containing
+// the change.
+func hasLatestPodTemplate(currentConfig *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
+	latestConfig, err := appsserialization.DecodeDeploymentConfig(rc)
+	if err != nil {
+		return true, "", err
+	}
+	// The latestConfig represents an encoded DC in the latest deployment (RC).
+	// TODO: This diverges from the upstream behavior where we compare deployment
+	// template vs. replicaset template. Doing that will disallow any
+	// modifications to the RC the deployment config controller create and manage
+	// as a change to the RC will cause the DC to be reconciled and ultimately
+	// trigger a new rollout because of skew between latest RC template and DC
+	// template.
+	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
+		return true, "", nil
+	}
+	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
+}
+
+// isProgressing expects a state deployment config and its updated status in order to
+// determine if there is any progress.
+func isProgressing(config *appsv1.DeploymentConfig, newStatus *appsv1.DeploymentConfigStatus) bool {
+	oldStatusOldReplicas := config.Status.Replicas - config.Status.UpdatedReplicas
+	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
+
+	return (newStatus.UpdatedReplicas > config.Status.UpdatedReplicas) || (newStatusOldReplicas < oldStatusOldReplicas)
 }

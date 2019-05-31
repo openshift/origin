@@ -5,12 +5,14 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
@@ -196,7 +198,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// New deployments must have a desired replica count.
-	desiredReplicas, hasDesired := appsutil.DeploymentDesiredReplicas(to)
+	desiredReplicas, hasDesired := deploymentDesiredReplicas(to)
 	if !hasDesired {
 		return fmt.Errorf("deployment %s has already run to completion", to.Name)
 	}
@@ -262,4 +264,21 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 	fmt.Fprintln(d.out, "--> Success")
 	return nil
+}
+
+func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
+	s := appsutil.AnnotationFor(obj, key)
+	if len(s) == 0 {
+		return 0, false
+	}
+	i, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, false
+	}
+	return int32(i), true
+}
+
+// deploymentDesiredReplicas returns number of desired replica for the given replication controller
+func deploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
+	return int32AnnotationFor(obj, appsv1.DesiredReplicasAnnotation)
 }

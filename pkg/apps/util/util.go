@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -14,72 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/utils/diff"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 
 	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
-
-// HasLatestPodTemplate checks for differences between current deployment config
-// template and deployment config template encoded in the latest replication
-// controller. If they are different it will return an string diff containing
-// the change.
-func HasLatestPodTemplate(currentConfig *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
-	latestConfig, err := appsserialization.DecodeDeploymentConfig(rc)
-	if err != nil {
-		return true, "", err
-	}
-	// The latestConfig represents an encoded DC in the latest deployment (RC).
-	// TODO: This diverges from the upstream behavior where we compare deployment
-	// template vs. replicaset template. Doing that will disallow any
-	// modifications to the RC the deployment config controller create and manage
-	// as a change to the RC will cause the DC to be reconciled and ultimately
-	// trigger a new rollout because of skew between latest RC template and DC
-	// template.
-	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
-		return true, "", nil
-	}
-	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
-}
-
-// RolloutExceededTimeoutSeconds returns true if the current deployment exceeded
-// the timeoutSeconds defined for its strategy.
-// Note that this is different than activeDeadlineSeconds which is the timeout
-// set for the deployer pod. In some cases, the deployer pod cannot be created
-// (like quota, etc...). In that case deployer controller use this function to
-// measure if the created deployment (RC) exceeded the timeout.
-func RolloutExceededTimeoutSeconds(config *appsv1.DeploymentConfig, latestRC *v1.ReplicationController) bool {
-	timeoutSeconds := GetTimeoutSecondsForStrategy(config)
-	// If user set the timeoutSeconds to 0, we assume there should be no timeout.
-	if timeoutSeconds <= 0 {
-		return false
-	}
-	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
-}
-
-// GetTimeoutSecondsForStrategy returns the timeout in seconds defined in the
-// deployment config strategy.
-func GetTimeoutSecondsForStrategy(config *appsv1.DeploymentConfig) int64 {
-	var timeoutSeconds int64
-	switch config.Spec.Strategy.Type {
-	case appsv1.DeploymentStrategyTypeRolling:
-		timeoutSeconds = DefaultRollingTimeoutSeconds
-		if t := config.Spec.Strategy.RollingParams.TimeoutSeconds; t != nil {
-			timeoutSeconds = *t
-		}
-	case appsv1.DeploymentStrategyTypeRecreate:
-		timeoutSeconds = DefaultRecreateTimeoutSeconds
-		if t := config.Spec.Strategy.RecreateParams.TimeoutSeconds; t != nil {
-			timeoutSeconds = *t
-		}
-	case appsv1.DeploymentStrategyTypeCustom:
-		timeoutSeconds = DefaultRecreateTimeoutSeconds
-	}
-	return timeoutSeconds
-}
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment string) string {
@@ -195,18 +134,6 @@ func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController,
 	return deployment, nil
 }
 
-// NewDeploymentCondition creates a new deployment condition.
-func NewDeploymentCondition(condType appsv1.DeploymentConditionType, status v1.ConditionStatus, reason string, message string) *appsv1.DeploymentCondition {
-	return &appsv1.DeploymentCondition{
-		Type:               condType,
-		Status:             status,
-		LastUpdateTime:     metav1.Now(),
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
-	}
-}
-
 // SetDeploymentCondition updates the deployment to include the provided condition. If the condition that
 // we are about to add already exists and has the same status and reason then we are not going to update.
 func SetDeploymentCondition(status *appsv1.DeploymentConfigStatus, condition appsv1.DeploymentCondition) {
@@ -281,59 +208,6 @@ func DeploymentsForCleanup(configuration *appsv1.DeploymentConfig, deployments [
 	return relevantDeployments
 }
 
-// RecordConfigChangeCause sets a deployment config cause for config change.
-func RecordConfigChangeCause(config *appsv1.DeploymentConfig) {
-	config.Status.Details = &appsv1.DeploymentDetails{
-		Causes: []appsv1.DeploymentCause{
-			{
-				Type: appsv1.DeploymentTriggerOnConfigChange,
-			},
-		},
-		Message: "config change",
-	}
-}
-
-// RecordImageChangeCauses sets a deployment config cause for image change. It
-// takes a list of changed images and record an cause for each image.
-func RecordImageChangeCauses(config *appsv1.DeploymentConfig, imageNames []string) {
-	config.Status.Details = &appsv1.DeploymentDetails{
-		Message: "image change",
-	}
-	for _, imageName := range imageNames {
-		config.Status.Details.Causes = append(config.Status.Details.Causes, appsv1.DeploymentCause{
-			Type:         appsv1.DeploymentTriggerOnImageChange,
-			ImageTrigger: &appsv1.DeploymentCauseImageTrigger{From: v1.ObjectReference{Kind: "DockerImage", Name: imageName}},
-		})
-	}
-}
-
-// HasUpdatedImages indicates if the deployment configuration images were updated.
-func HasUpdatedImages(dc *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, []string) {
-	updatedImages := []string{}
-	rcImages := sets.NewString()
-	for _, c := range rc.Spec.Template.Spec.Containers {
-		rcImages.Insert(c.Image)
-	}
-	for _, c := range dc.Spec.Template.Spec.Containers {
-		if !rcImages.Has(c.Image) {
-			updatedImages = append(updatedImages, c.Image)
-		}
-	}
-	if len(updatedImages) == 0 {
-		return false, nil
-	}
-	return true, updatedImages
-}
-
-// IsProgressing expects a state deployment config and its updated status in order to
-// determine if there is any progress.
-func IsProgressing(config *appsv1.DeploymentConfig, newStatus *appsv1.DeploymentConfigStatus) bool {
-	oldStatusOldReplicas := config.Status.Replicas - config.Status.UpdatedReplicas
-	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
-
-	return (newStatus.UpdatedReplicas > config.Status.UpdatedReplicas) || (newStatusOldReplicas < oldStatusOldReplicas)
-}
-
 // LabelForDeployment builds a string identifier for a Deployment.
 func LabelForDeployment(deployment *v1.ReplicationController) string {
 	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
@@ -343,11 +217,6 @@ func LabelForDeployment(deployment *v1.ReplicationController) string {
 func LabelForDeploymentConfig(config runtime.Object) string {
 	accessor, _ := meta.Accessor(config)
 	return fmt.Sprintf("%s/%s", accessor.GetNamespace(), accessor.GetName())
-}
-
-// DeploymentDesiredReplicas returns number of desired replica for the given replication controller
-func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
-	return int32AnnotationFor(obj, appsv1.DesiredReplicasAnnotation)
 }
 
 // LatestDeploymentNameForConfig returns a stable identifier for deployment config
@@ -688,18 +557,6 @@ func CanTransitionPhase(current, next appsv1.DeploymentStatus) bool {
 		}
 	}
 	return false
-}
-
-func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
-	s := AnnotationFor(obj, key)
-	if len(s) == 0 {
-		return 0, false
-	}
-	i, err := strconv.ParseInt(s, 10, 32)
-	if err != nil {
-		return 0, false
-	}
-	return int32(i), true
 }
 
 type ByLatestVersionAsc []*v1.ReplicationController

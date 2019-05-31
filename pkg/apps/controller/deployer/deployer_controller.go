@@ -2,10 +2,12 @@ package deployment
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -137,10 +139,11 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		if err != nil {
 			return err
 		}
-		if appsutil.RolloutExceededTimeoutSeconds(config, deployment) {
+		if rolloutExceededTimeoutSeconds(config, deployment) {
 			nextStatus = appsv1.DeploymentStatusFailed
 			updatedAnnotations[appsv1.DeploymentStatusReasonAnnotation] = appsutil.DeploymentFailedUnableToCreateDeployerPod
-			c.emitDeploymentEvent(deployment, corev1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsutil.LabelForDeployment(deployment), appsutil.GetTimeoutSecondsForStrategy(config)))
+			c.emitDeploymentEvent(deployment, corev1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsutil.LabelForDeployment(deployment),
+				getTimeoutSecondsForStrategy(config)))
 			klog.V(4).Infof("Failing deployment %s/%s as we reached timeout while waiting for the deployer pod to be created", deployment.Namespace, deployment.Name)
 			break
 		}
@@ -593,4 +596,40 @@ func (c *DeploymentController) handleErr(err error, key interface{}, deployment 
 	}
 	klog.V(2).Infof(msg)
 	c.queue.Forget(key)
+}
+
+// rolloutExceededTimeoutSeconds returns true if the current deployment exceeded
+// the timeoutSeconds defined for its strategy.
+// Note that this is different than activeDeadlineSeconds which is the timeout
+// set for the deployer pod. In some cases, the deployer pod cannot be created
+// (like quota, etc...). In that case deployer controller use this function to
+// measure if the created deployment (RC) exceeded the timeout.
+func rolloutExceededTimeoutSeconds(config *appsv1.DeploymentConfig, latestRC *v1.ReplicationController) bool {
+	timeoutSeconds := getTimeoutSecondsForStrategy(config)
+	// If user set the timeoutSeconds to 0, we assume there should be no timeout.
+	if timeoutSeconds <= 0 {
+		return false
+	}
+	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
+}
+
+// GetTimeoutSecondsForStrategy returns the timeout in seconds defined in the
+// deployment config strategy.
+func getTimeoutSecondsForStrategy(config *appsv1.DeploymentConfig) int64 {
+	var timeoutSeconds int64
+	switch config.Spec.Strategy.Type {
+	case appsv1.DeploymentStrategyTypeRolling:
+		timeoutSeconds = appsutil.DefaultRollingTimeoutSeconds
+		if t := config.Spec.Strategy.RollingParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case appsv1.DeploymentStrategyTypeRecreate:
+		timeoutSeconds = appsutil.DefaultRecreateTimeoutSeconds
+		if t := config.Spec.Strategy.RecreateParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case appsv1.DeploymentStrategyTypeCustom:
+		timeoutSeconds = appsutil.DefaultRecreateTimeoutSeconds
+	}
+	return timeoutSeconds
 }
