@@ -887,7 +887,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		return nil, err
 	}
 
-	acceptors := app.Acceptors{app.NewAcceptUnique(c.Typer), app.AcceptNew,
+	acceptors := app.Acceptors{app.NewAcceptUnique(), app.AcceptNew,
 		app.NewAcceptNonExistentImageStream(c.Typer, c.ImageClient, c.OriginNamespace), app.NewAcceptNonExistentImageStreamTag(c.Typer, c.ImageClient, c.OriginNamespace)}
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()

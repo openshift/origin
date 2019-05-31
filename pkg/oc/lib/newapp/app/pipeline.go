@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/klog"
-
 	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -16,10 +14,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kuval "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	"github.com/openshift/api"
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -33,6 +35,10 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
+
+func init() {
+	utilruntime.Must(api.Install(scheme.Scheme))
+}
 
 // A PipelineBuilder creates Pipeline instances.
 type PipelineBuilder interface {
@@ -489,9 +495,9 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 
 // NewAcceptUnique creates an acceptor that only accepts unique objects by kind
 // and name.
-func NewAcceptUnique(typer runtime.ObjectTyper) Acceptor {
+func NewAcceptUnique() Acceptor {
 	return &acceptUnique{
-		typer:   typer,
+		typer:   scheme.Scheme,
 		objects: map[string]struct{}{},
 	}
 }
