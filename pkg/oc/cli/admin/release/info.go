@@ -70,7 +70,9 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 			image. The --pullspecs flag will display the full component image pull spec. --size will show
 			a breakdown of each image, their layers, and the total size of the payload. --contents shows
 			the configuration that will be applied to the cluster when the update is run. If you have
-			specified two images the difference between the first and second image will be shown.
+			specified two images the difference between the first and second image will be shown. You
+			may use -o name, -o digest, or -o pullspec to output the tag name, digest for image, or
+			pullspec of the images referenced in the release image.
 
 			The --verify flag will display one summary line per input release image and verify the
 			integrity of each. The command will return an error if the release has been tampered with.
@@ -214,9 +216,9 @@ func (o *InfoOptions) Validate() error {
 		}
 	default:
 		switch o.Output {
-		case "", "json":
+		case "", "json", "pullspec", "digest", "name":
 		default:
-			return fmt.Errorf("--output only supports 'json'")
+			return fmt.Errorf("--output only supports 'name', 'json', 'pullspec', or 'digest'")
 		}
 	}
 
@@ -306,13 +308,42 @@ func (o *InfoOptions) describeImage(release *ReleaseInfo) error {
 		_, err := io.Copy(o.Out, newContentStreamForRelease(release))
 		return err
 	}
-	if len(o.Output) > 0 {
+	switch o.Output {
+	case "json":
 		data, err := json.MarshalIndent(release, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Fprintln(o.Out, string(data))
 		return nil
+	case "name":
+		for _, tag := range release.References.Spec.Tags {
+			fmt.Fprintf(o.Out, "%s\n", tag.Name)
+		}
+		return nil
+	case "pullspec":
+		for _, tag := range release.References.Spec.Tags {
+			if tag.From != nil && tag.From.Kind == "DockerImage" {
+				fmt.Fprintf(o.Out, "%s\n", tag.From.Name)
+			}
+		}
+		return nil
+	case "digest":
+		for _, tag := range release.References.Spec.Tags {
+			if tag.From != nil && tag.From.Kind == "DockerImage" {
+				if ref, err := imagereference.Parse(tag.From.Name); err != nil {
+					fmt.Fprintf(o.ErrOut, "error: %s is not a valid reference: %v\n", tag.Name, err)
+				} else if len(ref.ID) == 0 {
+					fmt.Fprintf(o.ErrOut, "error: %s does not point to a digest\n", tag.Name)
+				} else {
+					fmt.Fprintf(o.Out, "%s\n", ref.ID)
+				}
+			}
+		}
+		return nil
+	case "":
+	default:
+		return fmt.Errorf("output mode only supports 'name', 'json', 'pullspec', or 'digest'")
 	}
 	if len(o.ImageFor) > 0 {
 		spec, err := findImageSpec(release.References, o.ImageFor, release.Image)
