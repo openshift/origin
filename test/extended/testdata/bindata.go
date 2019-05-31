@@ -5477,6 +5477,8 @@ spec:
         failurePolicy: Abort
         execNewPod:
           containerName: myapp
+          volumes:
+          - non-existing-volume
           command:
           - /bin/echo
           - test pre hook executed
