@@ -417,7 +417,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 
 	// wait until the cluster acknowledges the update
 	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
-		cv, err := monitor.Check(updated.Generation, desired)
+		cv, _, err := monitor.Check(updated.Generation, desired)
 		if err != nil || cv == nil {
 			return false, err
 		}
@@ -435,8 +435,12 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 	// observe the upgrade, taking action as necessary
 	framework.Logf("Cluster version operator acknowledged upgrade request")
 	aborted := false
+	var lastMessage string
 	if err := wait.PollImmediate(10*time.Second, maximumDuration, func() (bool, error) {
-		cv, err := monitor.Check(updated.Generation, desired)
+		cv, msg, err := monitor.Check(updated.Generation, desired)
+		if msg != "" {
+			lastMessage = msg
+		}
 		if err != nil || cv == nil {
 			return false, err
 		}
@@ -469,6 +473,9 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 
 	}); err != nil {
 		monitor.Output()
+		if lastMessage != "" {
+			return fmt.Errorf("Cluster did not complete upgrade: %v: %s", err, lastMessage)
+		}
 		return fmt.Errorf("Cluster did not complete upgrade: %v", err)
 	}
 
