@@ -14,7 +14,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
+	scopemetadata "github.com/openshift/library-go/pkg/authorization/scopemetadata"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
@@ -75,7 +75,7 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 	allErrs := validation.ValidateObjectMeta(&accessToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(accessToken.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(accessToken.UserName, field.NewPath("userName"))...)
-	allErrs = append(allErrs, scopelibrary.ValidateScopes(accessToken.Scopes, field.NewPath("scopes"))...)
+	allErrs = append(allErrs, scopemetadata.ValidateScopes(accessToken.Scopes, field.NewPath("scopes"))...)
 
 	if len(accessToken.UserUID) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
@@ -129,7 +129,7 @@ func ValidateAuthorizeToken(authorizeToken *oauthapi.OAuthAuthorizeToken) field.
 	allErrs := validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(authorizeToken.UserName, field.NewPath("userName"))...)
-	allErrs = append(allErrs, scopelibrary.ValidateScopes(authorizeToken.Scopes, field.NewPath("scopes"))...)
+	allErrs = append(allErrs, scopemetadata.ValidateScopes(authorizeToken.Scopes, field.NewPath("scopes"))...)
 
 	if len(authorizeToken.UserUID) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
@@ -293,7 +293,7 @@ func ValidateClientAuthorization(clientAuthorization *oauthapi.OAuthClientAuthor
 
 	allErrs = append(allErrs, ValidateClientNameField(clientAuthorization.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(clientAuthorization.UserName, field.NewPath("userName"))...)
-	allErrs = append(allErrs, scopelibrary.ValidateScopes(clientAuthorization.Scopes, field.NewPath("scopes"))...)
+	allErrs = append(allErrs, scopemetadata.ValidateScopes(clientAuthorization.Scopes, field.NewPath("scopes"))...)
 
 	if len(clientAuthorization.UserUID) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("useruid"), ""))

@@ -3,14 +3,13 @@ package oauthauthorizetoken
 import (
 	"context"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	scopemetadata "github.com/openshift/library-go/pkg/authorization/scopemetadata"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclient"
@@ -62,7 +61,7 @@ func (s strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorL
 	if err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}
-	if err := scopelibrary.ValidateScopeRestrictions(client, token.Scopes...); err != nil {
+	if err := scopemetadata.ValidateScopeRestrictions(client, token.Scopes...); err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}
 

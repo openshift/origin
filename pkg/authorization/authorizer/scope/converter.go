@@ -3,8 +3,6 @@ package scope
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
-
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -14,6 +12,8 @@ import (
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
+
+	scopemetadata "github.com/openshift/library-go/pkg/authorization/scopemetadata"
 )
 
 const (
@@ -190,7 +190,7 @@ func DescribeScopes(scopes []string) map[string]string {
 
 // user:<scope name>
 type userEvaluator struct {
-	scopelibrary.UserEvaluator
+	scopemetadata.UserEvaluator
 }
 
 func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
@@ -278,13 +278,13 @@ var escalatingScopeResources = []schema.GroupResource{
 
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
 type clusterRoleEvaluator struct {
-	scopelibrary.ClusterRoleEvaluator
+	scopemetadata.ClusterRoleEvaluator
 }
 
 var clusterRoleEvaluatorInstance = clusterRoleEvaluator{}
 
 func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	_, scopeNamespace, _, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
+	_, scopeNamespace, _, err := scopemetadata.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func has(set []string, value string) bool {
 
 // resolveRules doesn't enforce namespace checks
 func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	roleName, _, escalating, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
+	roleName, _, escalating, err := scopemetadata.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +343,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbacl
 }
 
 func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]string, error) {
-	_, scopeNamespace, _, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
+	_, scopeNamespace, _, err := scopemetadata.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
