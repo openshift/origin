@@ -25,10 +25,7 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
-
 	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
-	"github.com/openshift/origin/pkg/configconversion"
 )
 
 const RecommendedStartAPIServerName = "openshift-apiserver"
@@ -118,10 +115,10 @@ func (o *OpenShiftAPIServer) RunAPIServer(stopCh <-chan struct{}) error {
 	configFileLocation := path.Dir(absoluteConfigFile)
 
 	config := obj.(*openshiftcontrolplanev1.OpenShiftAPIServerConfig)
-	if err := helpers.ResolvePaths(configconversion.GetOpenShiftAPIServerConfigFileReferences(config), configFileLocation); err != nil {
+	if err := helpers.ResolvePaths(getOpenShiftAPIServerConfigFileReferences(config), configFileLocation); err != nil {
 		return err
 	}
-	configdefault.SetRecommendedOpenShiftAPIServerConfigDefaults(config)
+	setRecommendedOpenShiftAPIServerConfigDefaults(config)
 
 	return RunOpenShiftAPIServer(config, stopCh)
 }

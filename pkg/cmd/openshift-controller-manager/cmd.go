@@ -10,14 +10,14 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/rest"
-	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -25,8 +25,6 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
-	"github.com/openshift/origin/pkg/configconversion"
 )
 
 const RecommendedStartControllerManagerName = "openshift-controller-manager"
@@ -123,10 +121,10 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	if config.ServingInfo == nil {
 		config.ServingInfo = &configv1.HTTPServingInfo{}
 	}
-	if err := helpers.ResolvePaths(configconversion.GetOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
+	if err := helpers.ResolvePaths(getOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
 		return err
 	}
-	configdefault.SetRecommendedOpenShiftControllerConfigDefaults(config)
+	setRecommendedOpenShiftControllerConfigDefaults(config)
 
 	clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
 	if err != nil {
