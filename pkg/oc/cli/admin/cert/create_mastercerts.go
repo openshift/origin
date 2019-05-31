@@ -1,4 +1,4 @@
-package admin
+package cert
 
 import (
 	"errors"
@@ -20,6 +20,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/oc/pkg/helpers/parallel"
+	"github.com/openshift/origin/pkg/oc/cli/admin/createclient"
+	"github.com/openshift/origin/pkg/oc/cli/admin/createkubeconfig"
+	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
@@ -92,7 +95,7 @@ func NewCreateMasterCertsOptions(streams genericclioptions.IOStreams) *CreateMas
 		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
 		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
 		CertDir:          "openshift.local.config/master",
-		SignerName:       DefaultSignerName(),
+		SignerName:       signercertoptions.DefaultSignerName(),
 		APIServerURL:     "https://localhost:8443",
 		IOStreams:        streams,
 	}
@@ -178,14 +181,14 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	klog.V(4).Infof("Creating all certs with: %#v", o)
 
-	getSignerCertOptions, err := o.createNewSigner(CAFilePrefix)
+	getSignerCertOptions, err := o.createNewSigner(signercertoptions.CAFilePrefix)
 	if err != nil {
 		return err
 	}
 
 	frontProxyOptions := o
-	frontProxyOptions.SignerName = DefaultFrontProxySignerName()
-	getFrontProxySignerCertOptions, err := frontProxyOptions.createNewSigner(FrontProxyCAFilePrefix)
+	frontProxyOptions.SignerName = signercertoptions.DefaultFrontProxySignerName()
+	getFrontProxySignerCertOptions, err := frontProxyOptions.createNewSigner(signercertoptions.FrontProxyCAFilePrefix)
 	if err != nil {
 		return err
 	}
@@ -204,11 +207,11 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	return utilerrors.NewAggregate(errs)
 }
 
-func (o CreateMasterCertsOptions) createNewSigner(prefix string) (*SignerCertOptions, error) {
+func (o CreateMasterCertsOptions) createNewSigner(prefix string) (*signercertoptions.SignerCertOptions, error) {
 	signerCertOptions := CreateSignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, prefix),
-		KeyFile:    DefaultKeyFilename(o.CertDir, prefix),
-		SerialFile: DefaultSerialFilename(o.CertDir, prefix),
+		CertFile:   signercertoptions.DefaultCertFilename(o.CertDir, prefix),
+		KeyFile:    signercertoptions.DefaultKeyFilename(o.CertDir, prefix),
+		SerialFile: signercertoptions.DefaultSerialFilename(o.CertDir, prefix),
 		ExpireDays: o.SignerExpireDays,
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
@@ -221,21 +224,21 @@ func (o CreateMasterCertsOptions) createNewSigner(prefix string) (*SignerCertOpt
 		return nil, err
 	}
 	// once we've minted the signer, don't overwrite it
-	return &SignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, prefix),
-		KeyFile:    DefaultKeyFilename(o.CertDir, prefix),
-		SerialFile: DefaultSerialFilename(o.CertDir, prefix),
+	return &signercertoptions.SignerCertOptions{
+		CertFile:   signercertoptions.DefaultCertFilename(o.CertDir, prefix),
+		KeyFile:    signercertoptions.DefaultKeyFilename(o.CertDir, prefix),
+		SerialFile: signercertoptions.DefaultSerialFilename(o.CertDir, prefix),
 	}, nil
 
 }
 
-func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerCertOptions) error {
-	for _, clientCertInfo := range DefaultAPIClientCerts(o.CertDir) {
+func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	for _, clientCertInfo := range signercertoptions.DefaultAPIClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
 		}
 
-		createKubeConfigOptions := CreateKubeConfigOptions{
+		createKubeConfigOptions := createkubeconfig.CreateKubeConfigOptions{
 			APIServerURL:       o.APIServerURL,
 			PublicAPIServerURL: o.PublicAPIServerURL,
 			APIServerCAFiles:   append([]string{getSignerCertOptions.CertFile}, o.APIServerCAFiles...),
@@ -245,7 +248,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 
 			ContextNamespace: metav1.NamespaceDefault,
 
-			KubeConfigFile: DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
+			KubeConfigFile: signercertoptions.DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
 			IOStreams:      o.IOStreams,
 		}
 		if err := createKubeConfigOptions.Validate(nil); err != nil {
@@ -258,15 +261,15 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createAggregatorClientCerts(getSignerCertOptions *SignerCertOptions) error {
-	if err := o.createClientCert(DefaultAggregatorClientCertInfo(o.CertDir), getSignerCertOptions); err != nil {
+func (o CreateMasterCertsOptions) createAggregatorClientCerts(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	if err := o.createClientCert(signercertoptions.DefaultAggregatorClientCertInfo(o.CertDir), getSignerCertOptions); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *SignerCertOptions) error {
-	for _, clientCertInfo := range DefaultEtcdClientCerts(o.CertDir) {
+func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	for _, clientCertInfo := range signercertoptions.DefaultEtcdClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
 		}
@@ -274,8 +277,8 @@ func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *Si
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createProxyClientCerts(getSignerCertOptions *SignerCertOptions) error {
-	for _, clientCertInfo := range DefaultProxyClientCerts(o.CertDir) {
+func (o CreateMasterCertsOptions) createProxyClientCerts(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	for _, clientCertInfo := range signercertoptions.DefaultProxyClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
 		}
@@ -283,8 +286,8 @@ func (o CreateMasterCertsOptions) createProxyClientCerts(getSignerCertOptions *S
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions *SignerCertOptions) error {
-	for _, clientCertInfo := range DefaultKubeletClientCerts(o.CertDir) {
+func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	for _, clientCertInfo := range signercertoptions.DefaultKubeletClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
 		}
@@ -292,8 +295,8 @@ func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions 
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo, getSignerCertOptions *SignerCertOptions) error {
-	clientCertOptions := CreateClientCertOptions{
+func (o CreateMasterCertsOptions) createClientCert(clientCertInfo signercertoptions.ClientCertInfo, getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	clientCertOptions := createclient.CreateClientCertOptions{
 		SignerCertOptions: getSignerCertOptions,
 
 		CertFile: clientCertInfo.CertLocation.CertFile,
@@ -315,7 +318,7 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createCABundle(getSignerCertOptions *SignerCertOptions) error {
+func (o CreateMasterCertsOptions) createCABundle(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
 	caFiles := []string{getSignerCertOptions.CertFile}
 	caFiles = append(caFiles, o.APIServerCAFiles...)
 	caData, err := readFiles(caFiles, []byte("\n"))
@@ -327,11 +330,11 @@ func (o CreateMasterCertsOptions) createCABundle(getSignerCertOptions *SignerCer
 	if err := os.MkdirAll(o.CertDir, os.FileMode(0755)); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(DefaultCABundleFile(o.CertDir), caData, 0644)
+	return ioutil.WriteFile(signercertoptions.DefaultCABundleFile(o.CertDir), caData, 0644)
 }
 
-func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *SignerCertOptions) error {
-	for _, serverCertInfo := range DefaultServerCerts(o.CertDir) {
+func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	for _, serverCertInfo := range signercertoptions.DefaultServerCerts(o.CertDir) {
 		serverCertOptions := CreateServerCertOptions{
 			SignerCertOptions: getSignerCertOptions,
 
@@ -356,8 +359,8 @@ func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *Signer
 
 func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
 	keypairOptions := CreateKeyPairOptions{
-		PublicKeyFile:  DefaultServiceAccountPublicKeyFile(o.CertDir),
-		PrivateKeyFile: DefaultServiceAccountPrivateKeyFile(o.CertDir),
+		PublicKeyFile:  signercertoptions.DefaultServiceAccountPublicKeyFile(o.CertDir),
+		PrivateKeyFile: signercertoptions.DefaultServiceAccountPrivateKeyFile(o.CertDir),
 
 		Overwrite: o.Overwrite,
 		IOStreams: o.IOStreams,
@@ -371,15 +374,15 @@ func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *SignerCertOptions) error {
-	caInfo := DefaultServiceSignerCAInfo(o.CertDir)
+func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *signercertoptions.SignerCertOptions) error {
+	caInfo := signercertoptions.DefaultServiceSignerCAInfo(o.CertDir)
 
 	caOptions := CreateSignerCertOptions{
 		CertFile:   caInfo.CertFile,
 		KeyFile:    caInfo.KeyFile,
 		SerialFile: "", // we want the random cert serial for this one
 		ExpireDays: o.SignerExpireDays,
-		Name:       DefaultServiceServingCertSignerName(),
+		Name:       signercertoptions.DefaultServiceServingCertSignerName(),
 		IOStreams:  o.IOStreams,
 
 		Overwrite: o.Overwrite,
@@ -391,4 +394,21 @@ func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *S
 		return err
 	}
 	return nil
+}
+
+// readFiles returns a byte array containing the contents of all the given filenames,
+// optionally separated by a delimiter, or an error if any of the files cannot be read
+func readFiles(srcFiles []string, separator []byte) ([]byte, error) {
+	data := []byte{}
+	for _, srcFile := range srcFiles {
+		fileData, err := ioutil.ReadFile(srcFile)
+		if err != nil {
+			return nil, err
+		}
+		if len(data) > 0 && len(separator) > 0 {
+			data = append(data, separator...)
+		}
+		data = append(data, fileData...)
+	}
+	return data, nil
 }

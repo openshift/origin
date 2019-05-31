@@ -19,10 +19,10 @@ import (
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
@@ -165,9 +165,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
-	kubeletClientInfo := admin.DefaultMasterKubeletClientCertInfo(args.ConfigDir.Value())
+	kubeletClientInfo := signercertoptions.DefaultMasterKubeletClientCertInfo(args.ConfigDir.Value())
 
-	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
+	etcdClientInfo := signercertoptions.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
 
 	dnsServingInfo := servingInfoForAddr(&dnsBindAddr)
 
@@ -183,7 +183,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		AuthConfig: configapi.MasterAuthConfig{
 			RequestHeader: &configapi.RequestHeaderAuthenticationOptions{
-				ClientCA:            admin.DefaultCertFilename(args.ConfigDir.Value(), admin.FrontProxyCAFilePrefix),
+				ClientCA:            signercertoptions.DefaultCertFilename(args.ConfigDir.Value(), signercertoptions.FrontProxyCAFilePrefix),
 				ClientCommonNames:   []string{bootstrappolicy.AggregatorUsername},
 				UsernameHeaders:     []string{"X-Remote-User"},
 				GroupHeaders:        []string{"X-Remote-Group"},
@@ -191,7 +191,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		AggregatorConfig: configapi.AggregatorConfig{
-			ProxyClientInfo: admin.DefaultAggregatorClientCertInfo(args.ConfigDir.Value()).CertLocation,
+			ProxyClientInfo: signercertoptions.DefaultAggregatorClientCertInfo(args.ConfigDir.Value()).CertLocation,
 		},
 
 		OAuthConfig: oauthConfig,
@@ -204,7 +204,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), bootstrappolicy.MasterUnqualifiedUsername),
+			OpenShiftLoopbackKubeConfig: signercertoptions.DefaultKubeConfigFilename(args.ConfigDir.Value(), bootstrappolicy.MasterUnqualifiedUsername),
 		},
 
 		EtcdClientInfo: configapi.EtcdConnectionInfo{
@@ -253,21 +253,21 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 	}
 
-	config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
-	config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
+	config.ServingInfo.ServerCert = signercertoptions.DefaultMasterServingCertInfo(args.ConfigDir.Value())
+	config.ServingInfo.ClientCA = signercertoptions.DefaultAPIClientCAFile(args.ConfigDir.Value())
 
 	if oauthConfig != nil {
-		s := admin.DefaultCABundleFile(args.ConfigDir.Value())
+		s := signercertoptions.DefaultCABundleFile(args.ConfigDir.Value())
 		oauthConfig.MasterCA = &s
 	}
 
-	config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+	config.KubeletClientInfo.CA = signercertoptions.DefaultRootCAFile(args.ConfigDir.Value())
 	config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
-	config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
+	config.ServiceAccountConfig.MasterCA = signercertoptions.DefaultCABundleFile(args.ConfigDir.Value())
 
 	// Only set up ca/cert info for etcd connections if we're self-hosting etcd
 	if builtInEtcd {
-		config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+		config.EtcdClientInfo.CA = signercertoptions.DefaultRootCAFile(args.ConfigDir.Value())
 		config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
 	}
 
@@ -278,10 +278,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		bootstrappolicy.DeployerServiceAccountName,
 	}
 	// We also need the private key file to give to the token generator
-	config.ServiceAccountConfig.PrivateKeyFile = admin.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
+	config.ServiceAccountConfig.PrivateKeyFile = signercertoptions.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
 	// We also need the public key file to give to the authenticator
 	config.ServiceAccountConfig.PublicKeyFiles = []string{
-		admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
+		signercertoptions.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
 	}
 
 	internal, err := applyDefaults(config, legacyconfigv1.LegacySchemeGroupVersion)
@@ -380,11 +380,11 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
-		config.ServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.ConfigDir.Value())
+		config.ServingInfo.ServerCert = signercertoptions.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = signercertoptions.DefaultEtcdClientCAFile(args.ConfigDir.Value())
 
-		config.PeerServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
-		config.PeerServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.ConfigDir.Value())
+		config.PeerServingInfo.ServerCert = signercertoptions.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
+		config.PeerServingInfo.ClientCA = signercertoptions.DefaultEtcdClientCAFile(args.ConfigDir.Value())
 	}
 
 	return config, nil
@@ -410,7 +410,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 		MasterIP:            masterIP,
 		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
 		SchedulerConfigFile: args.SchedulerConfigFile,
-		ProxyClientInfo:     admin.DefaultProxyClientCertInfo(args.ConfigDir.Value()).CertLocation,
+		ProxyClientInfo:     signercertoptions.DefaultProxyClientCertInfo(args.ConfigDir.Value()).CertLocation,
 	}
 
 	return config, nil

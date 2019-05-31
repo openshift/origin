@@ -1,4 +1,4 @@
-package admin
+package cert
 
 import (
 	"crypto/x509"
@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
 const DecryptCommandName = "decrypt"
@@ -118,13 +117,13 @@ func (o *DecryptOptions) Decrypt() error {
 	if len(data) == 0 {
 		return fmt.Errorf("no input data specified")
 	}
-	dataBlock, ok := pemutil.BlockFromBytes(data, configapi.StringSourceEncryptedBlockType)
+	dataBlock, ok := BlockFromBytes(data, configapi.StringSourceEncryptedBlockType)
 	if !ok {
 		return fmt.Errorf("input does not contain a valid PEM block of type %q", configapi.StringSourceEncryptedBlockType)
 	}
 
 	// Get password
-	keyBlock, ok, err := pemutil.BlockFromFile(o.KeyFile, configapi.StringSourceKeyBlockType)
+	keyBlock, ok, err := BlockFromFile(o.KeyFile, configapi.StringSourceKeyBlockType)
 	if err != nil {
 		return err
 	}

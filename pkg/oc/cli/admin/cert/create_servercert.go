@@ -1,4 +1,4 @@
-package admin
+package cert
 
 import (
 	"errors"
@@ -13,12 +13,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 )
 
 const CreateServerCertCommandName = "create-server-cert"
 
 type CreateServerCertOptions struct {
-	SignerCertOptions *SignerCertOptions
+	SignerCertOptions *signercertoptions.SignerCertOptions
 
 	CertFile string
 	KeyFile  string
@@ -50,7 +51,7 @@ var createServerLong = templates.LongDesc(`
 
 func NewCreateServerCertOptions(streams genericclioptions.IOStreams) *CreateServerCertOptions {
 	return &CreateServerCertOptions{
-		SignerCertOptions: NewDefaultSignerCertOptions(),
+		SignerCertOptions: signercertoptions.NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		Overwrite:         true,
 		IOStreams:         streams,
@@ -71,7 +72,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, streams gen
 		},
 	}
 
-	BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
+	signercertoptions.BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
 
 	cmd.Flags().StringVar(&o.CertFile, "cert", o.CertFile, "The certificate file. Choose a name that indicates what the service is.")
 	cmd.Flags().StringVar(&o.KeyFile, "key", o.KeyFile, "The key file. Choose a name that indicates what the service is.")

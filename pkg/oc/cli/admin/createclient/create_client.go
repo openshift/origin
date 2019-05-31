@@ -1,4 +1,4 @@
-package admin
+package createclient
 
 import (
 	"errors"
@@ -15,12 +15,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/pkg/oc/cli/admin/createkubeconfig"
+	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 )
 
 const CreateClientCommandName = "create-api-client-config"
 
 type CreateClientOptions struct {
-	SignerCertOptions *SignerCertOptions
+	SignerCertOptions *signercertoptions.SignerCertOptions
 
 	ClientDir string
 	BaseName  string
@@ -46,7 +48,7 @@ var createClientLong = templates.LongDesc(`
 
 func NewCreateClientOptions(streams genericclioptions.IOStreams) *CreateClientOptions {
 	return &CreateClientOptions{
-		SignerCertOptions: NewDefaultSignerCertOptions(),
+		SignerCertOptions: signercertoptions.NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		APIServerURL:      "https://localhost:8443",
 		APIServerCAFiles:  []string{"openshift.local.config/master/ca.crt"},
@@ -66,7 +68,7 @@ func NewCommandCreateClient(commandName string, fullName string, streams generic
 		},
 	}
 
-	BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
+	signercertoptions.BindSignerCertOptions(o.SignerCertOptions, cmd.Flags(), "")
 
 	cmd.Flags().StringVar(&o.ClientDir, "client-dir", o.ClientDir, "The client data directory.")
 	cmd.Flags().StringVar(&o.BaseName, "basename", o.BaseName, "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
@@ -128,10 +130,10 @@ func (o CreateClientOptions) CreateClientFolder() error {
 	if len(baseName) == 0 {
 		baseName = o.User
 	}
-	clientCertFile := DefaultCertFilename(o.ClientDir, baseName)
-	clientKeyFile := DefaultKeyFilename(o.ClientDir, baseName)
-	clientCopyOfCAFile := DefaultCAFilename(o.ClientDir, "ca")
-	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, baseName)
+	clientCertFile := signercertoptions.DefaultCertFilename(o.ClientDir, baseName)
+	clientKeyFile := signercertoptions.DefaultKeyFilename(o.ClientDir, baseName)
+	clientCopyOfCAFile := signercertoptions.DefaultCAFilename(o.ClientDir, "ca")
+	kubeConfigFile := signercertoptions.DefaultKubeConfigFilename(o.ClientDir, baseName)
 
 	createClientCertOptions := CreateClientCertOptions{
 		SignerCertOptions: o.SignerCertOptions,
@@ -158,7 +160,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		return writeErr
 	}
 
-	createKubeConfigOptions := CreateKubeConfigOptions{
+	createKubeConfigOptions := createkubeconfig.CreateKubeConfigOptions{
 		APIServerURL:       o.APIServerURL,
 		PublicAPIServerURL: o.PublicAPIServerURL,
 		APIServerCAFiles:   []string{clientCopyOfCAFile},

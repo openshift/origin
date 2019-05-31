@@ -1,4 +1,4 @@
-package pem
+package cert
 
 import (
 	"bytes"
