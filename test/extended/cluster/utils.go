@@ -31,6 +31,9 @@ const maxRetries = 4
 // ParsePods unmarshalls the pod spec file defined in the CL config into a struct
 func ParsePods(file string) (kapiv1.Pod, error) {
 	var configStruct kapiv1.Pod
+	if file == "" {
+		return configStruct, nil
+	}
 
 	configFile, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -49,7 +52,7 @@ func ParsePods(file string) (kapiv1.Pod, error) {
 			return configStruct, err
 		}
 	default:
-		return configStruct, fmt.Errorf("Unknown config file extension")
+		return configStruct, fmt.Errorf("unknown config file extension")
 	}
 
 	return configStruct, nil
@@ -101,20 +104,47 @@ func SyncSucceededPods(c kclientset.Interface, ns string, selectors map[string]s
 	return err
 }
 
+func (p *ClusterLoaderObjectType) createPodStruct(ns string, labels map[string]string, spec kapiv1.PodSpec, number int) *kapiv1.Pod {
+	if len(spec.Containers) == 0 {
+		return &kapiv1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf(p.Basename+"-pod-%v", number),
+				Namespace: ns,
+				Labels:    labels,
+			},
+			Spec: kapiv1.PodSpec{
+				RestartPolicy: kapiv1.RestartPolicyNever,
+				Containers: []kapiv1.Container{
+					{
+						Name:  "test-container",
+						Image: p.Image,
+					},
+				},
+			},
+		}
+	}
+
+	return &kapiv1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf(p.Basename+"-pod-%v", number),
+			Namespace: ns,
+			Labels:    labels,
+		},
+		Spec: spec,
+	}
+}
+
 // CreatePods creates pods in user defined namespaces with user configurable tuning sets
-func CreatePods(c kclientset.Interface, appName string, ns string, labels map[string]string, spec kapiv1.PodSpec, maxCount int, tuning *TuningSetType, sync *SyncObjectType) error {
-	for i := 0; i < maxCount; i++ {
-		framework.Logf("%v/%v : Creating pod", i+1, maxCount)
+func (p *ClusterLoaderObjectType) CreatePods(c kclientset.Interface, ns string, labels map[string]string, spec kapiv1.PodSpec, tuning *TuningSetType) error {
+	if len(spec.Containers) == 0 && p.Image == "" {
+		return fmt.Errorf("pod definition missing both spec and image (at least one is required)")
+	}
+	for i := 0; i < p.Number; i++ {
+		framework.Logf("%v/%v : Creating pod", i+1, p.Number)
 		// Retry on pod creation failure
 		for retryCount := 0; retryCount <= maxRetries; retryCount++ {
-			_, err := c.CoreV1().Pods(ns).Create(&kapiv1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf(appName+"-pod-%v", i),
-					Namespace: ns,
-					Labels:    labels,
-				},
-				Spec: spec,
-			})
+			pod := p.createPodStruct(ns, labels, spec, i)
+			_, err := c.CoreV1().Pods(ns).Create(pod)
 			if err == nil {
 				break
 			}
@@ -142,25 +172,25 @@ func CreatePods(c kclientset.Interface, appName string, ns string, labels map[st
 		}
 	}
 
-	if sync.Running {
-		timeout, err := time.ParseDuration(sync.Timeout)
+	if p.Sync.Running {
+		timeout, err := time.ParseDuration(p.Sync.Timeout)
 		if err != nil {
 			return err
 		}
-		return SyncRunningPods(c, ns, sync.Selectors, timeout)
+		return SyncRunningPods(c, ns, p.Sync.Selectors, timeout)
 	}
 
-	if sync.Server.Enabled {
+	if p.Sync.Server.Enabled {
 		var podCount PodCount
-		return Server(&podCount, sync.Server.Port, false)
+		return Server(&podCount, p.Sync.Server.Port, false)
 	}
 
-	if sync.Succeeded {
-		timeout, err := time.ParseDuration(sync.Timeout)
+	if p.Sync.Succeeded {
+		timeout, err := time.ParseDuration(p.Sync.Timeout)
 		if err != nil {
 			return err
 		}
-		return SyncSucceededPods(c, ns, sync.Selectors, timeout)
+		return SyncSucceededPods(c, ns, p.Sync.Selectors, timeout)
 	}
 	return nil
 }
