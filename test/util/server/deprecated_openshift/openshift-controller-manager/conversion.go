@@ -5,11 +5,8 @@ import (
 	"io/ioutil"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/openshift/origin/pkg/configconversion"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
@@ -19,6 +16,7 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
 )
 
 func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.MasterConfig) *openshiftcontrolplanev1.OpenShiftControllerManagerConfig {
