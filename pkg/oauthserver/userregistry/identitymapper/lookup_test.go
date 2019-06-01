@@ -8,7 +8,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	userv1fakeclient "github.com/openshift/client-go/user/clientset/versioned/fake"
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 )
 
 // TODO this is actually testing the user identity mapping registry

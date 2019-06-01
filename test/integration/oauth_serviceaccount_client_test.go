@@ -28,7 +28,7 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oauth/scope"
+	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
@@ -264,7 +264,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:              redirectURL,
-			Scope:                    scope.Join([]string{"user:info", "role:edit:" + projectName}),
+			Scope:                    scopecovers.Join([]string{"user:info", "role:edit:" + projectName}),
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing allowed scopes")
@@ -300,7 +300,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:              redirectURL,
-			Scope:                    scope.Join([]string{"user:info", "role:edit:other-ns"}),
+			Scope:                    scopecovers.Join([]string{"user:info", "role:edit:other-ns"}),
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing disallowed scopes")
@@ -322,7 +322,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:              redirectURL,
-			Scope:                    scope.Join([]string{"unknown-scope"}),
+			Scope:                    scopecovers.Join([]string{"unknown-scope"}),
 			SendClientSecretInParams: true,
 		}
 		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, false, []string{
@@ -343,7 +343,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:              redirectURL,
-			Scope:                    scope.Join([]string{"user:info"}),
+			Scope:                    scopecovers.Join([]string{"user:info"}),
 			SendClientSecretInParams: true,
 		}
 		// First time, the approval is needed
@@ -378,7 +378,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:              redirectURL,
-			Scope:                    scope.Join([]string{"user:info", "role:edit:" + projectName}),
+			Scope:                    scopecovers.Join([]string{"user:info", "role:edit:" + projectName}),
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing grant flow is reentrant")

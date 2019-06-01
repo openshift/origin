@@ -16,7 +16,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
+	"github.com/openshift/oauth-server/pkg/server/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

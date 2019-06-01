@@ -24,10 +24,10 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+	"github.com/openshift/oauth-server/pkg/config"
+	"github.com/openshift/oauth-server/pkg/server/crypto"
+	"github.com/openshift/oauth-server/pkg/server/headers"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/oauthserver/config"
-	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
-	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 )

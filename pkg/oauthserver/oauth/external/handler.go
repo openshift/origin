@@ -14,10 +14,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
+	"github.com/openshift/oauth-server/pkg/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
-	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
 
 // Handler exposes an external oauth provider flow (including the call back) as an oauth.handlers.AuthenticationHandler to allow our internal oauth

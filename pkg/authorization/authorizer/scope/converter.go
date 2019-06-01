@@ -2,7 +2,8 @@ package scope
 
 import (
 	"fmt"
-	"strings"
+
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -11,24 +12,48 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
-	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
-
-	oauthapi "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
+
+const (
+	scopesAllNamespaces = "*"
+
+	legacyGroupName                 = ""
+	coreGroupName                   = ""
+	kubeAuthorizationGroupName      = "authorization.k8s.io"
+	openshiftAuthorizationGroupName = "authorization.openshift.io"
+	imageGroupName                  = "image.openshift.io"
+	oauthGroupName                  = "oauth.openshift.io"
+	projectGroupName                = "project.openshift.io"
+	userGroupName                   = "user.openshift.io"
+)
+
+// scopeDiscoveryRule is a rule that allows a client to discover the API resources available on this server
+var scopeDiscoveryRule = rbacv1.PolicyRule{
+	Verbs: []string{"get"},
+	NonResourceURLs: []string{
+		// Server version checking
+		"/version", "/version/*",
+
+		// API discovery/negotiation
+		"/api", "/api/*",
+		"/apis", "/apis/*",
+		"/oapi", "/oapi/*",
+		"/openapi/v2",
+		"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1",
+		"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
+		"/.well-known", "/.well-known/*",
+
+		// we intentionally allow all to here
+		"/",
+	},
+}
 
 // ScopesToRules takes the scopes and return the rules back.  We ALWAYS add the discovery rules and it is possible to get some rules and and
 // an error since errors aren't fatal to evaluation
 func ScopesToRules(scopes []string, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	rules := append([]rbacv1.PolicyRule{}, authorizationapi.DiscoveryRule)
+	rules := append([]rbacv1.PolicyRule{}, scopeDiscoveryRule)
 
 	errors := []error{}
 	for _, scope := range scopes {
@@ -150,10 +175,6 @@ func DefaultSupportedScopes() []string {
 	return sets.StringKeySet(defaultSupportedScopesMap).List()
 }
 
-func DefaultSupportedScopesMap() map[string]string {
-	return defaultSupportedScopesMap
-}
-
 func DescribeScopes(scopes []string) map[string]string {
 	ret := map[string]string{}
 	for _, s := range scopes {
@@ -168,33 +189,8 @@ func DescribeScopes(scopes []string) map[string]string {
 }
 
 // user:<scope name>
-type userEvaluator struct{}
-
-func (userEvaluator) Handles(scope string) bool {
-	switch scope {
-	case UserFull, UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
-		return true
-	}
-	return false
-}
-
-func (e userEvaluator) Validate(scope string) error {
-	if e.Handles(scope) {
-		return nil
-	}
-
-	return fmt.Errorf("unrecognized scope: %v", scope)
-}
-
-func (userEvaluator) Describe(scope string) (string, string, error) {
-	switch scope {
-	case UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
-		return defaultSupportedScopesMap[scope], "", nil
-	case UserFull:
-		return defaultSupportedScopesMap[scope], `Includes any access you have to escalating resources like secrets`, nil
-	default:
-		return "", "", fmt.Errorf("unrecognized scope: %v", scope)
-	}
+type userEvaluator struct {
+	scopelibrary.UserEvaluator
 }
 
 func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
@@ -202,7 +198,7 @@ func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.Cluster
 	case UserInfo:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("get").
-				Groups(userapi.GroupName, legacy.GroupName).
+				Groups(userGroupName, legacyGroupName).
 				Resources("users").
 				Names("~").
 				RuleOrDie(),
@@ -210,40 +206,40 @@ func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.Cluster
 	case UserAccessCheck:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("create").
-				Groups(kauthorizationapi.GroupName).
+				Groups(kubeAuthorizationGroupName).
 				Resources("selfsubjectaccessreviews").
 				RuleOrDie(),
 			rbacv1helpers.NewRule("create").
-				Groups(authorizationapi.GroupName, legacy.GroupName).
+				Groups(openshiftAuthorizationGroupName, legacyGroupName).
 				Resources("selfsubjectrulesreviews").
 				RuleOrDie(),
 		}, nil
 	case UserListScopedProjects:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("list", "watch").
-				Groups(projectapi.GroupName, legacy.GroupName).
+				Groups(projectGroupName, legacyGroupName).
 				Resources("projects").
 				RuleOrDie(),
 		}, nil
 	case UserListAllProjects:
 		return []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("list", "watch").
-				Groups(projectapi.GroupName, legacy.GroupName).
+				Groups(projectGroupName, legacyGroupName).
 				Resources("projects").
 				RuleOrDie(),
 			rbacv1helpers.NewRule("get").
-				Groups(kapi.GroupName).
+				Groups(coreGroupName).
 				Resources("namespaces").
 				RuleOrDie(),
 		}, nil
 	case UserFull:
 		return []rbacv1.PolicyRule{
-			rbacv1helpers.NewRule(rbac.VerbAll).
-				Groups(rbac.APIGroupAll).
-				Resources(rbac.ResourceAll).
+			rbacv1helpers.NewRule(rbacv1.VerbAll).
+				Groups(rbacv1.APIGroupAll).
+				Resources(rbacv1.ResourceAll).
 				RuleOrDie(),
-			rbacv1helpers.NewRule(rbac.VerbAll).
-				URLs(rbac.NonResourceAll).
+			rbacv1helpers.NewRule(rbacv1.VerbAll).
+				URLs(rbacv1.NonResourceAll).
 				RuleOrDie(),
 		}, nil
 	default:
@@ -262,113 +258,39 @@ func (userEvaluator) ResolveGettableNamespaces(scope string, _ rbaclisters.Clust
 
 // escalatingScopeResources are resources that are considered escalating for scope evaluation
 var escalatingScopeResources = []schema.GroupResource{
-	{Group: kapi.GroupName, Resource: "secrets"},
+	{Group: coreGroupName, Resource: "secrets"},
+	{Group: imageGroupName, Resource: "imagestreams/secrets"},
+	{Group: oauthGroupName, Resource: "oauthauthorizetokens"},
+	{Group: oauthGroupName, Resource: "oauthaccesstokens"},
+	{Group: openshiftAuthorizationGroupName, Resource: "roles"},
+	{Group: openshiftAuthorizationGroupName, Resource: "rolebindings"},
+	{Group: openshiftAuthorizationGroupName, Resource: "clusterroles"},
+	{Group: openshiftAuthorizationGroupName, Resource: "clusterrolebindings"},
 
-	{Group: imageapi.GroupName, Resource: "imagestreams/secrets"},
-	{Group: legacy.GroupName, Resource: "imagestreams/secrets"},
-
-	{Group: oauthapi.GroupName, Resource: "oauthauthorizetokens"},
-	{Group: legacy.GroupName, Resource: "oauthauthorizetokens"},
-
-	{Group: oauthapi.GroupName, Resource: "oauthaccesstokens"},
-	{Group: legacy.GroupName, Resource: "oauthaccesstokens"},
-
-	{Group: authorizationapi.GroupName, Resource: "roles"},
-	{Group: legacy.GroupName, Resource: "roles"},
-
-	{Group: authorizationapi.GroupName, Resource: "rolebindings"},
-	{Group: legacy.GroupName, Resource: "rolebindings"},
-
-	{Group: authorizationapi.GroupName, Resource: "clusterroles"},
-	{Group: legacy.GroupName, Resource: "clusterroles"},
-
-	{Group: authorizationapi.GroupName, Resource: "clusterrolebindings"},
-	{Group: legacy.GroupName, Resource: "clusterrolebindings"},
+	{Group: legacyGroupName, Resource: "imagestreams/secrets"},
+	{Group: legacyGroupName, Resource: "oauthauthorizetokens"},
+	{Group: legacyGroupName, Resource: "oauthaccesstokens"},
+	{Group: legacyGroupName, Resource: "roles"},
+	{Group: legacyGroupName, Resource: "rolebindings"},
+	{Group: legacyGroupName, Resource: "clusterroles"},
+	{Group: legacyGroupName, Resource: "clusterrolebindings"},
 }
 
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
-type clusterRoleEvaluator struct{}
+type clusterRoleEvaluator struct {
+	scopelibrary.ClusterRoleEvaluator
+}
 
 var clusterRoleEvaluatorInstance = clusterRoleEvaluator{}
 
-func (clusterRoleEvaluator) Handles(scope string) bool {
-	return strings.HasPrefix(scope, ClusterRoleIndicator)
-}
-
-func (e clusterRoleEvaluator) Validate(scope string) error {
-	_, _, _, err := e.parseScope(scope)
-	return err
-}
-
-// parseScope parses the requested scope, determining the requested role name, namespace, and if
-// access to escalating objects is required.  It will return an error if it doesn't parse cleanly
-func (e clusterRoleEvaluator) parseScope(scope string) (string /*role name*/, string /*namespace*/, bool /*escalating*/, error) {
-	if !e.Handles(scope) {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-	return ParseClusterRoleScope(scope)
-}
-func ParseClusterRoleScope(scope string) (string /*role name*/, string /*namespace*/, bool /*escalating*/, error) {
-	if !strings.HasPrefix(scope, ClusterRoleIndicator) {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-	escalating := false
-	if strings.HasSuffix(scope, ":!") {
-		escalating = true
-		// clip that last segment before parsing the rest
-		scope = scope[:strings.LastIndex(scope, ":")]
-	}
-
-	tokens := strings.SplitN(scope, ":", 2)
-	if len(tokens) != 2 {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-
-	// namespaces can't have colons, but roles can.  pick last.
-	lastColonIndex := strings.LastIndex(tokens[1], ":")
-	if lastColonIndex <= 0 || lastColonIndex == (len(tokens[1])-1) {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-
-	return tokens[1][0:lastColonIndex], tokens[1][lastColonIndex+1:], escalating, nil
-}
-
-func (e clusterRoleEvaluator) Describe(scope string) (string, string, error) {
-	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Anything you can do [in project "foo" | server-wide] that is also allowed by the "admin" role[, except access escalating resources like secrets]
-
-	scopePhrase := ""
-	if scopeNamespace == authorizationapi.ScopesAllNamespaces {
-		scopePhrase = "server-wide"
-	} else {
-		scopePhrase = fmt.Sprintf("in project %q", scopeNamespace)
-	}
-
-	warning := ""
-	escalatingPhrase := ""
-	if escalating {
-		warning = fmt.Sprintf("Includes access to escalating resources like secrets")
-	} else {
-		escalatingPhrase = ", except access escalating resources like secrets"
-	}
-
-	description := fmt.Sprintf("Anything you can do %s that is also allowed by the %q role%s", scopePhrase, roleName, escalatingPhrase)
-
-	return description, warning, nil
-}
-
 func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	_, scopeNamespace, _, err := e.parseScope(scope)
+	_, scopeNamespace, _, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
 
 	// if the scope limit on the clusterrole doesn't match, then don't add any rules, but its not an error
-	if !(scopeNamespace == authorizationapi.ScopesAllNamespaces || scopeNamespace == namespace) {
+	if !(scopeNamespace == scopesAllNamespaces || scopeNamespace == namespace) {
 		return []rbacv1.PolicyRule{}, nil
 	}
 
@@ -386,7 +308,7 @@ func has(set []string, value string) bool {
 
 // resolveRules doesn't enforce namespace checks
 func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	roleName, _, escalating, err := e.parseScope(scope)
+	roleName, _, escalating, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +343,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbacl
 }
 
 func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]string, error) {
-	_, scopeNamespace, _, err := e.parseScope(scope)
+	_, scopeNamespace, _, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +353,7 @@ func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterRol
 	}
 
 	attributes := kauthorizer.AttributesRecord{
-		APIGroup:        kapi.GroupName,
+		APIGroup:        coreGroupName,
 		Verb:            "get",
 		Resource:        "namespaces",
 		ResourceRequest: true,
@@ -480,100 +402,4 @@ func removeEscalatingResources(in rbacv1.PolicyRule) rbacv1.PolicyRule {
 	}
 
 	return in
-}
-
-func ValidateScopeRestrictions(client *oauthapi.OAuthClient, scopes ...string) error {
-	if len(scopes) == 0 {
-		return fmt.Errorf("%s may not request unscoped tokens", client.Name)
-	}
-
-	if len(client.ScopeRestrictions) == 0 {
-		return nil
-	}
-
-	errs := []error{}
-	for _, scope := range scopes {
-		if err := validateScopeRestrictions(client, scope); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return kutilerrors.NewAggregate(errs)
-}
-
-func validateScopeRestrictions(client *oauthapi.OAuthClient, scope string) error {
-	errs := []error{}
-
-	for _, restriction := range client.ScopeRestrictions {
-		if len(restriction.ExactValues) > 0 {
-			if err := validateLiteralScopeRestrictions(scope, restriction.ExactValues); err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			return nil
-		}
-
-		if restriction.ClusterRole != nil {
-			if !clusterRoleEvaluatorInstance.Handles(scope) {
-				continue
-			}
-			if err := validateClusterRoleScopeRestrictions(scope, *restriction.ClusterRole); err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			return nil
-		}
-	}
-
-	// if we got here, then nothing matched.   If we already have errors, do nothing, otherwise add one to make it report failed.
-	if len(errs) == 0 {
-		errs = append(errs, fmt.Errorf("%v did not match any scope restriction", scope))
-	}
-
-	return kutilerrors.NewAggregate(errs)
-}
-
-func validateLiteralScopeRestrictions(scope string, literals []string) error {
-	for _, literal := range literals {
-		if literal == scope {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("%v not found in %v", scope, literals)
-}
-
-func validateClusterRoleScopeRestrictions(scope string, restriction oauthapi.ClusterRoleScopeRestriction) error {
-	role, namespace, escalating, err := clusterRoleEvaluatorInstance.parseScope(scope)
-	if err != nil {
-		return err
-	}
-
-	foundName := false
-	for _, restrictedRoleName := range restriction.RoleNames {
-		if restrictedRoleName == "*" || restrictedRoleName == role {
-			foundName = true
-			break
-		}
-	}
-	if !foundName {
-		return fmt.Errorf("%v does not use an approved name", scope)
-	}
-
-	foundNamespace := false
-	for _, restrictedNamespace := range restriction.Namespaces {
-		if restrictedNamespace == "*" || restrictedNamespace == namespace {
-			foundNamespace = true
-			break
-		}
-	}
-	if !foundNamespace {
-		return fmt.Errorf("%v does not use an approved namespace", scope)
-	}
-
-	if escalating && !restriction.AllowEscalation {
-		return fmt.Errorf("%v is not allowed to escalate", scope)
-	}
-
-	return nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/RangelReale/osincli"
 	"k8s.io/klog"
 
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external/github/links"
 )

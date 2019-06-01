@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 )
 

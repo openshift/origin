@@ -3,7 +3,7 @@ package csrf
 import (
 	"net/http"
 
-	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
+	"github.com/openshift/oauth-server/pkg/server/crypto"
 )
 
 type cookieCsrf struct {

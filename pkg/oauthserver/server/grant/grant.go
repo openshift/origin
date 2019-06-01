@@ -16,12 +16,12 @@ import (
 
 	oapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/scope"
+	"github.com/openshift/oauth-server/pkg/api"
+	"github.com/openshift/oauth-server/pkg/server/csrf"
+	"github.com/openshift/oauth-server/pkg/server/redirect"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 	"github.com/openshift/origin/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/oauthserver/api"
-	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
-	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
+	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 )
 
 const (
@@ -121,7 +121,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	q := req.URL.Query()
 	then := q.Get(thenParam)
 	clientID := q.Get(clientIDParam)
-	scopes := scope.Split(q.Get(scopeParam))
+	scopes := scopecovers.Split(q.Get(scopeParam))
 	redirectURI := q.Get(redirectURIParam)
 
 	client, err := l.clientregistry.Get(clientID, metav1.GetOptions{})
@@ -130,7 +130,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, scopes...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, scopes...); err != nil {
 		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
 		l.failed(failure, w, req)
 		return
@@ -196,7 +196,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 
 	req.ParseForm()
 	then := req.PostFormValue(thenParam)
-	scopes := scope.Join(req.PostForm[scopeParam])
+	scopes := scopecovers.Join(req.PostForm[scopeParam])
 	username := req.PostFormValue(userNameParam)
 
 	if username != user.GetName() {
@@ -226,7 +226,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		l.failed("Could not find client for client_id", w, req)
 		return
 	}
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, scopecovers.Split(scopes)...); err != nil {
 		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
 		l.failed(failure, w, req)
 		return
@@ -237,7 +237,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	clientAuth, err := l.authregistry.Get(clientAuthID, metav1.GetOptions{})
 	if err == nil && clientAuth != nil {
 		// Add new scopes and update
-		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(scopes))
+		clientAuth.Scopes = scopecovers.Add(clientAuth.Scopes, scopecovers.Split(scopes))
 		if _, err = l.authregistry.Update(clientAuth); err != nil {
 			klog.Errorf("Unable to update authorization: %v", err)
 			l.failed("Could not update client authorization", w, req)
@@ -249,7 +249,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 			UserName:   user.GetName(),
 			UserUID:    user.GetUID(),
 			ClientName: client.Name,
-			Scopes:     scope.Split(scopes),
+			Scopes:     scopecovers.Split(scopes),
 		}
 		clientAuth.Name = clientAuthID
 
@@ -295,9 +295,9 @@ func getScopeData(scopeName string, grantedScopeNames []string) Scope {
 	scopeData := Scope{
 		Name:    scopeName,
 		Error:   fmt.Sprintf("Unknown scope"),
-		Granted: scope.Covers(grantedScopeNames, []string{scopeName}),
+		Granted: scopecovers.Covers(grantedScopeNames, []string{scopeName}),
 	}
-	for _, evaluator := range scopeauthorizer.ScopeEvaluators {
+	for _, evaluator := range scopelibrary.ScopeDescribers {
 		if !evaluator.Handles(scopeName) {
 			continue
 		}

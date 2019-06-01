@@ -412,19 +412,17 @@
       "vendor/github.com/gorilla/sessions",
       "vendor/github.com/gophercloud/gophercloud",
       "vendor/gopkg.in/ldap.v2",
-      "vendor/github.com/prometheus/client_golang/prometheus",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
       "vendor/github.com/openshift/library-go",
+      "vendor/github.com/openshift/oauth-server",
 
       "github.com/openshift/origin/pkg/oauthserver"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/klog",
       "vendor/github.com/davecgh/go-spew/spew",
-      "github.com/openshift/origin/pkg/authorization/authorizer/scope",
-      "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
-      "github.com/openshift/origin/pkg/oauth/scope",
+      "github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary",
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",

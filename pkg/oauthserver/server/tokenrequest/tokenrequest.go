@@ -17,8 +17,8 @@ import (
 	"github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+	"github.com/openshift/oauth-server/pkg/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
 
 const csrfParam = "csrf"

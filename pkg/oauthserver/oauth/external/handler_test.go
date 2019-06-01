@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/RangelReale/osincli"
+	"github.com/openshift/oauth-server/pkg/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
-	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 

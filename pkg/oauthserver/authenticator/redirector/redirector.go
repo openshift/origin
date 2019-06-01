@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/tokens"
+	"github.com/openshift/oauth-server/pkg/authenticator/tokens"
 	oauthhandlers "github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 

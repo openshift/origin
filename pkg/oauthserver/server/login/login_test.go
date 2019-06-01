@@ -13,7 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
+	"github.com/openshift/oauth-server/pkg/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 )
 

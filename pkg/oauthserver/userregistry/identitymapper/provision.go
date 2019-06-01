@@ -14,7 +14,7 @@ import (
 
 	userapi "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 )
 
 // UserForNewIdentityGetter is responsible for creating or locating the persisted User for the given Identity.

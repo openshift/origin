@@ -15,7 +15,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
 )
 

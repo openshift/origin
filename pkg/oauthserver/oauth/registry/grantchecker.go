@@ -7,13 +7,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog"
 
 	oauth "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	"github.com/openshift/origin/pkg/oauth/scope"
-	"github.com/openshift/origin/pkg/oauthserver/api"
-
-	"k8s.io/klog"
+	"github.com/openshift/oauth-server/pkg/api"
+	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 )
 
 var errEmptyUID = stderrors.New("user from request has empty UID and thus cannot perform a grant flow")
@@ -49,7 +48,7 @@ func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user kuser.Info, g
 	}
 
 	// TODO: improve this to allow the scope implementation to determine overlap
-	if authorization == nil || !scope.Covers(authorization.Scopes, scope.Split(grant.Scope)) {
+	if authorization == nil || !scopecovers.Covers(authorization.Scopes, scopecovers.Split(grant.Scope)) {
 		return false, nil
 	}
 

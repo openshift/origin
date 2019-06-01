@@ -16,13 +16,13 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 
-	oauthapiv1 "github.com/openshift/api/oauth/v1"
-	routeapi "github.com/openshift/api/route/v1"
-	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	routev1fake "github.com/openshift/client-go/route/clientset/versioned/fake"
 )
 
 var (
-	encoder                 = codecFactory.LegacyCodec(oauthapiv1.SchemeGroupVersion)
+	encoder                 = codecFactory.LegacyCodec(oauthv1.SchemeGroupVersion)
 	decoder                 = codecFactory.UniversalDecoder()
 	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "serviceaccounts"}
 	secretsResource         = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
@@ -36,12 +36,12 @@ func TestGetClient(t *testing.T) {
 		name        string
 		clientName  string
 		kubeClient  *fake.Clientset
-		routeClient *routefake.Clientset
+		routeClient *routev1fake.Clientset
 
 		expectedDelegation  bool
 		expectedErr         string
 		expectedEventMsg    string
-		expectedClient      *oauthapiv1.OAuthClient
+		expectedClient      *oauthv1.OAuthClient
 		expectedKubeActions []clientgotesting.Action
 		expectedOSActions   []clientgotesting.Action
 	}{
@@ -49,7 +49,7 @@ func TestGetClient(t *testing.T) {
 			name:                "delegate",
 			clientName:          "not:serviceaccount",
 			kubeClient:          fake.NewSimpleClientset(),
-			routeClient:         routefake.NewSimpleClientset(),
+			routeClient:         routev1fake.NewSimpleClientset(),
 			expectedDelegation:  true,
 			expectedKubeActions: []clientgotesting.Action{},
 			expectedOSActions:   []clientgotesting.Action{},
@@ -58,7 +58,7 @@ func TestGetClient(t *testing.T) {
 			name:                "missing sa",
 			clientName:          "system:serviceaccount:ns-01:missing-sa",
 			kubeClient:          fake.NewSimpleClientset(),
-			routeClient:         routefake.NewSimpleClientset(),
+			routeClient:         routev1fake.NewSimpleClientset(),
 			expectedErr:         `serviceaccounts "missing-sa" not found`,
 			expectedKubeActions: []clientgotesting.Action{clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "missing-sa")},
 			expectedOSActions:   []clientgotesting.Action{},
@@ -74,7 +74,7 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 				}),
-			routeClient:      routefake.NewSimpleClientset(),
+			routeClient:      routev1fake.NewSimpleClientset(),
 			expectedErr:      `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
 			expectedEventMsg: `Warning NoSAOAuthRedirectURIs system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>`,
 
@@ -93,7 +93,7 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{OAuthRedirectModelAnnotationURIPrefix + "incomplete": "::"},
 					},
 				}),
-			routeClient:         routefake.NewSimpleClientset(),
+			routeClient:         routev1fake.NewSimpleClientset(),
 			expectedErr:         `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
 			expectedEventMsg:    `Warning NoSAOAuthRedirectURIs [parse ::: missing protocol scheme, system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]`,
 			expectedKubeActions: []clientgotesting.Action{clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default")},
@@ -110,7 +110,7 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{OAuthRedirectModelAnnotationURIPrefix + "one": "http://anywhere"},
 					},
 				}),
-			routeClient:      routefake.NewSimpleClientset(),
+			routeClient:      routev1fake.NewSimpleClientset(),
 			expectedErr:      `system:serviceaccount:ns-01:default has no tokens`,
 			expectedEventMsg: `Warning NoSAOAuthTokens system:serviceaccount:ns-01:default has no tokens`,
 			expectedKubeActions: []clientgotesting.Action{
@@ -143,13 +143,13 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(),
-			expectedClient: &oauthapiv1.OAuthClient{
+			routeClient: routev1fake.NewSimpleClientset(),
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -184,30 +184,30 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(
-				&routeapi.Route{
+			routeClient: routev1fake.NewSimpleClientset(
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route1",
 						UID:       types.UID("route1"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/defaultpath",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "example1.com", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
 				},
 			),
-			expectedClient: &oauthapiv1.OAuthClient{
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere", "https://example1.com/defaultpath"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -245,19 +245,19 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(
-				&routeapi.Route{
+			routeClient: routev1fake.NewSimpleClientset(
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route1",
 						UID:       types.UID("route1"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/defaultpath",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "example1.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "example2.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "example3.com", Conditions: buildValidRouteIngressCondition()},
@@ -265,12 +265,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapiv1.OAuthClient{
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -305,30 +305,30 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(
-				&routeapi.Route{
+			routeClient: routev1fake.NewSimpleClientset(
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route1",
 						UID:       types.UID("route1"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/defaultpath",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
 				},
 			),
-			expectedClient: &oauthapiv1.OAuthClient{
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -367,19 +367,19 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(
-				&routeapi.Route{
+			routeClient: routev1fake.NewSimpleClientset(
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route1",
 						UID:       types.UID("route1"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/defaultpath",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "", Conditions: buildValidRouteIngressCondition()},
 							{Host: "a.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: ""},
@@ -388,18 +388,18 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&routeapi.Route{
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route2",
 						UID:       types.UID("route2"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/path2",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "a.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "", Conditions: buildValidRouteIngressCondition()},
 							{Host: "b.com", Conditions: buildValidRouteIngressCondition()},
@@ -409,12 +409,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapiv1.OAuthClient{
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere", "https://a.com/defaultpath", "https://a.com/path2", "https://b.com/defaultpath", "https://b.com/path2"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -453,47 +453,47 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(
-				&routeapi.Route{
+			routeClient: routev1fake.NewSimpleClientset(
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route1",
 						UID:       types.UID("route1"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/defaultpath",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: ""},
 						},
 					},
 				},
-				&routeapi.Route{
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route2",
 						UID:       types.UID("route2"),
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/otherpath",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "ignored.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "alsoignored.com", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
 				},
 			),
-			expectedClient: &oauthapiv1.OAuthClient{
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"https://google.com/otherpath", "https://redhat.com/defaultpath"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -532,29 +532,29 @@ func TestGetClient(t *testing.T) {
 					Type: corev1.SecretTypeServiceAccountToken,
 					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
-			routeClient: routefake.NewSimpleClientset(
-				&routeapi.Route{
+			routeClient: routev1fake.NewSimpleClientset(
+				&routev1.Route{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "route1",
 						UID:       types.UID("route1"),
 					},
-					Spec: routeapi.RouteSpec{
-						TLS: &routeapi.TLSConfig{},
+					Spec: routev1.RouteSpec{
+						TLS: &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "woot.com", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
 				},
 			),
-			expectedClient: &oauthapiv1.OAuthClient{
+			expectedClient: &oauthv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"https://woot.com/awesomepath", "https://woot.com:8000"},
-				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
+				GrantMethod:       oauthv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -575,7 +575,7 @@ func TestGetClient(t *testing.T) {
 			eventRecorder: fakerecorder,
 			routeClient:   tc.routeClient.RouteV1(),
 			delegate:      delegate,
-			grantMethod:   oauthapiv1.GrantHandlerPrompt,
+			grantMethod:   oauthv1.GrantHandlerPrompt,
 			decoder:       codecFactory.UniversalDecoder(),
 		}
 		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
@@ -625,7 +625,7 @@ type fakeDelegate struct {
 	called bool
 }
 
-func (d *fakeDelegate) Get(name string, options metav1.GetOptions) (*oauthapiv1.OAuthClient, error) {
+func (d *fakeDelegate) Get(name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error) {
 	d.called = true
 	return nil, nil
 }
@@ -871,7 +871,7 @@ func TestGetRedirectURIs(t *testing.T) {
 		name      string
 		namespace string
 		models    modelList
-		routes    []*routeapi.Route
+		routes    []*routev1.Route
 		expected  redirectURIList
 	}{
 		{
@@ -895,17 +895,17 @@ func TestGetRedirectURIs(t *testing.T) {
 					name:   "route2",
 				},
 			},
-			routes: []*routeapi.Route{
+			routes: []*routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route1",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/pathA",
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "exampleA.com", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
@@ -915,11 +915,11 @@ func TestGetRedirectURIs(t *testing.T) {
 						Name:      "route2",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/pathB",
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "exampleB.com", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
@@ -969,17 +969,17 @@ func TestGetRedirectURIs(t *testing.T) {
 					name:   "route2",
 				},
 			},
-			routes: []*routeapi.Route{
+			routes: []*routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route1",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/pathA",
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "A.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "B.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "C.com", Conditions: buildValidRouteIngressCondition()},
@@ -991,11 +991,11 @@ func TestGetRedirectURIs(t *testing.T) {
 						Name:      "route2",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/pathB",
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "0.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "1.com", Conditions: buildValidRouteIngressCondition()},
 						},
@@ -1065,24 +1065,24 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 		name      string
 		namespace string
 		names     sets.String
-		routes    []*routeapi.Route
+		routes    []*routev1.Route
 		expected  map[string]redirectURIList
 	}{
 		{
 			name:      "single route with single ingress",
 			namespace: "ns01",
 			names:     sets.NewString("routeA"),
-			routes: []*routeapi.Route{
+			routes: []*routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "routeA",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/pathA",
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "exampleA.com", Conditions: buildValidRouteIngressCondition()},
 						},
 					},
@@ -1103,17 +1103,17 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 			name:      "multiple routes with multiple ingresses",
 			namespace: "ns01",
 			names:     sets.NewString("route0", "route1", "route2"),
-			routes: []*routeapi.Route{
+			routes: []*routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route0",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/path0",
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "example0A.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "example0B.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "example0C.com", Conditions: buildValidRouteIngressCondition()},
@@ -1125,12 +1125,12 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 						Name:      "route1",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/path1",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "redhat.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "coreos.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "github.com", Conditions: buildValidRouteIngressCondition()},
@@ -1142,12 +1142,12 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 						Name:      "route2",
 						Namespace: "ns01",
 					},
-					Spec: routeapi.RouteSpec{
+					Spec: routev1.RouteSpec{
 						Path: "/path2",
-						TLS:  &routeapi.TLSConfig{},
+						TLS:  &routev1.TLSConfig{},
 					},
-					Status: routeapi.RouteStatus{
-						Ingress: []routeapi.RouteIngress{
+					Status: routev1.RouteStatus{
+						Ingress: []routev1.RouteIngress{
 							{Host: "google.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "yahoo.com", Conditions: buildValidRouteIngressCondition()},
 							{Host: "bing.com", Conditions: buildValidRouteIngressCondition()},
@@ -1230,20 +1230,20 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 	}
 }
 
-func buildRouteClient(routes []*routeapi.Route) saOAuthClientAdapter {
+func buildRouteClient(routes []*routev1.Route) saOAuthClientAdapter {
 	objects := []runtime.Object{}
 	for _, route := range routes {
 		objects = append(objects, route)
 	}
 	return saOAuthClientAdapter{
-		routeClient:   routefake.NewSimpleClientset(objects...).RouteV1(),
+		routeClient:   routev1fake.NewSimpleClientset(objects...).RouteV1(),
 		eventRecorder: record.NewFakeRecorder(100),
 	}
 }
 
 func buildRedirectObjectReferenceString(kind, name, group string) string {
-	ref := &oauthapiv1.OAuthRedirectReference{
-		Reference: oauthapiv1.RedirectReference{
+	ref := &oauthv1.OAuthRedirectReference{
+		Reference: oauthv1.RedirectReference{
 			Kind:  kind,
 			Name:  name,
 			Group: group,
@@ -1256,6 +1256,6 @@ func buildRedirectObjectReferenceString(kind, name, group string) string {
 	return string(data)
 }
 
-func buildValidRouteIngressCondition() []routeapi.RouteIngressCondition {
-	return []routeapi.RouteIngressCondition{{Type: routeapi.RouteAdmitted, Status: corev1.ConditionTrue}}
+func buildValidRouteIngressCondition() []routev1.RouteIngressCondition {
+	return []routev1.RouteIngressCondition{{Type: routev1.RouteAdmitted, Status: corev1.ConditionTrue}}
 }

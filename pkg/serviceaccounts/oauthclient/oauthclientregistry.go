@@ -19,10 +19,9 @@ import (
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 
-	oauthapi "github.com/openshift/api/oauth/v1"
-	routeapi "github.com/openshift/api/route/v1"
-	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
@@ -48,16 +47,16 @@ var (
 	}
 
 	emptyGroupKind       = schema.GroupKind{} // Used with static redirect URIs
-	routeGroupKind       = routeapi.SchemeGroupVersion.WithKind(routeKind).GroupKind()
-	legacyRouteGroupKind = legacy.GroupVersion.WithKind(routeKind).GroupKind() // to support redirect reference with old group
+	routeGroupKind       = schema.GroupKind{Group: "route.openshift.io", Kind: routeKind}
+	legacyRouteGroupKind = schema.GroupKind{Group: "", Kind: routeKind} // to support redirect reference with old group
 
 	scheme       = runtime.NewScheme()
 	codecFactory = serializer.NewCodecFactory(scheme)
 )
 
 func init() {
-	oauthapi.Install(scheme)
-	oauthapi.DeprecatedInstallWithoutGroup(scheme)
+	oauthv1.Install(scheme)
+	oauthv1.DeprecatedInstallWithoutGroup(scheme)
 }
 
 // namesToObjMapperFunc is linked to a given GroupKind.
@@ -72,19 +71,19 @@ type namesToObjMapperFunc func(namespace string, names sets.String) (map[string]
 // OAuthClientGetter  exposes a way to get a specific client.  This is useful for other registries to get scope limitations
 // on particular clients.   This interface will make its easier to write a future cache on it
 type OAuthClientGetter interface {
-	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error)
+	Get(name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error)
 }
 
 type saOAuthClientAdapter struct {
 	saClient      kcoreclient.ServiceAccountsGetter
 	secretClient  kcoreclient.SecretsGetter
 	eventRecorder record.EventRecorder
-	routeClient   routeclient.RoutesGetter
+	routeClient   routev1client.RoutesGetter
 	// TODO add ingress support
 	//ingressClient ??
 
 	delegate    OAuthClientGetter
-	grantMethod oauthapi.GrantHandlerType
+	grantMethod oauthv1.GrantHandlerType
 
 	decoder runtime.Decoder
 }
@@ -119,7 +118,7 @@ func (m *model) updateFromURI(u *url.URL) {
 }
 
 // updateFromReference updates the data in the model with the user provided object reference data.
-func (m *model) updateFromReference(r *oauthapi.RedirectReference) {
+func (m *model) updateFromReference(r *oauthv1.RedirectReference) {
 	m.group, m.kind, m.name = r.Group, r.Kind, r.Name
 }
 
@@ -209,9 +208,9 @@ func NewServiceAccountOAuthClientGetter(
 	saClient kcoreclient.ServiceAccountsGetter,
 	secretClient kcoreclient.SecretsGetter,
 	eventClient kcoreclient.EventInterface,
-	routeClient routeclient.RoutesGetter,
+	routeClient routev1client.RoutesGetter,
 	delegate OAuthClientGetter,
-	grantMethod oauthapi.GrantHandlerType,
+	grantMethod oauthv1.GrantHandlerType,
 ) OAuthClientGetter {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: eventClient})
@@ -227,7 +226,7 @@ func NewServiceAccountOAuthClientGetter(
 	}
 }
 
-func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error) {
+func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oauthv1.OAuthClient, error) {
 	var err error
 	saNamespace, saName, err := apiserverserviceaccount.SplitUsername(name)
 	if err != nil {
@@ -285,7 +284,7 @@ func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oau
 
 	saWantsChallenges, _ := strconv.ParseBool(sa.Annotations[OAuthWantChallengesAnnotationPrefix])
 
-	saClient := &oauthapi.OAuthClient{
+	saClient := &oauthv1.OAuthClient{
 		ObjectMeta:            metav1.ObjectMeta{Name: name},
 		ScopeRestrictions:     getScopeRestrictionsFor(saNamespace, saName),
 		AdditionalSecrets:     tokens,
@@ -321,7 +320,7 @@ func parseModelsMap(annotations map[string]string, decoder runtime.Decoder) (map
 				parseErrors = append(parseErrors, err)
 			}
 		case OAuthRedirectModelAnnotationReferencePrefix:
-			r := &oauthapi.OAuthRedirectReference{}
+			r := &oauthv1.OAuthRedirectReference{}
 			if err := runtime.DecodeInto(decoder, []byte(value), r); err == nil {
 				m.updateFromReference(&r.Reference)
 			} else {
@@ -389,7 +388,7 @@ func (a *saOAuthClientAdapter) extractRedirectURIs(modelsMap map[string]model, n
 // Returns a map of route name to redirect URIs that contain the default data as specified by the route's ingresses.
 // Errors returned are informative and non-fatal.
 func (a *saOAuthClientAdapter) redirectURIsFromRoutes(namespace string, osRouteNames sets.String) (map[string]redirectURIList, []error) {
-	var routes []routeapi.Route
+	var routes []routev1.Route
 	routeErrors := []error{}
 	routeInterface := a.routeClient.Routes(namespace)
 	if osRouteNames.Len() > 1 {
@@ -415,7 +414,7 @@ func (a *saOAuthClientAdapter) redirectURIsFromRoutes(namespace string, osRouteN
 }
 
 // redirectURIsFromRoute returns a list of redirect URIs that contain the default data as specified by the given route's ingresses.
-func redirectURIsFromRoute(route *routeapi.Route) redirectURIList {
+func redirectURIsFromRoute(route *routev1.Route) redirectURIList {
 	var uris redirectURIList
 	uri := redirectURI{scheme: "https"} // Default to TLS
 	uri.path = route.Spec.Path
@@ -440,27 +439,27 @@ func redirectURIsFromRoute(route *routeapi.Route) redirectURIList {
 }
 
 // isRouteIngressValid determines if the RouteIngress has a host and that its conditions has an element with Type=RouteAdmitted and Status=ConditionTrue
-func isRouteIngressValid(routeIngress *routeapi.RouteIngress) bool {
+func isRouteIngressValid(routeIngress *routev1.RouteIngress) bool {
 	if len(routeIngress.Host) == 0 {
 		return false
 	}
 	for _, condition := range routeIngress.Conditions {
-		if condition.Type == routeapi.RouteAdmitted && condition.Status == corev1.ConditionTrue {
+		if condition.Type == routev1.RouteAdmitted && condition.Status == corev1.ConditionTrue {
 			return true
 		}
 	}
 	return false
 }
 
-func getScopeRestrictionsFor(namespace, name string) []oauthapi.ScopeRestriction {
-	return []oauthapi.ScopeRestriction{
+func getScopeRestrictionsFor(namespace, name string) []oauthv1.ScopeRestriction {
+	return []oauthv1.ScopeRestriction{
 		{ExactValues: []string{
 			scopeauthorizer.UserInfo,
 			scopeauthorizer.UserAccessCheck,
 			scopeauthorizer.UserListScopedProjects,
 			scopeauthorizer.UserListAllProjects,
 		}},
-		{ClusterRole: &oauthapi.ClusterRoleScopeRestriction{RoleNames: []string{"*"}, Namespaces: []string{namespace}, AllowEscalation: true}},
+		{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{RoleNames: []string{"*"}, Namespaces: []string{namespace}, AllowEscalation: true}},
 	}
 }
 

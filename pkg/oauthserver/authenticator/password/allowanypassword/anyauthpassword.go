@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
 )
 
