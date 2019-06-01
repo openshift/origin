@@ -10,7 +10,7 @@ import (
 
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
-	configcmd "github.com/openshift/origin/pkg/bulk"
+	configcmd "github.com/openshift/oc/pkg/helpers/bulk"
 	ocnewapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
