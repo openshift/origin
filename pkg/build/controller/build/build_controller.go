@@ -42,7 +42,7 @@ import (
 	configv1lister "github.com/openshift/client-go/config/listers/config/v1"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
-
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
@@ -817,7 +817,7 @@ func resolveImageStreamLocation(ref *corev1.ObjectReference, lister imagev1liste
 		return "", errNoIntegratedRegistry
 	}
 
-	repo, err := imageapi.ParseDockerImageReference(stream.Status.DockerImageRepository)
+	repo, err := reference.Parse(stream.Status.DockerImageRepository)
 	if err != nil {
 		return "", fmt.Errorf("the referenced output image stream does not represent a valid reference name: %v", err)
 	}

@@ -27,6 +27,7 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
@@ -291,7 +292,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		return c.resolveImageStreamImage(ns, name, id)
 
 	case "DockerImage":
-		ref, err := imageapi.ParseDockerImageReference(ref.Name)
+		ref, err := reference.Parse(ref.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -360,7 +361,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 		// with the intent of resolving local names.
 		if isImageStreamTagNotFound(err) {
 			if stream, err := c.imageClient.ImageStreams(namespace).Get(name, metav1.GetOptions{}); err == nil && (forceResolveLocalNames || stream.Spec.LookupPolicy.Local) && len(stream.Status.DockerImageRepository) > 0 {
-				if ref, err := imageapi.ParseDockerImageReference(stream.Status.DockerImageRepository); err == nil {
+				if ref, err := reference.Parse(stream.Status.DockerImageRepository); err == nil {
 					klog.V(4).Infof("%s/%s:%s points to a local name resolving stream, but the tag does not exist", namespace, name, tag)
 					ref.Tag = tag
 					attrs.Name = ref
@@ -378,7 +379,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 		}
 		attrs.LocalRewrite = true
 	}
-	ref, err := imageapi.ParseDockerImageReference(resolved.Image.DockerImageReference)
+	ref, err := reference.Parse(resolved.Image.DockerImageReference)
 	if err != nil {
 		return attrs, fmt.Errorf("image reference %s could not be parsed: %v", resolved.Image.DockerImageReference, err)
 	}
@@ -400,7 +401,7 @@ func (c *imageResolutionCache) resolveImageStreamImage(namespace, name, id strin
 	if err != nil {
 		return attrs, err
 	}
-	ref, err := imageapi.ParseDockerImageReference(resolved.Image.DockerImageReference)
+	ref, err := reference.Parse(resolved.Image.DockerImageReference)
 	if err != nil {
 		return attrs, fmt.Errorf("ImageStreamTag could not be resolved: %v", err)
 	}

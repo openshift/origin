@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )

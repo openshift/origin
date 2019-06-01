@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	imageref "github.com/openshift/library-go/pkg/image/reference"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
@@ -390,7 +391,7 @@ func validateToImageReference(reference *kapi.ObjectReference, fldPath *field.Pa
 		if len(namespace) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace is not valid when used with a 'DockerImage'"))
 		}
-		if _, err := imageapi.ParseDockerImageReference(name); err != nil {
+		if _, err := imageref.Parse(name); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, fmt.Sprintf("name is not a valid Docker pull specification: %v", err)))
 		}
 	case "":
@@ -428,7 +429,7 @@ func validateImageReference(reference *kapi.ObjectReference, fldPath *field.Path
 		}
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
-		} else if _, err := imageapi.ParseDockerImageReference(name); err != nil {
+		} else if _, err := imageref.Parse(name); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, fmt.Sprintf("not a valid Docker pull specification: %v", err)))
 		}
 	case "ImageStreamImage":

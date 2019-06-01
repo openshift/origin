@@ -14,6 +14,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagefake "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -564,7 +565,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v\n", test.name, err)
 			continue
 		}
-		expectedRef, _ := imageapi.ParseDockerImageReference(test.expectedRef)
+		expectedRef, _ := reference.Parse(test.expectedRef)
 		if !reflect.DeepEqual(imgRef.Reference, expectedRef) {
 			t.Errorf("%s: unexpected resulting reference: %#v", test.name, imgRef.Reference)
 		}

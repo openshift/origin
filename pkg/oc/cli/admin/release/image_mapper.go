@@ -13,7 +13,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
 	imageapi "github.com/openshift/api/image/v1"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"k8s.io/klog"
 )
 

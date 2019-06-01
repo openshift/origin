@@ -24,9 +24,9 @@ import (
 	"k8s.io/client-go/transport"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/apis/image/reference"
 )
 
 // this is the only entrypoint which deals in github.com/fsouza/go-dockerclient.Image and expects to use our conversion capability to coerce an external

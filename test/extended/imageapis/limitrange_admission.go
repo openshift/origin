@@ -12,6 +12,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 	imagesutil "github.com/openshift/origin/test/extended/images"
@@ -178,11 +179,11 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		_, err = createLimitRangeOfType(oc, imageapi.LimitTypeImageStream, limit)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		s1ref, err := imageapi.ParseDockerImageReference(s1tag2Image["tag1"].DockerImageReference)
+		s1ref, err := reference.Parse(s1tag2Image["tag1"].DockerImageReference)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		s1ref.Tag = ""
 		s1ref.ID = ""
-		s2ref, err := imageapi.ParseDockerImageReference(s2tag2Image["t1"].DockerImageReference)
+		s2ref, err := reference.Parse(s2tag2Image["t1"].DockerImageReference)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		s2ref.Tag = ""
 		s2ref.ID = ""

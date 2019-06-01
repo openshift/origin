@@ -254,7 +254,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 
 // getImageManifest fetches the manifest for provided image from the integrated registry.
 func (o *VerifyImageSignatureOptions) getImageManifest(img *imagev1.Image) ([]byte, error) {
-	parsed, err := imageapi.ParseDockerImageReference(img.DockerImageReference)
+	parsed, err := imageref.Parse(img.DockerImageReference)
 	if err != nil {
 		return nil, err
 	}

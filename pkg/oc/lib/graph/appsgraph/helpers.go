@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
@@ -69,7 +70,7 @@ func templateImageForContainer(container *corev1.Container, triggerFn TriggeredB
 		trigger.Container = container
 		return trigger, nil
 	}
-	ref, err := imageapi.ParseDockerImageReference(container.Image)
+	ref, err := reference.Parse(container.Image)
 	if err != nil {
 		return TemplateImage{Image: container.Image, Container: container}, err
 	}

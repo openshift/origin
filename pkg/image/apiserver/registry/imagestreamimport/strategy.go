@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -39,7 +40,7 @@ func (s *strategy) Canonicalize(runtime.Object) {
 func (s *strategy) ValidateAllowedRegistries(isi *imageapi.ImageStreamImport) field.ErrorList {
 	errs := field.ErrorList{}
 	validate := func(path *field.Path, name string, insecure bool) field.ErrorList {
-		ref, _ := imageapi.ParseDockerImageReference(name)
+		ref, _ := reference.Parse(name)
 		registryHost, registryPort := ref.RegistryHostPort(insecure)
 		return validation.ValidateRegistryAllowedForImport(s.registryWhitelister, path.Child("from", "name"), ref.Name, registryHost, registryPort)
 	}

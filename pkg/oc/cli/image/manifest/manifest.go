@@ -23,8 +23,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/dockerlayer/add"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"

@@ -36,8 +36,8 @@ import (
 
 	imageapi "github.com/openshift/api/image/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imageinfo "github.com/openshift/origin/pkg/oc/cli/image/info"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"

@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
@@ -83,7 +84,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		AsImageStream: !pb.outputDocker,
 	}
 	if len(pb.to) > 0 {
-		outputImageRef, err := imageapi.ParseDockerImageReference(pb.to)
+		outputImageRef, err := reference.Parse(pb.to)
 		if err != nil {
 			return nil, err
 		}

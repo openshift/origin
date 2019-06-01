@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/api/image/dockerpre012"
 	"github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -157,7 +158,7 @@ func Convert_image_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSp
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
-		if ref, err := newer.ParseDockerImageReference(in.DockerImageRepository); err == nil {
+		if ref, err := reference.Parse(in.DockerImageRepository); err == nil {
 			if len(ref.Tag) > 0 || len(ref.ID) > 0 {
 				ref.Tag, ref.ID = "", ""
 				out.DockerImageRepository = ref.Exact()
@@ -180,7 +181,7 @@ func Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStre
 	out.PublicDockerImageRepository = in.PublicDockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
-		if ref, err := newer.ParseDockerImageReference(in.DockerImageRepository); err == nil {
+		if ref, err := reference.Parse(in.DockerImageRepository); err == nil {
 			if len(ref.Tag) > 0 || len(ref.ID) > 0 {
 				ref.Tag, ref.ID = "", ""
 				out.DockerImageRepository = ref.Exact()

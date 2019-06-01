@@ -9,7 +9,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/reference"
 	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
@@ -113,7 +113,7 @@ func getIsImportRepositoryInfo(isi *imagev1.ImageStreamImport) *metrics.ImportEr
 	if ref.Kind != "DockerImage" {
 		return nil
 	}
-	imgRef, err := imageapi.ParseDockerImageReference(ref.Name)
+	imgRef, err := reference.Parse(ref.Name)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf(
 			"failed to parse isi.spec.repository.from.name %q: %v",

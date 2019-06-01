@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
+	"github.com/openshift/library-go/pkg/image/reference"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageval "github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -341,7 +342,7 @@ func verifyTemplateImageForContainer(pod *kapi.PodSpec, containerName string) er
 		if container.Name != containerName {
 			continue
 		}
-		if _, err := imageapi.ParseDockerImageReference(container.Image); err != nil {
+		if _, err := reference.Parse(container.Image); err != nil {
 			return err
 		}
 		return nil
