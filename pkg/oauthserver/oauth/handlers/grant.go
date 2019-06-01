@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
+	scopemetadata "github.com/openshift/library-go/pkg/authorization/scopemetadata"
 	"github.com/openshift/oauth-server/pkg/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 )
@@ -71,14 +71,14 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Respo
 	ar.Scope = scopecovers.Join(scopes)
 
 	// Validate the requested scopes
-	if scopeErrors := scopelibrary.ValidateScopes(scopes, nil); len(scopeErrors) > 0 {
+	if scopeErrors := scopemetadata.ValidateScopes(scopes, nil); len(scopeErrors) > 0 {
 		resp.SetError("invalid_scope", scopeErrors.ToAggregate().Error())
 		return false, nil
 	}
 
 	invalidScopes := sets.NewString()
 	for _, scope := range scopes {
-		if err := scopelibrary.ValidateScopeRestrictions(client, scope); err != nil {
+		if err := scopemetadata.ValidateScopeRestrictions(client, scope); err != nil {
 			invalidScopes.Insert(scope)
 		}
 	}

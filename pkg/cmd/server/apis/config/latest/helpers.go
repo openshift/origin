@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/ghodss/yaml"
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,14 +15,6 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
-
-func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
-	config := &configapi.SessionSecrets{}
-	if err := ReadYAMLFileInto(filename, config); err != nil {
-		return nil, err
-	}
-	return config, nil
-}
 
 func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
 	config := &configapi.NodeConfig{}
@@ -44,20 +35,6 @@ func ReadAndResolveNodeConfig(filename string) (*configapi.NodeConfig, error) {
 	}
 
 	return nodeConfig, nil
-}
-
-// TODO: Remove this when a YAML serializer is available from upstream
-func WriteYAML(obj runtime.Object) ([]byte, error) {
-	json, err := runtime.Encode(Codec, obj)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, err
 }
 
 // TODO: Remove this when a YAML serializer is available from upstream

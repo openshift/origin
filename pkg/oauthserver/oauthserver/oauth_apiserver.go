@@ -1,8 +1,11 @@
 package oauthserver
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -12,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kclientset "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -27,7 +31,6 @@ import (
 	"github.com/openshift/oauth-server/pkg/config"
 	"github.com/openshift/oauth-server/pkg/server/crypto"
 	"github.com/openshift/oauth-server/pkg/server/headers"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 )
@@ -170,8 +173,17 @@ func getSessionSecrets(filename string) ([][]byte, error) {
 	var secrets [][]byte
 
 	if len(filename) != 0 {
-		sessionSecrets, err := latest.ReadSessionSecrets(filename)
+		data, err := ioutil.ReadFile(filename)
 		if err != nil {
+			return nil, err
+		}
+		jsonData, err := yaml.ToJSON(data)
+		if err != nil {
+			// probably just json already
+			jsonData = data
+		}
+		sessionSecrets := &osinv1.SessionSecrets{}
+		if err := json.NewDecoder(bytes.NewBuffer(jsonData)).Decode(sessionSecrets); err != nil {
 			return nil, fmt.Errorf("error reading sessionSecretsFile %s: %v", filename, err)
 		}
 
