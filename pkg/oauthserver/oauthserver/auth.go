@@ -31,6 +31,7 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"github.com/openshift/oauth-server/pkg/api"
@@ -64,7 +65,6 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
 	"github.com/openshift/origin/pkg/oauthserver/server/tokenrequest"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
-	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 )
 
 const (
@@ -84,7 +84,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	// pass through all other requests
 	mux.Handle("/", handler)
 
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(
+	combinedOAuthClientGetter := oauthserviceaccountclient.NewServiceAccountOAuthClientGetter(
 		c.ExtraOAuthConfig.KubeClient.CoreV1(),
 		c.ExtraOAuthConfig.KubeClient.CoreV1(),
 		c.ExtraOAuthConfig.EventsClient,
