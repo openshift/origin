@@ -10,8 +10,8 @@ import (
 
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/oauth-server/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"

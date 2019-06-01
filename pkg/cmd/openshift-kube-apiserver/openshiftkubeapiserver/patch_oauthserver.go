@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	osinv1 "github.com/openshift/api/osin/v1"
-	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
+	"github.com/openshift/oauth-server/pkg/oauthserver"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 

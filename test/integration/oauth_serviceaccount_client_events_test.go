@@ -26,9 +26,9 @@ import (
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
+	"github.com/openshift/oauth-server/pkg/scopecovers"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -87,7 +87,7 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          `{"kind":"foo","apiVersion":"oauth.openshift.io/v1","metadata":{"creationTimestamp":null},"reference":{"group":"foo","kind":"Route","name":"route1"}}`,
 			expectedEventReason: "NoSAOAuthRedirectURIs",
-			expectedEventMsg:    `[no kind "foo" is registered for version "oauth.openshift.io/v1" in scheme "github.com/openshift/origin/pkg/serviceaccounts/oauthclient/oauthclientregistry.go:53", system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
+			expectedEventMsg:    `[no kind "foo" is registered for version "oauth.openshift.io/v1" in scheme "github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient/oauthclientregistry.go:54", system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
 			numEvents:           1,
 			expectBadRequest:    true,
 		},

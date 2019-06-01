@@ -17,7 +17,7 @@ import (
 	userapi "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authapi "github.com/openshift/oauth-server/pkg/api"
-	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
+	"github.com/openshift/oauth-server/pkg/userregistry/identitymapper"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"

@@ -27,9 +27,9 @@ import (
 
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
+	"github.com/openshift/oauth-server/pkg/scopecovers"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
