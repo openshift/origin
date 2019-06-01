@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -937,8 +936,8 @@ func benchmark_1_buildConfig(r *rand.Rand, identity, maxStreams, maxTags, trigge
 	return bc
 }
 
-func benchmark_1_pod(r *rand.Rand, identity, maxStreams, maxTags, containers int32) *kapi.Pod {
-	pod := &kapi.Pod{
+func benchmark_1_pod(r *rand.Rand, identity, maxStreams, maxTags, containers int32) *corev1.Pod {
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("pod-%d", identity),
 			Namespace: "test",
@@ -953,10 +952,10 @@ func benchmark_1_pod(r *rand.Rand, identity, maxStreams, maxTags, containers int
 				),
 			},
 		},
-		Spec: kapi.PodSpec{},
+		Spec: corev1.PodSpec{},
 	}
 	for i := int32(0); i < containers; i++ {
-		pod.Spec.Containers = append(pod.Spec.Containers, kapi.Container{Name: fmt.Sprintf("container-%d", i), Image: "initial-image"})
+		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{Name: fmt.Sprintf("container-%d", i), Image: "initial-image"})
 	}
 	return pod
 }
@@ -1068,12 +1067,12 @@ func alterPodFromTriggers(podWatch *watch.RaceFreeFakeWatcher) imageReactorFunc 
 	return imageReactorFunc(func(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
 		pod := obj.DeepCopyObject()
 
-		updated, err := annotations.UpdateObjectFromImages(pod.(*kapi.Pod), tagRetriever)
+		updated, err := annotations.UpdateObjectFromImages(pod.(*corev1.Pod), tagRetriever)
 		if err != nil {
 			return err
 		}
 		if updated != nil {
-			updated.(*kapi.Pod).ResourceVersion = strconv.Itoa(count)
+			updated.(*corev1.Pod).ResourceVersion = strconv.Itoa(count)
 			count++
 			podWatch.Modify(updated)
 		}
@@ -1162,7 +1161,7 @@ func TestTriggerController(t *testing.T) {
 	bcWatch := &consistentWatch{watch: bcFakeWatch}
 	isInformer, isFakeWatch := newFakeInformer(&imagev1.ImageStream{}, &imagev1.ImageStreamList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
 	isWatch := &consistentWatch{watch: isFakeWatch}
-	podInformer, podWatch := newFakeInformer(&kapi.Pod{}, &kapi.PodList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
+	podInformer, podWatch := newFakeInformer(&corev1.Pod{}, &corev1.PodList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
 	dcInformer, dcFakeWatch := newFakeInformer(&appsv1.DeploymentConfig{}, &appsv1.DeploymentConfigList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}})
 	dcWatch := &consistentWatch{watch: dcFakeWatch}
 
@@ -1376,8 +1375,8 @@ func verifyState(
 	for i := 0; i < times; i++ {
 		var failures []string
 		for _, obj := range podInformer.GetStore().List() {
-			if updated, err := annotations.UpdateObjectFromImages(obj.(*kapi.Pod), c.tagRetriever); updated != nil || err != nil {
-				failures = append(failures, fmt.Sprintf("%s is not fully resolved: %v", obj.(*kapi.Pod).Name, err))
+			if updated, err := annotations.UpdateObjectFromImages(obj.(*corev1.Pod), c.tagRetriever); updated != nil || err != nil {
+				failures = append(failures, fmt.Sprintf("%s is not fully resolved: %v", obj.(*corev1.Pod).Name, err))
 				continue
 			}
 		}

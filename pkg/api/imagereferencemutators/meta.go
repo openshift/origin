@@ -41,16 +41,6 @@ func GetImageReferenceMutator(obj, old runtime.Object) (ImageReferenceMutator, e
 		}
 		return &buildSpecMutator{spec: &t.Spec.CommonSpec, path: field.NewPath("spec")}, nil
 	default:
-		if spec, path, err := GetPodSpec(obj); err == nil {
-			if old == nil {
-				return &podSpecMutator{spec: spec, path: path}, nil
-			}
-			oldSpec, _, err := GetPodSpec(old)
-			if err != nil {
-				return nil, fmt.Errorf("old and new pod spec objects were not of the same type %T != %T: %v", obj, old, err)
-			}
-			return &podSpecMutator{spec: spec, oldSpec: oldSpec, path: path}, nil
-		}
 		if spec, path, err := GetPodSpecV1(obj); err == nil {
 			if old == nil {
 				return &podSpecV1Mutator{spec: spec, path: path}, nil
