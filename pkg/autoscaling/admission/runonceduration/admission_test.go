@@ -11,8 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func fakeNamespaceLister(projectAnnotations map[string]string) corev1listers.NamespaceLister {

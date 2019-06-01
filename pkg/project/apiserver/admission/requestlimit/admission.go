@@ -6,11 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/openshift/library-go/pkg/config/helpers"
-	v1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
-
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -21,13 +16,16 @@ import (
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	"github.com/openshift/api/project"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/api/legacy"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
+	v1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
 	requestlimitapivalidation "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/validation"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )

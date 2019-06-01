@@ -6,17 +6,15 @@ import (
 	"net"
 	"strings"
 
-	"github.com/openshift/library-go/pkg/config/helpers"
-	v1 "github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1"
-
-	"k8s.io/klog"
-
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/network/admission/apis/externalipranger"
+	v1 "github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1"
 )
 
 const ExternalIPPluginName = "network.openshift.io/ExternalIPRanger"

@@ -20,9 +20,6 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestReadConfig(t *testing.T) {

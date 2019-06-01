@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
@@ -24,7 +26,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -275,7 +276,7 @@ func TestOAuthLDAP(t *testing.T) {
 
 // TODO: Remove this when a YAML serializer is available from upstream
 func deprecatedWriteYAML(obj runtime.Object) ([]byte, error) {
-	json, err := runtime.Encode(configapilatest.Codec, obj)
+	json, err := runtime.Encode(configconversion.Codec, obj)
 	if err != nil {
 		return nil, err
 	}
