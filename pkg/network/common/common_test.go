@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	networkapi "github.com/openshift/api/network/v1"
-
 	kapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -17,6 +16,17 @@ func mustParseCIDR(cidr string) *net.IPNet {
 		panic("bad CIDR string constant " + cidr)
 	}
 	return net
+}
+
+func TestGenerateGateway(t *testing.T) {
+	_, ipNet, err := net.ParseCIDR("10.1.0.0/24")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gatewayIP := GenerateDefaultGateway(ipNet)
+	if gatewayIP.String() != "10.1.0.1" {
+		t.Fatalf("Did not get expected gateway IP Address (gatewayIP=%s)", gatewayIP.String())
+	}
 }
 
 func Test_checkHostNetworks(t *testing.T) {

@@ -41,7 +41,6 @@ import (
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	"github.com/openshift/origin/pkg/network/node/ovs"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 const hostLocalDataDir = "/var/lib/cni/networks"
@@ -196,7 +195,7 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 
 	if len(c.SelfIP) == 0 {
 		var err error
-		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
+		c.SelfIP, err = GetNodeIP(c.Hostname)
 		if err != nil {
 			klog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
 			var defaultIP net.IP
@@ -217,6 +216,33 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 	}
 
 	return nil
+}
+
+func GetNodeIP(nodeName string) (string, error) {
+	ip := net.ParseIP(nodeName)
+	if ip == nil {
+		addrs, err := net.LookupIP(nodeName)
+		if err != nil {
+			return "", fmt.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
+		}
+		for _, addr := range addrs {
+			// Skip loopback and non IPv4 addrs
+			if addr.IsLoopback() || addr.To4() == nil {
+				klog.V(5).Infof("Skipping loopback/non-IPv4 addr: %q for node %s", addr.String(), nodeName)
+				continue
+			}
+			ip = addr
+			break
+		}
+	} else if ip.IsLoopback() || ip.To4() == nil {
+		klog.V(5).Infof("Skipping loopback/non-IPv4 addr: %q for node %s", ip.String(), nodeName)
+		ip = nil
+	}
+
+	if ip == nil || len(ip.String()) == 0 {
+		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
+	}
+	return ip.String(), nil
 }
 
 var (
@@ -263,7 +289,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
 
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{Tun0})
+	hostIPNets, _, err := common.GetHostIPNetworks([]string{Tun0})
 	if err != nil {
 		return fmt.Errorf("failed to get host network information: %v", err)
 	}

@@ -9,13 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 func validateCIDRv4(cidr string) (*net.IPNet, error) {
-	ipnet, err := netutils.ParseCIDRMask(cidr)
+	ipnet, err := networkutils.ParseCIDRMask(cidr)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func ValidateEgressNetworkPolicy(policy *networkapi.EgressNetworkPolicy) field.E
 		}
 
 		if len(rule.To.CIDRSelector) > 0 {
-			if _, err := netutils.ParseCIDRMask(rule.To.CIDRSelector); err != nil {
+			if _, err := networkutils.ParseCIDRMask(rule.To.CIDRSelector); err != nil {
 				allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to", "cidrSelector"), rule.To.CIDRSelector, err.Error()))
 			}
 		}
