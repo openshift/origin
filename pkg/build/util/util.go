@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
@@ -13,8 +14,10 @@ import (
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
+
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 )
 
@@ -93,11 +96,8 @@ func BuildConfigSelector(name string) labels.Selector {
 
 type buildFilter func(*buildv1.Build) bool
 
-// BuildConfigBuilds return a list of builds for the given build config.
-// Optionally you can specify a filter function to select only builds that
-// matches your criteria.
-func BuildConfigBuilds(c buildlister.BuildLister, namespace, name string, filterFunc buildFilter) ([]*buildv1.Build, error) {
-	result, err := c.Builds(namespace).List(BuildConfigSelector(name))
+func BuildConfigBuildsFromLister(lister buildlisterv1.BuildLister, namespace, name string, filterFunc buildFilter) ([]*buildv1.Build, error) {
+	result, err := lister.Builds(namespace).List(BuildConfigSelector(name))
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +106,30 @@ func BuildConfigBuilds(c buildlister.BuildLister, namespace, name string, filter
 	}
 	var filteredList []*buildv1.Build
 	for _, b := range result {
+		if filterFunc(b) {
+			filteredList = append(filteredList, b)
+		}
+	}
+	return filteredList, nil
+}
+
+// BuildConfigBuilds return a list of builds for the given build config.
+// Optionally you can specify a filter function to select only builds that
+// matches your criteria.
+func BuildConfigBuilds(c buildclientv1.BuildsGetter, namespace, name string, filterFunc buildFilter) ([]*buildv1.Build, error) {
+	result, err := c.Builds(namespace).List(metav1.ListOptions{LabelSelector: BuildConfigSelector(name).String()})
+	if err != nil {
+		return nil, err
+	}
+	builds := make([]*buildv1.Build, len(result.Items))
+	for i := range result.Items {
+		builds[i] = &result.Items[i]
+	}
+	if filterFunc == nil {
+		return builds, nil
+	}
+	var filteredList []*buildv1.Build
+	for _, b := range builds {
 		if filterFunc(b) {
 			filteredList = append(filteredList, b)
 		}

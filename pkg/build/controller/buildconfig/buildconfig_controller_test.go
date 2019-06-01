@@ -78,11 +78,11 @@ func TestHandleBuildConfig(t *testing.T) {
 			})
 		}
 		controller := &BuildConfigController{
-			buildLister:             &okBuildLister{},
-			buildConfigInstantiator: buildClient.BuildV1(),
-			buildDeleter:            buildClient.BuildV1(),
-			buildConfigGetter:       &okBuildConfigGetter{BuildConfig: tc.bc},
-			recorder:                &record.FakeRecorder{},
+			buildLister:       &okBuildLister{},
+			buildConfigGetter: buildClient.BuildV1(),
+			buildGetter:       buildClient.BuildV1(),
+			buildConfigLister: &okBuildConfigGetter{BuildConfig: tc.bc},
+			recorder:          &record.FakeRecorder{},
 		}
 		err := controller.handleBuildConfig(tc.bc)
 		if err != nil {

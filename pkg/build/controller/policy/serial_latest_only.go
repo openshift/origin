@@ -62,7 +62,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildv1.Build) []er
 	if err != nil {
 		return []error{NewNoBuildNumberAnnotationError(build)}
 	}
-	builds, err := buildutil.BuildConfigBuilds(s.BuildLister, build.Namespace, bcName, func(b *buildv1.Build) bool {
+	builds, err := buildutil.BuildConfigBuildsFromLister(s.BuildLister, build.Namespace, bcName, func(b *buildv1.Build) bool {
 		// Do not cancel the complete builds, builds that were already cancelled, or
 		// running builds.
 		if buildutil.IsBuildComplete(b) || b.Status.Phase == buildv1.BuildPhaseRunning {

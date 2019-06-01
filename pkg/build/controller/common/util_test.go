@@ -10,13 +10,15 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
 
-	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -89,6 +91,56 @@ func mockBuildsList(length int) (buildv1.BuildConfig, []buildv1.Build) {
 	return mockBuildConfig("myapp"), builds
 }
 
+type fakeBuildLister struct {
+	client    buildclientv1.BuildsGetter
+	namespace string
+}
+
+func (l *fakeBuildLister) List(selector labels.Selector) (ret []*buildv1.Build, err error) {
+	builds, err := l.client.Builds(l.namespace).List(metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*buildv1.Build, len(builds.Items))
+	for i := range builds.Items {
+		result[i] = &builds.Items[i]
+	}
+	return result, nil
+}
+
+func (l *fakeBuildLister) Get(name string) (*buildv1.Build, error) {
+	return l.client.Builds(l.namespace).Get(name, metav1.GetOptions{})
+}
+
+func (l *fakeBuildLister) Builds(namespace string) buildlisterv1.BuildNamespaceLister {
+	return l
+}
+
+type fakeBuildConfigLister struct {
+	client    buildclientv1.BuildConfigsGetter
+	namespace string
+}
+
+func (l *fakeBuildConfigLister) List(selector labels.Selector) (ret []*buildv1.BuildConfig, err error) {
+	buildConfigs, err := l.client.BuildConfigs(l.namespace).List(metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*buildv1.BuildConfig, len(buildConfigs.Items))
+	for i := range buildConfigs.Items {
+		result[i] = &buildConfigs.Items[i]
+	}
+	return result, nil
+}
+
+func (l *fakeBuildConfigLister) Get(name string) (*buildv1.BuildConfig, error) {
+	return l.client.BuildConfigs(l.namespace).Get(name, metav1.GetOptions{})
+}
+
+func (l *fakeBuildConfigLister) BuildConfigs(namespace string) buildlisterv1.BuildConfigNamespaceLister {
+	return l
+}
+
 func TestHandleBuildPruning(t *testing.T) {
 	var objects []runtime.Object
 	buildconfig, builds := mockBuildsList(16)
@@ -105,14 +157,11 @@ func TestHandleBuildPruning(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	buildLister := buildclient.NewClientBuildLister(buildClient.BuildV1())
-	buildConfigGetter := buildclient.NewClientBuildConfigLister(buildClient.BuildV1())
-
 	bcName := buildutil.ConfigNameForBuild(build)
-	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
+	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildClient.BuildV1(), build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulStartingBuilds))
 
-	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool {
+	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildClient.BuildV1(), build.Namespace, bcName, func(build *buildv1.Build) bool {
 		return build.Status.Phase == buildv1.BuildPhaseFailed || build.Status.Phase == buildv1.BuildPhaseError || build.Status.Phase == buildv1.BuildPhaseCancelled
 	})
 	sort.Sort(ByCreationTimestamp(failedStartingBuilds))
@@ -121,14 +170,17 @@ func TestHandleBuildPruning(t *testing.T) {
 		t.Errorf("should start with 16 builds, but started with %v instead", len(successfulStartingBuilds)+len(failedStartingBuilds))
 	}
 
-	if err := HandleBuildPruning(bcName, build.Namespace, buildLister, buildConfigGetter, buildClient.BuildV1()); err != nil {
+	buildLister := &fakeBuildLister{client: buildClient.BuildV1(), namespace: "namespace"}
+	buildConfigLister := &fakeBuildConfigLister{client: buildClient.BuildV1(), namespace: "namespace"}
+
+	if err := HandleBuildPruning(bcName, build.Namespace, buildLister, buildConfigLister, buildClient.BuildV1()); err != nil {
 		t.Errorf("error pruning builds: %v", err)
 	}
 
-	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
+	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildClient.BuildV1(), build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulRemainingBuilds))
 
-	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool {
+	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildClient.BuildV1(), build.Namespace, bcName, func(build *buildv1.Build) bool {
 		return build.Status.Phase == buildv1.BuildPhaseFailed || build.Status.Phase == buildv1.BuildPhaseError || build.Status.Phase == buildv1.BuildPhaseCancelled
 	})
 	sort.Sort(ByCreationTimestamp(failedRemainingBuilds))
