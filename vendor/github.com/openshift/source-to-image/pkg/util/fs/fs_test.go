@@ -20,7 +20,7 @@ func helper(t *testing.T, keepSymlinks bool) {
 		OpenContent: "test",
 	}
 	fake.KeepSymlinks(keepSymlinks)
-	err := doCopy(fake, sep+"file", sep+"dest")
+	err := doCopy(fake, sep+"file", sep+"dest", nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -45,7 +45,7 @@ func helper(t *testing.T, keepSymlinks bool) {
 		ReadlinkName: sep + "linkdest",
 	}
 	fake.KeepSymlinks(keepSymlinks)
-	err = doCopy(fake, sep+"link", sep+"dest")
+	err = doCopy(fake, sep+"link", sep+"dest", nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -66,7 +66,7 @@ func helper(t *testing.T, keepSymlinks bool) {
 		ReadlinkName: sep + "file",
 	}
 	fake.KeepSymlinks(keepSymlinks)
-	err = doCopy(fake, sep+"link", sep+"dest")
+	err = doCopy(fake, sep+"link", sep+"dest", nil)
 	if err != nil {
 		t.Error(err)
 	}

@@ -378,7 +378,7 @@ func (step *startRuntimeImageAndUploadFilesStep) copyScriptIfNeeded(script, dest
 		if err := step.fs.MkdirAll(destinationDir); err != nil {
 			return fmt.Errorf("could not create directory %q: %v", destinationDir, err)
 		}
-		if err := step.fs.Copy(src, dst); err != nil {
+		if err := step.fs.Copy(src, dst, nil); err != nil {
 			return fmt.Errorf("could not copy file (%q -> %q): %v", src, dst, err)
 		}
 	}

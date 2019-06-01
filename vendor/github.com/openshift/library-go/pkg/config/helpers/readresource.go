@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
+	"sigs.k8s.io/yaml"
 )
 
 // InstallFunc is the "normal" function for installing scheme
@@ -140,4 +141,27 @@ func getExternalZeroValue(obj runtime.Object, scheme *runtime.Scheme) (runtime.O
 		return nil, fmt.Errorf("no gvks found for %#v", obj)
 	}
 	return scheme.New(gvks[0])
+}
+
+// WriteYAML serializes a yaml file based on the scheme functions provided
+func WriteYAML(obj runtime.Object, schemeFns ...InstallFunc) ([]byte, error) {
+	scheme := runtime.NewScheme()
+	for _, schemeFn := range schemeFns {
+		err := schemeFn(scheme)
+		if err != nil {
+			return nil, err
+		}
+	}
+	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
+
+	json, err := runtime.Encode(codec, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }

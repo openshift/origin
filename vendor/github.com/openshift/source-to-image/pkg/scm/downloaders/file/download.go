@@ -6,6 +6,7 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/constants"
+	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
@@ -47,9 +48,15 @@ func (f *File) Download(config *api.Config) (*git.SourceInfo, error) {
 		return nil, RecursiveCopyError{error: fmt.Errorf("recursive copy requested, source directory %q contains the target directory %q", copySrc, config.WorkingSourceDir)}
 	}
 
+	di := ignore.DockerIgnorer{}
+	filesToIgnore, lerr := di.GetListOfFilesToIgnore(copySrc)
+	if lerr != nil {
+		return nil, lerr
+	}
+
 	if copySrc != config.WorkingSourceDir {
 		f.KeepSymlinks(config.KeepSymlinks)
-		err := f.CopyContents(copySrc, config.WorkingSourceDir)
+		err := f.CopyContents(copySrc, config.WorkingSourceDir, filesToIgnore)
 		if err != nil {
 			return nil, err
 		}
