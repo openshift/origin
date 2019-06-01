@@ -31,10 +31,10 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	"github.com/openshift/origin/pkg/image/trigger/buildconfigs"
@@ -274,10 +274,10 @@ func TestTriggerControllerSyncImageStream(t *testing.T) {
 	controller.triggerCache.Add("buildconfigs/test/build1", &trigger.CacheEntry{
 		Key:       "buildconfigs/test/build1",
 		Namespace: "test",
-		Triggers: []triggerapi.ObjectFieldTrigger{
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}},
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2"}},
-			{From: triggerapi.ObjectReference{Kind: "DockerImage", Name: "test/stream:1"}},
+		Triggers: []triggerutil.ObjectFieldTrigger{
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}},
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2"}},
+			{From: triggerutil.ObjectReference{Kind: "DockerImage", Name: "test/stream:1"}},
 		},
 	})
 	if err := controller.syncImageStream("test/stream"); err != nil {
@@ -709,8 +709,8 @@ func scenario_1_buildConfig_strategy_cacheEntry() *trigger.CacheEntry {
 	return &trigger.CacheEntry{
 		Key:       "buildconfigs/test/build1",
 		Namespace: "test",
-		Triggers: []triggerapi.ObjectFieldTrigger{
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.strategy.*.from"},
+		Triggers: []triggerutil.ObjectFieldTrigger{
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.strategy.*.from"},
 		},
 	}
 }
@@ -749,9 +749,9 @@ func scenario_1_deploymentConfig_imageSource_cacheEntry() *trigger.CacheEntry {
 	return &trigger.CacheEntry{
 		Key:       "deploymentconfigs/test/deploy1",
 		Namespace: "test",
-		Triggers: []triggerapi.ObjectFieldTrigger{
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name==\"first\"].image"},
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name==\"second\"].image"},
+		Triggers: []triggerutil.ObjectFieldTrigger{
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name==\"first\"].image"},
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name==\"second\"].image"},
 		},
 	}
 }
@@ -850,9 +850,9 @@ func scenario_1_buildConfig_imageSource_cacheEntry() *trigger.CacheEntry {
 	return &trigger.CacheEntry{
 		Key:       "buildconfigs/test2/build2",
 		Namespace: "test2",
-		Triggers: []triggerapi.ObjectFieldTrigger{
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.strategy.*.from"},
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2", Namespace: "other"}, FieldPath: "spec.triggers"},
+		Triggers: []triggerutil.ObjectFieldTrigger{
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.strategy.*.from"},
+			{From: triggerutil.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2", Namespace: "other"}, FieldPath: "spec.triggers"},
 		},
 	}
 }
@@ -876,13 +876,13 @@ type fakeImageReactor struct {
 	err    error
 }
 
-type imageReactorFunc func(obj runtime.Object, tagRetriever trigger.TagRetriever) error
+type imageReactorFunc func(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error
 
-func (fn imageReactorFunc) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+func (fn imageReactorFunc) ImageChanged(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 	return fn(obj, tagRetriever)
 }
 
-func (r *fakeImageReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+func (r *fakeImageReactor) ImageChanged(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	err := r.err
@@ -942,7 +942,7 @@ func benchmark_1_pod(r *rand.Rand, identity, maxStreams, maxTags, containers int
 			Name:      fmt.Sprintf("pod-%d", identity),
 			Namespace: "test",
 			Annotations: map[string]string{
-				triggerapi.TriggerAnnotationKey: fmt.Sprintf(
+				triggerutil.TriggerAnnotationKey: fmt.Sprintf(
 					`[
 						{"from":{"kind":"ImageStreamTag","name":"%s"},"fieldPath":"spec.containers[0].image"},
 						{"from":{"kind":"ImageStreamTag","name":"%s"},"fieldPath":"spec.containers[1].image"}
@@ -1000,7 +1000,7 @@ func benchmark_1_imageStream(identity, maxTags, sequence int32, round, index int
 }
 
 // updateBuildConfigImages updates the LastTriggeredImageID field on a build config.
-func updateBuildConfigImages(bc *buildv1.BuildConfig, tagRetriever trigger.TagRetriever) (*buildv1.BuildConfig, error) {
+func updateBuildConfigImages(bc *buildv1.BuildConfig, tagRetriever triggerutil.TagRetriever) (*buildv1.BuildConfig, error) {
 	var updated *buildv1.BuildConfig
 	for i, t := range bc.Spec.Triggers {
 		p := t.ImageChange
@@ -1033,7 +1033,7 @@ func updateBuildConfigImages(bc *buildv1.BuildConfig, tagRetriever trigger.TagRe
 // alterBuildConfigFromTriggers will alter the incoming build config based on the trigger
 // changes passed to it and send it back on the watch as a modification.
 func alterBuildConfigFromTriggers(bcWatch *consistentWatch) imageReactorFunc {
-	return imageReactorFunc(func(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+	return imageReactorFunc(func(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 		bc := obj.DeepCopyObject()
 		updated, err := updateBuildConfigImages(bc.(*buildv1.BuildConfig), tagRetriever)
 		if err != nil {
@@ -1047,7 +1047,7 @@ func alterBuildConfigFromTriggers(bcWatch *consistentWatch) imageReactorFunc {
 }
 
 func alterDeploymentConfigFromTriggers(dcWatch *consistentWatch) imageReactorFunc {
-	return imageReactorFunc(func(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+	return imageReactorFunc(func(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 		dc := obj.DeepCopyObject()
 		updated, resolvable, err := deploymentconfigs.UpdateDeploymentConfigImages(dc.(*appsv1.DeploymentConfig), tagRetriever)
 		if err != nil {
@@ -1064,10 +1064,10 @@ func alterDeploymentConfigFromTriggers(dcWatch *consistentWatch) imageReactorFun
 // changes passed to it and send it back on the watch as a modification.
 func alterPodFromTriggers(podWatch *watch.RaceFreeFakeWatcher) imageReactorFunc {
 	count := 2
-	return imageReactorFunc(func(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+	return imageReactorFunc(func(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 		pod := obj.DeepCopyObject()
 
-		updated, err := annotations.UpdateObjectFromImages(pod.(*corev1.Pod), tagRetriever)
+		updated, err := triggerutil.UpdateObjectFromImages(pod.(*corev1.Pod), tagRetriever)
 		if err != nil {
 			return err
 		}
@@ -1375,7 +1375,7 @@ func verifyState(
 	for i := 0; i < times; i++ {
 		var failures []string
 		for _, obj := range podInformer.GetStore().List() {
-			if updated, err := annotations.UpdateObjectFromImages(obj.(*corev1.Pod), c.tagRetriever); updated != nil || err != nil {
+			if updated, err := triggerutil.UpdateObjectFromImages(obj.(*corev1.Pod), c.tagRetriever); updated != nil || err != nil {
 				failures = append(failures, fmt.Sprintf("%s is not fully resolved: %v", obj.(*corev1.Pod).Name, err))
 				continue
 			}

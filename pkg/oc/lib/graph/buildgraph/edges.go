@@ -5,9 +5,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
@@ -72,7 +72,7 @@ func imageRefNode(g osgraph.MutableUniqueGraph, ref *corev1.ObjectReference, bc 
 			return imagegraph.EnsureDockerRepositoryNode(g, ref.String(), tag)
 		}
 	case "ImageStream":
-		return imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(ref.Namespace, bc.Namespace), ref.Name, imageapi.DefaultImageTag))
+		return imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(ref.Namespace, bc.Namespace), ref.Name, imageutil.DefaultImageTag))
 	case "ImageStreamTag":
 		return imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta2(defaultNamespace(ref.Namespace, bc.Namespace), ref.Name))
 	case "ImageStreamImage":

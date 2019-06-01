@@ -5,7 +5,8 @@ import (
 	"reflect"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/library-go/pkg/image/reference"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 )
 
@@ -76,12 +77,12 @@ func (n ImageStreamTagNode) Found() bool {
 }
 
 func (n ImageStreamTagNode) ImageSpec() string {
-	name, tag, _ := imageapi.SplitImageStreamTag(n.ImageStreamTag.Name)
-	return imageapi.DockerImageReference{Namespace: n.Namespace, Name: name, Tag: tag}.String()
+	name, tag, _ := imageutil.SplitImageStreamTag(n.ImageStreamTag.Name)
+	return reference.DockerImageReference{Namespace: n.Namespace, Name: name, Tag: tag}.String()
 }
 
 func (n ImageStreamTagNode) ImageTag() string {
-	_, tag, _ := imageapi.SplitImageStreamTag(n.ImageStreamTag.Name)
+	_, tag, _ := imageutil.SplitImageStreamTag(n.ImageStreamTag.Name)
 	return tag
 }
 
@@ -117,7 +118,7 @@ func (n ImageStreamImageNode) ImageSpec() string {
 }
 
 func (n ImageStreamImageNode) ImageTag() string {
-	_, id, _ := imageapi.SplitImageStreamImage(n.ImageStreamImage.Name)
+	_, id, _ := imageutil.SplitImageStreamImage(n.ImageStreamImage.Name)
 	return id
 }
 
@@ -141,13 +142,13 @@ func (*ImageStreamImageNode) Kind() string {
 	return ImageStreamImageNodeKind
 }
 
-func DockerImageRepositoryNodeName(o imageapi.DockerImageReference) osgraph.UniqueName {
+func DockerImageRepositoryNodeName(o reference.DockerImageReference) osgraph.UniqueName {
 	return osgraph.UniqueName(fmt.Sprintf("%s|%s", DockerRepositoryNodeKind, o.String()))
 }
 
 type DockerImageRepositoryNode struct {
 	osgraph.Node
-	Ref imageapi.DockerImageReference
+	Ref reference.DockerImageReference
 }
 
 func (n DockerImageRepositoryNode) ImageSpec() string {

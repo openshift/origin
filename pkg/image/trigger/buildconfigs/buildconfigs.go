@@ -19,17 +19,16 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 
 // calculateBuildConfigTriggers transforms a build config into a set of image change triggers.
 // It uses synthetic field paths since we don't need to generically transform the config.
-func calculateBuildConfigTriggers(bc *buildv1.BuildConfig) []triggerapi.ObjectFieldTrigger {
-	var triggers []triggerapi.ObjectFieldTrigger
+func calculateBuildConfigTriggers(bc *buildv1.BuildConfig) []triggerutil.ObjectFieldTrigger {
+	var triggers []triggerutil.ObjectFieldTrigger
 	for _, t := range bc.Spec.Triggers {
 		if t.ImageChange == nil {
 			continue
@@ -50,8 +49,8 @@ func calculateBuildConfigTriggers(bc *buildv1.BuildConfig) []triggerapi.ObjectFi
 		}
 
 		// add a trigger
-		triggers = append(triggers, triggerapi.ObjectFieldTrigger{
-			From: triggerapi.ObjectReference{
+		triggers = append(triggers, triggerutil.ObjectFieldTrigger{
+			From: triggerutil.ObjectReference{
 				Name:       from.Name,
 				Namespace:  from.Namespace,
 				Kind:       from.Kind,
@@ -75,7 +74,7 @@ func NewBuildConfigTriggerIndexer(prefix string) trigger.Indexer {
 
 func (i buildConfigTriggerIndexer) Index(obj, old interface{}) (string, *trigger.CacheEntry, cache.DeltaType, error) {
 	var (
-		triggers []triggerapi.ObjectFieldTrigger
+		triggers []triggerutil.ObjectFieldTrigger
 		bc       *buildv1.BuildConfig
 		change   cache.DeltaType
 	)
@@ -138,7 +137,7 @@ func NewBuildConfigReactor(instantiator buildclientv1.BuildConfigsGetter, restcl
 
 // ImageChanged is passed a build config and a set of changes and updates the object if
 // necessary.
-func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 	bc := obj.(*buildv1.BuildConfig)
 
 	var request *buildv1.BuildRequest

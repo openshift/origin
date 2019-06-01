@@ -14,6 +14,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -299,7 +300,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		t.Errorf("image has a not empty config: %#v", ist)
 	}
 
-	isi, err := clusterAdminImageClient.ImageStreamImages(testutil.Namespace()).Get(imageapi.JoinImageStreamImage(stream.Name, imagetest.BaseImageWith1LayerDigest), metav1.GetOptions{})
+	isi, err := clusterAdminImageClient.ImageStreamImages(testutil.Namespace()).Get(imageutil.JoinImageStreamImage(stream.Name, imagetest.BaseImageWith1LayerDigest), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

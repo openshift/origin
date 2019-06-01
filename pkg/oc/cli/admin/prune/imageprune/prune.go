@@ -32,10 +32,11 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	buildgraph "github.com/openshift/origin/pkg/oc/lib/graph/buildgraph/nodes"
 	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -357,7 +358,7 @@ func (p *pruner) addImagesToGraph(images *imagev1.ImageList) []error {
 		klog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(p.g, image)
 
-		if err := imageutil.ImageWithMetadata(image); err != nil {
+		if err := imageutilinternal.ImageWithMetadata(image); err != nil {
 			klog.V(1).Infof("Failed to read image metadata for image %s: %v", image.Name, err)
 			errs = append(errs, err)
 			continue
@@ -492,7 +493,7 @@ func exceedsLimits(is *imagev1.ImageStream, image *imagev1.Image, limits map[str
 		return false
 	}
 
-	if err := imageutil.ImageWithMetadata(image); err != nil {
+	if err := imageutilinternal.ImageWithMetadata(image); err != nil {
 		return false
 	}
 	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
@@ -1108,7 +1109,7 @@ func pruneISTagHistory(
 	imageStream *imagev1.ImageStream,
 	tag string,
 ) (tagUpdated, tagDeleted bool) {
-	history, _ := imageutil.StatusHasTag(imageStream, tag)
+	history, _ := imageutilinternal.StatusHasTag(imageStream, tag)
 	newHistory := imagev1.NamedTagEventList{Tag: tag}
 
 	for _, tagEvent := range history.Items {
@@ -1747,7 +1748,7 @@ func makeISTag(namespace, name, tag string) *imagev1.ImageStreamTag {
 	return &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name:      imageapi.JoinImageStreamTag(name, tag),
+			Name:      imageutil.JoinImageStreamTag(name, tag),
 		},
 	}
 }

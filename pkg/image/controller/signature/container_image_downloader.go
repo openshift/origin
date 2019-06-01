@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -61,7 +62,7 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 		// This will use the name of the image (sha256:xxxx) and the SHA256 of the
 		// signature itself as the signature name has to be unique for each
 		// signature.
-		sig.Name = imageapi.JoinImageStreamImage(image.Name, fmt.Sprintf("%x", sha256.Sum256(blob)))
+		sig.Name = imageutil.JoinImageStreamImage(image.Name, fmt.Sprintf("%x", sha256.Sum256(blob)))
 		sig.Content = blob
 		sig.CreationTimestamp = metav1.Now()
 		ret = append(ret, sig)

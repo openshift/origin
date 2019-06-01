@@ -18,9 +18,10 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
 )
@@ -110,7 +111,7 @@ func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) 
 		Stream: stream,
 	}
 
-	if tagged := imageutil.LatestTaggedImage(stream, tag); tagged != nil {
+	if tagged := imageutilinternal.LatestTaggedImage(stream, tag); tagged != nil {
 		if ref, err := reference.Parse(tagged.DockerImageReference); err == nil {
 			imageRef.ResolvedReference = &ref
 			imageRef.Reference = ref
@@ -178,14 +179,14 @@ func (r *ImageRef) ObjectReference() corev1.ObjectReference {
 	case r.Stream != nil:
 		return corev1.ObjectReference{
 			Kind:      "ImageStreamTag",
-			Name:      imageapi.JoinImageStreamTag(r.Stream.Name, r.Reference.Tag),
+			Name:      imageutil.JoinImageStreamTag(r.Stream.Name, r.Reference.Tag),
 			Namespace: r.Stream.Namespace,
 		}
 	case r.AsImageStream:
 		name, _ := r.SuggestName()
 		return corev1.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: imageapi.JoinImageStreamTag(name, r.InternalTag()),
+			Name: imageutil.JoinImageStreamTag(name, r.InternalTag()),
 		}
 	default:
 		return corev1.ObjectReference{
@@ -277,7 +278,7 @@ func (r *ImageRef) BuildOutput() (*buildv1.BuildOutput, error) {
 	return &buildv1.BuildOutput{
 		To: &corev1.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: imageapi.JoinImageStreamTag(imageRepo.Name, r.Reference.Tag),
+			Name: imageutil.JoinImageStreamTag(imageRepo.Name, r.Reference.Tag),
 		},
 	}, nil
 }
@@ -353,7 +354,7 @@ func (r *ImageRef) ImageStreamTag() (*imagev1.ImageStreamTag, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to suggest an ImageStream name for %q", r.Reference.String())
 	}
-	istname := imageapi.JoinImageStreamTag(name, r.Reference.Tag)
+	istname := imageutil.JoinImageStreamTag(name, r.Reference.Tag)
 	ist := &imagev1.ImageStreamTag{
 		// this is ok because we know exactly how we want to be serialized
 		TypeMeta: metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStreamTag"},

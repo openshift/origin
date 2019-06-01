@@ -10,6 +10,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
@@ -26,7 +27,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 			name: "isimage without namespace",
 			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
+				Name: imageutil.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
 			expectedString: "is@" + imagetest.BaseImageWith1LayerDigest,
 		},
@@ -36,7 +37,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 			namespace: "fallback",
 			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
+				Name: imageutil.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
 			expectedString: "fallback/is@" + imagetest.BaseImageWith1LayerDigest,
 		},
@@ -47,7 +48,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 			objRef: coreapi.ObjectReference{
 				Kind:      "ImageStreamImage",
 				Namespace: "ns",
-				Name:      imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
+				Name:      imageutil.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
 			expectedString: "ns/is@" + imagetest.BaseImageWith1LayerDigest,
 		},

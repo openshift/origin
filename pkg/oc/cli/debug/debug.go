@@ -46,12 +46,13 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/oc/pkg/helpers/conditions"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
 
@@ -514,7 +515,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *corev1.Pod, con
 				namespace = o.Attach.Pod.Namespace
 			}
 
-			isi, err := o.ImageClient.ImageStreamImages(namespace).Get(imageapi.JoinImageStreamImage(isname, ref.ID), metav1.GetOptions{})
+			isi, err := o.ImageClient.ImageStreamImages(namespace).Get(imageutil.JoinImageStreamImage(isname, ref.ID), metav1.GetOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -576,7 +577,7 @@ func (o *DebugOptions) getContainerImageCommand(pod *corev1.Pod, container *core
 		return nil, fmt.Errorf("error: no usable image found")
 	}
 
-	if err := imageutil.ImageWithMetadata(image); err != nil {
+	if err := imageutilinternal.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)

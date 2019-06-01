@@ -20,12 +20,12 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/util/labelselector"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -378,9 +378,9 @@ func validateToImageReference(reference *kapi.ObjectReference, fldPath *field.Pa
 	case "ImageStreamTag":
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
-		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
+		} else if _, _, ok := imageutil.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
-		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
+		} else if name, _, _ := imageutil.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag name contains invalid syntax"))
 		}
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
@@ -413,9 +413,9 @@ func validateImageReference(reference *kapi.ObjectReference, fldPath *field.Path
 	case "ImageStreamTag":
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
-		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
+		} else if _, _, ok := imageutil.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "must be <name>:<tag>"))
-		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
+		} else if name, _, _ := imageutil.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "invalid name syntax"))
 		}
 

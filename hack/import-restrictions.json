@@ -182,14 +182,14 @@
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
       "vendor/k8s.io/api",
-      "vendor/github.com/openshift/api"
+      "vendor/github.com/openshift/api",
+      "vendor/github.com/openshift/library-go"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/extensions",
-      "vendor/k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
-      "github.com/openshift/origin/pkg/image/apis/image"
+      "vendor/k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
     ]
   },
 
@@ -226,8 +226,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
-      "github.com/openshift/origin/pkg/build/apis/build/internal_helpers",
-      "github.com/openshift/origin/pkg/image/apis/image"
+      "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
     ]
   },
 
@@ -471,7 +470,6 @@
       "vendor/github.com/davecgh/go-spew/spew",
 
       "github.com/openshift/origin/pkg/authorization/generated",
-      "github.com/openshift/origin/pkg/image/apis/image/v1",
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/image/util",
       "github.com/openshift/origin/pkg/oauth/generated",
@@ -491,7 +489,6 @@
     "allowedImportPackages": [
       "github.com/openshift/origin/pkg/api/legacy",
       "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/api/imagereferencemutators",
       "github.com/openshift/origin/pkg/api/install",
       "github.com/openshift/origin/pkg/apps/apis/apps",
       "github.com/openshift/origin/pkg/apps/apis/apps/install",
@@ -515,14 +512,12 @@
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/image/apis/image",
-      "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
       "github.com/openshift/origin/pkg/image/dockerlayer",
       "github.com/openshift/origin/pkg/image/dockerlayer/add",
       "github.com/openshift/origin/pkg/image/importer/dockerv1client",
       "github.com/openshift/origin/pkg/image/registryclient",
       "github.com/openshift/origin/pkg/image/registryclient/dockercredentials",
-      "github.com/openshift/origin/pkg/image/trigger/annotations",
       "github.com/openshift/origin/pkg/network",
       "github.com/openshift/origin/pkg/oauth/apis/oauth",
       "github.com/openshift/origin/pkg/oauth/util",

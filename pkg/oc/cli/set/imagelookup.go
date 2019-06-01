@@ -20,7 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
+	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 )
 
 var (

@@ -13,6 +13,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -413,7 +414,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	firstTrigger := appstest.OkImageChangeTrigger()
 	secondTrigger := appstest.OkImageChangeTrigger()
 	secondTrigger.ImageChangeParams.ContainerNames = []string{"container2"}
-	secondTrigger.ImageChangeParams.From.Name = imageapi.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
+	secondTrigger.ImageChangeParams.From.Name = imageutil.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
 
 	configWatch, err := adminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})

@@ -12,6 +12,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	imagegroup "github.com/openshift/api/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
@@ -102,7 +103,7 @@ func (r *REST) Get(ctx context.Context, id string, options *metav1.GetOptions) (
 	isi := imageapi.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         apirequest.NamespaceValue(ctx),
-			Name:              imageapi.JoinImageStreamImage(name, imageID),
+			Name:              imageutil.JoinImageStreamImage(name, imageID),
 			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
 			Annotations:       repo.Annotations,
 		},

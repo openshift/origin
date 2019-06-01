@@ -27,6 +27,7 @@ import (
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	oapps "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	build "github.com/openshift/origin/pkg/build/apis/build"
@@ -390,7 +391,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			tags := []string{"stuff", "other"}
 			j.From.Name = specs[c.Intn(len(specs))]
 			if len(j.From.Name) > 0 {
-				j.From.Name = image.JoinImageStreamTag(j.From.Name, tags[c.Intn(len(tags))])
+				j.From.Name = imageutil.JoinImageStreamTag(j.From.Name, tags[c.Intn(len(tags))])
 			}
 		},
 		func(j *oapps.DeploymentTriggerImageChangeParams, c fuzz.Continue) {

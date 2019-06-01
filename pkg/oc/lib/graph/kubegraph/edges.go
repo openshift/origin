@@ -16,10 +16,9 @@ import (
 
 	oapps "github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/api/legacy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
-	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	"github.com/openshift/origin/pkg/oc/lib/graph/appsgraph"
 	appsnodes "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
@@ -294,18 +293,18 @@ func addTriggerEdges(obj runtime.Object, podTemplate corev1.PodTemplateSpec, add
 	if err != nil {
 		return
 	}
-	triggerAnnotation, ok := m.GetAnnotations()[triggerapi.TriggerAnnotationKey]
+	triggerAnnotation, ok := m.GetAnnotations()[triggerutil.TriggerAnnotationKey]
 	if !ok {
 		return
 	}
-	triggers := []triggerapi.ObjectFieldTrigger{}
+	triggers := []triggerutil.ObjectFieldTrigger{}
 	if err := json.Unmarshal([]byte(triggerAnnotation), &triggers); err != nil {
 		return
 	}
 	triggerFn := func(container *corev1.Container) (appsgraph.TemplateImage, bool) {
 		from := corev1.ObjectReference{}
 		for _, trigger := range triggers {
-			c, remainder, err := annotations.ContainerForObjectFieldPath(obj, trigger.FieldPath)
+			c, remainder, err := triggerutil.ContainerForObjectFieldPath(obj, trigger.FieldPath)
 			if err != nil || remainder != "image" {
 				continue
 			}
@@ -337,7 +336,7 @@ func AddTriggerJobsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.JobNode) 
 			if len(image.From.Name) == 0 {
 				return
 			}
-			name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+			name, tag, _ := imageutil.SplitImageStreamTag(image.From.Name)
 			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
 			g.AddEdge(in, node, TriggersDeploymentEdgeKind)
 			return
@@ -368,7 +367,7 @@ func AddTriggerStatefulSetsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.S
 			if len(image.From.Name) == 0 {
 				return
 			}
-			name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+			name, tag, _ := imageutil.SplitImageStreamTag(image.From.Name)
 			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
 			g.AddEdge(in, node, TriggersDeploymentEdgeKind)
 			return
@@ -399,7 +398,7 @@ func AddTriggerDeploymentsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.De
 			if len(image.From.Name) == 0 {
 				return
 			}
-			name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+			name, tag, _ := imageutil.SplitImageStreamTag(image.From.Name)
 			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
 			g.AddEdge(in, node, TriggersDeploymentEdgeKind)
 			return

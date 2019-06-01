@@ -13,7 +13,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 
@@ -40,7 +40,7 @@ func namesInclude(names []string, name string) bool {
 
 // calculateDeploymentConfigTrigger resolves a particular trigger against the deployment config and extracts a list of triggers.
 // It will silently ignore triggers that do not point to valid container. It returns empty if no triggers can be found.
-func calculateDeploymentConfigTrigger(t appsv1.DeploymentTriggerPolicy, dc *appsv1.DeploymentConfig) []triggerapi.ObjectFieldTrigger {
+func calculateDeploymentConfigTrigger(t appsv1.DeploymentTriggerPolicy, dc *appsv1.DeploymentConfig) []triggerutil.ObjectFieldTrigger {
 	if t.ImageChangeParams == nil {
 		return nil
 	}
@@ -49,13 +49,13 @@ func calculateDeploymentConfigTrigger(t appsv1.DeploymentTriggerPolicy, dc *apps
 		return nil
 	}
 
-	var triggers []triggerapi.ObjectFieldTrigger
+	var triggers []triggerutil.ObjectFieldTrigger
 
 	// add one trigger per init container and container
 	for _, index := range indicesForContainerNames(dc.Spec.Template.Spec.Containers, t.ImageChangeParams.ContainerNames) {
 		fieldPath := fmt.Sprintf("spec.template.spec.containers[@name==\"%s\"].image", dc.Spec.Template.Spec.Containers[index].Name)
-		triggers = append(triggers, triggerapi.ObjectFieldTrigger{
-			From: triggerapi.ObjectReference{
+		triggers = append(triggers, triggerutil.ObjectFieldTrigger{
+			From: triggerutil.ObjectReference{
 				Name:       from.Name,
 				Namespace:  from.Namespace,
 				Kind:       from.Kind,
@@ -67,8 +67,8 @@ func calculateDeploymentConfigTrigger(t appsv1.DeploymentTriggerPolicy, dc *apps
 	}
 	for _, index := range indicesForContainerNames(dc.Spec.Template.Spec.InitContainers, t.ImageChangeParams.ContainerNames) {
 		fieldPath := fmt.Sprintf("spec.template.spec.initContainers[@name==\"%s\"].image", dc.Spec.Template.Spec.InitContainers[index].Name)
-		triggers = append(triggers, triggerapi.ObjectFieldTrigger{
-			From: triggerapi.ObjectReference{
+		triggers = append(triggers, triggerutil.ObjectFieldTrigger{
+			From: triggerutil.ObjectReference{
 				Name:       from.Name,
 				Namespace:  from.Namespace,
 				Kind:       from.Kind,
@@ -83,8 +83,8 @@ func calculateDeploymentConfigTrigger(t appsv1.DeploymentTriggerPolicy, dc *apps
 
 // calculateDeploymentConfigTriggers transforms a deployment config into a set of image change triggers. If retrieveChanges
 // is true an array of the latest state of the triggers will be returned.
-func calculateDeploymentConfigTriggers(dc *appsv1.DeploymentConfig) []triggerapi.ObjectFieldTrigger {
-	var triggers []triggerapi.ObjectFieldTrigger
+func calculateDeploymentConfigTriggers(dc *appsv1.DeploymentConfig) []triggerutil.ObjectFieldTrigger {
+	var triggers []triggerutil.ObjectFieldTrigger
 	for _, t := range dc.Spec.Triggers {
 		addedTriggers := calculateDeploymentConfigTrigger(t, dc)
 		triggers = append(triggers, addedTriggers...)
@@ -104,7 +104,7 @@ func NewDeploymentConfigTriggerIndexer(prefix string) trigger.Indexer {
 
 func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *trigger.CacheEntry, cache.DeltaType, error) {
 	var (
-		triggers []triggerapi.ObjectFieldTrigger
+		triggers []triggerutil.ObjectFieldTrigger
 		dc       *appsv1.DeploymentConfig
 		change   cache.DeltaType
 	)
@@ -162,7 +162,7 @@ type DeploymentConfigReactor struct {
 
 // UpdateDeploymentConfigImages sets the latest image value from all triggers onto each container, returning false if
 // one or more triggers could not be resolved yet or an error. The returned dc will be copied if mutated.
-func UpdateDeploymentConfigImages(dc *appsv1.DeploymentConfig, tagRetriever trigger.TagRetriever) (*appsv1.DeploymentConfig, bool, error) {
+func UpdateDeploymentConfigImages(dc *appsv1.DeploymentConfig, tagRetriever triggerutil.TagRetriever) (*appsv1.DeploymentConfig, bool, error) {
 	var updated *appsv1.DeploymentConfig
 
 	// copy the object and reset dc to the copy
@@ -226,7 +226,7 @@ func UpdateDeploymentConfigImages(dc *appsv1.DeploymentConfig, tagRetriever trig
 }
 
 // ImageChanged is passed a deployment config and a set of changes.
-func (r *DeploymentConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+func (r *DeploymentConfigReactor) ImageChanged(obj runtime.Object, tagRetriever triggerutil.TagRetriever) error {
 	dc := obj.(*appsv1.DeploymentConfig)
 	newDC := dc.DeepCopy()
 

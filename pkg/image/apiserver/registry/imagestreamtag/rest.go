@@ -16,6 +16,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	imagegroup "github.com/openshift/api/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -148,7 +149,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		return nil, kapierrors.NewBadRequest("a namespace must be specified to import images")
 	}
 
-	imageStreamName, imageTag, ok := imageapi.SplitImageStreamTag(istag.Name)
+	imageStreamName, imageTag, ok := imageutil.SplitImageStreamTag(istag.Name)
 	if !ok {
 		return nil, fmt.Errorf("%q must be of the form <stream_name>:<tag>", istag.Name)
 	}
@@ -378,7 +379,7 @@ func (r *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpti
 func (r *REST) imageFor(ctx context.Context, tag string, imageStream *imageapi.ImageStream) (*imageapi.Image, error) {
 	event := imageapi.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
-		return nil, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), imageapi.JoinImageStreamTag(imageStream.Name, tag))
+		return nil, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), imageutil.JoinImageStreamTag(imageStream.Name, tag))
 	}
 
 	return r.imageRegistry.GetImage(ctx, event.Image, &metav1.GetOptions{})
@@ -387,7 +388,7 @@ func (r *REST) imageFor(ctx context.Context, tag string, imageStream *imageapi.I
 // newISTag initializes an image stream tag from an image stream and image. The allowEmptyEvent will create a tag even
 // in the event that the status tag does does not exist yet (no image has successfully been tagged) or the image is nil.
 func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Image, allowEmptyEvent bool) (*imageapi.ImageStreamTag, error) {
-	istagName := imageapi.JoinImageStreamTag(imageStream.Name, tag)
+	istagName := imageutil.JoinImageStreamTag(imageStream.Name, tag)
 
 	event := imageapi.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {

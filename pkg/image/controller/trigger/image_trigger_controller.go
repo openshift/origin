@@ -24,9 +24,10 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -56,23 +57,23 @@ type TriggerSource struct {
 	Reactor trigger.ImageReactor
 }
 
-// tagRetriever implements trigger.TagRetriever over an image stream lister.
+// tagRetriever implements triggerutil.TagRetriever over an image stream lister.
 type tagRetriever struct {
 	lister imagev1lister.ImageStreamLister
 }
 
-var _ trigger.TagRetriever = tagRetriever{}
+var _ triggerutil.TagRetriever = tagRetriever{}
 
 // NewTagRetriever will return a tag retriever that can look up image stream tag
 // references from an image stream.
-func NewTagRetriever(lister imagev1lister.ImageStreamLister) trigger.TagRetriever {
+func NewTagRetriever(lister imagev1lister.ImageStreamLister) triggerutil.TagRetriever {
 	return tagRetriever{lister}
 }
 
 // ImageStreamTag returns a valid image reference for the provided image stream tag name and namespace,
 // or returns false. rv is the resource version of the underlying image stream.
 func (r tagRetriever) ImageStreamTag(namespace, name string) (ref string, rv int64, ok bool) {
-	streamName, tag, ok := imageapi.SplitImageStreamTag(name)
+	streamName, tag, ok := imageutil.SplitImageStreamTag(name)
 	if !ok {
 		return "", 0, false
 	}
@@ -84,7 +85,7 @@ func (r tagRetriever) ImageStreamTag(namespace, name string) (ref string, rv int
 	if err != nil {
 		return "", 0, false
 	}
-	ref, ok = imageutil.ResolveLatestTaggedImage(is, tag)
+	ref, ok = imageutilinternal.ResolveLatestTaggedImage(is, tag)
 	return ref, rv, ok
 }
 
@@ -135,7 +136,7 @@ type TriggerController struct {
 	// lister can list/get image streams from the shared informer's store
 	lister imagev1lister.ImageStreamLister
 	// tagRetriever helps get the latest value of a tag
-	tagRetriever trigger.TagRetriever
+	tagRetriever triggerutil.TagRetriever
 
 	// queue is the list of image stream keys that must be synced.
 	queue workqueue.RateLimitingInterface
@@ -189,7 +190,7 @@ func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer i
 }
 
 // setupTriggerSources is used by test code to simulate a trigger controller.
-func setupTriggerSources(triggerCache cache.ThreadSafeStore, tagRetriever trigger.TagRetriever, sources []TriggerSource, imageChangeQueue workqueue.RateLimitingInterface) (map[string]TriggerSource, []cache.InformerSynced, error) {
+func setupTriggerSources(triggerCache cache.ThreadSafeStore, tagRetriever triggerutil.TagRetriever, sources []TriggerSource, imageChangeQueue workqueue.RateLimitingInterface) (map[string]TriggerSource, []cache.InformerSynced, error) {
 	var syncs []cache.InformerSynced
 	triggerSources := make(map[string]TriggerSource)
 	for _, source := range sources {

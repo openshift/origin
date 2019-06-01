@@ -25,7 +25,7 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
-	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
+	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 )
 
 var (

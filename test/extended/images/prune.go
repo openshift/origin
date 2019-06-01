@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -449,7 +450,7 @@ func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destIST
 	if err != nil {
 		return nil, "", err
 	}
-	isName, tag, ok := imageapi.SplitImageStreamTag(destISTag)
+	isName, tag, ok := imageutil.SplitImageStreamTag(destISTag)
 	if !ok {
 		return nil, "", fmt.Errorf("failed to parse image stream tag %q", destISTag)
 	}

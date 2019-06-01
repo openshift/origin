@@ -32,14 +32,15 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
+	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 	"github.com/openshift/oc/pkg/helpers/env"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
-	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
@@ -1036,7 +1037,7 @@ func (c *AppConfig) crossStreamCircularTagReference(stream *imagev1.ImageStream,
 			return true
 		}
 		seen.Insert(stream.ObjectMeta.Namespace + ":" + stream.ObjectMeta.Name + ":" + tag)
-		tagRef, ok := imageutil.SpecHasTag(stream, tag)
+		tagRef, ok := imageutilinternal.SpecHasTag(stream, tag)
 		if !ok {
 			// no tag at the end of the rainbow
 			return false
@@ -1047,7 +1048,7 @@ func (c *AppConfig) crossStreamCircularTagReference(stream *imagev1.ImageStream,
 		}
 		if strings.Contains(tagRef.From.Name, ":") {
 			// another stream
-			fromstream, fromtag, ok := imageapi.SplitImageStreamTag(tagRef.From.Name)
+			fromstream, fromtag, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
 			if !ok {
 				return false
 			}
@@ -1084,7 +1085,7 @@ func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *im
 			return true
 		}
 
-		tagRef, ok := imageutil.SpecHasTag(instream, intag)
+		tagRef, ok := imageutilinternal.SpecHasTag(instream, intag)
 		if !ok {
 			// no tag at the end of the rainbow
 			return false
@@ -1095,7 +1096,7 @@ func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *im
 		}
 		if strings.Contains(tagRef.From.Name, ":") {
 			// another stream
-			fromstream, fromtag, ok := imageapi.SplitImageStreamTag(tagRef.From.Name)
+			fromstream, fromtag, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
 			if !ok {
 				return false
 			}
@@ -1165,7 +1166,7 @@ func (c *AppConfig) followRefToDockerImage(ref *corev1.ObjectReference, isContex
 	}
 
 	// Otherwise, we are tracing an IST reference
-	isName, isTag, ok := imageapi.SplitImageStreamTag(ref.Name)
+	isName, isTag, ok := imageutil.SplitImageStreamTag(ref.Name)
 	if !ok {
 		if isContext == nil {
 			return nil, fmt.Errorf("Unable to parse ImageStreamTag reference: %q", ref.Name)
@@ -1200,7 +1201,7 @@ func (c *AppConfig) followRefToDockerImage(ref *corev1.ObjectReference, isContex
 
 	// Dereference ImageStreamTag to see what it is pointing to
 	var target *corev1.ObjectReference
-	if tagRef, ok := imageutil.SpecHasTag(isContext, isTag); ok {
+	if tagRef, ok := imageutilinternal.SpecHasTag(isContext, isTag); ok {
 		target = tagRef.From
 	}
 
@@ -1232,13 +1233,13 @@ func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error
 			if len(istNamespace) == 0 {
 				istNamespace = c.OriginNamespace
 			}
-			streamName, tagName, ok := imageapi.SplitImageStreamTag(ist.Name)
+			streamName, tagName, ok := imageutil.SplitImageStreamTag(ist.Name)
 			if !ok {
 				return nil, fmt.Errorf("Unable to split ImageStreamTag: %s", ist.Name)
 			}
 			is := c.findImageStreamInObjectList(objects, streamName, istNamespace)
 			if is != nil {
-				if _, hasTag := imageutil.SpecHasTag(is, tagName); hasTag {
+				if _, hasTag := imageutilinternal.SpecHasTag(is, tagName); hasTag {
 					objectsToRemove[fmt.Sprintf("%s/%s", istNamespace, ist.Name)] = struct{}{}
 
 				}
@@ -1317,8 +1318,8 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 			// the `--to` option
 			// otherwise, we are deferring to the docker image resolution path
 			if output.Kind == "ImageStreamTag" && input.Kind == "ImageStreamTag" {
-				iname, itag, iok := imageapi.SplitImageStreamTag(input.Name)
-				oname, otag, ook := imageapi.SplitImageStreamTag(output.Name)
+				iname, itag, iok := imageutil.SplitImageStreamTag(input.Name)
+				oname, otag, ook := imageutil.SplitImageStreamTag(output.Name)
 				if iok && ook {
 					inamespace := input.Namespace
 					if len(inamespace) == 0 {

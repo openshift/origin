@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	appsgraph "github.com/openshift/origin/pkg/oc/lib/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
@@ -45,7 +45,7 @@ func AddTriggerDeploymentConfigsEdges(g osgraph.MutableUniqueGraph, node *appsgr
 				if len(image.From.Name) == 0 {
 					return
 				}
-				name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+				name, tag, _ := imageutil.SplitImageStreamTag(image.From.Name)
 				in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
 				g.AddEdge(in, node, TriggersDeploymentEdgeKind)
 				return

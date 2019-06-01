@@ -27,6 +27,7 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -274,7 +275,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		if len(ns) == 0 {
 			ns = defaultNamespace
 		}
-		name, tag, ok := imageapi.SplitImageStreamTag(ref.Name)
+		name, tag, ok := imageutil.SplitImageStreamTag(ref.Name)
 		if !ok {
 			return &rules.ImagePolicyAttributes{IntegratedRegistry: true}, fmt.Errorf("references of kind ImageStreamTag must be of the form NAME:TAG")
 		}
@@ -285,7 +286,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		if len(ns) == 0 {
 			ns = defaultNamespace
 		}
-		name, id, ok := imageapi.SplitImageStreamImage(ref.Name)
+		name, id, ok := imageutil.SplitImageStreamImage(ref.Name)
 		if !ok {
 			return &rules.ImagePolicyAttributes{IntegratedRegistry: true}, fmt.Errorf("references of kind ImageStreamImage must be of the form NAME@DIGEST")
 		}
@@ -351,7 +352,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 // or returns an error.
 func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string, partial, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
-	resolved, err := c.imageClient.ImageStreamTags(namespace).Get(imageapi.JoinImageStreamTag(name, tag), metav1.GetOptions{})
+	resolved, err := c.imageClient.ImageStreamTags(namespace).Get(imageutil.JoinImageStreamTag(name, tag), metav1.GetOptions{})
 	if err != nil {
 		if partial {
 			attrs.IntegratedRegistry = false
@@ -397,7 +398,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 // resolveImageStreamImage loads an image stream image if it exists, or returns an error.
 func (c *imageResolutionCache) resolveImageStreamImage(namespace, name, id string) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
-	resolved, err := c.imageClient.ImageStreamImages(namespace).Get(imageapi.JoinImageStreamImage(name, id), metav1.GetOptions{})
+	resolved, err := c.imageClient.ImageStreamImages(namespace).Get(imageutil.JoinImageStreamImage(name, id), metav1.GetOptions{})
 	if err != nil {
 		return attrs, err
 	}
