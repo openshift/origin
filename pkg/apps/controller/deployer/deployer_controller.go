@@ -2,10 +2,12 @@ package deployment
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +24,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 // maxRetryCount is the maximum number of times the controller will retry errors.
@@ -131,14 +135,15 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		// deployer pod (quota, etc..) we should respect the timeoutSeconds in the
 		// config strategy and transition the rollout to failed instead of waiting for
 		// the deployment pod forever.
-		config, err := appsutil.DecodeDeploymentConfig(deployment)
+		config, err := appsserialization.DecodeDeploymentConfig(deployment)
 		if err != nil {
 			return err
 		}
-		if appsutil.RolloutExceededTimeoutSeconds(config, deployment) {
+		if rolloutExceededTimeoutSeconds(config, deployment) {
 			nextStatus = appsv1.DeploymentStatusFailed
 			updatedAnnotations[appsv1.DeploymentStatusReasonAnnotation] = appsutil.DeploymentFailedUnableToCreateDeployerPod
-			c.emitDeploymentEvent(deployment, corev1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsutil.LabelForDeployment(deployment), appsutil.GetTimeoutSecondsForStrategy(config)))
+			c.emitDeploymentEvent(deployment, corev1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsutil.LabelForDeployment(deployment),
+				getTimeoutSecondsForStrategy(config)))
 			klog.V(4).Infof("Failing deployment %s/%s as we reached timeout while waiting for the deployer pod to be created", deployment.Namespace, deployment.Name)
 			break
 		}
@@ -274,7 +279,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		// If we are going to transition to failed or complete and scale is non-zero, we'll check one more
 		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
 		if *deploymentCopy.Spec.Replicas != 0 && appsutil.IsTerminatedDeployment(deploymentCopy) {
-			if config, err := appsutil.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
+			if config, err := appsserialization.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
 				zero := int32(0)
 				deploymentCopy.Spec.Replicas = &zero
 			}
@@ -349,7 +354,7 @@ func nextStatusComp(fromDeployer, fromPath appsv1.DeploymentStatus) appsv1.Deplo
 // makeDeployerPod creates a pod which implements deployment behavior. The pod is correlated to
 // the deployment with an annotation.
 func (c *DeploymentController) makeDeployerPod(deployment *corev1.ReplicationController) (*corev1.Pod, error) {
-	deploymentConfig, err := appsutil.DecodeDeploymentConfig(deployment)
+	deploymentConfig, err := appsserialization.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +566,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *corev1.Replicatio
 }
 
 func (c *DeploymentController) emitDeploymentEvent(deployment *corev1.ReplicationController, eventType, title, message string) {
-	if config, _ := appsutil.DecodeDeploymentConfig(deployment); config != nil {
+	if config, _ := appsserialization.DecodeDeploymentConfig(deployment); config != nil {
 		c.recorder.Eventf(config, eventType, title, message)
 	} else {
 		c.recorder.Eventf(deployment, eventType, title, message)
@@ -591,4 +596,40 @@ func (c *DeploymentController) handleErr(err error, key interface{}, deployment 
 	}
 	klog.V(2).Infof(msg)
 	c.queue.Forget(key)
+}
+
+// rolloutExceededTimeoutSeconds returns true if the current deployment exceeded
+// the timeoutSeconds defined for its strategy.
+// Note that this is different than activeDeadlineSeconds which is the timeout
+// set for the deployer pod. In some cases, the deployer pod cannot be created
+// (like quota, etc...). In that case deployer controller use this function to
+// measure if the created deployment (RC) exceeded the timeout.
+func rolloutExceededTimeoutSeconds(config *appsv1.DeploymentConfig, latestRC *v1.ReplicationController) bool {
+	timeoutSeconds := getTimeoutSecondsForStrategy(config)
+	// If user set the timeoutSeconds to 0, we assume there should be no timeout.
+	if timeoutSeconds <= 0 {
+		return false
+	}
+	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
+}
+
+// GetTimeoutSecondsForStrategy returns the timeout in seconds defined in the
+// deployment config strategy.
+func getTimeoutSecondsForStrategy(config *appsv1.DeploymentConfig) int64 {
+	var timeoutSeconds int64
+	switch config.Spec.Strategy.Type {
+	case appsv1.DeploymentStrategyTypeRolling:
+		timeoutSeconds = appsutil.DefaultRollingTimeoutSeconds
+		if t := config.Spec.Strategy.RollingParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case appsv1.DeploymentStrategyTypeRecreate:
+		timeoutSeconds = appsutil.DefaultRecreateTimeoutSeconds
+		if t := config.Spec.Strategy.RecreateParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case appsv1.DeploymentStrategyTypeCustom:
+		timeoutSeconds = appsutil.DefaultRecreateTimeoutSeconds
+	}
+	return timeoutSeconds
 }

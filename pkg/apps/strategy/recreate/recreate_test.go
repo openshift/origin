@@ -15,6 +15,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+
 	appsstrategy "github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"

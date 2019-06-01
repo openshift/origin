@@ -5,12 +5,14 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
@@ -21,10 +23,12 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+
 	"github.com/openshift/origin/pkg/apps/strategy"
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -131,7 +135,7 @@ func NewDeployer(kubeClient kubernetes.Interface, images imageclientv1.Interface
 			return kubeClient.CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(configName).
 				String()})
 		},
-		scaler: appsutil.NewReplicationControllerScaler(kubeClient),
+		scaler: kubectl.NewScaler(appsutil.NewReplicationControllerScaleClient(kubeClient)),
 		strategyFor: func(config *appsv1.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case appsv1.DeploymentStrategyTypeRecreate:
@@ -182,7 +186,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 
 	// Decode the config from the deployment.
 	// TODO: Remove this once we are sure there are no internal versions of configs serialized in DC
-	config, err := appsutil.DecodeDeploymentConfig(to)
+	config, err := appsserialization.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s: %v", to.Name, err)
 	}
@@ -194,7 +198,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// New deployments must have a desired replica count.
-	desiredReplicas, hasDesired := appsutil.DeploymentDesiredReplicas(to)
+	desiredReplicas, hasDesired := deploymentDesiredReplicas(to)
 	if !hasDesired {
 		return fmt.Errorf("deployment %s has already run to completion", to.Name)
 	}
@@ -260,4 +264,21 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 	fmt.Fprintln(d.out, "--> Success")
 	return nil
+}
+
+func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
+	s := appsutil.AnnotationFor(obj, key)
+	if len(s) == 0 {
+		return 0, false
+	}
+	i, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return 0, false
+	}
+	return int32(i), true
+}
+
+// deploymentDesiredReplicas returns number of desired replica for the given replication controller
+func deploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
+	return int32AnnotationFor(obj, appsv1.DesiredReplicasAnnotation)
 }

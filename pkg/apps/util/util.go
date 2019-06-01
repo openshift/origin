@@ -6,123 +6,132 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/diff"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	scaleclient "k8s.io/client-go/scale"
-	autoscalingv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
-	"k8s.io/kubernetes/pkg/kubectl"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
+
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
-
-// rcMapper pins preferred version to v1 and scale kind to autoscaling/v1 Scale
-// this avoids putting complete server discovery (including extension APIs) in the critical path for deployments
-type rcMapper struct{}
-
-func (rcMapper) ResourceFor(gvr schema.GroupVersionResource) (schema.GroupVersionResource, error) {
-	if gvr.Group == "" && gvr.Resource == "replicationcontrollers" {
-		return kapiv1.SchemeGroupVersion.WithResource("replicationcontrollers"), nil
-	}
-	return schema.GroupVersionResource{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
-}
-
-func (rcMapper) ScaleForResource(gvr schema.GroupVersionResource) (schema.GroupVersionKind, error) {
-	if gvr == kapiv1.SchemeGroupVersion.WithResource("replicationcontrollers") {
-		return autoscalingv1.SchemeGroupVersion.WithKind("Scale"), nil
-	}
-	return schema.GroupVersionKind{}, fmt.Errorf("unknown replication controller resource: %#v", gvr)
-}
-
-// DecodeDeploymentConfig decodes a DeploymentConfig from controller using annotation codec.
-// An error is returned if the controller doesn't contain an encoded config or decoding fail.
-func DecodeDeploymentConfig(controller metav1.ObjectMetaAccessor) (*appsv1.DeploymentConfig, error) {
-	encodedConfig, exists := controller.GetObjectMeta().GetAnnotations()[appsv1.DeploymentEncodedConfigAnnotation]
-	if !exists {
-		return nil, fmt.Errorf("object %s does not have encoded deployment config annotation", controller.GetObjectMeta().GetName())
-	}
-	config, err := runtime.Decode(annotationDecoder, []byte(encodedConfig))
-	if err != nil {
-		return nil, err
-	}
-	externalConfig, ok := config.(*appsv1.DeploymentConfig)
-	if !ok {
-		return nil, fmt.Errorf("object %+v is not v1.DeploymentConfig", config)
-	}
-	return externalConfig, nil
-}
-
-// RolloutExceededTimeoutSeconds returns true if the current deployment exceeded
-// the timeoutSeconds defined for its strategy.
-// Note that this is different than activeDeadlineSeconds which is the timeout
-// set for the deployer pod. In some cases, the deployer pod cannot be created
-// (like quota, etc...). In that case deployer controller use this function to
-// measure if the created deployment (RC) exceeded the timeout.
-func RolloutExceededTimeoutSeconds(config *appsv1.DeploymentConfig, latestRC *v1.ReplicationController) bool {
-	timeoutSeconds := GetTimeoutSecondsForStrategy(config)
-	// If user set the timeoutSeconds to 0, we assume there should be no timeout.
-	if timeoutSeconds <= 0 {
-		return false
-	}
-	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
-}
-
-// GetTimeoutSecondsForStrategy returns the timeout in seconds defined in the
-// deployment config strategy.
-func GetTimeoutSecondsForStrategy(config *appsv1.DeploymentConfig) int64 {
-	var timeoutSeconds int64
-	switch config.Spec.Strategy.Type {
-	case appsv1.DeploymentStrategyTypeRolling:
-		timeoutSeconds = DefaultRollingTimeoutSeconds
-		if t := config.Spec.Strategy.RollingParams.TimeoutSeconds; t != nil {
-			timeoutSeconds = *t
-		}
-	case appsv1.DeploymentStrategyTypeRecreate:
-		timeoutSeconds = DefaultRecreateTimeoutSeconds
-		if t := config.Spec.Strategy.RecreateParams.TimeoutSeconds; t != nil {
-			timeoutSeconds = *t
-		}
-	case appsv1.DeploymentStrategyTypeCustom:
-		timeoutSeconds = DefaultRecreateTimeoutSeconds
-	}
-	return timeoutSeconds
-}
-
-func NewReplicationControllerScaler(client kubernetes.Interface) kubectl.Scaler {
-	return kubectl.NewScaler(NewReplicationControllerScaleClient(client))
-}
-
-func NewReplicationControllerScaleClient(client kubernetes.Interface) scaleclient.ScalesGetter {
-	return scaleclient.New(client.CoreV1().RESTClient(), rcMapper{}, dynamic.LegacyAPIPathResolverFunc, rcMapper{})
-}
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment string) string {
 	return naming.GetPodName(deployment, "deploy")
 }
 
-// NewDeploymentCondition creates a new deployment condition.
-func NewDeploymentCondition(condType appsv1.DeploymentConditionType, status v1.ConditionStatus, reason string, message string) *appsv1.DeploymentCondition {
-	return &appsv1.DeploymentCondition{
-		Type:               condType,
-		Status:             status,
-		LastUpdateTime:     metav1.Now(),
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
+func newControllerRef(config *appsv1.DeploymentConfig) *metav1.OwnerReference {
+	deploymentConfigControllerRefKind := appsv1.GroupVersion.WithKind("DeploymentConfig")
+	blockOwnerDeletion := true
+	isController := true
+	return &metav1.OwnerReference{
+		APIVersion:         deploymentConfigControllerRefKind.GroupVersion().String(),
+		Kind:               deploymentConfigControllerRefKind.Kind,
+		Name:               config.Name,
+		UID:                config.UID,
+		BlockOwnerDeletion: &blockOwnerDeletion,
+		Controller:         &isController,
 	}
+}
+
+// MakeDeployment creates a deployment represented as a ReplicationController and based on the given DeploymentConfig.
+// The controller replica count will be zero.
+func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController, error) {
+	// EncodeDeploymentConfig encodes config as a string using codec.
+	encodedConfig, err := appsserialization.EncodeDeploymentConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	deploymentName := LatestDeploymentNameForConfig(config)
+	podSpec := config.Spec.Template.Spec.DeepCopy()
+
+	// Fix trailing and leading whitespace in the image field
+	// This is needed to sanitize old deployment configs where spaces were permitted but
+	// kubernetes 3.7 (#47491) tightened the validation of container image fields.
+	for i := range podSpec.Containers {
+		podSpec.Containers[i].Image = strings.TrimSpace(podSpec.Containers[i].Image)
+	}
+
+	controllerLabels := make(labels.Set)
+	for k, v := range config.Labels {
+		controllerLabels[k] = v
+	}
+	// Correlate the deployment with the config.
+	// TODO: Using the annotation constant for now since the value is correct
+	// but we could consider adding a new constant to the public types.
+	controllerLabels[appsv1.DeploymentConfigAnnotation] = config.Name
+
+	// Ensure that pods created by this deployment controller can be safely associated back
+	// to the controller, and that multiple deployment controllers for the same config don't
+	// manipulate each others' pods.
+	selector := map[string]string{}
+	for k, v := range config.Spec.Selector {
+		selector[k] = v
+	}
+	selector[DeploymentConfigLabel] = config.Name
+	selector[DeploymentLabel] = deploymentName
+
+	podLabels := make(labels.Set)
+	for k, v := range config.Spec.Template.Labels {
+		podLabels[k] = v
+	}
+	podLabels[DeploymentConfigLabel] = config.Name
+	podLabels[DeploymentLabel] = deploymentName
+
+	podAnnotations := make(labels.Set)
+	for k, v := range config.Spec.Template.Annotations {
+		podAnnotations[k] = v
+	}
+	podAnnotations[appsv1.DeploymentAnnotation] = deploymentName
+	podAnnotations[appsv1.DeploymentConfigAnnotation] = config.Name
+	podAnnotations[appsv1.DeploymentVersionAnnotation] = strconv.FormatInt(config.Status.LatestVersion, 10)
+
+	controllerRef := newControllerRef(config)
+	zero := int32(0)
+	deployment := &v1.ReplicationController{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deploymentName,
+			Namespace: config.Namespace,
+			Annotations: map[string]string{
+				appsv1.DeploymentConfigAnnotation:        config.Name,
+				appsv1.DeploymentEncodedConfigAnnotation: string(encodedConfig),
+				appsv1.DeploymentStatusAnnotation:        string(appsv1.DeploymentStatusNew),
+				appsv1.DeploymentVersionAnnotation:       strconv.FormatInt(config.Status.LatestVersion, 10),
+				// This is the target replica count for the new deployment.
+				appsv1.DesiredReplicasAnnotation: strconv.Itoa(int(config.Spec.Replicas)),
+				DeploymentReplicasAnnotation:     strconv.Itoa(0),
+			},
+			Labels:          controllerLabels,
+			OwnerReferences: []metav1.OwnerReference{*controllerRef},
+		},
+		Spec: v1.ReplicationControllerSpec{
+			// The deployment should be inactive initially
+			Replicas:        &zero,
+			Selector:        selector,
+			MinReadySeconds: config.Spec.MinReadySeconds,
+			Template: &v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      podLabels,
+					Annotations: podAnnotations,
+				},
+				Spec: *podSpec,
+			},
+		},
+	}
+	if config.Status.Details != nil && len(config.Status.Details.Message) > 0 {
+		deployment.Annotations[appsv1.DeploymentStatusReasonAnnotation] = config.Status.Details.Message
+	}
+	if value, ok := config.Annotations[DeploymentIgnorePodAnnotation]; ok {
+		deployment.Annotations[DeploymentIgnorePodAnnotation] = value
+	}
+
+	return deployment, nil
 }
 
 // SetDeploymentCondition updates the deployment to include the provided condition. If the condition that
@@ -199,81 +208,6 @@ func DeploymentsForCleanup(configuration *appsv1.DeploymentConfig, deployments [
 	return relevantDeployments
 }
 
-// RecordConfigChangeCause sets a deployment config cause for config change.
-func RecordConfigChangeCause(config *appsv1.DeploymentConfig) {
-	config.Status.Details = &appsv1.DeploymentDetails{
-		Causes: []appsv1.DeploymentCause{
-			{
-				Type: appsv1.DeploymentTriggerOnConfigChange,
-			},
-		},
-		Message: "config change",
-	}
-}
-
-// RecordImageChangeCauses sets a deployment config cause for image change. It
-// takes a list of changed images and record an cause for each image.
-func RecordImageChangeCauses(config *appsv1.DeploymentConfig, imageNames []string) {
-	config.Status.Details = &appsv1.DeploymentDetails{
-		Message: "image change",
-	}
-	for _, imageName := range imageNames {
-		config.Status.Details.Causes = append(config.Status.Details.Causes, appsv1.DeploymentCause{
-			Type:         appsv1.DeploymentTriggerOnImageChange,
-			ImageTrigger: &appsv1.DeploymentCauseImageTrigger{From: v1.ObjectReference{Kind: "DockerImage", Name: imageName}},
-		})
-	}
-}
-
-// HasUpdatedImages indicates if the deployment configuration images were updated.
-func HasUpdatedImages(dc *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, []string) {
-	updatedImages := []string{}
-	rcImages := sets.NewString()
-	for _, c := range rc.Spec.Template.Spec.Containers {
-		rcImages.Insert(c.Image)
-	}
-	for _, c := range dc.Spec.Template.Spec.Containers {
-		if !rcImages.Has(c.Image) {
-			updatedImages = append(updatedImages, c.Image)
-		}
-	}
-	if len(updatedImages) == 0 {
-		return false, nil
-	}
-	return true, updatedImages
-}
-
-// HasLatestPodTemplate checks for differences between current deployment config
-// template and deployment config template encoded in the latest replication
-// controller. If they are different it will return an string diff containing
-// the change.
-func HasLatestPodTemplate(currentConfig *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
-	latestConfig, err := DecodeDeploymentConfig(rc)
-	if err != nil {
-		return true, "", err
-	}
-	// The latestConfig represents an encoded DC in the latest deployment (RC).
-	// TODO: This diverges from the upstream behavior where we compare deployment
-	// template vs. replicaset template. Doing that will disallow any
-	// modifications to the RC the deployment config controller create and manage
-	// as a change to the RC will cause the DC to be reconciled and ultimately
-	// trigger a new rollout because of skew between latest RC template and DC
-	// template.
-	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
-		return true, "", nil
-	}
-	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
-}
-
-// IsProgressing expects a state deployment config and its updated status in order to
-// determine if there is any progress.
-func IsProgressing(config *appsv1.DeploymentConfig, newStatus *appsv1.DeploymentConfigStatus) bool {
-	oldStatusOldReplicas := config.Status.Replicas - config.Status.UpdatedReplicas
-	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
-
-	return (newStatus.UpdatedReplicas > config.Status.UpdatedReplicas) || (newStatusOldReplicas < oldStatusOldReplicas)
-}
-
 // LabelForDeployment builds a string identifier for a Deployment.
 func LabelForDeployment(deployment *v1.ReplicationController) string {
 	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
@@ -283,11 +217,6 @@ func LabelForDeployment(deployment *v1.ReplicationController) string {
 func LabelForDeploymentConfig(config runtime.Object) string {
 	accessor, _ := meta.Accessor(config)
 	return fmt.Sprintf("%s/%s", accessor.GetNamespace(), accessor.GetName())
-}
-
-// DeploymentDesiredReplicas returns number of desired replica for the given replication controller
-func DeploymentDesiredReplicas(obj runtime.Object) (int32, bool) {
-	return int32AnnotationFor(obj, appsv1.DesiredReplicasAnnotation)
 }
 
 // LatestDeploymentNameForConfig returns a stable identifier for deployment config
@@ -628,18 +557,6 @@ func CanTransitionPhase(current, next appsv1.DeploymentStatus) bool {
 		}
 	}
 	return false
-}
-
-func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
-	s := AnnotationFor(obj, key)
-	if len(s) == 0 {
-		return 0, false
-	}
-	i, err := strconv.ParseInt(s, 10, 32)
-	if err != nil {
-		return 0, false
-	}
-	return int32(i), true
 }
 
 type ByLatestVersionAsc []*v1.ReplicationController

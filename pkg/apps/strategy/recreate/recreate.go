@@ -22,10 +22,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.
@@ -99,7 +101,7 @@ func (s *RecreateDeploymentStrategy) Deploy(from *corev1.ReplicationController, 
 // for initial deployments.
 func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int,
 	updateAcceptor strat.UpdateAcceptor) error {
-	config, err := appsutil.DecodeDeploymentConfig(to)
+	config, err := appsserialization.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
