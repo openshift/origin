@@ -10,7 +10,9 @@ import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/configflags"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/configconversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/apis/apiserver"
 )
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
@@ -154,7 +156,7 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 func admissionFlags(admissionConfig configv1.AdmissionConfig) (map[string][]string, error) {
 	args := map[string][]string{}
 
-	upstreamAdmissionConfig, err := configconversion.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(admissionConfig.PluginConfig)
+	upstreamAdmissionConfig, err := ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(admissionConfig.PluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -199,4 +201,22 @@ func unmaskArgs(args map[string]kubecontrolplanev1.Arguments) map[string][]strin
 		}
 	}
 	return ret
+}
+
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+	ret := &apiserver.AdmissionConfiguration{}
+
+	for _, pluginName := range sets.StringKeySet(in).List() {
+		kubeConfig := apiserver.AdmissionPluginConfiguration{
+			Name: pluginName,
+			Path: in[pluginName].Location,
+			Configuration: &runtime.Unknown{
+				Raw: in[pluginName].Configuration.Raw,
+			},
+		}
+
+		ret.Plugins = append(ret.Plugins, kubeConfig)
+	}
+
+	return ret, nil
 }

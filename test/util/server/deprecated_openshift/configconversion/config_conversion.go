@@ -2,9 +2,6 @@ package configconversion
 
 import (
 	"k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/apis/apiserver"
 
 	"reflect"
 
@@ -34,24 +31,6 @@ func Convert_legacyconfigv1_AdmissionPluginConfig_to_configv1_AdmissionPluginCon
 	converter := conversion.NewConverter(conversion.DefaultNameFunc)
 	_, meta := converter.DefaultMeta(reflect.TypeOf(in))
 	return converter.DefaultConvert(in, out, conversion.AllowDifferentFieldTypeNames, meta)
-}
-
-func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
-	ret := &apiserver.AdmissionConfiguration{}
-
-	for _, pluginName := range sets.StringKeySet(in).List() {
-		kubeConfig := apiserver.AdmissionPluginConfiguration{
-			Name: pluginName,
-			Path: in[pluginName].Location,
-			Configuration: &runtime.Unknown{
-				Raw: in[pluginName].Configuration.Raw,
-			},
-		}
-
-		ret.Plugins = append(ret.Plugins, kubeConfig)
-	}
-
-	return ret, nil
 }
 
 func Convert_legacyconfigv1_MasterClients_to_configv1_KubeClientConfig(in *legacyconfigv1.MasterClients, out *configv1.KubeClientConfig, s conversion.Scope) error {

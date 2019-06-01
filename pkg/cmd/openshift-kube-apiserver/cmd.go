@@ -26,7 +26,6 @@ import (
 	"github.com/openshift/library-go/pkg/serviceability"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
-	"github.com/openshift/origin/pkg/configconversion"
 )
 
 const RecommendedStartAPIServerName = "openshift-kube-apiserver"
@@ -114,7 +113,7 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer(stopCh <-chan struct{}) erro
 	configFileLocation := path.Dir(absoluteConfigFile)
 
 	config := obj.(*kubecontrolplanev1.KubeAPIServerConfig)
-	if err := helpers.ResolvePaths(configconversion.GetKubeAPIServerConfigFileReferences(config), configFileLocation); err != nil {
+	if err := helpers.ResolvePaths(GetKubeAPIServerConfigFileReferences(config), configFileLocation); err != nil {
 		return err
 	}
 	configdefault.SetRecommendedKubeAPIServerConfigDefaults(config)
