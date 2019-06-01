@@ -101,6 +101,8 @@ import:
   version: master
 - package: github.com/openshift/source-to-image
   version: master
+- package: github.com/openshift/oauth-server
+  version: release-4.2
 
 # forks third
 # master
