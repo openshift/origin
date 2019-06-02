@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -30,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client/templateprocessing"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
@@ -288,7 +289,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 		restmapper := cli.RESTMapper()
 
-		config, err := configapi.GetClientConfig(exutil.KubeConfigPath(), nil)
+		config, err := deprecatedclient.GetClientConfig(exutil.KubeConfigPath(), nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dynamicClient, err := dynamic.NewForConfig(config)
 		o.Expect(err).NotTo(o.HaveOccurred())

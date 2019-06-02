@@ -22,7 +22,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1
-    github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing
     github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1
@@ -34,7 +33,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1
     github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints
     github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1
-    github.com/openshift/origin/pkg/util/testing
     github.com/openshift/origin/pkg/apps/apis/apps
     github.com/openshift/origin/pkg/authorization/apis/authorization
     github.com/openshift/origin/pkg/build/apis/build

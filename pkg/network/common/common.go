@@ -12,7 +12,7 @@ import (
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	"github.com/openshift/library-go/pkg/network/networkutils"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/network/apis/network/validation"
 )
 
 func HostSubnetToString(subnet *networkapi.HostSubnet) string {
@@ -105,11 +105,11 @@ func (ni *NetworkInfo) CheckHostNetworks(hostIPNets []*net.IPNet) error {
 	errList := []error{}
 	for _, ipNet := range hostIPNets {
 		for _, clusterNetwork := range ni.ClusterNetworks {
-			if configapi.CIDRsOverlap(ipNet.String(), clusterNetwork.ClusterCIDR.String()) {
+			if validation.CIDRsOverlap(ipNet.String(), clusterNetwork.ClusterCIDR.String()) {
 				errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", clusterNetwork.ClusterCIDR.IP.String(), ipNet.String()))
 			}
 		}
-		if configapi.CIDRsOverlap(ipNet.String(), ni.ServiceNetwork.String()) {
+		if validation.CIDRsOverlap(ipNet.String(), ni.ServiceNetwork.String()) {
 			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
 		}
 	}

@@ -291,9 +291,19 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	config = internal.(*configapi.MasterConfig)
 
 	// When creating a new config, use Protobuf
-	configapi.SetProtobufClientDefaults(config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	setProtobufClientDefaults(config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 
 	return config, nil
+}
+
+// setProtobufClientDefaults sets the appropriate content types for defaulting to protobuf
+// client communications and increases the default QPS and burst. This is used to override
+// defaulted config supporting versions older than 1.3 for new configurations generated in 1.3+.
+func setProtobufClientDefaults(overrides *configapi.ClientConnectionOverrides) {
+	overrides.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	overrides.ContentType = "application/vnd.kubernetes.protobuf"
+	overrides.QPS *= 2
+	overrides.Burst *= 2
 }
 
 func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, error) {

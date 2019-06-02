@@ -21,8 +21,6 @@ import (
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/network/common/networkvalidation"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
@@ -141,7 +139,7 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 
 	klog.V(2).Infof("Reading node configuration from %s", sdn.ConfigFilePath)
 	var err error
-	sdn.NodeConfig, err = configapilatest.ReadAndResolveNodeConfig(sdn.ConfigFilePath)
+	sdn.NodeConfig, err = readAndResolveNodeConfig(sdn.ConfigFilePath)
 	if err != nil {
 		return err
 	}

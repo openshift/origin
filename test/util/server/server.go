@@ -52,6 +52,7 @@ import (
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd/etcdserver"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/openshift-controller-manager"
@@ -697,7 +698,7 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 }
 
 func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
-	privilegedLoopbackConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	privilegedLoopbackConfig, err := deprecatedclient.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return err
 	}
