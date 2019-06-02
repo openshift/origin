@@ -15,10 +15,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	cmdversion "github.com/openshift/oc/pkg/cli/version"
+	osversion "github.com/openshift/oc/pkg/version"
+
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	osversion "github.com/openshift/origin/pkg/version"
 )
 
 var (

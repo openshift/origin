@@ -25,9 +25,10 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	strat "github.com/openshift/origin/pkg/apps/strategy"
-	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
-	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
+
+	strat "github.com/openshift/oc/pkg/cli/deployer/strategy"
+	stratsupport "github.com/openshift/oc/pkg/cli/deployer/strategy/support"
+	stratutil "github.com/openshift/oc/pkg/cli/deployer/strategy/util"
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.

@@ -26,11 +26,11 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/apps/strategy"
-	"github.com/openshift/origin/pkg/apps/strategy/recreate"
-	"github.com/openshift/origin/pkg/apps/strategy/rolling"
-	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/oc/pkg/cli/deployer/strategy"
+	"github.com/openshift/oc/pkg/cli/deployer/strategy/recreate"
+	"github.com/openshift/oc/pkg/cli/deployer/strategy/rolling"
+	cmdversion "github.com/openshift/oc/pkg/cli/version"
+	"github.com/openshift/oc/pkg/version"
 )
 
 var (
