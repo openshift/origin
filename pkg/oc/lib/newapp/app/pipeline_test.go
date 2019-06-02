@@ -10,11 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagev1 "github.com/openshift/api/image/v1"
 )
 
 type portDesc struct {
@@ -106,14 +104,14 @@ func objsToString(objs Objects) string {
 }
 
 func TestAcceptUnique(t *testing.T) {
-	is := func(name, ns string) *imageapi.ImageStream {
-		obj := &imageapi.ImageStream{}
+	is := func(name, ns string) *imagev1.ImageStream {
+		obj := &imagev1.ImageStream{}
 		obj.Name = name
 		obj.Namespace = ns
 		return obj
 	}
-	dc := func(name, ns string) *appsapi.DeploymentConfig {
-		obj := &appsapi.DeploymentConfig{}
+	dc := func(name, ns string) *appsv1.DeploymentConfig {
+		obj := &appsv1.DeploymentConfig{}
 		obj.Name = name
 		obj.Namespace = ns
 		return obj
@@ -143,7 +141,7 @@ func TestAcceptUnique(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		au := NewAcceptUnique(legacyscheme.Scheme)
+		au := NewAcceptUnique()
 		cnt := 0
 		for _, obj := range tc.objs {
 			if au.Accept(obj) {

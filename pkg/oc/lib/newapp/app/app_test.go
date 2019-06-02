@@ -6,20 +6,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/openshift/api"
+	"k8s.io/apimachinery/pkg/api/apitesting"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/source-to-image/pkg/scm/git"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func testImageInfo() *imageapi.DockerImage {
@@ -36,7 +35,7 @@ func TestWithType(t *testing.T) {
 					Name: "foo",
 				},
 			},
-			&kapi.Service{
+			&corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
@@ -237,16 +236,17 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 	outputRepo, _ := output.ImageStream()
 	buildConfig, _ := build.BuildConfig()
 	deployConfig, _ := deploy.DeploymentConfig()
-	items := []runtime.Object{
-		outputRepo,
-		buildConfig,
-		deployConfig,
-	}
-	out := &kapi.List{
-		Items: items,
+	out := &corev1.List{
+		Items: []runtime.RawExtension{
+			{Object: outputRepo},
+			{Object: buildConfig},
+			{Object: deployConfig},
+		},
 	}
 
-	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}), out)
+	_, codecs := apitesting.SchemeForOrDie(api.Install, api.InstallKube)
+
+	data, err := runtime.Encode(codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}), out)
 	if err != nil {
 		log.Fatalf("Unable to generate output: %v", err)
 	}

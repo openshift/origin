@@ -8,16 +8,16 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/api"
 	securityapiv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -25,12 +25,12 @@ import (
 
 var (
 	fileEncodingCodecFactory serializer.CodecFactory
+	scheme                   = runtime.NewScheme()
 )
 
 func init() {
-	scheme := runtime.NewScheme()
-	install.InstallInternalOpenShift(scheme)
-	install.InstallInternalKube(scheme)
+	api.Install(scheme)
+	api.InstallKube(scheme)
 	fileEncodingCodecFactory = serializer.NewCodecFactory(scheme)
 }
 
@@ -47,7 +47,7 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	list := &api.List{}
+	list := &corev1.List{}
 	if _, _, err := fileEncodingCodecFactory.UniversalDecoder().Decode(data, nil, list); err != nil {
 		t.Fatal(err)
 	}
@@ -56,12 +56,13 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 
 func TestBootstrapNamespaceRoles(t *testing.T) {
 	allRoles := bootstrappolicy.NamespaceRoles()
-	list := &api.List{}
+	list := &corev1.List{}
 	// enforce a strict ordering
 	for _, namespace := range sets.StringKeySet(allRoles).List() {
 		roles := allRoles[namespace]
 		for i := range roles {
-			list.Items = append(list.Items, &roles[i])
+			roles[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("Role"))
+			list.Items = append(list.Items, runtime.RawExtension{Object: &roles[i]})
 		}
 	}
 	testObjects(t, list, "bootstrap_namespace_roles.yaml")
@@ -69,12 +70,13 @@ func TestBootstrapNamespaceRoles(t *testing.T) {
 
 func TestGetBootstrapNamespaceRoleBindings(t *testing.T) {
 	allRoleBindings := bootstrappolicy.NamespaceRoleBindings()
-	list := &api.List{}
+	list := &corev1.List{}
 	// enforce a strict ordering
 	for _, namespace := range sets.StringKeySet(allRoleBindings).List() {
 		roleBindings := allRoleBindings[namespace]
 		for i := range roleBindings {
-			list.Items = append(list.Items, &roleBindings[i])
+			roleBindings[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("RoleBinding"))
+			list.Items = append(list.Items, runtime.RawExtension{Object: &roleBindings[i]})
 		}
 	}
 	testObjects(t, list, "bootstrap_namespace_role_bindings.yaml")
@@ -82,27 +84,30 @@ func TestGetBootstrapNamespaceRoleBindings(t *testing.T) {
 
 func TestBootstrapProjectRoleBindings(t *testing.T) {
 	roleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings("myproject")
-	list := &api.List{}
+	list := &corev1.List{}
 	for i := range roleBindings {
-		list.Items = append(list.Items, &roleBindings[i])
+		roleBindings[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("RoleBinding"))
+		list.Items = append(list.Items, runtime.RawExtension{Object: &roleBindings[i]})
 	}
 	testObjects(t, list, "bootstrap_service_account_project_role_bindings.yaml")
 }
 
 func TestBootstrapClusterRoleBindings(t *testing.T) {
 	roleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
-	list := &api.List{}
+	list := &corev1.List{}
 	for i := range roleBindings {
-		list.Items = append(list.Items, &roleBindings[i])
+		roleBindings[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("ClusterRoleBinding"))
+		list.Items = append(list.Items, runtime.RawExtension{Object: &roleBindings[i]})
 	}
 	testObjects(t, list, "bootstrap_cluster_role_bindings.yaml")
 }
 
 func TestBootstrapClusterRoles(t *testing.T) {
 	roles := bootstrappolicy.GetBootstrapClusterRoles()
-	list := &api.List{}
+	list := &corev1.List{}
 	for i := range roles {
-		list.Items = append(list.Items, &roles[i])
+		roles[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("ClusterRole"))
+		list.Items = append(list.Items, runtime.RawExtension{Object: &roles[i]})
 	}
 	testObjects(t, list, "bootstrap_cluster_roles.yaml")
 }
@@ -111,21 +116,18 @@ func TestBootstrapSCCs(t *testing.T) {
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 	sccs := bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers)
-	list := &api.List{}
+	list := &corev1.List{}
 	for i := range sccs {
-		list.Items = append(list.Items, sccs[i])
+		sccs[i].SetGroupVersionKind(securityapiv1.SchemeGroupVersion.WithKind("SecurityContextConstraints"))
+		list.Items = append(list.Items, runtime.RawExtension{Object: sccs[i]})
 	}
 	testObjects(t, list, "bootstrap_security_context_constraints.yaml")
 }
 
-func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
+func testObjects(t *testing.T, list *corev1.List, fixtureFilename string) {
 	filename := filepath.Join("../../../../test/testdata/bootstrappolicy", fixtureFilename)
 	expectedYAML, err := ioutil.ReadFile(filename)
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := runtime.EncodeList(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, securityapiv1.GroupVersion, legacy.GroupVersion), list.Items); err != nil {
 		t.Fatal(err)
 	}
 

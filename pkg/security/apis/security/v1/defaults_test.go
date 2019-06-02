@@ -4,17 +4,26 @@ import (
 	"reflect"
 	"testing"
 
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	versioned "github.com/openshift/api/security/v1"
-	_ "github.com/openshift/origin/pkg/api/install"
 	conversionv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 
+var (
+	scheme *runtime.Scheme
+	codecs serializer.CodecFactory
+)
+
+func init() {
+	scheme, codecs = apitesting.SchemeForOrDie(conversionv1.Install)
+}
+
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	codec := legacyscheme.Codecs.LegacyCodec(versioned.SchemeGroupVersion)
+	codec := codecs.LegacyCodec(versioned.GroupVersion)
 	data, err := runtime.Encode(codec, obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
@@ -26,7 +35,7 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 		return nil
 	}
 	obj3 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
-	err = legacyscheme.Scheme.Convert(obj2, obj3, nil)
+	err = scheme.Convert(obj2, obj3, nil)
 	if err != nil {
 		t.Errorf("%v\nSource: %#v", err, obj2)
 		return nil

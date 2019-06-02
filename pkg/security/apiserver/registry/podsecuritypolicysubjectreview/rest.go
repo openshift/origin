@@ -10,12 +10,12 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapiref "k8s.io/kubernetes/pkg/api/ref"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -103,6 +103,12 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	return pspsr, nil
 }
 
+var scheme = runtime.NewScheme()
+
+func init() {
+	utilruntime.Must(securityapi.Install(scheme))
+}
+
 // FillPodSecurityPolicySubjectReviewStatus fills PodSecurityPolicySubjectReviewStatus assigning SecurityContectConstraint to the PodSpec
 func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec coreapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
 	pod := &coreapi.Pod{
@@ -113,7 +119,7 @@ func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySu
 		s.Reason = "CantAssignSecurityContextConstraintProvider"
 		return false, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())
 	}
-	ref, err := kapiref.GetReference(legacyscheme.Scheme, constraint)
+	ref, err := kapiref.GetReference(scheme, constraint)
 	if err != nil {
 		s.Reason = "CantObtainReference"
 		return false, fmt.Errorf("unable to get SecurityContextConstraints reference: %v", err)

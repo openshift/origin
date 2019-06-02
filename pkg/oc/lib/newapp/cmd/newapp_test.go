@@ -34,8 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/source-to-image/pkg/scm/git"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestValidate(t *testing.T) {

@@ -7,19 +7,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/template/apis/template"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func TestNewRESTDefaultsName(t *testing.T) {
@@ -67,7 +62,9 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 	testScheme := runtime.NewScheme()
 	utilruntime.Must(v1.AddToScheme(testScheme))
 	utilruntime.Must(templatev1.Install(testScheme))
-	testCodec := serializer.NewCodecFactory(testScheme).LegacyCodec(templatev1.GroupVersion, v1.SchemeGroupVersion)
+	utilruntime.Must(template.Install(testScheme))
+	testCodecFactory := serializer.NewCodecFactory(testScheme)
+	testCodec := testCodecFactory.LegacyCodec(templatev1.GroupVersion, v1.SchemeGroupVersion)
 	// because of encoding changes, we to round-trip ourselves
 	templateToCreate := &templatev1.Template{
 		ObjectMeta: metav1.ObjectMeta{
@@ -96,7 +93,7 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	objToCreate, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), originalBytes)
+	objToCreate, err := runtime.Decode(testCodecFactory.UniversalDecoder(), originalBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,17 +103,17 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), obj)
+	bytes, err := runtime.Encode(testCodecFactory.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), obj)
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err = runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), bytes)
+	obj, err = runtime.Decode(testCodecFactory.UniversalDecoder(), bytes)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	config := obj.(*template.Template)
-	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, testCodecFactory.UniversalDecoder())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,7 +142,9 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	testScheme := runtime.NewScheme()
 	utilruntime.Must(v1.AddToScheme(testScheme))
 	utilruntime.Must(templatev1.Install(testScheme))
-	testCodec := serializer.NewCodecFactory(testScheme).LegacyCodec(templatev1.GroupVersion, v1.SchemeGroupVersion)
+	utilruntime.Must(template.Install(testScheme))
+	testCodecFactory := serializer.NewCodecFactory(testScheme)
+	testCodec := testCodecFactory.LegacyCodec(templatev1.GroupVersion, v1.SchemeGroupVersion)
 	// because of encoding changes, we to round-trip ourselves
 	templateToCreate := &templatev1.Template{
 		ObjectMeta: metav1.ObjectMeta{
@@ -174,7 +173,7 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	objToCreate, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), originalBytes)
+	objToCreate, err := runtime.Decode(testCodecFactory.UniversalDecoder(), originalBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,17 +184,17 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), obj)
+	bytes, err := runtime.Encode(testCodecFactory.LegacyCodec(schema.GroupVersion{Group: "template.openshift.io", Version: "v1"}), obj)
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err = runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), bytes)
+	obj, err = runtime.Decode(testCodecFactory.UniversalDecoder(), bytes)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	config := obj.(*template.Template)
-	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, testCodecFactory.UniversalDecoder())); err != nil {
 		t.Fatal(err)
 	}
 
