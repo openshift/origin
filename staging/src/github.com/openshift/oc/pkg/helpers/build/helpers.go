@@ -65,3 +65,34 @@ func StrategyType(strategy buildv1.BuildStrategy) string {
 	}
 	return ""
 }
+
+// IsBuildComplete returns whether the provided build is complete or not
+func IsBuildComplete(build *buildv1.Build) bool {
+	return IsTerminalPhase(build.Status.Phase)
+}
+
+// IsTerminalPhase returns true if the provided phase is terminal
+func IsTerminalPhase(phase buildv1.BuildPhase) bool {
+	switch phase {
+	case buildv1.BuildPhaseNew,
+		buildv1.BuildPhasePending,
+		buildv1.BuildPhaseRunning:
+		return false
+	}
+	return true
+}
+
+// GetInputReference returns the From ObjectReference associated with the
+// BuildStrategy.
+func GetInputReference(strategy buildv1.BuildStrategy) *corev1.ObjectReference {
+	switch {
+	case strategy.SourceStrategy != nil:
+		return &strategy.SourceStrategy.From
+	case strategy.DockerStrategy != nil:
+		return strategy.DockerStrategy.From
+	case strategy.CustomStrategy != nil:
+		return &strategy.CustomStrategy.From
+	default:
+		return nil
+	}
+}
