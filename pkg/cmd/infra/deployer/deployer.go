@@ -24,11 +24,11 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	"github.com/openshift/origin/pkg/version"
 )

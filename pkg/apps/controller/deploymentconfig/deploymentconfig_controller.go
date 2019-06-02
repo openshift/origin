@@ -28,8 +28,8 @@ import (
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsv1lister "github.com/openshift/client-go/apps/listers/apps/v1"
 
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/apps/util/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 const (

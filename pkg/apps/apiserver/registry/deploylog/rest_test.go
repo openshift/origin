@@ -17,10 +17,13 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/origin/pkg/apps/apiserver/registry/appstest"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var testSelector = map[string]string{"test": "rest"}

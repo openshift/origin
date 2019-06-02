@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/origin/pkg/oc/cli/set"
 )
 

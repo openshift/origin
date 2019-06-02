@@ -13,11 +13,12 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	"github.com/openshift/origin/test/common/appstest"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

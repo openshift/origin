@@ -6,7 +6,8 @@ import (
 	"github.com/gonum/graph/topo"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+
+	"github.com/openshift/origin/pkg/oc/lib/appstest"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubetypes "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 )

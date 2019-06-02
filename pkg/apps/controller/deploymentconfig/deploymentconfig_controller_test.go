@@ -24,8 +24,8 @@ import (
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appslisters "github.com/openshift/client-go/apps/listers/apps/v1"
 
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
+	"github.com/openshift/origin/pkg/apps/controller/appstest"
 )
 
 func init() {

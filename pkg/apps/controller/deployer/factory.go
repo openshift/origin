@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 // NewDeployerController creates a new DeploymentController.

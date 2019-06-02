@@ -19,7 +19,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	fakebuild "github.com/openshift/client-go/build/clientset/versioned/fake"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
