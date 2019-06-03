@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
 
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 )
 
 type NeedPodsSignaler interface {

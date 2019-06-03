@@ -21,9 +21,8 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1fakeclient "github.com/openshift/client-go/security/clientset/versioned/fake"
-	"github.com/openshift/origin/pkg/security"
+	"github.com/openshift/library-go/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/mcs"
-	"github.com/openshift/origin/pkg/security/uid"
 )
 
 func TestController(t *testing.T) {
@@ -68,13 +67,13 @@ func TestController(t *testing.T) {
 	createNSAction := kubeActions[0]
 
 	got := createNSAction.(clientgotesting.CreateAction).GetObject().(*v1.Namespace)
-	if got.Annotations[security.UIDRangeAnnotation] != "10/2" {
+	if got.Annotations[securityv1.UIDRangeAnnotation] != "10/2" {
 		t.Errorf("unexpected uid annotation: %#v", got)
 	}
-	if got.Annotations[security.SupplementalGroupsAnnotation] != "10/2" {
+	if got.Annotations[securityv1.SupplementalGroupsAnnotation] != "10/2" {
 		t.Errorf("unexpected supplemental group annotation: %#v", got)
 	}
-	if got.Annotations[security.MCSAnnotation] != "s0:c1,c0" {
+	if got.Annotations[securityv1.MCSAnnotation] != "s0:c1,c0" {
 		t.Errorf("unexpected mcs annotation: %#v", got)
 	}
 

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -28,10 +26,11 @@ import (
 
 	"github.com/openshift/api/authorization"
 	templatev1 "github.com/openshift/api/template/v1"
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client/templateprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
@@ -73,7 +72,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 		dynamicClient, err := dynamic.NewForConfig(cli.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
-		processedtemplate, err = templateprocessing.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template)
+		processedtemplate, err = templateprocessingclient.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// privatetemplate is an additional template in our namespace

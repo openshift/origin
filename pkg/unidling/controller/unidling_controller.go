@@ -27,8 +27,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	unidlingutil "github.com/openshift/origin/pkg/unidling/util"
 )
 

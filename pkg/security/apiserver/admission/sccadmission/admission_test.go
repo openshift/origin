@@ -19,7 +19,6 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	allocator "github.com/openshift/origin/pkg/security"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	admissiontesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
 	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
@@ -245,7 +244,7 @@ func TestAdmitSuccess(t *testing.T) {
 		Level: "s0:c1,c0",
 	}
 
-	seLinuxLevelFromNamespace := namespace.Annotations[allocator.MCSAnnotation]
+	seLinuxLevelFromNamespace := namespace.Annotations[securityv1.MCSAnnotation]
 
 	testCases := map[string]struct {
 		pod                 *coreapi.Pod
@@ -435,9 +434,9 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation:           "1/3",
-				allocator.MCSAnnotation:                "s0:c1,c0",
-				allocator.SupplementalGroupsAnnotation: "1/3",
+				securityv1.UIDRangeAnnotation:           "1/3",
+				securityv1.MCSAnnotation:                "s0:c1,c0",
+				securityv1.SupplementalGroupsAnnotation: "1/3",
 			},
 		},
 	}
@@ -445,8 +444,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.MCSAnnotation:                "s0:c1,c0",
-				allocator.SupplementalGroupsAnnotation: "1/3",
+				securityv1.MCSAnnotation:                "s0:c1,c0",
+				securityv1.SupplementalGroupsAnnotation: "1/3",
 			},
 		},
 	}
@@ -454,8 +453,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation:           "1/3",
-				allocator.SupplementalGroupsAnnotation: "1/3",
+				securityv1.UIDRangeAnnotation:           "1/3",
+				securityv1.SupplementalGroupsAnnotation: "1/3",
 			},
 		},
 	}
@@ -464,8 +463,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation: "1/3",
-				allocator.MCSAnnotation:      "s0:c1,c0",
+				securityv1.UIDRangeAnnotation: "1/3",
+				securityv1.MCSAnnotation:      "s0:c1,c0",
 			},
 		},
 	}
@@ -474,9 +473,9 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation:           "1/3",
-				allocator.MCSAnnotation:                "s0:c1,c0",
-				allocator.SupplementalGroupsAnnotation: "",
+				securityv1.UIDRangeAnnotation:           "1/3",
+				securityv1.MCSAnnotation:                "s0:c1,c0",
+				securityv1.SupplementalGroupsAnnotation: "",
 			},
 		},
 	}
@@ -965,7 +964,7 @@ func TestAdmitSeccomp(t *testing.T) {
 		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
 
 		if v.shouldPass {
-			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
+			validatedSCC, ok := v.pod.Annotations[securityv1.ValidatedSCCAnnotation]
 			if !ok {
 				t.Errorf("expected to find the validated annotation on the pod for the scc but found none")
 				return
@@ -1051,7 +1050,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s expected no errors but received %v", testCaseName, err)
 			} else {
-				validatedSCC, ok := testCase.newPod.Annotations[allocator.ValidatedSCCAnnotation]
+				validatedSCC, ok := testCase.newPod.Annotations[securityv1.ValidatedSCCAnnotation]
 				if !ok {
 					t.Errorf("expected %q to find the validated annotation on the pod for the scc but found none", testCaseName)
 
@@ -1079,7 +1078,7 @@ func testSCCAdmission(pod *coreapi.Pod, plugin admission.Interface, expectedSCC,
 		return true
 	}
 
-	validatedSCC, ok := pod.Annotations[allocator.ValidatedSCCAnnotation]
+	validatedSCC, ok := pod.Annotations[securityv1.ValidatedSCCAnnotation]
 	if !ok {
 		t.Errorf("expected %q to find the validated annotation on the pod for the scc but found none", testName)
 		return true

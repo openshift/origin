@@ -21,10 +21,10 @@ import (
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	allocator "github.com/openshift/origin/pkg/security"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 )
 
@@ -95,7 +95,7 @@ func (c *constraint) Admit(a admission.Attributes, _ admission.ObjectInterfaces)
 		if pod.ObjectMeta.Annotations == nil {
 			pod.ObjectMeta.Annotations = map[string]string{}
 		}
-		pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = sccName
+		pod.ObjectMeta.Annotations[securityv1.ValidatedSCCAnnotation] = sccName
 		return nil
 	}
 
@@ -113,7 +113,7 @@ func (c *constraint) Validate(a admission.Attributes, _ admission.ObjectInterfac
 	pod := a.GetObject().(*coreapi.Pod)
 
 	// compute the context. Mutation is not allowed. ValidatedSCCAnnotation is used as a hint to gain same speed-up.
-	allowedPod, _, validationErrs, err := c.computeSecurityContext(a, pod, false, pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation])
+	allowedPod, _, validationErrs, err := c.computeSecurityContext(a, pod, false, pod.ObjectMeta.Annotations[securityv1.ValidatedSCCAnnotation])
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}

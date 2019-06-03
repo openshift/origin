@@ -7,23 +7,20 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
+	clusterresourceoverridev1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1"
+	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"sigs.k8s.io/yaml"
-
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
-	clusterresourceoverridev1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1"
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
 )
 
 const (
@@ -53,33 +50,9 @@ var (
 	}
 )
 
-type InstallFunc func(scheme *runtime.Scheme) error
-
-func WriteYAML(obj runtime.Object, schemeFns ...InstallFunc) ([]byte, error) {
-	scheme := runtime.NewScheme()
-	for _, schemeFn := range schemeFns {
-		err := schemeFn(scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
-
-	json, err := runtime.Encode(codec, obj)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, err
-}
-
 func TestConfigReader(t *testing.T) {
 	initialConfig := testConfig(10, 20, 30)
-	serializedConfig, serializationErr := WriteYAML(initialConfig, clusterresourceoverridev1.Install)
+	serializedConfig, serializationErr := helpers.WriteYAML(initialConfig, clusterresourceoverridev1.Install)
 	if serializationErr != nil {
 		t.Fatalf("WriteYAML: config serialize failed: %v", serializationErr)
 	}
