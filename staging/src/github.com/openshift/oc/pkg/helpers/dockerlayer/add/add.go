@@ -12,7 +12,7 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 
 	dockerclient "github.com/openshift/oc/pkg/helpers/dockerclient"
 
