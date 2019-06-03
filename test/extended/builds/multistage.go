@@ -2,7 +2,6 @@ package builds
 
 import (
 	"fmt"
-	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -12,6 +11,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	eximages "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -24,6 +24,8 @@ FROM scratch as test
 USER 1001
 FROM centos:7
 COPY --from=test /usr/bin/curl /test/
+COPY --from=busybox:latest /bin/echo /test/
+COPY --from=busybox:latest /bin/ping /test/
 `
 	)
 
@@ -39,10 +41,8 @@ COPY --from=test /usr/bin/curl /test/
 
 		g.It("should succeed [Conformance]", func() {
 			g.By("creating a build directly")
-			is, err := oc.ImageClient().Image().ImageStreams("openshift").Get("php", metav1.GetOptions{})
+			registryURL, err := eximages.GetDockerRegistryURL(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
-			registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
 
 			build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Create(&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
@@ -62,7 +62,7 @@ COPY --from=test /usr/bin/curl /test/
 						Output: buildv1.BuildOutput{
 							To: &corev1.ObjectReference{
 								Kind: "DockerImage",
-								Name: fmt.Sprintf("%s/%s/multi-stage:v1", registry, oc.Namespace()),
+								Name: fmt.Sprintf("%s/%s/multi-stage:v1", registryURL, oc.Namespace()),
 							},
 						},
 					},
@@ -80,6 +80,8 @@ COPY --from=test /usr/bin/curl /test/
 			s, err := result.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
+			o.Expect(s).ToNot(o.ContainSubstring("FROM busybox"))
+			o.Expect(s).To(o.ContainSubstring("STEP 1: FROM centos:7 AS test"))
 			o.Expect(s).To(o.ContainSubstring("COPY --from"))
 			o.Expect(s).To(o.ContainSubstring(fmt.Sprintf("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace())))
 			e2e.Logf("Build logs:\n%s", result)
@@ -94,16 +96,25 @@ COPY --from=test /usr/bin/curl /test/
 					Containers: []corev1.Container{
 						{
 							Name:    "run",
-							Image:   fmt.Sprintf("%s/%s/multi-stage:v1", registry, oc.Namespace()),
+							Image:   fmt.Sprintf("%s/%s/multi-stage:v1", registryURL, oc.Namespace()),
 							Command: []string{"/test/curl", "-k", "https://kubernetes.default.svc"},
+						},
+						{
+							Name:    "check",
+							Image:   fmt.Sprintf("%s/%s/multi-stage:v1", registryURL, oc.Namespace()),
+							Command: []string{"ls", "/test/"},
 						},
 					},
 				},
 			})
 			c.WaitForSuccess(pod.Name, e2e.PodStartTimeout)
-			data, err := c.GetLogs(pod.Name, &corev1.PodLogOptions{}).DoRaw()
+			data, err := oc.Run("logs").Args("-f", "test", "-c", "run").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.Logf("Pod logs:\n%s", string(data))
+			m, err := oc.Run("logs").Args("-f", "test", "-c", "check").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(m).To(o.ContainSubstring("echo"))
+			o.Expect(m).To(o.ContainSubstring("ping"))
+			e2e.Logf("Pod logs:\n%s\n%s", string(data), string(m))
 		})
 	})
 })
