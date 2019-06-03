@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
+
 	authorizationapi "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -14,7 +16,6 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
-	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"
 )
@@ -32,13 +33,13 @@ var _ SubjectAccessReviewInterface = authorizationclient.SubjectAccessReviewInte
 type routeStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	route.RouteAllocator
+	routeinterfaces.RouteAllocator
 	sarClient SubjectAccessReviewInterface
 }
 
 // NewStrategy initializes the default logic that applies when creating and updating
 // Route objects via the REST API.
-func NewStrategy(allocator route.RouteAllocator, sarClient SubjectAccessReviewInterface) routeStrategy {
+func NewStrategy(allocator routeinterfaces.RouteAllocator, sarClient SubjectAccessReviewInterface) routeStrategy {
 	return routeStrategy{
 		ObjectTyper:    legacyscheme.Scheme,
 		NameGenerator:  names.SimpleNameGenerator,

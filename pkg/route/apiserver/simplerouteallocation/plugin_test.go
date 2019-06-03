@@ -1,4 +1,4 @@
-package simple
+package simplerouteallocation
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	rac "github.com/openshift/origin/pkg/route/controller/allocation"
+	rac "github.com/openshift/origin/pkg/route/apiserver/routeallocationcontroller"
 )
 
 func TestNewSimpleAllocationPlugin(t *testing.T) {

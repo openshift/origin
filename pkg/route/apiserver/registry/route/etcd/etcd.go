@@ -3,6 +3,8 @@ package etcd
 import (
 	"context"
 
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
@@ -15,7 +17,6 @@ import (
 
 	routegroup "github.com/openshift/api/route"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeregistry "github.com/openshift/origin/pkg/route/apiserver/registry/route"
 )
@@ -33,7 +34,7 @@ func (r *REST) Categories() []string {
 }
 
 // NewREST returns a RESTStorage object that will work against routes.
-func NewREST(optsGetter generic.RESTOptionsGetter, allocator route.RouteAllocator, sarClient routeregistry.SubjectAccessReviewInterface) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter, allocator routeinterfaces.RouteAllocator, sarClient routeregistry.SubjectAccessReviewInterface) (*REST, *StatusREST, error) {
 	strategy := routeregistry.NewStrategy(allocator, sarClient)
 
 	store := &registry.Store{

@@ -3,6 +3,8 @@ package etcd
 import (
 	"testing"
 
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
+
 	authorizationapi "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -15,7 +17,6 @@ import (
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	routetypes "github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 	"github.com/openshift/origin/pkg/route/apiserver/registry/route"
@@ -53,7 +54,7 @@ func (t *testSAR) Create(subjectAccessReview *authorizationapi.SubjectAccessRevi
 	}, t.err
 }
 
-func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcdtesting.EtcdTestServer) {
+func newStorage(t *testing.T, allocator routeinterfaces.RouteAllocator) (*REST, *etcdtesting.EtcdTestServer) {
 	server, etcdStorage := etcdtesting.NewUnsecuredEtcd3TestClientServer(t)
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "route.openshift.io", Version: "v1"})
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "routes"}
