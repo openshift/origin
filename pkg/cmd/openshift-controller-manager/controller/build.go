@@ -12,7 +12,6 @@ import (
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 // RunController starts the build sync loop for builds and buildConfig processing.
@@ -22,7 +21,7 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
 
-	cfg := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	cfg := ctx.ClientBuilder.ConfigOrDie(infraBuildControllerServiceAccountName)
 	cfg.QPS = cfg.QPS * 2
 	cfg.Burst = cfg.Burst * 2
 
@@ -35,7 +34,7 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 	if err != nil {
 		klog.Fatal(err)
 	}
-	securityClient := ctx.ClientBuilder.OpenshiftSecurityClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	securityClient := ctx.ClientBuilder.OpenshiftSecurityClientOrDie(infraBuildControllerServiceAccountName)
 
 	buildInformer := ctx.BuildInformers.Build().V1().Builds()
 	buildConfigInformer := ctx.BuildInformers.Build().V1().BuildConfigs()
@@ -79,7 +78,7 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 }
 
 func RunBuildConfigChangeController(ctx *ControllerContext) (bool, error) {
-	clientName := bootstrappolicy.InfraBuildConfigChangeControllerServiceAccountName
+	clientName := infraBuildConfigChangeControllerServiceAccountName
 	kubeExternalClient := ctx.ClientBuilder.ClientOrDie(clientName)
 	buildClient := ctx.ClientBuilder.OpenshiftBuildClientOrDie(clientName)
 	buildConfigInformer := ctx.BuildInformers.Build().V1().BuildConfigs()
