@@ -1,16 +1,16 @@
-package allocation
+package routeallocationcontroller
 
 import (
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // RouteAllocationController abstracts the details of how routes are
 // allocated to router shards.
 type RouteAllocationController struct {
-	Plugin route.AllocationPlugin
+	Plugin routeinterfaces.AllocationPlugin
 }
 
 // AllocateRouterShard allocates a router shard for the given route.

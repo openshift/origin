@@ -1,4 +1,4 @@
-package route
+package routeinterfaces
 
 import (
 	api "github.com/openshift/origin/pkg/route/apis/route"
