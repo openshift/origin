@@ -3,8 +3,6 @@ package etcd
 import (
 	"context"
 
-	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
@@ -19,6 +17,7 @@ import (
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeregistry "github.com/openshift/origin/pkg/route/apiserver/registry/route"
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 )
 
 type REST struct {

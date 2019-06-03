@@ -84,14 +84,14 @@ func TestRouteAllocationController(t *testing.T) {
 
 	plugin := &TestAllocationPlugin{Name: "test allocation plugin"}
 	fac := &RouteAllocationControllerFactory{}
-	allocator := Create(plugin)
+	allocator := fac.Create(plugin)
 	for _, tc := range tests {
-		shard, err := AllocateRouterShard(tc.route)
+		shard, err := allocator.AllocateRouterShard(tc.route)
 		if err != nil {
 			t.Errorf("Test case %s got an error %s", tc.name, err)
 			continue
 		}
-		name := GenerateHostname(tc.route, shard)
+		name := allocator.GenerateHostname(tc.route, shard)
 		if len(name) <= 0 {
 			t.Errorf("Test case %s got %d length name", tc.name, len(name))
 		}

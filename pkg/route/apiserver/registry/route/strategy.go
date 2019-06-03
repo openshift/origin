@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
-
 	authorizationapi "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -18,6 +16,7 @@ import (
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 )
 
 // HostGeneratedAnnotationKey is the key for an annotation set to "true" if the route's host was generated

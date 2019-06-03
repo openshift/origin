@@ -1,10 +1,10 @@
 package routeallocationcontroller
 
 import (
-	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 	"k8s.io/klog"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 )
 
 // RouteAllocationController abstracts the details of how routes are

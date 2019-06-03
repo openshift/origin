@@ -1,4 +1,4 @@
-package bootstrappolicy_test
+package bootstrappolicy
 
 import (
 	"io/ioutil"
@@ -13,14 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/openshift/api"
 	securityapiv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 var (
@@ -29,33 +26,13 @@ var (
 )
 
 func init() {
-	api.Install(scheme)
-	api.InstallKube(scheme)
+	utilruntime.Must(api.Install(scheme))
+	utilruntime.Must(api.InstallKube(scheme))
 	fileEncodingCodecFactory = serializer.NewCodecFactory(scheme)
 }
 
-func TestCreateBootstrapPolicyFile(t *testing.T) {
-	f, err := ioutil.TempFile("", "TestCreateBootstrapPolicyFile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(f.Name())
-	cmd := admin.NewCommandCreateBootstrapPolicyFile("", "", genericclioptions.NewTestIOStreamsDiscard())
-	cmd.Flag("filename").Value.Set(f.Name())
-	cmd.Run(cmd, nil)
-	data, err := ioutil.ReadFile(f.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	list := &corev1.List{}
-	if _, _, err := fileEncodingCodecFactory.UniversalDecoder().Decode(data, nil, list); err != nil {
-		t.Fatal(err)
-	}
-	testObjects(t, list, "bootstrap_policy_file.yaml")
-}
-
 func TestBootstrapNamespaceRoles(t *testing.T) {
-	allRoles := bootstrappolicy.NamespaceRoles()
+	allRoles := NamespaceRoles()
 	list := &corev1.List{}
 	// enforce a strict ordering
 	for _, namespace := range sets.StringKeySet(allRoles).List() {
@@ -69,7 +46,7 @@ func TestBootstrapNamespaceRoles(t *testing.T) {
 }
 
 func TestGetBootstrapNamespaceRoleBindings(t *testing.T) {
-	allRoleBindings := bootstrappolicy.NamespaceRoleBindings()
+	allRoleBindings := NamespaceRoleBindings()
 	list := &corev1.List{}
 	// enforce a strict ordering
 	for _, namespace := range sets.StringKeySet(allRoleBindings).List() {
@@ -83,7 +60,7 @@ func TestGetBootstrapNamespaceRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapProjectRoleBindings(t *testing.T) {
-	roleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings("myproject")
+	roleBindings := GetBootstrapServiceAccountProjectRoleBindings("myproject")
 	list := &corev1.List{}
 	for i := range roleBindings {
 		roleBindings[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("RoleBinding"))
@@ -93,7 +70,7 @@ func TestBootstrapProjectRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoleBindings(t *testing.T) {
-	roleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
+	roleBindings := GetBootstrapClusterRoleBindings()
 	list := &corev1.List{}
 	for i := range roleBindings {
 		roleBindings[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("ClusterRoleBinding"))
@@ -103,7 +80,7 @@ func TestBootstrapClusterRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoles(t *testing.T) {
-	roles := bootstrappolicy.GetBootstrapClusterRoles()
+	roles := GetBootstrapClusterRoles()
 	list := &corev1.List{}
 	for i := range roles {
 		roles[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("ClusterRole"))
@@ -113,9 +90,9 @@ func TestBootstrapClusterRoles(t *testing.T) {
 }
 
 func TestBootstrapSCCs(t *testing.T) {
-	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
-	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
-	sccs := bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers)
+	ns := DefaultOpenShiftInfraNamespace
+	bootstrapSCCGroups, bootstrapSCCUsers := GetBoostrapSCCAccess(ns)
+	sccs := GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers)
 	list := &corev1.List{}
 	for i := range sccs {
 		sccs[i].SetGroupVersionKind(securityapiv1.SchemeGroupVersion.WithKind("SecurityContextConstraints"))
@@ -131,7 +108,7 @@ func testObjects(t *testing.T, list *corev1.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	jsonData, err := runtime.Encode(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, securityapiv1.GroupVersion, legacy.GroupVersion), list)
+	jsonData, err := runtime.Encode(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, securityapiv1.GroupVersion, corev1.SchemeGroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}

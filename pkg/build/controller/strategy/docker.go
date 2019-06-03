@@ -7,9 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildinstall "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -21,8 +21,7 @@ var (
 )
 
 func init() {
-	// TODO only use external versions, so we only add external types
-	buildinstall.Install(buildEncodingScheme)
+	utilruntime.Must(buildv1.Install(buildEncodingScheme))
 	buildJSONCodec = buildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion)
 }
 

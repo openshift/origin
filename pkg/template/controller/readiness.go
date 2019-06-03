@@ -255,9 +255,9 @@ var readinessCheckers = map[schema.GroupVersionKind]func(runtime.Object) (bool, 
 	groupVersionKind(routev1.GroupVersion, "Route"):           checkRouteReadiness,
 
 	// Legacy (/oapi) kinds:
-	schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Build"}:            checkBuildReadiness,
-	schema.GroupVersionKind{Group: "", Version: "v1", Kind: "DeploymentConfig"}: checkDeploymentConfigReadiness,
-	schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Route"}:            checkRouteReadiness,
+	{Group: "", Version: "v1", Kind: "Build"}:            checkBuildReadiness,
+	{Group: "", Version: "v1", Kind: "DeploymentConfig"}: checkDeploymentConfigReadiness,
+	{Group: "", Version: "v1", Kind: "Route"}:            checkRouteReadiness,
 
 	// Kubernetes kinds:
 	groupVersionKind(kappsv1.SchemeGroupVersion, "Deployment"):            checkDeploymentReadiness,

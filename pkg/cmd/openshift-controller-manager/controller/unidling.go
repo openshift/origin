@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/scale"
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 
@@ -15,7 +14,7 @@ func RunUnidlingController(ctx *ControllerContext) (bool, error) {
 	// TODO this should be configurable
 	resyncPeriod := 2 * time.Hour
 
-	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
+	clientConfig := ctx.ClientBuilder.ConfigOrDie(infraUnidlingControllerServiceAccountName)
 	appsClient, err := appsclient.NewForConfig(clientConfig)
 	if err != nil {
 		return false, err
@@ -29,7 +28,7 @@ func RunUnidlingController(ctx *ControllerContext) (bool, error) {
 		return false, err
 	}
 
-	coreClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).CoreV1()
+	coreClient := ctx.ClientBuilder.ClientOrDie(infraUnidlingControllerServiceAccountName).CoreV1()
 	controller := unidlingcontroller.NewUnidlingController(
 		scaleClient,
 		ctx.RestMapper,

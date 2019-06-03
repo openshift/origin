@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/route/controller/ingressip"
 )
 
@@ -29,7 +28,7 @@ func RunIngressIPController(ctx *ControllerContext) (bool, error) {
 
 	ingressIPController := ingressip.NewIngressIPController(
 		ctx.KubernetesInformers.Core().V1().Services().Informer(),
-		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName),
+		ctx.ClientBuilder.ClientOrDie(infraServiceIngressIPControllerServiceAccountName),
 		ipNet,
 		resyncPeriod,
 	)

@@ -4,12 +4,11 @@ import (
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/route/controller/ingress"
 )
 
 func RunIngressToRouteController(ctx *ControllerContext) (bool, error) {
-	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraIngressToRouteControllerServiceAccountName)
+	clientConfig := ctx.ClientBuilder.ConfigOrDie(infraIngressToRouteControllerServiceAccountName)
 	coreClient, err := coreclient.NewForConfig(clientConfig)
 	if err != nil {
 		return false, err

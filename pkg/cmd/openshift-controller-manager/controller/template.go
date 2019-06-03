@@ -1,13 +1,12 @@
 package controller
 
 import (
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	"k8s.io/client-go/dynamic"
 )
 
 func RunTemplateInstanceController(ctx *ControllerContext) (bool, error) {
-	saName := bootstrappolicy.InfraTemplateInstanceControllerServiceAccountName
+	saName := infraTemplateInstanceControllerServiceAccountName
 
 	restConfig, err := ctx.ClientBuilder.Config(saName)
 	if err != nil {
@@ -32,7 +31,7 @@ func RunTemplateInstanceController(ctx *ControllerContext) (bool, error) {
 }
 
 func RunTemplateInstanceFinalizerController(ctx *ControllerContext) (bool, error) {
-	saName := bootstrappolicy.InfraTemplateInstanceFinalizerControllerServiceAccountName
+	saName := infraTemplateInstanceFinalizerControllerServiceAccountName
 
 	restConfig, err := ctx.ClientBuilder.Config(saName)
 	if err != nil {
