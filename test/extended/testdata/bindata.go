@@ -181,6 +181,9 @@
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
+// test/extended/testdata/oauth_idp/htpasswd-secret.yaml
+// test/extended/testdata/oauth_idp/oauth-htpasswd.yaml
+// test/extended/testdata/oauth_idp/oauth-noidp.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
@@ -10437,6 +10440,80 @@ func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/multi-namespace-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauth_idpHtpasswdSecretYaml = []byte(`kind: Secret
+apiVersion: v1
+metadata:
+  name: htpasswd
+  namespace: openshift-config
+data:
+    htpasswd: dGVzdHVzZXI6JGFwcjEkU3dyUFQ4TnIkbjJKYmtqMUV2a0tYU21haVZXOVdxMQo= #userinfo testuser:password
+`)
+
+func testExtendedTestdataOauth_idpHtpasswdSecretYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauth_idpHtpasswdSecretYaml, nil
+}
+
+func testExtendedTestdataOauth_idpHtpasswdSecretYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauth_idpHtpasswdSecretYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauth_idp/htpasswd-secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauth_idpOauthHtpasswdYaml = []byte(`apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+    - htpasswd:
+        fileData:
+          name: htpasswd
+      name: htpasswd
+      type: HTPasswd
+`)
+
+func testExtendedTestdataOauth_idpOauthHtpasswdYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauth_idpOauthHtpasswdYaml, nil
+}
+
+func testExtendedTestdataOauth_idpOauthHtpasswdYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauth_idpOauthHtpasswdYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauth_idp/oauth-htpasswd.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauth_idpOauthNoidpYaml = []byte(`apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec: {}
+`)
+
+func testExtendedTestdataOauth_idpOauthNoidpYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauth_idpOauthNoidpYaml, nil
+}
+
+func testExtendedTestdataOauth_idpOauthNoidpYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauth_idpOauthNoidpYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauth_idp/oauth-noidp.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32730,6 +32807,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/oauth_idp/htpasswd-secret.yaml": testExtendedTestdataOauth_idpHtpasswdSecretYaml,
+	"test/extended/testdata/oauth_idp/oauth-htpasswd.yaml": testExtendedTestdataOauth_idpOauthHtpasswdYaml,
+	"test/extended/testdata/oauth_idp/oauth-noidp.yaml": testExtendedTestdataOauth_idpOauthNoidpYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
@@ -33221,6 +33301,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"oauth_idp": &bintree{nil, map[string]*bintree{
+					"htpasswd-secret.yaml": &bintree{testExtendedTestdataOauth_idpHtpasswdSecretYaml, map[string]*bintree{}},
+					"oauth-htpasswd.yaml": &bintree{testExtendedTestdataOauth_idpOauthHtpasswdYaml, map[string]*bintree{}},
+					"oauth-noidp.yaml": &bintree{testExtendedTestdataOauth_idpOauthNoidpYaml, map[string]*bintree{}},
+				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"releases": &bintree{nil, map[string]*bintree{
