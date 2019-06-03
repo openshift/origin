@@ -1,11 +1,11 @@
-package internalprinters
+package printers
 
 import (
 	"time"
 
 	units "github.com/docker/go-units"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 )
 
 func formatRelativeTime(t time.Time) string {
@@ -18,7 +18,7 @@ var timeNowFn = func() time.Time {
 
 // roleBindingRestrictionType returns a string that indicates the type of the
 // given RoleBindingRestriction.
-func roleBindingRestrictionType(rbr *authorizationapi.RoleBindingRestriction) string {
+func roleBindingRestrictionType(rbr *authorizationv1.RoleBindingRestriction) string {
 	switch {
 	case rbr.Spec.UserRestriction != nil:
 		return "User"

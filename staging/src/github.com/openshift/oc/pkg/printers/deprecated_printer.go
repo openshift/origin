@@ -1,4 +1,4 @@
-package internalprinters
+package printers
 
 import (
 	"fmt"
@@ -8,27 +8,30 @@ import (
 	"strings"
 	"time"
 
+	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kprintersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 
-	oapi "github.com/openshift/origin/pkg/api"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	"github.com/openshift/api/annotations"
+	appsapi "github.com/openshift/api/apps/v1"
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	buildapi "github.com/openshift/api/build/v1"
+	imageapi "github.com/openshift/api/image/v1"
+	networkapi "github.com/openshift/api/network/v1"
+	oauthapi "github.com/openshift/api/oauth/v1"
+	projectapi "github.com/openshift/api/project/v1"
+	quotaapi "github.com/openshift/api/quota/v1"
+	routeapi "github.com/openshift/api/route/v1"
+	securityapi "github.com/openshift/api/security/v1"
+	templateapi "github.com/openshift/api/template/v1"
+	userapi "github.com/openshift/api/user/v1"
+	authorizationhelpers "github.com/openshift/oc/pkg/helpers/authorization"
+	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
+	quotahelpers "github.com/openshift/oc/pkg/helpers/quota"
 )
 
 var (
@@ -258,7 +261,7 @@ func printBuild(build *buildapi.Build, w io.Writer, opts kprinters.PrintOptions)
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, buildinternalhelpers.StrategyType(build.Spec.Strategy), from, status, created,
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", name, buildhelpers.StrategyType(build.Spec.Strategy), from, status, created,
 		duration); err != nil {
 		return err
 	}
@@ -333,7 +336,7 @@ func describeSourceGitRevision(spec buildapi.CommonSpec) string {
 
 func printBuildList(buildList *buildapi.BuildList, w io.Writer, opts kprinters.PrintOptions) error {
 	builds := buildList.Items
-	sort.Sort(buildinternalhelpers.BuildSliceByCreationTimestamp(builds))
+	sort.Sort(buildhelpers.BuildSliceByCreationTimestamp(builds))
 	for _, build := range builds {
 		if err := printBuild(&build, w, opts); err != nil {
 			return err
@@ -352,7 +355,7 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kprinters.Prin
 				return err
 			}
 		}
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildinternalhelpers.StrategyType(bc.Spec.Strategy),
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildhelpers.StrategyType(bc.Spec.Strategy),
 			bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
@@ -361,7 +364,7 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kprinters.Prin
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", name, buildinternalhelpers.StrategyType(bc.Spec.Strategy), from,
+	if _, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d", name, buildhelpers.StrategyType(bc.Spec.Strategy), from,
 		bc.Status.LastVersion); err != nil {
 		return err
 	}
@@ -384,11 +387,11 @@ func printSelfSubjectRulesReview(selfSubjectRulesReview *authorizationapi.SelfSu
 func printPolicyRule(policyRules []authorizationapi.PolicyRule, w io.Writer) error {
 	for _, rule := range policyRules {
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
-			rule.Verbs.List(),
-			rule.NonResourceURLs.List(),
-			rule.ResourceNames.List(),
+			rule.Verbs,
+			rule.NonResourceURLsSlice,
+			rule.ResourceNames,
 			rule.APIGroups,
-			rule.Resources.List(),
+			rule.Resources,
 		)
 	}
 	return nil
@@ -521,8 +524,8 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kprinters.
 // printTagsUpToWidth displays a human readable list of tags with as many tags as will fit in the
 // width we budget. It will always display at least one tag, and will allow a slightly wider width
 // if it's less than 25% of the total width to feel more even.
-func printTagsUpToWidth(statusTags map[string]imageapi.TagEventList, preferredWidth int) string {
-	tags := imageapi.SortStatusTags(statusTags)
+func printTagsUpToWidth(statusTags []imageapi.NamedTagEventList, preferredWidth int) string {
+	tags := imagehelpers.SortStatusTags(statusTags)
 	remaining := preferredWidth
 	for i, tag := range tags {
 		remaining -= len(tag) + 1
@@ -559,7 +562,7 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, opts k
 
 func printProject(project *projectapi.Project, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, project.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s", name, project.Annotations[oapi.OpenShiftDisplayName], project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s", name, project.Annotations[annotations.OpenShiftDisplayName], project.Status.Phase)
 	if err := appendItemLabels(project.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
 		return err
 	}
@@ -773,19 +776,19 @@ func printDeploymentConfigList(list *appsapi.DeploymentConfigList, w io.Writer, 
 }
 
 func printClusterRole(role *authorizationapi.ClusterRole, w io.Writer, opts kprinters.PrintOptions) error {
-	return printRole(authorizationapi.ToRole(role), w, opts)
+	return printRole(authorizationhelpers.ToRole(role), w, opts)
 }
 
 func printClusterRoleList(list *authorizationapi.ClusterRoleList, w io.Writer, opts kprinters.PrintOptions) error {
-	return printRoleList(authorizationapi.ToRoleList(list), w, opts)
+	return printRoleList(authorizationhelpers.ToRoleList(list), w, opts)
 }
 
 func printClusterRoleBinding(roleBinding *authorizationapi.ClusterRoleBinding, w io.Writer, opts kprinters.PrintOptions) error {
-	return printRoleBinding(authorizationapi.ToRoleBinding(roleBinding), w, opts)
+	return printRoleBinding(authorizationhelpers.ToRoleBinding(roleBinding), w, opts)
 }
 
 func printClusterRoleBindingList(list *authorizationapi.ClusterRoleBindingList, w io.Writer, opts kprinters.PrintOptions) error {
-	return printRoleBindingList(authorizationapi.ToRoleBindingList(list), w, opts)
+	return printRoleBindingList(authorizationhelpers.ToRoleBindingList(list), w, opts)
 }
 
 func printIsPersonalSubjectAccessReview(a *authorizationapi.IsPersonalSubjectAccessReview, w io.Writer, opts kprinters.PrintOptions) error {
@@ -833,7 +836,7 @@ func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, op
 			return err
 		}
 	}
-	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+	users, groups, sas, others := authorizationhelpers.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 
 	if _, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v", name,
 		roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, truncatedList(users, 5),
@@ -1122,12 +1125,12 @@ func printClusterResourceQuotaList(list *quotaapi.ClusterResourceQuotaList, w io
 }
 
 func printAppliedClusterResourceQuota(resourceQuota *quotaapi.AppliedClusterResourceQuota, w io.Writer, options kprinters.PrintOptions) error {
-	return printClusterResourceQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(resourceQuota), w, options)
+	return printClusterResourceQuota(quotahelpers.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(resourceQuota), w, options)
 }
 
 func printAppliedClusterResourceQuotaList(list *quotaapi.AppliedClusterResourceQuotaList, w io.Writer, options kprinters.PrintOptions) error {
 	for i := range list.Items {
-		if err := printClusterResourceQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(&list.Items[i]), w, options); err != nil {
+		if err := printClusterResourceQuota(quotahelpers.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(&list.Items[i]), w, options); err != nil {
 			return err
 		}
 	}
