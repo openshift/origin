@@ -9,10 +9,9 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	godigest "github.com/opencontainers/go-digest"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
 	"github.com/openshift/api/image/dockerpre012"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
@@ -85,7 +84,7 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 
 func schema0ToImage(dockerImage *dockerregistry.Image) (*imageapi.Image, error) {
 	var baseImage imageapi.DockerImage
-	if err := legacyscheme.Scheme.Convert(&dockerImage.Image, &baseImage, nil); err != nil {
+	if err := dockerregistry.DockerClientScheme.Convert(&dockerImage.Image, &baseImage, nil); err != nil {
 		return nil, fmt.Errorf("could not convert image: %#v", err)
 	}
 
@@ -106,7 +105,7 @@ func unmarshalDockerImage(body []byte) (*imageapi.DockerImage, error) {
 		return nil, err
 	}
 	dockerImage := &imageapi.DockerImage{}
-	if err := legacyscheme.Scheme.Convert(&image, dockerImage, nil); err != nil {
+	if err := dockerregistry.DockerClientScheme.Convert(&image, dockerImage, nil); err != nil {
 		return nil, err
 	}
 	return dockerImage, nil
