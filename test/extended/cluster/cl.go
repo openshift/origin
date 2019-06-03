@@ -199,7 +199,9 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 			if err != nil {
 				e2e.Logf("Error listing builds: %v", err)
 			}
+			e2e.Logf("Build List: %+v", buildList)
 			if len(buildList.Items) > 0 {
+				// Get first build name
 				buildName := buildList.Items[0].Name
 				e2e.Logf("Waiting for build: %q", buildName)
 				err = exutil.WaitForABuild(oc.AsAdmin().BuildClient().BuildV1().Builds(ns), buildName, nil, nil, nil)
@@ -209,10 +211,17 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("Build %q completed", buildName)
 
-				// deploymentName is buildName without the -1 suffix
-				deploymentName := buildName[:len(buildName)-2]
+			}
+
+			dcList, err := oc.AsAdmin().AppsClient().AppsV1().DeploymentConfigs(ns).List(metav1.ListOptions{})
+			if err != nil {
+				e2e.Logf("Error listing deployment configs: %v", err)
+			}
+			if len(dcList.Items) > 0 {
+				// Get first deployment config name
+				deploymentName := dcList.Items[0].Name
 				e2e.Logf("Waiting for deployment: %q", deploymentName)
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), ns, deploymentName, 1, true, oc)
+				err = exutil.WaitForDeploymentConfig(oc.AdminKubeClient(), oc.AsAdmin().AppsClient().AppsV1(), ns, deploymentName, 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("Deployment %q completed", deploymentName)
 			}
