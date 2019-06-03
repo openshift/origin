@@ -1,7 +1,7 @@
-package allocation
+package routeallocationcontroller
 
 import (
-	"github.com/openshift/origin/pkg/route"
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 )
 
 // RouteAllocationControllerFactory creates a RouteAllocationController
@@ -10,6 +10,6 @@ type RouteAllocationControllerFactory struct {
 }
 
 // Create a RouteAllocationController instance.
-func (factory *RouteAllocationControllerFactory) Create(plugin route.AllocationPlugin) *RouteAllocationController {
+func (factory *RouteAllocationControllerFactory) Create(plugin routeinterfaces.AllocationPlugin) *RouteAllocationController {
 	return &RouteAllocationController{Plugin: plugin}
 }
