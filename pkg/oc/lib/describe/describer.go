@@ -52,6 +52,7 @@ import (
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	securityclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
@@ -65,7 +66,6 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 func describerMap(clientConfig *rest.Config, kclient kubernetes.Interface, host string) map[schema.GroupKind]describe.Describer {
@@ -1307,7 +1307,7 @@ func (d *TemplateInstanceDescriber) DescribeParameters(template templatev1.Templ
 
 // IdentityDescriber generates information about a user
 type IdentityDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of an identity
@@ -1355,7 +1355,7 @@ func (d *IdentityDescriber) Describe(namespace, name string, settings describe.D
 
 // UserIdentityMappingDescriber generates information about a user
 type UserIdentityMappingDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of a userIdentity
@@ -1378,7 +1378,7 @@ func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings
 
 // UserDescriber generates information about a user
 type UserDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of a user
@@ -1427,7 +1427,7 @@ func (d *UserDescriber) Describe(namespace, name string, settings describe.Descr
 
 // GroupDescriber generates information about a group
 type GroupDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of a group
