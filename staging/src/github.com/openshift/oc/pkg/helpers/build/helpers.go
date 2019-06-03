@@ -51,3 +51,17 @@ func hasBuildConfigAnnotation(build buildv1.Build, annotationName, annotationVal
 func BuildNameForConfigVersion(name string, version int) string {
 	return fmt.Sprintf("%s-%d", name, version)
 }
+
+func StrategyType(strategy buildv1.BuildStrategy) string {
+	switch {
+	case strategy.DockerStrategy != nil:
+		return "Docker"
+	case strategy.CustomStrategy != nil:
+		return "Custom"
+	case strategy.SourceStrategy != nil:
+		return "Source"
+	case strategy.JenkinsPipelineStrategy != nil:
+		return "JenkinsPipeline"
+	}
+	return ""
+}
