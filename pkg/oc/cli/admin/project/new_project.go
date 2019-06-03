@@ -175,20 +175,6 @@ func (o *NewProjectOptions) Run() error {
 		}
 	}
 
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(o.ProjectName) {
-		addRole := policy.NewRoleModificationOptions(o.IOStreams)
-		addRole.RoleName = binding.RoleRef.Name
-		addRole.RoleKind = binding.RoleRef.Kind
-		addRole.RoleBindingNamespace = o.ProjectName
-		addRole.RbacClient = o.RbacClient
-		addRole.Subjects = binding.Subjects
-		addRole.ToPrinter = noopPrinter
-		if err := addRole.AddRole(); err != nil {
-			fmt.Fprintf(o.Out, "Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
-			errs = append(errs, err)
-		}
-	}
-
 	return errorsutil.NewAggregate(errs)
 }
 

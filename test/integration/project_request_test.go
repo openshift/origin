@@ -123,11 +123,11 @@ func TestProjectRequestError(t *testing.T) {
 		}
 		t.Errorf("expected 1 namespace to be added and deleted, got %d added / %d deleted", added, deleted)
 	}
-	if added, deleted, events := pairCreationDeletion(roleWatch); added != deleted || added != 4 {
+	if added, deleted, events := pairCreationDeletion(roleWatch); added != deleted || added != 1 {
 		for _, e := range events {
 			t.Logf("%s %#v", e.Type, e.Object)
 		}
-		t.Errorf("expected 4 (1 admin + 3 SA) roleBindings to be added and deleted, got %d added / %d deleted", added, deleted)
+		t.Errorf("expected 1 (1 admin) roleBindings to be added and deleted, got %d added / %d deleted", added, deleted)
 	}
 	if added, deleted, events := pairCreationDeletion(cmwatch); added != deleted || added != 1 {
 		for _, e := range events {
