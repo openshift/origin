@@ -61,7 +61,8 @@ func NewPluginInitializer(
 
 	// TODO make a union registry
 	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
-	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
+	imageEvaluators := image.NewReplenishmentEvaluators(
+		nil, // for admission, we never have to list everything, so we can pass nil.
 		informers.GetOpenshiftImageInformers().Image().V1().ImageStreams(),
 		imageClient.ImageV1(),
 	)
