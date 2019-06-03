@@ -35,11 +35,12 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
+	dockerregistry "github.com/openshift/oc/pkg/helpers/dockerclient"
 	"github.com/openshift/oc/pkg/helpers/env"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
+
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"

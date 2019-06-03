@@ -513,7 +513,6 @@
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
       "github.com/openshift/origin/pkg/image/dockerlayer",
       "github.com/openshift/origin/pkg/image/dockerlayer/add",
-      "github.com/openshift/origin/pkg/image/importer/dockerv1client",
       "github.com/openshift/origin/pkg/image/registryclient",
       "github.com/openshift/origin/pkg/image/registryclient/dockercredentials",
       "github.com/openshift/origin/pkg/network",
