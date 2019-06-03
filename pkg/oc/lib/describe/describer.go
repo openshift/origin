@@ -46,6 +46,7 @@ import (
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	onetworktypedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
@@ -59,7 +60,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
@@ -976,7 +976,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
-	projectClient projectclient.ProjectInterface
+	projectClient projectclient.ProjectV1Interface
 	kubeClient    kubernetes.Interface
 }
 
