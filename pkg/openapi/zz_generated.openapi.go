@@ -22348,7 +22348,7 @@ func schema_openshift_api_operator_v1_IngressControllerSpec(ref common.Reference
 					},
 					"endpointPublishingStrategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "endpointPublishingStrategy is used to publish the ingress controller endpoints to other networks, enable load balancer integrations, etc.\n\nIf unset, the default is based on infrastructure.config.openshift.io/cluster .status.platform:\n\n  AWS:      LoadBalancerService\n  Azure:    LoadBalancerService\n  Libvirt:  HostNetwork\n\nAny other platform types (including None) default to HostNetwork.\n\nendpointPublishingStrategy cannot be updated.",
+							Description: "endpointPublishingStrategy is used to publish the ingress controller endpoints to other networks, enable load balancer integrations, etc.\n\nIf unset, the default is based on infrastructure.config.openshift.io/cluster .status.platform:\n\n  AWS:      LoadBalancerService\n  Azure:    LoadBalancerService\n  GCP:      LoadBalancerService\n  Libvirt:  HostNetwork\n\nAny other platform types (including None) default to HostNetwork.\n\nendpointPublishingStrategy cannot be updated.",
 							Ref:         ref("github.com/openshift/api/operator/v1.EndpointPublishingStrategy"),
 						},
 					},
