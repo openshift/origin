@@ -23,7 +23,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/describe"
 	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
 
@@ -40,6 +39,7 @@ import (
 	"github.com/openshift/api/route"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/api/security"
+	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/api/template"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/api/user"
@@ -50,6 +50,7 @@ import (
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	securityclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
@@ -64,8 +65,6 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -1880,7 +1879,7 @@ func (d *SecurityContextConstraintsDescriber) Describe(namespace, name string, s
 	return describeSecurityContextConstraints(scc)
 }
 
-func describeSecurityContextConstraints(scc *securityapi.SecurityContextConstraints) (string, error) {
+func describeSecurityContextConstraints(scc *securityv1.SecurityContextConstraints) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", scc.Name)
 
@@ -1970,7 +1969,7 @@ func stringOrDefaultValue(s, defaultValue string) string {
 	return defaultValue
 }
 
-func fsTypeToString(volumes []securityapi.FSType) string {
+func fsTypeToString(volumes []securityv1.FSType) string {
 	strVolumes := []string{}
 	for _, v := range volumes {
 		strVolumes = append(strVolumes, string(v))
@@ -1978,7 +1977,7 @@ func fsTypeToString(volumes []securityapi.FSType) string {
 	return stringOrNone(strings.Join(strVolumes, ","))
 }
 
-func flexVolumesToString(flexVolumes []securityapi.AllowedFlexVolume) string {
+func flexVolumesToString(flexVolumes []securityv1.AllowedFlexVolume) string {
 	volumes := []string{}
 	for _, flexVolume := range flexVolumes {
 		volumes = append(volumes, "driver="+flexVolume.Driver)
@@ -1990,7 +1989,7 @@ func sysctlsToString(sysctls []string) string {
 	return stringOrNone(strings.Join(sysctls, ","))
 }
 
-func idRangeToString(ranges []securityapi.IDRange) string {
+func idRangeToString(ranges []securityv1.IDRange) string {
 	formattedString := ""
 	if ranges != nil {
 		strRanges := []string{}
@@ -2002,7 +2001,7 @@ func idRangeToString(ranges []securityapi.IDRange) string {
 	return stringOrNone(formattedString)
 }
 
-func capsToString(caps []kapi.Capability) string {
+func capsToString(caps []corev1.Capability) string {
 	formattedString := ""
 	if caps != nil {
 		strCaps := []string{}
