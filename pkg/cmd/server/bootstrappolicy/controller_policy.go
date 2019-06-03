@@ -8,9 +8,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-
-	// we need the conversions registered for our init block
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
 const saRolePrefix = "system:openshift:controller:"
@@ -19,7 +16,6 @@ const (
 	InfraOriginNamespaceServiceAccountName                       = "origin-namespace-controller"
 	InfraServiceAccountControllerServiceAccountName              = "serviceaccount-controller"
 	InfraServiceAccountPullSecretsControllerServiceAccountName   = "serviceaccount-pull-secrets-controller"
-	InfraServiceAccountTokensControllerServiceAccountName        = "serviceaccount-tokens-controller"
 	InfraServiceServingCertServiceAccountName                    = "service-serving-cert-controller"
 	InfraBuildControllerServiceAccountName                       = "build-controller"
 	InfraBuildConfigChangeControllerServiceAccountName           = "build-config-change-controller"

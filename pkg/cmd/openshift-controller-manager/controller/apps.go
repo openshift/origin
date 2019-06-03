@@ -6,11 +6,10 @@ import (
 	deployercontroller "github.com/openshift/origin/pkg/apps/controller/deployer"
 	deployconfigcontroller "github.com/openshift/origin/pkg/apps/controller/deploymentconfig"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func RunDeployerController(ctx *ControllerContext) (bool, error) {
-	clientConfig, err := ctx.ClientBuilder.Config(bootstrappolicy.InfraDeployerControllerServiceAccountName)
+	clientConfig, err := ctx.ClientBuilder.Config(infraDeployerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
@@ -28,7 +27,7 @@ func RunDeployerController(ctx *ControllerContext) (bool, error) {
 		ctx.KubernetesInformers.Core().V1().ReplicationControllers(),
 		ctx.KubernetesInformers.Core().V1().Pods(),
 		kubeClient,
-		bootstrappolicy.DeployerServiceAccountName,
+		deployerServiceAccountName,
 		imageTemplate.ExpandOrDie("deployer"),
 		nil,
 	).Run(5, ctx.Stop)
@@ -37,7 +36,7 @@ func RunDeployerController(ctx *ControllerContext) (bool, error) {
 }
 
 func RunDeploymentConfigController(ctx *ControllerContext) (bool, error) {
-	saName := bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName
+	saName := infraDeploymentConfigControllerServiceAccountName
 
 	kubeClient, err := ctx.ClientBuilder.Client(saName)
 	if err != nil {

@@ -3,8 +3,6 @@ package etcd
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
-
 	authorizationapi "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -20,6 +18,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 	"github.com/openshift/origin/pkg/route/apiserver/registry/route"
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 	"k8s.io/apiserver/pkg/registry/generic"
 )
 

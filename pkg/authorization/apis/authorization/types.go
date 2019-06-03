@@ -31,11 +31,6 @@ const (
 	ServiceAccountKind = "ServiceAccount"
 	SystemUserKind     = "SystemUser"
 	SystemGroupKind    = "SystemGroup"
-
-	UserResource        = "users"
-	GroupResource       = "groups"
-	SystemUserResource  = "systemusers"
-	SystemGroupResource = "systemgroups"
 )
 
 // DiscoveryRule is a rule that allows a client to discover the API resources available on this server

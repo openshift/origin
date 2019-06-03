@@ -6,11 +6,6 @@ import (
 	"runtime"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	gocontext "golang.org/x/net/context"
-	"k8s.io/klog"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema1"
@@ -19,12 +14,15 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
 	godigest "github.com/opencontainers/go-digest"
+	gocontext "golang.org/x/net/context"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
 	imageref "github.com/openshift/library-go/pkg/image/reference"

@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	networkapi "github.com/openshift/api/network/v1"
-
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	networkv1 "github.com/openshift/api/network/v1"
 )
 
 type EgressDNSUpdate struct {
@@ -40,7 +40,7 @@ func NewEgressDNS() *EgressDNS {
 	}
 }
 
-func (e *EgressDNS) Add(policy networkapi.EgressNetworkPolicy) {
+func (e *EgressDNS) Add(policy networkv1.EgressNetworkPolicy) {
 	dnsInfo, err := NewDNS("/etc/resolv.conf")
 	if err != nil {
 		utilruntime.HandleError(err)
@@ -64,7 +64,7 @@ func (e *EgressDNS) Add(policy networkapi.EgressNetworkPolicy) {
 	}
 }
 
-func (e *EgressDNS) Delete(policy networkapi.EgressNetworkPolicy) {
+func (e *EgressDNS) Delete(policy networkv1.EgressNetworkPolicy) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -140,7 +140,7 @@ func (e *EgressDNS) GetMinQueryTime() (time.Time, ktypes.UID, string, bool) {
 	return minTime, uid, e.namespaces[uid], timeSet
 }
 
-func (e *EgressDNS) GetIPs(policy networkapi.EgressNetworkPolicy, dnsName string) []net.IP {
+func (e *EgressDNS) GetIPs(policy networkv1.EgressNetworkPolicy, dnsName string) []net.IP {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -151,7 +151,7 @@ func (e *EgressDNS) GetIPs(policy networkapi.EgressNetworkPolicy, dnsName string
 	return dnsInfo.Get(dnsName).ips
 }
 
-func (e *EgressDNS) GetNetCIDRs(policy networkapi.EgressNetworkPolicy, dnsName string) []net.IPNet {
+func (e *EgressDNS) GetNetCIDRs(policy networkv1.EgressNetworkPolicy, dnsName string) []net.IPNet {
 	cidrs := []net.IPNet{}
 	for _, ip := range e.GetIPs(policy, dnsName) {
 		// IPv4 CIDR

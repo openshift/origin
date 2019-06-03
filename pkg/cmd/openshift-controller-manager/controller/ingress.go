@@ -5,11 +5,10 @@ import (
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/route/ingress"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func RunIngressToRouteController(ctx *ControllerContext) (bool, error) {
-	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraIngressToRouteControllerServiceAccountName)
+	clientConfig := ctx.ClientBuilder.ConfigOrDie(infraIngressToRouteControllerServiceAccountName)
 	coreClient, err := coreclient.NewForConfig(clientConfig)
 	if err != nil {
 		return false, err
