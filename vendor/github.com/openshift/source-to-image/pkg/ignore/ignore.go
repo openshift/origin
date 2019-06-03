@@ -31,7 +31,7 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 		5) del files
 		 1 to 4 is in getListOfFilesToIgnore
 	*/
-	filesToDel, lerr := getListOfFilesToIgnore(config.WorkingSourceDir)
+	filesToDel, lerr := b.GetListOfFilesToIgnore(config.WorkingSourceDir)
 	if lerr != nil {
 		return lerr
 	}
@@ -53,7 +53,9 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 	return nil
 }
 
-func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
+// GetListOfFilesToIgnore returns list of files from the workspace based on the contents of the
+// .s2iignore file
+func (b *DockerIgnorer) GetListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 	path := filepath.Join(workingDir, constants.IgnoreFile)
 	file, err := os.Open(path)
 	if err != nil {

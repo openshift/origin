@@ -35,9 +35,9 @@ import (
 	userinformer "github.com/openshift/client-go/user/informers/externalversions/user/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	"github.com/openshift/origin/pkg/apiserver/authentication/oauth"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver/paramtoken"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/paramtoken"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 

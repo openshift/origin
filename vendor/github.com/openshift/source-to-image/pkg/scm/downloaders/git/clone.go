@@ -78,7 +78,7 @@ func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
 		originalTargetDir := filepath.Join(config.WorkingDir, constants.Source)
 		c.RemoveDirectory(originalTargetDir)
 		path := filepath.Join(targetSourceDir, config.ContextDir)
-		err := c.CopyContents(path, originalTargetDir)
+		err := c.CopyContents(path, originalTargetDir, nil)
 		if err != nil {
 			return nil, err
 		}

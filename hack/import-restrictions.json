@@ -142,31 +142,11 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/oauthserver",
-
-      "github.com/openshift/origin/pkg/apiserver/authentication/oauth",
-      "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
-
-      "github.com/openshift/origin/pkg/admission/customresourcevalidation/oauth",
-
       "github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server",
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver",
-      "github.com/openshift/origin/pkg/cmd/server/origin",
-      "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
-      "github.com/openshift/origin/pkg/oc/cli/admin",
-      "github.com/openshift/origin/pkg/oc/cli/admin/createerrortemplate",
-      "github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate",
-      "github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate",
-      "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync",
-      "github.com/openshift/origin/pkg/cmd/openshift-osinserver",
-      "github.com/openshift/origin/pkg/oc/lib/groupsync",
-      "github.com/openshift/origin/pkg/oc/lib/groupsync/ad",
-      "github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector",
-      "github.com/openshift/origin/pkg/oc/lib/groupsync/rfc2307",
-      "github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
     ],
     "forbiddenImportPackageRoots": [
-      "github.com/openshift/origin/pkg/oauthserver"
+      "vendor/github.com/openshift/oauth-server"
     ],
     "allowedImportPackageRoots": [
       "vendor",
@@ -394,36 +374,6 @@
       "vendor/k8s.io/apimachinery"
     ],
     "allowedImportPackages": []
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg/oauthserver"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor/k8s.io/apimachinery",
-      "vendor/k8s.io/api",
-      "vendor/k8s.io/apiserver",
-      "vendor/k8s.io/client-go",
-      "vendor/sigs.k8s.io/yaml",
-      "vendor/golang.org",
-      "vendor/github.com/RangelReale/osin",
-      "vendor/github.com/RangelReale/osincli",
-      "vendor/github.com/gorilla/sessions",
-      "vendor/github.com/gophercloud/gophercloud",
-      "vendor/gopkg.in/ldap.v2",
-      "vendor/github.com/openshift/api",
-      "vendor/github.com/openshift/client-go",
-      "vendor/github.com/openshift/library-go",
-      "vendor/github.com/openshift/oauth-server",
-
-      "github.com/openshift/origin/pkg/oauthserver"
-    ],
-    "allowedImportPackages": [
-      "vendor/k8s.io/klog",
-      "vendor/github.com/davecgh/go-spew/spew",
-      "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-    ]
   },
 
   {

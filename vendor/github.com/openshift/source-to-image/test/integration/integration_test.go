@@ -1528,6 +1528,77 @@ func TestDockerfileIncrementalAssembleUser(t *testing.T) {
 	runDockerfileTest(t, config, expected, nil, nil, false)
 }
 
+func TestDockerfileLocalSource(t *testing.T) {
+	localTempDir, err := ioutil.TempDir("", "s2i-dockerfiletest-dir")
+	if err != nil {
+		t.Errorf("Unable to create temporary directory: %v", err)
+	}
+	defer os.RemoveAll(localTempDir)
+
+	outputDir, err := ioutil.TempDir("", "s2i-dockerfiletest-dir")
+	if err != nil {
+		t.Errorf("Unable to create temporary directory: %v", err)
+	}
+	defer os.RemoveAll(outputDir)
+
+	config := &api.Config{
+		BuilderImage: FakeBuilderImage,
+		Source:       git.MustParse("file:///" + filepath.ToSlash(localTempDir)),
+		AsDockerfile: filepath.Join(outputDir, "Dockerfile"),
+	}
+
+	dirTree := []string{
+		"foo/bar",
+		"foo/baz/foobar",
+	}
+	for _, dirName := range dirTree {
+		err = os.MkdirAll(filepath.Join(localTempDir, dirName), 0777)
+		if err != nil {
+			t.Errorf("Unable to create dir: %v", err)
+		}
+	}
+
+	fileTree := []string{
+		"foo/a_file",
+		"foo/bar/a_file",
+		"foo/bar/another_file",
+		"foo/baz/foobar/a_file",
+	}
+	for _, fileName := range fileTree {
+		dummyContent := []byte("Hello World!")
+		err = ioutil.WriteFile(filepath.Join(localTempDir, fileName), dummyContent, 0666)
+		if err != nil {
+			t.Errorf("Unable to create file: %v", err)
+		}
+	}
+
+	expectedFiles := []string{
+		filepath.Join(outputDir, "upload/src/foo/a_file"),
+		filepath.Join(outputDir, "upload/src/foo/bar"),
+		filepath.Join(outputDir, "upload/src/foo/bar/a_file"),
+		filepath.Join(outputDir, "upload/src/foo/bar/another_file"),
+		filepath.Join(outputDir, "upload/src/foo/baz/foobar"),
+		filepath.Join(outputDir, "upload/src/foo/baz/foobar/a_file"),
+	}
+
+	runDockerfileTest(t, config, nil, nil, expectedFiles, false)
+
+	s2iignore := filepath.Join(localTempDir, ".s2iignore")
+	s2iignoreDate := []byte("dummy\n#skip_file\nfoo/bar/another_file\nfoo/baz/foobar")
+	err = ioutil.WriteFile(s2iignore, s2iignoreDate, 0666)
+	if err != nil {
+		t.Errorf("Unable to create .s2iignore file: %v", err)
+	}
+
+	expectedFiles = []string{
+		filepath.Join(outputDir, "upload/src/foo/a_file"),
+		filepath.Join(outputDir, "upload/src/foo/bar"),
+		filepath.Join(outputDir, "upload/src/foo/bar/a_file"),
+	}
+
+	runDockerfileTest(t, config, nil, nil, expectedFiles, false)
+}
+
 func runDockerfileTest(t *testing.T, config *api.Config, expected []string, notExpected []string, expectedFiles []string, expectFailure bool) {
 
 	b, _, err := strategies.GetStrategy(nil, config)

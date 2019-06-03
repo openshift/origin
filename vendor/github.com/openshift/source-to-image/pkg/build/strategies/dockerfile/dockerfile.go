@@ -363,7 +363,7 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 		trimmedSrc := strings.TrimPrefix(injection.Source, filepath.VolumeName(injection.Source))
 		dst := filepath.Join(config.WorkingDir, constants.Injections, trimmedSrc)
 		glog.V(4).Infof("Copying injection content from %s to %s", injection.Source, dst)
-		if err := builder.fs.CopyContents(injection.Source, dst); err != nil {
+		if err := builder.fs.CopyContents(injection.Source, dst, nil); err != nil {
 			builder.setFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
 			return err
 		}

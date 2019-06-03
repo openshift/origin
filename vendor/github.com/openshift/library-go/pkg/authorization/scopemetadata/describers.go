@@ -1,4 +1,4 @@
-package scopelibrary
+package scopemetadata
 
 // ScopeDescriber takes a scope and returns metadata about it
 type ScopeDescriber interface {

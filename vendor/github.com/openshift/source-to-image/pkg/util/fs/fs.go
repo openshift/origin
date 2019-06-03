@@ -28,8 +28,8 @@ type FileSystem interface {
 	MkdirAllWithPermissions(dirname string, perm os.FileMode) error
 	Mkdir(dirname string) error
 	Exists(file string) bool
-	Copy(sourcePath, targetPath string) error
-	CopyContents(sourcePath, targetPath string) error
+	Copy(sourcePath, targetPath string, filesToIgnore map[string]string) error
+	CopyContents(sourcePath, targetPath string, filesToIgnore map[string]string) error
 	RemoveDirectory(dir string) error
 	CreateWorkingDirectory() (string, error)
 	Open(file string) (io.ReadCloser, error)
@@ -186,8 +186,8 @@ func (h *fs) Exists(file string) bool {
 // If the source is a directory, then the destination has to be a directory and
 // we copy the content of the source directory to destination directory
 // recursively.
-func (h *fs) Copy(source string, dest string) (err error) {
-	return doCopy(h, source, dest)
+func (h *fs) Copy(source string, dest string, filesToIgnore map[string]string) (err error) {
+	return doCopy(h, source, dest, filesToIgnore)
 }
 
 // KeepSymlinks configures fs to copy symlinks from src as symlinks to dst.
@@ -229,7 +229,7 @@ func handleSymlink(h FileSystem, source, dest string) (bool, error) {
 	return false, nil
 }
 
-func doCopy(h FileSystem, source, dest string) error {
+func doCopy(h FileSystem, source, dest string, filesToIgnore map[string]string) error {
 	if handled, err := handleSymlink(h, source, dest); handled || err != nil {
 		return err
 	}
@@ -244,8 +244,13 @@ func doCopy(h FileSystem, source, dest string) error {
 	}
 
 	if sourceinfo.IsDir() {
+		_, ok := filesToIgnore[source]
+		if ok {
+			glog.V(5).Infof("Directory %q ignored", source)
+			return nil
+		}
 		glog.V(5).Infof("D %q -> %q", source, dest)
-		return h.CopyContents(source, dest)
+		return h.CopyContents(source, dest, filesToIgnore)
 	}
 
 	destinfo, _ := h.Stat(dest)
@@ -257,6 +262,11 @@ func doCopy(h FileSystem, source, dest string) error {
 		return err
 	}
 	defer destfile.Close()
+	_, ok := filesToIgnore[source]
+	if ok {
+		glog.V(5).Infof("File %q ignored", source)
+		return nil
+	}
 	glog.V(5).Infof("F %q -> %q", source, dest)
 	if _, err := io.Copy(destfile, sourcefile); err != nil {
 		return err
@@ -270,7 +280,8 @@ func doCopy(h FileSystem, source, dest string) error {
 // If the destination directory does not exists, it will be created.
 // The source directory itself will not be copied, only its content. If you
 // want this behavior, the destination must include the source directory name.
-func (h *fs) CopyContents(src string, dest string) (err error) {
+// It will skip any files provided in filesToIgnore from being copied
+func (h *fs) CopyContents(src string, dest string, filesToIgnore map[string]string) (err error) {
 	sourceinfo, err := h.Stat(src)
 	if err != nil {
 		return err
@@ -287,10 +298,11 @@ func (h *fs) CopyContents(src string, dest string) (err error) {
 	if err != nil {
 		return err
 	}
+
 	for _, obj := range objects {
 		source := path.Join(src, obj.Name())
 		destination := path.Join(dest, obj.Name())
-		if err := h.Copy(source, destination); err != nil {
+		if err := h.Copy(source, destination, filesToIgnore); err != nil {
 			return err
 		}
 	}

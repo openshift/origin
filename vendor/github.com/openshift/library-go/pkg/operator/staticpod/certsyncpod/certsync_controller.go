@@ -8,16 +8,18 @@ import (
 	"reflect"
 	"time"
 
-	"k8s.io/klog"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	corev1interface "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
@@ -29,7 +31,9 @@ type CertSyncController struct {
 	configMaps     []revision.RevisionResource
 	secrets        []revision.RevisionResource
 
+	configmapGetter corev1interface.ConfigMapInterface
 	configMapLister v1.ConfigMapLister
+	secretGetter    corev1interface.SecretInterface
 	secretLister    v1.SecretLister
 	eventRecorder   events.Recorder
 
@@ -38,7 +42,7 @@ type CertSyncController struct {
 	preRunCaches []cache.InformerSynced
 }
 
-func NewCertSyncController(targetDir, targetNamespace string, configmaps, secrets []revision.RevisionResource, informers informers.SharedInformerFactory, eventRecorder events.Recorder) (*CertSyncController, error) {
+func NewCertSyncController(targetDir, targetNamespace string, configmaps, secrets []revision.RevisionResource, kubeClient kubernetes.Interface, informers informers.SharedInformerFactory, eventRecorder events.Recorder) (*CertSyncController, error) {
 	c := &CertSyncController{
 		destinationDir: targetDir,
 		namespace:      targetNamespace,
@@ -46,8 +50,10 @@ func NewCertSyncController(targetDir, targetNamespace string, configmaps, secret
 		secrets:        secrets,
 		eventRecorder:  eventRecorder.WithComponentSuffix("cert-sync-controller"),
 
+		configmapGetter: kubeClient.CoreV1().ConfigMaps(targetNamespace),
 		configMapLister: informers.Core().V1().ConfigMaps().Lister(),
 		secretLister:    informers.Core().V1().Secrets().Lister(),
+		secretGetter:    kubeClient.CoreV1().Secrets(targetNamespace),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CertSyncController"),
 		preRunCaches: []cache.InformerSynced{
@@ -79,18 +85,69 @@ func (c *CertSyncController) sync() error {
 		case apierrors.IsNotFound(err) && !cm.Optional:
 			errors = append(errors, err)
 			continue
+
 		case apierrors.IsNotFound(err) && cm.Optional:
+			// Check with the live call it is really missing
+			configMap, err = c.configmapGetter.Get(cm.Name, metav1.GetOptions{})
+			if err == nil {
+				klog.Infof("Caches are stale. They don't see configmap '%s/%s', yet it is present", configMap.Namespace, configMap.Name)
+				// We will get re-queued when we observe the change
+				continue
+			}
+			if !apierrors.IsNotFound(err) {
+				errors = append(errors, err)
+				continue
+			}
+
 			// remove missing content
 			if err := os.RemoveAll(getConfigMapDir(c.destinationDir, cm.Name)); err != nil {
 				errors = append(errors, err)
 			}
 			continue
+
 		case err != nil:
 			errors = append(errors, err)
 			continue
 		}
 
 		contentDir := getConfigMapDir(c.destinationDir, cm.Name)
+
+		data := map[string]string{}
+		for filename := range configMap.Data {
+			fullFilename := filepath.Join(contentDir, filename)
+
+			existingContent, err := ioutil.ReadFile(fullFilename)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					klog.Error(err)
+				}
+				continue
+			}
+
+			data[filename] = string(existingContent)
+		}
+
+		// Check if cached configmap differs
+		if reflect.DeepEqual(configMap.Data, data) {
+			continue
+		}
+
+		klog.V(2).Infof("Syncing updated configmap '%s/%s'.", configMap.Namespace, configMap.Name)
+
+		// We need to do a live get here so we don't overwrite a newer file with one from a stale cache
+		configMap, err = c.configmapGetter.Get(configMap.Name, metav1.GetOptions{})
+		if err != nil {
+			// Even if the error is not exists we will act on it when caches catch up
+			errors = append(errors, err)
+			continue
+		}
+
+		// Check if the live configmap differs
+		if reflect.DeepEqual(configMap.Data, data) {
+			klog.Infof("Caches are stale. The live configmap '%s/%s' is reflected on filesystem, but cached one differs", configMap.Namespace, configMap.Name)
+			continue
+		}
+
 		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil && !os.IsExist(err) {
 			errors = append(errors, err)
@@ -99,7 +156,7 @@ func (c *CertSyncController) sync() error {
 		for filename, content := range configMap.Data {
 			fullFilename := filepath.Join(contentDir, filename)
 			// if the existing is the same, do nothing
-			if existingContent, err := ioutil.ReadFile(fullFilename); err == nil && reflect.DeepEqual(existingContent, []byte(content)) {
+			if reflect.DeepEqual(data[fullFilename], content) {
 				continue
 			}
 
@@ -117,18 +174,69 @@ func (c *CertSyncController) sync() error {
 		case apierrors.IsNotFound(err) && !s.Optional:
 			errors = append(errors, err)
 			continue
+
 		case apierrors.IsNotFound(err) && s.Optional:
+			// Check with the live call it is really missing
+			secret, err = c.secretGetter.Get(s.Name, metav1.GetOptions{})
+			if err == nil {
+				klog.Infof("Caches are stale. They don't see secret '%s/%s', yet it is present", secret.Namespace, secret.Name)
+				// We will get re-queued when we observe the change
+				continue
+			}
+			if !apierrors.IsNotFound(err) {
+				errors = append(errors, err)
+				continue
+			}
+
 			// remove missing content
 			if err := os.RemoveAll(getSecretDir(c.destinationDir, s.Name)); err != nil {
 				errors = append(errors, err)
 			}
 			continue
+
 		case err != nil:
 			errors = append(errors, err)
 			continue
 		}
 
 		contentDir := getSecretDir(c.destinationDir, s.Name)
+
+		data := map[string][]byte{}
+		for filename := range secret.Data {
+			fullFilename := filepath.Join(contentDir, filename)
+
+			existingContent, err := ioutil.ReadFile(fullFilename)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					klog.Error(err)
+				}
+				continue
+			}
+
+			data[filename] = existingContent
+		}
+
+		// Check if cached secret differs
+		if reflect.DeepEqual(secret.Data, data) {
+			continue
+		}
+
+		klog.V(2).Infof("Syncing updated secret '%s/%s'.", secret.Namespace, secret.Name)
+
+		// We need to do a live get here so we don't overwrite a newer file with one from a stale cache
+		secret, err = c.secretGetter.Get(secret.Name, metav1.GetOptions{})
+		if err != nil {
+			// Even if the error is not exists we will act on it when caches catch up
+			errors = append(errors, err)
+			continue
+		}
+
+		// Check if the live secret differs
+		if reflect.DeepEqual(secret.Data, data) {
+			klog.Infof("Caches are stale. The live secret '%s/%s' is reflected on filesystem, but cached one differs", secret.Namespace, secret.Name)
+			continue
+		}
+
 		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil && !os.IsExist(err) {
 			errors = append(errors, err)
@@ -138,7 +246,7 @@ func (c *CertSyncController) sync() error {
 			// TODO fix permissions
 			fullFilename := filepath.Join(contentDir, filename)
 			// if the existing is the same, do nothing
-			if existingContent, err := ioutil.ReadFile(fullFilename); err == nil && reflect.DeepEqual(existingContent, content) {
+			if reflect.DeepEqual(data[fullFilename], content) {
 				continue
 			}
 

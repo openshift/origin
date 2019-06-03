@@ -14,11 +14,11 @@ import (
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthauthorizetoken/etcd"
 	clientetcd "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclientauthorization/etcd"
-	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -123,7 +123,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(
+	combinedOAuthClientGetter := oauthserviceaccountclient.NewServiceAccountOAuthClientGetter(
 		coreV1Client,
 		coreV1Client,
 		coreV1Client.Events(""),
