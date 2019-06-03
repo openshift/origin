@@ -766,12 +766,6 @@ func newOriginRoleBinding(bindingName, roleName, namespace string) *rbacv1helper
 	return builder
 }
 
-func newOriginRoleBindingForClusterRole(bindingName, roleName, namespace string) *rbacv1helpers.RoleBindingBuilder {
-	builder := rbacv1helpers.NewRoleBindingForClusterRole(roleName, namespace)
-	builder.RoleBinding.Name = bindingName
-	return builder
-}
-
 func newOriginClusterBinding(bindingName, roleName string) *rbacv1helpers.ClusterRoleBindingBuilder {
 	builder := rbacv1helpers.NewClusterBinding(roleName)
 	builder.ClusterRoleBinding.Name = bindingName

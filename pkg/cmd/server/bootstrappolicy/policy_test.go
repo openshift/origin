@@ -59,16 +59,6 @@ func TestGetBootstrapNamespaceRoleBindings(t *testing.T) {
 	testObjects(t, list, "bootstrap_namespace_role_bindings.yaml")
 }
 
-func TestBootstrapProjectRoleBindings(t *testing.T) {
-	roleBindings := GetBootstrapServiceAccountProjectRoleBindings("myproject")
-	list := &corev1.List{}
-	for i := range roleBindings {
-		roleBindings[i].SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("RoleBinding"))
-		list.Items = append(list.Items, runtime.RawExtension{Object: &roleBindings[i]})
-	}
-	testObjects(t, list, "bootstrap_service_account_project_role_bindings.yaml")
-}
-
 func TestBootstrapClusterRoleBindings(t *testing.T) {
 	roleBindings := GetBootstrapClusterRoleBindings()
 	list := &corev1.List{}

@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/authorization/controller/defaultrolebindings"
+
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 
 	g "github.com/onsi/ginkgo"
@@ -228,7 +230,7 @@ func (c *CLI) SetupProject() {
 	cancel := func() {}
 	defer cancel()
 	// Wait for default role bindings for those SAs
-	defaultRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(newNamespace)
+	defaultRoleBindings := defaultrolebindings.GetBootstrapServiceAccountProjectRoleBindings(newNamespace)
 	for _, rb := range defaultRoleBindings {
 		o.Expect(rb.Namespace).To(o.BeEquivalentTo(newNamespace))
 

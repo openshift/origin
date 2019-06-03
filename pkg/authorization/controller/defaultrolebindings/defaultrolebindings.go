@@ -17,13 +17,11 @@ import (
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/controller"
-
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/controller"
 )
 
-var defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
+var defaultRoleBindingNames = GetBootstrapServiceAccountProjectRoleBindingNames()
 
 // DefaultRoleBindingController is a controller to combine cluster roles
 type DefaultRoleBindingController struct {
@@ -113,7 +111,7 @@ func (c *DefaultRoleBindingController) syncNamespace(namespaceName string) error
 	}
 
 	errs := []error{}
-	desiredRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespaceName)
+	desiredRoleBindings := GetBootstrapServiceAccountProjectRoleBindings(namespaceName)
 	for i := range desiredRoleBindings {
 		desiredRoleBinding := desiredRoleBindings[i]
 		found := false
