@@ -17,8 +17,8 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	appsstrategy "github.com/openshift/origin/pkg/apps/strategy"
-	"github.com/openshift/origin/pkg/apps/strategy/util/appstest"
+	appsstrategy "github.com/openshift/oc/pkg/cli/deployer/strategy"
+	"github.com/openshift/oc/pkg/cli/deployer/strategy/util/appstest"
 )
 
 func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) appsstrategy.UpdateAcceptor {

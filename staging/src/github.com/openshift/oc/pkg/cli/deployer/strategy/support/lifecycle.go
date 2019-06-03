@@ -29,7 +29,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
+	strategyutil "github.com/openshift/oc/pkg/cli/deployer/strategy/util"
 )
 
 const (

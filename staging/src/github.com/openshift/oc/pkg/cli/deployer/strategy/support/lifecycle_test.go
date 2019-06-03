@@ -26,7 +26,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/apps/strategy/util/appstest"
+	"github.com/openshift/oc/pkg/cli/deployer/strategy/util/appstest"
 )
 
 func nowFunc() *metav1.Time {

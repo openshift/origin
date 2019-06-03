@@ -111,6 +111,14 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
+
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/staging/src/github.com/openshift/oc/pkg/version.buildDate" "${buildDate}"))
+
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMajor" "${KUBE_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMinor" "${KUBE_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
