@@ -48,11 +48,6 @@ func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, ev
 	hs := obj.(*networkapi.HostSubnet)
 	klog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
 
-	if err := common.ValidateHostSubnet(hs); err != nil {
-		utilruntime.HandleError(fmt.Errorf("Ignoring invalid HostSubnet %s: %v", common.HostSubnetToString(hs), err))
-		return
-	}
-
 	if err := hsw.updateHostSubnet(hs); err != nil {
 		utilruntime.HandleError(err)
 	}
@@ -146,9 +141,7 @@ func (node *OsdnNode) getLocalSubnet() (string, error) {
 		var err error
 		subnet, err = node.networkClient.NetworkV1().HostSubnets().Get(node.hostName, metav1.GetOptions{})
 		if err == nil {
-			if err = common.ValidateHostSubnet(subnet); err != nil {
-				return false, err
-			} else if subnet.HostIP == node.localIP {
+			if subnet.HostIP == node.localIP {
 				return true, nil
 			} else {
 				klog.Warningf("HostIP %q for local subnet does not match with nodeIP %q, "+
