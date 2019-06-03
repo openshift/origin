@@ -1,5 +1,5 @@
 hash: 958ac5b061346d161a7c5d2e4f62008648706d2c7b86e7e0af442f4f7cca3ba5
-updated: 2019-06-01T18:47:55.253123117-04:00
+updated: 2019-06-03T15:56:04.801733154-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 9a61cdf9e959317454c42856632cbbe2bdba361a
+  version: bd3468b1d9ee1c9c46f6bae81809796b0cb50967
   subpackages:
   - annotations
   - apps
@@ -1103,9 +1103,11 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 9a93bc4ad525c02e54bd99c0d7ae0d55d030a19f
+  version: 32d0f8cde2ab5dd901b162cdc8528b2ee54dbff1
   subpackages:
   - pkg/apiserver/httprequest
+  - pkg/apps/appsserialization
+  - pkg/apps/appsutil
   - pkg/assets
   - pkg/assets/create
   - pkg/authentication/bootstrapauthenticator
@@ -1130,6 +1132,7 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/network/networkutils
   - pkg/oauth/oauthdiscovery
+  - pkg/oauth/oauthserviceaccountclient
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
@@ -1139,26 +1142,67 @@ imports:
   - pkg/security/ldapquery
   - pkg/security/ldaptestclient
   - pkg/security/ldaputil
+  - pkg/security/uid
   - pkg/serviceability
   - pkg/template/generator
 - name: github.com/openshift/oauth-server
-  version: 029c92c063706b9b6bd42f9cf53f9060dc3fb39d
+  version: 45ea7d4499bdf4b6f7511d04e260571ad8577756
   subpackages:
+  - pkg
   - pkg/api
+  - pkg/authenticator
+  - pkg/authenticator/challenger/passwordchallenger
+  - pkg/authenticator/challenger/placeholderchallenger
+  - pkg/authenticator/identitymapper
+  - pkg/authenticator/password/allowanypassword
+  - pkg/authenticator/password/basicauthpassword
   - pkg/authenticator/password/denypassword
+  - pkg/authenticator/password/htpasswd
+  - pkg/authenticator/password/keystonepassword
+  - pkg/authenticator/password/ldappassword
+  - pkg/authenticator/redirector
   - pkg/authenticator/request/basicauthrequest
+  - pkg/authenticator/request/headerrequest
   - pkg/authenticator/tokens
   - pkg/config
+  - pkg/oauth/external
+  - pkg/oauth/external/github
+  - pkg/oauth/external/github/links
+  - pkg/oauth/external/gitlab
+  - pkg/oauth/external/google
+  - pkg/oauth/external/openid
+  - pkg/oauth/handlers
+  - pkg/oauth/registry
+  - pkg/oauthserver
+  - pkg/osinserver
+  - pkg/osinserver/registrystorage
+  - pkg/osinserver/teststorage
   - pkg/prometheus
+  - pkg/scopecovers
   - pkg/server/crypto
   - pkg/server/csrf
+  - pkg/server/errorpage
+  - pkg/server/grant
   - pkg/server/headers
+  - pkg/server/login
+  - pkg/server/logout
   - pkg/server/redirect
+  - pkg/server/selectprovider
+  - pkg/server/session
+  - pkg/server/tokenrequest
+  - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 2d46ebcc7cdc012388f71a4b113f10a1681466d2
+  version: b9efc9cec6fb7d1c1d251e2ecb3731ff6803bab1
   subpackages:
   - pkg/cli/create
   - pkg/cli/create/route
+  - pkg/cli/deployer
+  - pkg/cli/deployer/strategy
+  - pkg/cli/deployer/strategy/recreate
+  - pkg/cli/deployer/strategy/rolling
+  - pkg/cli/deployer/strategy/support
+  - pkg/cli/deployer/strategy/util
+  - pkg/cli/deployer/strategy/util/appstest
   - pkg/cli/experimental/dockergc
   - pkg/cli/expose
   - pkg/cli/extract
@@ -1168,7 +1212,9 @@ imports:
   - pkg/cli/recycle
   - pkg/cli/secrets
   - pkg/cli/serviceaccounts
+  - pkg/cli/version
   - pkg/cli/whoami
+  - pkg/helpers/authorization
   - pkg/helpers/build
   - pkg/helpers/bulk
   - pkg/helpers/clientcmd
@@ -1184,12 +1230,16 @@ imports:
   - pkg/helpers/groupsync/interfaces
   - pkg/helpers/groupsync/rfc2307
   - pkg/helpers/groupsync/syncerror
+  - pkg/helpers/image
   - pkg/helpers/kubeconfig
+  - pkg/helpers/parallel
   - pkg/helpers/proc
   - pkg/helpers/project
+  - pkg/helpers/quota
   - pkg/helpers/route
   - pkg/helpers/term
   - pkg/helpers/tokencmd
+  - pkg/version
 - name: github.com/openshift/openshift-apiserver
   version: f2d7f7218f81a7366f5e24e92b9520492fb15aac
   subpackages:
