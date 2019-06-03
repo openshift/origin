@@ -54,7 +54,6 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -526,12 +525,12 @@ func describeBuildTriggers(triggers []buildv1.BuildTriggerPolicy, name, namespac
 		fmt.Fprintf(w, "Webhook %s:\n", strings.Title(webHookType))
 		for _, trigger := range webHookDesc {
 			_, seen := seenHookTypes[webHookType]
-			if webHookType != string(buildapi.GenericWebHookBuildTriggerType) && seen {
+			if webHookType != string(buildv1.GenericWebHookBuildTriggerType) && seen {
 				continue
 			}
 			seenHookTypes[webHookType] = true
 			fmt.Fprintf(w, "\tURL:\t%s\n", trigger.URL)
-			if webHookType == string(buildapi.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
+			if webHookType == string(buildv1.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
 				fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *trigger.AllowEnv))
 			}
 		}
