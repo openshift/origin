@@ -72,6 +72,7 @@ type IngressControllerSpec struct {
 	//
 	//   AWS:      LoadBalancerService
 	//   Azure:    LoadBalancerService
+	//   GCP:      LoadBalancerService
 	//   Libvirt:  HostNetwork
 	//
 	// Any other platform types (including None) default to HostNetwork.
