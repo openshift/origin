@@ -24,7 +24,6 @@ import (
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	"github.com/openshift/origin/pkg/build/buildscheme"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/util/labelselector"
@@ -755,11 +754,11 @@ func diffBuildSpec(newer, older buildapi.BuildSpec) (string, error) {
 }
 
 func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
-	newerJSON, err := runtime.Encode(buildscheme.Encoder, newer)
+	newerJSON, err := runtime.Encode(encoder, newer)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding newer: %v", err)
 	}
-	olderJSON, err := runtime.Encode(buildscheme.Encoder, older)
+	olderJSON, err := runtime.Encode(encoder, older)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding older: %v", err)
 	}
