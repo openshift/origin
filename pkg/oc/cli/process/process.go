@@ -31,13 +31,13 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/library-go/pkg/template/generator"
+	"github.com/openshift/library-go/pkg/template/templateprocessing"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
-	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
 
 var (

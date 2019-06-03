@@ -20,7 +20,7 @@ import (
 	fakequotaclient "github.com/openshift/client-go/quota/clientset/versioned/fake"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotautil "github.com/openshift/library-go/pkg/quota/quotautil"
 )
 
 func TestUpdateQuota(t *testing.T) {
@@ -39,14 +39,14 @@ func TestUpdateQuota(t *testing.T) {
 				user1.Name = "user-one"
 				user1.Status.Total.Hard = user1.Spec.Quota.Hard
 				user1.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("15")}
-				quotav1conversions.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "foo",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("5")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "bar",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
@@ -58,7 +58,7 @@ func TestUpdateQuota(t *testing.T) {
 				user2.Name = "user-two"
 				user2.Status.Total.Hard = user2.Spec.Quota.Hard
 				user2.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("5")}
-				quotav1conversions.InsertResourceQuotasStatus(&user2.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user2.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "foo",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
@@ -91,14 +91,14 @@ func TestUpdateQuota(t *testing.T) {
 				user1.Name = "user-one"
 				user1.Status.Total.Hard = user1.Spec.Quota.Hard
 				user1.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("20")}
-				quotav1conversions.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "foo",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("10")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "bar",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
@@ -232,14 +232,14 @@ func TestGetQuota(t *testing.T) {
 				user1.Name = "user-one"
 				user1.Status.Total.Hard = user1.Spec.Quota.Hard
 				user1.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("15")}
-				quotav1conversions.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "foo",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("5")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user1.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "bar",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,
@@ -251,7 +251,7 @@ func TestGetQuota(t *testing.T) {
 				user2.Name = "user-two"
 				user2.Status.Total.Hard = user2.Spec.Quota.Hard
 				user2.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("5")}
-				quotav1conversions.InsertResourceQuotasStatus(&user2.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&user2.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "foo",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: user1.Spec.Quota.Hard,

@@ -24,9 +24,8 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
-	"github.com/openshift/origin/pkg/security"
+	"github.com/openshift/library-go/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/mcs"
-	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 )
 
@@ -111,7 +110,7 @@ func (c *NamespaceSCCAllocationController) syncNamespace(key string) error {
 	if err != nil {
 		return err
 	}
-	if _, ok := ns.Annotations[security.UIDRangeAnnotation]; ok {
+	if _, ok := ns.Annotations[securityv1.UIDRangeAnnotation]; ok {
 		return nil
 	}
 
@@ -172,11 +171,11 @@ func (c *NamespaceSCCAllocationController) allocate(ns *corev1.Namespace) error 
 	if nsCopy.Annotations == nil {
 		nsCopy.Annotations = make(map[string]string)
 	}
-	nsCopy.Annotations[security.UIDRangeAnnotation] = block.String()
-	nsCopy.Annotations[security.SupplementalGroupsAnnotation] = block.String()
-	if _, ok := nsCopy.Annotations[security.MCSAnnotation]; !ok {
+	nsCopy.Annotations[securityv1.UIDRangeAnnotation] = block.String()
+	nsCopy.Annotations[securityv1.SupplementalGroupsAnnotation] = block.String()
+	if _, ok := nsCopy.Annotations[securityv1.MCSAnnotation]; !ok {
 		if label := c.mcsAllocator(block); label != nil {
-			nsCopy.Annotations[security.MCSAnnotation] = label.String()
+			nsCopy.Annotations[securityv1.MCSAnnotation] = label.String()
 		}
 	}
 
@@ -241,7 +240,7 @@ func (c *NamespaceSCCAllocationController) Repair() error {
 		return err
 	}
 	for _, ns := range nsList {
-		value, ok := ns.Annotations[security.UIDRangeAnnotation]
+		value, ok := ns.Annotations[securityv1.UIDRangeAnnotation]
 		if !ok {
 			continue
 		}

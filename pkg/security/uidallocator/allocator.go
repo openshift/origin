@@ -7,7 +7,7 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 
-	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/library-go/pkg/security/uid"
 )
 
 // Interface manages the allocation of ports out of a range. Interface

@@ -18,7 +18,7 @@ import (
 	quotav1 "github.com/openshift/api/quota/v1"
 	fakequotaclient "github.com/openshift/client-go/quota/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotautil "github.com/openshift/library-go/pkg/quota/quotautil"
 )
 
 func defaultQuota() *quotav1.ClusterResourceQuota {
@@ -70,7 +70,7 @@ func TestSyncFunc(t *testing.T) {
 				ret := defaultQuota()
 				ret.Status.Total.Hard = ret.Spec.Quota.Hard
 				ret.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("10")}
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "one",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
@@ -136,7 +136,7 @@ func TestSyncFunc(t *testing.T) {
 				ret := defaultQuota()
 				ret.Status.Total.Hard = ret.Spec.Quota.Hard
 				ret.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("10")}
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "one",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
@@ -173,28 +173,28 @@ func TestSyncFunc(t *testing.T) {
 				ret := defaultQuota()
 				ret.Status.Total.Hard = ret.Spec.Quota.Hard
 				ret.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("30")}
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "one",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("5")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "two",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("10")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "three",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("15")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "deleted",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
@@ -226,14 +226,14 @@ func TestSyncFunc(t *testing.T) {
 				ret := defaultQuota()
 				ret.Status.Total.Hard = ret.Spec.Quota.Hard
 				ret.Status.Total.Used = corev1.ResourceList{corev1.ResourcePods: resource.MustParse("25")}
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "one",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,
 						Used: corev1.ResourceList{corev1.ResourcePods: resource.MustParse("10")},
 					},
 				})
-				quotav1conversions.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+				quotautil.InsertResourceQuotasStatus(&ret.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 					Namespace: "three",
 					Status: corev1.ResourceQuotaStatus{
 						Hard: ret.Spec.Quota.Hard,

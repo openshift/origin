@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 
-	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/library-go/pkg/security/uid"
 )
 
 func TestAllocate(t *testing.T) {

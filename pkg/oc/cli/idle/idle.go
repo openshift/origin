@@ -31,9 +31,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 )
 

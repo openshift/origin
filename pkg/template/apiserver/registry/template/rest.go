@@ -16,10 +16,10 @@ import (
 	"github.com/openshift/api/template"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/generator"
+	"github.com/openshift/library-go/pkg/template/templateprocessing"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatev1conversion "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
-	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
 
 // REST implements RESTStorage interface for processing Template objects.

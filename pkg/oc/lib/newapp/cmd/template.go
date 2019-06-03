@@ -5,9 +5,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/openshift/origin/pkg/template/templateprocessing"
-
 	templatev1 "github.com/openshift/api/template/v1"
+	"github.com/openshift/library-go/pkg/template/templateprocessing"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 )

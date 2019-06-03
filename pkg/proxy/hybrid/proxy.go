@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy"
 	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 )
 
 // HybridProxier runs an unidling proxy and a primary proxy at the same time,

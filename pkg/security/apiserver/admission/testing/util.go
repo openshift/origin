@@ -5,7 +5,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	allocator "github.com/openshift/origin/pkg/security"
 )
 
 // CreateSAForTest Build and Initializes a ServiceAccount for tests
@@ -24,9 +23,9 @@ func CreateNamespaceForTest() *corev1.Namespace {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation:           "1/3",
-				allocator.MCSAnnotation:                "s0:c1,c0",
-				allocator.SupplementalGroupsAnnotation: "2/3",
+				securityv1.UIDRangeAnnotation:           "1/3",
+				securityv1.MCSAnnotation:                "s0:c1,c0",
+				securityv1.SupplementalGroupsAnnotation: "2/3",
 			},
 		},
 	}

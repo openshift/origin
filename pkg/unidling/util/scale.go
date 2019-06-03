@@ -3,8 +3,6 @@ package util
 import (
 	"fmt"
 
-	"k8s.io/klog"
-
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -15,10 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/scale"
+	"k8s.io/klog"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
 const legacyGroupName = ""

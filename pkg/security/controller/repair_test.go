@@ -15,8 +15,7 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1fakeclient "github.com/openshift/client-go/security/clientset/versioned/fake"
-	"github.com/openshift/origin/pkg/security"
-	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/library-go/pkg/security/uid"
 )
 
 func TestRepair(t *testing.T) {
@@ -63,7 +62,7 @@ func TestRepairIgnoresMismatch(t *testing.T) {
 	indexer := cache.NewIndexer(controller.KeyFunc, cache.Indexers{})
 	indexer.Add(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
 		Name:        "default",
-		Annotations: map[string]string{security.UIDRangeAnnotation: "1/5"},
+		Annotations: map[string]string{securityv1.UIDRangeAnnotation: "1/5"},
 	}})
 
 	uidr, _ := uid.NewRange(10, 20, 2)
@@ -114,7 +113,7 @@ func TestRepairTable(t *testing.T) {
 			namespaces: []*corev1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{
 					Name:        "one",
-					Annotations: map[string]string{security.UIDRangeAnnotation: "10/5"},
+					Annotations: map[string]string{securityv1.UIDRangeAnnotation: "10/5"},
 				}},
 			},
 			uidRange:      "10-20/2",
@@ -126,11 +125,11 @@ func TestRepairTable(t *testing.T) {
 			namespaces: []*corev1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{
 					Name:        "one",
-					Annotations: map[string]string{security.UIDRangeAnnotation: "10/5"},
+					Annotations: map[string]string{securityv1.UIDRangeAnnotation: "10/5"},
 				}},
 				{ObjectMeta: metav1.ObjectMeta{
 					Name:        "two",
-					Annotations: map[string]string{security.UIDRangeAnnotation: "25/5"},
+					Annotations: map[string]string{securityv1.UIDRangeAnnotation: "25/5"},
 				}},
 			},
 			existingRangeAllocation: &securityv1.RangeAllocation{
