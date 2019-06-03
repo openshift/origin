@@ -34,9 +34,9 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	"github.com/openshift/origin/pkg/api/legacy"
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client/templateprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest"
@@ -158,7 +158,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		}
 	}
 
-	processedList, err := templateprocessing.NewDynamicTemplateProcessor(r.client).ProcessToList(template)
+	processedList, err := templateprocessingclient.NewDynamicTemplateProcessor(r.client).ProcessToList(template)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,7 @@ import (
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotautil "github.com/openshift/library-go/pkg/quota/quotautil"
 )
 
 type ClusterQuotaReconcilationControllerOptions struct {
@@ -325,12 +325,12 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 	retryItems := []workItem{}
 	for _, item := range workItems {
 		namespaceName := item.namespaceName
-		namespaceTotals, namespaceLoaded := quotav1conversions.GetResourceQuotasStatusByNamespace(quota.Status.Namespaces, namespaceName)
+		namespaceTotals, namespaceLoaded := quotautil.GetResourceQuotasStatusByNamespace(quota.Status.Namespaces, namespaceName)
 		if !matchingNamespaceNames.Has(namespaceName) {
 			if namespaceLoaded {
 				// remove this item from all totals
 				quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
-				quotav1conversions.RemoveResourceQuotasStatusByNamespace(&quota.Status.Namespaces, namespaceName)
+				quotautil.RemoveResourceQuotasStatusByNamespace(&quota.Status.Namespaces, namespaceName)
 			}
 			continue
 		}
@@ -355,7 +355,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		// subtract old usage, add new usage
 		quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 		quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, recalculatedStatus.Used)
-		quotav1conversions.InsertResourceQuotasStatus(&quota.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+		quotautil.InsertResourceQuotasStatus(&quota.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 			Namespace: namespaceName,
 			Status:    recalculatedStatus,
 		})
@@ -369,7 +369,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		namespaceName := namespaceTotals.Namespace
 		if !matchingNamespaceNames.Has(namespaceName) {
 			quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Status.Used)
-			quotav1conversions.RemoveResourceQuotasStatusByNamespace(&quota.Status.Namespaces, namespaceName)
+			quotautil.RemoveResourceQuotasStatusByNamespace(&quota.Status.Namespaces, namespaceName)
 		}
 	}
 

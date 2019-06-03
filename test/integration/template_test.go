@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	templateapi "github.com/openshift/api/template/v1"
-	"github.com/openshift/origin/pkg/client/templateprocessing"
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -65,7 +65,7 @@ func TestTemplate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		obj, err := templateprocessing.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template)
+		obj, err := templateprocessingclient.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -148,7 +148,7 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 			t.Errorf("%q: %v", path, err)
 			return
 		}
-		processedList, err := templateprocessing.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template.(*templateapi.Template))
+		processedList, err := templateprocessingclient.NewDynamicTemplateProcessor(dynamicClient).ProcessToList(template.(*templateapi.Template))
 		if err != nil {
 			t.Errorf("%q: %v", path, err)
 			return

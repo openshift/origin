@@ -34,7 +34,7 @@ import (
 	templatev1informer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
 	templatelister "github.com/openshift/client-go/template/listers/template/v1"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
-	"github.com/openshift/origin/pkg/client/templateprocessing"
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 )
 
 const (
@@ -412,7 +412,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 	if err != nil {
 		return err
 	}
-	processedObjects, err := templateprocessing.NewDynamicTemplateProcessor(c.dynamicClient).ProcessToList(v1Template.(*templatev1.Template))
+	processedObjects, err := templateprocessingclient.NewDynamicTemplateProcessor(c.dynamicClient).ProcessToList(v1Template.(*templatev1.Template))
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,7 @@ import (
 	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotautil "github.com/openshift/library-go/pkg/quota/quotautil"
 )
 
 type clusterQuotaAccessor struct {
@@ -77,11 +77,11 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *corev1.ResourceQuota)
 	clusterQuota.Status.Total.Used = newQuota.Status.Used
 
 	// update per namespace totals
-	oldNamespaceTotals, _ := quotav1conversions.GetResourceQuotasStatusByNamespace(clusterQuota.Status.Namespaces, newQuota.Namespace)
+	oldNamespaceTotals, _ := quotautil.GetResourceQuotasStatusByNamespace(clusterQuota.Status.Namespaces, newQuota.Namespace)
 	namespaceTotalCopy := oldNamespaceTotals.DeepCopy()
 	newNamespaceTotals := *namespaceTotalCopy
 	newNamespaceTotals.Used = utilquota.Add(oldNamespaceTotals.Used, usageDiff)
-	quotav1conversions.InsertResourceQuotasStatus(&clusterQuota.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+	quotautil.InsertResourceQuotasStatus(&clusterQuota.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
 		Namespace: newQuota.Namespace,
 		Status:    newNamespaceTotals,
 	})
