@@ -19,11 +19,11 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	templateapi "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const emptyString = "<none>"

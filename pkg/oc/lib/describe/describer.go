@@ -41,6 +41,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/api/user"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -49,6 +50,7 @@ import (
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
@@ -64,8 +66,6 @@ import (
 	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -1105,7 +1105,7 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings describe.De
 
 // TemplateDescriber generates information about a template
 type TemplateDescriber struct {
-	templateClient templateclient.TemplateInterface
+	templateClient templateclient.TemplateV1Interface
 	meta.MetadataAccessor
 	runtime.ObjectTyper
 	describe.ObjectDescriber
@@ -1121,7 +1121,7 @@ func (d *TemplateDescriber) DescribeMessage(msg string, out *tabwriter.Writer) {
 }
 
 // DescribeParameters prints out information about the parameters of a template
-func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, out *tabwriter.Writer) {
+func (d *TemplateDescriber) DescribeParameters(params []templatev1.Parameter, out *tabwriter.Writer) {
 	formatString(out, "Parameters", " ")
 	indent := "    "
 	for _, p := range params {
@@ -1151,7 +1151,7 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 }
 
 // describeObjects prints out information about the objects of a template
-func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwriter.Writer) {
+func (d *TemplateDescriber) describeObjects(objects []runtime.RawExtension, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 	indent := "    "
 	for _, obj := range objects {
@@ -1166,13 +1166,13 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 			continue
 		}
 
-		name, _ := d.MetadataAccessor.Name(obj)
+		name, _ := d.MetadataAccessor.Name(obj.Object)
 		groupKind := "<unknown>"
-		if gvk, _, err := d.ObjectTyper.ObjectKinds(obj); err == nil {
+		if gvk, _, err := d.ObjectTyper.ObjectKinds(obj.Object); err == nil {
 			gk := gvk[0].GroupKind()
 			groupKind = gk.String()
 		} else {
-			if unstructured, ok := obj.(*unstructured.Unstructured); ok {
+			if unstructured, ok := obj.Object.(*unstructured.Unstructured); ok {
 				gvk := unstructured.GroupVersionKind()
 				gk := gvk.GroupKind()
 				groupKind = gk.String()
@@ -1198,10 +1198,7 @@ func (d *TemplateDescriber) Describe(namespace, name string, settings describe.D
 	return d.DescribeTemplate(template)
 }
 
-func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (string, error) {
-	// TODO: write error?
-	_ = runtime.DecodeList(template.Objects, unstructured.UnstructuredJSONScheme)
-
+func (d *TemplateDescriber) DescribeTemplate(template *templatev1.Template) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, template.ObjectMeta)
 		out.Write([]byte("\n"))
@@ -1221,7 +1218,7 @@ func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (st
 // TemplateInstanceDescriber generates information about a template instance
 type TemplateInstanceDescriber struct {
 	kubeClient     kubernetes.Interface
-	templateClient templateclient.TemplateInterface
+	templateClient templateclient.TemplateV1Interface
 	describe.ObjectDescriber
 }
 
@@ -1236,7 +1233,7 @@ func (d *TemplateInstanceDescriber) Describe(namespace, name string, settings de
 }
 
 // DescribeTemplateInstance prints out information about the template instance
-func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *templateapi.TemplateInstance, namespace string, settings describe.DescriberSettings) (string, error) {
+func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *templatev1.TemplateInstance, namespace string, settings describe.DescriberSettings) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, templateInstance.ObjectMeta)
 		out.Write([]byte("\n"))
@@ -1255,7 +1252,7 @@ func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *t
 }
 
 // DescribeConditions prints out information about the conditions of a template instance
-func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templateapi.TemplateInstanceCondition, out *tabwriter.Writer) {
+func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templatev1.TemplateInstanceCondition, out *tabwriter.Writer) {
 	formatString(out, "Conditions", " ")
 	indent := "    "
 	for _, c := range conditions {
@@ -1269,7 +1266,7 @@ func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templateapi.
 }
 
 // DescribeObjects prints out information about the objects that a template instance creates
-func (d *TemplateInstanceDescriber) DescribeObjects(objects []templateapi.TemplateInstanceObject, out *tabwriter.Writer) {
+func (d *TemplateInstanceDescriber) DescribeObjects(objects []templatev1.TemplateInstanceObject, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 	indent := "    "
 	for _, o := range objects {
@@ -1280,7 +1277,7 @@ func (d *TemplateInstanceDescriber) DescribeObjects(objects []templateapi.Templa
 // DescribeParameters prints out information about the secret that holds the template instance parameters
 // kinternalprinter.SecretDescriber#Describe could have been used here, but the formatting
 // is off when it prints the information and seems to not be easily fixable
-func (d *TemplateInstanceDescriber) DescribeParameters(template templateapi.Template, namespace, name string, out *tabwriter.Writer) {
+func (d *TemplateInstanceDescriber) DescribeParameters(template templatev1.Template, namespace, name string, out *tabwriter.Writer) {
 	secret, err := d.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 
 	formatString(out, "Parameters", " ")
