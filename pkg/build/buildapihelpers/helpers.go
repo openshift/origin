@@ -5,20 +5,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// BuildToPodLogOptions builds a PodLogOptions object out of a BuildLogOptions.
-// Currently BuildLogOptions.Container and BuildLogOptions.Previous aren't used
-// so they won't be copied to PodLogOptions.
-func BuildToPodLogOptions(opts *buildv1.BuildLogOptions) *corev1.PodLogOptions {
-	return &corev1.PodLogOptions{
-		Follow:       opts.Follow,
-		SinceSeconds: opts.SinceSeconds,
-		SinceTime:    opts.SinceTime,
-		Timestamps:   opts.Timestamps,
-		TailLines:    opts.TailLines,
-		LimitBytes:   opts.LimitBytes,
-	}
-}
-
 // FindTriggerPolicy retrieves the BuildTrigger(s) of a given type from a build configuration.
 // Returns nil if no matches are found.
 func FindTriggerPolicy(triggerType buildv1.BuildTriggerType, config *buildv1.BuildConfig) (buildTriggers []buildv1.BuildTriggerPolicy) {
