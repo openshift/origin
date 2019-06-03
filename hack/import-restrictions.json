@@ -39,7 +39,6 @@
       "github.com/openshift/origin/pkg/apps/apiserver",
       "github.com/openshift/origin/pkg/build/apiserver",
       "github.com/openshift/origin/pkg/image/apiserver",
-      "github.com/openshift/origin/pkg/network/apiserver",
       "github.com/openshift/origin/pkg/oauth/apiserver",
       "github.com/openshift/origin/pkg/project/apiserver",
       "github.com/openshift/origin/pkg/quota/apiserver",
@@ -55,7 +54,6 @@
       "github.com/openshift/origin/pkg/apps/apiserver",
       "github.com/openshift/origin/pkg/build/apiserver",
       "github.com/openshift/origin/pkg/image/apiserver",
-      "github.com/openshift/origin/pkg/network/apiserver",
       "github.com/openshift/origin/pkg/oauth/apiserver",
       "github.com/openshift/origin/pkg/project/apiserver",
       "github.com/openshift/origin/pkg/quota/apiserver",
@@ -86,7 +84,6 @@
       "github.com/openshift/origin/pkg/apps/apiserver",
       "github.com/openshift/origin/pkg/build/apiserver",
       "github.com/openshift/origin/pkg/image/apiserver",
-      "github.com/openshift/origin/pkg/network/apiserver",
       "github.com/openshift/origin/pkg/oauth/apiserver",
       "github.com/openshift/origin/pkg/project/apiserver",
       "github.com/openshift/origin/pkg/quota/apiserver",
@@ -239,19 +236,6 @@
       "vendor/k8s.io/klog",
       "vendor/github.com/blang/semver"
     ]
-  },
-
-  {
-    "checkedPackages": [
-      "github.com/openshift/origin/pkg/network/apis/network",
-      "github.com/openshift/origin/pkg/network/apis/network/v1"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor/k8s.io/apimachinery",
-      "vendor/k8s.io/api",
-      "vendor/github.com/openshift/api"
-    ],
-    "allowedImportPackages": []
   },
 
   {

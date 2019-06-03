@@ -221,7 +221,6 @@
 // test/integration/testdata/test-buildcli-beta2.json
 // test/integration/testdata/test-buildcli.json
 // test/integration/testdata/test-deployment-config.yaml
-// test/integration/testdata/test-egress-network-policy.json
 // test/integration/testdata/test-image-stream-mapping.json
 // test/integration/testdata/test-image-stream.json
 // test/integration/testdata/test-image.json
@@ -13554,46 +13553,6 @@ func testIntegrationTestdataTestDeploymentConfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/integration/testdata/test-deployment-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestEgressNetworkPolicyJson = []byte(`{
-    "kind": "EgressNetworkPolicy",
-    "apiVersion": "v1",
-    "metadata": {
-	"name": "default"
-    },
-    "spec": {
-	"egress": [
-	    {
-		"type": "Allow",
-		"to": {
-		    "cidrSelector": "192.168.0.0/16"
-		}
-	    },
-	    {
-		"type": "Deny",
-		"to": {
-		    "cidrSelector": "0.0.0.0/0"
-		}
-	    }
-	]
-    }
-}
-`)
-
-func testIntegrationTestdataTestEgressNetworkPolicyJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestEgressNetworkPolicyJson, nil
-}
-
-func testIntegrationTestdataTestEgressNetworkPolicyJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestEgressNetworkPolicyJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-egress-network-policy.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32791,7 +32750,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
 	"test/integration/testdata/test-buildcli.json": testIntegrationTestdataTestBuildcliJson,
 	"test/integration/testdata/test-deployment-config.yaml": testIntegrationTestdataTestDeploymentConfigYaml,
-	"test/integration/testdata/test-egress-network-policy.json": testIntegrationTestdataTestEgressNetworkPolicyJson,
 	"test/integration/testdata/test-image-stream-mapping.json": testIntegrationTestdataTestImageStreamMappingJson,
 	"test/integration/testdata/test-image-stream.json": testIntegrationTestdataTestImageStreamJson,
 	"test/integration/testdata/test-image.json": testIntegrationTestdataTestImageJson,
@@ -33304,7 +33262,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-buildcli-beta2.json": &bintree{testIntegrationTestdataTestBuildcliBeta2Json, map[string]*bintree{}},
 				"test-buildcli.json": &bintree{testIntegrationTestdataTestBuildcliJson, map[string]*bintree{}},
 				"test-deployment-config.yaml": &bintree{testIntegrationTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
-				"test-egress-network-policy.json": &bintree{testIntegrationTestdataTestEgressNetworkPolicyJson, map[string]*bintree{}},
 				"test-image-stream-mapping.json": &bintree{testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
 				"test-image-stream.json": &bintree{testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
 				"test-image.json": &bintree{testIntegrationTestdataTestImageJson, map[string]*bintree{}},
