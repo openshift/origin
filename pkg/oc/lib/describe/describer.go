@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/klog"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -48,6 +48,7 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
@@ -61,9 +62,6 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -829,7 +827,7 @@ func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 
 // RouteDescriber generates information about a Route
 type RouteDescriber struct {
-	routeClient routeclient.RouteInterface
+	routeClient routeclient.RouteV1Interface
 	kubeClient  kubernetes.Interface
 }
 
@@ -846,7 +844,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 		return "", err
 	}
 
-	backends := append([]routeapi.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
+	backends := append([]routev1.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
 	totalWeight := int32(0)
 	endpoints := make(map[string]routeEndpointInfo)
 	for _, backend := range backends {
@@ -870,11 +868,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 				if len(ingress.RouterCanonicalHostname) > 0 {
 					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 				}
-				external := routev1.RouteIngress{}
-				if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
-					return err
-				}
-				switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+				switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routev1.RouteAdmitted); status {
 				case corev1.ConditionTrue:
 					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case corev1.ConditionFalse:
@@ -896,11 +890,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 			if len(ingress.RouterCanonicalHostname) > 0 {
 				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 			}
-			external := routev1.RouteIngress{}
-			if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
-				return err
-			}
-			switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routev1.RouteAdmitted); status {
 			case corev1.ConditionTrue:
 				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case corev1.ConditionFalse:
