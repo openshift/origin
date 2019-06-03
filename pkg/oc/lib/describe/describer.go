@@ -57,7 +57,7 @@ import (
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 
-	oapi "github.com/openshift/origin/pkg/api"
+	oapi "github.com/openshift/api/annotations"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
