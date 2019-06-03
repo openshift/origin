@@ -45,6 +45,7 @@ import (
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	onetworktypedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
@@ -57,7 +58,6 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -603,7 +603,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings describ
 
 // OAuthAccessTokenDescriber generates information about an OAuth Acess Token (OAuth)
 type OAuthAccessTokenDescriber struct {
-	client oauthclient.OauthInterface
+	client oauthclient.OauthV1Interface
 }
 
 func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings describe.DescriberSettings) (string, error) {
