@@ -15,7 +15,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	sdnmaster "github.com/openshift/origin/pkg/network/master"
@@ -24,8 +25,14 @@ import (
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
-func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig, clientConfig *rest.Config) error {
+func RunOpenShiftNetworkController() error {
 	serviceability.InitLogrusFromKlog()
+
+	clientConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
@@ -36,7 +43,7 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 			klog.Fatal(err)
 		}
 
-		controllerContext, err := NewControllerContext(*config, clientConfig, nil)
+		controllerContext, err := NewControllerContext(clientConfig, nil)
 		if err != nil {
 			klog.Fatal(err)
 		}
@@ -60,10 +67,12 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 	if err != nil {
 		return err
 	}
+
+	leaderConfig := leaderelectionconverter.LeaderElectionDefaulting(configv1.LeaderElection{}, "openshift-sdn", "openshift-network-controller")
 	rl, err := resourcelock.New(
 		"configmaps",
-		"openshift-sdn",
-		"openshift-network-controller",
+		leaderConfig.Namespace,
+		leaderConfig.Name,
 		kubeClient.CoreV1(),
 		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
@@ -76,9 +85,9 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 	go leaderelection.RunOrDie(context.Background(),
 		leaderelection.LeaderElectionConfig{
 			Lock:          rl,
-			LeaseDuration: config.LeaderElection.LeaseDuration.Duration,
-			RenewDeadline: config.LeaderElection.RenewDeadline.Duration,
-			RetryPeriod:   config.LeaderElection.RetryPeriod.Duration,
+			LeaseDuration: leaderConfig.LeaseDuration.Duration,
+			RenewDeadline: leaderConfig.RenewDeadline.Duration,
+			RetryPeriod:   leaderConfig.RetryPeriod.Duration,
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: originControllerManager,
 				OnStoppedLeading: func() {
