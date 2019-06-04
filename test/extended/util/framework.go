@@ -556,17 +556,9 @@ func (t *BuildResult) dumpRegistryLogs() {
 	// Changing the namespace on the derived client still changes it on the original client
 	// because the kubeFramework field is only copied by reference. Saving the original namespace
 	// here so we can restore it when done with registry logs
-	// TODO remove the default/docker-registry log retrieval when we are fully migrated to 4.0 for our test env.
 	savedNamespace := t.Oc.Namespace()
-	oadm := t.Oc.AsAdmin().SetNamespace("default")
-	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
-	if err != nil {
-		e2e.Logf("Error during log retrieval: %+v\n", err)
-	} else {
-		e2e.Logf("%s\n", out)
-	}
-	oadm = t.Oc.AsAdmin().SetNamespace("openshift-image-registry")
-	out, err = oadm.Run("logs").Args("deployment/image-registry", "--since="+since.String()).Output()
+	oadm := t.Oc.AsAdmin().SetNamespace("openshift-image-registry")
+	out, err := oadm.Run("logs").Args("deployment/image-registry", "--since="+since.String()).Output()
 	if err != nil {
 		e2e.Logf("Error during log retrieval: %+v\n", err)
 	} else {
