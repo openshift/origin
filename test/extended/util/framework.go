@@ -609,6 +609,9 @@ func (t *BuildResult) LogsNoTimestamp() (string, error) {
 func (t *BuildResult) AssertSuccess() *BuildResult {
 	if !t.BuildSuccess {
 		t.DumpLogs()
+		// Dump the node states if we suspect builds are failing due to node pressure
+		DumpNodeStates(t.Oc)
+		e2e.Logf("\n\n")
 	}
 	o.ExpectWithOffset(1, t.BuildSuccess).To(o.BeTrue())
 	return t
