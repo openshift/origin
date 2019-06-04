@@ -153,8 +153,8 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("starting and canceling three test builds")
-			for i := 1; i < 4; i++ {
+			g.By("starting and canceling four test builds")
+			for i := 1; i < 5; i++ {
 				_, _, _ = exutil.StartBuild(oc, "myphp")
 				err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
 			}
