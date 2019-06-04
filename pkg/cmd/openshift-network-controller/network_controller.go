@@ -43,7 +43,7 @@ func RunOpenShiftNetworkController() error {
 			klog.Fatal(err)
 		}
 
-		controllerContext, err := NewControllerContext(clientConfig, nil)
+		controllerContext, err := newControllerContext(clientConfig)
 		if err != nil {
 			klog.Fatal(err)
 		}
@@ -56,7 +56,7 @@ func RunOpenShiftNetworkController() error {
 			klog.Fatalf("Error starting OpenShift Network Controller: %v", err)
 		}
 		klog.Infof("Started OpenShift Network Controller")
-		controllerContext.StartInformers(nil)
+		controllerContext.StartInformers()
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
