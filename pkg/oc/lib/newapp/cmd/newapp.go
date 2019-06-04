@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/env"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
@@ -1142,7 +1141,7 @@ func (c *AppConfig) followRefToDockerImage(ref *corev1.ObjectReference, isContex
 		// DockerImage names may or may not have a tag suffix. Add :latest if there
 		// is no tag so that string comparison will behave as expected.
 		if !strings.Contains(copy.Name, ":") {
-			copy.Name += ":" + imageapi.DefaultImageTag
+			copy.Name += ":" + imagev1.DefaultImageTag
 		}
 		return &copy, nil
 	}
