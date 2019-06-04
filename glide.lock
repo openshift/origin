@@ -1,5 +1,5 @@
 hash: 958ac5b061346d161a7c5d2e4f62008648706d2c7b86e7e0af442f4f7cca3ba5
-updated: 2019-06-01T18:47:55.253123117-04:00
+updated: 2019-06-04T17:17:49.321663578-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 9a61cdf9e959317454c42856632cbbe2bdba361a
+  version: 43c075c38fd931d1c85b41039e79caac63fc1925
   subpackages:
   - annotations
   - apps
@@ -1103,9 +1103,11 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 9a93bc4ad525c02e54bd99c0d7ae0d55d030a19f
+  version: 8f607ca464ef92dc868f26b47aec5fd645b5b267
   subpackages:
   - pkg/apiserver/httprequest
+  - pkg/apps/appsserialization
+  - pkg/apps/appsutil
   - pkg/assets
   - pkg/assets/create
   - pkg/authentication/bootstrapauthenticator
@@ -1130,6 +1132,7 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/network/networkutils
   - pkg/oauth/oauthdiscovery
+  - pkg/oauth/oauthserviceaccountclient
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
@@ -1142,23 +1145,63 @@ imports:
   - pkg/serviceability
   - pkg/template/generator
 - name: github.com/openshift/oauth-server
-  version: 029c92c063706b9b6bd42f9cf53f9060dc3fb39d
+  version: 45ea7d4499bdf4b6f7511d04e260571ad8577756
   subpackages:
+  - pkg
   - pkg/api
+  - pkg/authenticator
+  - pkg/authenticator/challenger/passwordchallenger
+  - pkg/authenticator/challenger/placeholderchallenger
+  - pkg/authenticator/identitymapper
+  - pkg/authenticator/password/allowanypassword
+  - pkg/authenticator/password/basicauthpassword
   - pkg/authenticator/password/denypassword
+  - pkg/authenticator/password/htpasswd
+  - pkg/authenticator/password/keystonepassword
+  - pkg/authenticator/password/ldappassword
+  - pkg/authenticator/redirector
   - pkg/authenticator/request/basicauthrequest
+  - pkg/authenticator/request/headerrequest
   - pkg/authenticator/tokens
   - pkg/config
+  - pkg/oauth/external
+  - pkg/oauth/external/github
+  - pkg/oauth/external/github/links
+  - pkg/oauth/external/gitlab
+  - pkg/oauth/external/google
+  - pkg/oauth/external/openid
+  - pkg/oauth/handlers
+  - pkg/oauth/registry
+  - pkg/oauthserver
+  - pkg/osinserver
+  - pkg/osinserver/registrystorage
+  - pkg/osinserver/teststorage
   - pkg/prometheus
+  - pkg/scopecovers
   - pkg/server/crypto
   - pkg/server/csrf
+  - pkg/server/errorpage
+  - pkg/server/grant
   - pkg/server/headers
+  - pkg/server/login
+  - pkg/server/logout
   - pkg/server/redirect
+  - pkg/server/selectprovider
+  - pkg/server/session
+  - pkg/server/tokenrequest
+  - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 2d46ebcc7cdc012388f71a4b113f10a1681466d2
+  version: 780ddaaf5eb2c46c8069dd473731a6f3427fba06
   subpackages:
   - pkg/cli/create
   - pkg/cli/create/route
+  - pkg/cli/deployer
+  - pkg/cli/deployer/strategy
+  - pkg/cli/deployer/strategy/recreate
+  - pkg/cli/deployer/strategy/rolling
+  - pkg/cli/deployer/strategy/support
+  - pkg/cli/deployer/strategy/util
+  - pkg/cli/deployer/strategy/util/appstest
   - pkg/cli/experimental/dockergc
   - pkg/cli/expose
   - pkg/cli/extract
@@ -1168,7 +1211,9 @@ imports:
   - pkg/cli/recycle
   - pkg/cli/secrets
   - pkg/cli/serviceaccounts
+  - pkg/cli/version
   - pkg/cli/whoami
+  - pkg/helpers/authorization
   - pkg/helpers/build
   - pkg/helpers/bulk
   - pkg/helpers/clientcmd
@@ -1184,14 +1229,18 @@ imports:
   - pkg/helpers/groupsync/interfaces
   - pkg/helpers/groupsync/rfc2307
   - pkg/helpers/groupsync/syncerror
+  - pkg/helpers/image
   - pkg/helpers/kubeconfig
+  - pkg/helpers/parallel
   - pkg/helpers/proc
   - pkg/helpers/project
+  - pkg/helpers/quota
   - pkg/helpers/route
   - pkg/helpers/term
   - pkg/helpers/tokencmd
+  - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: f2d7f7218f81a7366f5e24e92b9520492fb15aac
+  version: 7c753b3b549ae4302f01ff37d142daa37ae57b3b
   subpackages:
   - pkg/apiserver/rest
   - pkg/client/impersonatingclient
@@ -2270,7 +2319,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 131b6df23207345388e1b84022e5100359a1d509
+  version: 0182fb7a90c1d055915c47a065351c638ed5b140
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -3187,7 +3236,7 @@ imports:
   - typed
   - value
 - name: sigs.k8s.io/yaml
-  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
+  version: 68106da85fc4bd9bb6b57a0cdca054b1f925e48c
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
