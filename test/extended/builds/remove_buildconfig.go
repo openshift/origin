@@ -6,6 +6,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -55,12 +56,17 @@ var _ = g.Describe("[Feature:Builds][Conformance] remove all builds when build c
 
 				g.By("waiting for builds to clear")
 				err = wait.Poll(3*time.Second, 3*time.Minute, func() (bool, error) {
-					out, err := oc.Run("get").Args("builds").Output()
+					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					if out == "No resources found." {
-						return true, nil
+					if len(builds.Items) > 0 {
+						return false, nil
 					}
-					return false, nil
+					configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					if len(configMaps.Items) > 0 {
+						return false, nil
+					}
+					return true, nil
 				})
 				if err == wait.ErrWaitTimeout {
 					g.Fail("timed out waiting for builds to clear")
