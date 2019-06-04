@@ -22,8 +22,8 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -186,7 +186,7 @@ func webHooksDescribe(triggers []buildv1.BuildTriggerPolicy, name, namespace str
 		webHookDesc := result[string(trigger.Type)]
 
 		var urlStr string
-		webhookClient := buildmanualclient.NewWebhookURLClient(c, namespace)
+		webhookClient := buildhelpers.NewWebhookURLClient(c, namespace)
 		u, err := webhookClient.WebHookURL(name, &trigger)
 		if err != nil {
 			urlStr = fmt.Sprintf("<error: %s>", err.Error())
