@@ -1,12 +1,12 @@
 package sync
 
 import (
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/oc/pkg/helpers/groupsync"
 	"github.com/openshift/oc/pkg/helpers/groupsync/ad"
 	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 var _ SyncBuilder = &ADBuilder{}
@@ -14,7 +14,7 @@ var _ PruneBuilder = &ADBuilder{}
 
 type ADBuilder struct {
 	ClientConfig ldapclient.Config
-	Config       *config.ActiveDirectoryConfig
+	Config       *legacyconfigv1.ActiveDirectoryConfig
 
 	adLDAPInterface *ad.ADLDAPInterface
 }

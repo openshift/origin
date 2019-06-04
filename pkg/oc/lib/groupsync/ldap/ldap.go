@@ -1,8 +1,11 @@
 package ldap
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -11,16 +14,87 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/config/validation"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
-func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) validation.ValidationResults {
+const (
+	// StringSourceEncryptedBlockType is the PEM block type used to store an encrypted string
+	StringSourceEncryptedBlockType = "ENCRYPTED STRING"
+	// StringSourceKeyBlockType is the PEM block type used to store an encrypting key
+	StringSourceKeyBlockType = "ENCRYPTING KEY"
+)
+
+func blockFromBytes(data []byte, blockType string) (*pem.Block, bool) {
+	for {
+		block, remaining := pem.Decode(data)
+		if block == nil {
+			return nil, false
+		}
+		if block.Type == blockType {
+			return block, true
+		}
+		data = remaining
+	}
+}
+
+func GetStringSourceFileReferences(s *legacyconfigv1.StringSource) []*string {
+	if s == nil {
+		return nil
+	}
+	return []*string{
+		&s.File,
+		&s.KeyFile,
+	}
+}
+
+func ResolveStringValue(s legacyconfigv1.StringSource) (string, error) {
+	var value string
+	switch {
+	case len(s.Value) > 0:
+		value = s.Value
+	case len(s.Env) > 0:
+		value = os.Getenv(s.Env)
+	case len(s.File) > 0:
+		data, err := ioutil.ReadFile(s.File)
+		if err != nil {
+			return "", err
+		}
+		value = string(data)
+	default:
+		value = ""
+	}
+
+	if len(s.KeyFile) == 0 {
+		// value is cleartext, return
+		return value, nil
+	}
+
+	keyData, err := ioutil.ReadFile(s.KeyFile)
+	if err != nil {
+		return "", err
+	}
+
+	secretBlock, ok := blockFromBytes([]byte(value), StringSourceEncryptedBlockType)
+	if !ok {
+		return "", fmt.Errorf("no valid PEM block of type %q found in data", StringSourceEncryptedBlockType)
+	}
+
+	keyBlock, ok := blockFromBytes(keyData, StringSourceKeyBlockType)
+	if !ok {
+		return "", fmt.Errorf("no valid PEM block of type %q found in key", StringSourceKeyBlockType)
+	}
+
+	data, err := x509.DecryptPEMBlock(secretBlock, keyBlock.Bytes)
+	return string(data), err
+}
+
+func ValidateLDAPSyncConfig(config *legacyconfigv1.LDAPSyncConfig) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateStringSource(config.BindPassword, field.NewPath("bindPassword")))
-	bindPassword, _ := configapi.ResolveStringValue(config.BindPassword)
+	bindPassword, _ := ResolveStringValue(config.BindPassword)
 	validationResults.Append(ValidateLDAPClientConfig(config.URL, config.BindDN, bindPassword, config.CA, config.Insecure, nil))
 
 	for ldapGroupUID, openShiftGroupName := range config.LDAPGroupUIDToOpenShiftGroupNameMapping {
@@ -108,7 +182,7 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 	return validationResults
 }
 
-func ValidateRFC2307Config(config *configapi.RFC2307Config) validation.ValidationResults {
+func ValidateRFC2307Config(config *legacyconfigv1.RFC2307Config) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery")))
@@ -134,7 +208,7 @@ func ValidateRFC2307Config(config *configapi.RFC2307Config) validation.Validatio
 	return validationResults
 }
 
-func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) validation.ValidationResults {
+func ValidateActiveDirectoryConfig(config *legacyconfigv1.ActiveDirectoryConfig) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
@@ -148,7 +222,7 @@ func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) vali
 	return validationResults
 }
 
-func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDirectoryConfig) validation.ValidationResults {
+func ValidateAugmentedActiveDirectoryConfig(config *legacyconfigv1.AugmentedActiveDirectoryConfig) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
@@ -171,10 +245,10 @@ func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDir
 	return validationResults
 }
 
-func ValidateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path) validation.ValidationResults {
+func ValidateLDAPQuery(query legacyconfigv1.LDAPQuery, fldPath *field.Path) validation.ValidationResults {
 	return validateLDAPQuery(query, fldPath, false)
 }
-func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly bool) validation.ValidationResults {
+func validateLDAPQuery(query legacyconfigv1.LDAPQuery, fldPath *field.Path, isDNOnly bool) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	if _, err := ldap.ParseDN(query.BaseDN); err != nil {
@@ -216,7 +290,7 @@ func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly 
 	return validationResults
 }
 
-func ValidateStringSource(s configapi.StringSource, fieldPath *field.Path) validation.ValidationResults {
+func ValidateStringSource(s legacyconfigv1.StringSource, fieldPath *field.Path) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 	methods := 0
 	if len(s.Value) > 0 {

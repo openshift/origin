@@ -1,10 +1,10 @@
 package sync
 
 import (
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 // SyncBuilder describes an object that can build all the schema-specific parts of an LDAPGroupSyncer
@@ -40,7 +40,7 @@ type MappedNameRestrictions interface {
 	GetGroupNameMappings() map[string]string
 }
 
-func ToLDAPQuery(in config.LDAPQuery) ldapquery.SerializeableLDAPQuery {
+func ToLDAPQuery(in legacyconfigv1.LDAPQuery) ldapquery.SerializeableLDAPQuery {
 	return ldapquery.SerializeableLDAPQuery{
 		BaseDN:       in.BaseDN,
 		Scope:        in.Scope,
