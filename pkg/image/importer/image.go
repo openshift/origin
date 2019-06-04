@@ -14,7 +14,9 @@ import (
 
 	"github.com/openshift/api/image/dockerpre012"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+
+	// TODO: library-go
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 )
 
 func schema1ToImage(manifest *schema1.SignedManifest, d godigest.Digest) (*imageapi.Image, error) {
@@ -83,7 +85,7 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 	return image, nil
 }
 
-func schema0ToImage(dockerImage *dockerregistry.Image) (*imageapi.Image, error) {
+func schema0ToImage(dockerImage *dockerv1client.Image) (*imageapi.Image, error) {
 	var baseImage imageapi.DockerImage
 	if err := legacyscheme.Scheme.Convert(&dockerImage.Image, &baseImage, nil); err != nil {
 		return nil, fmt.Errorf("could not convert image: %#v", err)

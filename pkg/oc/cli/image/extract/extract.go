@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openshift/origin/pkg/image/registryclient"
+	"github.com/openshift/library-go/pkg/image/registryclient"
 
 	"github.com/spf13/cobra"
 	"k8s.io/klog"

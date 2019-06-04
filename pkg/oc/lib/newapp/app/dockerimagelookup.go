@@ -11,14 +11,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	"github.com/openshift/library-go/pkg/image/reference"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
@@ -140,7 +140,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				continue
 			}
 			dockerImage := &imageapi.DockerImage{}
-			if err := legacyscheme.Scheme.Convert(image, dockerImage, nil); err != nil {
+			if err := dockerv1client.ImageScheme.Convert(image, dockerImage, nil); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -289,7 +289,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 // not return images with the name "ruby".
 // TODO: replace ImageByTag to allow partial matches
 type DockerRegistrySearcher struct {
-	Client        dockerregistry.Client
+	Client        dockerv1client.Client
 	AllowInsecure bool
 }
 
@@ -318,7 +318,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		klog.V(4).Infof("checking Docker registry for %q, allow-insecure=%v", ref.String(), r.AllowInsecure)
 		connection, err := r.Client.Connect(ref.Registry, r.AllowInsecure)
 		if err != nil {
-			if dockerregistry.IsRegistryNotFound(err) {
+			if dockerv1client.IsRegistryNotFound(err) {
 				errs = append(errs, err)
 				continue
 			}
@@ -328,8 +328,8 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 
 		image, err := connection.ImageByTag(ref.Namespace, ref.Name, ref.Tag)
 		if err != nil {
-			if dockerregistry.IsNotFound(err) {
-				if dockerregistry.IsTagNotFound(err) {
+			if dockerv1client.IsNotFound(err) {
+				if dockerv1client.IsTagNotFound(err) {
 					klog.V(4).Infof("tag not found: %v", err)
 				}
 				continue
@@ -347,7 +347,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		klog.V(4).Infof("found image: %#v", image)
 
 		dockerImage := &imageapi.DockerImage{}
-		if err = legacyscheme.Scheme.Convert(&image.Image, dockerImage, nil); err != nil {
+		if err = dockerv1client.ImageScheme.Convert(&image.Image, dockerImage, nil); err != nil {
 			errs = append(errs, err)
 			continue
 		}

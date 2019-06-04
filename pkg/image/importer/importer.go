@@ -25,9 +25,10 @@ import (
 	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/internalimageutil"
 	"github.com/openshift/origin/pkg/image/util"
 )

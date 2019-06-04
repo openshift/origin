@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	dockerregistry "github.com/openshift/library-go/pkg/image/dockerv1client"
 )
 
 const (

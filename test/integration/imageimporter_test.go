@@ -24,6 +24,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	dockerregistry "github.com/openshift/library-go/pkg/image/dockerv1client"
+	"github.com/openshift/library-go/pkg/image/registryclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
