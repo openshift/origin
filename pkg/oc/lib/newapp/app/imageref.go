@@ -137,9 +137,9 @@ func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) 
 
 // ImageRef is a reference to an image
 type ImageRef struct {
-	Reference imageapi.DockerImageReference
+	Reference reference.DockerImageReference
 	// If specified, a more specific location the image is available at
-	ResolvedReference *imageapi.DockerImageReference
+	ResolvedReference *reference.DockerImageReference
 
 	AsResolvedImage bool
 	AsImageStream   bool
