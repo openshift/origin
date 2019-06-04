@@ -1,11 +1,11 @@
-package variable
+package imageformat
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/openshift-controller-manager/pkg/version"
 )
 
 // KeyFunc returns the value associated with the provided key or false if no

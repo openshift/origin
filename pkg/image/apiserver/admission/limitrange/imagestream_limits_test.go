@@ -10,9 +10,9 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 func TestGetMaxLimits(t *testing.T) {

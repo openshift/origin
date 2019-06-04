@@ -1,4 +1,4 @@
-package util
+package quotautil
 
 import (
 	"strings"

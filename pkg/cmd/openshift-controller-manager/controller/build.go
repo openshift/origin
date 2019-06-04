@@ -11,14 +11,14 @@ import (
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 // RunController starts the build sync loop for builds and buildConfig processing.
 func RunBuildController(ctx *ControllerContext) (bool, error) {
 
-	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate := imageformat.NewDefaultImageTemplate()
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Build.ImageTemplateFormat.Latest
 

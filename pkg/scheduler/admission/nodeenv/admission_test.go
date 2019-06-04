@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/util/labelselector"
+	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
 )
 
 // TestPodAdmission verifies various scenarios involving pod/project/global node label selectors

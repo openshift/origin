@@ -29,6 +29,7 @@ import (
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/library-go/pkg/image/reference"
+	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
@@ -36,7 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/util"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 // ImporterFunc returns an instance of the importer that should be used per invocation.

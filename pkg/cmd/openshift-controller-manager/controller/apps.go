@@ -5,8 +5,8 @@ import (
 
 	deployercontroller "github.com/openshift/origin/pkg/apps/controller/deployer"
 	deployconfigcontroller "github.com/openshift/origin/pkg/apps/controller/deploymentconfig"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 func RunDeployerController(ctx *ControllerContext) (bool, error) {
@@ -20,7 +20,7 @@ func RunDeployerController(ctx *ControllerContext) (bool, error) {
 		return true, err
 	}
 
-	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate := imageformat.NewDefaultImageTemplate()
 	imageTemplate.Format = ctx.OpenshiftControllerConfig.Deployer.ImageTemplateFormat.Format
 	imageTemplate.Latest = ctx.OpenshiftControllerConfig.Deployer.ImageTemplateFormat.Latest
 

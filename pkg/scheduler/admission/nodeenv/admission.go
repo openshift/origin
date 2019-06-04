@@ -14,8 +14,8 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
 func Register(plugins *admission.Plugins) {

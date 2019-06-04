@@ -22,9 +22,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	"github.com/openshift/openshift-controller-manager/pkg/version"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
@@ -47,13 +47,13 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 	}
 
 	{
-		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate := imageformat.NewDefaultImageTemplate()
 		imageTemplate.Format = config.Deployer.ImageTemplateFormat.Format
 		imageTemplate.Latest = config.Deployer.ImageTemplateFormat.Latest
 		klog.Infof("DeploymentConfig controller using images from %q", imageTemplate.ExpandOrDie("<component>"))
 	}
 	{
-		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate := imageformat.NewDefaultImageTemplate()
 		imageTemplate.Format = config.Build.ImageTemplateFormat.Format
 		imageTemplate.Latest = config.Build.ImageTemplateFormat.Latest
 		klog.Infof("Build controller using images from %q", imageTemplate.ExpandOrDie("<component>"))
