@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,7 +22,6 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	osutil "github.com/openshift/oc/pkg/helpers/cmd"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
 
@@ -122,7 +123,7 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 
 	switch resource {
 	case image.Resource("imagestreamtags"):
-		o.name = imageapi.NormalizeImageStreamTag(o.name)
+		o.name = normalizeImageStreamTag(o.name)
 		klog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
 	default:
 		return fmt.Errorf("invalid resource provided: %v", resource)
@@ -150,6 +151,17 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	klog.V(4).Infof("Will look for deps in %s", strings.Join(o.namespaces.List(), ","))
 
 	return nil
+}
+
+// normalizeImageStreamTag normalizes an image stream tag by defaulting to 'latest'
+// if no tag has been specified.
+func normalizeImageStreamTag(name string) string {
+	stripped, tag, ok := imageutil.SplitImageStreamTag(name)
+	if !ok {
+		// Default to latest
+		return imageutil.JoinImageStreamTag(stripped, tag)
+	}
+	return name
 }
 
 // Validate returns validation errors regarding build-chain

@@ -27,8 +27,8 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypedclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	"github.com/openshift/origin/pkg/image/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -143,7 +143,7 @@ var (
 // GetImageLabels retrieves Docker labels from image from image repository name and
 // image reference
 func GetImageLabels(c imagetypedclientset.ImageStreamImageInterface, imageRepoName, imageRef string) (map[string]string, error) {
-	_, imageID, err := imageapi.ParseImageStreamImageName(imageRef)
+	_, imageID, err := util.ParseImageStreamImageName(imageRef)
 	image, err := c.Get(imageutil.JoinImageStreamImage(imageRepoName, imageID), metav1.GetOptions{})
 
 	if err != nil {

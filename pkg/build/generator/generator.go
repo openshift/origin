@@ -742,7 +742,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx context.Context,
 			klog.V(2).Info(err)
 			return "", err
 		}
-		image, err := imageutil.DockerImageReferenceForStream(is)
+		image, err := dockerImageReferenceForStream(is)
 		if err != nil {
 			klog.V(2).Infof("Error resolving Docker image reference for %s/%s: %v", namespace, name, err)
 			return "", err
@@ -754,6 +754,19 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx context.Context,
 	default:
 		return "", fmt.Errorf("unknown From Kind %s", from.Kind)
 	}
+}
+
+// dockerImageReferenceForStream returns a DockerImageReference that represents
+// the ImageStream or false, if no valid reference exists.
+func dockerImageReferenceForStream(stream *imagev1.ImageStream) (imagev1.DockerImageReference, error) {
+	spec := stream.Status.DockerImageRepository
+	if len(spec) == 0 {
+		spec = stream.Spec.DockerImageRepository
+	}
+	if len(spec) == 0 {
+		return imagev1.DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", stream.Namespace, stream.Name)
+	}
+	return imageutil.ParseDockerImageReference(spec)
 }
 
 // resolveImageSecret looks up the Secrets provided by the Service Account and

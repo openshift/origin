@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 // DockerClient is the local interface for the docker client
@@ -257,7 +257,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 			ref.Registry = "Docker Hub"
 		}
 
-		if err := imageutil.ImageWithMetadata(image.Image); err != nil {
+		if err := ocimageutil.ImageWithMetadata(image.Image); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -374,7 +374,7 @@ func descriptionFor(image *dockerv10.DockerImage, value, from string, tag string
 	if len(from) == 0 {
 		from = "local"
 	}
-	shortID := imageapi.ShortDockerImageID(image, 7)
+	shortID := ocimageutil.ShortDockerImageID(image, 7)
 	tagPart := ""
 	if len(tag) > 0 {
 		tagPart = fmt.Sprintf(" (tag %q)", tag)

@@ -25,8 +25,8 @@ import (
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 const (
@@ -215,7 +215,7 @@ func getStorage(image *imagev1.Image) int64 {
 		blobSet.Insert(layer.Name)
 		storage += layer.LayerSize
 	}
-	if err := imageutil.ImageWithMetadata(image); err != nil {
+	if err := ocimageutil.ImageWithMetadata(image); err != nil {
 		return storage
 	}
 	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
@@ -250,7 +250,7 @@ func getTags(stream *imagev1.ImageStream, image *imagev1.Image) []string {
 			tags = append(tags, tag.Tag)
 		}
 	}
-	imageapi.PrioritizeTags(tags)
+	util.PrioritizeTags(tags)
 	return tags
 }
 

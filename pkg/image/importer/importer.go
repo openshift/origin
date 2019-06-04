@@ -28,6 +28,7 @@ import (
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/internalimageutil"
 	"github.com/openshift/origin/pkg/image/util"
 )
 
@@ -444,7 +445,7 @@ func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest d
 		return
 	}
 
-	if err := util.InternalImageWithMetadata(image); err != nil {
+	if err := internalimageutil.InternalImageWithMetadata(image); err != nil {
 		return image, err
 	}
 
@@ -524,7 +525,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		}
 		tags = set.List()
 		// include only the top N tags in the result, put the rest in AdditionalTags
-		imageapi.PrioritizeTags(tags)
+		util.PrioritizeTags(tags)
 		for _, s := range tags {
 			if count <= 0 && repository.MaximumTags != -1 {
 				repository.AdditionalTags = append(repository.AdditionalTags, s)
@@ -628,7 +629,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 		}
 		tags = set.List()
 		// include only the top N tags in the result, put the rest in AdditionalTags
-		imageapi.PrioritizeTags(tags)
+		util.PrioritizeTags(tags)
 		for _, s := range tags {
 			if count <= 0 && repository.MaximumTags != -1 {
 				repository.AdditionalTags = append(repository.AdditionalTags, s)

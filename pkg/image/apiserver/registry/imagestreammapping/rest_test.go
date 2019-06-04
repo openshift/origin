@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/apiserver/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/origin/pkg/image/internalimageutil"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -289,12 +290,12 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	if e, a := imageID, repo.Status.Tags["latest"].Items[0].Image; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	tagEvent := imageapi.LatestTaggedImage(repo, "latest")
+	tagEvent := internalimageutil.LatestTaggedImage(repo, "latest")
 	if e, a := image.DockerImageReference, tagEvent.DockerImageReference; e != a {
 		t.Errorf("Unexpected tracking dockerImageReference: %q != %q", a, e)
 	}
 
-	pullSpec, ok := imageapi.ResolveLatestTaggedImage(repo, "latest")
+	pullSpec, ok := internalimageutil.ResolveLatestTaggedImage(repo, "latest")
 	if !ok {
 		t.Fatalf("Failed to resolv latest tagged image")
 	}
@@ -385,7 +386,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 	if e, a := imageID, repo.Status.Tags["latest"].Items[0].Image; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	tagEvent := imageapi.LatestTaggedImage(repo, "latest")
+	tagEvent := internalimageutil.LatestTaggedImage(repo, "latest")
 	if e, a := testDefaultRegistryURL+"/default/newrepo@"+imageID, tagEvent.DockerImageReference; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
@@ -393,7 +394,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 		t.Errorf("Expected image stream to have dockerImageReference other than %q", image.DockerImageReference)
 	}
 
-	pullSpec, ok := imageapi.ResolveLatestTaggedImage(repo, "latest")
+	pullSpec, ok := internalimageutil.ResolveLatestTaggedImage(repo, "latest")
 	if !ok {
 		t.Fatalf("Failed to resolv latest tagged image")
 	}
@@ -565,7 +566,7 @@ func TestTrackingTags(t *testing.T) {
 	}
 
 	for _, trackingTag := range []string{"tracking", "tracking2"} {
-		tracking := imageapi.LatestTaggedImage(stream, trackingTag)
+		tracking := internalimageutil.LatestTaggedImage(stream, trackingTag)
 		if tracking == nil {
 			t.Fatalf("unexpected nil %s TagEvent", trackingTag)
 		}
@@ -578,7 +579,7 @@ func TestTrackingTags(t *testing.T) {
 		}
 	}
 
-	nonTracking := imageapi.LatestTaggedImage(stream, "nontracking")
+	nonTracking := internalimageutil.LatestTaggedImage(stream, "nontracking")
 	if nonTracking == nil {
 		t.Fatal("unexpected nil nontracking TagEvent")
 	}

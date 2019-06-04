@@ -2,7 +2,9 @@ package integration
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +41,7 @@ func TestImageAddSignature(t *testing.T) {
 		Content: []byte("binaryblob"),
 	}
 
-	sigName, err := imageapi.JoinImageSignatureName(image.Name, "signaturename")
+	sigName, err := joinImageSignatureName(image.Name, "signaturename")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -82,7 +84,7 @@ func TestImageAddSignature(t *testing.T) {
 	}
 
 	// try to create a signature with different name but the same conent
-	newName, err := imageapi.JoinImageSignatureName(image.Name, "newone")
+	newName, err := joinImageSignatureName(image.Name, "newone")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -117,7 +119,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		{"d", "he who sacrifices freedom for security deserves neither"},
 	}
 	for i, d := range sigData {
-		name, err := imageapi.JoinImageSignatureName(image.Name, d.sigName)
+		name, err := joinImageSignatureName(image.Name, d.sigName)
 		if err != nil {
 			t.Fatalf("creating signature %d: unexpected error: %v", i, err)
 		}
@@ -260,4 +262,18 @@ func compareSignatures(t *testing.T, a, b imageapi.ImageSignature) {
 	if !reflect.DeepEqual(a, b) {
 		t.Errorf("created and contained signatures differ: %v", diff.ObjectDiff(a, b))
 	}
+}
+
+// joinImageSignatureName joins image name and custom signature name into one string with @ separator.
+func joinImageSignatureName(imageName, signatureName string) (string, error) {
+	if len(imageName) == 0 {
+		return "", fmt.Errorf("imageName may not be empty")
+	}
+	if len(signatureName) == 0 {
+		return "", fmt.Errorf("signatureName may not be empty")
+	}
+	if strings.Count(imageName, "@") > 0 || strings.Count(signatureName, "@") > 0 {
+		return "", fmt.Errorf("neither imageName nor signatureName can contain '@'")
+	}
+	return fmt.Sprintf("%s@%s", imageName, signatureName), nil
 }

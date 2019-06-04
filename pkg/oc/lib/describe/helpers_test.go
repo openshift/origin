@@ -2,6 +2,7 @@ package describe
 
 import (
 	"bytes"
+	"reflect"
 	"strings"
 	"testing"
 	"text/tabwriter"
@@ -135,6 +136,145 @@ func TestFormatImageStreamTags(t *testing.T) {
 	} {
 		if !strings.Contains(actual, s) {
 			t.Errorf("expected %s in:\n%s", s, actual)
+		}
+	}
+}
+
+func TestFollowTagReference(t *testing.T) {
+	tests := map[string]struct {
+		stream      *imageapi.ImageStream
+		tag         string
+		expFinalTag string
+		expRef      *imageapi.TagReference
+		expMultiple bool
+		expErr      error
+	}{
+		"follow tag reference": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testis",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag":   {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "sometag"}},
+						"sometag": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:sometag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "sometag",
+			expRef: &imageapi.TagReference{
+				From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:sometag"},
+			},
+			expMultiple: true,
+			expErr:      nil,
+		},
+		"follow tag reference with istag:mytag format": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testis",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag":   {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "testis:sometag"}},
+						"sometag": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:sometag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "sometag",
+			expRef: &imageapi.TagReference{
+				From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:sometag"},
+			},
+			expMultiple: true,
+			expErr:      nil,
+		},
+		"no tag reference error": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testis",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag":    {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "correcttag"}},
+						"wrongtag": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "correcttag",
+			expRef:      nil,
+			expMultiple: true,
+			expErr:      imageapi.ErrNotFoundReference,
+		},
+		"crosss image tag reference error": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testis",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "another:sometag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "mytag",
+			expRef:      nil,
+			expMultiple: false,
+			expErr:      imageapi.ErrCrossImageStreamReference,
+		},
+		"crosss namespace tag reference error": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "thisns",
+					Name:      "thisis",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "anotherns", Name: "thisis:sometag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "mytag",
+			expRef:      nil,
+			expMultiple: false,
+			expErr:      imageapi.ErrCrossImageStreamReference,
+		},
+		"circular tag reference error": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testis",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag":   {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "sometag"}},
+						"sometag": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "mytag"}},
+					},
+				},
+			},
+			tag:         "mytag",
+			expFinalTag: "mytag",
+			expRef:      nil,
+			expMultiple: true,
+			expErr:      imageapi.ErrCircularReference,
+		},
+	}
+
+	for name, tc := range tests {
+		finalTag, ref, multiple, err := followTagReference(tc.stream, tc.tag)
+		if !reflect.DeepEqual(finalTag, tc.expFinalTag) {
+			t.Errorf("%s: got %v, want %v", name, finalTag, tc.expFinalTag)
+		}
+		if !reflect.DeepEqual(ref, tc.expRef) {
+			t.Errorf("%s: got %#v, want %#v", name, ref, tc.expRef)
+		}
+		if !reflect.DeepEqual(multiple, tc.expMultiple) {
+			t.Errorf("%s: got %v, want %v", name, multiple, tc.expMultiple)
+		}
+		if err != tc.expErr {
+			t.Errorf("%s: got %v, want %v", name, err, tc.expErr)
 		}
 	}
 }

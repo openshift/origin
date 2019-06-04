@@ -22,6 +22,7 @@ import (
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // RepositoryNameComponentRegexp restricts registry path component names to
@@ -95,7 +96,7 @@ func validateImageSignature(signature *imageapi.ImageSignature, fldPath *field.P
 		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("annotations"), "signature annotations cannot be set"))
 	}
 
-	if _, _, err := imageapi.SplitImageSignatureName(signature.Name); err != nil {
+	if _, _, err := util.SplitImageSignatureName(signature.Name); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("metadata").Child("name"), signature.Name, "name must be of format <imageName>@<signatureName>"))
 	}
 	if len(signature.Type) == 0 {

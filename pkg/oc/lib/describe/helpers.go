@@ -9,6 +9,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	"github.com/docker/go-units"
 
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +25,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/util"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
@@ -233,7 +236,8 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 	var localReferences sets.String
 	var referentialTags map[string]sets.String
 	for k := range stream.Spec.Tags {
-		if target, _, multiple, err := imageapi.FollowTagReference(stream, k); err == nil && multiple {
+		// there is a v1helper version of this
+		if target, _, multiple, err := followTagReference(stream, k); err == nil && multiple {
 			if referentialTags == nil {
 				referentialTags = make(map[string]sets.String)
 			}
@@ -255,7 +259,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 	fmt.Fprintf(out, "Unique Images:\t%d\nTags:\t%d\n\n", len(images), len(sortedTags))
 
 	first := true
-	imageapi.PrioritizeTags(sortedTags)
+	util.PrioritizeTags(sortedTags)
 	for _, tag := range sortedTags {
 		if localReferences.Has(tag) {
 			continue
@@ -279,7 +283,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 				name = tagRef.From.Name
 			}
 			scheduled, insecure = tagRef.ImportPolicy.Scheduled, tagRef.ImportPolicy.Insecure
-			gen := imageapi.LatestObservedTagGeneration(stream, tag)
+			gen := latestObservedTagGeneration(stream, tag)
 			importing = !tagRef.Reference && tagRef.Generation != nil && *tagRef.Generation > gen
 		}
 
@@ -313,7 +317,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 
 		if referentialTags[tag].Len() > 0 {
 			references := referentialTags[tag].List()
-			imageapi.PrioritizeTags(references)
+			util.PrioritizeTags(references)
 			fmt.Fprintf(out, "%s (%s)\n", tag, strings.Join(references, ", "))
 		} else {
 			fmt.Fprintf(out, "%s\n", tag)
@@ -424,6 +428,81 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 				fmt.Fprintf(out, "      %s ago\n", units.HumanDuration(d))
 			}
 		}
+	}
+}
+
+// LatestObservedTagGeneration returns the generation value for the given tag that has been observed by the controller
+// monitoring the image stream. If the tag has not been observed, the generation is zero.
+func latestObservedTagGeneration(stream *imageapi.ImageStream, tag string) int64 {
+	tagEvents, ok := stream.Status.Tags[tag]
+	if !ok {
+		return 0
+	}
+
+	// find the most recent generation
+	lastGen := int64(0)
+	if items := tagEvents.Items; len(items) > 0 {
+		tagEvent := items[0]
+		if tagEvent.Generation > lastGen {
+			lastGen = tagEvent.Generation
+		}
+	}
+	for _, condition := range tagEvents.Conditions {
+		if condition.Type != imageapi.ImportSuccess {
+			continue
+		}
+		if condition.Generation > lastGen {
+			lastGen = condition.Generation
+		}
+		break
+	}
+	return lastGen
+}
+
+// FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
+// Will return multiple if the tag had at least reference, and ref and finalTag will be the last tag seen.
+// If an invalid reference is found, err will be returned.
+func followTagReference(stream *imageapi.ImageStream, tag string) (finalTag string, ref *imageapi.TagReference, multiple bool, err error) {
+	seen := sets.NewString()
+	for {
+		if seen.Has(tag) {
+			// circular reference
+			return tag, nil, multiple, imageapi.ErrCircularReference
+		}
+		seen.Insert(tag)
+
+		tagRef, ok := stream.Spec.Tags[tag]
+		if !ok {
+			// no tag at the end of the rainbow
+			return tag, nil, multiple, imageapi.ErrNotFoundReference
+		}
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
+			// terminating tag
+			return tag, &tagRef, multiple, nil
+		}
+
+		if tagRef.From.Namespace != "" && tagRef.From.Namespace != stream.ObjectMeta.Namespace {
+			return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
+		}
+
+		// The reference needs to be followed with two format patterns:
+		// a) sameis:sometag and b) sometag
+		if strings.Contains(tagRef.From.Name, ":") {
+			name, tagref, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
+			if !ok {
+				return tag, nil, multiple, imageapi.ErrInvalidReference
+			}
+			if name != stream.ObjectMeta.Name {
+				// anotheris:sometag - this should not happen.
+				return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
+			}
+			// sameis:sometag - follow the reference as sometag
+			tag = tagref
+		} else {
+			// sometag - follow the reference
+			tag = tagRef.From.Name
+		}
+		multiple = true
 	}
 }
 

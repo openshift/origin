@@ -1468,3 +1468,44 @@ func TestTagRefChanged(t *testing.T) {
 		}
 	}
 }
+
+func TestTagsChangedHelper(t *testing.T) {
+	tests := map[string]struct {
+		new     []imageapi.TagEvent
+		old     []imageapi.TagEvent
+		changed bool
+		deleted bool
+	}{
+		"both empty": {
+			new:     []imageapi.TagEvent{},
+			old:     []imageapi.TagEvent{},
+			changed: false,
+			deleted: false,
+		},
+		"new image": {
+			new:     []imageapi.TagEvent{{Image: "newimage"}},
+			old:     []imageapi.TagEvent{},
+			changed: true,
+			deleted: false,
+		},
+		"image deleted": {
+			new:     []imageapi.TagEvent{},
+			old:     []imageapi.TagEvent{{Image: "oldimage"}},
+			changed: true,
+			deleted: true,
+		},
+		"image changed": {
+			new:     []imageapi.TagEvent{{Image: "newimage"}},
+			old:     []imageapi.TagEvent{{Image: "oldImage"}},
+			changed: true,
+			deleted: false,
+		},
+	}
+	for name, test := range tests {
+		changed, deleted := tagsChanged(test.new, test.old)
+		if changed != test.changed || deleted != test.deleted {
+			t.Errorf("%s: unexpected tagsChanged, expected (%v, %v) got (%v, %v)",
+				name, test.changed, test.deleted, changed, deleted)
+		}
+	}
+}

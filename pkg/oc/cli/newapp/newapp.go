@@ -58,6 +58,7 @@ import (
 	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -1148,7 +1149,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 				set := sets.NewString()
 				for _, tag := range imageStream.Status.Tags {
 					if refTag, ok := imageutilinternal.SpecHasTag(imageStream, tag.Tag); ok {
-						if !imageutilinternal.HasAnnotationTag(&refTag, imageapi.TagReferenceAnnotationTagHidden) {
+						if !ocimageutil.HasAnnotationTag(&refTag, imageapi.TagReferenceAnnotationTagHidden) {
 							set.Insert(tag.Tag)
 						}
 					} else {

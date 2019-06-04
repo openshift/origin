@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/image/internalimageutil"
+	"github.com/openshift/origin/pkg/image/util"
+
 	"k8s.io/klog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
-	"github.com/openshift/origin/pkg/image/util"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 
@@ -74,7 +76,7 @@ func (s *REST) NamespaceScoped() bool {
 // nameAndTag splits a string into its name component and tag component, and returns an error
 // if the string is not in the right form.
 func nameAndTag(id string) (name string, tag string, err error) {
-	name, tag, err = imageapi.ParseImageStreamTagName(id)
+	name, tag, err = util.ParseImageStreamTagName(id)
 	if err != nil {
 		err = kapierrors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 	}
@@ -377,7 +379,7 @@ func (r *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpti
 
 // imageFor retrieves the most recent image for a tag in a given imageStreem.
 func (r *REST) imageFor(ctx context.Context, tag string, imageStream *imageapi.ImageStream) (*imageapi.Image, error) {
-	event := imageapi.LatestTaggedImage(imageStream, tag)
+	event := internalimageutil.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
 		return nil, kapierrors.NewNotFound(imagegroup.Resource("imagestreamtags"), imageutil.JoinImageStreamTag(imageStream.Name, tag))
 	}
@@ -390,7 +392,7 @@ func (r *REST) imageFor(ctx context.Context, tag string, imageStream *imageapi.I
 func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Image, allowEmptyEvent bool) (*imageapi.ImageStreamTag, error) {
 	istagName := imageutil.JoinImageStreamTag(imageStream.Name, tag)
 
-	event := imageapi.LatestTaggedImage(imageStream, tag)
+	event := internalimageutil.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
 		if !allowEmptyEvent {
 			klog.V(4).Infof("did not find tag %s in image stream status tags: %#v", tag, imageStream.Status.Tags)
@@ -445,7 +447,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	}
 
 	if image != nil {
-		if err := util.InternalImageWithMetadata(image); err != nil {
+		if err := internalimageutil.InternalImageWithMetadata(image); err != nil {
 			return nil, err
 		}
 		image.DockerImageManifest = ""
@@ -456,6 +458,6 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 		ist.Image.Name = event.Image
 	}
 
-	ist.Image.DockerImageReference = imageapi.ResolveReferenceForTagEvent(imageStream, tag, event)
+	ist.Image.DockerImageReference = internalimageutil.ResolveReferenceForTagEvent(imageStream, tag, event)
 	return ist, nil
 }

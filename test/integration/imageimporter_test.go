@@ -28,6 +28,7 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/internalimageutil"
 	"github.com/openshift/origin/pkg/image/registryclient"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -523,7 +524,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		tagEvent := imageapi.LatestTaggedImage(is, "latest")
+		tagEvent := internalimageutil.LatestTaggedImage(is, "latest")
 		if tagEvent == nil {
 			t.Fatalf("no image tagged for latest: %#v", is)
 		}
@@ -550,7 +551,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		if len(is.Status.Tags["latest"].Conditions) > 0 {
 			t.Fatalf("incorrect conditions: %#v", is.Status.Tags["latest"].Conditions)
 		}
-		if !imageapi.HasTagCondition(is, "other", imageapi.TagEventCondition{Type: imageapi.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
+		if !internalimageutil.HasTagCondition(is, "other", imageapi.TagEventCondition{Type: imageapi.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
 			t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
 		}
 	}
@@ -641,7 +642,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tagEvent := imageapi.LatestTaggedImage(is, "v1")
+	tagEvent := internalimageutil.LatestTaggedImage(is, "v1")
 	if tagEvent == nil {
 		t.Fatalf("no image tagged for v1: %#v", is)
 	}
@@ -769,7 +770,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected object: %#v", event.Object)
 	}
-	tagEvent := imageapi.LatestTaggedImage(change, "latest")
+	tagEvent := internalimageutil.LatestTaggedImage(change, "latest")
 	if tagEvent == nil {
 		t.Fatalf("no image tagged for latest: %#v", change)
 	}
@@ -812,7 +813,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected object: %#v", event.Object)
 	}
-	tagEvent = imageapi.LatestTaggedImage(change, "latest")
+	tagEvent = internalimageutil.LatestTaggedImage(change, "latest")
 	if tagEvent == nil {
 		t.Fatalf("no image tagged for latest: %#v", change)
 	}

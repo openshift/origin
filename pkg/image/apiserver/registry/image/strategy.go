@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/image/internalimageutil"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -13,7 +15,6 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // managedSignatureAnnotation used to be set by image signature import controller as a signature annotation.
@@ -45,7 +46,7 @@ func (imageStrategy) NamespaceScoped() bool {
 func (s imageStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	// ignore errors, change in place
-	if err := util.InternalImageWithMetadata(newImage); err != nil {
+	if err := internalimageutil.InternalImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 	if newImage.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
@@ -99,7 +100,7 @@ func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 	if newImage.DockerImageManifest != oldImage.DockerImageManifest {
 		ok := true
 		if len(newImage.DockerImageManifest) > 0 {
-			ok, err = util.ManifestMatchesImage(oldImage, []byte(newImage.DockerImageManifest))
+			ok, err = internalimageutil.ManifestMatchesImage(oldImage, []byte(newImage.DockerImageManifest))
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
 			}
@@ -112,7 +113,7 @@ func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 	if newImage.DockerImageConfig != oldImage.DockerImageConfig {
 		ok := true
 		if len(newImage.DockerImageConfig) > 0 {
-			ok, err = util.ImageConfigMatchesImage(newImage, []byte(newImage.DockerImageConfig))
+			ok, err = internalimageutil.ImageConfigMatchesImage(newImage, []byte(newImage.DockerImageConfig))
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("attempted to validate that a new config for %q mentioned in the manifest, but failed: %v", oldImage.Name, err))
 			}
@@ -122,7 +123,7 @@ func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 		}
 	}
 
-	if err = util.InternalImageWithMetadata(newImage); err != nil {
+	if err = internalimageutil.InternalImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 

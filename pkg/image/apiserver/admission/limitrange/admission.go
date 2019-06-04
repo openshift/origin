@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/openshift/origin/pkg/image/internalimageutil"
+
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
-	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +21,6 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -139,7 +140,7 @@ func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *corev1.LimitRange, ki
 	}
 
 	image := &isObj.Image
-	if err := util.InternalImageWithMetadata(image); err != nil {
+	if err := internalimageutil.InternalImageWithMetadata(image); err != nil {
 		return err
 	}
 
