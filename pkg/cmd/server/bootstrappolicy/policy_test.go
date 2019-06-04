@@ -14,12 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/openshift/api"
 	securityapiv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
@@ -32,26 +30,6 @@ func init() {
 	api.Install(scheme)
 	api.InstallKube(scheme)
 	fileEncodingCodecFactory = serializer.NewCodecFactory(scheme)
-}
-
-func TestCreateBootstrapPolicyFile(t *testing.T) {
-	f, err := ioutil.TempFile("", "TestCreateBootstrapPolicyFile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(f.Name())
-	cmd := admin.NewCommandCreateBootstrapPolicyFile("", "", genericclioptions.NewTestIOStreamsDiscard())
-	cmd.Flag("filename").Value.Set(f.Name())
-	cmd.Run(cmd, nil)
-	data, err := ioutil.ReadFile(f.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	list := &corev1.List{}
-	if _, _, err := fileEncodingCodecFactory.UniversalDecoder().Decode(data, nil, list); err != nil {
-		t.Fatal(err)
-	}
-	testObjects(t, list, "bootstrap_policy_file.yaml")
 }
 
 func TestBootstrapNamespaceRoles(t *testing.T) {
