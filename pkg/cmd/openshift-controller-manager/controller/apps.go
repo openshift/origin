@@ -3,9 +3,9 @@ package controller
 import (
 	"k8s.io/client-go/kubernetes"
 
-	deployercontroller "github.com/openshift/origin/pkg/apps/controller/deployer"
-	deployconfigcontroller "github.com/openshift/origin/pkg/apps/controller/deploymentconfig"
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
+	deployercontroller "github.com/openshift/openshift-controller-manager/pkg/apps/deployer"
+	deployconfigcontroller "github.com/openshift/openshift-controller-manager/pkg/apps/deploymentconfig"
+	"github.com/openshift/openshift-controller-manager/pkg/cmd/imageformat"
 )
 
 func RunDeployerController(ctx *ControllerContext) (bool, error) {

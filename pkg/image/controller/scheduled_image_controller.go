@@ -13,7 +13,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
-	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
+	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
 )
 
 type uniqueItem struct {

@@ -34,7 +34,7 @@ import (
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
-	"github.com/openshift/origin/pkg/client/genericinformers"
+	"github.com/openshift/openshift-controller-manager/pkg/client/genericinformers"
 )
 
 func NewControllerContext(

@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/image/trigger"
+	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
 )
 
 // annotationTriggerIndexer uses annotations on objects to trigger changes.

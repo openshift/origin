@@ -22,7 +22,7 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1fakeclient "github.com/openshift/client-go/security/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/security/uid"
-	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/openshift-controller-manager/pkg/security/mcs"
 )
 
 func TestController(t *testing.T) {

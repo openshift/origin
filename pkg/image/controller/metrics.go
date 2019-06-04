@@ -10,7 +10,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
+	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 

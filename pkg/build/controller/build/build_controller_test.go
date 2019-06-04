@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	toml "github.com/pelletier/go-toml"
 
-	"github.com/openshift/origin/pkg/build/buildscheme"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,7 +40,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
-
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"

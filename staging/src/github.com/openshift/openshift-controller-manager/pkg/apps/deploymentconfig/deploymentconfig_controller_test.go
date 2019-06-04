@@ -23,9 +23,8 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	appslisters "github.com/openshift/client-go/apps/listers/apps/v1"
-
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/apps/controller/appstest"
+	"github.com/openshift/openshift-controller-manager/pkg/apps/appstest"
 )
 
 func init() {

@@ -26,9 +26,8 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/apps/controller/appstest"
+	"github.com/openshift/openshift-controller-manager/pkg/apps/appstest"
 )
 
 var (

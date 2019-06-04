@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/image/trigger"
+	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
 )
 
 // NewTriggerCache constructs a cacher that expects objects of type *trigger.CacheEntry

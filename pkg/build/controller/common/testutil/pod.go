@@ -3,13 +3,13 @@ package test
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/build/buildscheme"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/scale/scheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 

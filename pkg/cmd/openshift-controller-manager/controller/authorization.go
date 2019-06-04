@@ -1,8 +1,6 @@
 package controller
 
-import (
-	"github.com/openshift/origin/pkg/authorization/controller/defaultrolebindings"
-)
+import "github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 
 func RunDefaultRoleBindingController(ctx *ControllerContext) (bool, error) {
 	kubeClient, err := ctx.ClientBuilder.Client(infraDefaultRoleBindingsControllerServiceAccountName)

@@ -14,7 +14,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/image/trigger"
+	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
 )
 
 func indicesForContainerNames(containers []corev1.Container, names []string) []int {

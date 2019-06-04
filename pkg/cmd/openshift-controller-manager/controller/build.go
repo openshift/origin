@@ -6,12 +6,12 @@ import (
 
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 
+	"github.com/openshift/openshift-controller-manager/pkg/cmd/imageformat"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
 )
 
 // RunController starts the build sync loop for builds and buildConfig processing.

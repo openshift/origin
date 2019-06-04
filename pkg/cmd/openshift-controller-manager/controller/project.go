@@ -1,7 +1,7 @@
 package controller
 
 import (
-	projectcontroller "github.com/openshift/origin/pkg/project/controller"
+	projectcontroller "github.com/openshift/openshift-controller-manager/pkg/project/controller"
 )
 
 func RunOriginNamespaceController(ctx *ControllerContext) (bool, error) {

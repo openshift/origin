@@ -22,7 +22,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	appsv1informer "github.com/openshift/client-go/apps/informers/externalversions/apps/v1"
-	metrics "github.com/openshift/origin/pkg/apps/metrics/prometheus"
+	metrics "github.com/openshift/openshift-controller-manager/pkg/apps/metrics/prometheus"
 )
 
 // NewDeploymentConfigController creates a new DeploymentConfigController.

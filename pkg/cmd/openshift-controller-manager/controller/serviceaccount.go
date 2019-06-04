@@ -6,7 +6,7 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 
-	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
+	serviceaccountcontrollers "github.com/openshift/openshift-controller-manager/pkg/serviceaccounts/controllers"
 )
 
 func RunServiceAccountController(ctx *ControllerContext) (bool, error) {
