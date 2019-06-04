@@ -348,12 +348,10 @@ func (og *operationGenerator) GenerateAttachVolumeFunc(
 
 		if attachErr != nil {
 			if derr, ok := attachErr.(*volerr.DanglingAttachError); ok {
-				addErr := actualStateOfWorld.MarkVolumeAsAttached(
+				addErr := actualStateOfWorld.MarkVolumeAsUncertain(
 					v1.UniqueVolumeName(""),
 					originalSpec,
-					derr.CurrentNode,
-					derr.DevicePath)
-
+					derr.CurrentNode)
 				if addErr != nil {
 					klog.Errorf("AttachVolume.MarkVolumeAsAttached failed to fix dangling volume error for volume %q with %s", volumeToAttach.VolumeName, addErr)
 				}
