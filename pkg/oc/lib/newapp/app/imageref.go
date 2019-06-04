@@ -60,7 +60,7 @@ func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	return &ImageRef{
 		Reference: ref,
 		Info: &dockerv10.DockerImage{
-			Config: &imageapi.DockerConfig{},
+			Config: &dockerv10.DockerConfig{},
 		},
 	}, nil
 }
@@ -79,7 +79,7 @@ func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*Imag
 	}
 
 	imageRef.Info = &dockerv10.DockerImage{
-		Config: &imageapi.DockerConfig{
+		Config: &dockerv10.DockerConfig{
 			ExposedPorts: exposedPorts,
 		},
 	}

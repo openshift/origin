@@ -139,7 +139,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				}
 				continue
 			}
-			dockerImage := &imageapi.DockerImage{}
+			dockerImage := &dockerv10.DockerImage{}
 			if err := legacyscheme.Scheme.Convert(image, dockerImage, nil); err != nil {
 				errs = append(errs, err)
 				continue
@@ -346,7 +346,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		}
 		klog.V(4).Infof("found image: %#v", image)
 
-		dockerImage := &imageapi.DockerImage{}
+		dockerImage := &dockerv10.DockerImage{}
 		if err = legacyscheme.Scheme.Convert(&image.Image, dockerImage, nil); err != nil {
 			errs = append(errs, err)
 			continue
