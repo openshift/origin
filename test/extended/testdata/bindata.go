@@ -105,6 +105,7 @@
 // test/extended/testdata/deployments/deployment-image-resolution-is.yaml
 // test/extended/testdata/deployments/deployment-image-resolution.yaml
 // test/extended/testdata/deployments/deployment-min-ready-seconds.yaml
+// test/extended/testdata/deployments/deployment-shutdown-graceful.yaml
 // test/extended/testdata/deployments/deployment-simple.yaml
 // test/extended/testdata/deployments/deployment-trigger.yaml
 // test/extended/testdata/deployments/deployment-with-ref-env.yaml
@@ -5804,6 +5805,66 @@ func testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml() (*asset, err
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-min-ready-seconds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDeploymentsDeploymentShutdownGracefulYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: nettest
+  name: nettest
+spec:
+  replicas: 3
+  selector:
+    app: nettest
+    deploymentconfig: nettest
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: nettest
+        deploymentconfig: nettest
+    spec:
+      containers:
+      - args:
+        - -delay-shutdown=120
+        image: gcr.io/google_containers/nettest:1.7
+        imagePullPolicy: IfNotPresent
+        name: nettest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30000
+  test: false
+  triggers:
+  - type: ConfigChange
+status:
+`)
+
+func testExtendedTestdataDeploymentsDeploymentShutdownGracefulYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsDeploymentShutdownGracefulYaml, nil
+}
+
+func testExtendedTestdataDeploymentsDeploymentShutdownGracefulYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsDeploymentShutdownGracefulYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-shutdown-graceful.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32675,6 +32736,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
 	"test/extended/testdata/deployments/deployment-image-resolution.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
 	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml": testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
+	"test/extended/testdata/deployments/deployment-shutdown-graceful.yaml": testExtendedTestdataDeploymentsDeploymentShutdownGracefulYaml,
 	"test/extended/testdata/deployments/deployment-simple.yaml": testExtendedTestdataDeploymentsDeploymentSimpleYaml,
 	"test/extended/testdata/deployments/deployment-trigger.yaml": testExtendedTestdataDeploymentsDeploymentTriggerYaml,
 	"test/extended/testdata/deployments/deployment-with-ref-env.yaml": testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
@@ -33115,6 +33177,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"deployment-image-resolution-is.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml, map[string]*bintree{}},
 					"deployment-image-resolution.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionYaml, map[string]*bintree{}},
 					"deployment-min-ready-seconds.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml, map[string]*bintree{}},
+					"deployment-shutdown-graceful.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentShutdownGracefulYaml, map[string]*bintree{}},
 					"deployment-simple.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
 					"deployment-trigger.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentTriggerYaml, map[string]*bintree{}},
 					"deployment-with-ref-env.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml, map[string]*bintree{}},

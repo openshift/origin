@@ -97,6 +97,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 		ignoresDeployersFixture         = exutil.FixturePath("testdata", "deployments", "deployment-ignores-deployer.yaml")
 		imageChangeTriggerFixture       = exutil.FixturePath("testdata", "deployments", "deployment-trigger.yaml")
+		deploymentRunningFixture        = exutil.FixturePath("testdata", "deployments", "deployment-shutdown-graceful.yaml")
 	)
 
 	g.Describe("when run iteratively [Conformance]", func() {
@@ -1547,6 +1548,66 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 			o.Expect(rcs.Items).To(o.HaveLen(1))
 			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())
+		})
+	})
+
+	g.Describe("running pods [Conformance]", func() {
+		dcName := "nettest"
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("Terminating pod should not be considered part of the set of running pods", func() {
+			dc, err := createDeploymentConfig(oc, deploymentRunningFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+			namespace := oc.Namespace()
+			rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
+
+			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			e2e.Logf("triggering a new deployment with config change")
+			_, err = oc.Run("set", "env").Args("dc/"+dc.Name, "TRY=ONCE").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = wait.PollImmediate(500*time.Millisecond, time.Minute, func() (bool, error) {
+				_, rcs, _, err := deploymentInfo(oc, dcName)
+				if err != nil {
+					return false, nil
+				}
+
+				secondDeploymentExists := false
+				for _, rc := range rcs {
+					if rc.Name == appsutil.DeploymentNameForConfigVersion(dcName, 2) {
+						secondDeploymentExists = true
+						break
+					}
+				}
+
+				return secondDeploymentExists, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			e2e.Logf("checking the running pod number during the deploy")
+			secondDeploymentComplete := false
+			var runningpodnum int
+			var rc *corev1.ReplicationController
+			for secondDeploymentComplete != true {
+				pods, err := oc.Run("get").Args("pod", fmt.Sprintf("-l app=nettest")).Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				runningpodnum = strings.Count(pods, "Running")
+				if runningpodnum < 3 {
+					err = fmt.Errorf("deployment config %q running pod number not met replicase", dcName)
+					break
+				}
+
+				g.By("Checking deploy status")
+				rc, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Get(rcName(2), metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if appsutil.DeploymentStatusFor(rc) == appsv1.DeploymentStatusComplete {
+					secondDeploymentComplete = true
+				}
+			}
 		})
 	})
 })

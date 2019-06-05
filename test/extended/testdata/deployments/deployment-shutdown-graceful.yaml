@@ -1,0 +1,43 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: nettest
+  name: nettest
+spec:
+  replicas: 3
+  selector:
+    app: nettest
+    deploymentconfig: nettest
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: nettest
+        deploymentconfig: nettest
+    spec:
+      containers:
+      - args:
+        - -delay-shutdown=120
+        image: gcr.io/google_containers/nettest:1.7
+        imagePullPolicy: IfNotPresent
+        name: nettest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30000
+  test: false
+  triggers:
+  - type: ConfigChange
+status:
