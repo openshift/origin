@@ -389,6 +389,7 @@ var (
 			`should be rejected when no endpoints exist`,                                 // https://bugzilla.redhat.com/show_bug.cgi?id=1711605
 			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
 			`TaintBasedEvictions`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
+			`SchedulerPreemption`, // https://bugzilla.redhat.com/show_bug.cgi?id=1717198
 
 			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 			`\[Driver: ceph\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath`,
