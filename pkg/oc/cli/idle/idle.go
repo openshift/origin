@@ -34,7 +34,7 @@ import (
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
-	utilunidling "github.com/openshift/origin/pkg/unidling/util"
+	"github.com/openshift/library-go/pkg/unidling/unidlingclient"
 )
 
 var (
@@ -612,7 +612,7 @@ func (o *IdleOptions) RunIdle() error {
 		fmt.Fprintf(o.ErrOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	scaleAnnotater := utilunidling.NewScaleAnnotater(o.ScaleClient, o.Mapper, o.AppClient.AppsV1(), o.ClientSet.CoreV1(), func(currentReplicas int32, annotations map[string]string) {
+	scaleAnnotater := unidlingclient.NewScaleAnnotater(o.ScaleClient, o.Mapper, o.AppClient.AppsV1(), o.ClientSet.CoreV1(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -708,7 +708,7 @@ func (o *IdleOptions) RunIdle() error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(scheme.DefaultJSONEncoder(), info.namespace, o.AppClient.AppsV1(), o.ClientSet.CoreV1())
+			scaleUpdater := unidlingclient.NewScaleUpdater(scheme.DefaultJSONEncoder(), info.namespace, o.AppClient.AppsV1(), o.ClientSet.CoreV1())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef.CrossGroupObjectReference, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
