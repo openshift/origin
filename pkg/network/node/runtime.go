@@ -12,6 +12,12 @@ import (
 	kubeletremote "k8s.io/kubernetes/pkg/kubelet/remote"
 )
 
+const (
+	runtimeEndpoint = "unix:///var/run/crio/crio.sock"
+	// 2 minutes is the current default value used in kubelet
+	runtimeRequestTimeout = 2 * time.Minute
+)
+
 func (node *OsdnNode) getRuntimeService() (kubeletapi.RuntimeService, error) {
 	if node.runtimeService != nil {
 		return node.runtimeService, nil
@@ -26,7 +32,7 @@ func (node *OsdnNode) getRuntimeService() (kubeletapi.RuntimeService, error) {
 			Steps:    24,
 		},
 		func() (bool, error) {
-			runtimeService, err := kubeletremote.NewRemoteRuntimeService(node.runtimeEndpoint, node.runtimeRequestTimeout)
+			runtimeService, err := kubeletremote.NewRemoteRuntimeService(runtimeEndpoint, runtimeRequestTimeout)
 			if err != nil {
 				// Wait longer
 				return false, nil
