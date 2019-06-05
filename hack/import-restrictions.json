@@ -480,9 +480,8 @@
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
-      "github.com/openshift/origin/pkg/build/buildapihelpers",
+      "github.com/openshift/origin/pkg/build/buildutil",
       "github.com/openshift/origin/pkg/build/client/v1",
-      "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/templates",
@@ -497,7 +496,6 @@
       "github.com/openshift/origin/pkg/security/apis/security",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",
       "github.com/openshift/origin/pkg/template/apis/template",
-      "github.com/openshift/origin/pkg/unidling/util",
       "github.com/openshift/origin/pkg/version",
 
       "vendor/github.com/ghodss/yaml",

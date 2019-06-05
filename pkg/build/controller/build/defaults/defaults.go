@@ -11,9 +11,8 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	"github.com/openshift/origin/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/build/controller/common"
-	"github.com/openshift/origin/pkg/build/util"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type BuildDefaults struct {
@@ -101,9 +100,9 @@ func (b BuildDefaults) applyPodProxyDefaults(pod *corev1.Pod, isCustomBuild bool
 		externalEnv = append(externalEnv, corev1.EnvVar{Name: "NO_PROXY", Value: b.DefaultProxy.NoProxy})
 
 		if isCustomBuild {
-			util.MergeEnvWithoutDuplicates(externalEnv, &c.Env, false, []string{})
+			buildutil.MergeEnvWithoutDuplicates(externalEnv, &c.Env, false, []string{})
 		} else {
-			util.MergeTrustedEnvWithoutDuplicates(externalEnv, &c.Env, false)
+			buildutil.MergeTrustedEnvWithoutDuplicates(externalEnv, &c.Env, false)
 		}
 	}
 
@@ -163,9 +162,9 @@ func (b BuildDefaults) applyPodDefaults(pod *corev1.Pod, isCustomBuild bool) {
 			}
 		}
 		if isCustomBuild {
-			util.MergeEnvWithoutDuplicates(externalEnv, &c.Env, false, []string{})
+			buildutil.MergeEnvWithoutDuplicates(externalEnv, &c.Env, false, []string{})
 		} else {
-			util.MergeTrustedEnvWithoutDuplicates(externalEnv, &c.Env, false)
+			buildutil.MergeTrustedEnvWithoutDuplicates(externalEnv, &c.Env, false)
 		}
 
 		if c.Resources.Limits == nil {

@@ -24,10 +24,10 @@ import (
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
+	"github.com/openshift/origin/pkg/build/apiserver/buildgenerator"
 	buildwait "github.com/openshift/origin/pkg/build/apiserver/registry/wait"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	"github.com/openshift/origin/pkg/build/generator"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 var (
@@ -36,14 +36,14 @@ var (
 )
 
 // NewStorage creates a new storage object for build generation
-func NewStorage(generator *generator.BuildGenerator) *InstantiateREST {
+func NewStorage(generator *buildgenerator.BuildGenerator) *InstantiateREST {
 	return &InstantiateREST{generator: generator}
 }
 
 // InstantiateREST is a RESTStorage implementation for a BuildGenerator which supports only
 // the Create operation (as the generator has no underlying storage object).
 type InstantiateREST struct {
-	generator *generator.BuildGenerator
+	generator *buildgenerator.BuildGenerator
 }
 
 var _ rest.Creater = &InstantiateREST{}
@@ -84,7 +84,7 @@ func (s *InstantiateREST) ProducesMIMETypes(verb string) []string {
 	return nil // no additional mime types
 }
 
-func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, inClientConfig *restclient.Config) *BinaryInstantiateREST {
+func NewBinaryStorage(generator *buildgenerator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, inClientConfig *restclient.Config) *BinaryInstantiateREST {
 	clientConfig := restclient.CopyConfig(inClientConfig)
 	clientConfig.APIPath = "/api"
 	clientConfig.GroupVersion = &schema.GroupVersion{Version: "v1"}
@@ -99,7 +99,7 @@ func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtype
 }
 
 type BinaryInstantiateREST struct {
-	Generator    *generator.BuildGenerator
+	Generator    *buildgenerator.BuildGenerator
 	BuildClient  buildtypedclient.BuildsGetter
 	ClientConfig *restclient.Config
 	Timeout      time.Duration

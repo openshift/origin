@@ -1,4 +1,4 @@
-package util
+package buildutil
 
 // TODO: This list needs triage and move to openshift/api and library-go:
 

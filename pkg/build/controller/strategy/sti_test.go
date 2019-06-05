@@ -19,8 +19,7 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1typed "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	securityv1fake "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 func newFakeSecurityClient(rootAllowed bool) securityv1typed.SecurityV1Interface {
@@ -62,10 +61,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildutil.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildv1.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildv1.BuildLabel: buildutil.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {

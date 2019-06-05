@@ -14,8 +14,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 func TestDockerCreateBuildPod(t *testing.T) {
@@ -29,10 +28,10 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildutil.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildv1.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildv1.BuildLabel: buildutil.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {

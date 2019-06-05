@@ -12,8 +12,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 	securityclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 // SourceBuildStrategy creates STI(source to image) builds
@@ -68,7 +67,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 	privileged := true
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapihelpers.GetBuildPodName(build),
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),
 		},

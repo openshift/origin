@@ -11,9 +11,9 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	testutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestGitProxyDefaults(t *testing.T) {

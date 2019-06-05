@@ -8,18 +8,18 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/generator"
+	"github.com/openshift/origin/pkg/build/apiserver/buildgenerator"
 )
 
 // NewStorage creates a new storage object for build generation
-func NewStorage(generator *generator.BuildGenerator) *CloneREST {
+func NewStorage(generator *buildgenerator.BuildGenerator) *CloneREST {
 	return &CloneREST{generator: generator}
 }
 
 // CloneREST is a RESTStorage implementation for a BuildGenerator which supports only
 // the Get operation (as the generator has no underlying storage object).
 type CloneREST struct {
-	generator *generator.BuildGenerator
+	generator *buildgenerator.BuildGenerator
 }
 
 var _ rest.Creater = &CloneREST{}
