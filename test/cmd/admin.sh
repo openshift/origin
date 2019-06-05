@@ -29,11 +29,6 @@ os::test::junit::declare_suite_start "cmd/admin/start"
 # Check failure modes of various system commands
 
 os::test::junit::declare_suite_start "cmd/admin/certs"
-# check create-master-certs validation
-os::cmd::expect_failure_and_text 'oc adm ca create-master-certs --hostnames=example.com --master='                                                'master must be provided'
-os::cmd::expect_failure_and_text 'oc adm ca create-master-certs --hostnames=example.com --master=example.com'                                     'master must be a valid URL'
-os::cmd::expect_failure_and_text 'oc adm ca create-master-certs --hostnames=example.com --master=https://example.com --public-master=example.com' 'public master must be a valid URL'
-
 # check encrypt/decrypt of plain text
 os::cmd::expect_success          "echo -n 'secret data 1' | oc adm ca encrypt --genkey='${ARTIFACT_DIR}/secret.key' --out='${ARTIFACT_DIR}/secret.encrypted'"
 os::cmd::expect_success_and_text "oc adm ca decrypt --in='${ARTIFACT_DIR}/secret.encrypted' --key='${ARTIFACT_DIR}/secret.key'" 'secret data 1'
