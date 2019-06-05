@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/credentialprovider"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type mockKeyring struct {

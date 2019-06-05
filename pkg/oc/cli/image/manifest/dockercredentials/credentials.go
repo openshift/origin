@@ -7,13 +7,12 @@ import (
 	"runtime"
 	"strings"
 
-	"k8s.io/klog"
-
 	"github.com/docker/distribution/registry/client/auth"
 
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
-	"github.com/openshift/origin/pkg/image/registryclient"
+	"github.com/openshift/library-go/pkg/image/registryclient"
 )
 
 var (
