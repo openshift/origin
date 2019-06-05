@@ -9,16 +9,16 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	networkapi "github.com/openshift/api/network/v1"
+	networkv1 "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 )
 
-func HostSubnetToString(subnet *networkapi.HostSubnet) string {
+func HostSubnetToString(subnet *networkv1.HostSubnet) string {
 	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
 }
 
-func ClusterNetworkToString(n *networkapi.ClusterNetwork) string {
+func ClusterNetworkToString(n *networkv1.ClusterNetwork) string {
 	return fmt.Sprintf("%s (network: %q, hostSubnetBits: %d, serviceNetwork: %q, pluginName: %q)", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 }
 
@@ -42,7 +42,7 @@ type ClusterNetwork struct {
 	HostSubnetLength uint32
 }
 
-func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNetwork string, vxlanPort *uint32) (*NetworkInfo, error) {
+func ParseNetworkInfo(clusterNetwork []networkv1.ClusterNetworkEntry, serviceNetwork string, vxlanPort *uint32) (*NetworkInfo, error) {
 	var cns []ClusterNetwork
 
 	for _, entry := range clusterNetwork {
@@ -115,7 +115,7 @@ func (ni *NetworkInfo) CheckHostNetworks(hostIPNets []*net.IPNet) error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods []kapi.Pod, services []kapi.Service) error {
+func (ni *NetworkInfo) CheckClusterObjects(subnets []networkv1.HostSubnet, pods []kapi.Pod, services []kapi.Service) error {
 	var errList []error
 
 	for _, subnet := range subnets {
@@ -157,7 +157,7 @@ func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods
 }
 
 func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error) {
-	cn, err := networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, v1.GetOptions{})
+	cn, err := networkClient.NetworkV1().ClusterNetworks().Get(networkv1.ClusterNetworkDefault, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

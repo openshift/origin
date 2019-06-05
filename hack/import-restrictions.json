@@ -152,6 +152,44 @@
   },
 
   {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/cmd/openshift-controller-manager",
+      "github.com/openshift/origin/pkg/build/controller",
+      "github.com/openshift/origin/pkg/image/controller",
+      "github.com/openshift/origin/pkg/security/controller"
+    ],
+    "forbiddenImportPackageRoots": [
+      "vendor/github.com/openshift/openshift-controller-manager"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/oc",
+      "github.com/openshift/origin/pkg/cmd/openshift",
+      "github.com/openshift/origin/pkg/cmd/server/admin",
+      "github.com/openshift/origin/pkg/cmd/templates"
+    ],
+    "forbiddenImportPackageRoots": [
+      "vendor/github.com/openshift/oc"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
     "checkedPackages": [
       "github.com/openshift/origin/pkg/apps/apis/apps",
       "github.com/openshift/origin/pkg/apps/apis/apps/v1"
@@ -457,8 +495,6 @@
       "github.com/openshift/origin/pkg/security/apis/security",
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",
       "github.com/openshift/origin/pkg/template/apis/template",
-      "github.com/openshift/origin/pkg/template/templateprocessing",
-      "github.com/openshift/origin/pkg/unidling/api",
       "github.com/openshift/origin/pkg/unidling/util",
       "github.com/openshift/origin/pkg/version",
 

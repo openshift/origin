@@ -34,10 +34,8 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client/templateprocessing"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -98,11 +96,12 @@ func (s *REST) NamespaceScoped() bool {
 var _ = rest.Creater(&REST{})
 
 var (
+	legacyGroupName   = ""
 	ForbiddenNames    = []string{"openshift", "kubernetes", "kube"}
 	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 
-	defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
-	roleBindingGroups       = sets.NewString(legacy.GroupName, osauthorizationapi.GroupName, rbacv1.GroupName)
+	defaultRoleBindingNames = sets.NewString("system:image-pullers", "system:image-builders", "system:deployers")
+	roleBindingGroups       = sets.NewString(legacyGroupName, osauthorizationapi.GroupName, rbacv1.GroupName)
 	roleBindingKind         = "RoleBinding"
 )
 
@@ -158,7 +157,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		}
 	}
 
-	processedList, err := templateprocessing.NewDynamicTemplateProcessor(r.client).ProcessToList(template)
+	processedList, err := templateprocessingclient.NewDynamicTemplateProcessor(r.client).ProcessToList(template)
 	if err != nil {
 		return nil, err
 	}

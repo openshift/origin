@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -44,6 +42,7 @@ import (
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
+	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -55,6 +54,7 @@ import (
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -228,7 +228,7 @@ func (c *CLI) SetupProject() {
 	cancel := func() {}
 	defer cancel()
 	// Wait for default role bindings for those SAs
-	defaultRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(newNamespace)
+	defaultRoleBindings := defaultrolebindings.GetBootstrapServiceAccountProjectRoleBindings(newNamespace)
 	for _, rb := range defaultRoleBindings {
 		o.Expect(rb.Namespace).To(o.BeEquivalentTo(newNamespace))
 

@@ -7,9 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	allocator "github.com/openshift/origin/pkg/security"
+	securityv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/library-go/pkg/security/uid"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	"github.com/openshift/origin/pkg/security/uid"
 )
 
 func TestAssignSecurityContext(t *testing.T) {
@@ -361,16 +361,16 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 	}
 
 	fallbackNS := ns()
-	fallbackNS.Annotations[allocator.UIDRangeAnnotation] = "1/5"
+	fallbackNS.Annotations[securityv1.UIDRangeAnnotation] = "1/5"
 
 	emptyAnnotationNS := ns()
-	emptyAnnotationNS.Annotations[allocator.SupplementalGroupsAnnotation] = ""
+	emptyAnnotationNS.Annotations[securityv1.SupplementalGroupsAnnotation] = ""
 
 	badBlockNS := ns()
-	badBlockNS.Annotations[allocator.SupplementalGroupsAnnotation] = "foo"
+	badBlockNS.Annotations[securityv1.SupplementalGroupsAnnotation] = "foo"
 
 	goodNS := ns()
-	goodNS.Annotations[allocator.SupplementalGroupsAnnotation] = "1/5"
+	goodNS.Annotations[securityv1.SupplementalGroupsAnnotation] = "1/5"
 
 	tests := map[string]struct {
 		ns         *corev1.Namespace
@@ -437,16 +437,16 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 	}
 
 	fallbackNS := ns()
-	fallbackNS.Annotations[allocator.UIDRangeAnnotation] = "1/5"
+	fallbackNS.Annotations[securityv1.UIDRangeAnnotation] = "1/5"
 
 	emptyAnnotationNS := ns()
-	emptyAnnotationNS.Annotations[allocator.SupplementalGroupsAnnotation] = ""
+	emptyAnnotationNS.Annotations[securityv1.SupplementalGroupsAnnotation] = ""
 
 	badBlockNS := ns()
-	badBlockNS.Annotations[allocator.SupplementalGroupsAnnotation] = "foo"
+	badBlockNS.Annotations[securityv1.SupplementalGroupsAnnotation] = "foo"
 
 	goodNS := ns()
-	goodNS.Annotations[allocator.SupplementalGroupsAnnotation] = "1/5"
+	goodNS.Annotations[securityv1.SupplementalGroupsAnnotation] = "1/5"
 
 	tests := map[string]struct {
 		ns         *corev1.Namespace

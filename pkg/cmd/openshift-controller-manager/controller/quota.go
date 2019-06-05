@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
+	"github.com/openshift/openshift-controller-manager/pkg/quota/clusterquotareconciliation"
 	"github.com/openshift/origin/pkg/quota/image"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
@@ -51,7 +50,7 @@ func RunClusterQuotaReconciliationController(ctx *ControllerContext) (bool, erro
 	defaultResyncPeriod := 5 * time.Minute
 	defaultReplenishmentSyncPeriod := 12 * time.Hour
 
-	saName := bootstrappolicy.InfraClusterQuotaReconciliationControllerServiceAccountName
+	saName := infraClusterQuotaReconciliationControllerServiceAccountName
 
 	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(
 		ctx.KubernetesInformers.Core().V1().Namespaces(),

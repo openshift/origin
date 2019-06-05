@@ -3,10 +3,9 @@ package controller
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	sccallocation "github.com/openshift/origin/pkg/security/controller"
-	"github.com/openshift/origin/pkg/security/mcs"
-	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/library-go/pkg/security/uid"
+	sccallocation "github.com/openshift/openshift-controller-manager/pkg/security/controller"
+	"github.com/openshift/openshift-controller-manager/pkg/security/mcs"
 )
 
 func RunNamespaceSecurityAllocationController(ctx *ControllerContext) (bool, error) {
@@ -19,11 +18,11 @@ func RunNamespaceSecurityAllocationController(ctx *ControllerContext) (bool, err
 		return true, fmt.Errorf("unable to describe MCS category range: %v", err)
 	}
 
-	kubeClient, err := ctx.ClientBuilder.Client(bootstrappolicy.InfraNamespaceSecurityAllocationControllerServiceAccountName)
+	kubeClient, err := ctx.ClientBuilder.Client(infraNamespaceSecurityAllocationControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
-	securityClient, err := ctx.ClientBuilder.OpenshiftSecurityClient(bootstrappolicy.InfraNamespaceSecurityAllocationControllerServiceAccountName)
+	securityClient, err := ctx.ClientBuilder.OpenshiftSecurityClient(infraNamespaceSecurityAllocationControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}

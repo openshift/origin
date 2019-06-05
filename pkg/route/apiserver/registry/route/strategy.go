@@ -14,9 +14,9 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
-	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"
+	"github.com/openshift/origin/pkg/route/apiserver/routeinterfaces"
 )
 
 // HostGeneratedAnnotationKey is the key for an annotation set to "true" if the route's host was generated
@@ -32,13 +32,13 @@ var _ SubjectAccessReviewInterface = authorizationclient.SubjectAccessReviewInte
 type routeStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	route.RouteAllocator
+	routeinterfaces.RouteAllocator
 	sarClient SubjectAccessReviewInterface
 }
 
 // NewStrategy initializes the default logic that applies when creating and updating
 // Route objects via the REST API.
-func NewStrategy(allocator route.RouteAllocator, sarClient SubjectAccessReviewInterface) routeStrategy {
+func NewStrategy(allocator routeinterfaces.RouteAllocator, sarClient SubjectAccessReviewInterface) routeStrategy {
 	return routeStrategy{
 		ObjectTyper:    legacyscheme.Scheme,
 		NameGenerator:  names.SimpleNameGenerator,

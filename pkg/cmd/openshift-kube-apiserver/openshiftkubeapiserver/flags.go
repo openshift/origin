@@ -8,12 +8,11 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/cmd/configflags"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
-	"sigs.k8s.io/yaml"
 )
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
@@ -161,7 +160,7 @@ func admissionFlags(admissionConfig configv1.AdmissionConfig) (map[string][]stri
 	if err != nil {
 		return nil, err
 	}
-	configBytes, err := WriteYAML(upstreamAdmissionConfig, apiserverv1alpha1.AddToScheme)
+	configBytes, err := helpers.WriteYAML(upstreamAdmissionConfig, apiserverv1alpha1.AddToScheme)
 	if err != nil {
 		return nil, err
 	}
@@ -220,28 +219,4 @@ func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1
 	}
 
 	return ret, nil
-}
-
-type InstallFunc func(scheme *runtime.Scheme) error
-
-func WriteYAML(obj runtime.Object, schemeFns ...InstallFunc) ([]byte, error) {
-	scheme := runtime.NewScheme()
-	for _, schemeFn := range schemeFns {
-		err := schemeFn(scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
-
-	json, err := runtime.Encode(codec, obj)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, err
 }

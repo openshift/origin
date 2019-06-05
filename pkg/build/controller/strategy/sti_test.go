@@ -19,7 +19,6 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1typed "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	securityv1fake "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1/fake"
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )

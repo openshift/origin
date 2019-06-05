@@ -19,11 +19,10 @@ import (
 	"github.com/openshift/api/security"
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	allocator "github.com/openshift/origin/pkg/security"
+	"github.com/openshift/library-go/pkg/security/uid"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
-	"github.com/openshift/origin/pkg/security/uid"
 )
 
 type SCCMatcher interface {
@@ -275,12 +274,12 @@ func CreateProviderFromConstraint(ns string, namespace *corev1.Namespace, constr
 // getPreallocatedUIDRange retrieves the annotated value from the namespace, splits it to make
 // the min/max and formats the data into the necessary types for the strategy options.
 func getPreallocatedUIDRange(ns *corev1.Namespace) (*int64, *int64, error) {
-	annotationVal, ok := ns.Annotations[allocator.UIDRangeAnnotation]
+	annotationVal, ok := ns.Annotations[securityv1.UIDRangeAnnotation]
 	if !ok {
-		return nil, nil, fmt.Errorf("unable to find annotation %s", allocator.UIDRangeAnnotation)
+		return nil, nil, fmt.Errorf("unable to find annotation %s", securityv1.UIDRangeAnnotation)
 	}
 	if len(annotationVal) == 0 {
-		return nil, nil, fmt.Errorf("found annotation %s but it was empty", allocator.UIDRangeAnnotation)
+		return nil, nil, fmt.Errorf("found annotation %s but it was empty", securityv1.UIDRangeAnnotation)
 	}
 	uidBlock, err := uid.ParseBlock(annotationVal)
 	if err != nil {
@@ -295,12 +294,12 @@ func getPreallocatedUIDRange(ns *corev1.Namespace) (*int64, *int64, error) {
 
 // getPreallocatedLevel gets the annotated value from the namespace.
 func getPreallocatedLevel(ns *corev1.Namespace) (string, error) {
-	level, ok := ns.Annotations[allocator.MCSAnnotation]
+	level, ok := ns.Annotations[securityv1.MCSAnnotation]
 	if !ok {
-		return "", fmt.Errorf("unable to find annotation %s", allocator.MCSAnnotation)
+		return "", fmt.Errorf("unable to find annotation %s", securityv1.MCSAnnotation)
 	}
 	if len(level) == 0 {
-		return "", fmt.Errorf("found annotation %s but it was empty", allocator.MCSAnnotation)
+		return "", fmt.Errorf("found annotation %s but it was empty", securityv1.MCSAnnotation)
 	}
 	klog.V(4).Infof("got preallocated value for level: %s for selinux options in namespace %s", level, ns.Name)
 	return level, nil
@@ -310,18 +309,18 @@ func getPreallocatedLevel(ns *corev1.Namespace) (string, error) {
 // annotations from a namespace by looking for SupplementalGroupsAnnotation and falling back to
 // UIDRangeAnnotation if it is not found.
 func getSupplementalGroupsAnnotation(ns *corev1.Namespace) (string, error) {
-	groups, ok := ns.Annotations[allocator.SupplementalGroupsAnnotation]
+	groups, ok := ns.Annotations[securityv1.SupplementalGroupsAnnotation]
 	if !ok {
-		klog.V(4).Infof("unable to find supplemental group annotation %s falling back to %s", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
+		klog.V(4).Infof("unable to find supplemental group annotation %s falling back to %s", securityv1.SupplementalGroupsAnnotation, securityv1.UIDRangeAnnotation)
 
-		groups, ok = ns.Annotations[allocator.UIDRangeAnnotation]
+		groups, ok = ns.Annotations[securityv1.UIDRangeAnnotation]
 		if !ok {
 			return "", fmt.Errorf("unable to find supplemental group or uid annotation for namespace %s", ns.Name)
 		}
 	}
 
 	if len(groups) == 0 {
-		return "", fmt.Errorf("unable to find groups using %s and %s annotations", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
+		return "", fmt.Errorf("unable to find groups using %s and %s annotations", securityv1.SupplementalGroupsAnnotation, securityv1.UIDRangeAnnotation)
 	}
 	return groups, nil
 }

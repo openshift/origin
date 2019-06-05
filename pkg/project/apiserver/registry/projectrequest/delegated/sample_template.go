@@ -46,16 +46,6 @@ func DefaultTemplate() *templateapi.Template {
 	}
 	ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
 
-	// TODO this should be removed in 3.11.  We need to keep it for new server, old controller cases in 3.10.
-	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
-	for i := range serviceAccountRoleBindings {
-		objBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion), &serviceAccountRoleBindings[i])
-		if err != nil {
-			panic(err)
-		}
-		ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
-	}
-
 	binding := rbac.NewRoleBindingForClusterRole(bootstrappolicy.AdminRoleName, ns).Users("${" + ProjectAdminUserParam + "}").BindingOrDie()
 	objBytes, err = runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion), &binding)
 	if err != nil {

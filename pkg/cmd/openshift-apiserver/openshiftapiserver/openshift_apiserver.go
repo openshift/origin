@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +47,7 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	quotaapiserver "github.com/openshift/origin/pkg/quota/apiserver"
 	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
-	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	"github.com/openshift/origin/pkg/route/apiserver/routeallocationcontroller"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"

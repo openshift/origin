@@ -34,8 +34,7 @@ import (
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
-	"github.com/openshift/origin/pkg/client/genericinformers"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/openshift-controller-manager/pkg/client/genericinformers"
 )
 
 func NewControllerContext(
@@ -103,7 +102,7 @@ func NewControllerContext(
 				ClientConfig:         rest.AnonymousClientConfig(clientConfig),
 				CoreClient:           kubeClient.CoreV1(),
 				AuthenticationClient: kubeClient.AuthenticationV1(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
+				Namespace:            defaultOpenShiftInfraNamespace,
 			},
 		},
 		KubernetesInformers:                informers.NewSharedInformerFactory(kubeClient, defaultInformerResyncPeriod),

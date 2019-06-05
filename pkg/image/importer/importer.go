@@ -6,9 +6,6 @@ import (
 	"runtime"
 	"strings"
 
-	gocontext "golang.org/x/net/context"
-	"k8s.io/klog"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema1"
@@ -17,16 +14,18 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
 	godigest "github.com/opencontainers/go-digest"
+	gocontext "golang.org/x/net/context"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/util"
@@ -747,5 +746,5 @@ func setImageImportStatus(images *imageapi.ImageStreamImport, i int, tag string,
 }
 
 func invalidStatus(position string, errs ...*field.Error) metav1.Status {
-	return kapierrors.NewInvalid(legacy.Kind(""), position, errs).ErrStatus
+	return kapierrors.NewInvalid(schema.GroupKind{Group: "", Kind: ""}, position, errs).ErrStatus
 }

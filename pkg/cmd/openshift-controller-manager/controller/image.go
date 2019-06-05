@@ -17,28 +17,27 @@ import (
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	triggerannotations "github.com/openshift/openshift-controller-manager/pkg/image/trigger/annotations"
+	triggerbuildconfigs "github.com/openshift/openshift-controller-manager/pkg/image/trigger/buildconfigs"
+	triggerdeploymentconfigs "github.com/openshift/openshift-controller-manager/pkg/image/trigger/deploymentconfigs"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	imagesignaturecontroller "github.com/openshift/origin/pkg/image/controller/signature"
 	imagetriggercontroller "github.com/openshift/origin/pkg/image/controller/trigger"
-	triggerannotations "github.com/openshift/origin/pkg/image/trigger/annotations"
-	triggerbuildconfigs "github.com/openshift/origin/pkg/image/trigger/buildconfigs"
-	triggerdeploymentconfigs "github.com/openshift/origin/pkg/image/trigger/deploymentconfigs"
 )
 
 func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 	informer := ctx.ImageInformers.Image().V1().ImageStreams()
 
-	buildClient, err := ctx.ClientBuilder.OpenshiftBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	buildClient, err := ctx.ClientBuilder.OpenshiftBuildClient(infraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
 
-	appsClient, err := ctx.ClientBuilder.OpenshiftAppsClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	appsClient, err := ctx.ClientBuilder.OpenshiftAppsClient(infraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
-	kclient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	kclient := ctx.ClientBuilder.ClientOrDie(infraImageTriggerControllerServiceAccountName)
 
 	updater := podSpecUpdater{kclient}
 	broadcaster := imagetriggercontroller.NewTriggerEventBroadcaster(kclient.CoreV1())
@@ -146,7 +145,7 @@ func RunImageSignatureImportController(ctx *ControllerContext) (bool, error) {
 
 	controller := imagesignaturecontroller.NewSignatureImportController(
 		context.Background(),
-		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(infraImageImportControllerServiceAccountName),
 		ctx.ImageInformers.Image().V1().Images(),
 		resyncPeriod,
 		signatureFetchTimeout,
@@ -159,7 +158,7 @@ func RunImageSignatureImportController(ctx *ControllerContext) (bool, error) {
 func RunImageImportController(ctx *ControllerContext) (bool, error) {
 	informer := ctx.ImageInformers.Image().V1().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
-		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(infraImageImportControllerServiceAccountName),
 		informer,
 	)
 	go controller.Run(5, ctx.Stop)
@@ -170,7 +169,7 @@ func RunImageImportController(ctx *ControllerContext) (bool, error) {
 	}
 
 	scheduledController := imagecontroller.NewScheduledImageStreamController(
-		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftImageClientOrDie(infraImageImportControllerServiceAccountName),
 		informer,
 		imagecontroller.ScheduledImageStreamControllerOptions{
 			Resync: time.Duration(ctx.OpenshiftControllerConfig.ImageImport.ScheduledImageImportMinimumIntervalSeconds) * time.Second,

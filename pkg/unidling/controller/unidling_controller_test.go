@@ -14,8 +14,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

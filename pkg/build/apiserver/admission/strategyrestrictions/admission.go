@@ -7,6 +7,7 @@ import (
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
@@ -18,14 +19,23 @@ import (
 
 	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	authorizationutil "github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildscheme"
+	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"k8s.io/apiserver/pkg/admission/initializer"
 )
+
+// provides a way to convert between internal and external.  Please don't used this to serialize and deserialize
+// Use this for places where you have to convert to some kind of a helper.  It happens in apiserver flows where you have
+// internal objects available
+var internalExternalScheme = runtime.NewScheme()
+
+func init() {
+	utilruntime.Must(buildv1helpers.Install(internalExternalScheme))
+}
 
 func Register(plugins *admission.Plugins) {
 	plugins.Register("build.openshift.io/BuildByStrategy",
@@ -200,7 +210,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 			return admission.NewForbidden(attr, err)
 		}
 		internalBuild := &buildapi.Build{}
-		if err := buildscheme.InternalExternalScheme.Convert(build, internalBuild, nil); err != nil {
+		if err := internalExternalScheme.Convert(build, internalBuild, nil); err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(internalBuild, attr)
@@ -212,7 +222,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 			return admission.NewForbidden(attr, err)
 		}
 		internalBuildConfig := &buildapi.BuildConfig{}
-		if err := buildscheme.InternalExternalScheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
+		if err := internalExternalScheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildConfigAuthorization(internalBuildConfig, attr)

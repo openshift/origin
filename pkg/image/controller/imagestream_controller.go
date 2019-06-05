@@ -20,8 +20,8 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	metrics "github.com/openshift/origin/pkg/image/metrics/prometheus"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 

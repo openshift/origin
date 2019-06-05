@@ -14,7 +14,7 @@ import (
 
 	routeapiv1 "github.com/openshift/api/route/v1"
 	routeetcd "github.com/openshift/origin/pkg/route/apiserver/registry/route/etcd"
-	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	"github.com/openshift/origin/pkg/route/apiserver/routeallocationcontroller"
 )
 
 type ExtraConfig struct {

@@ -34,11 +34,6 @@ import (
 	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
-	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 var (
@@ -79,18 +74,50 @@ var (
 	securityGroup       = security.GroupName
 	templateGroup       = template.GroupName
 	userGroup           = user.GroupName
-	legacyAuthzGroup    = legacy.GroupName
-	legacyBuildGroup    = legacy.GroupName
-	legacyDeployGroup   = legacy.GroupName
-	legacyImageGroup    = legacy.GroupName
-	legacyProjectGroup  = legacy.GroupName
-	legacyQuotaGroup    = legacy.GroupName
-	legacyRouteGroup    = legacy.GroupName
-	legacyTemplateGroup = legacy.GroupName
-	legacyUserGroup     = legacy.GroupName
-	legacyOauthGroup    = legacy.GroupName
-	legacyNetworkGroup  = legacy.GroupName
-	legacySecurityGroup = legacy.GroupName
+	legacyAuthzGroup    = ""
+	legacyBuildGroup    = ""
+	legacyDeployGroup   = ""
+	legacyImageGroup    = ""
+	legacyProjectGroup  = ""
+	legacyQuotaGroup    = ""
+	legacyRouteGroup    = ""
+	legacyTemplateGroup = ""
+	legacyUserGroup     = ""
+	legacyOauthGroup    = ""
+	legacyNetworkGroup  = ""
+	legacySecurityGroup = ""
+
+	userResource        = "users"
+	groupResource       = "groups"
+	systemUserResource  = "systemusers"
+	systemGroupResource = "systemgroups"
+
+	// discoveryRule is a rule that allows a client to discover the API resources available on this server
+	discoveryRule = rbacv1.PolicyRule{
+		Verbs: []string{"get"},
+		NonResourceURLs: []string{
+			// Server version checking
+			"/version", "/version/*",
+
+			// API discovery/negotiation
+			"/api", "/api/*",
+			"/apis", "/apis/*",
+			"/oapi", "/oapi/*",
+			"/openapi/v2",
+			"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1",
+			"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
+			"/.well-known", "/.well-known/*",
+
+			// we intentionally allow all to here
+			"/",
+		},
+	}
+
+	// serviceBrokerRoot is the API root of the template service broker.
+	serviceBrokerRoot = "/brokers/template.openshift.io"
+
+	// openShiftDescription is a common, optional annotation that stores the description for a resource.
+	openShiftDescription = "openshift.io/description"
 )
 
 func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
@@ -102,8 +129,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				Name: SudoerRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemUserResource, authorizationapi.UserResource).Names(SystemAdminUsername).RuleOrDie(),
-				rbacv1helpers.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemGroupResource, authorizationapi.GroupResource).Names(MastersGroup).RuleOrDie(),
+				rbacv1helpers.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(systemUserResource, userResource).Names(SystemAdminUsername).RuleOrDie(),
+				rbacv1helpers.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(systemGroupResource, groupResource).Names(MastersGroup).RuleOrDie(),
 			},
 		},
 		{
@@ -287,7 +314,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
 				rbacv1helpers.NewRule("update").Groups(buildGroup, legacyBuildGroup).Resources("builds/details").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
-				rbacv1helpers.NewRule("admin", "edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
+				rbacv1helpers.NewRule("admin", "edit", "view").Groups(build.GroupName).Resources("jenkins").RuleOrDie(),
 
 				rbacv1helpers.NewRule(readWrite...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				rbacv1helpers.NewRule("create").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
@@ -331,7 +358,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
 				rbacv1helpers.NewRule("update").Groups(buildGroup, legacyBuildGroup).Resources("builds/details").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
-				rbacv1helpers.NewRule("edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
+				rbacv1helpers.NewRule("edit", "view").Groups(buildGroup).Resources("jenkins").RuleOrDie(),
 
 				rbacv1helpers.NewRule(readWrite...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				rbacv1helpers.NewRule("create").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
@@ -369,7 +396,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbacv1helpers.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				// access to jenkins
-				rbacv1helpers.NewRule("view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
+				rbacv1helpers.NewRule("view").Groups(buildGroup).Resources("jenkins").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				rbacv1helpers.NewRule(read...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/log", "deploymentconfigs/status").RuleOrDie(),
@@ -398,7 +425,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: BasicUserRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A user that can get basic information about projects.",
+					openShiftDescription: "A user that can get basic information about projects.",
 				},
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -425,7 +452,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: SelfProvisionerRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A user that can request projects.",
+					openShiftDescription: "A user that can request projects.",
 				},
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -436,13 +463,13 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: StatusCheckerRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A user that can get basic cluster status information.",
+					openShiftDescription: "A user that can get basic cluster status information.",
 				},
 			},
 			Rules: []rbacv1.PolicyRule{
 				// Health
 				rbacv1helpers.NewRule("get").URLs("/healthz", "/healthz/").RuleOrDie(),
-				authorizationapi.DiscoveryRule,
+				discoveryRule,
 			},
 		},
 		{
@@ -457,7 +484,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ImagePullerRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "Grants the right to pull images from within a project.",
+					openShiftDescription: "Grants the right to pull images from within a project.",
 				},
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -473,7 +500,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ImagePusherRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "Grants the right to push and pull images from within a project.",
+					openShiftDescription: "Grants the right to push and pull images from within a project.",
 				},
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -485,7 +512,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ImageBuilderRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "Grants the right to build, push and pull images from within a project.  Used primarily with service accounts for builds.",
+					openShiftDescription: "Grants the right to build, push and pull images from within a project.  Used primarily with service accounts for builds.",
 				},
 				// TODO after the 1.12 rebase, we don't need to separate aggregate to admin
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true", "rbac.authorization.k8s.io/aggregate-to-edit": "true"},
@@ -530,7 +557,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: DeployerRoleName,
 				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "Grants the right to deploy within a project.  Used primarily with service accounts for automated deployments.",
+					openShiftDescription: "Grants the right to deploy within a project.  Used primarily with service accounts for automated deployments.",
 				},
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -659,7 +686,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				Name: DiscoveryRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
-				authorizationapi.DiscoveryRule,
+				discoveryRule,
 			},
 		},
 
@@ -718,7 +745,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				Name: TemplateServiceBrokerClientRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("get", "put", "update", "delete").URLs(templateapi.ServiceBrokerRoot + "/*").RuleOrDie(),
+				rbacv1helpers.NewRule("get", "put", "update", "delete").URLs(serviceBrokerRoot + "/*").RuleOrDie(),
 			},
 		},
 	}
@@ -735,12 +762,6 @@ func GetBootstrapClusterRoles() []rbacv1.ClusterRole {
 
 func newOriginRoleBinding(bindingName, roleName, namespace string) *rbacv1helpers.RoleBindingBuilder {
 	builder := rbacv1helpers.NewRoleBinding(roleName, namespace)
-	builder.RoleBinding.Name = bindingName
-	return builder
-}
-
-func newOriginRoleBindingForClusterRole(bindingName, roleName, namespace string) *rbacv1helpers.RoleBindingBuilder {
-	builder := rbacv1helpers.NewRoleBindingForClusterRole(roleName, namespace)
 	builder.RoleBinding.Name = bindingName
 	return builder
 }

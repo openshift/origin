@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/build/buildscheme"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
 )
 
 // GetBuildFromPod returns a build object encoded in a pod's BUILD environment variable along with

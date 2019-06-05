@@ -26,7 +26,7 @@ import (
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/image/trigger"
+	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 

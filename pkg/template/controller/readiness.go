@@ -21,7 +21,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/api/legacy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -256,9 +255,9 @@ var readinessCheckers = map[schema.GroupVersionKind]func(runtime.Object) (bool, 
 	groupVersionKind(routev1.GroupVersion, "Route"):           checkRouteReadiness,
 
 	// Legacy (/oapi) kinds:
-	legacy.GroupVersionKind("Build"):            checkBuildReadiness,
-	legacy.GroupVersionKind("DeploymentConfig"): checkDeploymentConfigReadiness,
-	legacy.GroupVersionKind("Route"):            checkRouteReadiness,
+	{Group: "", Version: "v1", Kind: "Build"}:            checkBuildReadiness,
+	{Group: "", Version: "v1", Kind: "DeploymentConfig"}: checkDeploymentConfigReadiness,
+	{Group: "", Version: "v1", Kind: "Route"}:            checkRouteReadiness,
 
 	// Kubernetes kinds:
 	groupVersionKind(kappsv1.SchemeGroupVersion, "Deployment"):            checkDeploymentReadiness,
@@ -274,7 +273,7 @@ var readinessCheckers = map[schema.GroupVersionKind]func(runtime.Object) (bool, 
 // CanCheckReadiness indicates whether a readiness check exists for a GK.
 func CanCheckReadiness(ref corev1.ObjectReference) bool {
 	switch ref.GroupVersionKind() {
-	case groupVersionKind(buildv1.GroupVersion, "BuildConfig"), groupVersionKind(legacy.GroupVersion, "BuildConfig"):
+	case groupVersionKind(buildv1.GroupVersion, "BuildConfig"), schema.GroupVersionKind{Group: "", Version: "v1", Kind: "BuildConfig"}:
 		return true
 	}
 	_, found := readinessCheckers[ref.GroupVersionKind()]
@@ -293,7 +292,7 @@ func CheckReadiness(oc buildv1client.Interface, ref corev1.ObjectReference, obj 
 	}
 
 	switch ref.GroupVersionKind() {
-	case groupVersionKind(buildv1.GroupVersion, "BuildConfig"), groupVersionKind(legacy.GroupVersion, "BuildConfig"):
+	case groupVersionKind(buildv1.GroupVersion, "BuildConfig"), schema.GroupVersionKind{Group: "", Version: "v1", Kind: "BuildConfig"}:
 		return checkBuildConfigReadiness(oc, castObj)
 	}
 

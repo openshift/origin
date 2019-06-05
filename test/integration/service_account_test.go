@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
-	"github.com/openshift/origin/pkg/serviceaccounts/controllers"
+	"github.com/openshift/openshift-controller-manager/pkg/serviceaccounts/controllers"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

@@ -1,7 +1,7 @@
 package options
 
 import (
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/imageformat"
+	"github.com/openshift/openshift-controller-manager/pkg/cmd/imageformat"
 )
 
 // ImageFormatArgs is a struct that the command stores flag values into.

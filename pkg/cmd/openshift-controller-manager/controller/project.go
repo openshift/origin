@@ -1,14 +1,13 @@
 package controller
 
 import (
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	projectcontroller "github.com/openshift/origin/pkg/project/controller"
+	projectcontroller "github.com/openshift/openshift-controller-manager/pkg/project/controller"
 )
 
 func RunOriginNamespaceController(ctx *ControllerContext) (bool, error) {
 	controller := projectcontroller.NewProjectFinalizerController(
 		ctx.KubernetesInformers.Core().V1().Namespaces(),
-		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraOriginNamespaceServiceAccountName),
+		ctx.ClientBuilder.ClientOrDie(infraOriginNamespaceServiceAccountName),
 	)
 	go controller.Run(ctx.Stop, 5)
 	return true, nil

@@ -6,8 +6,7 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
+	serviceaccountcontrollers "github.com/openshift/openshift-controller-manager/pkg/serviceaccounts/controllers"
 )
 
 func RunServiceAccountController(ctx *ControllerContext) (bool, error) {
@@ -33,7 +32,7 @@ func RunServiceAccountController(ctx *ControllerContext) (bool, error) {
 	controller, err := sacontroller.NewServiceAccountsController(
 		ctx.KubernetesInformers.Core().V1().ServiceAccounts(),
 		ctx.KubernetesInformers.Core().V1().Namespaces(),
-		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountControllerServiceAccountName),
+		ctx.ClientBuilder.ClientOrDie(infraServiceAccountControllerServiceAccountName),
 		options)
 	if err != nil {
 		return true, nil
@@ -44,7 +43,7 @@ func RunServiceAccountController(ctx *ControllerContext) (bool, error) {
 }
 
 func RunServiceAccountPullSecretsController(ctx *ControllerContext) (bool, error) {
-	kc := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountPullSecretsControllerServiceAccountName)
+	kc := ctx.ClientBuilder.ClientOrDie(iInfraServiceAccountPullSecretsControllerServiceAccountName)
 
 	go serviceaccountcontrollers.NewDockercfgDeletedController(
 		ctx.KubernetesInformers.Core().V1().Secrets(),

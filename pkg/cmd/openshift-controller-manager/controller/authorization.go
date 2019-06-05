@@ -1,12 +1,9 @@
 package controller
 
-import (
-	"github.com/openshift/origin/pkg/authorization/controller/defaultrolebindings"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-)
+import "github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 
 func RunDefaultRoleBindingController(ctx *ControllerContext) (bool, error) {
-	kubeClient, err := ctx.ClientBuilder.Client(bootstrappolicy.InfraDefaultRoleBindingsControllerServiceAccountName)
+	kubeClient, err := ctx.ClientBuilder.Client(infraDefaultRoleBindingsControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}

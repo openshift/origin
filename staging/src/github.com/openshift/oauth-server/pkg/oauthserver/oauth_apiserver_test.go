@@ -7,9 +7,7 @@ import (
 	"testing"
 
 	osinv1 "github.com/openshift/api/osin/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"sigs.k8s.io/yaml"
+	"github.com/openshift/library-go/pkg/config/helpers"
 )
 
 func TestGetDefaultSessionSecrets(t *testing.T) {
@@ -55,7 +53,7 @@ func TestGetEmptySessionSecretsFile(t *testing.T) {
 		Secrets: []osinv1.SessionSecret{},
 	}
 
-	yaml, err := WriteYAML(secrets, osinv1.Install)
+	yaml, err := helpers.WriteYAML(secrets, osinv1.Install)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -82,7 +80,7 @@ func TestGetValidSessionSecretsFile(t *testing.T) {
 	}
 	expectedSecrets := [][]byte{[]byte("a1"), []byte("e1"), []byte("a2"), []byte("e2")}
 
-	yaml, err := WriteYAML(secrets, osinv1.Install)
+	yaml, err := helpers.WriteYAML(secrets, osinv1.Install)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -95,28 +93,4 @@ func TestGetValidSessionSecretsFile(t *testing.T) {
 	if !reflect.DeepEqual(readSecrets, expectedSecrets) {
 		t.Errorf("Unexpected %v, got %v", expectedSecrets, readSecrets)
 	}
-}
-
-type InstallFunc func(scheme *runtime.Scheme) error
-
-func WriteYAML(obj runtime.Object, schemeFns ...InstallFunc) ([]byte, error) {
-	scheme := runtime.NewScheme()
-	for _, schemeFn := range schemeFns {
-		err := schemeFn(scheme)
-		if err != nil {
-			return nil, err
-		}
-	}
-	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
-
-	json, err := runtime.Encode(codec, obj)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, err
 }
