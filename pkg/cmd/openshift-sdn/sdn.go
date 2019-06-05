@@ -11,13 +11,10 @@ import (
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 )
 
+const openshiftCNIFile string = "/etc/cni/net.d/80-openshift-network.conf"
+
 // initSDN sets up the sdn process.
 func (sdn *OpenShiftSDN) initSDN() error {
-	cniBinDir := "/opt/cni/bin"
-	if val, ok := sdn.NodeConfig.KubeletArguments["cni-bin-dir"]; ok && len(val) == 1 {
-		cniBinDir = val[0]
-	}
-
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: sdn.informers.KubeClient.CoreV1().Events("")})
 	sdn.sdnRecorder = eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: sdn.NodeConfig.NodeName})
@@ -27,7 +24,6 @@ func (sdn *OpenShiftSDN) initSDN() error {
 		PluginName:         sdn.NodeConfig.NetworkConfig.NetworkPluginName,
 		Hostname:           sdn.NodeConfig.NodeName,
 		SelfIP:             sdn.NodeConfig.NodeIP,
-		CNIBinDir:          cniBinDir,
 		MTU:                sdn.NodeConfig.NetworkConfig.MTU,
 		NetworkClient:      sdn.informers.NetworkClient,
 		KClient:            sdn.informers.KubeClient,
@@ -52,7 +48,7 @@ func (sdn *OpenShiftSDN) writeConfigFile() error {
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
-	return ioutil.WriteFile(sdn.cniConfFile, []byte(`
+	return ioutil.WriteFile(openshiftCNIFile, []byte(`
 {
   "cniVersion": "0.3.1",
   "name": "openshift-sdn",

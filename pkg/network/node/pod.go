@@ -58,11 +58,10 @@ type podManager struct {
 	runningPodsLock sync.Mutex
 
 	// Live pod setup/teardown stuff not used in testing code
-	kClient    kubernetes.Interface
-	policy     osdnPolicy
-	mtu        uint32
-	cniBinPath string
-	ovs        *ovsController
+	kClient kubernetes.Interface
+	policy  osdnPolicy
+	mtu     uint32
+	ovs     *ovsController
 
 	// Things only accessed through the processCNIRequests() goroutine
 	// and thus can be set from Start()
@@ -70,12 +69,11 @@ type podManager struct {
 }
 
 // Creates a new live podManager; used by node code0
-func newPodManager(kClient kubernetes.Interface, policy osdnPolicy, mtu uint32, cniBinPath string, ovs *ovsController) *podManager {
+func newPodManager(kClient kubernetes.Interface, policy osdnPolicy, mtu uint32, ovs *ovsController) *podManager {
 	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
-	pm.cniBinPath = cniBinPath
 	pm.podHandler = pm
 	pm.ovs = ovs
 	return pm
@@ -343,13 +341,13 @@ func maybeAddMacvlan(pod *corev1.Pod, netns string) error {
 	return nil
 }
 
-func createIPAMArgs(netnsPath, cniBinPath string, action cniserver.CNICommand, id string) *invoke.Args {
+func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *invoke.Args {
 	return &invoke.Args{
 		Command:     string(action),
 		ContainerID: id,
 		NetNS:       netnsPath,
 		IfName:      podInterfaceName,
-		Path:        cniBinPath,
+		Path:        cniBinDir,
 	}
 }
 
@@ -359,8 +357,8 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*current.Result, net.
 		return nil, nil, fmt.Errorf("netns required for CNI_ADD")
 	}
 
-	args := createIPAMArgs(netnsPath, m.cniBinPath, cniserver.CNI_ADD, id)
-	r, err := invoke.ExecPluginWithResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
+	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
+	r, err := invoke.ExecPluginWithResult(cniBinDir+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
@@ -379,8 +377,8 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*current.Result, net.
 
 // Run CNI IPAM release for the container
 func (m *podManager) ipamDel(id string) error {
-	args := createIPAMArgs("", m.cniBinPath, cniserver.CNI_DEL, id)
-	err := invoke.ExecPluginWithoutResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
+	args := createIPAMArgs("", cniserver.CNI_DEL, id)
+	err := invoke.ExecPluginWithoutResult(cniBinDir+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
 	}

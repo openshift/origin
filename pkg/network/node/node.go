@@ -43,6 +43,7 @@ import (
 )
 
 const hostLocalDataDir = "/var/lib/cni/networks"
+const cniBinDir = "/opt/cni/bin"
 
 type osdnPolicy interface {
 	Name() string
@@ -66,7 +67,6 @@ type OsdnNodeConfig struct {
 	Hostname   string
 	SelfIP     string
 	MTU        uint32
-	CNIBinDir  string
 
 	NetworkClient networkclient.Interface
 	KClient       kubernetes.Interface
@@ -153,7 +153,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		networkClient:      c.NetworkClient,
 		recorder:           c.Recorder,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc),
+		podManager:         newPodManager(c.KClient, policy, c.MTU, oc),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
