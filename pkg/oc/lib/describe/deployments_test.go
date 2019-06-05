@@ -13,7 +13,7 @@ import (
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/oc/lib/appstest"
+	appstest "github.com/openshift/oc/pkg/helpers/apps/test"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {

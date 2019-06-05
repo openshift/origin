@@ -10,7 +10,7 @@ import (
 
 	kerrapi "k8s.io/apimachinery/pkg/api/errors"
 
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 )
 
 // ComponentRetention knows all the places where image component needs to be pruned (e.g. global blob store

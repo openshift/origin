@@ -34,10 +34,10 @@ import (
 	fakeimageclient "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1/fake"
+	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
+	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
+	imagetest "github.com/openshift/oc/pkg/helpers/image/test"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune/testutil"
-	"github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
-	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
 )
 
 var logLevel = flag.Int("loglevel", 0, "")
@@ -83,313 +83,313 @@ func TestImagePruning(t *testing.T) {
 	}{
 		{
 			name:                   "1 pod - phase pending - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodPending, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   imagetest.PodList(imagetest.Pod("foo", "pod1", corev1.PodPending, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:   "3 pods - last phase pending - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod2", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod3", corev1.PodPending, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod2", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod3", corev1.PodPending, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 			),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "1 pod - phase running - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   imagetest.PodList(imagetest.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:   "3 pods - last phase running - don't prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod2", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod3", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod2", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod3", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 			),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "pod phase succeeded - prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   imagetest.PodList(imagetest.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
-				registryURL + "|" + testutil.Layer1,
-				registryURL + "|" + testutil.Layer2,
-				registryURL + "|" + testutil.Layer3,
-				registryURL + "|" + testutil.Layer4,
-				registryURL + "|" + testutil.Layer5,
+				registryURL + "|" + imagetest.Layer1,
+				registryURL + "|" + imagetest.Layer2,
+				registryURL + "|" + imagetest.Layer3,
+				registryURL + "|" + imagetest.Layer4,
+				registryURL + "|" + imagetest.Layer5,
 			},
 		},
 
 		{
 			name:                   "pod phase succeeded - prune leave registry alone",
 			pruneRegistry:          newBool(false),
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   imagetest.PodList(imagetest.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions:  []string{},
 		},
 
 		{
 			name:                   "pod phase succeeded, pod less than min pruning age - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods:                   testutil.PodList(testutil.AgedPod("foo", "pod1", corev1.PodSucceeded, 5, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:                   imagetest.PodList(imagetest.AgedPod("foo", "pod1", corev1.PodSucceeded, 5, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "pod phase succeeded, image less than min pruning age - don't prune",
-			images:                 testutil.ImageList(testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", 5)),
-			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", 5)),
+			pods:                   imagetest.PodList(imagetest.Pod("foo", "pod1", corev1.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:   "pod phase failed - prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodFailed, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod2", corev1.PodFailed, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod3", corev1.PodFailed, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodFailed, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod2", corev1.PodFailed, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod3", corev1.PodFailed, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
-				registryURL + "|" + testutil.Layer1,
-				registryURL + "|" + testutil.Layer2,
-				registryURL + "|" + testutil.Layer3,
-				registryURL + "|" + testutil.Layer4,
-				registryURL + "|" + testutil.Layer5,
+				registryURL + "|" + imagetest.Layer1,
+				registryURL + "|" + imagetest.Layer2,
+				registryURL + "|" + imagetest.Layer3,
+				registryURL + "|" + imagetest.Layer4,
+				registryURL + "|" + imagetest.Layer5,
 			},
 		},
 
 		{
 			name:   "pod phase unknown - prune",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodUnknown, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod2", corev1.PodUnknown, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Pod("foo", "pod3", corev1.PodUnknown, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodUnknown, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod2", corev1.PodUnknown, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Pod("foo", "pod3", corev1.PodUnknown, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
-				registryURL + "|" + testutil.Layer1,
-				registryURL + "|" + testutil.Layer2,
-				registryURL + "|" + testutil.Layer3,
-				registryURL + "|" + testutil.Layer4,
-				registryURL + "|" + testutil.Layer5,
+				registryURL + "|" + imagetest.Layer1,
+				registryURL + "|" + imagetest.Layer2,
+				registryURL + "|" + imagetest.Layer3,
+				registryURL + "|" + imagetest.Layer4,
+				registryURL + "|" + imagetest.Layer5,
 			},
 		},
 
 		{
 			name:   "pod container image not parsable",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodRunning, "a/b/c/d/e"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodRunning, "a/b/c/d/e"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
-				registryURL + "|" + testutil.Layer1,
-				registryURL + "|" + testutil.Layer2,
-				registryURL + "|" + testutil.Layer3,
-				registryURL + "|" + testutil.Layer4,
-				registryURL + "|" + testutil.Layer5,
+				registryURL + "|" + imagetest.Layer1,
+				registryURL + "|" + imagetest.Layer2,
+				registryURL + "|" + imagetest.Layer3,
+				registryURL + "|" + imagetest.Layer4,
+				registryURL + "|" + imagetest.Layer5,
 			},
 		},
 
 		{
 			name:   "pod container image doesn't have an id",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodRunning, "foo/bar:latest"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodRunning, "foo/bar:latest"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
-				registryURL + "|" + testutil.Layer1,
-				registryURL + "|" + testutil.Layer2,
-				registryURL + "|" + testutil.Layer3,
-				registryURL + "|" + testutil.Layer4,
-				registryURL + "|" + testutil.Layer5,
+				registryURL + "|" + imagetest.Layer1,
+				registryURL + "|" + imagetest.Layer2,
+				registryURL + "|" + imagetest.Layer3,
+				registryURL + "|" + imagetest.Layer4,
+				registryURL + "|" + imagetest.Layer5,
 			},
 		},
 
 		{
 			name:   "pod refers to image not in graph",
-			images: testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			pods: testutil.PodList(
-				testutil.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:ABC0000000000000000000000000000000000000000000000000000000000002"),
+			images: imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods: imagetest.PodList(
+				imagetest.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:ABC0000000000000000000000000000000000000000000000000000000000002"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000000",
-				registryURL + "|" + testutil.Layer1,
-				registryURL + "|" + testutil.Layer2,
-				registryURL + "|" + testutil.Layer3,
-				registryURL + "|" + testutil.Layer4,
-				registryURL + "|" + testutil.Layer5,
+				registryURL + "|" + imagetest.Layer1,
+				registryURL + "|" + imagetest.Layer2,
+				registryURL + "|" + imagetest.Layer3,
+				registryURL + "|" + imagetest.Layer4,
+				registryURL + "|" + imagetest.Layer5,
 			},
 		},
 
 		{
 			name:                   "referenced by rc - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			rcs:                    testutil.RCList(testutil.RC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			rcs:                    imagetest.RCList(imagetest.RC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by dc - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			dcs:                    testutil.DCList(testutil.DC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			dcs:                    imagetest.DCList(imagetest.DC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name: "referenced by daemonset - don't prune",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			dss:                    testutil.DSList(testutil.DS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			dss:                    imagetest.DSList(imagetest.DS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
 			name: "referenced by replicaset - don't prune",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			rss:                    testutil.RSList(testutil.RS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			rss:                    imagetest.RSList(imagetest.RS("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
 			name: "referenced by upstream deployment - don't prune",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			deployments:            testutil.DeploymentList(testutil.Deployment("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			deployments:            imagetest.DeploymentList(imagetest.Deployment("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		{
 			name:                   "referenced by bc - sti - ImageStreamImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by bc - docker - ImageStreamImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by bc - custom - ImageStreamImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by bc - sti - DockerImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by bc - docker - DockerImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "docker", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "docker", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by bc - custom - DockerImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "custom", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "custom", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by build - sti - ImageStreamImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "source", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "source", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by build - docker - ImageStreamImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "docker", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "docker", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by build - custom - ImageStreamImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by build - sti - DockerImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by build - docker - DockerImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "docker", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "docker", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name:                   "referenced by build - custom - DockerImage - don't prune",
-			images:                 testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "custom", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			images:                 imagetest.ImageList(imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "custom", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 		},
 
 		{
 			name: "image stream - keep most recent n images",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -401,19 +401,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "continue on blob deletion failure",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer1", "layer2"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer1", "layer2"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -437,19 +437,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "keep image when all blob deletions fail",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer1", "layer2"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer1", "layer2"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -464,19 +464,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "continue on manifest link deletion failure",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -490,19 +490,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "stop on image stream update failure",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -512,17 +512,17 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image stream - same manifest listed multiple times in tag history",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
 			),
@@ -530,19 +530,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image stream age less than min pruning age - don't prune",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 			),
-			streams: testutil.StreamList(
-				testutil.AgedStream(registryHost, "foo", "bar", 5, []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.AgedStream(registryHost, "foo", "bar", 5, []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -552,14 +552,14 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image stream - unreference absent image",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 					),
 				}),
 			),
@@ -568,16 +568,16 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image stream with dangling references - delete tags",
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", nil, "layer1"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", nil, "layer1"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
 					),
-					testutil.Tag("tag",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+					imagetest.Tag("tag",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
 			),
@@ -593,15 +593,15 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image stream - keep reference to a young absent image",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", nil),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", nil),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.YoungTagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", metav1.Now()),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.YoungTagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", metav1.Now()),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 					),
 				}),
 			),
@@ -612,42 +612,42 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:             "images referenced by istag - keep",
 			keepTagRevisions: keepTagRevisions(0),
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000006", registryHost+"/foo/baz@sha256:0000000000000000000000000000000000000000000000000000000000000006"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000006", registryHost+"/foo/baz@sha256:0000000000000000000000000000000000000000000000000000000000000006"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005"),
 					),
-					testutil.Tag("dummy", // removed because no object references the image (the nm/dcfoo has mismatched repository name)
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005"),
+					imagetest.Tag("dummy", // removed because no object references the image (the nm/dcfoo has mismatched repository name)
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005"),
 					),
 				}),
-				testutil.Stream(registryHost, "foo", "baz", []imagev1.NamedTagEventList{
-					testutil.Tag("late", // kept because replicaset references the tagged image
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Stream(registryHost, "foo", "baz", []imagev1.NamedTagEventList{
+					imagetest.Tag("late", // kept because replicaset references the tagged image
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
-					testutil.Tag("keepme", // kept because a deployment references the tagged image
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000006", registryHost+"/foo/baz@sha256:0000000000000000000000000000000000000000000000000000000000000006"),
+					imagetest.Tag("keepme", // kept because a deployment references the tagged image
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000006", registryHost+"/foo/baz@sha256:0000000000000000000000000000000000000000000000000000000000000006"),
 					),
 				}),
 			),
-			dss: testutil.DSList(testutil.DS("nm", "dsfoo", fmt.Sprintf("%s/%s/%s:%s", registryHost, "foo", "bar", "latest"))),
-			dcs: testutil.DCList(testutil.DC("nm", "dcfoo", fmt.Sprintf("%s/%s/%s:%s", registryHost, "foo", "repo", "dummy"))),
-			rss: testutil.RSList(testutil.RS("nm", "rsfoo", fmt.Sprintf("%s/%s/%s:%s", registryHost, "foo", "baz", "late"))),
+			dss: imagetest.DSList(imagetest.DS("nm", "dsfoo", fmt.Sprintf("%s/%s/%s:%s", registryHost, "foo", "bar", "latest"))),
+			dcs: imagetest.DCList(imagetest.DC("nm", "dcfoo", fmt.Sprintf("%s/%s/%s:%s", registryHost, "foo", "repo", "dummy"))),
+			rss: imagetest.RSList(imagetest.RS("nm", "rsfoo", fmt.Sprintf("%s/%s/%s:%s", registryHost, "foo", "baz", "late"))),
 			// ignore different registry hostname
-			deployments: testutil.DeploymentList(testutil.Deployment("nm", "depfoo", fmt.Sprintf("%s/%s/%s:%s", "external.registry:5000", "foo", "baz", "keepme"))),
+			deployments: imagetest.DeploymentList(imagetest.Deployment("nm", "depfoo", fmt.Sprintf("%s/%s/%s:%s", "external.registry:5000", "foo", "baz", "keepme"))),
 			expectedImageDeletions: []string{
 				"sha256:0000000000000000000000000000000000000000000000000000000000000001",
 				"sha256:0000000000000000000000000000000000000000000000000000000000000003",
@@ -678,31 +678,31 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "multiple resources pointing to image - don't prune",
-			images: testutil.ImageList(
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+			images: imagetest.ImageList(
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				imagetest.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
 			),
-			rcs:                    testutil.RCList(testutil.RC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002")),
-			pods:                   testutil.PodList(testutil.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002")),
-			dcs:                    testutil.DCList(testutil.DC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			bcs:                    testutil.BCList(testutil.BC("foo", "bc1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
-			builds:                 testutil.BuildList(testutil.Build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			rcs:                    imagetest.RCList(imagetest.RC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002")),
+			pods:                   imagetest.PodList(imagetest.Pod("foo", "pod1", corev1.PodRunning, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002")),
+			dcs:                    imagetest.DCList(imagetest.DC("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			bcs:                    imagetest.BCList(imagetest.BC("foo", "bc1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			builds:                 imagetest.BuildList(imagetest.Build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
 		},
 
 		{
 			name: "image with nil annotations",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
@@ -712,8 +712,8 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:      "prune all-images=true image with nil annotations",
 			allImages: newBool(true),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
@@ -723,8 +723,8 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:      "prune all-images=false image with nil annotations",
 			allImages: newBool(false),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
 			),
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
@@ -732,8 +732,8 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image missing managed annotation",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, "foo", "bar"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, "foo", "bar"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
@@ -742,13 +742,13 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image with managed annotation != true",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
 			),
 			expectedImageDeletions: []string{
 				"sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -772,8 +772,8 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:      "prune all-images=true with image missing managed annotation",
 			allImages: newBool(true),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, "foo", "bar"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, "foo", "bar"),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
 			expectedStreamUpdates:  []string{},
@@ -783,13 +783,13 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:      "prune all-images=true with image with managed annotation != true",
 			allImages: newBool(true),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
 			),
 			expectedImageDeletions: []string{
 				"sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -813,8 +813,8 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:      "prune all-images=false with image missing managed annotation",
 			allImages: newBool(false),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, "foo", "bar"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, "foo", "bar"),
 			),
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
@@ -823,13 +823,13 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:      "prune all-images=false with image with managed annotation != true",
 			allImages: newBool(false),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "someregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
 			),
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
@@ -837,19 +837,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "image with layers",
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer5", "layer6", "layer7", "layer8"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config2, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer5", "layer6", "layer7", "layer8"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -873,19 +873,19 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "continue on layer link error",
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer5", "layer6", "layer7", "layer8"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config2, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", nil, "layer5", "layer6", "layer7", "layer8"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -916,27 +916,27 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "images with duplicate layers and configs",
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", &testutil.Config2, "layer5", "layer6", "layer7", "layer8"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005", &testutil.Config2, "layer5", "layer6", "layer9", "layerX"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", &imagetest.Config2, "layer5", "layer6", "layer7", "layer8"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005", &imagetest.Config2, "layer5", "layer6", "layer9", "layerX"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004", "sha256:0000000000000000000000000000000000000000000000000000000000000005"},
 			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedLayerLinkDeletions: []string{
-				registryURL + "|foo/bar|" + testutil.Config2,
+				registryURL + "|foo/bar|" + imagetest.Config2,
 				registryURL + "|foo/bar|layer5",
 				registryURL + "|foo/bar|layer6",
 				registryURL + "|foo/bar|layer7",
@@ -946,7 +946,7 @@ func TestImagePruning(t *testing.T) {
 			expectedBlobDeletions: []string{
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000004",
 				registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000005",
-				registryURL + "|" + testutil.Config2,
+				registryURL + "|" + imagetest.Config2,
 				registryURL + "|layer5",
 				registryURL + "|layer6",
 				registryURL + "|layer7",
@@ -958,20 +958,20 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "continue on image deletion failure",
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", &testutil.Config2, "layer5", "layer6", "layer7", "layer8"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005", &testutil.Config2, "layer5", "layer6", "layer9", "layerX"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004", &imagetest.Config2, "layer5", "layer6", "layer7", "layer8"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000005", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000005", &imagetest.Config2, "layer5", "layer6", "layer9", "layerX"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
@@ -979,7 +979,7 @@ func TestImagePruning(t *testing.T) {
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004", "sha256:0000000000000000000000000000000000000000000000000000000000000005"},
 			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedLayerLinkDeletions: []string{
-				registryURL + "|foo/bar|" + testutil.Config2,
+				registryURL + "|foo/bar|" + imagetest.Config2,
 				registryURL + "|foo/bar|layer5",
 				registryURL + "|foo/bar|layer6",
 				registryURL + "|foo/bar|layer7",
@@ -999,9 +999,9 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name: "layers shared with young images are not pruned",
-			images: testutil.ImageList(
-				testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 43200),
-				testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 5),
+			images: imagetest.ImageList(
+				imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 43200),
+				imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 5),
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 			expectedBlobDeletions:  []string{registryURL + "|sha256:0000000000000000000000000000000000000000000000000000000000000001"},
@@ -1010,22 +1010,22 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:               "image exceeding limits",
 			pruneOverSizeLimit: newBool(true),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
 					),
 				}),
 			),
 			limits: map[string][]*corev1.LimitRange{
-				"foo": testutil.LimitList(100, 200),
+				"foo": imagetest.LimitList(100, 200),
 			},
 			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
 			expectedStreamUpdates:         []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
@@ -1036,29 +1036,29 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:               "multiple images in different namespaces exceeding different limits",
 			pruneOverSizeLimit: newBool(true),
-			images: testutil.ImageList(
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 100, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 200, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000003", 500, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000004", 600, nil),
+			images: imagetest.ImageList(
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 100, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 200, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000003", 500, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000004", 600, nil),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
-				testutil.Stream(registryHost, "bar", "foo", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+				imagetest.Stream(registryHost, "bar", "foo", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/bar/foo@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 					),
 				}),
 			),
 			limits: map[string][]*corev1.LimitRange{
-				"foo": testutil.LimitList(150),
-				"bar": testutil.LimitList(550),
+				"foo": imagetest.LimitList(150),
+				"bar": imagetest.LimitList(550),
 			},
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000002", "sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000002", "bar/foo|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
@@ -1075,22 +1075,22 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:               "image within allowed limits",
 			pruneOverSizeLimit: newBool(true),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
 					),
 				}),
 			),
 			limits: map[string][]*corev1.LimitRange{
-				"foo": testutil.LimitList(300),
+				"foo": imagetest.LimitList(300),
 			},
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
@@ -1100,22 +1100,22 @@ func TestImagePruning(t *testing.T) {
 			name:               "image exceeding limits with namespace specified",
 			pruneOverSizeLimit: newBool(true),
 			namespace:          "foo",
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
 					),
 				}),
 			),
 			limits: map[string][]*corev1.LimitRange{
-				"foo": testutil.LimitList(100, 200),
+				"foo": imagetest.LimitList(100, 200),
 			},
 			expectedStreamUpdates: []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
 		},
@@ -1124,25 +1124,25 @@ func TestImagePruning(t *testing.T) {
 			name:               "build with ignored bad image reference",
 			pruneOverSizeLimit: newBool(true),
 			ignoreInvalidRefs:  newBool(true),
-			images: testutil.ImageList(
-				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
-				testutil.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
+			images: imagetest.ImageList(
+				imagetest.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 100, nil),
+				imagetest.SizedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 200, nil),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+			streams: imagetest.StreamList(
+				imagetest.Stream(registryHost, "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
 					),
 				}),
 			),
-			builds: testutil.BuildList(
-				testutil.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:many-zeros-and-3"),
+			builds: imagetest.BuildList(
+				imagetest.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@sha256:many-zeros-and-3"),
 			),
 			limits: map[string][]*corev1.LimitRange{
-				"foo": testutil.LimitList(100, 200),
+				"foo": imagetest.LimitList(100, 200),
 			},
 			expectedImageDeletions:        []string{"sha256:0000000000000000000000000000000000000000000000000000000000000003"},
 			expectedManifestLinkDeletions: []string{registryURL + "|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000003"},
@@ -1152,22 +1152,22 @@ func TestImagePruning(t *testing.T) {
 
 		{
 			name:                "build with bad image reference",
-			builds:              testutil.BuildList(testutil.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@invalid-digest")),
+			builds:              imagetest.BuildList(imagetest.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@invalid-digest")),
 			expectedErrorString: fmt.Sprintf(`Build[foo/build1]: invalid docker image reference "%s/foo/bar@invalid-digest": invalid reference format`, registryHost),
 		},
 
 		{
 			name: "buildconfig with bad imagestreamtag",
-			bcs:  testutil.BCList(testutil.BC("foo", "bc1", "source", "ImageStreamTag", "ns", "bad/tag@name")),
+			bcs:  imagetest.BCList(imagetest.BC("foo", "bc1", "source", "ImageStreamTag", "ns", "bad/tag@name")),
 			expectedErrorString: `BuildConfig[foo/bc1]: invalid ImageStreamTag reference "bad/tag@name":` +
 				` "bad/tag@name" is an image stream image, not an image stream tag`,
 		},
 
 		{
 			name:        "more parsing errors",
-			bcs:         testutil.BCList(testutil.BC("foo", "bc1", "source", "ImageStreamImage", "ns", "bad:isi")),
-			deployments: testutil.DeploymentList(testutil.Deployment("nm", "dep1", "garbage")),
-			rss:         testutil.RSList(testutil.RS("nm", "rs1", "I am certainly a valid reference")),
+			bcs:         imagetest.BCList(imagetest.BC("foo", "bc1", "source", "ImageStreamImage", "ns", "bad:isi")),
+			deployments: imagetest.DeploymentList(imagetest.Deployment("nm", "dep1", "garbage")),
+			rss:         imagetest.RSList(imagetest.RS("nm", "rs1", "I am certainly a valid reference")),
 			expectedErrorString: `[BuildConfig[foo/bc1]: invalid ImageStreamImage reference "bad:isi":` +
 				` expected exactly one @ in the isimage name "bad:isi",` +
 				` ReplicaSet[nm/rs1]: invalid docker image reference "I am certainly a valid reference":` +
@@ -1439,31 +1439,31 @@ func TestRegistryPruning(t *testing.T) {
 		{
 			name:          "layers unique to id1 pruned",
 			pruneRegistry: true,
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", "layer6"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config2, "layer3", "layer4", "layer5", "layer6"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			streams: imagetest.StreamList(
+				imagetest.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 					),
 				}),
-				testutil.Stream("registry1.io", "foo", "other", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Stream("registry1.io", "foo", "other", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
 			),
 			expectedLayerLinkDeletions: sets.NewString(
-				"https://registry1.io|foo/bar|"+testutil.Config1,
+				"https://registry1.io|foo/bar|"+imagetest.Config1,
 				"https://registry1.io|foo/bar|layer1",
 				"https://registry1.io|foo/bar|layer2",
 			),
 			expectedBlobDeletions: sets.NewString(
 				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000001",
-				"https://registry1.io|"+testutil.Config1,
+				"https://registry1.io|"+imagetest.Config1,
 				"https://registry1.io|layer1",
 				"https://registry1.io|layer2",
 			),
@@ -1475,13 +1475,13 @@ func TestRegistryPruning(t *testing.T) {
 		{
 			name:          "no pruning when no images are pruned",
 			pruneRegistry: true,
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			streams: imagetest.StreamList(
+				imagetest.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 					),
 				}),
 			),
@@ -1493,16 +1493,16 @@ func TestRegistryPruning(t *testing.T) {
 		{
 			name:          "blobs pruned when streams have already been deleted",
 			pruneRegistry: true,
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", "layer6"),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", "layer4"),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config2, "layer3", "layer4", "layer5", "layer6"),
 			),
 			expectedLayerLinkDeletions: sets.NewString(),
 			expectedBlobDeletions: sets.NewString(
 				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000001",
 				"https://registry1.io|sha256:0000000000000000000000000000000000000000000000000000000000000002",
-				"https://registry1.io|"+testutil.Config1,
-				"https://registry1.io|"+testutil.Config2,
+				"https://registry1.io|"+imagetest.Config1,
+				"https://registry1.io|"+imagetest.Config2,
 				"https://registry1.io|layer1",
 				"https://registry1.io|layer2",
 				"https://registry1.io|layer3",
@@ -1516,22 +1516,22 @@ func TestRegistryPruning(t *testing.T) {
 		{
 			name:          "config used as a layer",
 			pruneRegistry: true,
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", testutil.Config1),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", testutil.Config1),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer3", "layer4", "layer6", testutil.Config1),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", imagetest.Config1),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config2, "layer3", "layer4", "layer5", imagetest.Config1),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer3", "layer4", "layer6", imagetest.Config1),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			streams: imagetest.StreamList(
+				imagetest.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 					),
 				}),
-				testutil.Stream("registry1.io", "foo", "other", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Stream("registry1.io", "foo", "other", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
 			),
@@ -1552,22 +1552,22 @@ func TestRegistryPruning(t *testing.T) {
 		{
 			name:          "config used as a layer, but leave registry alone",
 			pruneRegistry: false,
-			images: testutil.ImageList(
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", testutil.Config1),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", testutil.Config1),
-				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer3", "layer4", "layer6", testutil.Config1),
+			images: imagetest.ImageList(
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &imagetest.Config1, "layer1", "layer2", "layer3", imagetest.Config1),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &imagetest.Config2, "layer3", "layer4", "layer5", imagetest.Config1),
+				imagetest.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer3", "layer4", "layer6", imagetest.Config1),
 			),
-			streams: testutil.StreamList(
-				testutil.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			streams: imagetest.StreamList(
+				imagetest.Stream("registry1.io", "foo", "bar", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 					),
 				}),
-				testutil.Stream("registry1.io", "foo", "other", []imagev1.NamedTagEventList{
-					testutil.Tag("latest",
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.Stream("registry1.io", "foo", "other", []imagev1.NamedTagEventList{
+					imagetest.Tag("latest",
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 					),
 				}),
 			),
@@ -1636,31 +1636,31 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 	var level klog.Level
 	level.Set(fmt.Sprint(*logLevel))
 
-	images := testutil.ImageList(
-		testutil.AgedImage("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 1540),
-		testutil.AgedImage("0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 1540),
-		testutil.AgedImage("0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1540),
+	images := imagetest.ImageList(
+		imagetest.AgedImage("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 1540),
+		imagetest.AgedImage("0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 1540),
+		imagetest.AgedImage("0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1540),
 	)
-	streams := testutil.StreamList(
-		testutil.Stream("registry1", "foo", "bar", []imagev1.NamedTagEventList{
-			testutil.Tag("latest",
-				testutil.TagEvent("0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
-				testutil.TagEvent("0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
-				testutil.TagEvent("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+	streams := imagetest.StreamList(
+		imagetest.Stream("registry1", "foo", "bar", []imagev1.NamedTagEventList{
+			imagetest.Tag("latest",
+				imagetest.TagEvent("0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				imagetest.TagEvent("0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				imagetest.TagEvent("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
-			testutil.Tag("strong",
-				testutil.TagEvent("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			imagetest.Tag("strong",
+				imagetest.TagEvent("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
 		}),
 	)
-	pods := testutil.PodList()
-	rcs := testutil.RCList()
-	bcs := testutil.BCList()
-	builds := testutil.BuildList()
-	dss := testutil.DSList()
-	deployments := testutil.DeploymentList()
-	dcs := testutil.DCList()
-	rss := testutil.RSList()
+	pods := imagetest.PodList()
+	rcs := imagetest.RCList()
+	bcs := imagetest.BCList()
+	builds := imagetest.BuildList()
+	dss := imagetest.DSList()
+	deployments := imagetest.DeploymentList()
+	dcs := imagetest.DCList()
+	rss := imagetest.RSList()
 
 	options := PrunerOptions{
 		Images:        &images,
@@ -1738,14 +1738,14 @@ func TestPrunerGetNextJob(t *testing.T) {
 		keepYoungerThan: time.Now(),
 	}
 	p := &pruner{algorithm: algo, processedImages: make(map[*imagegraph.ImageNode]*Job)}
-	images := testutil.ImageList(
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1, "layer1"),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 2, "layer1", "layer2"),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 3, "Layer1", "Layer2", "Layer3"),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000013", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000013", 4, "Layer1", "LayeR2", "LayeR3"),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000012", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000012", 5, "LayeR1", "LayeR2"),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000011", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000011", 6, "layer1", "Layer2", "LAYER3", "LAYER4"),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000010", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000010", 7, "layer1", "layer2", "layer3", "layer4"),
+	images := imagetest.ImageList(
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1, "layer1"),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 2, "layer1", "layer2"),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 3, "Layer1", "Layer2", "Layer3"),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000013", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000013", 4, "Layer1", "LayeR2", "LayeR3"),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000012", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000012", 5, "LayeR1", "LayeR2"),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000011", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000011", 6, "layer1", "Layer2", "LAYER3", "LAYER4"),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000010", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000010", 7, "layer1", "layer2", "layer3", "layer4"),
 	)
 	p.g = genericgraph.New()
 	err := p.addImagesToGraph(&images)
@@ -1754,19 +1754,19 @@ func TestPrunerGetNextJob(t *testing.T) {
 	}
 
 	is := images.Items
-	imageStreams := testutil.StreamList(
-		testutil.Stream("example.com", "foo", "bar", []imagev1.NamedTagEventList{
-			testutil.Tag("latest",
-				testutil.TagEvent(is[3].Name, is[3].DockerImageReference),
-				testutil.TagEvent(is[4].Name, is[4].DockerImageReference),
-				testutil.TagEvent(is[5].Name, is[5].DockerImageReference))}),
-		testutil.Stream("example.com", "foo", "baz", []imagev1.NamedTagEventList{
-			testutil.Tag("devel",
-				testutil.TagEvent(is[3].Name, is[3].DockerImageReference),
-				testutil.TagEvent(is[2].Name, is[2].DockerImageReference),
-				testutil.TagEvent(is[1].Name, is[1].DockerImageReference)),
-			testutil.Tag("prod",
-				testutil.TagEvent(is[2].Name, is[2].DockerImageReference))}))
+	imageStreams := imagetest.StreamList(
+		imagetest.Stream("example.com", "foo", "bar", []imagev1.NamedTagEventList{
+			imagetest.Tag("latest",
+				imagetest.TagEvent(is[3].Name, is[3].DockerImageReference),
+				imagetest.TagEvent(is[4].Name, is[4].DockerImageReference),
+				imagetest.TagEvent(is[5].Name, is[5].DockerImageReference))}),
+		imagetest.Stream("example.com", "foo", "baz", []imagev1.NamedTagEventList{
+			imagetest.Tag("devel",
+				imagetest.TagEvent(is[3].Name, is[3].DockerImageReference),
+				imagetest.TagEvent(is[2].Name, is[2].DockerImageReference),
+				imagetest.TagEvent(is[1].Name, is[1].DockerImageReference)),
+			imagetest.Tag("prod",
+				imagetest.TagEvent(is[2].Name, is[2].DockerImageReference))}))
 	if err := p.addImageStreamsToGraph(&imageStreams, nil); err != nil {
 		t.Fatalf("failed to add image streams: %v", err)
 	}
@@ -1931,24 +1931,24 @@ func TestChangeImageStreamsWhilePruning(t *testing.T) {
 	var level klog.Level
 	level.Set(fmt.Sprint(*logLevel))
 
-	images := testutil.ImageList(
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 5),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 4),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 3),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 2),
-		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1),
+	images := imagetest.ImageList(
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 5),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 4),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 3),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000004", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 2),
+		imagetest.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000005", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1),
 	)
 
-	streams := testutil.StreamList(testutil.Stream("registry1", "foo", "bar", []imagev1.NamedTagEventList{}))
+	streams := imagetest.StreamList(imagetest.Stream("registry1", "foo", "bar", []imagev1.NamedTagEventList{}))
 	streamWatcher := watch.NewFake()
-	pods := testutil.PodList()
-	rcs := testutil.RCList()
-	bcs := testutil.BCList()
-	builds := testutil.BuildList()
-	dss := testutil.DSList()
-	deployments := testutil.DeploymentList()
-	dcs := testutil.DCList()
-	rss := testutil.RSList()
+	pods := imagetest.PodList()
+	rcs := imagetest.RCList()
+	bcs := imagetest.BCList()
+	builds := imagetest.BuildList()
+	dss := imagetest.DSList()
+	deployments := imagetest.DeploymentList()
+	dcs := imagetest.DCList()
+	rss := imagetest.RSList()
 
 	options := PrunerOptions{
 		Images:                &images,
@@ -2006,9 +2006,9 @@ func TestChangeImageStreamsWhilePruning(t *testing.T) {
 	expectedBlobDeletions.Insert("registry1|" + images.Items[0].Name)
 
 	// let the pruner wait for reply and meanwhile reference an image with a new image stream
-	stream := testutil.Stream("registry1", "foo", "new", []imagev1.NamedTagEventList{
-		testutil.Tag("latest",
-			testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1/foo/new@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+	stream := imagetest.Stream("registry1", "foo", "new", []imagev1.NamedTagEventList{
+		imagetest.Tag("latest",
+			imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1/foo/new@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
 		)})
 	streamWatcher.Add(&stream)
 	imageDeleter.unblock()
@@ -2022,10 +2022,10 @@ func TestChangeImageStreamsWhilePruning(t *testing.T) {
 	expectedBlobDeletions.Insert("registry1|" + images.Items[2].Name)
 
 	// now lets modify the existing image stream to reference some more images
-	stream = testutil.Stream("registry1", "foo", "bar", []imagev1.NamedTagEventList{
-		testutil.Tag("latest",
-			testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "registry1/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
-			testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", "registry1/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+	stream = imagetest.Stream("registry1", "foo", "bar", []imagev1.NamedTagEventList{
+		imagetest.Tag("latest",
+			imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "registry1/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+			imagetest.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", "registry1/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
 		)})
 	streamWatcher.Modify(&stream)
 	imageDeleter.unblock()
