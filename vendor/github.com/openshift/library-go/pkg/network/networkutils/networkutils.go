@@ -5,6 +5,12 @@ import (
 	"net"
 )
 
+const (
+	SingleTenantPluginName  = "redhat/openshift-ovs-subnet"
+	MultiTenantPluginName   = "redhat/openshift-ovs-multitenant"
+	NetworkPolicyPluginName = "redhat/openshift-ovs-networkpolicy"
+)
+
 var localHosts []string = []string{"127.0.0.1", "::1", "localhost"}
 var localSubnets []string = []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "fe80::/10"}
 

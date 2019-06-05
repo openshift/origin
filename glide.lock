@@ -1,5 +1,5 @@
-hash: 958ac5b061346d161a7c5d2e4f62008648706d2c7b86e7e0af442f4f7cca3ba5
-updated: 2019-06-03T15:56:04.801733154-04:00
+hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
+updated: 2019-06-05T12:44:37.882524445-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: bd3468b1d9ee1c9c46f6bae81809796b0cb50967
+  version: 43c075c38fd931d1c85b41039e79caac63fc1925
   subpackages:
   - annotations
   - apps
@@ -969,6 +969,7 @@ imports:
   - servicecertsigner/v1alpha1
   - template
   - template/v1
+  - unidling/v1alpha1
   - user
   - user/v1
   - webconsole
@@ -1103,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 32d0f8cde2ab5dd901b162cdc8528b2ee54dbff1
+  version: db72f7f51130f28b2df093635e4db275c799e391
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -1138,6 +1139,7 @@ imports:
   - pkg/operator/resource/resourcemerge
   - pkg/operator/resource/retry
   - pkg/quota/clusterquotamapping
+  - pkg/quota/quotautil
   - pkg/security/ldapclient
   - pkg/security/ldapquery
   - pkg/security/ldaptestclient
@@ -1145,8 +1147,10 @@ imports:
   - pkg/security/uid
   - pkg/serviceability
   - pkg/template/generator
+  - pkg/template/templateprocessing
+  - pkg/template/templateprocessingclient
 - name: github.com/openshift/oauth-server
-  version: 45ea7d4499bdf4b6f7511d04e260571ad8577756
+  version: addeeedebc59feb04d7f845af019181739c22199
   subpackages:
   - pkg
   - pkg/api
@@ -1192,7 +1196,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: b9efc9cec6fb7d1c1d251e2ecb3731ff6803bab1
+  version: 41d5c034cba69a4e2264dca7ca10ed7bb06e0cef
   subpackages:
   - pkg/cli/create
   - pkg/cli/create/route
@@ -1214,6 +1218,7 @@ imports:
   - pkg/cli/serviceaccounts
   - pkg/cli/version
   - pkg/cli/whoami
+  - pkg/helpers/apps/test
   - pkg/helpers/authorization
   - pkg/helpers/build
   - pkg/helpers/bulk
@@ -1224,6 +1229,23 @@ imports:
   - pkg/helpers/env
   - pkg/helpers/errors
   - pkg/helpers/file
+  - pkg/helpers/graph/appsgraph
+  - pkg/helpers/graph/appsgraph/analysis
+  - pkg/helpers/graph/appsgraph/nodes
+  - pkg/helpers/graph/buildgraph
+  - pkg/helpers/graph/buildgraph/analysis
+  - pkg/helpers/graph/buildgraph/nodes
+  - pkg/helpers/graph/genericgraph
+  - pkg/helpers/graph/genericgraph/graphview
+  - pkg/helpers/graph/genericgraph/test
+  - pkg/helpers/graph/imagegraph
+  - pkg/helpers/graph/imagegraph/nodes
+  - pkg/helpers/graph/kubegraph
+  - pkg/helpers/graph/kubegraph/analysis
+  - pkg/helpers/graph/kubegraph/nodes
+  - pkg/helpers/graph/routegraph
+  - pkg/helpers/graph/routegraph/analysis
+  - pkg/helpers/graph/routegraph/nodes
   - pkg/helpers/groupsync
   - pkg/helpers/groupsync/ad
   - pkg/helpers/groupsync/groupdetector
@@ -1231,7 +1253,9 @@ imports:
   - pkg/helpers/groupsync/rfc2307
   - pkg/helpers/groupsync/syncerror
   - pkg/helpers/image
+  - pkg/helpers/image/test
   - pkg/helpers/kubeconfig
+  - pkg/helpers/legacy
   - pkg/helpers/parallel
   - pkg/helpers/proc
   - pkg/helpers/project
@@ -1241,12 +1265,40 @@ imports:
   - pkg/helpers/tokencmd
   - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: f2d7f7218f81a7366f5e24e92b9520492fb15aac
+  version: 7c753b3b549ae4302f01ff37d142daa37ae57b3b
   subpackages:
+  - pkg/apiserver/labelselector
   - pkg/apiserver/rest
   - pkg/client/impersonatingclient
+  - pkg/quota/quotautil
+  - pkg/version
+- name: github.com/openshift/openshift-controller-manager
+  version: c6ba47efbd46b7d8919f954ecbda458c71778664
+  subpackages:
+  - pkg/apps/appstest
+  - pkg/apps/deployer
+  - pkg/apps/deploymentconfig
+  - pkg/apps/metrics/prometheus
+  - pkg/authorization/defaultrolebindings
+  - pkg/build/buildscheme
+  - pkg/client/genericinformers
+  - pkg/cmd/imageformat
+  - pkg/image/metrics/prometheus
+  - pkg/image/trigger
+  - pkg/image/trigger/annotations
+  - pkg/image/trigger/buildconfigs
+  - pkg/image/trigger/deploymentconfigs
+  - pkg/project/controller
+  - pkg/quota/clusterquotareconciliation
+  - pkg/route/ingress
+  - pkg/route/ingressip
+  - pkg/security/controller
+  - pkg/security/mcs
+  - pkg/security/uidallocator
+  - pkg/serviceaccounts/controllers
+  - pkg/version
 - name: github.com/openshift/source-to-image
-  version: a5488fd69adefed0ce1dce45fb311c8e9666e09c
+  version: 45ec6af23200658c5e04d09b67433ae0dd48ae04
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -2320,7 +2372,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 131b6df23207345388e1b84022e5100359a1d509
+  version: 0182fb7a90c1d055915c47a065351c638ed5b140
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

@@ -56,3 +56,9 @@ import:
 # matches openshift/origin
 - package: github.com/gonum/graph
   version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
+
+# devexp:
+- package: github.com/fsouza/go-dockerclient
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3 # matching origin 4.2 level
+- package: github.com/docker/distribution
+  version: 16128bbac47f75050e82f7e91b04df33775e0c23 # level currently used in origin to base the origin patches on.  See https://github.com/openshift/image-registry/pull/126/commits/eb32acef7827ac2227c3aeaddc444880ed98edb3 leading to https://github.com/openshift/docker-distribution/commits/image-registry-3.11

@@ -66,6 +66,6 @@ func NewCmdCLI() *cobra.Command {
 
 // CommandFor returns the appropriate command for this base name,
 // or the OpenShift CLI command.
-func CommandFor(basename string) *cobra.Command {
+func CommandFor() *cobra.Command {
 	return NewCmdCLI()
 }
