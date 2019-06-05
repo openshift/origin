@@ -44,6 +44,7 @@
 // test/extended/testdata/builds/cluster-config/registry-blacklist.yaml
 // test/extended/testdata/builds/cluster-config/registry-whitelist.yaml
 // test/extended/testdata/builds/cluster-config.yaml
+// test/extended/testdata/builds/docker-add/Dockerfile
 // test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
@@ -2364,6 +2365,25 @@ func testExtendedTestdataBuildsClusterConfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM centos:7
+ADD no-exist-file .
+`)
+
+func testExtendedTestdataBuildsDockerAddDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsDockerAddDockerfile, nil
+}
+
+func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsDockerAddDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32573,6 +32593,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml": testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
 	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml": testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
 	"test/extended/testdata/builds/cluster-config.yaml": testExtendedTestdataBuildsClusterConfigYaml,
+	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
 	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment": testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
@@ -32990,6 +33011,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"registry-whitelist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, map[string]*bintree{}},
 					}},
 					"cluster-config.yaml": &bintree{testExtendedTestdataBuildsClusterConfigYaml, map[string]*bintree{}},
+					"docker-add": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
+					}},
 					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"s2i-environment-build-app": &bintree{nil, map[string]*bintree{
