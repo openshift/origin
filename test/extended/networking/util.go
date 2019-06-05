@@ -8,7 +8,7 @@ import (
 	"time"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -279,14 +279,14 @@ func pluginIsolatesNamespaces() bool {
 		return true
 	}
 	// Assume that only the OpenShift SDN "multitenant" plugin isolates by default
-	return networkPluginName() == network.MultiTenantPluginName
+	return networkPluginName() == networkutils.MultiTenantPluginName
 }
 
 func pluginImplementsNetworkPolicy() bool {
 	switch {
 	case os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true":
 		return true
-	case networkPluginName() == network.NetworkPolicyPluginName:
+	case networkPluginName() == networkutils.NetworkPolicyPluginName:
 		return true
 	default:
 		// If we can't detect the plugin, we assume it doesn't support

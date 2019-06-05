@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/openshift/library-go/pkg/network/networkutils"
+
 	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
 
 	"k8s.io/klog"
@@ -16,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	networkv1 "github.com/openshift/api/network/v1"
-	"github.com/openshift/origin/pkg/network"
 )
 
 type multiTenantPlugin struct {
@@ -32,7 +33,7 @@ func NewMultiTenantPlugin() osdnPolicy {
 }
 
 func (mp *multiTenantPlugin) Name() string {
-	return network.MultiTenantPluginName
+	return networkutils.MultiTenantPluginName
 }
 
 func (mp *multiTenantPlugin) SupportsVNIDs() bool {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -17,8 +16,7 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	basename := filepath.Base(os.Args[0])
-	command := cli.CommandFor(basename)
+	command := cli.CommandFor()
 	if err := command.Execute(); err != nil {
 		fmt.Println(fmt.Sprintf("S2I encountered the following error: %v", err))
 		os.Exit(1)

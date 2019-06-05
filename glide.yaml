@@ -103,6 +103,10 @@ import:
   version: master
 - package: github.com/openshift/oauth-server
   version: release-4.2
+- package: github.com/openshift/openshift-controller-manager
+  version: release-4.2
+- package: github.com/openshift/openshift-apiserver
+  version: release-4.2
 
 # forks third
 # master

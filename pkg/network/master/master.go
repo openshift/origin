@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/klog"
-
 	kapi "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,13 +14,14 @@ import (
 	kcoreinformers "k8s.io/client-go/informers/core/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 
 	networkapi "github.com/openshift/api/network/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinternalinformers "github.com/openshift/client-go/network/informers/externalversions"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/origin/pkg/network/common"
 )
 
@@ -181,9 +180,9 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 	}
 
 	switch pluginName {
-	case network.MultiTenantPluginName:
+	case networkutils.MultiTenantPluginName:
 		master.vnids = newMasterVNIDMap(true)
-	case network.NetworkPolicyPluginName:
+	case networkutils.NetworkPolicyPluginName:
 		master.vnids = newMasterVNIDMap(false)
 	}
 	if master.vnids != nil {

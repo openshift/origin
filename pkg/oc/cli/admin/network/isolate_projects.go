@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/network/networkapihelpers"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 )
 
 const IsolateProjectsNetworkCommandName = "isolate-projects"
@@ -46,7 +46,7 @@ func NewCmdIsolateProjectsNetwork(commandName, fullName string, f kcmdutil.Facto
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Isolate project network",
-		Long:    fmt.Sprintf(isolateProjectsNetworkLong, network.MultiTenantPluginName),
+		Long:    fmt.Sprintf(isolateProjectsNetworkLong, networkutils.MultiTenantPluginName),
 		Example: fmt.Sprintf(isolateProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, c, args))

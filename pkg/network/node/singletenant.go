@@ -4,7 +4,7 @@ package node
 
 import (
 	networkapi "github.com/openshift/api/network/v1"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 )
 
 type singleTenantPlugin struct{}
@@ -14,7 +14,7 @@ func NewSingleTenantPlugin() osdnPolicy {
 }
 
 func (sp *singleTenantPlugin) Name() string {
-	return network.SingleTenantPluginName
+	return networkutils.SingleTenantPluginName
 }
 
 func (sp *singleTenantPlugin) SupportsVNIDs() bool {

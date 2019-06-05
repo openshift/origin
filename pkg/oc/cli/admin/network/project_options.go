@@ -25,7 +25,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	networkv1typedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkapihelpers"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 )
 
 type ProjectOptions struct {
@@ -100,11 +100,18 @@ func (p *ProjectOptions) Validate() error {
 		} else {
 			errList = append(errList, errors.New("failed to fetch current network plugin info"))
 		}
-	} else if !network.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
+	} else if !isOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
 		errList = append(errList, fmt.Errorf("using plugin: %q, managing pod network is only supported for openshift multitenant network plugin", clusterNetwork.PluginName))
 	}
 
 	return kerrors.NewAggregate(errList)
+}
+
+func isOpenShiftMultitenantNetworkPlugin(pluginName string) bool {
+	if strings.ToLower(pluginName) == networkutils.MultiTenantPluginName {
+		return true
+	}
+	return false
 }
 
 func (p *ProjectOptions) GetProjects() ([]*projectv1.Project, error) {
