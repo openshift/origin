@@ -483,7 +483,6 @@
       "github.com/openshift/origin/pkg/image/importer/dockerv1client",
       "github.com/openshift/origin/pkg/image/registryclient",
       "github.com/openshift/origin/pkg/image/registryclient/dockercredentials",
-      "github.com/openshift/origin/pkg/network",
       "github.com/openshift/origin/pkg/oauth/apis/oauth",
       "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/printers/internalversion",

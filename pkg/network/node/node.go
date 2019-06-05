@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
-
 	"github.com/vishvananda/netlink"
 	"k8s.io/klog"
 
@@ -28,6 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -37,7 +36,7 @@ import (
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	"github.com/openshift/origin/pkg/network/node/ovs"
@@ -121,13 +120,13 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	var minOvsVersion string
 	var useConnTrack bool
 	switch strings.ToLower(c.PluginName) {
-	case network.SingleTenantPluginName:
+	case networkutils.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
 		pluginId = 0
-	case network.MultiTenantPluginName:
+	case networkutils.MultiTenantPluginName:
 		policy = NewMultiTenantPlugin()
 		pluginId = 1
-	case network.NetworkPolicyPluginName:
+	case networkutils.NetworkPolicyPluginName:
 		policy = NewNetworkPolicyPlugin()
 		pluginId = 2
 		minOvsVersion = "2.6.0"

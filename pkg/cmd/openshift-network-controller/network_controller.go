@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"k8s.io/klog"
 
@@ -17,9 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/origin/pkg/network"
 	sdnmaster "github.com/openshift/origin/pkg/network/master"
 
 	// for metrics
@@ -91,7 +92,7 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 }
 
 func runSDNController(ctx *ControllerContext) (bool, error) {
-	if !network.IsOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
+	if !isOpenShiftNetworkPlugin(ctx.OpenshiftControllerConfig.Network.NetworkPluginName) {
 		return false, nil
 	}
 
@@ -106,4 +107,12 @@ func runSDNController(ctx *ControllerContext) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func isOpenShiftNetworkPlugin(pluginName string) bool {
+	switch strings.ToLower(pluginName) {
+	case networkutils.SingleTenantPluginName, networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName:
+		return true
+	}
+	return false
 }

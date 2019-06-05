@@ -14,8 +14,9 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/network"
 )
+
+var defaultInformerResyncPeriod = 30 * time.Minute
 
 // informers is a small bag of data that holds our informers
 type informers struct {
@@ -44,7 +45,7 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 	}
 
 	kubeInformers := kinformers.NewSharedInformerFactory(kubeClient, sdn.ProxyConfig.IPTables.SyncPeriod.Duration)
-	networkInformers := networkinformers.NewSharedInformerFactory(networkClient, network.DefaultInformerResyncPeriod)
+	networkInformers := networkinformers.NewSharedInformerFactory(networkClient, defaultInformerResyncPeriod)
 
 	sdn.informers = &informers{
 		KubeClient:    kubeClient,

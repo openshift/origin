@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/network/networkapihelpers"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 )
 
 const MakeGlobalProjectsNetworkCommandName = "make-projects-global"
@@ -45,7 +45,7 @@ func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f kcmdutil.Fa
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Make project network global",
-		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, network.MultiTenantPluginName),
+		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, networkutils.MultiTenantPluginName),
 		Example: fmt.Sprintf(makeGlobalProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, c, args))

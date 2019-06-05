@@ -10,8 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -23,10 +21,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/async"
 
 	networkv1 "github.com/openshift/api/network/v1"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/origin/pkg/network/common"
 )
 
@@ -78,7 +77,7 @@ func NewNetworkPolicyPlugin() osdnPolicy {
 }
 
 func (np *networkPolicyPlugin) Name() string {
-	return network.NetworkPolicyPluginName
+	return networkutils.NetworkPolicyPluginName
 }
 
 func (np *networkPolicyPlugin) SupportsVNIDs() bool {
@@ -178,7 +177,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkv1.NetNamespace) {
 
 func (np *networkPolicyPlugin) UpdateNetNamespace(netns *networkv1.NetNamespace, oldNetID uint32) {
 	if netns.NetID != oldNetID {
-		klog.Warningf("Got VNID change for namespace %s while using %s plugin", netns.NetName, network.NetworkPolicyPluginName)
+		klog.Warningf("Got VNID change for namespace %s while using %s plugin", netns.NetName, networkutils.NetworkPolicyPluginName)
 	}
 
 	np.node.podManager.UpdateLocalMulticastRules(netns.NetID)

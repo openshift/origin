@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/network/networkapihelpers"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 )
 
 const JoinProjectsNetworkCommandName = "join-projects"
@@ -50,7 +50,7 @@ func NewCmdJoinProjectsNetwork(commandName, fullName string, f kcmdutil.Factory,
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Join project network",
-		Long:    fmt.Sprintf(joinProjectsNetworkLong, network.MultiTenantPluginName),
+		Long:    fmt.Sprintf(joinProjectsNetworkLong, networkutils.MultiTenantPluginName),
 		Example: fmt.Sprintf(joinProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, c, args))
