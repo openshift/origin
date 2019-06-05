@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 // NoBuildNumberLabelError represents an error caused by the build not having

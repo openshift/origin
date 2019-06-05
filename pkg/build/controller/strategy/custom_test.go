@@ -15,8 +15,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	"github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/build/buildutil"
 )
 
 func TestCustomCreateBuildPod(t *testing.T) {
@@ -37,10 +36,10 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildutil.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{util.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildutil.BuildLabel: buildutil.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
@@ -182,8 +181,8 @@ func TestCustomBuildLongName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if pod.Labels[util.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
-		t.Errorf("Unexpected build label value: %s", pod.Labels[util.BuildLabel])
+	if pod.Labels[buildutil.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildutil.BuildLabel])
 	}
 }
 

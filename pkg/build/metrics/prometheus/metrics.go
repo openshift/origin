@@ -10,7 +10,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
 )
 
 const (
@@ -113,7 +112,7 @@ func addTimeGauge(ch chan<- prometheus.Metric, b *buildv1.Build, time *metav1.Ti
 func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildv1.Build) (key collectKey) {
 
 	r := string(b.Status.Reason)
-	s := buildapihelpers.StrategyType(b.Spec.Strategy)
+	s := strategyType(b.Spec.Strategy)
 	key = collectKey{reason: r, strategy: s}
 	switch b.Status.Phase {
 	// remember, new and pending builds don't have a start time
@@ -136,4 +135,18 @@ func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildv1.B
 		key.phase = completePhase
 	}
 	return key
+}
+
+func strategyType(strategy buildv1.BuildStrategy) string {
+	switch {
+	case strategy.DockerStrategy != nil:
+		return "Docker"
+	case strategy.CustomStrategy != nil:
+		return "Custom"
+	case strategy.SourceStrategy != nil:
+		return "Source"
+	case strategy.JenkinsPipelineStrategy != nil:
+		return "JenkinsPipeline"
+	}
+	return ""
 }

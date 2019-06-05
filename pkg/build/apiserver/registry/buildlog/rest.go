@@ -29,8 +29,8 @@ import (
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	buildwait "github.com/openshift/origin/pkg/build/apiserver/registry/wait"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // REST is an implementation of RESTStorage for the api server.

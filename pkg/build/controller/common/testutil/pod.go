@@ -10,7 +10,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 type TestPod corev1.Pod

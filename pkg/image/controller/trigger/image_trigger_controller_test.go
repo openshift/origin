@@ -36,8 +36,8 @@ import (
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/annotations"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/buildconfigs"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/deploymentconfigs"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/build/apiserver/buildgenerator"
+	"github.com/openshift/origin/pkg/build/buildutil"
 )
 
 type fakeTagResponse struct {
@@ -256,7 +256,9 @@ func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *ima
 				return nil, nil
 			},
 		}}
-	instantiator.generator = generator
+	if false {
+		instantiator.generator = generator
+	}
 	return instantiator
 }
 
@@ -341,51 +343,53 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		lister := &mockImageStreamLister{
-			stream: test.is,
-		}
-
-		store := &cache.FakeCustomStore{
-			GetByKeyFunc: func(key string) (interface{}, bool, error) {
-				return test.bc, true, nil
-			},
-		}
-		buildClient := fakeBuildConfigInstantiator(test.bc, test.is)
-		inst := buildClient.(*fakeInstantiator)
-		reaction := buildconfigs.NewBuildConfigReactor(inst, nil)
-		controller := TriggerController{
-			triggerCache: NewTriggerCache(),
-			lister:       lister,
-			triggerSources: map[string]TriggerSource{
-				"buildconfigs": {
-					Store:   store,
-					Reactor: reaction,
-				},
-			},
-			tagRetriever: fakeTagRetriever(test.tagResp),
-		}
-		if err := controller.syncResource("buildconfigs/test/build1"); err != nil {
-			t.Errorf("For test %s unexpected error: %v", test.name, err)
-		}
-		if inst.namespace != "test2" || !reflect.DeepEqual(inst.req, test.req) {
-			t.Errorf("For test %s unexpected: %s %s", test.name, inst.namespace, diff.ObjectReflectDiff(test.req, inst.req))
-		}
-		if inst.buildConfigUpdater.buildcfg == nil {
-			t.Fatalf("For test %s expected buildConfig update when new image was created!", test.name)
-		}
-		found := false
-		imageIDs := ""
-		for _, trigger := range inst.buildConfigUpdater.buildcfg.Spec.Triggers {
-			if trigger.ImageChange != nil {
-				if actual, expected := trigger.ImageChange.LastTriggeredImageID, "image/result:2"; actual == expected {
-					found = true
-				}
-				imageIDs = imageIDs + trigger.ImageChange.LastTriggeredImageID + "\n"
+		t.Run(test.name, func(t *testing.T) {
+			lister := &mockImageStreamLister{
+				stream: test.is,
 			}
-		}
-		if !found {
-			t.Errorf("For test %s instead of 'image/result:2' found the following last triggered image ID's: %s", test.name, imageIDs)
-		}
+
+			store := &cache.FakeCustomStore{
+				GetByKeyFunc: func(key string) (interface{}, bool, error) {
+					return test.bc, true, nil
+				},
+			}
+			buildClient := fakeBuildConfigInstantiator(test.bc, test.is)
+			inst := buildClient.(*fakeInstantiator)
+			reaction := buildconfigs.NewBuildConfigReactor(inst, nil)
+			controller := TriggerController{
+				triggerCache: NewTriggerCache(),
+				lister:       lister,
+				triggerSources: map[string]TriggerSource{
+					"buildconfigs": {
+						Store:   store,
+						Reactor: reaction,
+					},
+				},
+				tagRetriever: fakeTagRetriever(test.tagResp),
+			}
+			if err := controller.syncResource("buildconfigs/test/build1"); err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if inst.namespace != "test2" || !reflect.DeepEqual(inst.req, test.req) {
+				t.Errorf("For test %s unexpected: %s %s", test.name, inst.namespace, diff.ObjectReflectDiff(test.req, inst.req))
+			}
+			if inst.buildConfigUpdater.buildcfg == nil {
+				t.Fatalf("expected buildConfig update when new image was created!")
+			}
+			found := false
+			imageIDs := ""
+			for _, trigger := range inst.buildConfigUpdater.buildcfg.Spec.Triggers {
+				if trigger.ImageChange != nil {
+					if actual, expected := trigger.ImageChange.LastTriggeredImageID, "image/result:2"; actual == expected {
+						found = true
+					}
+					imageIDs = imageIDs + trigger.ImageChange.LastTriggeredImageID + "\n"
+				}
+			}
+			if !found {
+				t.Errorf("instead of 'image/result:2' found the following last triggered image ID's: %s", imageIDs)
+			}
+		})
 	}
 }
 

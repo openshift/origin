@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/env"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
@@ -47,6 +46,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/jenkinsfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
+	"github.com/openshift/origin/pkg/oc/lib/ocbuildutil"
 )
 
 const (
@@ -1279,7 +1279,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 		}
 
 		if bc, ok := obj.(*buildv1.BuildConfig); ok {
-			input := buildapihelpers.GetInputReference(bc.Spec.Strategy)
+			input := ocbuildutil.GetInputReference(bc.Spec.Strategy)
 			output := bc.Spec.Output.To
 
 			if output == nil || input == nil {

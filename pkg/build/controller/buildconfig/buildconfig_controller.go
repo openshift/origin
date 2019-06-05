@@ -25,10 +25,8 @@ import (
 	buildinformer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	"github.com/openshift/origin/pkg/build/buildutil"
 	buildcommon "github.com/openshift/origin/pkg/build/controller/common"
-	"github.com/openshift/origin/pkg/build/util"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 const (
@@ -103,7 +101,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", bc.Namespace, bc.Name, err))
 	}
 
-	hasChangeTrigger := buildapihelpers.HasTriggerType(buildv1.ConfigChangeBuildTriggerType, bc)
+	hasChangeTrigger := buildutil.HasTriggerType(buildv1.ConfigChangeBuildTriggerType, bc)
 
 	if !hasChangeTrigger {
 		return nil
@@ -121,7 +119,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 	request := &buildv1.BuildRequest{
 		TriggeredBy: append(buildTriggerCauses,
 			buildv1.BuildTriggerCause{
-				Message: util.BuildTriggerCauseConfigMsg,
+				Message: buildutil.BuildTriggerCauseConfigMsg,
 			}),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bc.Name,

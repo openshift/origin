@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/image/signature"
-	toml "github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -47,14 +47,13 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/referencemutator"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
@@ -507,7 +506,7 @@ func (bc *BuildController) handleBuild(build *buildv1.Build) error {
 
 	klog.V(4).Infof("Handling build %s", buildDesc(build))
 
-	pod, podErr := bc.podStore.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build))
+	pod, podErr := bc.podStore.Pods(build.Namespace).Get(buildutil.GetBuildPodName(build))
 
 	// Technically the only error that is returned from retrieving the pod is the
 	// NotFound error so this check should not be needed, but leaving here in case
@@ -592,7 +591,7 @@ func shouldCancel(build *buildv1.Build) bool {
 func (bc *BuildController) cancelBuild(build *buildv1.Build) (*buildUpdate, error) {
 	klog.V(4).Infof("Cancelling build %s", buildDesc(build))
 
-	podName := buildapihelpers.GetBuildPodName(build)
+	podName := buildutil.GetBuildPodName(build)
 	err := bc.podClient.Pods(build.Namespace).Delete(podName, &metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, fmt.Errorf("could not delete build pod %s/%s to cancel build %s: %v", build.Namespace, podName, buildDesc(build), err)
@@ -1138,7 +1137,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		}
 		klog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
 		// Check if the existing pod has the CA ConfigMap properly attached
-		hasCAMap, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildCAConfigMapName(build))
+		hasCAMap, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildutil.GetBuildCAConfigMapName(build))
 		if err != nil {
 			return update, fmt.Errorf("could not find certificate authority for build: %v", err)
 		}
@@ -1149,7 +1148,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 				return update, err
 			}
 		}
-		hasRegistryConf, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildSystemConfigMapName(build))
+		hasRegistryConf, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildutil.GetBuildSystemConfigMapName(build))
 		if err != nil {
 			return update, fmt.Errorf("could not find registry config for build: %v", err)
 		}
@@ -1471,7 +1470,7 @@ func (bc *BuildController) patchBuild(build *buildv1.Build, update *buildUpdate)
 // It is called when a corresponding pod for a build is not found in the cache.
 func (bc *BuildController) findMissingPod(build *buildv1.Build) *corev1.Pod {
 	// Make one last attempt to fetch the pod using the REST client
-	pod, err := bc.podClient.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build), metav1.GetOptions{})
+	pod, err := bc.podClient.Pods(build.Namespace).Get(buildutil.GetBuildPodName(build), metav1.GetOptions{})
 	if err == nil {
 		klog.V(2).Infof("Found missing pod for build %s by using direct client.", buildDesc(build))
 		return pod
@@ -1660,7 +1659,7 @@ func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod
 func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod, caData map[string]string) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: buildapihelpers.GetBuildCAConfigMapName(build),
+			Name: buildutil.GetBuildCAConfigMapName(build),
 			OwnerReferences: []metav1.OwnerReference{
 				makeBuildPodOwnerRef(buildPod),
 			},
@@ -1723,7 +1722,7 @@ func (bc *BuildController) createBuildSystemConfConfigMap(build *buildv1.Build, 
 func (bc *BuildController) createBuildSystemConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: buildapihelpers.GetBuildSystemConfigMapName(build),
+			Name: buildutil.GetBuildSystemConfigMapName(build),
 			OwnerReferences: []metav1.OwnerReference{
 				makeBuildPodOwnerRef(buildPod),
 			},

@@ -24,8 +24,8 @@ import (
 	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // CancelBuildRecommendedCommandName is the recommended command name.

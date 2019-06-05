@@ -11,11 +11,11 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
-	"github.com/openshift/origin/pkg/build/generator"
+	"github.com/openshift/origin/pkg/build/apiserver/buildgenerator"
 )
 
 func TestCreateClone(t *testing.T) {
-	rest := CloneREST{&generator.BuildGenerator{Client: generator.TestingClient{
+	rest := CloneREST{&buildgenerator.BuildGenerator{Client: buildgenerator.TestingClient{
 		CreateBuildFunc: func(ctx context.Context, build *buildv1.Build) error {
 			return nil
 		},
@@ -31,7 +31,7 @@ func TestCreateClone(t *testing.T) {
 }
 
 func TestCreateCloneValidationError(t *testing.T) {
-	rest := CloneREST{&generator.BuildGenerator{}}
+	rest := CloneREST{&buildgenerator.BuildGenerator{}}
 	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{}, apiserverrest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err == nil {
 		t.Error("Expected object got none!")

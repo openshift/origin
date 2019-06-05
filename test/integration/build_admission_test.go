@@ -18,8 +18,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/build/buildutil"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"

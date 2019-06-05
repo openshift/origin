@@ -15,7 +15,7 @@ import (
 	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 func newTestClient(builds ...buildv1.Build) v1.BuildsGetter {

@@ -20,7 +20,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	fakebuild "github.com/openshift/client-go/build/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 func TestCheckReadiness(t *testing.T) {
