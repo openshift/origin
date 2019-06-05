@@ -152,7 +152,7 @@ func mergeLogForRepo(g *git, repo string, from, to string) ([]MergeCommit, error
 	if err != nil {
 		return nil, err
 	}
-	reBug, err := regexp.Compile(`^Bug (\d+)\s*(-|:)\s*`)
+	reBug, err := regexp.Compile(`^(?i)^.*?Bug (\d+)\s*(-|:)\s*`)
 	if err != nil {
 		return nil, err
 	}
