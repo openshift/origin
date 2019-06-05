@@ -1,13 +1,13 @@
 package sync
 
 import (
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
-	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/oc/pkg/helpers/groupsync"
 	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 	"github.com/openshift/oc/pkg/helpers/groupsync/rfc2307"
 	"github.com/openshift/oc/pkg/helpers/groupsync/syncerror"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 var _ SyncBuilder = &RFC2307Builder{}
@@ -15,7 +15,7 @@ var _ PruneBuilder = &RFC2307Builder{}
 
 type RFC2307Builder struct {
 	ClientConfig ldapclient.Config
-	Config       *config.RFC2307Config
+	Config       *legacyconfigv1.RFC2307Config
 
 	rfc2307LDAPInterface *rfc2307.LDAPInterface
 

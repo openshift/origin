@@ -12,10 +12,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/oc/pkg/helpers/groupsync"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
 )
 
@@ -49,7 +49,7 @@ var (
 
 type PruneOptions struct {
 	// Config is the LDAP sync config read from file
-	Config     *config.LDAPSyncConfig
+	Config     *legacyconfigv1.LDAPSyncConfig
 	ConfigFile string
 
 	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
@@ -147,7 +147,7 @@ func (o *PruneOptions) Validate() error {
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
 func (o *PruneOptions) Run() error {
-	bindPassword, err := config.ResolveStringValue(o.Config.BindPassword)
+	bindPassword, err := ldap.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (o *PruneOptions) Run() error {
 
 }
 
-func buildPruneBuilder(clientConfig ldapclient.Config, pruneConfig *config.LDAPSyncConfig) (PruneBuilder, error) {
+func buildPruneBuilder(clientConfig ldapclient.Config, pruneConfig *legacyconfigv1.LDAPSyncConfig) (PruneBuilder, error) {
 	switch {
 	case pruneConfig.RFC2307Config != nil:
 		return &RFC2307Builder{ClientConfig: clientConfig, Config: pruneConfig.RFC2307Config}, nil

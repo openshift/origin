@@ -1,10 +1,13 @@
 package sync
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
+
+	"github.com/openshift/library-go/pkg/config/helpers"
 
 	"github.com/spf13/cobra"
 
@@ -13,20 +16,18 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/oc/pkg/helpers/groupsync"
 	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 	"github.com/openshift/oc/pkg/helpers/groupsync/syncerror"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
 )
 
@@ -81,7 +82,7 @@ type SyncOptions struct {
 	Source GroupSyncSource
 
 	// Config is the LDAP sync config read from file
-	Config     *config.LDAPSyncConfig
+	Config     *legacyconfigv1.LDAPSyncConfig
 	ConfigFile string
 
 	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
@@ -239,20 +240,22 @@ func buildNameList(args []string, file string) ([]string, error) {
 	return list, nil
 }
 
-func decodeSyncConfigFromFile(configFile string) (*config.LDAPSyncConfig, error) {
-	var config config.LDAPSyncConfig
+func decodeSyncConfigFromFile(configFile string) (*legacyconfigv1.LDAPSyncConfig, error) {
 	yamlConfig, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file %s: %v", configFile, err)
 	}
-	jsonConfig, err := kyaml.ToJSON(yamlConfig)
+	uncast, err := helpers.ReadYAML(bytes.NewBuffer([]byte(yamlConfig)), legacyconfigv1.InstallLegacy)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse file %s: %v", configFile, err)
 	}
-	if err := runtime.DecodeInto(configapilatest.Codec, jsonConfig, &config); err != nil {
-		return nil, fmt.Errorf("could not decode file into config: %v", err)
+	ldapConfig := uncast.(*legacyconfigv1.LDAPSyncConfig)
+
+	if err := helpers.ResolvePaths(ldap.GetStringSourceFileReferences(&ldapConfig.BindPassword), configFile); err != nil {
+		return nil, fmt.Errorf("could not relativize files %s: %v", configFile, err)
 	}
-	return &config, nil
+
+	return ldapConfig, nil
 }
 
 // openshiftGroupNamesOnlyBlacklist returns back a list that contains only the names of the groups.
@@ -338,7 +341,7 @@ func (o *SyncOptions) CreateErrorHandler() syncerror.Handler {
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
 func (o *SyncOptions) Run() error {
-	bindPassword, err := config.ResolveStringValue(o.Config.BindPassword)
+	bindPassword, err := ldap.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err
 	}
@@ -427,7 +430,7 @@ func (o *SyncOptions) Run() error {
 	return kerrs.NewAggregate(syncErrors)
 }
 
-func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *config.LDAPSyncConfig, errorHandler syncerror.Handler) (SyncBuilder, error) {
+func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *legacyconfigv1.LDAPSyncConfig, errorHandler syncerror.Handler) (SyncBuilder, error) {
 	switch {
 	case syncConfig.RFC2307Config != nil:
 		return &RFC2307Builder{ClientConfig: clientConfig, Config: syncConfig.RFC2307Config, ErrorHandler: errorHandler}, nil
