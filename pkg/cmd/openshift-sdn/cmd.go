@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -19,9 +21,9 @@ import (
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/serviceability"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/network/common/networkvalidation"
+	"github.com/openshift/origin/pkg/network/networkconfig"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 	"github.com/openshift/origin/pkg/version"
@@ -37,7 +39,7 @@ type OpenShiftSDN struct {
 	URLOnlyKubeConfigFilePath string
 	cniConfFile               string
 
-	NodeConfig  *configapi.NodeConfig
+	NodeConfig  *legacyconfigv1.NodeConfig
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
 
 	informers   *informers
@@ -154,7 +156,7 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 	}
 
 	// Validate the node config
-	validationResults := networkvalidation.ValidateInClusterNetworkNodeConfig(sdn.NodeConfig, nil)
+	validationResults := networkconfig.ValidateInClusterNetworkNodeConfig(sdn.NodeConfig, nil)
 
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
@@ -163,7 +165,7 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 	}
 	if len(validationResults.Errors) != 0 {
 		klog.V(4).Infof("Configuration is invalid: %#v", sdn.NodeConfig)
-		return kerrors.NewInvalid(configapi.Kind("NodeConfig"), sdn.ConfigFilePath, validationResults.Errors)
+		return kerrors.NewInvalid(schema.GroupKind{Group: "", Kind: "NodeConfig"}, sdn.ConfigFilePath, validationResults.Errors)
 	}
 
 	sdn.ProxyConfig, err = ProxyConfigFromNodeConfig(*sdn.NodeConfig)

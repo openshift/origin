@@ -1,19 +1,18 @@
-package networkvalidation
+package networkconfig
 
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/config/validation"
 	"github.com/openshift/library-go/pkg/crypto"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
-func ValidateInClusterNetworkNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) validation.ValidationResults {
+func ValidateInClusterNetworkNodeConfig(config *legacyconfigv1.NodeConfig, fldPath *field.Path) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	hasBootstrapConfig := len(config.KubeletArguments["bootstrap-kubeconfig"]) > 0
@@ -26,13 +25,8 @@ func ValidateInClusterNetworkNodeConfig(config *configapi.NodeConfig, fldPath *f
 
 	servingInfoPath := fldPath.Child("servingInfo")
 	validationResults.Append(ValidateServingInfo(config.ServingInfo, false, servingInfoPath))
-	if config.ServingInfo.BindNetwork == "tcp6" {
-		validationResults.AddErrors(field.Invalid(servingInfoPath.Child("bindNetwork"), config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for nodes, must be tcp or tcp4"))
-	}
 
 	validationResults.AddErrors(ValidateNetworkConfig(config.NetworkConfig, fldPath.Child("networkConfig"))...)
-
-	validationResults.AddErrors(ValidateDockerConfig(config.DockerConfig, fldPath.Child("dockerConfig"))...)
 
 	if _, err := time.ParseDuration(config.IPTablesSyncPeriod); err != nil {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("iptablesSyncPeriod"), config.IPTablesSyncPeriod, fmt.Sprintf("unable to parse iptablesSyncPeriod: %v. Examples with correct format: '5s', '1m', '2h22m'", err)))
@@ -41,7 +35,7 @@ func ValidateInClusterNetworkNodeConfig(config *configapi.NodeConfig, fldPath *f
 	return validationResults
 }
 
-func ValidateNetworkConfig(config configapi.NodeNetworkConfig, fldPath *field.Path) field.ErrorList {
+func ValidateNetworkConfig(config legacyconfigv1.NodeNetworkConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if config.MTU == 0 {
@@ -50,37 +44,17 @@ func ValidateNetworkConfig(config configapi.NodeNetworkConfig, fldPath *field.Pa
 	return allErrs
 }
 
-func ValidateDockerConfig(config configapi.DockerConfig, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	switch config.ExecHandlerName {
-	case configapi.DockerExecHandlerNative, configapi.DockerExecHandlerNsenter:
-		// ok
-	default:
-		validValues := strings.Join([]string{string(configapi.DockerExecHandlerNative), string(configapi.DockerExecHandlerNsenter)}, ", ")
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("execHandlerName"), config.ExecHandlerName, fmt.Sprintf("must be one of %s", validValues)))
-	}
-
-	return allErrs
-}
-
-func ValidateServingInfo(info configapi.ServingInfo, certificatesRequired bool, fldPath *field.Path) validation.ValidationResults {
+func ValidateServingInfo(info legacyconfigv1.ServingInfo, certificatesRequired bool, fldPath *field.Path) validation.ValidationResults {
 	validationResults := validation.ValidationResults{}
 
 	validationResults.AddErrors(validation.ValidateHostPort(info.BindAddress, fldPath.Child("bindAddress"))...)
-	validationResults.AddErrors(ValidateCertInfo(info.ServerCert, certificatesRequired, fldPath)...)
+	validationResults.AddErrors(ValidateCertInfo(info.CertInfo, certificatesRequired, fldPath)...)
 
-	if len(info.NamedCertificates) > 0 && len(info.ServerCert.CertFile) == 0 {
+	if len(info.NamedCertificates) > 0 && len(info.CertInfo.CertFile) == 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("namedCertificates"), "", "a default certificate and key is required in certFile/keyFile in order to use namedCertificates"))
 	}
 
-	switch info.BindNetwork {
-	case "tcp", "tcp4", "tcp6":
-	default:
-		validationResults.AddErrors(field.Invalid(fldPath.Child("bindNetwork"), info.BindNetwork, "must be 'tcp', 'tcp4', or 'tcp6'"))
-	}
-
-	if len(info.ServerCert.CertFile) > 0 {
+	if len(info.CertInfo.CertFile) > 0 {
 		if len(info.ClientCA) > 0 {
 			validationResults.AddErrors(validation.ValidateFile(info.ClientCA, fldPath.Child("clientCA"))...)
 		}
@@ -102,7 +76,7 @@ func ValidateServingInfo(info configapi.ServingInfo, certificatesRequired bool, 
 	return validationResults
 }
 
-func ValidateCertInfo(certInfo configapi.CertInfo, required bool, fldPath *field.Path) field.ErrorList {
+func ValidateCertInfo(certInfo legacyconfigv1.CertInfo, required bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if required {
