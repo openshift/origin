@@ -21,9 +21,13 @@ package prometheus_test
 
 import (
 	"bytes"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
 	dto "github.com/prometheus/client_model/go"
 
@@ -543,4 +547,105 @@ func TestRegisterWithOrGet(t *testing.T) {
 	} else {
 		t.Error("unexpected error:", err)
 	}
+}
+
+// TestHistogramVecRegisterGatherConcurrency is an end-to-end test that
+// concurrently calls Observe on random elements of a HistogramVec while the
+// same HistogramVec is registered concurrently and the Gather method of the
+// registry is called concurrently.
+func TestHistogramVecRegisterGatherConcurrency(t *testing.T) {
+	labelNames := make([]string, 16) // Need at least 13 to expose #512.
+	for i := range labelNames {
+		labelNames[i] = fmt.Sprint("label_", i)
+	}
+
+	var (
+		reg = prometheus.NewPedanticRegistry()
+		hv  = prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:        "test_histogram",
+				Help:        "This helps testing.",
+				ConstLabels: prometheus.Labels{"foo": "bar"},
+			},
+			labelNames,
+		)
+		labelValues = []string{"a", "b", "c", "alpha", "beta", "gamma", "aleph", "beth", "gimel"}
+		quit        = make(chan struct{})
+		wg          sync.WaitGroup
+	)
+
+	observe := func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				obs := rand.NormFloat64()*.1 + .2
+				values := make([]string, 0, len(labelNames))
+				for range labelNames {
+					values = append(values, labelValues[rand.Intn(len(labelValues))])
+				}
+				hv.WithLabelValues(values...).Observe(obs)
+			}
+		}
+	}
+
+	register := func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				if err := reg.Register(hv); err != nil {
+					if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+						t.Error("Registering failed:", err)
+					}
+				}
+				time.Sleep(7 * time.Millisecond)
+			}
+		}
+	}
+
+	gather := func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				if g, err := reg.Gather(); err != nil {
+					t.Error("Gathering failed:", err)
+				} else {
+					if len(g) == 0 {
+						continue
+					}
+					if len(g) != 1 {
+						t.Error("Gathered unexpected number of metric families:", len(g))
+					}
+					if len(g[0].Metric[0].Label) != len(labelNames)+1 {
+						t.Error("Gathered unexpected number of label pairs:", len(g[0].Metric[0].Label))
+					}
+				}
+				time.Sleep(4 * time.Millisecond)
+			}
+		}
+	}
+
+	wg.Add(10)
+	go observe()
+	go observe()
+	go register()
+	go observe()
+	go gather()
+	go observe()
+	go register()
+	go observe()
+	go gather()
+	go observe()
+
+	time.Sleep(time.Second)
+	close(quit)
+	wg.Wait()
 }

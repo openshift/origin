@@ -686,7 +686,13 @@ func checkMetricConsistency(
 	dh := hashNew()
 	// Make sure label pairs are sorted. We depend on it for the consistency
 	// check.
-	sort.Sort(LabelPairSorter(dtoMetric.Label))
+	if !sort.IsSorted(LabelPairSorter(dtoMetric.Label)) {
+		// We cannot sort dtoMetric.Label in place as it is immutable by contract.
+		copiedLabels := make([]*dto.LabelPair, len(dtoMetric.Label))
+		copy(copiedLabels, dtoMetric.Label)
+		sort.Sort(LabelPairSorter(copiedLabels))
+		dtoMetric.Label = copiedLabels
+	}
 	for _, lp := range dtoMetric.Label {
 		h = hashAdd(h, lp.GetValue())
 		h = hashAddByte(h, separatorByte)
@@ -727,8 +733,8 @@ func checkDescConsistency(
 	}
 
 	// Is the desc consistent with the content of the metric?
-	lpsFromDesc := make([]*dto.LabelPair, 0, len(dtoMetric.Label))
-	lpsFromDesc = append(lpsFromDesc, desc.constLabelPairs...)
+	lpsFromDesc := make([]*dto.LabelPair, len(desc.constLabelPairs), len(dtoMetric.Label))
+	copy(lpsFromDesc, desc.constLabelPairs)
 	for _, l := range desc.variableLabels {
 		lpsFromDesc = append(lpsFromDesc, &dto.LabelPair{
 			Name: proto.String(l),
