@@ -7,7 +7,7 @@ import (
 	"k8s.io/client-go/scale"
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
+	unidlingcontroller "github.com/openshift/openshift-controller-manager/pkg/unidling/controller"
 )
 
 func RunUnidlingController(ctx *ControllerContext) (bool, error) {
