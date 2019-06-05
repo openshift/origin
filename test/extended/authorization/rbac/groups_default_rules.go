@@ -78,26 +78,22 @@ var (
 
 		rbacv1helpers.NewRule("delete").Groups(oauthGroup, legacyOauthGroup).Resources("oauthaccesstokens", "oauthauthorizetokens").RuleOrDie(),
 
+		// this is openshift specific
 		rbacv1helpers.NewRule("get").URLs(
 			"/healthz/",
 			"/version/*",
-			"/oapi", "/oapi/*",
-			"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1",
-			"/osapi", "/osapi/",
 			"/.well-known", "/.well-known/*",
-			"/",
 		).RuleOrDie(),
 
+		// this needs to move upstream
 		rbacv1helpers.NewRule("get").URLs(
 			"/readyz",
 		).RuleOrDie(),
 
+		// this is from upstream kube
 		rbacv1helpers.NewRule("get").URLs(
 			"/healthz",
 			"/version",
-			"/openapi", "/openapi/*",
-			"/api", "/api/*",
-			"/apis", "/apis/*",
 		).RuleOrDie(),
 	}
 
@@ -117,6 +113,18 @@ var (
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
 			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications").RuleOrDie(),
+
+			// this is openshift specific
+			rbacv1helpers.NewRule("get").URLs(
+				"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1", // TODO I think we can remove this
+			).RuleOrDie(),
+
+			// this is from upstream kube
+			rbacv1helpers.NewRule("get").URLs(
+				"/openapi", "/openapi/*",
+				"/api", "/api/*",
+				"/apis", "/apis/*",
+			).RuleOrDie(),
 		},
 		allUnauthenticatedRules...,
 	)
@@ -206,7 +214,7 @@ func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, na
 	}
 
 	// force test data to be cleaned up every so often but allow extra rules to not deadlock new changes
-	if cover, missing := validation.Covers(actualRules, expectedRules); !cover && len(missing) > 12 {
+	if cover, missing := validation.Covers(actualRules, expectedRules); !cover && len(missing) > 0 { // TODO undo
 		e2e.Failf("test data for %s has too many unnecessary permissions:\n%s", group, rulesToString(missing))
 	}
 }

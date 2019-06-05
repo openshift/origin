@@ -212,6 +212,7 @@ func clusterRoles() []rbacv1.ClusterRole {
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("get").URLs(
 					"/readyz",
+					"/.well-known", "/.well-known/*",
 				).RuleOrDie(),
 			},
 		},
