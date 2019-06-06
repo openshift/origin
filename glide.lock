@@ -1,5 +1,5 @@
 hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
-updated: 2019-06-05T12:44:37.882524445-04:00
+updated: 2019-06-06T14:01:18.271454135+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 43c075c38fd931d1c85b41039e79caac63fc1925
+  version: a54c087bede5f9c5c0343c6dd79016957d2518f6
   subpackages:
   - annotations
   - apps
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: db72f7f51130f28b2df093635e4db275c799e391
+  version: 160e3e0c53fc0b0d707ba97cb09ea490119b1257
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -3289,7 +3289,7 @@ imports:
   - typed
   - value
 - name: sigs.k8s.io/yaml
-  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
+  version: 68106da85fc4bd9bb6b57a0cdca054b1f925e48c
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
