@@ -5,8 +5,6 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 )
 
 const CertRecommendedName = "ca"
@@ -24,8 +22,8 @@ func NewCmdCert(name, fullName string, streams genericclioptions.IOStreams) *cob
 	}
 
 	subCommands := []*cobra.Command{
-		admin.NewCommandEncrypt(admin.EncryptCommandName, fullName+" "+admin.EncryptCommandName, streams),
-		admin.NewCommandDecrypt(admin.DecryptCommandName, fullName+" "+admin.DecryptCommandName, fullName+" "+admin.EncryptCommandName, streams),
+		NewCommandEncrypt(EncryptCommandName, fullName+" "+EncryptCommandName, streams),
+		NewCommandDecrypt(DecryptCommandName, fullName+" "+DecryptCommandName, fullName+" "+EncryptCommandName, streams),
 	}
 
 	for _, cmd := range subCommands {

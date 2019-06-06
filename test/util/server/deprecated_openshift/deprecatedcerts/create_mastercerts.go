@@ -1,4 +1,4 @@
-package admin
+package deprecatedcerts
 
 import (
 	"errors"
@@ -8,65 +8,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/util/cert"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/oc/pkg/helpers/parallel"
+	"github.com/openshift/origin/pkg/oc/cli/admin/createkubeconfig"
 )
-
-const CreateMasterCertsCommandName = "create-master-certs"
-
-var masterCertLong = templates.LongDesc(`
-	Create keys and certificates for a master
-
-	This command creates keys and certs necessary to run a secure master.
-	It also creates keys, certificates, and configuration necessary for most
-	related infrastructure components that are clients to the master.
-	See the related "create-node-config" command for generating per-node config.
-
-	All files are expected or created in standard locations under the cert-dir.
-
-	    openshift.local.config/master/
-		    ca.{crt,key,serial.txt}
-		    master.server.{crt,key}
-			admin.{crt,key,kubeconfig}
-			...
-
-	Note that the certificate authority (CA aka "signer") generated automatically
-	is self-signed. In production usage, administrators are more likely to
-	want to generate signed certificates separately rather than rely on a
-	generated CA. Alternatively, start with an existing signed CA and
-	have this command use it to generate valid certificates.
-
-	This command would usually only be used once at installation. If you
-	need to regenerate the master server cert, DO NOT use --overwrite as this
-	would recreate ALL certs including the CA cert, invalidating any existing
-	infrastructure or client configuration. Instead, delete/rename the existing
-	server cert and run the command to fill it in:
-
-	    mv openshift.local.config/master/master.server.crt{,.old}
-	    %[1]s --cert-dir=... \
-	            --master=https://internal.master.fqdn:8443 \
-	            --public-master=https://external.master.fqdn:8443 \
-	            --hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local
-
-	Alternatively, use the related "ca create-server-cert" command to explicitly
-	create a certificate.
-
-	Regardless of --overwrite, the master server key/cert will be updated
-	if --hostnames does not match the current certificate.
-	Regardless of --overwrite, .kubeconfig files will be updated every time this
-	command is run, so always specify --master (and if needed, --public-master).
-	This is designed to match the behavior of "start" which rewrites certs/confs
-	for certain configuration changes.`)
 
 type CreateMasterCertsOptions struct {
 	CertDir    string
@@ -85,50 +36,6 @@ type CreateMasterCertsOptions struct {
 	Overwrite bool
 
 	genericclioptions.IOStreams
-}
-
-func NewCreateMasterCertsOptions(streams genericclioptions.IOStreams) *CreateMasterCertsOptions {
-	return &CreateMasterCertsOptions{
-		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
-		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
-		CertDir:          "openshift.local.config/master",
-		SignerName:       DefaultSignerName(),
-		APIServerURL:     "https://localhost:8443",
-		IOStreams:        streams,
-	}
-}
-
-func NewCommandCreateMasterCerts(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewCreateMasterCertsOptions(streams)
-	cmd := &cobra.Command{
-		Use:  commandName,
-		Long: fmt.Sprintf(masterCertLong, fullName),
-		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Validate(args))
-			kcmdutil.CheckErr(o.CreateMasterCerts())
-		},
-	}
-
-	cmd.Flags().StringVar(&o.CertDir, "cert-dir", o.CertDir, "The certificate data directory.")
-	cmd.Flags().StringVar(&o.SignerName, "signer-name", o.SignerName, "The name to use for the generated signer.")
-	cmd.Flags().StringSliceVar(&o.APIServerCAFiles, "certificate-authority", o.APIServerCAFiles, "Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.")
-
-	cmd.Flags().StringVar(&o.APIServerURL, "master", o.APIServerURL, "The API server's URL.")
-	cmd.Flags().StringVar(&o.PublicAPIServerURL, "public-master", o.PublicAPIServerURL, "The API public facing server's URL (if applicable).")
-	cmd.Flags().StringSliceVar(&o.Hostnames, "hostnames", o.Hostnames, "Every hostname or IP that server certs should be valid for (comma-delimited list)")
-	cmd.Flags().BoolVar(&o.Overwrite, "overwrite", o.Overwrite, "Overwrite all existing cert/key/config files (WARNING: includes signer/CA)")
-
-	cmd.Flags().IntVar(&o.ExpireDays, "expire-days", o.ExpireDays, "Validity of the certificates in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
-	cmd.Flags().IntVar(&o.SignerExpireDays, "signer-expire-days", o.SignerExpireDays, "Validity of the CA certificate in days (defaults to 5 years). WARNING: extending this above default value is highly discouraged.")
-
-	// set dynamic value annotation - allows man pages  to be generated and verified
-	cmd.Flags().SetAnnotation("signer-name", "manpage-def-value", []string{"openshift-signer@<current_timestamp>"})
-
-	// autocompletion hints
-	cmd.MarkFlagFilename("cert-dir")
-	cmd.MarkFlagFilename("certificate-authority")
-
-	return cmd
 }
 
 func (o CreateMasterCertsOptions) Validate(args []string) error {
@@ -235,7 +142,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 			return err
 		}
 
-		createKubeConfigOptions := CreateKubeConfigOptions{
+		createKubeConfigOptions := createkubeconfig.CreateKubeConfigOptions{
 			APIServerURL:       o.APIServerURL,
 			PublicAPIServerURL: o.PublicAPIServerURL,
 			APIServerCAFiles:   append([]string{getSignerCertOptions.CertFile}, o.APIServerCAFiles...),
@@ -391,4 +298,21 @@ func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *S
 		return err
 	}
 	return nil
+}
+
+// readFiles returns a byte array containing the contents of all the given filenames,
+// optionally separated by a delimiter, or an error if any of the files cannot be read
+func readFiles(srcFiles []string, separator []byte) ([]byte, error) {
+	data := []byte{}
+	for _, srcFile := range srcFiles {
+		fileData, err := ioutil.ReadFile(srcFile)
+		if err != nil {
+			return nil, err
+		}
+		if len(data) > 0 && len(separator) > 0 {
+			data = append(data, separator...)
+		}
+		data = append(data, fileData...)
+	}
+	return data, nil
 }

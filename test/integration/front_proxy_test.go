@@ -23,12 +23,12 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
 )
 
 func TestFrontProxy(t *testing.T) {
@@ -273,15 +273,15 @@ func mutualAuthRoundTripper(ca string, cert *tls.Certificate) (http.RoundTripper
 }
 
 func createClientCert(commonName, certDir, caPrefix string) (*tls.Certificate, error) {
-	signerCertOptions := &admin.SignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(certDir, caPrefix),
-		KeyFile:    admin.DefaultKeyFilename(certDir, caPrefix),
-		SerialFile: admin.DefaultSerialFilename(certDir, caPrefix),
+	signerCertOptions := &deprecatedcerts.SignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
 	}
-	clientCertOptions := &admin.CreateClientCertOptions{
+	clientCertOptions := &deprecatedcerts.CreateClientCertOptions{
 		SignerCertOptions: signerCertOptions,
-		CertFile:          admin.DefaultCertFilename(certDir, commonName),
-		KeyFile:           admin.DefaultKeyFilename(certDir, commonName),
+		CertFile:          deprecatedcerts.DefaultCertFilename(certDir, commonName),
+		KeyFile:           deprecatedcerts.DefaultKeyFilename(certDir, commonName),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		User:              commonName,
 		Overwrite:         true,
@@ -305,10 +305,10 @@ func createClientCert(commonName, certDir, caPrefix string) (*tls.Certificate, e
 }
 
 func createCA(certDir, caPrefix string) (string, error) {
-	createSignerCertOptions := admin.CreateSignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(certDir, caPrefix),
-		KeyFile:    admin.DefaultKeyFilename(certDir, caPrefix),
-		SerialFile: admin.DefaultSerialFilename(certDir, caPrefix),
+	createSignerCertOptions := deprecatedcerts.CreateSignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
 		ExpireDays: crypto.DefaultCACertificateLifetimeInDays,
 		Name:       caPrefix,
 		Overwrite:  true,
@@ -323,15 +323,15 @@ func createCA(certDir, caPrefix string) (string, error) {
 }
 
 func createServerCert(hostnames []string, commonName, certDir, caPrefix string) (*tls.Certificate, error) {
-	signerCertOptions := &admin.SignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(certDir, caPrefix),
-		KeyFile:    admin.DefaultKeyFilename(certDir, caPrefix),
-		SerialFile: admin.DefaultSerialFilename(certDir, caPrefix),
+	signerCertOptions := &deprecatedcerts.SignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
 	}
-	serverCertOptions := &admin.CreateServerCertOptions{
+	serverCertOptions := &deprecatedcerts.CreateServerCertOptions{
 		SignerCertOptions: signerCertOptions,
-		CertFile:          admin.DefaultCertFilename(certDir, commonName),
-		KeyFile:           admin.DefaultKeyFilename(certDir, commonName),
+		CertFile:          deprecatedcerts.DefaultCertFilename(certDir, commonName),
+		KeyFile:           deprecatedcerts.DefaultKeyFilename(certDir, commonName),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		Hostnames:         hostnames,
 		Overwrite:         true,

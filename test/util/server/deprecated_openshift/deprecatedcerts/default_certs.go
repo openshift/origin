@@ -1,4 +1,4 @@
-package admin
+package deprecatedcerts
 
 import (
 	"fmt"
@@ -40,10 +40,6 @@ func DefaultServiceServingCertSignerName() string {
 
 func DefaultRootCAFile(certDir string) string {
 	return DefaultCertFilename(certDir, CAFilePrefix)
-}
-
-func DefaultKubeletClientCAFile(certDir string) string {
-	return DefaultRootCAFile(certDir)
 }
 
 func DefaultKubeletClientCerts(certDir string) []ClientCertInfo {
@@ -175,26 +171,6 @@ func DefaultServiceAccountPrivateKeyFile(certDir string) string {
 }
 func DefaultServiceAccountPublicKeyFile(certDir string) string {
 	return path.Join(certDir, "serviceaccounts.public.key")
-}
-
-func DefaultNodeDir(nodeName string) string {
-	return "node-" + nodeName
-}
-
-func DefaultNodeServingCertInfo(nodeDir string) configapi.CertInfo {
-	return configapi.CertInfo{
-		CertFile: path.Join(nodeDir, "server.crt"),
-		KeyFile:  path.Join(nodeDir, "server.key"),
-	}
-}
-func DefaultNodeClientCertInfo(nodeDir string) configapi.CertInfo {
-	return configapi.CertInfo{
-		CertFile: path.Join(nodeDir, "master-client.crt"),
-		KeyFile:  path.Join(nodeDir, "master-client.key"),
-	}
-}
-func DefaultNodeKubeConfigFile(nodeDir string) string {
-	return path.Join(nodeDir, "node.kubeconfig")
 }
 
 func DefaultServiceSignerCAInfo(certDir string) configapi.CertInfo {

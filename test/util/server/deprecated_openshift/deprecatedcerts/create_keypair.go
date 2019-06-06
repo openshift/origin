@@ -1,4 +1,4 @@
-package admin
+package deprecatedcerts
 
 import (
 	"bytes"
@@ -12,15 +12,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
-	"k8s.io/klog"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	"k8s.io/klog"
 )
-
-const CreateKeyPairCommandName = "create-key-pair"
 
 type CreateKeyPairOptions struct {
 	PublicKeyFile  string
@@ -29,44 +23,6 @@ type CreateKeyPairOptions struct {
 	Overwrite bool
 
 	genericclioptions.IOStreams
-}
-
-var createKeyPairLong = templates.LongDesc(`
-	Create an RSA key pair and generate PEM-encoded public/private key files
-
-	Example: Creating service account signing and authenticating key files:
-
-	    CONFIG=openshift.local.config/master
-	    %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
-	`)
-
-func NewCreateKeyPairOptions(streams genericclioptions.IOStreams) *CreateKeyPairOptions {
-	return &CreateKeyPairOptions{
-		IOStreams: streams,
-	}
-}
-
-func NewCommandCreateKeyPair(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewCreateKeyPairOptions(streams)
-	cmd := &cobra.Command{
-		Use:   commandName,
-		Short: "Create a public/private key pair",
-		Long:  fmt.Sprintf(createKeyPairLong, fullName),
-		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Validate(args))
-			kcmdutil.CheckErr(o.CreateKeyPair())
-		},
-	}
-
-	cmd.Flags().StringVar(&o.PublicKeyFile, "public-key", o.PublicKeyFile, "The public key file.")
-	cmd.Flags().StringVar(&o.PrivateKeyFile, "private-key", o.PrivateKeyFile, "The private key file.")
-	cmd.Flags().BoolVar(&o.Overwrite, "overwrite", o.Overwrite, "Overwrite existing key files if found. If false, either file existing will prevent creation.")
-
-	// autocompletion hints
-	cmd.MarkFlagFilename("public-key")
-	cmd.MarkFlagFilename("private-key")
-
-	return cmd
 }
 
 func (o CreateKeyPairOptions) Validate(args []string) error {

@@ -1,4 +1,4 @@
-package admin
+package deprecatedcerts
 
 import (
 	"fmt"

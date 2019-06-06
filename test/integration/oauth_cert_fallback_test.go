@@ -6,6 +6,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
+
 	"k8s.io/client-go/util/cert"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +16,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -79,7 +80,7 @@ func TestOAuthCertFallback(t *testing.T) {
 	if err != nil || len(cacerts) != 1 {
 		t.Fatalf("Unexpected error or number of certs: %v, %d", err, len(cacerts))
 	}
-	fakeca, err := (&admin.CreateSignerCertOptions{
+	fakeca, err := (&deprecatedcerts.CreateSignerCertOptions{
 		CertFile:   path.Join(fakecadir, "fakeca.crt"),
 		KeyFile:    path.Join(fakecadir, "fakeca.key"),
 		SerialFile: path.Join(fakecadir, "fakeca.serial"),

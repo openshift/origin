@@ -1,4 +1,4 @@
-package admin
+package cert
 
 import (
 	"crypto/rand"
@@ -18,9 +18,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
 const EncryptCommandName = "encrypt"
@@ -153,10 +150,10 @@ func (o *EncryptOptions) Encrypt() error {
 	var key []byte
 	switch {
 	case len(o.KeyFile) > 0:
-		if block, ok, err := pemutil.BlockFromFile(o.KeyFile, configapi.StringSourceKeyBlockType); err != nil {
+		if block, ok, err := BlockFromFile(o.KeyFile, StringSourceKeyBlockType); err != nil {
 			return err
 		} else if !ok {
-			return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, configapi.StringSourceKeyBlockType)
+			return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, StringSourceKeyBlockType)
 		} else if len(block.Bytes) == 0 {
 			return fmt.Errorf("%s does not contain a key", o.KeyFile)
 		} else {
@@ -173,18 +170,18 @@ func (o *EncryptOptions) Encrypt() error {
 	}
 
 	// Encrypt
-	dataBlock, err := x509.EncryptPEMBlock(rand.Reader, configapi.StringSourceEncryptedBlockType, data, key, x509.PEMCipherAES256)
+	dataBlock, err := x509.EncryptPEMBlock(rand.Reader, StringSourceEncryptedBlockType, data, key, x509.PEMCipherAES256)
 	if err != nil {
 		return err
 	}
 
 	// Write data
 	if len(o.EncryptedFile) > 0 {
-		if err := pemutil.BlockToFile(o.EncryptedFile, dataBlock, os.FileMode(0644)); err != nil {
+		if err := BlockToFile(o.EncryptedFile, dataBlock, os.FileMode(0644)); err != nil {
 			return err
 		}
 	} else if o.EncryptedWriter != nil {
-		encryptedBytes, err := pemutil.BlockToBytes(dataBlock)
+		encryptedBytes, err := BlockToBytes(dataBlock)
 		if err != nil {
 			return err
 		}
@@ -199,8 +196,8 @@ func (o *EncryptOptions) Encrypt() error {
 
 	// Write key
 	if len(o.GenKeyFile) > 0 {
-		keyBlock := &pem.Block{Bytes: key, Type: configapi.StringSourceKeyBlockType}
-		if err := pemutil.BlockToFile(o.GenKeyFile, keyBlock, os.FileMode(0600)); err != nil {
+		keyBlock := &pem.Block{Bytes: key, Type: StringSourceKeyBlockType}
+		if err := BlockToFile(o.GenKeyFile, keyBlock, os.FileMode(0600)); err != nil {
 			return err
 		}
 	}

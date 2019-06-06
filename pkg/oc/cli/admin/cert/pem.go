@@ -1,4 +1,4 @@
-package pem
+package cert
 
 import (
 	"bytes"
@@ -6,6 +6,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+)
+
+const (
+	// StringSourceEncryptedBlockType is the PEM block type used to store an encrypted string
+	StringSourceEncryptedBlockType = "ENCRYPTED STRING"
+	// StringSourceKeyBlockType is the PEM block type used to store an encrypting key
+	StringSourceKeyBlockType = "ENCRYPTING KEY"
 )
 
 func BlockFromFile(path string, blockType string) (*pem.Block, bool, error) {

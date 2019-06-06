@@ -2,11 +2,10 @@ package config
 
 import (
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
 func GetStringSourceFileReferences(s *StringSource) []*string {
@@ -46,16 +45,29 @@ func ResolveStringValue(s StringSource) (string, error) {
 		return "", err
 	}
 
-	secretBlock, ok := pemutil.BlockFromBytes([]byte(value), StringSourceEncryptedBlockType)
+	secretBlock, ok := BlockFromBytes([]byte(value), StringSourceEncryptedBlockType)
 	if !ok {
 		return "", fmt.Errorf("no valid PEM block of type %q found in data", StringSourceEncryptedBlockType)
 	}
 
-	keyBlock, ok := pemutil.BlockFromBytes(keyData, StringSourceKeyBlockType)
+	keyBlock, ok := BlockFromBytes(keyData, StringSourceKeyBlockType)
 	if !ok {
 		return "", fmt.Errorf("no valid PEM block of type %q found in key", StringSourceKeyBlockType)
 	}
 
 	data, err := x509.DecryptPEMBlock(secretBlock, keyBlock.Bytes)
 	return string(data), err
+}
+
+func BlockFromBytes(data []byte, blockType string) (*pem.Block, bool) {
+	for {
+		block, remaining := pem.Decode(data)
+		if block == nil {
+			return nil, false
+		}
+		if block.Type == blockType {
+			return block, true
+		}
+		data = remaining
+	}
 }

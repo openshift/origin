@@ -9,12 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	apiserverflag "k8s.io/component-base/cli/flag"
+	kcmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 
 	configv1 "github.com/openshift/api/config/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
-	"github.com/openshift/origin/pkg/cmd/server/cm"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
 )
@@ -27,7 +28,7 @@ func ConvertMasterConfigToOpenshiftControllerConfig(input *legacyconfigv1.Master
 		panic(err)
 	}
 	flagOptions.Generic.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
-	flagFunc := cm.OriginControllerManagerAddFlags(flagOptions)
+	flagFunc := originControllerManagerAddFlags(flagOptions)
 	errors := cmdflags.Resolve(input.KubernetesMasterConfig.ControllerArguments, flagFunc)
 	if len(errors) > 0 {
 		// this can't happen since we only run this on configs we have validated
@@ -220,4 +221,8 @@ func getPluginConfigYAML(pluginConfig map[string]*legacyconfigv1.AdmissionPlugin
 	default:
 		return cfg.Configuration.Raw, nil
 	}
+}
+
+func originControllerManagerAddFlags(cmserver *kcmoptions.KubeControllerManagerOptions) apiserverflag.NamedFlagSets {
+	return cmserver.Flags(kcmapp.KnownControllers(), kcmapp.ControllersDisabledByDefault.List())
 }
