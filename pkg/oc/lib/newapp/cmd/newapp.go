@@ -37,6 +37,7 @@ import (
 	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 	"github.com/openshift/oc/pkg/helpers/env"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
+	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -46,7 +47,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/jenkinsfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
-	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 )
 
 const (
@@ -525,7 +525,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 }
 
 // buildTemplates converts a set of resolved, valid references into references to template objects.
-func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment, templateProcessor templateclientv1.TemplateProcessorInterface) (string, []runtime.Object, error) {
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment, templateProcessor templateprocessorclient.TemplateProcessorInterface) (string, []runtime.Object, error) {
 	objects := []runtime.Object{}
 	name := ""
 	for _, ref := range components {
@@ -901,7 +901,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	objects = app.AddServices(objects, false)
 
-	templateProcessor := templateclientv1.NewTemplateProcessorClient(c.TemplateClient.RESTClient(), c.OriginNamespace)
+	templateProcessor := templateprocessorclient.NewTemplateProcessorClient(c.TemplateClient.RESTClient(), c.OriginNamespace)
 	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), parameters, env, buildenv, templateProcessor)
 	if err != nil {
 		return nil, err

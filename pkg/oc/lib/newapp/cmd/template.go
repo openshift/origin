@@ -7,12 +7,12 @@ import (
 
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessing"
+	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 )
 
 // TransformTemplateV1 processes a template with the provided parameters, returning an error if transformation fails.
-func TransformTemplate(tpl *templatev1.Template, templateProcessor templateclientv1.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templatev1.Template, error) {
+func TransformTemplate(tpl *templatev1.Template, templateProcessor templateprocessorclient.TemplateProcessorInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templatev1.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
 		v := templateprocessing.GetParameterByName(tpl, k)
