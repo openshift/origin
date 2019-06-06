@@ -1,4 +1,4 @@
-package v1
+package templateprocessorclient
 
 import (
 	"k8s.io/client-go/rest"
