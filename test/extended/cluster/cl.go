@@ -143,9 +143,13 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 				// This is too familiar, create pods
 				for _, pod := range p.Pods {
-					// Parse Pod file into struct
-					path, err := mkPath(pod.File, e2e.TestContext.Viper)
-					o.Expect(err).NotTo(o.HaveOccurred())
+					var path string
+					var err error
+					if pod.File != "" {
+						// Parse Pod file into struct
+						path, err = mkPath(pod.File, e2e.TestContext.Viper)
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
 
 					config, err := ParsePods(path)
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -163,7 +167,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					}
 					// TODO sjug: pass label via config
 					labels := map[string]string{"purpose": "test"}
-					err = CreatePods(c, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning, &pod.Sync)
+					err = pod.CreatePods(c, nsName, labels, config.Spec, tuning)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 			}
@@ -263,7 +267,7 @@ func mkPath(filename, config string) (string, error) {
 	}
 	// Handle an empty filename.
 	if filename == "" {
-		return "", fmt.Errorf("No template file defined!\n")
+		return "", fmt.Errorf("no template file defined!")
 	}
 
 	var searchPaths []string
@@ -282,7 +286,7 @@ func mkPath(filename, config string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Unable to find pod/template file %s\n", filename)
+	return "", fmt.Errorf("unable to find pod/template file %s\n", filename)
 }
 
 // appendIntToString appends an integer i to string s
