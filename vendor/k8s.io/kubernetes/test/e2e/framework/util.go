@@ -4414,20 +4414,28 @@ func EnsureLoadBalancerResourcesDeleted(ip, portRange string) error {
 //	...
 // }
 //
-func BlockNetwork(from string, to string) {
+func BlockNetwork(from string, to string, hostExecPod *v1.Pod) {
 	Logf("block network traffic from %s to %s", from, to)
 	iptablesRule := fmt.Sprintf("OUTPUT --destination %s --jump REJECT", to)
 	dropCmd := fmt.Sprintf("sudo iptables --insert %s", iptablesRule)
-	if result, err := SSH(dropCmd, from, TestContext.Provider); result.Code != 0 || err != nil {
-		LogSSHResult(result)
-		Failf("Unexpected error: %v", err)
+	fmt.Printf("Ravig hostname in block network %v", from)
+	if hostExecPod != nil {
+		dropCmd = fmt.Sprintf("iptables --insert %s", iptablesRule)
+		if stdout, err := RunKubectl("exec", fmt.Sprintf("--namespace=%v", hostExecPod.Namespace), hostExecPod.Name, "--", "chroot", "/host", "sh", "-c", dropCmd); err != nil {
+			Failf("Unexpected error while dropping network connectivity from %v to %v, stdout: %v . err: %v", from, to, stdout, err)
+		}
+	} else {
+		if result, err := SSH(dropCmd, from, to); result.Code != 0 || err != nil {
+			LogSSHResult(result)
+			Failf("Unexpected error: %v", err)
+		}
 	}
 }
 
-func UnblockNetwork(from string, to string) {
+func UnblockNetwork(from string, to string, hostExecPod *v1.Pod) {
 	Logf("Unblock network traffic from %s to %s", from, to)
 	iptablesRule := fmt.Sprintf("OUTPUT --destination %s --jump REJECT", to)
-	undropCmd := fmt.Sprintf("sudo iptables --delete %s", iptablesRule)
+	undropCmd := fmt.Sprintf("iptables --delete %s", iptablesRule)
 	// Undrop command may fail if the rule has never been created.
 	// In such case we just lose 30 seconds, but the cluster is healthy.
 	// But if the rule had been created and removing it failed, the node is broken and
@@ -4435,13 +4443,23 @@ func UnblockNetwork(from string, to string) {
 	// may fail). Manual intervention is required in such case (recreating the
 	// cluster solves the problem too).
 	err := wait.Poll(time.Millisecond*100, time.Second*30, func() (bool, error) {
-		result, err := SSH(undropCmd, from, TestContext.Provider)
-		if result.Code == 0 && err == nil {
-			return true, nil
-		}
-		LogSSHResult(result)
-		if err != nil {
-			Logf("Unexpected error: %v", err)
+		if hostExecPod != nil {
+			undropCmd = fmt.Sprintf("iptables --delete %s", iptablesRule)
+			stdout, err := RunKubectl("exec", fmt.Sprintf("--namespace=%v", hostExecPod.Namespace), hostExecPod.Name, "--", "chroot", "/host", "sh", "-c", undropCmd)
+			if err != nil {
+				Logf("Unexpected error while allowing network connectivity from %v to %v, stdout: %v . err: %v", from, to, stdout, err)
+			} else {
+				return true, nil
+			}
+		} else {
+			result, err := SSH(undropCmd, from, TestContext.Provider)
+			if result.Code == 0 && err == nil {
+				return true, nil
+			}
+			LogSSHResult(result)
+			if err != nil {
+				Logf("Unexpected error: %v", err)
+			}
 		}
 		return false, nil
 	})
@@ -4855,34 +4873,36 @@ func (p *E2ETestNodePreparer) CleanupNodes() error {
 	return encounteredError
 }
 
-// getMaster populates the externalIP, internalIP and hostname fields of the master.
+// getMasterAddresses returns the externalIP, internalIP and hostname fields of the master.
 // If any of these is unavailable, it is set to "".
-func getMaster(c clientset.Interface) Address {
-	master := Address{}
+func getMasterAddresses(c clientset.Interface) (string, []string, string) {
+	var externalIP, hostname string
 
 	// Populate the internal IP.
 	eps, err := c.CoreV1().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
 	if err != nil {
 		Failf("Failed to get kubernetes endpoints: %v", err)
 	}
-	if len(eps.Subsets) != 1 || len(eps.Subsets[0].Addresses) != 1 {
-		Failf("There are more than 1 endpoints for kubernetes service: %+v", eps)
+	var internalIPS = make([]string, len(eps.Subsets))
+	// Tests should not assume anything about the topology of the cluster. We can have a HA setup where we have more
+	// than one master
+	for i, subset := range eps.Subsets {
+		internalIPS[i] = subset.Addresses[0].IP
 	}
-	master.internalIP = eps.Subsets[0].Addresses[0].IP
 
 	// Populate the external IP/hostname.
+	// TODO: @ravig should we assume we can have multiple hosts as well?
 	url, err := url.Parse(TestContext.Host)
 	if err != nil {
 		Failf("Failed to parse hostname: %v", err)
 	}
 	if net.ParseIP(url.Host) != nil {
-		// TODO: Check that it is external IP (not having a reserved IP address as per RFC1918).
-		master.externalIP = url.Host
+		externalIP = url.Host
 	} else {
-		master.hostname = url.Host
+		hostname = url.Host
 	}
 
-	return master
+	return externalIP, internalIPS, hostname
 }
 
 // GetAllMasterAddresses returns all IP addresses on which the kubelet can reach the master.
@@ -4890,19 +4910,20 @@ func getMaster(c clientset.Interface) Address {
 // e.g. internal IPs to be used (issue #56787), so that we can be
 // sure to block the master fully during tests.
 func GetAllMasterAddresses(c clientset.Interface) []string {
-	master := getMaster(c)
+	externalIP, internalIPS, _ := getMasterAddresses(c)
 
 	ips := sets.NewString()
 	switch TestContext.Provider {
 	case "gce", "gke":
-		if master.externalIP != "" {
-			ips.Insert(master.externalIP)
-		}
-		if master.internalIP != "" {
-			ips.Insert(master.internalIP)
-		}
 	case "aws":
-		ips.Insert(awsMasterIP)
+		if externalIP != "" {
+			ips.Insert(externalIP)
+		}
+		if len(internalIPS) >= 0 {
+			for _, internalIP := range internalIPS {
+				ips.Insert(internalIP)
+			}
+		}
 	default:
 		Failf("This test is not supported for provider %s and should be disabled", TestContext.Provider)
 	}

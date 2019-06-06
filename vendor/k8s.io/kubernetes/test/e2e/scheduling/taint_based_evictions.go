@@ -21,14 +21,13 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	clientset "k8s.io/client-go/kubernetes"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/test/e2e/framework"
-
-	. "github.com/onsi/ginkgo"
 )
 
 func newUnreachableNoExecuteTaint() *v1.Taint {
@@ -123,18 +122,46 @@ var _ = SIGDescribe("TaintBasedEvictions [Serial]", func() {
 
 		By(fmt.Sprintf("Blocking traffic from node %s to the master", nodeName))
 		host, err := framework.GetNodeExternalIP(&node)
-		// TODO(Huang-Wei): make this case work for local provider
-		// if err != nil {
-		// 	host, err = framework.GetNodeInternalIP(&node)
-		// }
+		if err != nil {
+			host, err = framework.GetNodeInternalIP(&node)
+		}
 		framework.ExpectNoError(err)
 		masterAddresses := framework.GetAllMasterAddresses(cs)
 		taint := newUnreachableNoExecuteTaint()
 
+		hostExecPod := framework.NewExecPodSpec(ns, "host-exec", true)
+		hostExecPod.Spec.NodeName = node.Name
+		hostExecPod.Spec.Volumes = []v1.Volume{
+			{
+				// Required to enter into host mount namespace via nsenter.
+				Name: "rootfs",
+				VolumeSource: v1.VolumeSource{
+					HostPath: &v1.HostPathVolumeSource{
+						Path: "/",
+					},
+				},
+			},
+		}
+		hostExecPod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
+			Privileged: func(privileged bool) *bool {
+				return &privileged
+			}(true),
+		}
+		hostExecPod.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
+			{
+				Name:      "rootfs",
+				MountPath: "/host",
+			},
+		}
+		hostExecPod, err = cs.CoreV1().Pods(ns).Create(hostExecPod)
+		framework.ExpectNoError(err)
+		err = framework.WaitForPodRunningInNamespace(cs, hostExecPod)
+		framework.ExpectNoError(err)
+
 		defer func() {
 			By(fmt.Sprintf("Unblocking traffic from node %s to the master", node.Name))
 			for _, masterAddress := range masterAddresses {
-				framework.UnblockNetwork(host, masterAddress)
+				framework.UnblockNetwork(host, masterAddress, hostExecPod)
 			}
 
 			if CurrentGinkgoTestDescription().Failed {
@@ -150,7 +177,7 @@ var _ = SIGDescribe("TaintBasedEvictions [Serial]", func() {
 		}()
 
 		for _, masterAddress := range masterAddresses {
-			framework.BlockNetwork(host, masterAddress)
+			framework.BlockNetwork(host, masterAddress, hostExecPod)
 		}
 
 		By(fmt.Sprintf("Expecting to see node %q becomes NotReady", nodeName))

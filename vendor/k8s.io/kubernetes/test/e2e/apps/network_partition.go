@@ -202,7 +202,7 @@ var _ = SIGDescribe("Network Partition [Disruptive] [Slow]", func() {
 				defer func() {
 					By(fmt.Sprintf("Unblock traffic from node %s to the master", node.Name))
 					for _, masterAddress := range masterAddresses {
-						framework.UnblockNetwork(host, masterAddress)
+						framework.UnblockNetwork(host, masterAddress, nil)
 					}
 
 					if CurrentGinkgoTestDescription().Failed {
@@ -217,7 +217,7 @@ var _ = SIGDescribe("Network Partition [Disruptive] [Slow]", func() {
 				}()
 
 				for _, masterAddress := range masterAddresses {
-					framework.BlockNetwork(host, masterAddress)
+					framework.BlockNetwork(host, masterAddress, nil)
 				}
 
 				By("Expect to observe node and pod status change from Ready to NotReady after network partition")
@@ -584,7 +584,7 @@ var _ = SIGDescribe("Network Partition [Disruptive] [Slow]", func() {
 				defer func() {
 					By(fmt.Sprintf("Unblock traffic from node %s to the master", node.Name))
 					for _, masterAddress := range masterAddresses {
-						framework.UnblockNetwork(host, masterAddress)
+						framework.UnblockNetwork(host, masterAddress, nil)
 					}
 
 					if CurrentGinkgoTestDescription().Failed {
@@ -596,7 +596,7 @@ var _ = SIGDescribe("Network Partition [Disruptive] [Slow]", func() {
 				}()
 
 				for _, masterAddress := range masterAddresses {
-					framework.BlockNetwork(host, masterAddress)
+					framework.BlockNetwork(host, masterAddress, nil)
 				}
 
 				By("Expect to observe node and pod status change from Ready to NotReady after network partition")

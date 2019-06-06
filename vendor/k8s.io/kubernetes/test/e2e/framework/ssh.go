@@ -132,7 +132,7 @@ func NodeExec(nodeName, cmd string) (SSHResult, error) {
 // returned.
 func SSH(cmd, host, provider string) (SSHResult, error) {
 	result := SSHResult{Host: host, Cmd: cmd}
-
+	fmt.Printf("Ravig in SSH %v", host)
 	// Get a signer for the provider.
 	signer, err := GetSigner(provider)
 	if err != nil {
@@ -147,6 +147,7 @@ func SSH(cmd, host, provider string) (SSHResult, error) {
 	}
 
 	if bastion := os.Getenv("KUBE_SSH_BASTION"); len(bastion) > 0 {
+		fmt.Printf("Ravig bastion is %v", bastion)
 		stdout, stderr, code, err := RunSSHCommandViaBastion(cmd, result.User, bastion, host, signer)
 		result.Stdout = stdout
 		result.Stderr = stderr
@@ -167,6 +168,7 @@ func SSH(cmd, host, provider string) (SSHResult, error) {
 // to bastion, then via that tunnel connects to the remote host. Similar to
 // sshutil.RunSSHCommand but scoped to the needs of the test infrastructure.
 func RunSSHCommandViaBastion(cmd, user, bastion, host string, signer ssh.Signer) (string, string, int, error) {
+	fmt.Printf("Ravig hostname in bastion host %v and bastion is %v", host, bastion)
 	// Setup the config, dial the server, and open a session.
 	config := &ssh.ClientConfig{
 		User:            user,

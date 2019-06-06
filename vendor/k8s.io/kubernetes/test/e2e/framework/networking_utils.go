@@ -1024,7 +1024,7 @@ func TestUnderTemporaryNetworkFailure(c clientset.Interface, ns string, node *v1
 		// separately, but I prefer to stay on the safe side).
 		By(fmt.Sprintf("Unblock network traffic from node %s to the master", node.Name))
 		for _, masterAddress := range masterAddresses {
-			UnblockNetwork(host, masterAddress)
+			UnblockNetwork(host, masterAddress, nil)
 		}
 	}()
 
@@ -1033,7 +1033,7 @@ func TestUnderTemporaryNetworkFailure(c clientset.Interface, ns string, node *v1
 		Failf("Node %s did not become ready within %v", node.Name, resizeNodeReadyTimeout)
 	}
 	for _, masterAddress := range masterAddresses {
-		BlockNetwork(host, masterAddress)
+		BlockNetwork(host, masterAddress, nil)
 	}
 
 	Logf("Waiting %v for node %s to be not ready after simulated network failure", resizeNodeNotReadyTimeout, node.Name)

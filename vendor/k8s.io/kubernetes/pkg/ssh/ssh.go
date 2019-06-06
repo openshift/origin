@@ -163,6 +163,7 @@ func (d *timeoutDialer) Dial(network, addr string, config *ssh.ClientConfig) (*s
 // host as specific user, along with any SSH-level error.
 // If user=="", it will default (like SSH) to os.Getenv("USER")
 func RunSSHCommand(cmd, user, host string, signer ssh.Signer) (string, string, int, error) {
+	fmt.Printf("Ravig hostname in RunSSH command %v", host)
 	return runSSHCommand(realTimeoutDialer, cmd, user, host, signer, true)
 }
 
@@ -171,6 +172,7 @@ func runSSHCommand(dialer sshDialer, cmd, user, host string, signer ssh.Signer, 
 	if user == "" {
 		user = os.Getenv("USER")
 	}
+	fmt.Printf("Ravig hostname in SSH Command %v", host)
 	// Setup the config, dial the server, and open a session.
 	config := &ssh.ClientConfig{
 		User:            user,
