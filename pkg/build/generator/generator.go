@@ -27,7 +27,6 @@ import (
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -979,8 +978,8 @@ func setBuildAnnotationAndLabel(bcCopy *buildv1.BuildConfig, build *buildv1.Buil
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
-	build.Labels[buildutil.BuildConfigLabelDeprecated] = buildapihelpers.LabelValue(bcCopy.Name)
-	build.Labels[buildutil.BuildConfigLabel] = buildapihelpers.LabelValue(bcCopy.Name)
+	build.Labels[buildutil.BuildConfigLabelDeprecated] = buildutil.LabelValue(bcCopy.Name)
+	build.Labels[buildutil.BuildConfigLabel] = buildutil.LabelValue(bcCopy.Name)
 	build.Labels[buildutil.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
 }
 

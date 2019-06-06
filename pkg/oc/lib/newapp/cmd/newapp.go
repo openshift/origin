@@ -37,7 +37,7 @@ import (
 	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 	"github.com/openshift/oc/pkg/helpers/env"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
@@ -1279,7 +1279,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 		}
 
 		if bc, ok := obj.(*buildv1.BuildConfig); ok {
-			input := buildapihelpers.GetInputReference(bc.Spec.Strategy)
+			input := buildutil.GetInputReference(bc.Spec.Strategy)
 			output := bc.Spec.Output.To
 
 			if output == nil || input == nil {

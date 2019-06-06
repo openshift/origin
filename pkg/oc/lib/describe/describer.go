@@ -47,7 +47,6 @@ import (
 	onetworktypedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
-	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -550,7 +549,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings describ
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = ocbuildapihelpers.FilterBuilds(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicate(name))
+	buildList.Items = buildapihelpers.FilterBuilds(buildList.Items, buildapihelpers.ByBuildConfigPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)

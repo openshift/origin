@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/validation"
 	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -17,8 +18,6 @@ import (
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
-
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
 )
 
 const (
@@ -41,6 +40,9 @@ const (
 	// BuildBlobsContentCache is the directory used to store a cache for the blobs content to be
 	// reused within a build pod.
 	BuildBlobsContentCache = "/var/cache/blobs"
+
+	caConfigMapSuffix        = "ca"
+	sysConfigConfigMapSuffix = "sys-config"
 )
 
 // GeneratorFatalError represents a fatal error while generating a build.
@@ -91,7 +93,7 @@ func BuildNameForConfigVersion(name string, version int) string {
 // BuildConfigSelector returns a label Selector which can be used to find all
 // builds for a BuildConfig.
 func BuildConfigSelector(name string) labels.Selector {
-	return labels.Set{BuildConfigLabel: buildapihelpers.LabelValue(name)}.AsSelector()
+	return labels.Set{BuildConfigLabel: LabelValue(name)}.AsSelector()
 }
 
 type buildFilter func(*buildv1.Build) bool
@@ -360,4 +362,56 @@ func GetInputReference(strategy buildv1.BuildStrategy) *corev1.ObjectReference {
 	default:
 		return nil
 	}
+}
+
+// GetBuildCAConfigMapName returns the name of the ConfigMap containing the build's
+// certificate authority bundles.
+func GetBuildCAConfigMapName(build *buildv1.Build) string {
+	return naming.GetConfigMapName(build.Name, caConfigMapSuffix)
+}
+
+// GetBuildSystemConfigMapName returns the name of the ConfigMap containing the build's
+// registry configuration.
+func GetBuildSystemConfigMapName(build *buildv1.Build) string {
+	return naming.GetConfigMapName(build.Name, sysConfigConfigMapSuffix)
+}
+
+func StrategyType(strategy buildv1.BuildStrategy) string {
+	switch {
+	case strategy.DockerStrategy != nil:
+		return "Docker"
+	case strategy.CustomStrategy != nil:
+		return "Custom"
+	case strategy.SourceStrategy != nil:
+		return "Source"
+	case strategy.JenkinsPipelineStrategy != nil:
+		return "JenkinsPipeline"
+	}
+	return ""
+}
+
+// LabelValue returns a string to use as a value for the Build
+// label in a pod. If the length of the string parameter exceeds
+// the maximum label length, the value will be truncated.
+func LabelValue(name string) string {
+	if len(name) <= validation.DNS1123LabelMaxLength {
+		return name
+	}
+	return name[:validation.DNS1123LabelMaxLength]
+}
+
+// FindTriggerPolicy retrieves the BuildTrigger(s) of a given type from a build configuration.
+// Returns nil if no matches are found.
+func FindTriggerPolicy(triggerType buildv1.BuildTriggerType, config *buildv1.BuildConfig) (buildTriggers []buildv1.BuildTriggerPolicy) {
+	for _, specTrigger := range config.Spec.Triggers {
+		if specTrigger.Type == triggerType {
+			buildTriggers = append(buildTriggers, specTrigger)
+		}
+	}
+	return buildTriggers
+}
+
+func HasTriggerType(triggerType buildv1.BuildTriggerType, bc *buildv1.BuildConfig) bool {
+	matches := FindTriggerPolicy(triggerType, bc)
+	return len(matches) > 0
 }

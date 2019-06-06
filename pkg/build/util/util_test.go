@@ -132,3 +132,9 @@ func TestMergeEnvWithoutDuplicates(t *testing.T) {
 		})
 	}
 }
+
+func TestGetBuildPodName(t *testing.T) {
+	if expected, actual := "mybuild-build", GetBuildPodName(&buildv1.Build{ObjectMeta: metav1.ObjectMeta{Name: "mybuild"}}); expected != actual {
+		t.Errorf("Expected %s, got %s", expected, actual)
+	}
+}

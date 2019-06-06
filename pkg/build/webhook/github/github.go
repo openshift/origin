@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -77,7 +77,7 @@ func (p *WebHookPlugin) Extract(buildCfg *buildv1.BuildConfig, trigger *buildv1.
 
 // GetTriggers retrieves the WebHookTriggers for this webhook type (if any)
 func (p *WebHookPlugin) GetTriggers(buildConfig *buildv1.BuildConfig) ([]*buildv1.WebHookTrigger, error) {
-	triggers := buildapihelpers.FindTriggerPolicy(buildv1.GitHubWebHookBuildTriggerType, buildConfig)
+	triggers := buildutil.FindTriggerPolicy(buildv1.GitHubWebHookBuildTriggerType, buildConfig)
 	webhookTriggers := []*buildv1.WebHookTrigger{}
 	for _, trigger := range triggers {
 		if trigger.GitHubWebHook != nil {
