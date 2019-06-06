@@ -18,10 +18,10 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -227,7 +227,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 
 	addJoe := &policy.RoleModificationOptions{
 		RoleBindingNamespace: namespace,
-		RoleName:             bootstrappolicy.EditRoleName,
+		RoleName:             "edit",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(projectAdminConfig),
 		Users:                []string{"joe"},
@@ -237,7 +237,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err := addJoe.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.AuthorizationV1(), namespace, "create", buildapi.Resource(bootstrappolicy.DockerBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.AuthorizationV1(), namespace, "create", buildapi.Resource("builds/docker"), true); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -271,7 +271,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 			t.Fatal(err)
 		}
 
-		if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{"builder", "default"}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
@@ -281,7 +281,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 
 func removeBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationClient rbacv1client.RbacV1Interface, selfSarClient authorizationv1client.SelfSubjectAccessReviewsGetter) {
 	// remove resources from role so that certain build strategies are forbidden
-	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName, bootstrappolicy.BuildStrategyJenkinsPipelineRoleName} {
+	for _, role := range []string{"system:build-strategy-custom", "system:build-strategy-docker", "system:build-strategy-source", "system:build-strategy-jenkinspipeline"} {
 		options := &policy.RoleModificationOptions{
 			RoleName:   role,
 			RoleKind:   "ClusterRole",
@@ -295,23 +295,23 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationCli
 		}
 	}
 
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.DockerBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource("builds/docker"), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.SourceBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource("builds/source"), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource("builds/custom"), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.JenkinsPipelineBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource("builds/jenkinspipeline"), false); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationClient rbacv1client.RbacV1Interface, selfSarClient authorizationv1client.SelfSubjectAccessReviewsGetter) {
 	// grant resources to role so that restricted build strategies are available
-	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName} {
+	for _, role := range []string{"system:build-strategy-custom"} {
 		options := &policy.RoleModificationOptions{
 			RoleName:   role,
 			RoleKind:   "ClusterRole",
@@ -325,7 +325,7 @@ func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthori
 		}
 	}
 
-	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(selfSarClient, testutil.Namespace(), "create", buildapi.Resource("builds/custom"), true); err != nil {
 		t.Fatal(err)
 	}
 }

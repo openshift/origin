@@ -14,7 +14,7 @@ import (
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/cli/whoami"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/login"
 	testutil "github.com/openshift/origin/test/util"
@@ -55,7 +55,7 @@ func TestLogin(t *testing.T) {
 		RbacClient:      rbacClient,
 		SARClient:       authorizationInterface.SubjectAccessReviews(),
 		ProjectName:     project,
-		AdminRole:       bootstrappolicy.AdminRoleName,
+		AdminRole:       "admin",
 		AdminUser:       username,
 		UseNodeSelector: false,
 		IOStreams:       genericclioptions.NewTestIOStreamsDiscard(),

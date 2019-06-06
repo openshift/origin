@@ -19,8 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/storage"
 
 	templatev1 "github.com/openshift/api/template/v1"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -56,7 +56,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				Namespace: "${NAMESPACE}",
 			},
 			RoleRef: kapi.ObjectReference{
-				Name: bootstrappolicy.AdminRoleName,
+				Name: "admin",
 			},
 		}
 
@@ -70,11 +70,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			adminuser = createUser(cli, "adminuser", bootstrappolicy.AdminRoleName)
-			edituser = createUser(cli, "edituser", bootstrappolicy.EditRoleName)
+			adminuser = createUser(cli, "adminuser", "admin")
+			edituser = createUser(cli, "edituser", "edit")
 			editbygroupuser = createUser(cli, "editbygroupuser", "")
 
-			editgroup = createGroup(cli, "editgroup", bootstrappolicy.EditRoleName)
+			editgroup = createGroup(cli, "editgroup", "edit")
 			addUserToGroup(cli, editbygroupuser.Name, editgroup.Name)
 
 			// I think we get flakes when the group cache hasn't yet noticed the

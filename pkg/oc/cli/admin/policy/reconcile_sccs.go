@@ -82,7 +82,7 @@ func NewDefaultReconcileSCCOptions(streams genericclioptions.IOStreams) *Reconci
 		PrintFlags: genericclioptions.NewPrintFlags("").WithTypeSetter(scheme.Scheme).WithDefaultOutput("yaml"),
 
 		Union:          true,
-		InfraNamespace: bootstrappolicy.DefaultOpenShiftInfraNamespace,
+		InfraNamespace: "openshift-infra",
 		IOStreams:      streams,
 	}
 }

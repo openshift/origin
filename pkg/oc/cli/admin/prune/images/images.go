@@ -45,7 +45,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -157,7 +157,7 @@ func NewCmdPruneImages(f kcmdutil.Factory, parentName, name string, streams gene
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Remove unreferenced images",
-		Long:  fmt.Sprintf(imagesLongDesc, bootstrappolicy.ImagePrunerRoleName),
+		Long:  fmt.Sprintf(imagesLongDesc, "system:image-pruner"),
 
 		Example: fmt.Sprintf(imagesExample, parentName, name),
 

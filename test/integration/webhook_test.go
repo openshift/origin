@@ -10,13 +10,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -42,7 +42,7 @@ func TestWebhook(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 
-	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{"builder", "default"}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -159,7 +159,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{"builder", "default"}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -272,7 +272,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{"builder", "default"}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

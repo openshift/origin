@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -84,11 +84,11 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 		{
 			APIGroup: rbacv1.GroupName,
 			Kind:     rbacv1.GroupKind,
-			Name:     bootstrappolicy.AuthenticatedGroup,
+			Name:     "system:authenticated",
 		},
 	}
 	options := policy.RoleModificationOptions{
-		RoleName:   bootstrappolicy.BuildStrategyCustomRoleName,
+		RoleName:   "system:build-strategy-custom",
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Subjects:   subjects,
@@ -97,7 +97,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	}
 	options.AddRole()
 
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.AuthorizationV1(), testutil.Namespace(), "create", build.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.AuthorizationV1(), testutil.Namespace(), "create", build.Resource("builds/custom"), true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -117,11 +117,11 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 		{
 			APIGroup: rbacv1.GroupName,
 			Kind:     rbacv1.GroupKind,
-			Name:     bootstrappolicy.AuthenticatedGroup,
+			Name:     "system:authenticated",
 		},
 	}
 	options := policy.RoleModificationOptions{
-		RoleName:   bootstrappolicy.BuildStrategyCustomRoleName,
+		RoleName:   "system:build-strategy-custom",
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Subjects:   subjects,
@@ -130,7 +130,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	}
 	options.AddRole()
 
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.AuthorizationV1(), testutil.Namespace(), "create", build.Resource(bootstrappolicy.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.AuthorizationV1(), testutil.Namespace(), "create", build.Resource("builds/custom"), true); err != nil {
 		t.Fatal(err)
 	}
 

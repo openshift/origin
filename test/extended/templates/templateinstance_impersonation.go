@@ -14,7 +14,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -55,14 +54,14 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	)
 
 	g.BeforeEach(func() {
-		adminuser = createUser(cli, "adminuser", bootstrappolicy.AdminRoleName)
-		impersonateuser = createUser(cli, "impersonateuser", bootstrappolicy.EditRoleName)
-		impersonatebygroupuser = createUser(cli, "impersonatebygroupuser", bootstrappolicy.EditRoleName)
-		edituser1 = createUser(cli, "edituser1", bootstrappolicy.EditRoleName)
-		edituser2 = createUser(cli, "edituser2", bootstrappolicy.EditRoleName)
-		viewuser = createUser(cli, "viewuser", bootstrappolicy.ViewRoleName)
+		adminuser = createUser(cli, "adminuser", "admin")
+		impersonateuser = createUser(cli, "impersonateuser", "edit")
+		impersonatebygroupuser = createUser(cli, "impersonatebygroupuser", "edit")
+		edituser1 = createUser(cli, "edituser1", "edit")
+		edituser2 = createUser(cli, "edituser2", "edit")
+		viewuser = createUser(cli, "viewuser", "view")
 
-		impersonategroup = createGroup(cli, "impersonategroup", bootstrappolicy.EditRoleName)
+		impersonategroup = createGroup(cli, "impersonategroup", "edit")
 		addUserToGroup(cli, impersonatebygroupuser.Name, impersonategroup.Name)
 
 		// additional plumbing to enable impersonateuser to impersonate edituser1

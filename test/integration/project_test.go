@@ -20,7 +20,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -129,7 +128,7 @@ func TestProjectWatch(t *testing.T) {
 	}
 	addBob := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "ns-02",
-		RoleName:             bootstrappolicy.EditRoleName,
+		RoleName:             "edit",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(joeConfig),
 		Users:                []string{"bob"},

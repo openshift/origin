@@ -11,9 +11,9 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	pluginapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -121,11 +121,11 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
-	if err := testserver.WaitForServiceAccounts(kubeClientset, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(kubeClientset, testutil.Namespace(), []string{"default"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	addUser := &policy.RoleModificationOptions{
-		RoleName:   bootstrappolicy.AdminRoleName,
+		RoleName:   "admin",
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:      []string{user},

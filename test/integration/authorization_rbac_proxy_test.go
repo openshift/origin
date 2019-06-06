@@ -20,7 +20,7 @@ import (
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -745,7 +745,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Subjects:   userSubjects,
 					RoleRef: corev1.ObjectReference{
-						Name: bootstrappolicy.ClusterAdminRoleName,
+						Name: "cluster-admin",
 					},
 				})
 				return err
@@ -764,7 +764,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 						},
 					},
 					RoleRef: corev1.ObjectReference{
-						Name: bootstrappolicy.ClusterAdminRoleName,
+						Name: "cluster-admin",
 					},
 				})
 				if err != nil {
@@ -813,7 +813,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: resourceName},
 					Subjects:   userSubjects,
 					RoleRef: corev1.ObjectReference{
-						Name: bootstrappolicy.ClusterAdminRoleName,
+						Name: "cluster-admin",
 					},
 				})
 				return err
@@ -832,7 +832,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 						},
 					},
 					RoleRef: corev1.ObjectReference{
-						Name: bootstrappolicy.ClusterAdminRoleName,
+						Name: "cluster-admin",
 					},
 				})
 				if err != nil {

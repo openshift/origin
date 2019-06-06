@@ -16,11 +16,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
+
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", func() {
@@ -54,12 +54,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 					Name: cli.Namespace() + "templateservicebroker-client",
 				},
 				RoleRef: kapi.ObjectReference{
-					Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,
+					Name: "system:openshift:templateservicebroker-client",
 				},
 				Subjects: []kapi.ObjectReference{
 					{
 						Kind: authorizationapi.GroupKind,
-						Name: bootstrappolicy.UnauthenticatedGroup,
+						Name: "system:unauthenticated",
 					},
 				},
 			})

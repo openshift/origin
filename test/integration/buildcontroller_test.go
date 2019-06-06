@@ -9,7 +9,7 @@ import (
 
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -57,7 +57,7 @@ func setupBuildControllerTest(t *testing.T) (buildv1clienttyped.BuildV1Interface
 		t.Fatal(err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{"builder", "default"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

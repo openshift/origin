@@ -27,9 +27,9 @@ import (
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/user"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -93,9 +93,9 @@ var (
 
 	allAuthenticatedRules = append(
 		[]rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(bootstrappolicy.DockerBuildResource, bootstrappolicy.OptimizedDockerBuildResource).RuleOrDie(),
-			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(bootstrappolicy.JenkinsPipelineBuildResource).RuleOrDie(),
-			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(bootstrappolicy.SourceBuildResource).RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/docker", "builds/optimizeddocker").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/jenkinspipeline").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/source").RuleOrDie(),
 
 			rbacv1helpers.NewRule("get").Groups(userGroup, legacyUserGroup).Resources("users").Names("~").RuleOrDie(),
 			rbacv1helpers.NewRule("list").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
@@ -141,7 +141,7 @@ var _ = g.Describe("The default cluster RBAC policy", func() {
 	})
 
 	g.It("should only allow the system:authenticated:oauth group to access certain policy rules cluster wide", func() {
-		testGroupRules(ruleResolver, bootstrappolicy.AuthenticatedOAuthGroup, []rbacv1.PolicyRule{
+		testGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
 		})
 	})
