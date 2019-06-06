@@ -4,8 +4,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/generate"
 	"k8s.io/kubernetes/pkg/kubectl/generate/versioned"
 
+	routegen "github.com/openshift/oc/pkg/helpers/route/generator"
 	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
-	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
 func defaultGenerators(cmdName string) map[string]generate.Generator {
