@@ -47,3 +47,24 @@ func JoinImageStreamTag(name, tag string) string {
 func JoinImageStreamImage(name, id string) string {
 	return fmt.Sprintf("%s@%s", name, id)
 }
+
+// ParseImageStreamTagName splits a string into its name component and tag component, and returns an error
+// if the string is not in the right form.
+func ParseImageStreamTagName(istag string) (name string, tag string, err error) {
+	if strings.Contains(istag, "@") {
+		err = fmt.Errorf("%q is an image stream image, not an image stream tag", istag)
+		return
+	}
+	segments := strings.SplitN(istag, ":", 3)
+	switch len(segments) {
+	case 2:
+		name = segments[0]
+		tag = segments[1]
+		if len(name) == 0 || len(tag) == 0 {
+			err = fmt.Errorf("image stream tag name %q must have a name and a tag", istag)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one : delimiter in the istag %q", istag)
+	}
+	return
+}
