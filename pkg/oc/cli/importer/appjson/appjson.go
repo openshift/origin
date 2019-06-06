@@ -30,9 +30,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/appjson"
 	appcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
-	templatev1client "github.com/openshift/origin/pkg/template/client/v1"
 )
 
 const AppJSONV1GeneratorName = "app-json/v1"
@@ -245,7 +245,7 @@ func (o *AppJSONOptions) Run() error {
 		return o.Printer.PrintObj(obj, o.Out)
 	}
 
-	templateProcessor := templatev1client.NewTemplateProcessorClient(o.Client, o.Namespace)
+	templateProcessor := templateprocessorclient.NewTemplateProcessorClient(o.Client, o.Namespace)
 	result, err := appcmd.TransformTemplate(template, templateProcessor, o.Namespace, nil, false)
 	if err != nil {
 		return err

@@ -33,11 +33,11 @@ import (
 	"github.com/openshift/library-go/pkg/template/generator"
 	"github.com/openshift/library-go/pkg/template/templateprocessing"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
+	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
-	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 )
 
 var (
@@ -262,7 +262,7 @@ func (o *ProcessOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 			return err
 		}
 
-		templateProcessorClient := templateclientv1.NewTemplateProcessorClient(o.templateClient.RESTClient(), o.namespace)
+		templateProcessorClient := templateprocessorclient.NewTemplateProcessorClient(o.templateClient.RESTClient(), o.namespace)
 
 		o.templateProcessor = func(template *templatev1.Template) (*templatev1.Template, error) {
 			t, err := templateProcessorClient.Process(template)
