@@ -17,11 +17,11 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtestutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -350,8 +350,8 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]*configapi
 		clusterAdminKubeClientset,
 		testutil.Namespace(),
 		[]string{
-			bootstrappolicy.BuilderServiceAccountName,
-			bootstrappolicy.DefaultServiceAccountName,
+			"builder",
+			"default",
 		})
 	if err != nil {
 		t.Fatalf("%v", err)

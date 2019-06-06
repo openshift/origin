@@ -11,8 +11,7 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -39,7 +38,7 @@ func TestPolicyCommands(t *testing.T) {
 
 	addViewer := policy.RoleModificationOptions{
 		RoleBindingNamespace: projectName,
-		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleName:             "view",
 		RoleKind:             "ClusterRole",
 		RbacClient:           haroldAuthorizationClient,
 		Users:                []string{"valerie"},

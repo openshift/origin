@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -272,8 +273,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	// We're responsible for generating all the managed service accounts
 	config.ServiceAccountConfig.ManagedNames = []string{
-		bootstrappolicy.DefaultServiceAccountName,
-		bootstrappolicy.BuilderServiceAccountName,
+		"default",
+		"builder",
 		bootstrappolicy.DeployerServiceAccountName,
 	}
 	// We also need the private key file to give to the token generator

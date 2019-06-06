@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/deploymentconfigs"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 type fakeTagResponse struct {
@@ -226,7 +225,7 @@ func (m *fakeBuildConfigUpdater) Update(buildcfg *buildv1.BuildConfig) error {
 
 func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *imagev1.ImageStream) v1.BuildConfigsGetter {
 	builderAccount := corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: buildcfg.Namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "builder", Namespace: buildcfg.Namespace},
 		Secrets:    []corev1.ObjectReference{},
 	}
 	instantiator := &fakeInstantiator{}

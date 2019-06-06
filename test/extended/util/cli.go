@@ -45,7 +45,6 @@ import (
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -214,9 +213,9 @@ func (c *CLI) SetupProject() {
 	// TODO: it would be nice to have a shared list but it is defined in at least 3 place,
 	// TODO: some of them not even using the constants
 	DefaultServiceAccounts := []string{
-		bootstrappolicy.DefaultServiceAccountName,
-		bootstrappolicy.DeployerServiceAccountName,
-		bootstrappolicy.BuilderServiceAccountName,
+		"default",
+		"deployer",
+		"builder",
 	}
 	for _, sa := range DefaultServiceAccounts {
 		e2e.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)

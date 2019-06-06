@@ -20,11 +20,11 @@ import (
 
 	projectapiv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -148,7 +148,7 @@ func TestFrontProxy(t *testing.T) {
 			name: "david can see all projects when given cluster admin group",
 			user: &user.DefaultInfo{
 				Name:   "david",
-				Groups: []string{bootstrappolicy.ClusterAdminGroup},
+				Groups: []string{"system:cluster-admins"},
 			},
 			expectedProjects: sets.NewString(
 				"david-project",

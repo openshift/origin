@@ -12,9 +12,9 @@ import (
 
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/requestproject"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -35,6 +35,7 @@ import (
 	_ "github.com/openshift/client-go/route/clientset/versioned"
 	_ "github.com/openshift/client-go/template/clientset/versioned"
 	_ "github.com/openshift/client-go/user/clientset/versioned"
+
 	_ "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
@@ -213,7 +214,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminAuthorizationConfig := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
-	role, err := clusterAdminAuthorizationConfig.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName, metav1.GetOptions{})
+	role, err := clusterAdminAuthorizationConfig.ClusterRoles().Get("self-provisioner", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

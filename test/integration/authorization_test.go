@@ -30,11 +30,11 @@ import (
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -145,7 +145,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		legacy.Resource("imagestreams/secrets"): true,
 	}
 
-	readerRole, err := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
+	readerRole, err := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get("cluster-reader", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -378,7 +378,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "hammer-project",
-		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleName:             "view",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(haroldConfig),
 		Users:                []string{"valerie"},
@@ -391,7 +391,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 
 	addEdgar := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "mallet-project",
-		RoleName:             bootstrappolicy.EditRoleName,
+		RoleName:             "edit",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(markConfig),
 		Users:                []string{"edgar"},
@@ -472,7 +472,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	}
 
 	{
-		if err := clusterAdminAuthorizationClient.ClusterRoles().Delete(bootstrappolicy.AdminRoleName, nil); err != nil {
+		if err := clusterAdminAuthorizationClient.ClusterRoles().Delete("admin", nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		test := localResourceAccessReviewTest{
@@ -888,7 +888,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	addAnonymous := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "hammer-project",
-		RoleName:             bootstrappolicy.EditRoleName,
+		RoleName:             "edit",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:                []string{"system:anonymous"},
@@ -901,7 +901,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	addDanny := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "default",
-		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleName:             "view",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(clusterAdminClientConfig),
 		Users:                []string{"danny"},
@@ -959,7 +959,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "hammer-project",
-		RoleName:             bootstrappolicy.ViewRoleName,
+		RoleName:             "view",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(haroldConfig),
 		Users:                []string{"valerie"},
@@ -972,7 +972,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	addEdgar := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "mallet-project",
-		RoleName:             bootstrappolicy.EditRoleName,
+		RoleName:             "edit",
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(markConfig),
 		Users:                []string{"edgar"},

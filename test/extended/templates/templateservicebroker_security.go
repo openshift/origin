@@ -16,13 +16,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker security test", func() {
@@ -58,19 +58,19 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
 			RoleRef: kapi.ObjectReference{
-				Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,
+				Name: "system:openshift:templateservicebroker-client",
 			},
 			Subjects: []kapi.ObjectReference{
 				{
 					Kind: authorizationapi.GroupKind,
-					Name: bootstrappolicy.UnauthenticatedGroup,
+					Name: "system:unauthenticated",
 				},
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		viewuser = createUser(cli, "viewuser", bootstrappolicy.ViewRoleName)
-		edituser = createUser(cli, "edituser", bootstrappolicy.EditRoleName)
+		viewuser = createUser(cli, "viewuser", "view")
+		edituser = createUser(cli, "edituser", "edit")
 		nopermsuser = createUser(cli, "nopermsuser", "")
 	})
 

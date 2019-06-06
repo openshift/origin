@@ -41,12 +41,12 @@ import (
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	openshiftcontrollermanager "github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	openshiftkubeapiserver "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/test/util"
@@ -843,7 +843,7 @@ func serviceAccountSecretsExist(clientset kubernetes.Interface, namespace string
 // and that the cache for the admission control that checks for pod tokens has caught up to allow
 // pod creation.
 func WaitForPodCreationServiceAccounts(clientset kubernetes.Interface, namespace string) error {
-	if err := WaitForServiceAccounts(clientset, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := WaitForServiceAccounts(clientset, namespace, []string{"default"}); err != nil {
 		return err
 	}
 
@@ -909,7 +909,7 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 		RbacClient:      kubeExternalClient.RbacV1(),
 		SARClient:       authorizationClient.SubjectAccessReviews(),
 		ProjectName:     projectName,
-		AdminRole:       bootstrappolicy.AdminRoleName,
+		AdminRole:       "admin",
 		AdminUser:       adminUser,
 		UseNodeSelector: false,
 		IOStreams:       genericclioptions.NewTestIOStreamsDiscard(),

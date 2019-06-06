@@ -21,8 +21,8 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
@@ -55,7 +55,7 @@ var newProjectLong = templates.LongDesc(`
 
 func NewNewProjectOptions(streams genericclioptions.IOStreams) *NewProjectOptions {
 	return &NewProjectOptions{
-		AdminRole: bootstrappolicy.AdminRoleName,
+		AdminRole: "admin",
 		IOStreams: streams,
 	}
 }

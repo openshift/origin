@@ -17,7 +17,6 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -242,7 +241,7 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminCli
 func makeUserAnImageSigner(rbacClient rbacv1client.RbacV1Interface, userClient kubernetes.Interface, userName string) error {
 	// give bob permissions to update image signatures
 	addImageSignerRole := &policy.RoleModificationOptions{
-		RoleName:   bootstrappolicy.ImageSignerRoleName,
+		RoleName:   "system:image-signer",
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacClient,
 		Users:      []string{userName},

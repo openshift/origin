@@ -31,7 +31,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/generated"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
@@ -297,7 +296,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		if err != nil {
 			return ns, err
 		}
-		addRoleToE2EServiceAccounts(rbacClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+		addRoleToE2EServiceAccounts(rbacClient, []kapiv1.Namespace{*ns}, "view")
 
 		// in practice too many kube tests ignore scheduling constraints
 		allowAllNodeScheduling(c, ns.Name)

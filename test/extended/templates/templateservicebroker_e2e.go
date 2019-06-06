@@ -27,16 +27,17 @@ import (
 	"github.com/openshift/api/authorization"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
+
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
@@ -89,12 +90,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
 			RoleRef: kapi.ObjectReference{
-				Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,
+				Name: "system:openshift:templateservicebroker-client",
 			},
 			Subjects: []kapi.ObjectReference{
 				{
 					Kind: authorizationapi.GroupKind,
-					Name: bootstrappolicy.UnauthenticatedGroup,
+					Name: "system:unauthenticated",
 				},
 			},
 		})
