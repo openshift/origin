@@ -126,15 +126,6 @@ func FSTypeToStringSetInternal(fsTypes []securityapi.FSType) sets.String {
 	return set
 }
 
-// fsTypeToStringSet converts an FSType slice to a string set.
-func FSTypeToStringSet(fsTypes []securityv1.FSType) sets.String {
-	set := sets.NewString()
-	for _, v := range fsTypes {
-		set.Insert(string(v))
-	}
-	return set
-}
-
 // SCCAllowsAllVolumes checks for FSTypeAll in the scc's allowed volumes.
 func SCCAllowsAllVolumes(scc *securityapi.SecurityContextConstraints) bool {
 	return SCCAllowsFSTypeInternal(scc, securityapi.FSTypeAll)

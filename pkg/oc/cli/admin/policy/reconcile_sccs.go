@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -307,12 +306,21 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected securityv1.SecurityCont
 	return &updated, needsUpdate
 }
 
+// fsTypeToStringSet converts an FSType slice to a string set.
+func fSTypeToStringSet(fsTypes []securityv1.FSType) sets.String {
+	set := sets.NewString()
+	for _, v := range fsTypes {
+		set.Insert(string(v))
+	}
+	return set
+}
+
 // sortVolumes sorts the volume slice of the SCC in place.
 func sortVolumes(scc *securityv1.SecurityContextConstraints) {
 	if scc.Volumes == nil || len(scc.Volumes) == 0 {
 		return
 	}
-	volumes := sccutil.FSTypeToStringSet(scc.Volumes).List()
+	volumes := fSTypeToStringSet(scc.Volumes).List()
 	sort.StringSlice(volumes).Sort()
 	scc.Volumes = sliceToFSType(volumes)
 }
