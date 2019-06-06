@@ -40,6 +40,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/library-go/pkg/git"
+	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	ocerrors "github.com/openshift/oc/pkg/helpers/errors"
@@ -511,7 +512,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		return err
 	}
 
-	webhookClient := buildclientmanual.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
+	webhookClient := buildhelpers.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
 	for _, t := range config.Spec.Triggers {
 		if t.Type == buildv1.ImageChangeBuildTriggerType {
 			continue
@@ -521,7 +522,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		}
 		u, err := webhookClient.WebHookURL(o.Name, &t)
 		if err != nil {
-			if err != buildclientmanual.ErrTriggerIsNotAWebHook {
+			if err != buildhelpers.ErrTriggerIsNotAWebHook {
 				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
