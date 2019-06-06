@@ -222,6 +222,18 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 		} else {
 			if out > node.out && in == node.in {
 				node.retries++
+				if evm.tracker != nil {
+					// Start a ping probe as early as we can
+					go evm.tracker.Ping(node.nodeIP, repollInterval)
+
+					// For the first occurrence skip logging if we can
+					// start pinging
+					if node.retries == 1 {
+						retry = true
+						continue
+					}
+				}
+
 				if node.retries > maxRetries {
 					glog.Warningf("Node %s is offline", node.nodeIP)
 					node.retries = 0
@@ -232,6 +244,8 @@ func (evm *egressVXLANMonitor) check(retryOnly bool) bool {
 					retry = true
 					continue
 				}
+			} else {
+				node.retries = 0
 			}
 		}
 
