@@ -33,10 +33,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/api/image/docker10"
 	imageapi "github.com/openshift/api/image/v1"
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imageappend "github.com/openshift/origin/pkg/oc/cli/image/append"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
@@ -281,7 +282,7 @@ func (o *NewOptions) Validate() error {
 
 type imageData struct {
 	Ref           imagereference.DockerImageReference
-	Config        *docker10.DockerImageConfig
+	Config        *dockerv1client.DockerImageConfig
 	Digest        digest.Digest
 	ContentDigest digest.Digest
 	Directory     string
@@ -389,7 +390,7 @@ func (o *NewOptions) Run() error {
 				From:     "release-manifests/",
 			},
 		}
-		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) {
 			verifier.Verify(dgst, contentDigest)
 			releaseDigest = contentDigest
 			if config.Config != nil {
@@ -922,7 +923,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 	opts.SecurityOptions = o.SecurityOptions
 	opts.OnlyFiles = true
 	opts.ParallelOptions = o.ParallelOptions
-	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) {
 		verifier.Verify(dgst, contentDigest)
 
 		lock.Lock()
@@ -967,7 +968,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 
 			LayerFilter: filter,
 
-			ConditionFn: func(m *extract.Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error) {
+			ConditionFn: func(m *extract.Mapping, dgst digest.Digest, imageConfig *dockerv1client.DockerImageConfig) (bool, error) {
 				var labels map[string]string
 				if imageConfig.Config != nil {
 					labels = imageConfig.Config.Labels
@@ -1178,7 +1179,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		options.SecurityOptions = o.SecurityOptions
 		options.DryRun = o.DryRun
 		options.From = toImageBase
-		options.ConfigurationCallback = func(dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) error {
+		options.ConfigurationCallback = func(dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) error {
 			verifier.Verify(dgst, contentDigest)
 			// reset any base image info
 			if len(config.OS) == 0 {
@@ -1195,7 +1196,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 
 			// explicitly set release info
 			config.Config.Labels["io.openshift.release"] = is.Name
-			config.History = []docker10.DockerConfigHistory{
+			config.History = []dockerv1client.DockerConfigHistory{
 				{Comment: "Release image for OpenShift", Created: now},
 			}
 			if len(dgst) > 0 {

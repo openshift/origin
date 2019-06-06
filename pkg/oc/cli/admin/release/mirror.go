@@ -24,8 +24,8 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/mirror"
@@ -217,7 +217,7 @@ func (o *MirrorOptions) Run() error {
 		buf := &bytes.Buffer{}
 		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
 		extractOpts.SecurityOptions = o.SecurityOptions
-		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) {
 			verifier.Verify(dgst, contentDigest)
 		}
 		extractOpts.From = o.From

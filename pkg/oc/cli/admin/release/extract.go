@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )
@@ -99,7 +99,7 @@ type ExtractOptions struct {
 	Directory string
 	File      string
 
-	ImageMetadataCallback func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig)
+	ImageMetadataCallback func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig)
 }
 
 func (o *ExtractOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -226,7 +226,7 @@ func (o *ExtractOptions) Run() error {
 			},
 		}
 		verifier := imagemanifest.NewVerifier()
-		opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+		opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) {
 			verifier.Verify(dgst, contentDigest)
 			if o.ImageMetadataCallback != nil {
 				o.ImageMetadataCallback(m, dgst, contentDigest, config)

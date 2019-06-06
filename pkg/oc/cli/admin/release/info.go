@@ -36,8 +36,8 @@ import (
 
 	imageapi "github.com/openshift/api/image/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imageinfo "github.com/openshift/origin/pkg/oc/cli/image/info"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
@@ -457,9 +457,9 @@ type ReleaseInfo struct {
 	ContentDigest digest.Digest                       `json:"contentDigest"`
 	// TODO: return the list digest in the future
 	// ListDigest    digest.Digest                       `json:"listDigest"`
-	Config     *docker10.DockerImageConfig `json:"config"`
-	Metadata   *CincinnatiMetadata         `json:"metadata"`
-	References *imageapi.ImageStream       `json:"references"`
+	Config     *dockerv1client.DockerImageConfig `json:"config"`
+	Metadata   *CincinnatiMetadata               `json:"metadata"`
+	References *imageapi.ImageStream             `json:"references"`
 
 	ComponentVersions map[string]string `json:"versions"`
 
@@ -480,7 +480,7 @@ type Image struct {
 	ListDigest    digest.Digest                       `json:"listDigest"`
 	MediaType     string                              `json:"mediaType"`
 	Layers        []distribution.Descriptor           `json:"layers"`
-	Config        *docker10.DockerImageConfig         `json:"config"`
+	Config        *dockerv1client.DockerImageConfig   `json:"config"`
 
 	Manifest distribution.Manifest `json:"-"`
 }
@@ -521,7 +521,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		RawMetadata: make(map[string][]byte),
 	}
 
-	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) {
 		verifier.Verify(dgst, contentDigest)
 		release.Digest = dgst
 		release.ContentDigest = contentDigest

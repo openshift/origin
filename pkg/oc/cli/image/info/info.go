@@ -11,8 +11,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
 	units "github.com/docker/go-units"
@@ -26,10 +24,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
+	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
 
 func NewInfoOptions(streams genericclioptions.IOStreams) *InfoOptions {
@@ -181,7 +180,7 @@ type Image struct {
 	ListDigest    digest.Digest                       `json:"listDigest"`
 	MediaType     string                              `json:"mediaType"`
 	Layers        []distribution.Descriptor           `json:"layers"`
-	Config        *docker10.DockerImageConfig         `json:"config"`
+	Config        *dockerv1client.DockerImageConfig   `json:"config"`
 
 	Manifest distribution.Manifest `json:"-"`
 }

@@ -24,9 +24,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/oc/cli/image/archive"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
@@ -112,7 +112,7 @@ type Options struct {
 
 	// ImageMetadataCallback is invoked once per image retrieved, and may be called in parallel if
 	// MaxPerRegistry is set higher than 1.
-	ImageMetadataCallback func(m *Mapping, dgst, contentDigest digest.Digest, imageConfig *docker10.DockerImageConfig)
+	ImageMetadataCallback func(m *Mapping, dgst, contentDigest digest.Digest, imageConfig *dockerv1client.DockerImageConfig)
 	// TarEntryCallback, if set, is passed each entry in the viewed layers. Entries will be filtered
 	// by name and only the entry in the highest layer will be passed to the callback. Returning false
 	// will halt processing of the image.
@@ -181,7 +181,7 @@ type Mapping struct {
 	// To is the directory to extract the contents of the directory or the named file into.
 	To string
 	// ConditionFn is invoked before extracting the content and allows the set of images to be filtered.
-	ConditionFn func(m *Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error)
+	ConditionFn func(m *Mapping, dgst digest.Digest, imageConfig *dockerv1client.DockerImageConfig) (bool, error)
 }
 
 func parseMappings(images, paths, files []string, requireEmpty bool) ([]Mapping, error) {
