@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -24,38 +25,45 @@ import (
 
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
+	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
+	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
-
-	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // copied from bootstrap policy
-var (
-	read = []string{"get", "list", "watch"}
+var read = []string{"get", "list", "watch"}
 
+// copied from bootstrap policy
+const (
 	rbacGroup    = rbac.GroupName
 	storageGroup = storage.GroupName
 	kAuthzGroup  = kauthorizationapi.GroupName
 	kAuthnGroup  = kauthenticationapi.GroupName
 
-	authzGroup   = authorization.GroupName
-	buildGroup   = build.GroupName
-	oauthGroup   = oauth.GroupName
-	projectGroup = project.GroupName
-	userGroup    = user.GroupName
+	authzGroup    = authorization.GroupName
+	buildGroup    = build.GroupName
+	imageGroup    = image.GroupName
+	oauthGroup    = oauth.GroupName
+	projectGroup  = project.GroupName
+	templateGroup = template.GroupName
+	userGroup     = user.GroupName
 
-	legacyAuthzGroup   = legacy.GroupName
-	legacyBuildGroup   = legacy.GroupName
-	legacyProjectGroup = legacy.GroupName
-	legacyUserGroup    = legacy.GroupName
-	legacyOauthGroup   = legacy.GroupName
+	legacyGroup         = ""
+	legacyAuthzGroup    = ""
+	legacyBuildGroup    = ""
+	legacyImageGroup    = ""
+	legacyProjectGroup  = ""
+	legacyTemplateGroup = ""
+	legacyUserGroup     = ""
+	legacyOauthGroup    = ""
 )
 
-// copied from various cluster roles in bootstrap policy
+// Do not change any of these lists without approval from the auth and master teams
+// Most rules are copied from various cluster roles in bootstrap policy
 var (
 	allUnauthenticatedRules = []rbacv1.PolicyRule{
 		rbacv1helpers.NewRule("get", "create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/webhooks").RuleOrDie(),
@@ -106,6 +114,22 @@ var (
 		},
 		allUnauthenticatedRules...,
 	)
+
+	// group -> namespace -> rules
+	groupNamespaceRules = map[string]map[string][]rbacv1.PolicyRule{
+		kuser.AllAuthenticated: {
+			"openshift": {
+				rbacv1helpers.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreams", "imagestreamtags", "imagestreamimages").RuleOrDie(),
+				rbacv1helpers.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
+			},
+			"openshift-config-managed": {
+				rbacv1helpers.NewRule("get").Groups(legacyGroup).Resources("configmaps").Names("console-public").RuleOrDie(),
+			},
+		},
+		kuser.AllUnauthenticated:     {}, // no rules expect the cluster wide ones
+		"system:authenticated:oauth": {}, // no rules expect the cluster wide ones
+	}
 )
 
 var _ = g.Describe("The default cluster RBAC policy", func() {
@@ -132,36 +156,53 @@ var _ = g.Describe("The default cluster RBAC policy", func() {
 		exutil.FatalErr("failed to sync RBAC cache")
 	}
 
-	g.It("should only allow the system:authenticated group to access certain policy rules cluster wide", func() {
-		testGroupRules(ruleResolver, kuser.AllAuthenticated, allAuthenticatedRules)
+	namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(metav1.ListOptions{})
+	if err != nil {
+		exutil.FatalErr(err)
+	}
+
+	g.It("should only allow the system:authenticated group to access certain policy rules", func() {
+		testAllGroupRules(ruleResolver, kuser.AllAuthenticated, allAuthenticatedRules, namespaces.Items)
 	})
 
-	g.It("should only allow the system:unauthenticated group to access certain policy rules cluster wide", func() {
-		testGroupRules(ruleResolver, kuser.AllUnauthenticated, allUnauthenticatedRules)
+	g.It("should only allow the system:unauthenticated group to access certain policy rules", func() {
+		testAllGroupRules(ruleResolver, kuser.AllUnauthenticated, allUnauthenticatedRules, namespaces.Items)
 	})
 
-	g.It("should only allow the system:authenticated:oauth group to access certain policy rules cluster wide", func() {
-		testGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
+	g.It("should only allow the system:authenticated:oauth group to access certain policy rules", func() {
+		testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
 			rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
-		})
+		}, namespaces.Items)
 	})
 })
 
-func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group string, expectedRules []rbacv1.PolicyRule) {
-	actualRules, err := ruleResolver.RulesFor(&kuser.DefaultInfo{Groups: []string{group}}, metav1.NamespaceNone)
+func testAllGroupRules(ruleResolver validation.AuthorizationRuleResolver, group string, expectedClusterRules []rbacv1.PolicyRule, namespaces []corev1.Namespace) {
+	testGroupRules(ruleResolver, group, metav1.NamespaceNone, expectedClusterRules)
+
+	for _, namespace := range namespaces {
+		// merge the namespace scoped and cluster wide rules
+		rules := append([]rbacv1.PolicyRule{}, groupNamespaceRules[group][namespace.Name]...)
+		rules = append(rules, expectedClusterRules...)
+
+		testGroupRules(ruleResolver, group, namespace.Name, rules)
+	}
+}
+
+func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, namespace string, expectedRules []rbacv1.PolicyRule) {
+	actualRules, err := ruleResolver.RulesFor(&kuser.DefaultInfo{Groups: []string{group}}, namespace)
 	o.Expect(err).NotTo(o.HaveOccurred()) // our default RBAC policy should never have rule resolution errors
 
 	if cover, missing := validation.Covers(expectedRules, actualRules); !cover {
-		e2e.Failf("%s has extra cluster wide permissions:\n%s", group, rulesToSting(missing))
+		e2e.Failf("%s has extra permissions in namespace %q:\n%s", group, namespace, rulesToString(missing))
 	}
 
 	// force test data to be cleaned up every so often but allow extra rules to not deadlock new changes
 	if cover, missing := validation.Covers(actualRules, expectedRules); !cover && len(missing) > 5 {
-		e2e.Failf("test data for %s has too many unnecessary permissions:\n%s", group, rulesToSting(missing))
+		e2e.Failf("test data for %s has too many unnecessary permissions:\n%s", group, rulesToString(missing))
 	}
 }
 
-func rulesToSting(rules []rbacv1.PolicyRule) string {
+func rulesToString(rules []rbacv1.PolicyRule) string {
 	compactRules := rules
 	if compact, err := validation.CompactRules(rules); err == nil {
 		compactRules = compact
