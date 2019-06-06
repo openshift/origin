@@ -14,8 +14,8 @@ import (
 	"github.com/docker/distribution/manifest/schema2"
 	digest "github.com/opencontainers/go-digest"
 
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/dockerlayer"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 )
 
 // get base manifest
@@ -81,8 +81,8 @@ func DigestCopy(dst io.ReaderFrom, src io.Reader) (layerDigest, blobDigest diges
 	return layerDigest, blobDigest, modTime, n, nil
 }
 
-func NewEmptyConfig() *docker10.DockerImageConfig {
-	config := &docker10.DockerImageConfig{
+func NewEmptyConfig() *dockerv1client.DockerImageConfig {
+	config := &dockerv1client.DockerImageConfig{
 		DockerVersion: "",
 		// Created must be non-zero
 		Created:      (time.Time{}).Add(1 * time.Second),
@@ -92,7 +92,7 @@ func NewEmptyConfig() *docker10.DockerImageConfig {
 	return config
 }
 
-func AddScratchLayerToConfig(config *docker10.DockerImageConfig) distribution.Descriptor {
+func AddScratchLayerToConfig(config *dockerv1client.DockerImageConfig) distribution.Descriptor {
 	layer := distribution.Descriptor{
 		MediaType: dockerV2Schema2LayerMediaType,
 		Digest:    digest.Digest(dockerlayer.GzippedEmptyLayerDigest),
@@ -102,15 +102,15 @@ func AddScratchLayerToConfig(config *docker10.DockerImageConfig) distribution.De
 	return layer
 }
 
-func AddLayerToConfig(config *docker10.DockerImageConfig, layer distribution.Descriptor, diffID string) {
+func AddLayerToConfig(config *dockerv1client.DockerImageConfig, layer distribution.Descriptor, diffID string) {
 	if config.RootFS == nil {
-		config.RootFS = &docker10.DockerConfigRootFS{Type: "layers"}
+		config.RootFS = &dockerv1client.DockerConfigRootFS{Type: "layers"}
 	}
 	config.RootFS.DiffIDs = append(config.RootFS.DiffIDs, diffID)
 	config.Size += layer.Size
 }
 
-func UploadSchema2Config(ctx context.Context, blobs distribution.BlobService, config *docker10.DockerImageConfig, layers []distribution.Descriptor) (*schema2.DeserializedManifest, []byte, error) {
+func UploadSchema2Config(ctx context.Context, blobs distribution.BlobService, config *dockerv1client.DockerImageConfig, layers []distribution.Descriptor) (*schema2.DeserializedManifest, []byte, error) {
 	// ensure the image size is correct before persisting
 	config.Size = 0
 	for _, layer := range layers {

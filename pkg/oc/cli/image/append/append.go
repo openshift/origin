@@ -26,11 +26,12 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/dockerlayer"
-	"github.com/openshift/origin/pkg/image/dockerlayer/add"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer/add"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
@@ -78,7 +79,7 @@ type AppendImageOptions struct {
 	ConfigPatch string
 	MetaPatch   string
 
-	ConfigurationCallback func(dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) error
+	ConfigurationCallback func(dgst, contentDigest digest.Digest, config *dockerv1client.DockerImageConfig) error
 	// ToDigest is set after a new image is uploaded
 	ToDigest digest.Digest
 
@@ -219,7 +220,7 @@ func (o *AppendImageOptions) Run() error {
 	}
 
 	var (
-		base              *docker10.DockerImageConfig
+		base              *dockerv1client.DockerImageConfig
 		baseDigest        digest.Digest
 		baseContentDigest digest.Digest
 		layers            []distribution.Descriptor
@@ -326,7 +327,7 @@ func (o *AppendImageOptions) Run() error {
 	// all v1 schema images must have a history that equals the number of non-zero blob
 	// layers, but v2 images do not require it
 	for i := len(base.History); i < len(layers); i++ {
-		base.History = append(base.History, docker10.DockerConfigHistory{
+		base.History = append(base.History, dockerv1client.DockerConfigHistory{
 			Created: base.Created,
 		})
 	}
@@ -512,7 +513,8 @@ func WithDescriptor(desc distribution.Descriptor) distribution.BlobCreateOption 
 	})
 }
 
-func appendFileAsLayer(ctx context.Context, name string, layers []distribution.Descriptor, config *docker10.DockerImageConfig, dryRun bool, out io.Writer, blobs distribution.BlobService) ([]distribution.Descriptor, error) {
+func appendFileAsLayer(ctx context.Context, name string, layers []distribution.Descriptor, config *dockerv1client.DockerImageConfig, dryRun bool, out io.Writer,
+	blobs distribution.BlobService) ([]distribution.Descriptor, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
@@ -521,7 +523,8 @@ func appendFileAsLayer(ctx context.Context, name string, layers []distribution.D
 	return appendLayer(ctx, f, layers, config, dryRun, out, blobs)
 }
 
-func appendLayer(ctx context.Context, r io.Reader, layers []distribution.Descriptor, config *docker10.DockerImageConfig, dryRun bool, out io.Writer, blobs distribution.BlobService) ([]distribution.Descriptor, error) {
+func appendLayer(ctx context.Context, r io.Reader, layers []distribution.Descriptor, config *dockerv1client.DockerImageConfig, dryRun bool, out io.Writer, blobs distribution.BlobService) ([]distribution.Descriptor,
+	error) {
 	var readerFrom io.ReaderFrom = ioutil.Discard.(io.ReaderFrom)
 	var done = func(distribution.Descriptor) error { return nil }
 	if !dryRun {

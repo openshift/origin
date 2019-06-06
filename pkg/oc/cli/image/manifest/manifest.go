@@ -23,10 +23,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
+	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/dockerlayer/add"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer/add"
 	"github.com/openshift/origin/pkg/oc/cli/image/manifest/dockercredentials"
 )
 
@@ -264,7 +264,7 @@ func FirstManifest(ctx context.Context, from imagereference.DockerImageReference
 }
 
 // ManifestToImageConfig takes an image manifest and converts it into a structured object.
-func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifest, blobs distribution.BlobService, location ManifestLocation) (*docker10.DockerImageConfig, []distribution.Descriptor, error) {
+func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifest, blobs distribution.BlobService, location ManifestLocation) (*dockerv1client.DockerImageConfig, []distribution.Descriptor, error) {
 	switch t := srcManifest.(type) {
 	case *schema2.DeserializedManifest:
 		if t.Config.MediaType != schema2.MediaTypeImageConfig {
@@ -275,7 +275,7 @@ func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifes
 			return nil, nil, fmt.Errorf("cannot retrieve image configuration for %s: %v", location, err)
 		}
 		klog.V(4).Infof("Raw image config json:\n%s", string(configJSON))
-		config := &docker10.DockerImageConfig{}
+		config := &dockerv1client.DockerImageConfig{}
 		if err := json.Unmarshal(configJSON, &config); err != nil {
 			return nil, nil, fmt.Errorf("unable to parse image configuration: %v", err)
 		}
@@ -297,13 +297,13 @@ func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifes
 		if len(t.History) == 0 {
 			return nil, nil, fmt.Errorf("input image is in an unknown format: no v1Compatibility history")
 		}
-		config := &docker10.DockerV1CompatibilityImage{}
+		config := &dockerv1client.DockerV1CompatibilityImage{}
 		if err := json.Unmarshal([]byte(t.History[0].V1Compatibility), &config); err != nil {
 			return nil, nil, err
 		}
 
-		base := &docker10.DockerImageConfig{}
-		if err := docker10.Convert_DockerV1CompatibilityImage_to_DockerImageConfig(config, base); err != nil {
+		base := &dockerv1client.DockerImageConfig{}
+		if err := dockerv1client.Convert_DockerV1CompatibilityImage_to_DockerImageConfig(config, base); err != nil {
 			return nil, nil, err
 		}
 

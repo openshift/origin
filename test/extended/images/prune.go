@@ -17,8 +17,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/dockerlayer"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
