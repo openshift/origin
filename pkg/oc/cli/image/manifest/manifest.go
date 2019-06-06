@@ -19,15 +19,15 @@ import (
 	v2 "github.com/docker/distribution/registry/api/v2"
 
 	"github.com/docker/libtrust"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/library-go/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/image/dockerlayer/add"
-	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
+	"github.com/openshift/origin/pkg/oc/cli/image/manifest/dockercredentials"
 )
 
 type ParallelOptions struct {

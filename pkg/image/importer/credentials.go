@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
-	"github.com/openshift/origin/pkg/image/registryclient"
+	"github.com/openshift/library-go/pkg/image/registryclient"
 )
 
 var (

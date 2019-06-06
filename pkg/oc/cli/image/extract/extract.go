@@ -13,20 +13,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openshift/origin/pkg/image/registryclient"
-
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
 
 	"github.com/docker/distribution"
 	dockerarchive "github.com/docker/docker/pkg/archive"
 	digest "github.com/opencontainers/go-digest"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/library-go/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/oc/cli/image/archive"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
