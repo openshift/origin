@@ -9,8 +9,8 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/image/dockerlayer"
 )
 
 func TestImagesTop(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/image/dockerlayer"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/image/dockerlayer"
+	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 )
 
 const (
