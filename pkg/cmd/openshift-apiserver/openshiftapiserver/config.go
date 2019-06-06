@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/admission"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/util/webhook"
@@ -19,12 +20,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/openshift-apiserver/pkg/version"
+	"github.com/openshift/origin/pkg/admission/admissiontimeout"
 	"github.com/openshift/origin/pkg/cmd/configflags"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
@@ -185,6 +188,10 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		return nil, err
 	}
 	admissionOptions := genericapiserveroptions.NewAdmissionOptions()
+	admissionOptions.Decorators = admission.Decorators{
+		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
+		admission.DecoratorFunc(admissiontimeout.AdmissionTimeout{Timeout: 13 * time.Second}.WithTimeout),
+	}
 	admissionOptions.DefaultOffPlugins = sets.String{}
 	admissionOptions.RecommendedPluginOrder = openshiftadmission.OpenShiftAdmissionPlugins
 	admissionOptions.Plugins = openshiftadmission.OriginAdmissionPlugins
