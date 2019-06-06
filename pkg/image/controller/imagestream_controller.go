@@ -179,7 +179,35 @@ func tagNeedsImport(stream *imagev1.ImageStream, tagRef imagev1.TagReference, im
 	if tagRef.Generation == nil {
 		return importWhenGenerationNil
 	}
-	return *tagRef.Generation > imageutil.LatestObservedTagGeneration(stream, tagRef.Name)
+	return *tagRef.Generation > latestObservedTagGeneration(stream, tagRef.Name)
+}
+
+// latestObservedTagGeneration returns the generation value for the given tag that has been observed by the controller
+// monitoring the image stream. If the tag has not been observed, the generation is zero.
+func latestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 {
+	tagEvents, ok := imageutil.StatusHasTag(stream, tag)
+	if !ok {
+		return 0
+	}
+
+	// find the most recent generation
+	lastGen := int64(0)
+	if items := tagEvents.Items; len(items) > 0 {
+		tagEvent := items[0]
+		if tagEvent.Generation > lastGen {
+			lastGen = tagEvent.Generation
+		}
+	}
+	for _, condition := range tagEvents.Conditions {
+		if condition.Type != imagev1.ImportSuccess {
+			continue
+		}
+		if condition.Generation > lastGen {
+			lastGen = condition.Generation
+		}
+		break
+	}
+	return lastGen
 }
 
 // needsImport returns true if the provided image stream should have tags imported. Partial is returned

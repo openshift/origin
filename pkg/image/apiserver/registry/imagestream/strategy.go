@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/origin/pkg/image/internalimageutil"
+
 	authorizationapi "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -234,7 +236,7 @@ func (s Strategy) tagsChanged(old, stream *imageapi.ImageStream) field.ErrorList
 					continue
 				}
 				stream.Spec.Tags[tag] = tagRef
-				imageapi.AddTagEventToImageStream(stream, tag, *event)
+				internalimageutil.AddTagEventToImageStream(stream, tag, *event)
 			}
 			continue
 		}
@@ -287,10 +289,10 @@ func (s Strategy) tagsChanged(old, stream *imageapi.ImageStream) field.ErrorList
 		}
 
 		stream.Spec.Tags[tag] = tagRef
-		imageapi.AddTagEventToImageStream(stream, tag, *event)
+		internalimageutil.AddTagEventToImageStream(stream, tag, *event)
 	}
 
-	imageapi.UpdateChangedTrackingTags(stream, old)
+	updateChangedTrackingTags(stream, old)
 
 	// use a consistent timestamp on creation
 	if old == nil && !stream.CreationTimestamp.IsZero() {
@@ -303,6 +305,42 @@ func (s Strategy) tagsChanged(old, stream *imageapi.ImageStream) field.ErrorList
 	}
 
 	return errs
+}
+
+// UpdateChangedTrackingTags identifies any tags in the status that have changed and
+// ensures any referenced tracking tags are also updated. It returns the number of
+// updates applied.
+func updateChangedTrackingTags(new, old *imageapi.ImageStream) int {
+	changes := 0
+	for newTag, newImages := range new.Status.Tags {
+		if len(newImages.Items) == 0 {
+			continue
+		}
+		if old != nil {
+			oldImages := old.Status.Tags[newTag]
+			changed, deleted := tagsChanged(newImages.Items, oldImages.Items)
+			if !changed || deleted {
+				continue
+			}
+		}
+		changes += internalimageutil.UpdateTrackingTags(new, newTag, newImages.Items[0])
+	}
+	return changes
+}
+
+// tagsChanged returns true if the two lists differ, and if the newer list is empty
+// then deleted is returned true as well.
+func tagsChanged(new, old []imageapi.TagEvent) (changed bool, deleted bool) {
+	switch {
+	case len(old) == 0 && len(new) == 0:
+		return false, false
+	case len(new) == 0:
+		return true, true
+	case len(old) == 0:
+		return true, false
+	default:
+		return new[0] != old[0], false
+	}
 }
 
 func tagReferenceToTagEvent(stream *imageapi.ImageStream, tagRef imageapi.TagReference, tagOrID string) (*imageapi.TagEvent, error) {
@@ -318,9 +356,9 @@ func tagReferenceToTagEvent(stream *imageapi.ImageStream, tagRef imageapi.TagRef
 		}
 
 	case "ImageStreamImage":
-		event, err = imageapi.ResolveImageID(stream, tagOrID)
+		event, err = internalimageutil.ResolveImageID(stream, tagOrID)
 	case "ImageStreamTag":
-		event, err = imageapi.LatestTaggedImage(stream, tagOrID), nil
+		event, err = internalimageutil.LatestTaggedImage(stream, tagOrID), nil
 	default:
 		err = fmt.Errorf("invalid from.kind %q: it must be DockerImage, ImageStreamImage or ImageStreamTag", tagRef.From.Kind)
 	}

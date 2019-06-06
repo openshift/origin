@@ -11,6 +11,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
@@ -143,7 +144,7 @@ func enumerateIsImportStatuses(isi *imagev1.ImageStreamImport, cb func(*metrics.
 			if imgRef == nil {
 				continue
 			}
-			imageutil.SetDockerClientDefaults(imgRef)
+			setDockerClientDefaults(imgRef)
 			registry = imgRef.Registry
 		}
 
@@ -152,6 +153,19 @@ func enumerateIsImportStatuses(isi *imagev1.ImageStreamImport, cb func(*metrics.
 			info.Reason = reasonInvalidImageReference
 		}
 		cb(&info)
+	}
+}
+
+// SetDockerClientDefaults set the default values used by the Docker client.
+func setDockerClientDefaults(r *imagev1.DockerImageReference) {
+	if len(r.Registry) == 0 {
+		r.Registry = imageapi.DockerDefaultRegistry
+	}
+	if len(r.Namespace) == 0 && reference.IsRegistryDockerHub(r.Registry) {
+		r.Namespace = "library"
+	}
+	if len(r.Tag) == 0 {
+		r.Tag = "latest"
 	}
 }
 

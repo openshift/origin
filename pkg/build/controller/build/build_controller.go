@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -842,7 +843,7 @@ func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagev1lister.I
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	event, err := imageutilinternal.ResolveImageID(stream, imageID)
+	event, err := resolveImageID(stream, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -850,6 +851,34 @@ func resolveImageStreamImage(ref *corev1.ObjectReference, lister imagev1lister.I
 		return nil, fmt.Errorf("the referenced image stream image %s/%s does not have a pull spec", namespace, ref.Name)
 	}
 	return &corev1.ObjectReference{Kind: "DockerImage", Name: event.DockerImageReference}, nil
+}
+
+// ResolveImageID returns latest TagEvent for specified imageID and an error if
+// there's more than one image matching the ID or when one does not exist.
+func resolveImageID(stream *imagev1.ImageStream, imageID string) (*imagev1.TagEvent, error) {
+	var event *imagev1.TagEvent
+	set := sets.NewString()
+	for _, history := range stream.Status.Tags {
+		for i := range history.Items {
+			tagging := &history.Items[i]
+			if imageutilinternal.DigestOrImageMatch(tagging.Image, imageID) {
+				event = tagging
+				set.Insert(tagging.Image)
+			}
+		}
+	}
+	switch len(set) {
+	case 1:
+		return &imagev1.TagEvent{
+			Created:              metav1.Now(),
+			DockerImageReference: event.DockerImageReference,
+			Image:                event.Image,
+		}, nil
+	case 0:
+		return nil, errors.NewNotFound(imagev1.Resource("imagestreamimage"), imageID)
+	default:
+		return nil, errors.NewConflict(imagev1.Resource("imagestreamimage"), imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	}
 }
 
 func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.ImageStreamLister, defaultNamespace string) (*corev1.ObjectReference, error) {

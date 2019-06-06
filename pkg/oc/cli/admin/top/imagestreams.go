@@ -20,7 +20,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 const TopImageStreamsRecommendedName = "imagestreams"
@@ -184,7 +184,7 @@ func getImageStreamSize(g genericgraph.Graph, node *imagegraph.ImageStreamNode) 
 			blobSet.Insert(layer.Name)
 			storage += layer.LayerSize
 		}
-		if err := imageutil.ImageWithMetadata(image); err != nil {
+		if err := ocimageutil.ImageWithMetadata(image); err != nil {
 			continue
 		}
 		dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)

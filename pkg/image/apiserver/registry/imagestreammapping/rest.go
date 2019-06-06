@@ -2,6 +2,7 @@ package imagestreammapping
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/klog"
 
@@ -15,10 +16,12 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	imagegroup "github.com/openshift/api/image"
+	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/origin/pkg/image/internalimageutil"
 )
 
 // maxRetriesOnConflict is the maximum retry count for Create calls which
@@ -91,7 +94,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	if errors.IsAlreadyExists(imageCreateErr) && image.Annotations[imageapi.ManagedByOpenShiftAnnotation] == "true" {
 		// the image is managed by us and, most probably, tagged in some other image stream
 		// let's make the reference local to this stream
-		if streamRef, err := imageapi.DockerImageReferenceForStream(stream); err == nil {
+		if streamRef, err := dockerImageReferenceForStream(stream); err == nil {
 			streamRef.ID = image.Name
 			ref = streamRef.Exact()
 		} else {
@@ -106,15 +109,15 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 
 	err = wait.ExponentialBackoff(wait.Backoff{Steps: maxRetriesOnConflict}, func() (bool, error) {
-		lastEvent := imageapi.LatestTaggedImage(stream, tag)
+		lastEvent := internalimageutil.LatestTaggedImage(stream, tag)
 
 		next.Generation = stream.Generation
 
-		if !imageapi.AddTagEventToImageStream(stream, tag, next) {
+		if !internalimageutil.AddTagEventToImageStream(stream, tag, next) {
 			// nothing actually changed
 			return true, nil
 		}
-		imageapi.UpdateTrackingTags(stream, tag, next)
+		internalimageutil.UpdateTrackingTags(stream, tag, next)
 		_, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream, false, &metav1.UpdateOptions{})
 		if err == nil {
 			return true, nil
@@ -137,7 +140,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		}
 
 		// check for tag change
-		newerEvent := imageapi.LatestTaggedImage(latestStream, tag)
+		newerEvent := internalimageutil.LatestTaggedImage(latestStream, tag)
 		// generation and creation time differences are ignored
 		lastEvent.Generation = newerEvent.Generation
 		lastEvent.Created = newerEvent.Created
@@ -154,6 +157,19 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		return nil, err
 	}
 	return &metav1.Status{Status: metav1.StatusSuccess}, nil
+}
+
+// DockerImageReferenceForStream returns a DockerImageReference that represents
+// the ImageStream or false, if no valid reference exists.
+func dockerImageReferenceForStream(stream *imageapi.ImageStream) (imageapi.DockerImageReference, error) {
+	spec := stream.Status.DockerImageRepository
+	if len(spec) == 0 {
+		spec = stream.Spec.DockerImageRepository
+	}
+	if len(spec) == 0 {
+		return imageapi.DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", stream.Namespace, stream.Name)
+	}
+	return imagereference.Parse(spec)
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.

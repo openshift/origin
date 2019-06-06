@@ -3,6 +3,9 @@ package imagestreamimage
 import (
 	"context"
 
+	"github.com/openshift/origin/pkg/image/internalimageutil"
+	"github.com/openshift/origin/pkg/image/util"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,7 +19,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
-	"github.com/openshift/origin/pkg/image/util"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 
@@ -60,7 +62,7 @@ func (s *REST) NamespaceScoped() bool {
 // parseNameAndID splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.
 func parseNameAndID(input string) (name string, id string, err error) {
-	name, id, err = imageapi.ParseImageStreamImageName(input)
+	name, id, err = util.ParseImageStreamImageName(input)
 	if err != nil {
 		err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 	}
@@ -84,7 +86,7 @@ func (r *REST) Get(ctx context.Context, id string, options *metav1.GetOptions) (
 		return nil, errors.NewNotFound(imagegroup.Resource("imagestreamimage"), id)
 	}
 
-	event, err := imageapi.ResolveImageID(repo, imageID)
+	event, err := internalimageutil.ResolveImageID(repo, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +96,7 @@ func (r *REST) Get(ctx context.Context, id string, options *metav1.GetOptions) (
 	if err != nil {
 		return nil, err
 	}
-	if err := util.InternalImageWithMetadata(image); err != nil {
+	if err := internalimageutil.InternalImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	image.DockerImageManifest = ""

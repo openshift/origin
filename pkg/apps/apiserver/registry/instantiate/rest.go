@@ -31,9 +31,9 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	"github.com/openshift/origin/pkg/image/internalimageutil"
 )
 
 // NewREST provides new REST storage for the apps API group.
@@ -168,7 +168,7 @@ func processTriggers(config *appsapi.DeploymentConfig, is images.ImageStreamsGet
 		}
 
 		// Find the latest tag event for the trigger reference.
-		latestReference, ok := imageapi.ResolveLatestTaggedImage(stream, tag)
+		latestReference, ok := internalimageutil.ResolveLatestTaggedImage(stream, tag)
 		if !ok {
 			continue
 		}

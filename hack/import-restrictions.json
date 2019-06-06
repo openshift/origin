@@ -262,7 +262,6 @@
     "allowedImportPackageRoots": [
       "github.com/openshift/origin/pkg/api/apihelpers",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
-      "github.com/openshift/origin/pkg/image/internal",
       "vendor/k8s.io/api",
       "vendor/k8s.io/apimachinery",
       "vendor/github.com/openshift/api",
@@ -270,9 +269,7 @@
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
-      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
-      "vendor/k8s.io/klog",
-      "vendor/github.com/blang/semver"
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1"
     ]
   },
 

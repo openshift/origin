@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
+
 	"k8s.io/apimachinery/pkg/util/errors"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
@@ -49,7 +51,7 @@ func IsBuilderStreamTag(stream *imagev1.ImageStream, tag string) bool {
 		return false
 	}
 
-	return imageutil.HasAnnotationTag(&t, "builder")
+	return ocimageutil.HasAnnotationTag(&t, "builder")
 }
 
 func IsBuilderMatch(match *ComponentMatch) bool {

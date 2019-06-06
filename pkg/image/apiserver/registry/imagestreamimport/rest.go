@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/image/internalimageutil"
+
 	gocontext "golang.org/x/net/context"
 	"k8s.io/klog"
 
@@ -29,14 +31,13 @@ import (
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
+	"github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // ImporterFunc returns an instance of the importer that should be used per invocation.
@@ -393,7 +394,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 func recordLimitExceededStatus(originalStream *imageapi.ImageStream, newStream *imageapi.ImageStream, err error, now metav1.Time, nextGeneration int64) {
 	for tag := range newStream.Status.Tags {
 		if _, ok := originalStream.Status.Tags[tag]; !ok {
-			imageapi.SetTagConditions(originalStream, tag, newImportFailedCondition(err, nextGeneration, now))
+			setTagConditions(originalStream, tag, newImportFailedCondition(err, nextGeneration, now))
 		}
 	}
 }
@@ -426,8 +427,8 @@ func checkImportFailure(status imageapi.ImageImportStatus, stream *imageapi.Imag
 		}
 	}
 
-	if !imageapi.HasTagCondition(stream, tag, condition) {
-		imageapi.SetTagConditions(stream, tag, condition)
+	if !internalimageutil.HasTagCondition(stream, tag, condition) {
+		setTagConditions(stream, tag, condition)
 		if tagRef, ok := stream.Spec.Tags[tag]; ok {
 			zero := int64(0)
 			tagRef.Generation = &zero
@@ -435,6 +436,16 @@ func checkImportFailure(status imageapi.ImageImportStatus, stream *imageapi.Imag
 		}
 	}
 	return true
+}
+
+// SetTagConditions applies the specified conditions to the status of the given tag.
+func setTagConditions(stream *imageapi.ImageStream, tag string, conditions ...imageapi.TagEventCondition) {
+	tagEvents := stream.Status.Tags[tag]
+	tagEvents.Conditions = conditions
+	if stream.Status.Tags == nil {
+		stream.Status.Tags = make(map[string]imageapi.TagEventList)
+	}
+	stream.Status.Tags[tag] = tagEvents
 }
 
 // ensureSpecTag guarantees that the spec tag is set with the provided from, importPolicy and referencePolicy.
@@ -479,7 +490,7 @@ func (r *REST) importSuccessful(
 ) (*imageapi.Image, bool) {
 	r.strategy.PrepareImageForCreate(image)
 
-	pullSpec, _ := imageapi.MostAccuratePullSpec(image.DockerImageReference, image.Name, "")
+	pullSpec, _ := mostAccuratePullSpec(image.DockerImageReference, image.Name, "")
 	tagEvent := imageapi.TagEvent{
 		Created:              now,
 		DockerImageReference: pullSpec,
@@ -492,11 +503,11 @@ func (r *REST) importSuccessful(
 	}
 
 	// ensure the spec and status tag match the imported image
-	changed := imageapi.DifferentTagEvent(stream, tag, tagEvent) || imageapi.DifferentTagGeneration(stream, tag)
+	changed := differentTagEvent(stream, tag, tagEvent) || differentTagGeneration(stream, tag)
 	specTag, ok := stream.Spec.Tags[tag]
 	if changed || !ok {
 		specTag = ensureSpecTag(stream, tag, from, importPolicy, referencePolicy, true)
-		imageapi.AddTagEventToImageStream(stream, tag, tagEvent)
+		internalimageutil.AddTagEventToImageStream(stream, tag, tagEvent)
 	}
 	// always reset the import policy
 	specTag.ImportPolicy = importPolicy
@@ -505,9 +516,9 @@ func (r *REST) importSuccessful(
 	// import or reuse the image, and ensure tag conditions are set
 	importErr, alreadyImported := importedImages[image.Name]
 	if importErr != nil {
-		imageapi.SetTagConditions(stream, tag, newImportFailedCondition(importErr, nextGeneration, now))
+		setTagConditions(stream, tag, newImportFailedCondition(importErr, nextGeneration, now))
 	} else {
-		imageapi.SetTagConditions(stream, tag)
+		setTagConditions(stream, tag)
 	}
 
 	// create the image if it does not exist, otherwise cache the updated status from the store for use by other tags
@@ -521,7 +532,7 @@ func (r *REST) importSuccessful(
 	updated, err := r.images.Create(ctx, image, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	switch {
 	case kapierrors.IsAlreadyExists(err):
-		if err := util.InternalImageWithMetadata(image); err != nil {
+		if err := internalimageutil.InternalImageWithMetadata(image); err != nil {
 			klog.V(4).Infof("Unable to update image metadata during image import when image already exists %q: %v", image.Name, err)
 		}
 		updated = image
@@ -536,6 +547,49 @@ func (r *REST) importSuccessful(
 		importedImages[image.Name] = err
 	}
 	return nil, false
+}
+
+// mostAccuratePullSpec returns a docker image reference that uses the current ID if possible, the current tag otherwise, and
+// returns false if the reference if the spec could not be parsed. The returned spec has all client defaults applied.
+func mostAccuratePullSpec(pullSpec string, id, tag string) (string, bool) {
+	ref, err := reference.Parse(pullSpec)
+	if err != nil {
+		return pullSpec, false
+	}
+	if len(id) > 0 {
+		ref.ID = id
+	}
+	if len(tag) > 0 {
+		ref.Tag = tag
+	}
+	return ref.MostSpecific().Exact(), true
+}
+
+// differentTagEvent returns true if the supplied tag event matches the current stream tag event.
+// Generation is not compared.
+func differentTagEvent(stream *imageapi.ImageStream, tag string, next imageapi.TagEvent) bool {
+	tags, ok := stream.Status.Tags[tag]
+	if !ok || len(tags.Items) == 0 {
+		return true
+	}
+	previous := &tags.Items[0]
+	sameRef := previous.DockerImageReference == next.DockerImageReference
+	sameImage := previous.Image == next.Image
+	return !(sameRef && sameImage)
+}
+
+// differentTagGeneration compares the generation on tag's spec vs its status.
+// Returns if spec generation is newer than status one.
+func differentTagGeneration(stream *imageapi.ImageStream, tag string) bool {
+	specTag, ok := stream.Spec.Tags[tag]
+	if !ok || specTag.Generation == nil {
+		return true
+	}
+	statusTag, ok := stream.Status.Tags[tag]
+	if !ok || len(statusTag.Items) == 0 {
+		return true
+	}
+	return *specTag.Generation > statusTag.Items[0].Generation
 }
 
 // clearManifests unsets the manifest for each object that does not request it

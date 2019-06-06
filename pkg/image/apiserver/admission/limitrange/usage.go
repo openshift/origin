@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // InternalImageReferenceHandler is a function passed to the computer when processing images that allows a
@@ -159,7 +160,7 @@ func getImageReferenceForObjectReference(namespace string, objRef *kapi.ObjectRe
 		return res.DaemonMinimal().Exact(), nil
 
 	case "ImageStreamTag":
-		isName, tag, err := imageapi.ParseImageStreamTagName(objRef.Name)
+		isName, tag, err := util.ParseImageStreamTagName(objRef.Name)
 		if err != nil {
 			return "", err
 		}

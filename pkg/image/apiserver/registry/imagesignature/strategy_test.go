@@ -1,6 +1,7 @@
 package imagesignature
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -89,6 +90,128 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 			if !reflect.DeepEqual(value, reflect.Zero(vType).Interface()) {
 				t.Errorf("field %q expected unset, got instead: %v", typeOfT.Field(i).Name, value)
 			}
+		}
+	}
+}
+
+func TestIndexOfImageSignature(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		signatures    []imageapi.ImageSignature
+		matchType     string
+		matchContent  []byte
+		expectedIndex int
+	}{
+		{
+			name:          "empty",
+			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: -1,
+		},
+
+		{
+			name: "not present",
+			signatures: []imageapi.ImageSignature{
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+			},
+			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: -1,
+		},
+
+		{
+			name: "first and only",
+			signatures: []imageapi.ImageSignature{
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+			},
+			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("binary"),
+			expectedIndex: 0,
+		},
+
+		{
+			name: "last",
+			signatures: []imageapi.ImageSignature{
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+			},
+			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: 2,
+		},
+
+		{
+			name: "many matches",
+			signatures: []imageapi.ImageSignature{
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob2"),
+				},
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+			},
+			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: 1,
+		},
+	} {
+
+		im := imageapi.Image{
+			Signatures: make([]imageapi.ImageSignature, len(tc.signatures)),
+		}
+		for i, signature := range tc.signatures {
+			signature.Name = fmt.Sprintf("%s:%s", signature.Type, signature.Content)
+			im.Signatures[i] = signature
+		}
+
+		matchName := fmt.Sprintf("%s:%s", tc.matchType, tc.matchContent)
+
+		index := indexOfImageSignatureByName(im.Signatures, matchName)
+		if index != tc.expectedIndex {
+			t.Errorf("[%s] got unexpected index: %d != %d", tc.name, index, tc.expectedIndex)
+		}
+
+		index = indexOfImageSignature(im.Signatures, tc.matchType, tc.matchContent)
+		if index != tc.expectedIndex {
+			t.Errorf("[%s] got unexpected index: %d != %d", tc.name, index, tc.expectedIndex)
 		}
 	}
 }

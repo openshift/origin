@@ -6,13 +6,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	oapi "github.com/openshift/origin/pkg/api"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
@@ -61,7 +62,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		return ""
 	case match.ImageStream != nil:
 		if image := match.DockerImage; image != nil {
-			shortID := imageapi.ShortDockerImageID(image, 7)
+			shortID := ocimageutil.ShortDockerImageID(image, 7)
 			if !image.Created.IsZero() {
 				shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 			}
@@ -70,7 +71,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		return fmt.Sprintf("Found tag :%s in image stream %q for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
 	case match.DockerImage != nil:
 		image := match.DockerImage
-		shortID := imageapi.ShortDockerImageID(image, 7)
+		shortID := ocimageutil.ShortDockerImageID(image, 7)
 		if !image.Created.IsZero() {
 			shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 		}

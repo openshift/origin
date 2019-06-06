@@ -58,6 +58,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	"github.com/openshift/origin/pkg/image/util"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -767,7 +768,7 @@ type ImageStreamTagDescriber struct {
 // Describe returns the description of an imageStreamTag
 func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings describe.DescriberSettings) (string, error) {
 	c := d.c.ImageStreamTags(namespace)
-	repo, tag, err := imageapi.ParseImageStreamTagName(name)
+	repo, tag, err := util.ParseImageStreamTagName(name)
 	if err != nil {
 		return "", err
 	}
