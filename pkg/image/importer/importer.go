@@ -26,11 +26,11 @@ import (
 
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/internalimageutil"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // Add a dockerregistry.Client to the passed context with this key to support v1 Docker registry importing
@@ -526,7 +526,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		}
 		tags = set.List()
 		// include only the top N tags in the result, put the rest in AdditionalTags
-		util.PrioritizeTags(tags)
+		imageutil.PrioritizeTags(tags)
 		for _, s := range tags {
 			if count <= 0 && repository.MaximumTags != -1 {
 				repository.AdditionalTags = append(repository.AdditionalTags, s)
@@ -630,7 +630,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 		}
 		tags = set.List()
 		// include only the top N tags in the result, put the rest in AdditionalTags
-		util.PrioritizeTags(tags)
+		imageutil.PrioritizeTags(tags)
 		for _, s := range tags {
 			if count <= 0 && repository.MaximumTags != -1 {
 				repository.AdditionalTags = append(repository.AdditionalTags, s)

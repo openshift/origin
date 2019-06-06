@@ -22,10 +22,10 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
@@ -250,7 +250,7 @@ func getTags(stream *imagev1.ImageStream, image *imagev1.Image) []string {
 			tags = append(tags, tag.Tag)
 		}
 	}
-	util.PrioritizeTags(tags)
+	imageutil.PrioritizeTags(tags)
 	return tags
 }
 
