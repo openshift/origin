@@ -10,7 +10,6 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imagefake "github.com/openshift/client-go/image/clientset/versioned/fake"
-	internalimageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
 )
 
@@ -146,7 +145,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "testis",
 					Namespace:   "other",
-					Annotations: map[string]string{internalimageapi.InsecureRepositoryAnnotation: "true"},
+					Annotations: map[string]string{imagev1.InsecureRepositoryAnnotation: "true"},
 				},
 				Spec: imagev1.ImageStreamSpec{
 					Tags: []imagev1.TagReference{
@@ -366,7 +365,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "testis",
 					Namespace:   "other",
-					Annotations: map[string]string{internalimageapi.InsecureRepositoryAnnotation: "true"},
+					Annotations: map[string]string{imagev1.InsecureRepositoryAnnotation: "true"},
 				},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
@@ -386,7 +385,7 @@ func TestCreateImageImport(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "testis",
 					Namespace:   "other",
-					Annotations: map[string]string{internalimageapi.InsecureRepositoryAnnotation: "true"},
+					Annotations: map[string]string{imagev1.InsecureRepositoryAnnotation: "true"},
 				},
 				Spec: imagev1.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",

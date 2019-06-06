@@ -231,8 +231,8 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 func buildPodAdmissionTestCustomBuild() *buildv1.Build {
 	build := &buildv1.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
-			buildutil.BuildConfigLabel:    "mock-build-config",
-			buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
+			buildv1.BuildConfigLabel:    "mock-build-config",
+			buildv1.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 		},
 	}}
 	build.Name = "test-custom-build"
@@ -246,8 +246,8 @@ func buildPodAdmissionTestCustomBuild() *buildv1.Build {
 func buildPodAdmissionTestDockerBuild() *buildv1.Build {
 	build := &buildv1.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
-			buildutil.BuildConfigLabel:    "mock-build-config",
-			buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
+			buildv1.BuildConfigLabel:    "mock-build-config",
+			buildv1.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 		},
 	}}
 	build.Name = "test-build"

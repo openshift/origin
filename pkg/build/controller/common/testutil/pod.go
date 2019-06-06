@@ -10,7 +10,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 type TestPod corev1.Pod
@@ -44,7 +43,7 @@ func (p *TestPod) WithBuild(t *testing.T, build *buildv1.Build) *TestPod {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	return p.WithAnnotation(buildutil.BuildAnnotation, build.Name).WithEnvVar("BUILD", string(encodedBuild))
+	return p.WithAnnotation(buildv1.BuildAnnotation, build.Name).WithEnvVar("BUILD", string(encodedBuild))
 }
 
 func (p *TestPod) InitEnvValue(name string) string {

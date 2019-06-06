@@ -2,9 +2,6 @@ package image
 
 import (
 	"testing"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDockerImageReferenceAsRepository(t *testing.T) {
@@ -280,7 +277,7 @@ func TestDockerImageReferenceEquality(t *testing.T) {
 				Registry:  DockerDefaultRegistry,
 				Namespace: DockerDefaultNamespace,
 				Name:      "openshift",
-				Tag:       DefaultImageTag,
+				Tag:       "latest",
 			},
 			isEqual: true,
 		},
@@ -304,7 +301,7 @@ func TestDockerImageReferenceEquality(t *testing.T) {
 				Registry:  DockerDefaultRegistry,
 				Namespace: DockerDefaultNamespace,
 				Name:      "openshift",
-				Tag:       DefaultImageTag,
+				Tag:       "latest",
 				ID:        "d0a28ab59a",
 			},
 			isEqual: false,
@@ -321,40 +318,4 @@ func TestDockerImageReferenceEquality(t *testing.T) {
 				i, test.a, test.b, x, y)
 		}
 	}
-}
-
-func mockImageStream(policy TagReferencePolicyType) *ImageStream {
-	now := metav1.Now()
-	stream := &ImageStream{}
-	stream.Status = ImageStreamStatus{}
-	stream.Spec = ImageStreamSpec{}
-	stream.Spec.Tags = map[string]TagReference{}
-	stream.Spec.Tags["latest"] = TagReference{
-		ReferencePolicy: TagReferencePolicy{
-			Type: policy,
-		},
-	}
-	stream.Status.DockerImageRepository = "registry:5000/test/foo"
-	stream.Status.Tags = map[string]TagEventList{}
-	stream.Status.Tags["latest"] = TagEventList{Items: []TagEvent{
-		{
-			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fa",
-			DockerImageReference: "test/bar@sha256:bar",
-			Created:              now,
-			Generation:           3,
-		},
-		{
-			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb",
-			DockerImageReference: "test/foo@sha256:bar",
-			Created:              now,
-			Generation:           2,
-		},
-		{
-			Image:                "sha256:c3d8a3642ebfa6bd1fd50c2b8b90e99d3e29af1eac88637678f982cde90993fb",
-			DockerImageReference: "test/foo@sha256:oldbar",
-			Created:              metav1.Time{Time: now.Add(-5 * time.Second)},
-			Generation:           1,
-		},
-	}}
-	return stream
 }

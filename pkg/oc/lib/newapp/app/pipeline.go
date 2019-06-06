@@ -108,7 +108,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		}
 		output.Reference = imageapi.DockerImageReference{
 			Name: name,
-			Tag:  imageapi.DefaultImageTag,
+			Tag:  imagev1.DefaultImageTag,
 		}
 	}
 	source.Name = name

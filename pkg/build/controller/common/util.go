@@ -97,14 +97,14 @@ func SetBuildPodNameAnnotation(build *buildv1.Build, podName string) {
 	if build.Annotations == nil {
 		build.Annotations = map[string]string{}
 	}
-	build.Annotations[buildutil.BuildPodNameAnnotation] = podName
+	build.Annotations[buildv1.BuildPodNameAnnotation] = podName
 }
 
 func HasBuildPodNameAnnotation(build *buildv1.Build) bool {
 	if build.Annotations == nil {
 		return false
 	}
-	_, hasAnnotation := build.Annotations[buildutil.BuildPodNameAnnotation]
+	_, hasAnnotation := build.Annotations[buildv1.BuildPodNameAnnotation]
 	return hasAnnotation
 }
 

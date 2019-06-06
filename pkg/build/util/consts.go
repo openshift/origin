@@ -13,50 +13,13 @@ var (
 )
 
 const (
-	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
-	BuildAnnotation = "openshift.io/build.name"
-	// BuildConfigAnnotation is an annotation that identifies the BuildConfig that a Build was created from
-	BuildConfigAnnotation = "openshift.io/build-config.name"
-	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
-	BuildNumberAnnotation = "openshift.io/build.number"
-	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
-	BuildCloneAnnotation = "openshift.io/build.clone-of"
-	// BuildPodNameAnnotation is an annotation whose value is the name of the pod running this build
-	BuildPodNameAnnotation = "openshift.io/build.pod-name"
-	// BuildJenkinsStatusJSONAnnotation is an annotation holding the Jenkins status information
-	BuildJenkinsStatusJSONAnnotation = "openshift.io/jenkins-status-json"
-	// BuildJenkinsLogURLAnnotation is an annotation holding a link to the raw Jenkins build console log
-	BuildJenkinsLogURLAnnotation = "openshift.io/jenkins-log-url"
-	// BuildJenkinsConsoleLogURLAnnotation is an annotation holding a link to the Jenkins build console log (including Jenkins chrome wrappering)
-	BuildJenkinsConsoleLogURLAnnotation = "openshift.io/jenkins-console-log-url"
-	// BuildJenkinsBlueOceanLogURLAnnotation is an annotation holding a link to the Jenkins build console log via the Jenkins BlueOcean UI Plugin
-	BuildJenkinsBlueOceanLogURLAnnotation = "openshift.io/jenkins-blueocean-log-url"
-	// BuildJenkinsBuildURIAnnotation is an annotation holding a link to the Jenkins build
-	BuildJenkinsBuildURIAnnotation = "openshift.io/jenkins-build-uri"
-	// BuildSourceSecretMatchURIAnnotationPrefix is a prefix for annotations on a Secret which indicate a source URI against which the Secret can be used
-	BuildSourceSecretMatchURIAnnotationPrefix = "build.openshift.io/source-secret-match-uri-"
-	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-	// NOTE: The value for this label may not contain the entire Build name because it will be
-	// truncated to maximum label length.
-	BuildLabel = "openshift.io/build.name"
-	// BuildRunPolicyLabel represents the start policy used to to start the build.
-	BuildRunPolicyLabel = "openshift.io/build.start-policy"
 	// AllowedUIDs is an environment variable that contains ranges of UIDs that are allowed in
 	// Source builder images
 	AllowedUIDs = "ALLOWED_UIDS"
 	// DropCapabilities is an environment variable that contains a list of capabilities to drop when
 	// executing a Source build
 	DropCapabilities = "DROP_CAPS"
-	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-	// on which the Build is based. NOTE: The value for this label may not contain the entire
-	// BuildConfig name because it will be truncated to maximum label length.
-	BuildConfigLabel = "openshift.io/build-config.name"
-	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
-	// We keep it for backward compatibility.
-	BuildConfigLabelDeprecated = "buildconfig"
-	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
-	// New Builds cannot be instantiated from a paused BuildConfig.
-	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
+
 	// BuildStartedEventReason is the reason associated with the event registered when a build is started (pod is created).
 	BuildStartedEventReason = "BuildStarted"
 	// BuildStartedEventMessage is the message associated with the event registered when a build is started (pod is created).
@@ -76,7 +39,6 @@ const (
 )
 
 const (
-	BuildTriggerCauseManualMsg    = "Manually triggered"
 	BuildTriggerCauseConfigMsg    = "Build configuration change"
 	BuildTriggerCauseImageMsg     = "Image change"
 	BuildTriggerCauseGithubMsg    = "GitHub WebHook"
@@ -102,7 +64,6 @@ const (
 	StatusMessageOutOfMemoryKilled               = "The build pod was killed due to an out of memory condition."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
 	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account secrets for this build."
-	StatusMessagePostCommitHookFailed            = "Build failed because of post commit hook."
 )
 
 const (

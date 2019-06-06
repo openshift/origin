@@ -2,13 +2,14 @@ package ldap
 
 import (
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/openshift/library-go/pkg/certs"
 
 	"gopkg.in/ldap.v2"
 
@@ -18,26 +19,6 @@ import (
 	"github.com/openshift/library-go/pkg/config/validation"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
 )
-
-const (
-	// StringSourceEncryptedBlockType is the PEM block type used to store an encrypted string
-	StringSourceEncryptedBlockType = "ENCRYPTED STRING"
-	// StringSourceKeyBlockType is the PEM block type used to store an encrypting key
-	StringSourceKeyBlockType = "ENCRYPTING KEY"
-)
-
-func blockFromBytes(data []byte, blockType string) (*pem.Block, bool) {
-	for {
-		block, remaining := pem.Decode(data)
-		if block == nil {
-			return nil, false
-		}
-		if block.Type == blockType {
-			return block, true
-		}
-		data = remaining
-	}
-}
 
 func GetStringSourceFileReferences(s *legacyconfigv1.StringSource) []*string {
 	if s == nil {
@@ -76,14 +57,14 @@ func ResolveStringValue(s legacyconfigv1.StringSource) (string, error) {
 		return "", err
 	}
 
-	secretBlock, ok := blockFromBytes([]byte(value), StringSourceEncryptedBlockType)
+	secretBlock, ok := certs.BlockFromBytes([]byte(value), certs.StringSourceEncryptedBlockType)
 	if !ok {
-		return "", fmt.Errorf("no valid PEM block of type %q found in data", StringSourceEncryptedBlockType)
+		return "", fmt.Errorf("no valid PEM block of type %q found in data", certs.StringSourceEncryptedBlockType)
 	}
 
-	keyBlock, ok := blockFromBytes(keyData, StringSourceKeyBlockType)
+	keyBlock, ok := certs.BlockFromBytes(keyData, certs.StringSourceKeyBlockType)
 	if !ok {
-		return "", fmt.Errorf("no valid PEM block of type %q found in key", StringSourceKeyBlockType)
+		return "", fmt.Errorf("no valid PEM block of type %q found in key", certs.StringSourceKeyBlockType)
 	}
 
 	data, err := x509.DecryptPEMBlock(secretBlock, keyBlock.Bytes)

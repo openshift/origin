@@ -32,7 +32,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if expected, actual := buildapihelpers.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildutil.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildv1.BuildLabel: buildapihelpers.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
 	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
@@ -159,8 +159,8 @@ func TestDockerBuildLongName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if pod.Labels[buildutil.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
-		t.Errorf("Unexpected build label value: %s", pod.Labels[buildutil.BuildLabel])
+	if pod.Labels[buildv1.BuildLabel] != build.Name[:validation.DNS1123LabelMaxLength] {
+		t.Errorf("Unexpected build label value: %s", pod.Labels[buildv1.BuildLabel])
 	}
 }
 

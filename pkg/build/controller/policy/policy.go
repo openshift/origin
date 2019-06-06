@@ -115,16 +115,16 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 // buildNumber returns the given build number.
 func buildNumber(build *buildv1.Build) (int64, error) {
 	annotations := build.GetAnnotations()
-	if stringNumber, ok := annotations[buildutil.BuildNumberAnnotation]; ok {
+	if stringNumber, ok := annotations[buildv1.BuildNumberAnnotation]; ok {
 		return strconv.ParseInt(stringNumber, 10, 64)
 	}
-	return 0, fmt.Errorf("build %s/%s does not have %s annotation", build.Namespace, build.Name, buildutil.BuildNumberAnnotation)
+	return 0, fmt.Errorf("build %s/%s does not have %s annotation", build.Namespace, build.Name, buildv1.BuildNumberAnnotation)
 }
 
 // buildRunPolicy returns the scheduling policy for the build based on the "queued" label.
 func buildRunPolicy(build *buildv1.Build) buildv1.BuildRunPolicy {
 	labels := build.GetLabels()
-	if value, found := labels[buildutil.BuildRunPolicyLabel]; found {
+	if value, found := labels[buildv1.BuildRunPolicyLabel]; found {
 		switch value {
 		case "Parallel":
 			return buildv1.BuildRunPolicyParallel

@@ -10,7 +10,6 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
 
@@ -97,7 +96,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 				Image: imagev1.Image{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        imagetest.MiscImageDigest,
-						Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+						Annotations: map[string]string{imagev1.ManagedByOpenShiftAnnotation: "true"},
 					},
 					DockerImageReference: imagetest.MakeDockerImageReference("shared", "is", imagetest.MiscImageDigest),
 					DockerImageManifest:  imagetest.MiscImageDigest,
@@ -119,7 +118,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 				Image: imagev1.Image{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        imagetest.MiscImageDigest,
-						Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+						Annotations: map[string]string{imagev1.ManagedByOpenShiftAnnotation: "true"},
 					},
 					DockerImageReference: imagetest.MakeDockerImageReference("test", "dest", imagetest.MiscImageDigest),
 					DockerImageManifest:  imagetest.MiscImage,

@@ -20,7 +20,6 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/network/networkutils"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // order younger images before older
@@ -50,7 +49,7 @@ func DetermineRegistryHost(images *imagev1.ImageList, imageStreams *imagev1.Imag
 	// 1st try to determine registry url from a pull spec of the youngest managed image
 	for i := range images.Items {
 		image := &images.Items[i]
-		if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
+		if image.Annotations[imagev1.ManagedByOpenShiftAnnotation] != "true" {
 			continue
 		}
 		managedImages = append(managedImages, image)

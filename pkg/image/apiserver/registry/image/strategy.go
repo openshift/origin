@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 )
@@ -49,7 +50,7 @@ func (s imageStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object)
 	if err := internalimageutil.InternalImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
-	if newImage.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
+	if newImage.Annotations[imagev1.ImageManifestBlobStoredAnnotation] == "true" {
 		newImage.DockerImageManifest = ""
 		newImage.DockerImageConfig = ""
 	}
@@ -127,7 +128,7 @@ func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 
-	if newImage.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
+	if newImage.Annotations[imagev1.ImageManifestBlobStoredAnnotation] == "true" {
 		newImage.DockerImageManifest = ""
 		newImage.DockerImageConfig = ""
 	}

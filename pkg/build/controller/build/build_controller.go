@@ -2196,7 +2196,7 @@ func getBuildName(pod metav1.Object) string {
 	if pod == nil {
 		return ""
 	}
-	return pod.GetAnnotations()[buildutil.BuildAnnotation]
+	return pod.GetAnnotations()[buildv1.BuildAnnotation]
 }
 
 func makeBuildPodOwnerRef(buildPod *corev1.Pod) metav1.OwnerReference {

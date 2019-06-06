@@ -17,8 +17,8 @@ import (
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
-	appsmanualclientv1 "github.com/openshift/origin/pkg/apps/client/v1"
 	buildmanualclientv1 "github.com/openshift/origin/pkg/build/client/v1"
+	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
 )
 
 func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorphichelpers.LogsForObjectFunc {
@@ -39,7 +39,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				return nil, err
 			}
 			// TODO: support allContainers flag
-			return []rest.ResponseWrapper{appsmanualclientv1.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
+			return []rest.ResponseWrapper{deploymentconfigs.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
 		case *buildv1.Build:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {

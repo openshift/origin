@@ -12,6 +12,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/openshift/library-go/pkg/certs"
+
 	"github.com/openshift/oc/pkg/helpers/term"
 	"github.com/spf13/cobra"
 
@@ -150,10 +152,10 @@ func (o *EncryptOptions) Encrypt() error {
 	var key []byte
 	switch {
 	case len(o.KeyFile) > 0:
-		if block, ok, err := BlockFromFile(o.KeyFile, StringSourceKeyBlockType); err != nil {
+		if block, ok, err := certs.BlockFromFile(o.KeyFile, certs.StringSourceKeyBlockType); err != nil {
 			return err
 		} else if !ok {
-			return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, StringSourceKeyBlockType)
+			return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, certs.StringSourceKeyBlockType)
 		} else if len(block.Bytes) == 0 {
 			return fmt.Errorf("%s does not contain a key", o.KeyFile)
 		} else {
@@ -170,18 +172,18 @@ func (o *EncryptOptions) Encrypt() error {
 	}
 
 	// Encrypt
-	dataBlock, err := x509.EncryptPEMBlock(rand.Reader, StringSourceEncryptedBlockType, data, key, x509.PEMCipherAES256)
+	dataBlock, err := x509.EncryptPEMBlock(rand.Reader, certs.StringSourceEncryptedBlockType, data, key, x509.PEMCipherAES256)
 	if err != nil {
 		return err
 	}
 
 	// Write data
 	if len(o.EncryptedFile) > 0 {
-		if err := BlockToFile(o.EncryptedFile, dataBlock, os.FileMode(0644)); err != nil {
+		if err := certs.BlockToFile(o.EncryptedFile, dataBlock, os.FileMode(0644)); err != nil {
 			return err
 		}
 	} else if o.EncryptedWriter != nil {
-		encryptedBytes, err := BlockToBytes(dataBlock)
+		encryptedBytes, err := certs.BlockToBytes(dataBlock)
 		if err != nil {
 			return err
 		}
@@ -196,8 +198,8 @@ func (o *EncryptOptions) Encrypt() error {
 
 	// Write key
 	if len(o.GenKeyFile) > 0 {
-		keyBlock := &pem.Block{Bytes: key, Type: StringSourceKeyBlockType}
-		if err := BlockToFile(o.GenKeyFile, keyBlock, os.FileMode(0600)); err != nil {
+		keyBlock := &pem.Block{Bytes: key, Type: certs.StringSourceKeyBlockType}
+		if err := certs.BlockToFile(o.GenKeyFile, keyBlock, os.FileMode(0600)); err != nil {
 			return err
 		}
 	}

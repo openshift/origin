@@ -3,13 +3,12 @@ package imagesecret
 import (
 	"testing"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/kubernetes/fake"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestGetSecrets(t *testing.T) {
@@ -20,7 +19,7 @@ func TestGetSecrets(t *testing.T) {
 				Type:       corev1.SecretTypeDockercfg,
 			},
 			{
-				ObjectMeta: metav1.ObjectMeta{Name: "secret-2", Annotations: map[string]string{imageapi.ExcludeImageSecretAnnotation: "true"}, Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "secret-2", Annotations: map[string]string{imagev1.ExcludeImageSecretAnnotation: "true"}, Namespace: "default"},
 				Type:       corev1.SecretTypeDockercfg,
 			},
 			{

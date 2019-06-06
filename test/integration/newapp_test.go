@@ -43,7 +43,6 @@ import (
 	fakeroutev1client "github.com/openshift/client-go/route/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/git"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	newappapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
@@ -969,7 +968,7 @@ func TestNewAppRunAll(t *testing.T) {
 				return
 			}
 			for _, stream := range imageStreams {
-				_, hasAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
+				_, hasAnnotation := stream.Annotations[imagev1.InsecureRepositoryAnnotation]
 				if test.expectInsecure.Has(stream.Name) && !hasAnnotation {
 					t.Errorf("%s: Expected insecure annotation for stream: %s, but did not get one.", test.name, stream.Name)
 				}
