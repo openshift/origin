@@ -6,7 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // buildPodCreationStrategy is used by the build controller to
@@ -41,7 +40,7 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildv1.Build, addition
 		if pod.Annotations == nil {
 			pod.Annotations = map[string]string{}
 		}
-		pod.Annotations[buildutil.BuildAnnotation] = build.Name
+		pod.Annotations[buildv1.BuildAnnotation] = build.Name
 
 		if pod.Spec.NodeSelector == nil {
 			pod.Spec.NodeSelector = map[string]string{}

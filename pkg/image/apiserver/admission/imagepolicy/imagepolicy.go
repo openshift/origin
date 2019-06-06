@@ -8,12 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/client-go/informers"
-
-	"k8s.io/apiserver/pkg/admission/initializer"
-
 	"github.com/hashicorp/golang-lru"
-	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,9 +19,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -36,7 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 	imageinternalclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"k8s.io/client-go/rest"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -339,7 +338,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 
 	tag := ref.Tag
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 	if len(ref.Namespace) == 0 || forceResolveLocalNames {
 		ref.Namespace = defaultNamespace

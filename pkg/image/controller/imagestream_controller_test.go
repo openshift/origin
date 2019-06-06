@@ -24,7 +24,6 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestHandleImageStream(t *testing.T) {
@@ -36,7 +35,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -45,7 +44,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -57,7 +56,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: "a random error"},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: "a random error"},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -212,7 +211,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -245,7 +244,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -292,7 +291,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -367,7 +366,7 @@ func TestHandleImageStream(t *testing.T) {
 		{
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -458,7 +457,7 @@ func TestProcessNextWorkItemOnRemovedStream(t *testing.T) {
 func TestProcessNextWorkItem(t *testing.T) {
 	stream := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+			Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 			Name:        "test",
 			Namespace:   "other",
 		},

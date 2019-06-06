@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
@@ -151,7 +152,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imagev1.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
 
@@ -163,7 +164,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imagev1.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
 
@@ -175,7 +176,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          false,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imagev1.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
 
@@ -187,7 +188,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          false,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imagev1.DefaultImageTag)},
 				LastTriggeredImage: appstest.DockerImageReference,
 			},
 
@@ -199,7 +200,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imagev1.DefaultImageTag)},
 				LastTriggeredImage: appstest.DockerImageReference,
 			},
 
@@ -211,7 +212,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag("other-stream", imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Namespace: metav1.NamespaceDefault, Name: imageutil.JoinImageStreamTag("other-stream", imagev1.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
 			notFound: true,
@@ -228,7 +229,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 			param: &appsapi.DeploymentTriggerImageChangeParams{
 				Automatic:          true,
 				ContainerNames:     []string{"container1"},
-				From:               kapi.ObjectReference{Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imageapi.DefaultImageTag)},
+				From:               kapi.ObjectReference{Name: imageutil.JoinImageStreamTag(appstest.ImageStreamName, imagev1.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
 			notFound: false,
@@ -247,7 +248,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 				name := action.(clientgotesting.GetAction).GetName()
 				return true, nil, errors.NewNotFound(image.Resource("ImageStream"), name)
 			}
-			stream := fakeStream(appstest.ImageStreamName, imageapi.DefaultImageTag, appstest.DockerImageReference, appstest.ImageID)
+			stream := fakeStream(appstest.ImageStreamName, imagev1.DefaultImageTag, appstest.DockerImageReference, appstest.ImageID)
 			return true, stream, nil
 		})
 

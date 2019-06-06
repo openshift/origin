@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/api/image"
-
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	godigest "github.com/opencontainers/go-digest"
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 
+	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -150,7 +150,7 @@ func fillImageLayers(image *imageapi.Image, manifest dockerapi10.DockerImageMani
 	if image.Annotations == nil {
 		image.Annotations = map[string]string{}
 	}
-	image.Annotations[imageapi.DockerImageLayersOrderAnnotation] = imageapi.DockerImageLayersOrderAscending
+	image.Annotations[imagev1.DockerImageLayersOrderAnnotation] = imagev1.DockerImageLayersOrderAscending
 
 	return nil
 }
@@ -162,19 +162,19 @@ func reorderImageLayers(image *imageapi.Image) {
 		return
 	}
 
-	layersOrder, ok := image.Annotations[imageapi.DockerImageLayersOrderAnnotation]
+	layersOrder, ok := image.Annotations[imagev1.DockerImageLayersOrderAnnotation]
 	if !ok {
 		switch image.DockerImageManifestMediaType {
 		case schema1.MediaTypeManifest, schema1.MediaTypeSignedManifest:
-			layersOrder = imageapi.DockerImageLayersOrderAscending
+			layersOrder = imagev1.DockerImageLayersOrderAscending
 		case schema2.MediaTypeManifest:
-			layersOrder = imageapi.DockerImageLayersOrderDescending
+			layersOrder = imagev1.DockerImageLayersOrderDescending
 		default:
 			return
 		}
 	}
 
-	if layersOrder == imageapi.DockerImageLayersOrderDescending {
+	if layersOrder == imagev1.DockerImageLayersOrderDescending {
 		// reverse order of the layers (lowest = 0, highest = i)
 		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
 			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
@@ -185,7 +185,7 @@ func reorderImageLayers(image *imageapi.Image) {
 		image.Annotations = map[string]string{}
 	}
 
-	image.Annotations[imageapi.DockerImageLayersOrderAnnotation] = imageapi.DockerImageLayersOrderAscending
+	image.Annotations[imagev1.DockerImageLayersOrderAnnotation] = imagev1.DockerImageLayersOrderAscending
 }
 
 // ManifestMatchesImage returns true if the provided manifest matches the name of the image.
@@ -246,7 +246,7 @@ func ImageConfigMatchesImage(image *imageapi.Image, imageConfig []byte) (bool, e
 // if tag isn't present in stream.status.tags.
 func LatestTaggedImage(stream *imageapi.ImageStream, tag string) *imageapi.TagEvent {
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 	// find the most recent tag event with an image reference
 	if stream.Status.Tags != nil {
@@ -267,7 +267,7 @@ func LatestTaggedImage(stream *imageapi.ImageStream, tag string) *imageapi.TagEv
 // should use this method instead of LatestTaggedImage.
 func ResolveLatestTaggedImage(stream *imageapi.ImageStream, tag string) (string, bool) {
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 	return resolveTagReference(stream, tag, LatestTaggedImage(stream, tag))
 }

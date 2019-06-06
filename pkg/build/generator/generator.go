@@ -883,23 +883,23 @@ func generateBuildFromBuild(build *buildv1.Build, buildConfig *buildv1.BuildConf
 	if newBuild.Annotations == nil {
 		newBuild.Annotations = make(map[string]string)
 	}
-	newBuild.Annotations[buildutil.BuildCloneAnnotation] = build.Name
+	newBuild.Annotations[buildv1.BuildCloneAnnotation] = build.Name
 	if buildConfig != nil {
-		newBuild.Annotations[buildutil.BuildNumberAnnotation] = strconv.FormatInt(buildConfig.Status.LastVersion, 10)
+		newBuild.Annotations[buildv1.BuildNumberAnnotation] = strconv.FormatInt(buildConfig.Status.LastVersion, 10)
 	} else {
 		// builds without a buildconfig don't have build numbers.
-		delete(newBuild.Annotations, buildutil.BuildNumberAnnotation)
+		delete(newBuild.Annotations, buildv1.BuildNumberAnnotation)
 	}
 
 	// if they exist, Jenkins reporting annotations must be removed when cloning.
-	delete(newBuild.Annotations, buildutil.BuildJenkinsStatusJSONAnnotation)
-	delete(newBuild.Annotations, buildutil.BuildJenkinsLogURLAnnotation)
-	delete(newBuild.Annotations, buildutil.BuildJenkinsConsoleLogURLAnnotation)
-	delete(newBuild.Annotations, buildutil.BuildJenkinsBlueOceanLogURLAnnotation)
-	delete(newBuild.Annotations, buildutil.BuildJenkinsBuildURIAnnotation)
+	delete(newBuild.Annotations, buildv1.BuildJenkinsStatusJSONAnnotation)
+	delete(newBuild.Annotations, buildv1.BuildJenkinsLogURLAnnotation)
+	delete(newBuild.Annotations, buildv1.BuildJenkinsConsoleLogURLAnnotation)
+	delete(newBuild.Annotations, buildv1.BuildJenkinsBlueOceanLogURLAnnotation)
+	delete(newBuild.Annotations, buildv1.BuildJenkinsBuildURIAnnotation)
 
 	// remove the BuildPodNameAnnotation for good measure.
-	delete(newBuild.Annotations, buildutil.BuildPodNameAnnotation)
+	delete(newBuild.Annotations, buildv1.BuildPodNameAnnotation)
 
 	return newBuild
 }
@@ -974,14 +974,14 @@ func setBuildAnnotationAndLabel(bcCopy *buildv1.BuildConfig, build *buildv1.Buil
 		build.Annotations = make(map[string]string)
 	}
 	// bcCopy.Status.LastVersion has been increased
-	build.Annotations[buildutil.BuildNumberAnnotation] = strconv.FormatInt(bcCopy.Status.LastVersion, 10)
-	build.Annotations[buildutil.BuildConfigAnnotation] = bcCopy.Name
+	build.Annotations[buildv1.BuildNumberAnnotation] = strconv.FormatInt(bcCopy.Status.LastVersion, 10)
+	build.Annotations[buildv1.BuildConfigAnnotation] = bcCopy.Name
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
-	build.Labels[buildutil.BuildConfigLabelDeprecated] = buildapihelpers.LabelValue(bcCopy.Name)
-	build.Labels[buildutil.BuildConfigLabel] = buildapihelpers.LabelValue(bcCopy.Name)
-	build.Labels[buildutil.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
+	build.Labels[buildv1.BuildConfigLabelDeprecated] = buildapihelpers.LabelValue(bcCopy.Name)
+	build.Labels[buildv1.BuildConfigLabel] = buildapihelpers.LabelValue(bcCopy.Name)
+	build.Labels[buildv1.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
 }
 
 // mergeMaps will merge to map[string]string instances, with
@@ -1007,5 +1007,5 @@ func mergeMaps(a, b map[string]string) map[string]string {
 
 // isPaused returns true if the provided BuildConfig is paused and cannot be used to create a new Build
 func isPaused(bc *buildv1.BuildConfig) bool {
-	return strings.ToLower(bc.Annotations[buildutil.BuildConfigPausedAnnotation]) == "true"
+	return strings.ToLower(bc.Annotations[buildv1.BuildConfigPausedAnnotation]) == "true"
 }

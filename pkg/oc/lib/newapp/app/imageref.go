@@ -129,7 +129,7 @@ func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) 
 	case len(tag) > 0:
 		imageRef.Reference.Tag = tag
 	case len(tag) == 0 && len(imageRef.Reference.Tag) == 0:
-		imageRef.Reference.Tag = imageapi.DefaultImageTag
+		imageRef.Reference.Tag = imagev1.DefaultImageTag
 	}
 
 	return imageRef, nil
@@ -205,7 +205,7 @@ func (r *ImageRef) InternalTag() string {
 		tag = r.InternalDefaultTag
 	}
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 	return tag
 }
@@ -324,7 +324,7 @@ func (r *ImageRef) ImageStream() (*imagev1.ImageStream, error) {
 		stream.Spec.DockerImageRepository = r.Reference.AsRepository().String()
 		if r.Insecure {
 			stream.ObjectMeta.Annotations = map[string]string{
-				imageapi.InsecureRepositoryAnnotation: "true",
+				imagev1.InsecureRepositoryAnnotation: "true",
 			}
 		}
 		return stream, nil

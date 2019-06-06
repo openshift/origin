@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
@@ -774,7 +775,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings desc
 	}
 	if len(tag) == 0 {
 		// TODO use repo's preferred default, when that's coded
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 	imageStreamTag, err := c.Get(repo+":"+tag, metav1.GetOptions{})
 	if err != nil {

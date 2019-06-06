@@ -8,9 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 func TestImagesTop(t *testing.T) {
@@ -392,7 +392,7 @@ func TestImagesTop(t *testing.T) {
 			pods: &corev1.PodList{
 				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{buildapi.BuildAnnotation: "build1"}},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{buildv1.BuildAnnotation: "build1"}},
 						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
 						Status:     corev1.PodStatus{Phase: corev1.PodPending},
 					},
@@ -432,7 +432,7 @@ func TestImagesTop(t *testing.T) {
 			pods: &corev1.PodList{
 				Items: []corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{buildapi.BuildAnnotation: "build1"}},
+						ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Annotations: map[string]string{buildv1.BuildAnnotation: "build1"}},
 						Spec:       corev1.PodSpec{Containers: []corev1.Container{{Image: "image@sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"}}},
 						Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 					},

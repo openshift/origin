@@ -9,75 +9,6 @@ import (
 )
 
 const (
-	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
-	BuildAnnotation = "openshift.io/build.name"
-	// BuildConfigAnnotation is an annotation that identifies the BuildConfig that a Build was created from
-	BuildConfigAnnotation = "openshift.io/build-config.name"
-	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
-	BuildNumberAnnotation = "openshift.io/build.number"
-	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
-	BuildCloneAnnotation = "openshift.io/build.clone-of"
-	// BuildPodNameAnnotation is an annotation whose value is the name of the pod running this build
-	BuildPodNameAnnotation = "openshift.io/build.pod-name"
-	// BuildJenkinsStatusJSONAnnotation is an annotation holding the Jenkins status information
-	BuildJenkinsStatusJSONAnnotation = "openshift.io/jenkins-status-json"
-	// BuildJenkinsLogURLAnnotation is an annotation holding a link to the raw Jenkins build console log
-	BuildJenkinsLogURLAnnotation = "openshift.io/jenkins-log-url"
-	// BuildJenkinsConsoleLogURLAnnotation is an annotation holding a link to the Jenkins build console log (including Jenkins chrome wrappering)
-	BuildJenkinsConsoleLogURLAnnotation = "openshift.io/jenkins-console-log-url"
-	// BuildJenkinsBlueOceanLogURLAnnotation is an annotation holding a link to the Jenkins build console log via the Jenkins BlueOcean UI Plugin
-	BuildJenkinsBlueOceanLogURLAnnotation = "openshift.io/jenkins-blueocean-log-url"
-	// BuildJenkinsBuildURIAnnotation is an annotation holding a link to the Jenkins build
-	BuildJenkinsBuildURIAnnotation = "openshift.io/jenkins-build-uri"
-	// BuildSourceSecretMatchURIAnnotationPrefix is a prefix for annotations on a Secret which indicate a source URI against which the Secret can be used
-	BuildSourceSecretMatchURIAnnotationPrefix = "build.openshift.io/source-secret-match-uri-"
-	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-	// NOTE: The value for this label may not contain the entire Build name because it will be
-	// truncated to maximum label length.
-	BuildLabel = "openshift.io/build.name"
-	// BuildRunPolicyLabel represents the start policy used to to start the build.
-	BuildRunPolicyLabel = "openshift.io/build.start-policy"
-	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
-	DefaultDockerLabelNamespace = "io.openshift."
-	// AllowedUIDs is an environment variable that contains ranges of UIDs that are allowed in
-	// Source builder images
-	AllowedUIDs = "ALLOWED_UIDS"
-	// DropCapabilities is an environment variable that contains a list of capabilities to drop when
-	// executing a Source build
-	DropCapabilities = "DROP_CAPS"
-	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-	// on which the Build is based. NOTE: The value for this label may not contain the entire
-	// BuildConfig name because it will be truncated to maximum label length.
-	BuildConfigLabel = "openshift.io/build-config.name"
-	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
-	// We keep it for backward compatibility.
-	BuildConfigLabelDeprecated = "buildconfig"
-	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
-	// New Builds cannot be instantiated from a paused BuildConfig.
-	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
-	// BuildAcceptedAnnotation is an annotation used to update a build that can now be
-	// run based on the RunPolicy (e.g. Serial). Updating the build with this annotation
-	// forces the build to be processed by the build controller queue without waiting
-	// for a resync.
-	BuildAcceptedAnnotation = "build.openshift.io/accepted"
-
-	// BuildStartedEventReason is the reason associated with the event registered when a build is started (pod is created).
-	BuildStartedEventReason = "BuildStarted"
-	// BuildStartedEventMessage is the message associated with the event registered when a build is started (pod is created).
-	BuildStartedEventMessage = "Build %s/%s is now running"
-	// BuildCompletedEventReason is the reason associated with the event registered when build completes successfully.
-	BuildCompletedEventReason = "BuildCompleted"
-	// BuildCompletedEventMessage is the message associated with the event registered when build completes successfully.
-	BuildCompletedEventMessage = "Build %s/%s completed successfully"
-	// BuildFailedEventReason is the reason associated with the event registered when build fails.
-	BuildFailedEventReason = "BuildFailed"
-	// BuildFailedEventMessage is the message associated with the event registered when build fails.
-	BuildFailedEventMessage = "Build %s/%s failed"
-	// BuildCancelledEventReason is the reason associated with the event registered when build is cancelled.
-	BuildCancelledEventReason = "BuildCancelled"
-	// BuildCancelledEventMessage is the message associated with the event registered when build is cancelled.
-	BuildCancelledEventMessage = "Build %s/%s has been cancelled"
-
 	// DefaultSuccessfulBuildsHistoryLimit is the default number of successful builds to retain
 	// if the buildconfig does not specify a value.  This only applies to buildconfigs created
 	// via the new group api resource, not the legacy resource.
@@ -87,10 +18,6 @@ const (
 	// if the buildconfig does not specify a value.  This only applies to buildconfigs created
 	// via the new group api resource, not the legacy resource.
 	DefaultFailedBuildsHistoryLimit = int32(5)
-
-	// WebHookSecretKey is the key used to identify the value containing the webhook invocation
-	// secret within a secret referenced by a webhook trigger.
-	WebHookSecretKey = "WebHookSecretKey"
 )
 
 var (

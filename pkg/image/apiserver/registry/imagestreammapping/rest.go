@@ -16,6 +16,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	imagegroup "github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
@@ -81,7 +82,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	image := mapping.Image
 	tag := mapping.Tag
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 
 	imageCreateErr := s.imageRegistry.CreateImage(ctx, &image)
@@ -91,7 +92,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	// prefer dockerImageReference set on image for the tagEvent if the image is new
 	ref := image.DockerImageReference
-	if errors.IsAlreadyExists(imageCreateErr) && image.Annotations[imageapi.ManagedByOpenShiftAnnotation] == "true" {
+	if errors.IsAlreadyExists(imageCreateErr) && image.Annotations[imagev1.ManagedByOpenShiftAnnotation] == "true" {
 		// the image is managed by us and, most probably, tagged in some other image stream
 		// let's make the reference local to this stream
 		if streamRef, err := dockerImageReferenceForStream(stream); err == nil {

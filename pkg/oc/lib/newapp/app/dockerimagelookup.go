@@ -112,8 +112,8 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 			}
 
 			if len(ref.Tag) == 0 {
-				ref.Tag = imageapi.DefaultImageTag
-				term = fmt.Sprintf("%s:%s", term, imageapi.DefaultImageTag)
+				ref.Tag = imagev1.DefaultImageTag
+				term = fmt.Sprintf("%s:%s", term, imagev1.DefaultImageTag)
 			}
 			for _, image := range images {
 				if tags := matchTag(image, term, ref.Registry, ref.Namespace, ref.Name, ref.Tag); len(tags) > 0 {
@@ -251,7 +251,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 			continue
 		}
 		if len(ref.Tag) == 0 {
-			ref.Tag = imageapi.DefaultImageTag
+			ref.Tag = imagev1.DefaultImageTag
 		}
 		if len(ref.Registry) == 0 {
 			ref.Registry = "Docker Hub"
@@ -339,7 +339,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		}
 
 		if len(ref.Tag) == 0 {
-			ref.Tag = imageapi.DefaultImageTag
+			ref.Tag = imagev1.DefaultImageTag
 		}
 		if len(ref.Registry) == 0 {
 			ref.Registry = "Docker Hub"
@@ -409,7 +409,7 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 			continue
 		}
 		if len(iRef.Tag) == 0 {
-			iRef.Tag = imageapi.DefaultImageTag
+			iRef.Tag = imagev1.DefaultImageTag
 		}
 		match := &ComponentMatch{}
 		ok, score := partialScorer(name, iRef.Name, true, 0.5, 1.0)

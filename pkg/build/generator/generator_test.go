@@ -110,7 +110,7 @@ func TestInstantiateDeletingError(t *testing.T) {
 			bc := &buildv1.BuildConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						buildutil.BuildConfigPausedAnnotation: "true",
+						buildv1.BuildConfigPausedAnnotation: "true",
 					},
 				},
 				Spec: buildv1.BuildConfigSpec{
@@ -648,7 +648,7 @@ func TestInstantiateWithLabelsAndAnnotations(t *testing.T) {
 				"a_1": "a_value1",
 				// build number is set as an annotation on the generated build, so we
 				// shouldn't be able to ovewrite it here.
-				buildutil.BuildNumberAnnotation: "bad_annotation",
+				buildv1.BuildNumberAnnotation: "bad_annotation",
 			},
 			Labels: map[string]string{
 				"l_1": "l_value1",
@@ -663,10 +663,10 @@ func TestInstantiateWithLabelsAndAnnotations(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	if build.Annotations["a_1"] != "a_value1" || build.Annotations[buildutil.BuildNumberAnnotation] == "bad_annotation" {
+	if build.Annotations["a_1"] != "a_value1" || build.Annotations[buildv1.BuildNumberAnnotation] == "bad_annotation" {
 		t.Errorf("Build annotations were merged incorrectly: %v", build.Annotations)
 	}
-	if build.Labels["l_1"] != "l_value1" || build.Labels[buildutil.BuildLabel] == "bad_label" {
+	if build.Labels["l_1"] != "l_value1" || build.Labels[buildv1.BuildLabel] == "bad_label" {
 		t.Errorf("Build labels were merged incorrectly: %v", build.Labels)
 	}
 }
@@ -959,20 +959,20 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
-	if build.Annotations[buildutil.BuildConfigAnnotation] != bc.Name {
+	if build.Annotations[buildv1.BuildConfigAnnotation] != bc.Name {
 		t.Errorf("Build does not contain annotation from BuildConfig")
 	}
-	if build.Labels[buildutil.BuildConfigLabel] != bc.Name {
+	if build.Labels[buildv1.BuildConfigLabel] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
-	if build.Labels[buildutil.BuildConfigLabelDeprecated] != bc.Name {
+	if build.Labels[buildv1.BuildConfigLabelDeprecated] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
 	if build.Status.Config.Name != bc.Name || build.Status.Config.Namespace != bc.Namespace || build.Status.Config.Kind != "BuildConfig" {
 		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Status.Config)
 	}
-	if build.Annotations[buildutil.BuildNumberAnnotation] != "13" {
-		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildutil.BuildNumberAnnotation])
+	if build.Annotations[buildv1.BuildNumberAnnotation] != "13" {
+		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildv1.BuildNumberAnnotation])
 	}
 	if len(build.OwnerReferences) == 0 || build.OwnerReferences[0].Kind != "BuildConfig" || build.OwnerReferences[0].Name != bc.Name {
 		t.Errorf("generated build does not have OwnerReference to parent BuildConfig")
@@ -1218,12 +1218,12 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-build",
 			Annotations: map[string]string{
-				buildutil.BuildJenkinsStatusJSONAnnotation:      "foo",
-				buildutil.BuildJenkinsLogURLAnnotation:          "bar",
-				buildutil.BuildJenkinsConsoleLogURLAnnotation:   "bar",
-				buildutil.BuildJenkinsBlueOceanLogURLAnnotation: "bar",
-				buildutil.BuildJenkinsBuildURIAnnotation:        "baz",
-				buildutil.BuildPodNameAnnotation:                "ruby-sample-build-1-build",
+				buildv1.BuildJenkinsStatusJSONAnnotation:      "foo",
+				buildv1.BuildJenkinsLogURLAnnotation:          "bar",
+				buildv1.BuildJenkinsConsoleLogURLAnnotation:   "bar",
+				buildv1.BuildJenkinsBlueOceanLogURLAnnotation: "bar",
+				buildv1.BuildJenkinsBuildURIAnnotation:        "baz",
+				buildv1.BuildPodNameAnnotation:                "ruby-sample-build-1-build",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -1255,23 +1255,23 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	if !reflect.DeepEqual(build.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
 		t.Errorf("Build labels does not match the original Build labels")
 	}
-	if _, ok := newBuild.ObjectMeta.Annotations[buildutil.BuildJenkinsStatusJSONAnnotation]; ok {
-		t.Errorf("%s annotation exists, expected it not to", buildutil.BuildJenkinsStatusJSONAnnotation)
+	if _, ok := newBuild.ObjectMeta.Annotations[buildv1.BuildJenkinsStatusJSONAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildv1.BuildJenkinsStatusJSONAnnotation)
 	}
-	if _, ok := newBuild.ObjectMeta.Annotations[buildutil.BuildJenkinsLogURLAnnotation]; ok {
-		t.Errorf("%s annotation exists, expected it not to", buildutil.BuildJenkinsLogURLAnnotation)
+	if _, ok := newBuild.ObjectMeta.Annotations[buildv1.BuildJenkinsLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildv1.BuildJenkinsLogURLAnnotation)
 	}
-	if _, ok := newBuild.ObjectMeta.Annotations[buildutil.BuildJenkinsConsoleLogURLAnnotation]; ok {
-		t.Errorf("%s annotation exists, expected it not to", buildutil.BuildJenkinsConsoleLogURLAnnotation)
+	if _, ok := newBuild.ObjectMeta.Annotations[buildv1.BuildJenkinsConsoleLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildv1.BuildJenkinsConsoleLogURLAnnotation)
 	}
-	if _, ok := newBuild.ObjectMeta.Annotations[buildutil.BuildJenkinsBlueOceanLogURLAnnotation]; ok {
-		t.Errorf("%s annotation exists, expected it not to", buildutil.BuildJenkinsBlueOceanLogURLAnnotation)
+	if _, ok := newBuild.ObjectMeta.Annotations[buildv1.BuildJenkinsBlueOceanLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildv1.BuildJenkinsBlueOceanLogURLAnnotation)
 	}
-	if _, ok := newBuild.ObjectMeta.Annotations[buildutil.BuildJenkinsBuildURIAnnotation]; ok {
-		t.Errorf("%s annotation exists, expected it not to", buildutil.BuildJenkinsBuildURIAnnotation)
+	if _, ok := newBuild.ObjectMeta.Annotations[buildv1.BuildJenkinsBuildURIAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildv1.BuildJenkinsBuildURIAnnotation)
 	}
-	if _, ok := newBuild.ObjectMeta.Annotations[buildutil.BuildPodNameAnnotation]; ok {
-		t.Errorf("%s annotation exists, expected it not to", buildutil.BuildPodNameAnnotation)
+	if _, ok := newBuild.ObjectMeta.Annotations[buildv1.BuildPodNameAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildv1.BuildPodNameAnnotation)
 	}
 	if !reflect.DeepEqual(build.ObjectMeta.OwnerReferences, newBuild.ObjectMeta.OwnerReferences) {
 		t.Errorf("Build OwnerReferences does not match the original Build OwnerReferences")
@@ -1287,7 +1287,7 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "annotatedBuild",
 			Annotations: map[string]string{
-				buildutil.BuildCloneAnnotation: "sourceOfBuild",
+				buildv1.BuildCloneAnnotation: "sourceOfBuild",
 			},
 		},
 		Spec: buildv1.BuildSpec{
@@ -1337,11 +1337,11 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 	if !reflect.DeepEqual(annotatedBuild.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
 		t.Errorf("Build labels does not match the original Build labels")
 	}
-	if newBuild.Annotations[buildutil.BuildNumberAnnotation] != "6" {
-		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildutil.BuildNumberAnnotation], "6")
+	if newBuild.Annotations[buildv1.BuildNumberAnnotation] != "6" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildv1.BuildNumberAnnotation], "6")
 	}
-	if newBuild.Annotations[buildutil.BuildCloneAnnotation] != "annotatedBuild" {
-		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildutil.BuildCloneAnnotation], "annotatedBuild")
+	if newBuild.Annotations[buildv1.BuildCloneAnnotation] != "annotatedBuild" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildv1.BuildCloneAnnotation], "annotatedBuild")
 	}
 
 	newBuild = generateBuildFromBuild(nonAnnotatedBuild, buildConfig)
@@ -1352,11 +1352,11 @@ func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
 		t.Errorf("Build labels does not match the original Build labels")
 	}
 	// was incremented by previous test, so expect 7 now.
-	if newBuild.Annotations[buildutil.BuildNumberAnnotation] != "7" {
-		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildutil.BuildNumberAnnotation], "7")
+	if newBuild.Annotations[buildv1.BuildNumberAnnotation] != "7" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildv1.BuildNumberAnnotation], "7")
 	}
-	if newBuild.Annotations[buildutil.BuildCloneAnnotation] != "nonAnnotatedBuild" {
-		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildutil.BuildCloneAnnotation], "nonAnnotatedBuild")
+	if newBuild.Annotations[buildv1.BuildCloneAnnotation] != "nonAnnotatedBuild" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildv1.BuildCloneAnnotation], "nonAnnotatedBuild")
 	}
 
 }

@@ -22,8 +22,8 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	ocbuildutil "github.com/openshift/oc/pkg/helpers/build"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-
 	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -214,7 +214,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			}
 		}
 
-		if stateMatch && !buildutil.IsTerminalPhase(build.Status.Phase) {
+		if stateMatch && !ocbuildutil.IsTerminalPhase(build.Status.Phase) {
 			builds = append(builds, build)
 		}
 	}

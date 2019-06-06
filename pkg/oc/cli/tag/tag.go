@@ -530,7 +530,7 @@ func (o TagOptions) Run() error {
 			if oldTargetTag, exists := imageutilinternal.SpecHasTag(target, destTag); exists {
 				if oldTargetTag.Generation == nil {
 					// for servers that do not support tag generations, we need to force re-import to fetch its metadata
-					delete(target.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+					delete(target.Annotations, imagev1.DockerImageRepositoryCheckAnnotation)
 					istag.Tag.Generation = nil
 				}
 			}
