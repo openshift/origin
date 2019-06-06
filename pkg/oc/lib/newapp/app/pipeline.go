@@ -21,7 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	"github.com/openshift/api"
+	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -37,7 +37,9 @@ import (
 )
 
 func init() {
-	utilruntime.Must(api.Install(scheme.Scheme))
+	utilruntime.Must(apps.Install(scheme.Scheme))
+	utilruntime.Must(build.Install(scheme.Scheme))
+	utilruntime.Must(image.Install(scheme.Scheme))
 }
 
 // A PipelineBuilder creates Pipeline instances.
