@@ -1,5 +1,5 @@
 hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
-updated: 2019-06-06T14:01:18.271454135+02:00
+updated: 2019-06-06T14:54:48.443128179-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: a54c087bede5f9c5c0343c6dd79016957d2518f6
+  version: 353170832db777aa57e3bb3b083bb3fd27a05d0d
   subpackages:
   - annotations
   - apps
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 160e3e0c53fc0b0d707ba97cb09ea490119b1257
+  version: a56f86358bff444e116cb5e1916671aff8a07744
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -1116,6 +1116,7 @@ imports:
   - pkg/authorization/scopemetadata
   - pkg/build/envresolve
   - pkg/build/naming
+  - pkg/certs
   - pkg/config/client
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1128,6 +1129,7 @@ imports:
   - pkg/image/internal/reference
   - pkg/image/reference
   - pkg/image/referencemutator
+  - pkg/image/registryclient
   - pkg/image/trigger
   - pkg/legacyapi/legacygroupification
   - pkg/network/networkapihelpers
@@ -1196,7 +1198,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 41d5c034cba69a4e2264dca7ca10ed7bb06e0cef
+  version: c63545c5e3bb7f90adbe0c15965d9796f0f37b56
   subpackages:
   - pkg/cli/create
   - pkg/cli/create/route
@@ -1261,6 +1263,7 @@ imports:
   - pkg/helpers/project
   - pkg/helpers/quota
   - pkg/helpers/route
+  - pkg/helpers/template/templateprocessorclient
   - pkg/helpers/term
   - pkg/helpers/tokencmd
   - pkg/version
@@ -2358,6 +2361,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/testing
   - pkg/util/proto/validation
+  - pkg/util/sets
 - name: k8s.io/kube-proxy
   version: 4d735c31b05439ef4136b5ee8454e62e854fac1f
   repo: https://github.com/openshift/kubernetes-kube-proxy.git
@@ -3289,7 +3293,7 @@ imports:
   - typed
   - value
 - name: sigs.k8s.io/yaml
-  version: 68106da85fc4bd9bb6b57a0cdca054b1f925e48c
+  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
