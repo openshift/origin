@@ -1,7 +1,6 @@
 package trigger
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -21,8 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
@@ -36,7 +33,6 @@ import (
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/annotations"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/buildconfigs"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/deploymentconfigs"
-	"github.com/openshift/origin/pkg/build/apiserver/buildgenerator"
 	"github.com/openshift/origin/pkg/build/buildutil"
 )
 
@@ -147,7 +143,6 @@ type fakeInstantiator struct {
 
 	namespace          string
 	req                *buildv1.BuildRequest
-	generator          *buildgenerator.BuildGenerator
 	buildConfigUpdater *fakeBuildConfigUpdater
 }
 
@@ -205,10 +200,7 @@ func (i *fakeInstantiator) Instantiate(namespace string, req *buildv1.BuildReque
 		return nil, i.err
 	}
 	i.req, i.namespace = req, namespace
-	if i.generator == nil {
-		return nil, nil
-	}
-	return i.generator.Instantiate(apirequest.WithNamespace(apirequest.NewContext(), namespace), req)
+	return nil, nil
 }
 
 type fakeBuildConfigUpdater struct {
@@ -224,41 +216,8 @@ func (m *fakeBuildConfigUpdater) Update(buildcfg *buildv1.BuildConfig) error {
 }
 
 func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *imagev1.ImageStream) v1.BuildConfigsGetter {
-	builderAccount := corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{Name: "builder", Namespace: buildcfg.Namespace},
-		Secrets:    []corev1.ObjectReference{},
-	}
 	instantiator := &fakeInstantiator{}
 	instantiator.buildConfigUpdater = &fakeBuildConfigUpdater{}
-	generator := &buildgenerator.BuildGenerator{
-		Secrets:         fake.NewSimpleClientset().CoreV1(),
-		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).CoreV1(),
-		Client: buildgenerator.TestingClient{
-			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.BuildConfig, error) {
-				return buildcfg, nil
-			},
-			UpdateBuildConfigFunc: func(ctx context.Context, buildConfig *buildv1.BuildConfig) error {
-				return instantiator.buildConfigUpdater.Update(buildcfg)
-			},
-			CreateBuildFunc: func(ctx context.Context, build *buildv1.Build) error {
-				return nil
-			},
-			GetBuildFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.Build, error) {
-				return nil, nil
-			},
-			GetImageStreamFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStream, error) {
-				return imageStream, nil
-			},
-			GetImageStreamTagFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStreamTag, error) {
-				return nil, nil
-			},
-			GetImageStreamImageFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*imagev1.ImageStreamImage, error) {
-				return nil, nil
-			},
-		}}
-	if false {
-		instantiator.generator = generator
-	}
 	return instantiator
 }
 
@@ -373,21 +332,8 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 			if inst.namespace != "test2" || !reflect.DeepEqual(inst.req, test.req) {
 				t.Errorf("For test %s unexpected: %s %s", test.name, inst.namespace, diff.ObjectReflectDiff(test.req, inst.req))
 			}
-			if inst.buildConfigUpdater.buildcfg == nil {
-				t.Fatalf("expected buildConfig update when new image was created!")
-			}
-			found := false
-			imageIDs := ""
-			for _, trigger := range inst.buildConfigUpdater.buildcfg.Spec.Triggers {
-				if trigger.ImageChange != nil {
-					if actual, expected := trigger.ImageChange.LastTriggeredImageID, "image/result:2"; actual == expected {
-						found = true
-					}
-					imageIDs = imageIDs + trigger.ImageChange.LastTriggeredImageID + "\n"
-				}
-			}
-			if !found {
-				t.Errorf("instead of 'image/result:2' found the following last triggered image ID's: %s", imageIDs)
+			if inst.req == nil {
+				t.Fatal("never instantiated")
 			}
 		})
 	}
