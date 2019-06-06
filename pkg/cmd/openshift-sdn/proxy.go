@@ -33,7 +33,7 @@ import (
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
 	utilexec "k8s.io/utils/exec"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 	"github.com/openshift/origin/pkg/proxy/hybrid"
@@ -43,7 +43,7 @@ import (
 )
 
 // ProxyConfigFromNodeConfig builds the kube-proxy configuration from the already-parsed nodeconfig.
-func ProxyConfigFromNodeConfig(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguration, error) {
+func ProxyConfigFromNodeConfig(options legacyconfigv1.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguration, error) {
 	proxyOptions := kubeproxyoptions.NewOptions()
 	// get default config
 	proxyconfig := proxyOptions.GetConfig()
@@ -247,7 +247,8 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
-	if sdn.NodeConfig.EnableUnidling {
+	// nil means true today
+	if sdn.NodeConfig.EnableUnidling == nil || *sdn.NodeConfig.EnableUnidling {
 		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
 		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, sdn.ProxyConfig.IPTables.SyncPeriod.Duration, sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration, sdn.ProxyConfig.UDPIdleTimeout.Duration, sdn.ProxyConfig.NodePortAddresses, signaler)

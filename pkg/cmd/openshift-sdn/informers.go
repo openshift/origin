@@ -11,9 +11,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 var defaultInformerResyncPeriod = 30 * time.Minute
@@ -65,7 +65,7 @@ func (i *informers) start(stopCh <-chan struct{}) {
 
 // getKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
 // then applies overrides.
-func getKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *configapi.ClientConnectionOverrides) (*rest.Config, error) {
+func getKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *legacyconfigv1.ClientConnectionOverrides) (*rest.Config, error) {
 	if len(kubeConfigFile) > 0 {
 		return getClientConfig(kubeConfigFile, overrides)
 	}
@@ -80,7 +80,7 @@ func getKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *configapi.
 	return clientConfig, nil
 }
 
-func getClientConfig(kubeConfigFile string, overrides *configapi.ClientConnectionOverrides) (*rest.Config, error) {
+func getClientConfig(kubeConfigFile string, overrides *legacyconfigv1.ClientConnectionOverrides) (*rest.Config, error) {
 	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 }
 
 // applyClientConnectionOverrides updates a kubeConfig with the overrides from the config.
-func applyClientConnectionOverrides(overrides *configapi.ClientConnectionOverrides, kubeConfig *rest.Config) {
+func applyClientConnectionOverrides(overrides *legacyconfigv1.ClientConnectionOverrides, kubeConfig *rest.Config) {
 	if overrides == nil {
 		return
 	}
