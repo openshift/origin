@@ -1677,12 +1677,12 @@ func mockBuild(phase buildv1.BuildPhase, output buildv1.BuildOutput) *buildv1.Bu
 			Name:      "data-build",
 			Namespace: "namespace",
 			Annotations: map[string]string{
-				buildutil.BuildConfigAnnotation: "test-bc",
+				buildv1.BuildConfigAnnotation: "test-bc",
 			},
 			Labels: map[string]string{
-				"name":                        "dataBuild",
-				buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
-				buildutil.BuildConfigLabel:    "test-bc",
+				"name":                      "dataBuild",
+				buildv1.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
+				buildv1.BuildConfigLabel:    "test-bc",
 			},
 		},
 		Spec: buildv1.BuildSpec{
@@ -2059,7 +2059,7 @@ func mockBuildPod(build *buildv1.Build) *corev1.Pod {
 	pod.Name = buildapihelpers.GetBuildPodName(build)
 	pod.Namespace = build.Namespace
 	pod.Annotations = map[string]string{}
-	pod.Annotations[buildutil.BuildAnnotation] = build.Name
+	pod.Annotations[buildv1.BuildAnnotation] = build.Name
 	return pod
 }
 

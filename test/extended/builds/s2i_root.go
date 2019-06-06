@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -47,7 +46,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
 		o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
 
-		podname := build.Annotations[buildutil.BuildPodNameAnnotation]
+		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
 		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -88,7 +87,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		podname := build.Annotations[buildutil.BuildPodNameAnnotation]
+		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
 		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 

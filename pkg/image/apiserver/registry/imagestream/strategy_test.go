@@ -234,7 +234,7 @@ func TestTagVerifier(t *testing.T) {
 		"old nil, no tags": {},
 		"old nil, all tags are new": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -246,7 +246,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"nil from": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry/old/stream:latest",
@@ -268,7 +268,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"ref unchanged": {
 			oldTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -277,7 +277,7 @@ func TestTagVerifier(t *testing.T) {
 				},
 			},
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -289,7 +289,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"invalid from name": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -303,7 +303,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"sar error": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -318,7 +318,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"sar error propagates to all tags sharing a SAR": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -360,7 +360,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"sar error propagates only to tags sharing a SAR": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -385,7 +385,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"sar denied": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -400,7 +400,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"ref changed": {
 			oldTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -409,7 +409,7 @@ func TestTagVerifier(t *testing.T) {
 				},
 			},
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -421,7 +421,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"multiple sars to multiple namespaces": {
 			newTags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",

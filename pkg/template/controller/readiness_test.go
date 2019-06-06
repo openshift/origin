@@ -20,7 +20,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	fakebuild "github.com/openshift/client-go/build/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCheckReadiness(t *testing.T) {
@@ -77,10 +76,10 @@ func TestCheckReadiness(t *testing.T) {
 			build: buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						buildutil.BuildConfigLabel: "",
+						buildv1.BuildConfigLabel: "",
 					},
 					Annotations: map[string]string{
-						buildutil.BuildNumberAnnotation: "1",
+						buildv1.BuildNumberAnnotation: "1",
 					},
 				},
 				Status: buildv1.BuildStatus{
@@ -99,10 +98,10 @@ func TestCheckReadiness(t *testing.T) {
 			build: buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						buildutil.BuildConfigLabel: "",
+						buildv1.BuildConfigLabel: "",
 					},
 					Annotations: map[string]string{
-						buildutil.BuildNumberAnnotation: "1",
+						buildv1.BuildNumberAnnotation: "1",
 					},
 				},
 				Status: buildv1.BuildStatus{

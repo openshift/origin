@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/openshift/library-go/pkg/certs"
 	"github.com/openshift/oc/pkg/helpers/term"
 	"github.com/spf13/cobra"
 
@@ -115,18 +116,18 @@ func (o *DecryptOptions) Decrypt() error {
 	if len(data) == 0 {
 		return fmt.Errorf("no input data specified")
 	}
-	dataBlock, ok := BlockFromBytes(data, StringSourceEncryptedBlockType)
+	dataBlock, ok := certs.BlockFromBytes(data, certs.StringSourceEncryptedBlockType)
 	if !ok {
-		return fmt.Errorf("input does not contain a valid PEM block of type %q", StringSourceEncryptedBlockType)
+		return fmt.Errorf("input does not contain a valid PEM block of type %q", certs.StringSourceEncryptedBlockType)
 	}
 
 	// Get password
-	keyBlock, ok, err := BlockFromFile(o.KeyFile, StringSourceKeyBlockType)
+	keyBlock, ok, err := certs.BlockFromFile(o.KeyFile, certs.StringSourceKeyBlockType)
 	if err != nil {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, StringSourceKeyBlockType)
+		return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, certs.StringSourceKeyBlockType)
 	}
 	if len(keyBlock.Bytes) == 0 {
 		return fmt.Errorf("%s does not contain a key", o.KeyFile)

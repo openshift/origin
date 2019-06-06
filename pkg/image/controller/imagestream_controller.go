@@ -21,7 +21,6 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
@@ -213,7 +212,7 @@ func latestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 
 // needsImport returns true if the provided image stream should have tags imported. Partial is returned
 // as true if the spec.dockerImageRepository does not need to be refreshed (if only tags have to be imported).
 func needsImport(stream *imagev1.ImageStream) (ok bool, partial bool) {
-	if stream.Annotations == nil || len(stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]) == 0 {
+	if stream.Annotations == nil || len(stream.Annotations[imagev1.DockerImageRepositoryCheckAnnotation]) == 0 {
 		if len(stream.Spec.DockerImageRepository) > 0 {
 			return true, false
 		}
@@ -290,7 +289,7 @@ func handleImageStream(
 		}
 	}
 	if repo := stream.Spec.DockerImageRepository; !partial && len(repo) > 0 {
-		insecure := stream.Annotations[imageapi.InsecureRepositoryAnnotation] == "true"
+		insecure := stream.Annotations[imagev1.InsecureRepositoryAnnotation] == "true"
 		isi.Spec.Repository = &imagev1.RepositoryImportSpec{
 			From:         corev1.ObjectReference{Kind: "DockerImage", Name: repo},
 			ImportPolicy: imagev1.TagImportPolicy{Insecure: insecure},

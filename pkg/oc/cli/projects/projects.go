@@ -19,8 +19,8 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	cliconfig "github.com/openshift/oc/pkg/helpers/kubeconfig"
 	oapi "github.com/openshift/origin/pkg/api"
-	clientcfg "github.com/openshift/origin/pkg/client/config"
 	ocproject "github.com/openshift/origin/pkg/oc/cli/project"
+	clientcfg "github.com/openshift/origin/pkg/oc/lib/ockubeconfignames"
 )
 
 type ProjectsOptions struct {

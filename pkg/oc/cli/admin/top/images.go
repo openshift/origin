@@ -18,13 +18,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
@@ -284,7 +284,7 @@ func getController(pod *corev1.Pod) string {
 		return controller
 	}
 
-	if bc, ok := pod.Annotations[buildapi.BuildAnnotation]; ok {
+	if bc, ok := pod.Annotations[buildv1.BuildAnnotation]; ok {
 		return fmt.Sprintf("Build: %s/%s", pod.Namespace, bc)
 	}
 	if dc, ok := pod.Annotations[appsv1.DeploymentAnnotation]; ok {

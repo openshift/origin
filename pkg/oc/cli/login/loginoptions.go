@@ -27,7 +27,7 @@ import (
 	loginutil "github.com/openshift/oc/pkg/helpers/project"
 	"github.com/openshift/oc/pkg/helpers/term"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	"github.com/openshift/origin/pkg/client/config"
+	"github.com/openshift/origin/pkg/oc/lib/ockubeconfignames"
 )
 
 const defaultClusterURL = "https://localhost:8443"
@@ -112,7 +112,7 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	}
 
 	// normalize the provided server to a format expected by config
-	serverNormalized, err := config.NormalizeServerURL(o.Server)
+	serverNormalized, err := ockubeconfignames.NormalizeServerURL(o.Server)
 	if err != nil {
 		return nil, err
 	}

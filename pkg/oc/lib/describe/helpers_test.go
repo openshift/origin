@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -55,7 +56,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 		},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
-				imageapi.DefaultImageTag: {
+				imagev1.DefaultImageTag: {
 					Items: []imageapi.TagEvent{
 						{
 							Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),

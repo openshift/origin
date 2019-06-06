@@ -234,10 +234,10 @@ func mockBuild(status buildv1.BuildPhase, podName string, version int) *buildv1.
 			Namespace: "default",
 			Name:      podName,
 			Annotations: map[string]string{
-				buildapi.BuildNumberAnnotation: strconv.Itoa(version),
+				buildv1.BuildNumberAnnotation: strconv.Itoa(version),
 			},
 			Labels: map[string]string{
-				buildapi.BuildConfigLabel: "bc",
+				buildv1.BuildConfigLabel: "bc",
 			},
 		},
 		Status: buildv1.BuildStatus{

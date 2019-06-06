@@ -310,7 +310,7 @@ func TestImageStream(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "insecure",
 					Annotations: map[string]string{
-						imageapi.InsecureRepositoryAnnotation: "true",
+						imagev1.InsecureRepositoryAnnotation: "true",
 					},
 				},
 				Spec: imagev1.ImageStreamSpec{

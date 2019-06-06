@@ -17,7 +17,6 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type SignatureDownloader interface {
@@ -135,7 +134,7 @@ func (s *SignatureImportController) syncImageSignatures(key string) error {
 		return err
 	}
 
-	if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] == "true" {
+	if image.Annotations[imagev1.ManagedByOpenShiftAnnotation] == "true" {
 		klog.V(4).Infof("Skipping downloading signatures for image %s because it's a managed image", image.Name)
 		return nil
 	}

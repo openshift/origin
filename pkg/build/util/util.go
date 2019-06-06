@@ -91,7 +91,7 @@ func BuildNameForConfigVersion(name string, version int) string {
 // BuildConfigSelector returns a label Selector which can be used to find all
 // builds for a BuildConfig.
 func BuildConfigSelector(name string) labels.Selector {
-	return labels.Set{BuildConfigLabel: buildapihelpers.LabelValue(name)}.AsSelector()
+	return labels.Set{buildv1.BuildConfigLabel: buildapihelpers.LabelValue(name)}.AsSelector()
 }
 
 type buildFilter func(*buildv1.Build) bool
@@ -144,14 +144,14 @@ func ConfigNameForBuild(build *buildv1.Build) string {
 		return ""
 	}
 	if build.Annotations != nil {
-		if _, exists := build.Annotations[BuildConfigAnnotation]; exists {
-			return build.Annotations[BuildConfigAnnotation]
+		if _, exists := build.Annotations[buildv1.BuildConfigAnnotation]; exists {
+			return build.Annotations[buildv1.BuildConfigAnnotation]
 		}
 	}
-	if _, exists := build.Labels[BuildConfigLabel]; exists {
-		return build.Labels[BuildConfigLabel]
+	if _, exists := build.Labels[buildv1.BuildConfigLabel]; exists {
+		return build.Labels[buildv1.BuildConfigLabel]
 	}
-	return build.Labels[BuildConfigLabelDeprecated]
+	return build.Labels[buildv1.BuildConfigLabelDeprecated]
 }
 
 // MergeTrustedEnvWithoutDuplicates merges two environment lists without having

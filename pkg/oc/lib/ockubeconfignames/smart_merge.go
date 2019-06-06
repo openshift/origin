@@ -1,4 +1,4 @@
-package config
+package ockubeconfignames
 
 import (
 	"crypto/x509"

@@ -9,9 +9,8 @@ import (
 	"github.com/blang/semver"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
 const (
@@ -48,7 +47,7 @@ func SpecHasTag(stream *imagev1.ImageStream, name string) (imagev1.TagReference,
 // if tag isn't present in stream.status.tags.
 func LatestTaggedImage(stream *imagev1.ImageStream, tag string) *imagev1.TagEvent {
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 
 	// find the most recent tag event with an image reference
@@ -85,7 +84,7 @@ func ParseDockerImageReference(spec string) (imagev1.DockerImageReference, error
 // should use this method instead of LatestTaggedImage.
 func ResolveLatestTaggedImage(stream *imagev1.ImageStream, tag string) (string, bool) {
 	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
+		tag = imagev1.DefaultImageTag
 	}
 	return resolveTagReference(stream, tag, LatestTaggedImage(stream, tag))
 }
@@ -239,7 +238,7 @@ func DockerImageReferenceNameString(r imagev1.DockerImageReference) string {
 		return r.Name + ":" + r.Tag
 	case len(r.ID) > 0:
 		var ref string
-		if _, err := digest.ParseDigest(r.ID); err == nil {
+		if _, err := imageutil.ParseDigest(r.ID); err == nil {
 			// if it parses as a digest, its v2 pull by id
 			ref = "@" + r.ID
 		} else {
@@ -294,7 +293,7 @@ func latestImageTagEvent(stream *imagev1.ImageStream, imageID string) (string, *
 
 // DigestOrImageMatch matches the digest in the image name.
 func DigestOrImageMatch(image, imageID string) bool {
-	if d, err := digest.ParseDigest(image); err == nil {
+	if d, err := imageutil.ParseDigest(image); err == nil {
 		return strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(image, imageID)
 	}
 	return strings.HasPrefix(image, imageID)

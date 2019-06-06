@@ -96,7 +96,7 @@ func validNewMappingWithName() *imageapi.ImageStreamMapping {
 		Image: imageapi.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        testImageID,
-				Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+				Annotations: map[string]string{imagev1.ManagedByOpenShiftAnnotation: "true"},
 			},
 			DockerImageReference: "localhost:5000/default/somerepo@" + testImageID,
 			DockerImageMetadata: imageapi.DockerImage{
@@ -321,7 +321,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 	existingImage := &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        imageID,
-			Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+			Annotations: map[string]string{imagev1.ManagedByOpenShiftAnnotation: "true"},
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo@" + imageID,
 		DockerImageMetadata: imageapi.DockerImage{

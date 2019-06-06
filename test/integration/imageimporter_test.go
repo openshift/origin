@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/registryclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -147,7 +148,7 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	stream := isi.Status.Import
-	if _, ok := stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]; !ok {
+	if _, ok := stream.Annotations[imagev1.DockerImageRepositoryCheckAnnotation]; !ok {
 		t.Fatalf("unexpected stream: %#v", stream)
 	}
 	if stream.Generation != 1 || len(stream.Spec.Tags) != 1 || len(stream.Status.Tags) != 1 {

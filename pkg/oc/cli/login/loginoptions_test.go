@@ -11,8 +11,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
-	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/oauth/util"
+	"github.com/openshift/origin/pkg/oc/lib/ockubeconfignames"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -57,7 +57,7 @@ func TestNormalizeServerURL(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Logf("evaluating test: normalize %s -> %s", test.originalServerURL, test.normalizedServerURL)
-		normalized, err := config.NormalizeServerURL(test.originalServerURL)
+		normalized, err := ockubeconfignames.NormalizeServerURL(test.originalServerURL)
 		if err != nil {
 			t.Errorf("unexpected error normalizing %s: %s", test.originalServerURL, err)
 		}

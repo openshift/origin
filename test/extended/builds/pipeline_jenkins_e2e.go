@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
@@ -239,7 +239,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				jenkinsBuildURI, err := url.Parse(build.Annotations[buildutil.BuildJenkinsBuildURIAnnotation])
+				jenkinsBuildURI, err := url.Parse(build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation])
 
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "error parsing build uri: %s", err)
@@ -485,7 +485,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 								errs <- fmt.Errorf("error getting build: %s", err)
 								return
 							}
-							jenkinsBuildURI = build.Annotations[buildutil.BuildJenkinsBuildURIAnnotation]
+							jenkinsBuildURI = build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation]
 							if jenkinsBuildURI != "" {
 								break
 							}
@@ -611,7 +611,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 					build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					jenkinsBuildURI, err := url.Parse(build.Annotations[buildutil.BuildJenkinsBuildURIAnnotation])
+					jenkinsBuildURI, err := url.Parse(build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation])
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "error parsing build uri: %s", err)
 					}

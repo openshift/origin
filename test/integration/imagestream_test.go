@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	stratsupport "github.com/openshift/oc/pkg/cli/deployer/strategy/support"
@@ -509,7 +510,7 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 		t.Fatalf("expected string %q not contained in error: %s", e, a)
 	}
 
-	stream.Annotations = map[string]string{imageapi.InsecureRepositoryAnnotation: "true"}
+	stream.Annotations = map[string]string{imagev1.InsecureRepositoryAnnotation: "true"}
 	delete(stream.Spec.Tags, "fail")
 	stream.Spec.Tags["pass"] = imageapi.TagReference{
 		Name: "pass",
@@ -544,7 +545,7 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 		t.Fatalf("expected string %q not contained in error: %s", e, a)
 	}
 
-	istag.Annotations = map[string]string{imageapi.InsecureRepositoryAnnotation: "true"}
+	istag.Annotations = map[string]string{imagev1.InsecureRepositoryAnnotation: "true"}
 	istag, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Create(istag)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
