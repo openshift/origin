@@ -11,12 +11,11 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	pluginapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeNameClusterAdmin(t *testing.T) {

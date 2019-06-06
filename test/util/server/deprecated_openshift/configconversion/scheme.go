@@ -21,13 +21,13 @@ import (
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	requestlimitv1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	podnodeconstraintsv1 "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	configapiv1 "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1"
 )
 
 var Scheme = runtime.NewScheme()

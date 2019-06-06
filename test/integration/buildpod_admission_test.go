@@ -21,9 +21,9 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	buildtestutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 var buildPodAdmissionTestTimeout = 30 * time.Second

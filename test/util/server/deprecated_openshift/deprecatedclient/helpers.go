@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 func GetClientConfig(kubeConfigFile string, overrides *configapi.ClientConnectionOverrides) (*rest.Config, error) {

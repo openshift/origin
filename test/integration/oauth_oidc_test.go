@@ -17,10 +17,10 @@ import (
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/cli/whoami"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/login"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 // TestOAuthOIDC checks CLI password login against an OIDC provider

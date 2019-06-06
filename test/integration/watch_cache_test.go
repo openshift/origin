@@ -14,9 +14,9 @@ import (
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expectedCacheSize, counterExampleCacheSize int) {

@@ -16,8 +16,8 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 // simulate embedding the given string in a template href

@@ -23,10 +23,10 @@ import (
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/cli/whoami"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 // TestWebhookTokenAuthn checks Tokens directly against an external

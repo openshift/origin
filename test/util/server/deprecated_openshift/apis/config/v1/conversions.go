@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	internal "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	internal "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"

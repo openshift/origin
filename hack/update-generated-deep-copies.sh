@@ -16,12 +16,13 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template
     github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template/v1
 
+    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config
+    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1
+
     github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride
     github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1
     github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration
     github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1
-    github.com/openshift/origin/pkg/cmd/server/apis/config
-    github.com/openshift/origin/pkg/cmd/server/apis/config/v1
     github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1

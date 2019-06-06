@@ -21,12 +21,12 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
+	_ "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/install"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 )
 

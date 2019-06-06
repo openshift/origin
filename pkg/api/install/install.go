@@ -24,8 +24,6 @@ import (
 	ksettingsinstall "k8s.io/kubernetes/pkg/apis/settings/install"
 	kstorageinstall "k8s.io/kubernetes/pkg/apis/storage/install"
 
-	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-
 	oapps "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	authz "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	build "github.com/openshift/origin/pkg/build/apis/build/install"

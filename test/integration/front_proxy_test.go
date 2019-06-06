@@ -24,10 +24,10 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
 )
 

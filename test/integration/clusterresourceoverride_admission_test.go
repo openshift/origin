@@ -9,9 +9,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	overrideapi "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
