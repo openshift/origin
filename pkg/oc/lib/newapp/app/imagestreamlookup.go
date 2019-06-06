@@ -13,6 +13,7 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
@@ -134,9 +135,9 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 					specTag = &t
 				}
 
-				if specTag != nil && followTag && !ocimageutil.HasAnnotationTag(specTag, imageapi.TagReferenceAnnotationTagHidden) {
+				if specTag != nil && followTag && !ocimageutil.HasAnnotationTag(specTag, imagehelpers.TagReferenceAnnotationTagHidden) {
 					if specTag.From != nil && specTag.From.Kind == "ImageStreamTag" && !strings.Contains(specTag.From.Name, ":") {
-						if t, hasTag := imageutilinternal.SpecHasTag(stream, specTag.From.Name); hasTag && !ocimageutil.HasAnnotationTag(&t, imageapi.TagReferenceAnnotationTagHidden) {
+						if t, hasTag := imageutilinternal.SpecHasTag(stream, specTag.From.Name); hasTag && !ocimageutil.HasAnnotationTag(&t, imagehelpers.TagReferenceAnnotationTagHidden) {
 							if imageutilinternal.LatestTaggedImage(stream, specTag.From.Name) != nil {
 								finalTag = specTag.From.Name
 							}
@@ -150,7 +151,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 				// was specified, and "latest" is hidden, then behave as if "latest"
 				// doesn't exist (in this case, to get to "latest", the user must hard
 				// specify tag "latest").
-				if (specTag != nil && followTag && ocimageutil.HasAnnotationTag(specTag, imageapi.TagReferenceAnnotationTagHidden)) ||
+				if (specTag != nil && followTag && ocimageutil.HasAnnotationTag(specTag, imagehelpers.TagReferenceAnnotationTagHidden)) ||
 					latest == nil || len(latest.Image) == 0 {
 
 					klog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, finalTag)
@@ -173,7 +174,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 						// we should behave as the imagestream didn't exist at all.  This
 						// means not calling addMatch("", ..., nil, true) below.
 						t, hasTag := imageutilinternal.SpecHasTag(stream, tag.Tag)
-						if hasTag && ocimageutil.HasAnnotationTag(&t, imageapi.TagReferenceAnnotationTagHidden) {
+						if hasTag && ocimageutil.HasAnnotationTag(&t, imagehelpers.TagReferenceAnnotationTagHidden) {
 							continue
 						}
 

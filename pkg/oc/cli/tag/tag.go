@@ -21,7 +21,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
@@ -206,7 +206,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 			if len(ref.Registry) > 0 {
 				return fmt.Errorf("server in SOURCE is only allowed when providing a Docker image")
 			}
-			if ref.Namespace == imageapi.DockerDefaultNamespace {
+			if ref.Namespace == imagehelpers.DockerDefaultNamespace {
 				ref.Namespace = o.namespace
 			}
 			if sourceKind == "ImageStreamTag" {

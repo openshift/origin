@@ -456,53 +456,6 @@ func latestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 
 	return lastGen
 }
 
-// FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
-// Will return multiple if the tag had at least reference, and ref and finalTag will be the last tag seen.
-// If an invalid reference is found, err will be returned.
-func followTagReference(stream *imagev1.ImageStream, tag string) (finalTag string, ref *imagev1.TagReference, multiple bool, err error) {
-	seen := sets.NewString()
-	for {
-		if seen.Has(tag) {
-			// circular reference
-			return tag, nil, multiple, imagev1.ErrCircularReference
-		}
-		seen.Insert(tag)
-
-		tagRef, ok := stream.Spec.Tags[tag]
-		if !ok {
-			// no tag at the end of the rainbow
-			return tag, nil, multiple, imagev1.ErrNotFoundReference
-		}
-		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
-			// terminating tag
-			return tag, &tagRef, multiple, nil
-		}
-
-		if tagRef.From.Namespace != "" && tagRef.From.Namespace != stream.ObjectMeta.Namespace {
-			return tag, nil, multiple, imagev1.ErrCrossImageStreamReference
-		}
-
-		// The reference needs to be followed with two format patterns:
-		// a) sameis:sometag and b) sometag
-		if strings.Contains(tagRef.From.Name, ":") {
-			name, tagref, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
-			if !ok {
-				return tag, nil, multiple, imagev1.ErrInvalidReference
-			}
-			if name != stream.ObjectMeta.Name {
-				// anotheris:sometag - this should not happen.
-				return tag, nil, multiple, imagev1.ErrCrossImageStreamReference
-			}
-			// sameis:sometag - follow the reference as sometag
-			tag = tagref
-		} else {
-			// sometag - follow the reference
-			tag = tagRef.From.Name
-		}
-		multiple = true
-	}
-}
-
 // roleBindingRestrictionType returns a string that indicates the type of the
 // given RoleBindingRestriction.
 func roleBindingRestrictionType(rbr *authorizationv1.RoleBindingRestriction) string {

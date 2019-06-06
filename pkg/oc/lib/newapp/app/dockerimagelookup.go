@@ -17,6 +17,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
@@ -218,7 +219,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 	isi.Name = "newapp"
 	result, err := s.Client.Create(isi)
 	if err != nil {
-		if err == imageapi.ErrImageStreamImportUnsupported && s.Fallback != nil {
+		if err == imagehelpers.ErrImageStreamImportUnsupported && s.Fallback != nil {
 			return s.Fallback.Search(precise, terms...)
 		}
 		return nil, []error{fmt.Errorf("can't lookup images: %v", err)}

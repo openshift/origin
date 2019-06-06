@@ -217,7 +217,7 @@ func TestFollowTagReference(t *testing.T) {
 			expFinalTag: "correcttag",
 			expRef:      nil,
 			expMultiple: true,
-			expErr:      imageapi.ErrNotFoundReference,
+			expErr:      imagehelpers.ErrNotFoundReference,
 		},
 		"crosss image tag reference error": {
 			stream: &imagev1.ImageStream{
@@ -234,7 +234,7 @@ func TestFollowTagReference(t *testing.T) {
 			expFinalTag: "mytag",
 			expRef:      nil,
 			expMultiple: false,
-			expErr:      imageapi.ErrCrossImageStreamReference,
+			expErr:      imagehelpers.ErrCrossImageStreamReference,
 		},
 		"crosss namespace tag reference error": {
 			stream: &imagev1.ImageStream{
@@ -252,7 +252,7 @@ func TestFollowTagReference(t *testing.T) {
 			expFinalTag: "mytag",
 			expRef:      nil,
 			expMultiple: false,
-			expErr:      imageapi.ErrCrossImageStreamReference,
+			expErr:      imagehelpers.ErrCrossImageStreamReference,
 		},
 		"circular tag reference error": {
 			stream: &imagev1.ImageStream{
@@ -270,12 +270,12 @@ func TestFollowTagReference(t *testing.T) {
 			expFinalTag: "mytag",
 			expRef:      nil,
 			expMultiple: true,
-			expErr:      imageapi.ErrCircularReference,
+			expErr:      imagehelpers.ErrCircularReference,
 		},
 	}
 
 	for name, tc := range tests {
-		finalTag, ref, multiple, err := followTagReference(tc.stream, tc.tag)
+		finalTag, ref, multiple, err := imagehelpers.FollowTagReference(tc.stream, tc.tag)
 		if !reflect.DeepEqual(finalTag, tc.expFinalTag) {
 			t.Errorf("%s: got %v, want %v", name, finalTag, tc.expFinalTag)
 		}
