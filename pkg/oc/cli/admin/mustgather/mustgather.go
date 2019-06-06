@@ -60,7 +60,6 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 		Short:   "Launch a new instance of a pod for gathering debug information",
 		Long:    mustGatherLong,
 		Example: mustGatherExample,
-		Hidden:  true,
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Run(rsyncCommand))
