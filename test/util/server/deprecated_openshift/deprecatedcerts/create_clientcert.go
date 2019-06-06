@@ -1,19 +1,17 @@
-package createclient
+package deprecatedcerts
 
 import (
 	"errors"
 	"io"
 
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 
-	"k8s.io/apiserver/pkg/authentication/user"
-
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 )
 
 type CreateClientCertOptions struct {
-	SignerCertOptions *signercertoptions.SignerCertOptions
+	SignerCertOptions *SignerCertOptions
 
 	CertFile string
 	KeyFile  string

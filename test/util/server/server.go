@@ -48,11 +48,10 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oc/cli/admin/cert"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
-	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 	"github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd/etcdserver"
@@ -264,9 +263,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		return err
 	}
 
-	createMasterCerts := cert.CreateMasterCertsOptions{
+	createMasterCerts := deprecatedcerts.CreateMasterCertsOptions{
 		CertDir:    masterArgs.ConfigDir.Value(),
-		SignerName: signercertoptions.DefaultSignerName(),
+		SignerName: deprecatedcerts.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
 
 		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,

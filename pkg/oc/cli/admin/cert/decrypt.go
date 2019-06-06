@@ -14,8 +14,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 const DecryptCommandName = "decrypt"
@@ -117,18 +115,18 @@ func (o *DecryptOptions) Decrypt() error {
 	if len(data) == 0 {
 		return fmt.Errorf("no input data specified")
 	}
-	dataBlock, ok := BlockFromBytes(data, configapi.StringSourceEncryptedBlockType)
+	dataBlock, ok := BlockFromBytes(data, StringSourceEncryptedBlockType)
 	if !ok {
-		return fmt.Errorf("input does not contain a valid PEM block of type %q", configapi.StringSourceEncryptedBlockType)
+		return fmt.Errorf("input does not contain a valid PEM block of type %q", StringSourceEncryptedBlockType)
 	}
 
 	// Get password
-	keyBlock, ok, err := BlockFromFile(o.KeyFile, configapi.StringSourceKeyBlockType)
+	keyBlock, ok, err := BlockFromFile(o.KeyFile, StringSourceKeyBlockType)
 	if err != nil {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, configapi.StringSourceKeyBlockType)
+		return fmt.Errorf("%s does not contain a valid PEM block of type %q", o.KeyFile, StringSourceKeyBlockType)
 	}
 	if len(keyBlock.Bytes) == 0 {
 		return fmt.Errorf("%s does not contain a key", o.KeyFile)

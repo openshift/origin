@@ -8,6 +8,13 @@ import (
 	"path/filepath"
 )
 
+const (
+	// StringSourceEncryptedBlockType is the PEM block type used to store an encrypted string
+	StringSourceEncryptedBlockType = "ENCRYPTED STRING"
+	// StringSourceKeyBlockType is the PEM block type used to store an encrypting key
+	StringSourceKeyBlockType = "ENCRYPTING KEY"
+)
+
 func BlockFromFile(path string, blockType string) (*pem.Block, bool, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {

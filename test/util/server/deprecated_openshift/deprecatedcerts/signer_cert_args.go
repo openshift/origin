@@ -1,4 +1,4 @@
-package signercertoptions
+package deprecatedcerts
 
 import (
 	"fmt"

@@ -25,12 +25,10 @@ import (
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/oc/cli/admin/cert"
-	"github.com/openshift/origin/pkg/oc/cli/admin/createclient"
-	"github.com/openshift/origin/pkg/oc/lib/signercertoptions"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
 )
 
 func TestFrontProxy(t *testing.T) {
@@ -275,15 +273,15 @@ func mutualAuthRoundTripper(ca string, cert *tls.Certificate) (http.RoundTripper
 }
 
 func createClientCert(commonName, certDir, caPrefix string) (*tls.Certificate, error) {
-	signerCertOptions := &signercertoptions.SignerCertOptions{
-		CertFile:   signercertoptions.DefaultCertFilename(certDir, caPrefix),
-		KeyFile:    signercertoptions.DefaultKeyFilename(certDir, caPrefix),
-		SerialFile: signercertoptions.DefaultSerialFilename(certDir, caPrefix),
+	signerCertOptions := &deprecatedcerts.SignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
 	}
-	clientCertOptions := &createclient.CreateClientCertOptions{
+	clientCertOptions := &deprecatedcerts.CreateClientCertOptions{
 		SignerCertOptions: signerCertOptions,
-		CertFile:          signercertoptions.DefaultCertFilename(certDir, commonName),
-		KeyFile:           signercertoptions.DefaultKeyFilename(certDir, commonName),
+		CertFile:          deprecatedcerts.DefaultCertFilename(certDir, commonName),
+		KeyFile:           deprecatedcerts.DefaultKeyFilename(certDir, commonName),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		User:              commonName,
 		Overwrite:         true,
@@ -307,10 +305,10 @@ func createClientCert(commonName, certDir, caPrefix string) (*tls.Certificate, e
 }
 
 func createCA(certDir, caPrefix string) (string, error) {
-	createSignerCertOptions := cert.CreateSignerCertOptions{
-		CertFile:   signercertoptions.DefaultCertFilename(certDir, caPrefix),
-		KeyFile:    signercertoptions.DefaultKeyFilename(certDir, caPrefix),
-		SerialFile: signercertoptions.DefaultSerialFilename(certDir, caPrefix),
+	createSignerCertOptions := deprecatedcerts.CreateSignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
 		ExpireDays: crypto.DefaultCACertificateLifetimeInDays,
 		Name:       caPrefix,
 		Overwrite:  true,
@@ -325,15 +323,15 @@ func createCA(certDir, caPrefix string) (string, error) {
 }
 
 func createServerCert(hostnames []string, commonName, certDir, caPrefix string) (*tls.Certificate, error) {
-	signerCertOptions := &signercertoptions.SignerCertOptions{
-		CertFile:   signercertoptions.DefaultCertFilename(certDir, caPrefix),
-		KeyFile:    signercertoptions.DefaultKeyFilename(certDir, caPrefix),
-		SerialFile: signercertoptions.DefaultSerialFilename(certDir, caPrefix),
+	signerCertOptions := &deprecatedcerts.SignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
 	}
-	serverCertOptions := &cert.CreateServerCertOptions{
+	serverCertOptions := &deprecatedcerts.CreateServerCertOptions{
 		SignerCertOptions: signerCertOptions,
-		CertFile:          signercertoptions.DefaultCertFilename(certDir, commonName),
-		KeyFile:           signercertoptions.DefaultKeyFilename(certDir, commonName),
+		CertFile:          deprecatedcerts.DefaultCertFilename(certDir, commonName),
+		KeyFile:           deprecatedcerts.DefaultKeyFilename(certDir, commonName),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		Hostnames:         hostnames,
 		Overwrite:         true,
