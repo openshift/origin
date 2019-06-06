@@ -24,12 +24,12 @@ import (
 type hostSubnetWatcher struct {
 	oc          *ovsController
 	localIP     string
-	networkInfo *common.NetworkInfo
+	networkInfo *common.ParsedClusterNetwork
 
 	hostSubnetMap map[ktypes.UID]*networkapi.HostSubnet
 }
 
-func newHostSubnetWatcher(oc *ovsController, localIP string, networkInfo *common.NetworkInfo) *hostSubnetWatcher {
+func newHostSubnetWatcher(oc *ovsController, localIP string, networkInfo *common.ParsedClusterNetwork) *hostSubnetWatcher {
 	return &hostSubnetWatcher{
 		oc:          oc,
 		localIP:     localIP,

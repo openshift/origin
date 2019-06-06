@@ -29,7 +29,7 @@ const (
 type OsdnMaster struct {
 	kClient       kclientset.Interface
 	networkClient networkclient.Interface
-	networkInfo   *common.NetworkInfo
+	networkInfo   *common.ParsedClusterNetwork
 	vnids         *masterVNIDMap
 
 	nodeInformer         kcoreinformers.NodeInformer
@@ -40,7 +40,7 @@ type OsdnMaster struct {
 	// Used for allocating subnets in order
 	subnetAllocatorList []*SubnetAllocator
 	// Used for clusterNetwork --> subnetAllocator lookup
-	subnetAllocatorMap map[common.ClusterNetwork]*SubnetAllocator
+	subnetAllocatorMap map[common.ParsedClusterNetworkEntry]*SubnetAllocator
 
 	// Holds Node IP used in creating host subnet for a node
 	hostSubnetNodeIPs map[ktypes.UID]string
@@ -51,30 +51,23 @@ func Start(networkClient networkclient.Interface, kClient kclientset.Interface,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
 	klog.Infof("Initializing SDN master")
 
+	networkInfo, err := common.GetParsedClusterNetwork(networkClient)
+	if err != nil {
+		return err
+	}
+
 	master := &OsdnMaster{
 		kClient:       kClient,
 		networkClient: networkClient,
+		networkInfo:   networkInfo,
 
 		nodeInformer:         kubeInformers.Core().V1().Nodes(),
 		namespaceInformer:    kubeInformers.Core().V1().Namespaces(),
 		hostSubnetInformer:   networkInformers.Network().V1().HostSubnets(),
 		netNamespaceInformer: networkInformers.Network().V1().NetNamespaces(),
 
-		subnetAllocatorMap: map[common.ClusterNetwork]*SubnetAllocator{},
+		subnetAllocatorMap: map[common.ParsedClusterNetworkEntry]*SubnetAllocator{},
 		hostSubnetNodeIPs:  map[ktypes.UID]string{},
-	}
-
-	cn, err := networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("no ClusterNetwork: %v", err)
-	}
-	if err = common.ValidateClusterNetwork(cn); err != nil {
-		return fmt.Errorf("ClusterNetwork is invalid (%v)", err)
-	}
-
-	master.networkInfo, err = common.ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork, cn.VXLANPort)
-	if err != nil {
-		return err
 	}
 
 	if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
@@ -91,7 +84,7 @@ func Start(networkClient networkclient.Interface, kClient kclientset.Interface,
 	master.hostSubnetInformer.Informer().GetController()
 	master.netNamespaceInformer.Informer().GetController()
 
-	go master.startSubSystems(cn.PluginName)
+	go master.startSubSystems(master.networkInfo.PluginName)
 
 	return nil
 }

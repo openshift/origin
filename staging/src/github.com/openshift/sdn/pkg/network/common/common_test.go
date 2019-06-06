@@ -29,7 +29,7 @@ func TestGenerateGateway(t *testing.T) {
 	}
 }
 
-func Test_checkHostNetworks(t *testing.T) {
+func TestCheckHostNetworks(t *testing.T) {
 	hostIPNets := []*net.IPNet{
 		mustParseCIDR("10.0.0.0/9"),
 		mustParseCIDR("172.20.0.0/16"),
@@ -37,13 +37,13 @@ func Test_checkHostNetworks(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		networkInfo *NetworkInfo
+		networkInfo *ParsedClusterNetwork
 		expectError bool
 	}{
 		{
 			name: "valid",
-			networkInfo: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			networkInfo: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/14"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.30.0.0/16"),
@@ -52,8 +52,8 @@ func Test_checkHostNetworks(t *testing.T) {
 		},
 		{
 			name: "valid multiple networks",
-			networkInfo: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			networkInfo: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/14"), HostSubnetLength: 8},
 					{ClusterCIDR: mustParseCIDR("15.128.0.0/14"), HostSubnetLength: 8},
 				},
@@ -63,8 +63,8 @@ func Test_checkHostNetworks(t *testing.T) {
 		},
 		{
 			name: "hostIPNet inside ClusterNetwork",
-			networkInfo: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			networkInfo: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.0.0.0/8"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.30.0.0/16"),
@@ -73,8 +73,8 @@ func Test_checkHostNetworks(t *testing.T) {
 		},
 		{
 			name: "ClusterNetwork inside hostIPNet",
-			networkInfo: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			networkInfo: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.1.0.0/16"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.30.0.0/16"),
@@ -83,8 +83,8 @@ func Test_checkHostNetworks(t *testing.T) {
 		},
 		{
 			name: "hostIPNet inside ServiceNetwork",
-			networkInfo: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			networkInfo: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/14"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.0.0.0/8"),
@@ -93,8 +93,8 @@ func Test_checkHostNetworks(t *testing.T) {
 		},
 		{
 			name: "ServiceNetwork inside hostIPNet",
-			networkInfo: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			networkInfo: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/14"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.20.30.0/8"),
@@ -155,13 +155,13 @@ func Test_checkClusterObjects(t *testing.T) {
 
 	tests := []struct {
 		name string
-		ni   *NetworkInfo
+		ni   *ParsedClusterNetwork
 		errs []string
 	}{
 		{
 			name: "valid",
-			ni: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			ni: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/14"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.30.0.0/16"),
@@ -170,8 +170,8 @@ func Test_checkClusterObjects(t *testing.T) {
 		},
 		{
 			name: "Subnet 10.130.0.0/23 and Pod 10.130.0.10 outside of ClusterNetwork",
-			ni: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			ni: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/15"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.30.0.0/16"),
@@ -180,8 +180,8 @@ func Test_checkClusterObjects(t *testing.T) {
 		},
 		{
 			name: "Service 172.30.99.99 outside of ServiceNetwork",
-			ni: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			ni: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("10.128.0.0/14"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("172.30.0.0/24"),
@@ -190,8 +190,8 @@ func Test_checkClusterObjects(t *testing.T) {
 		},
 		{
 			name: "Too-many-error truncation",
-			ni: &NetworkInfo{
-				ClusterNetworks: []ClusterNetwork{
+			ni: &ParsedClusterNetwork{
+				ClusterNetworks: []ParsedClusterNetworkEntry{
 					{ClusterCIDR: mustParseCIDR("1.2.3.0/24"), HostSubnetLength: 8},
 				},
 				ServiceNetwork: mustParseCIDR("4.5.6.0/24"),
@@ -220,46 +220,47 @@ func Test_checkClusterObjects(t *testing.T) {
 	}
 }
 
-func Test_parseNetworkInfo(t *testing.T) {
-	vxlanPtr := uint32(4789)
+func TestParseClusterNetwork(t *testing.T) {
 	tests := []struct {
-		name           string
-		cidrs          []networkapi.ClusterNetworkEntry
-		serviceNetwork string
-		vxlan          *uint32
-		err            string
+		name string
+		cn   networkapi.ClusterNetwork
+		err  string
 	}{
 		{
-			name:           "valid single cidr",
-			cidrs:          []networkapi.ClusterNetworkEntry{{CIDR: "10.0.0.0/16"}},
-			serviceNetwork: "172.30.0.0/16",
-			vxlan:          &vxlanPtr,
-			err:            "",
+			name: "valid single cidr",
+			cn: networkapi.ClusterNetwork{
+				ClusterNetworks: []networkapi.ClusterNetworkEntry{{CIDR: "10.0.0.0/16"}},
+				ServiceNetwork:  "172.30.0.0/16",
+			},
+			err: "",
 		},
 		{
-			name:           "valid multiple cidr",
-			cidrs:          []networkapi.ClusterNetworkEntry{{CIDR: "10.0.0.0/16"}, {CIDR: "10.4.0.0/16"}},
-			serviceNetwork: "172.30.0.0/16",
-			vxlan:          &vxlanPtr,
-			err:            "",
+			name: "valid multiple cidr",
+			cn: networkapi.ClusterNetwork{
+				ClusterNetworks: []networkapi.ClusterNetworkEntry{{CIDR: "10.0.0.0/16"}, {CIDR: "10.4.0.0/16"}},
+				ServiceNetwork:  "172.30.0.0/16",
+			},
+			err: "",
 		},
 		{
-			name:           "invalid CIDR address",
-			cidrs:          []networkapi.ClusterNetworkEntry{{CIDR: "Invalid"}},
-			serviceNetwork: "172.30.0.0/16",
-			vxlan:          &vxlanPtr,
-			err:            "Invalid",
+			name: "invalid CIDR address",
+			cn: networkapi.ClusterNetwork{
+				ClusterNetworks: []networkapi.ClusterNetworkEntry{{CIDR: "Invalid"}},
+				ServiceNetwork:  "172.30.0.0/16",
+			},
+			err: "Invalid",
 		},
 		{
-			name:           "invalid serviceNetwork",
-			cidrs:          []networkapi.ClusterNetworkEntry{{CIDR: "10.0.0.0/16"}},
-			serviceNetwork: "172.30.0.0i/16",
-			vxlan:          &vxlanPtr,
-			err:            "172.30.0.0i/16",
+			name: "invalid serviceNetwork",
+			cn: networkapi.ClusterNetwork{
+				ClusterNetworks: []networkapi.ClusterNetworkEntry{{CIDR: "10.0.0.0/16"}},
+				ServiceNetwork:  "172.30.0.0i/16",
+			},
+			err: "172.30.0.0i/16",
 		},
 	}
 	for _, test := range tests {
-		_, err := ParseNetworkInfo(test.cidrs, test.serviceNetwork, test.vxlan)
+		_, err := ParseClusterNetwork(&test.cn)
 		if err == nil {
 			if len(test.err) > 0 {
 				t.Fatalf("test %q unexpectedly did not get an error", test.name)

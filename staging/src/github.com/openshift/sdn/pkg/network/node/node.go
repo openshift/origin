@@ -86,7 +86,7 @@ type OsdnNode struct {
 	networkClient      networkclient.Interface
 	recorder           record.EventRecorder
 	oc                 *ovsController
-	networkInfo        *common.NetworkInfo
+	networkInfo        *common.ParsedClusterNetwork
 	podManager         *podManager
 	localSubnetCIDR    string
 	localIP            string
@@ -273,7 +273,7 @@ func (node *OsdnNode) Start() error {
 	}
 
 	var err error
-	node.networkInfo, err = common.GetNetworkInfo(node.networkClient)
+	node.networkInfo, err = common.GetParsedClusterNetwork(node.networkClient)
 	if err != nil {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
