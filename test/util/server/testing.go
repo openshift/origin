@@ -3,7 +3,7 @@ package server
 import (
 	"flag"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

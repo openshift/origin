@@ -18,11 +18,11 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 // all build strategy types

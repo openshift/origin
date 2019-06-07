@@ -11,10 +11,10 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 # enumerate group versions
 ALL_FQ_APIS=(
     github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/config/v1
+    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1
     github.com/openshift/origin/pkg/apps/apis/apps/v1
     github.com/openshift/origin/pkg/authorization/apis/authorization/v1
     github.com/openshift/origin/pkg/build/apis/build/v1
-    github.com/openshift/origin/pkg/cmd/server/apis/config/v1
     github.com/openshift/origin/pkg/image/apis/image/v1
     github.com/openshift/origin/pkg/oauth/apis/oauth/v1
     github.com/openshift/origin/pkg/project/apis/project/v1

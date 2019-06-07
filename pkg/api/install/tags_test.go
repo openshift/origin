@@ -10,8 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	configapiinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 )
 
 func TestDescriptions(t *testing.T) {
@@ -65,7 +63,6 @@ func TestInternalJsonTags(t *testing.T) {
 	scheme := runtime.NewScheme()
 	InstallInternalOpenShift(scheme)
 	InstallInternalKube(scheme)
-	configapiinstall.InstallLegacyInternal(scheme)
 
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
@@ -126,7 +123,6 @@ func TestExternalJsonTags(t *testing.T) {
 	scheme := runtime.NewScheme()
 	InstallInternalOpenShift(scheme)
 	InstallInternalKube(scheme)
-	configapiinstall.InstallLegacyInternal(scheme)
 
 	seen := map[reflect.Type]bool{}
 

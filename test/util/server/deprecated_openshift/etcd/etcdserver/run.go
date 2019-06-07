@@ -11,7 +11,7 @@ import (
 	"github.com/coreos/go-semver/semver"
 	"k8s.io/klog"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 const defaultName = "openshift.local"

@@ -9,26 +9,23 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
-
-	"github.com/openshift/library-go/pkg/config/helpers"
-	v1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	restclient "k8s.io/client-go/rest"
+	"sigs.k8s.io/yaml"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
 	authapi "github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/oc/pkg/cli/admin/cert"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	v1 "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
 
 	"github.com/vjeantet/ldapserver"
 )

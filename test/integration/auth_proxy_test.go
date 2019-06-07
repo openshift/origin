@@ -11,11 +11,11 @@ import (
 	ktransport "k8s.io/client-go/transport"
 
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 var (

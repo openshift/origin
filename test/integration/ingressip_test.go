@@ -18,8 +18,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/openshift-controller-manager/pkg/route/ingressip"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 const sentinelName = "sentinel"

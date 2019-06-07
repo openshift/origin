@@ -27,11 +27,11 @@ import (
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
 	"github.com/openshift/oauth-server/pkg/scopecovers"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 type testServer struct {

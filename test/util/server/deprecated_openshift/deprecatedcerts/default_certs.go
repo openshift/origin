@@ -7,8 +7,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 const (
