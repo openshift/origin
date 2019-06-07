@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
-	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +38,7 @@ func makeRC(name string, dc metav1.Object, namespace string, t *testing.T) *core
 
 	if dc != nil {
 		rc.OwnerReferences = append(rc.OwnerReferences, *metav1.NewControllerRef(dc,
-			oappsapi.SchemeGroupVersion.WithKind("DeploymentConfig")))
+			schema.GroupVersion{Group: "apps.openshift.io", Version: "__internal"}.WithKind("DeploymentConfig")))
 	}
 
 	return &rc
@@ -152,7 +152,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
 				Kind:  "DeploymentConfig",
 				Name:  "somedc1",
-				Group: oappsapi.GroupName,
+				Group: "apps.openshift.io",
 			},
 			namespace: "somens1",
 		},
@@ -160,7 +160,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
 				Kind:  "DeploymentConfig",
 				Name:  "somedc2",
-				Group: oappsapi.GroupName,
+				Group: "apps.openshift.io",
 			},
 			namespace: "somens1",
 		},

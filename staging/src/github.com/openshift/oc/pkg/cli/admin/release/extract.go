@@ -20,8 +20,8 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/oc/cli/image/extract"
-	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
+	"github.com/openshift/oc/pkg/cli/image/extract"
+	imagemanifest "github.com/openshift/oc/pkg/cli/image/manifest"
 )
 
 func NewExtractOptions(streams genericclioptions.IOStreams) *ExtractOptions {

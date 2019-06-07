@@ -9,11 +9,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/oc/pkg/cli/image/append"
+	"github.com/openshift/oc/pkg/cli/image/extract"
+	"github.com/openshift/oc/pkg/cli/image/info"
+	"github.com/openshift/oc/pkg/cli/image/mirror"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/oc/cli/image/append"
-	"github.com/openshift/origin/pkg/oc/cli/image/extract"
-	"github.com/openshift/origin/pkg/oc/cli/image/info"
-	"github.com/openshift/origin/pkg/oc/cli/image/mirror"
 )
 
 var (

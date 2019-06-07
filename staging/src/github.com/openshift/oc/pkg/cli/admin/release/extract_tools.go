@@ -31,7 +31,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/oc/cli/image/extract"
+	"github.com/openshift/oc/pkg/cli/image/extract"
 )
 
 // extractTarget describes how a file in the release image can be extracted to disk.
