@@ -71,7 +71,7 @@ func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "build1-abc",
-				Annotations: map[string]string{BuildConfigAnnotation: "foo"},
+				Annotations: map[string]string{buildv1.BuildConfigAnnotation: "foo"},
 			},
 		},
 		{
@@ -96,7 +96,7 @@ func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{BuildConfigLabel: "foo"},
+				Labels: map[string]string{buildv1.BuildConfigLabel: "foo"},
 			},
 		},
 		{
@@ -121,7 +121,7 @@ func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{BuildConfigLabel: "foo"},
+				Labels: map[string]string{buildv1.BuildConfigLabel: "foo"},
 			},
 		},
 		{

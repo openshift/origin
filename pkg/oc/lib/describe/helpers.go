@@ -9,8 +9,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	"github.com/docker/go-units"
 
 	corev1 "k8s.io/api/core/v1"
@@ -21,11 +19,11 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/util"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
@@ -259,7 +257,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 	fmt.Fprintf(out, "Unique Images:\t%d\nTags:\t%d\n\n", len(images), len(sortedTags))
 
 	first := true
-	util.PrioritizeTags(sortedTags)
+	imageutil.PrioritizeTags(sortedTags)
 	for _, tag := range sortedTags {
 		if localReferences.Has(tag) {
 			continue
@@ -317,7 +315,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 
 		if referentialTags[tag].Len() > 0 {
 			references := referentialTags[tag].List()
-			util.PrioritizeTags(references)
+			imageutil.PrioritizeTags(references)
 			fmt.Fprintf(out, "%s (%s)\n", tag, strings.Join(references, ", "))
 		} else {
 			fmt.Fprintf(out, "%s\n", tag)

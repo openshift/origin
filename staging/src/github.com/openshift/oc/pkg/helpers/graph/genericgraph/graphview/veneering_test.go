@@ -12,7 +12,6 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/oc/pkg/helpers/build"
 	appsedges "github.com/openshift/oc/pkg/helpers/graph/appsgraph"
 	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
 	buildedges "github.com/openshift/oc/pkg/helpers/graph/buildgraph"
@@ -192,7 +191,7 @@ func TestGraph(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-1-abc",
-				Labels:            map[string]string{buildutil.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildv1.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-10 * time.Second)),
 			},
 			Status: buildv1.BuildStatus{
@@ -202,7 +201,7 @@ func TestGraph(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-2-abc",
-				Labels:            map[string]string{buildutil.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildv1.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-5 * time.Second)),
 			},
 			Status: buildv1.BuildStatus{
@@ -212,7 +211,7 @@ func TestGraph(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "build1-3-abc",
-				Labels:            map[string]string{buildutil.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildv1.BuildConfigLabel: "build1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-15 * time.Second)),
 			},
 			Status: buildv1.BuildStatus{

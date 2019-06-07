@@ -1,7 +1,6 @@
 package util
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -110,38 +109,6 @@ func TestParseImageStreamTagName(t *testing.T) {
 		}
 		if e, a := testCase.expectedTag, tag; e != a {
 			t.Errorf("%s: tag: expected %q, got %q", description, e, a)
-		}
-	}
-}
-
-func TestPrioritizeTags(t *testing.T) {
-	tests := []struct {
-		tags     []string
-		expected []string
-	}{
-		{
-			tags:     []string{"other", "latest", "v5.5", "5.2.3", "5.5", "v5.3.6-bother", "5.3.6-abba", "5.6"},
-			expected: []string{"latest", "5.6", "5.5", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"},
-		},
-		{
-			tags:     []string{"1.1-beta1", "1.2-rc1", "1.1-rc1", "1.1-beta2", "1.2-beta1", "1.2-alpha1", "1.2-beta4", "latest"},
-			expected: []string{"latest", "1.2-rc1", "1.2-beta4", "1.2-beta1", "1.2-alpha1", "1.1-rc1", "1.1-beta2", "1.1-beta1"},
-		},
-		{
-			tags:     []string{"7.1", "v7.1", "7.1.0"},
-			expected: []string{"7.1", "v7.1", "7.1.0"},
-		},
-		{
-			tags:     []string{"7.1.0", "v7.1", "7.1"},
-			expected: []string{"7.1", "v7.1", "7.1.0"},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Log("sorting", tc.tags)
-		PrioritizeTags(tc.tags)
-		if !reflect.DeepEqual(tc.tags, tc.expected) {
-			t.Errorf("got %v, want %v", tc.tags, tc.expected)
 		}
 	}
 }

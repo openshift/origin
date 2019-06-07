@@ -15,7 +15,6 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
-	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 )
 
 // TestLogsFlagParity makes sure that our copied flags don't slip during rebases
@@ -51,7 +50,7 @@ func TestRunLogForPipelineStrategy(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "foo-0",
 			Namespace:   "foo",
-			Annotations: map[string]string{buildhelpers.BuildJenkinsBlueOceanLogURLAnnotation: "https://foo"},
+			Annotations: map[string]string{buildv1.BuildJenkinsBlueOceanLogURLAnnotation: "https://foo"},
 		},
 		Spec: buildv1.BuildSpec{
 			CommonSpec: buildv1.CommonSpec{
