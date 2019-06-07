@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/klog"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -23,12 +23,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/describe"
 	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
 
+	"github.com/openshift/api/annotations"
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/authorization"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
@@ -36,42 +37,35 @@ import (
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
+	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/api/quota"
 	quotav1 "github.com/openshift/api/quota/v1"
 	"github.com/openshift/api/route"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/api/security"
+	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/api/template"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/api/user"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	oauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imageclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	onetworktypedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	securityclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	templateclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/oc/pkg/helpers/legacy"
 	quotahelpers "github.com/openshift/oc/pkg/helpers/quota"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
-
-	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/util"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 func describerMap(clientConfig *rest.Config, kclient kubernetes.Interface, host string) map[schema.GroupKind]describe.Describer {
@@ -533,12 +527,12 @@ func describeBuildTriggers(triggers []buildv1.BuildTriggerPolicy, name, namespac
 		fmt.Fprintf(w, "Webhook %s:\n", strings.Title(webHookType))
 		for _, trigger := range webHookDesc {
 			_, seen := seenHookTypes[webHookType]
-			if webHookType != string(buildapi.GenericWebHookBuildTriggerType) && seen {
+			if webHookType != string(buildv1.GenericWebHookBuildTriggerType) && seen {
 				continue
 			}
 			seenHookTypes[webHookType] = true
 			fmt.Fprintf(w, "\tURL:\t%s\n", trigger.URL)
-			if webHookType == string(buildapi.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
+			if webHookType == string(buildv1.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
 				fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *trigger.AllowEnv))
 			}
 		}
@@ -611,7 +605,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings describ
 
 // OAuthAccessTokenDescriber generates information about an OAuth Acess Token (OAuth)
 type OAuthAccessTokenDescriber struct {
-	client oauthclient.OauthInterface
+	client oauthclient.OauthV1Interface
 }
 
 func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings describe.DescriberSettings) (string, error) {
@@ -642,7 +636,7 @@ func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings de
 
 // ImageDescriber generates information about a Image
 type ImageDescriber struct {
-	c imageclient.ImageInterface
+	c imageclient.ImageV1Interface
 }
 
 // Describe returns the description of an image
@@ -656,7 +650,7 @@ func (d *ImageDescriber) Describe(namespace, name string, settings describe.Desc
 	return DescribeImage(image, "")
 }
 
-func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) error {
+func describeImageSignature(s imagev1.ImageSignature, out *tabwriter.Writer) error {
 	formatString(out, "\tName", s.Name)
 	formatString(out, "\tType", s.Type)
 	if s.IssuedBy == nil {
@@ -674,7 +668,7 @@ func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) er
 	return nil
 }
 
-func DescribeImage(image *imageapi.Image, imageName string) (string, error) {
+func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		if len(imageName) > 0 {
 			formatString(out, "Image Name", imageName)
@@ -768,7 +762,7 @@ func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
 
 // ImageStreamTagDescriber generates information about a ImageStreamTag (Image).
 type ImageStreamTagDescriber struct {
-	c imageclient.ImageInterface
+	c imageclient.ImageV1Interface
 }
 
 // Describe returns the description of an imageStreamTag
@@ -792,7 +786,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings desc
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
 type ImageStreamImageDescriber struct {
-	c imageclient.ImageInterface
+	c imageclient.ImageV1Interface
 }
 
 // Describe returns the description of an imageStreamImage
@@ -808,7 +802,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings de
 
 // ImageStreamDescriber generates information about a ImageStream (Image).
 type ImageStreamDescriber struct {
-	ImageClient imageclient.ImageInterface
+	ImageClient imageclient.ImageV1Interface
 }
 
 // Describe returns the description of an imageStream
@@ -821,7 +815,7 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings describ
 	return DescribeImageStream(imageStream)
 }
 
-func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
+func DescribeImageStream(imageStream *imagev1.ImageStream) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
 		if len(imageStream.Status.PublicDockerImageRepository) > 0 {
@@ -837,7 +831,7 @@ func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 
 // RouteDescriber generates information about a Route
 type RouteDescriber struct {
-	routeClient routeclient.RouteInterface
+	routeClient routeclient.RouteV1Interface
 	kubeClient  kubernetes.Interface
 }
 
@@ -854,7 +848,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 		return "", err
 	}
 
-	backends := append([]routeapi.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
+	backends := append([]routev1.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
 	totalWeight := int32(0)
 	endpoints := make(map[string]routeEndpointInfo)
 	for _, backend := range backends {
@@ -984,7 +978,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
-	projectClient projectclient.ProjectInterface
+	projectClient projectclient.ProjectV1Interface
 	kubeClient    kubernetes.Interface
 }
 
@@ -1008,15 +1002,15 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings describe.De
 
 	nodeSelector := ""
 	if len(project.ObjectMeta.Annotations) > 0 {
-		if ns, ok := project.ObjectMeta.Annotations[projectapi.ProjectNodeSelector]; ok {
+		if ns, ok := project.ObjectMeta.Annotations[projectv1.ProjectNodeSelector]; ok {
 			nodeSelector = ns
 		}
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
-		formatString(out, "Display Name", project.Annotations[oapi.OpenShiftDisplayName])
-		formatString(out, "Description", project.Annotations[oapi.OpenShiftDescription])
+		formatString(out, "Display Name", project.Annotations[annotations.OpenShiftDisplayName])
+		formatString(out, "Description", project.Annotations[annotations.OpenShiftDescription])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
 		if len(resourceQuotaList.Items) == 0 {
@@ -1123,7 +1117,7 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings describe.De
 
 // TemplateDescriber generates information about a template
 type TemplateDescriber struct {
-	templateClient templateclient.TemplateInterface
+	templateClient templateclient.TemplateV1Interface
 	meta.MetadataAccessor
 	runtime.ObjectTyper
 	describe.ObjectDescriber
@@ -1139,7 +1133,7 @@ func (d *TemplateDescriber) DescribeMessage(msg string, out *tabwriter.Writer) {
 }
 
 // DescribeParameters prints out information about the parameters of a template
-func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, out *tabwriter.Writer) {
+func (d *TemplateDescriber) DescribeParameters(params []templatev1.Parameter, out *tabwriter.Writer) {
 	formatString(out, "Parameters", " ")
 	indent := "    "
 	for _, p := range params {
@@ -1216,10 +1210,10 @@ func (d *TemplateDescriber) Describe(namespace, name string, settings describe.D
 	return d.DescribeTemplate(template)
 }
 
-func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (string, error) {
 	// TODO: write error?
 	_ = runtime.DecodeList(template.Objects, unstructured.UnstructuredJSONScheme)
 
+func (d *TemplateDescriber) DescribeTemplate(template *templatev1.Template) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, template.ObjectMeta)
 		out.Write([]byte("\n"))
@@ -1239,7 +1233,7 @@ func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (st
 // TemplateInstanceDescriber generates information about a template instance
 type TemplateInstanceDescriber struct {
 	kubeClient     kubernetes.Interface
-	templateClient templateclient.TemplateInterface
+	templateClient templateclient.TemplateV1Interface
 	describe.ObjectDescriber
 }
 
@@ -1254,7 +1248,7 @@ func (d *TemplateInstanceDescriber) Describe(namespace, name string, settings de
 }
 
 // DescribeTemplateInstance prints out information about the template instance
-func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *templateapi.TemplateInstance, namespace string, settings describe.DescriberSettings) (string, error) {
+func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *templatev1.TemplateInstance, namespace string, settings describe.DescriberSettings) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, templateInstance.ObjectMeta)
 		out.Write([]byte("\n"))
@@ -1273,7 +1267,7 @@ func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *t
 }
 
 // DescribeConditions prints out information about the conditions of a template instance
-func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templateapi.TemplateInstanceCondition, out *tabwriter.Writer) {
+func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templatev1.TemplateInstanceCondition, out *tabwriter.Writer) {
 	formatString(out, "Conditions", " ")
 	indent := "    "
 	for _, c := range conditions {
@@ -1287,7 +1281,7 @@ func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templateapi.
 }
 
 // DescribeObjects prints out information about the objects that a template instance creates
-func (d *TemplateInstanceDescriber) DescribeObjects(objects []templateapi.TemplateInstanceObject, out *tabwriter.Writer) {
+func (d *TemplateInstanceDescriber) DescribeObjects(objects []templatev1.TemplateInstanceObject, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 	indent := "    "
 	for _, o := range objects {
@@ -1298,7 +1292,7 @@ func (d *TemplateInstanceDescriber) DescribeObjects(objects []templateapi.Templa
 // DescribeParameters prints out information about the secret that holds the template instance parameters
 // kinternalprinter.SecretDescriber#Describe could have been used here, but the formatting
 // is off when it prints the information and seems to not be easily fixable
-func (d *TemplateInstanceDescriber) DescribeParameters(template templateapi.Template, namespace, name string, out *tabwriter.Writer) {
+func (d *TemplateInstanceDescriber) DescribeParameters(template templatev1.Template, namespace, name string, out *tabwriter.Writer) {
 	secret, err := d.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 
 	formatString(out, "Parameters", " ")
@@ -1329,7 +1323,7 @@ func (d *TemplateInstanceDescriber) DescribeParameters(template templateapi.Temp
 
 // IdentityDescriber generates information about a user
 type IdentityDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of an identity
@@ -1377,7 +1371,7 @@ func (d *IdentityDescriber) Describe(namespace, name string, settings describe.D
 
 // UserIdentityMappingDescriber generates information about a user
 type UserIdentityMappingDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of a userIdentity
@@ -1400,7 +1394,7 @@ func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings
 
 // UserDescriber generates information about a user
 type UserDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of a user
@@ -1449,7 +1443,7 @@ func (d *UserDescriber) Describe(namespace, name string, settings describe.Descr
 
 // GroupDescriber generates information about a group
 type GroupDescriber struct {
-	c userclient.UserInterface
+	c userclient.UserV1Interface
 }
 
 // Describe returns the description of a group
@@ -1479,8 +1473,8 @@ func (d *GroupDescriber) Describe(namespace, name string, settings describe.Desc
 
 const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tResource Names\tAPI Groups\tResources"
 
-func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	if rule.AttributeRestrictions != nil {
+func DescribePolicyRule(out *tabwriter.Writer, rule authorizationv1.PolicyRule, indent string) {
 		// We are not supporting attribute restrictions going forward
 		return
 	}
@@ -1496,7 +1490,7 @@ func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 
 // RoleDescriber generates information about a Project
 type RoleDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
+	c oauthorizationclient.AuthorizationV1Interface
 }
 
 // Describe returns the description of a role
@@ -1510,7 +1504,7 @@ func (d *RoleDescriber) Describe(namespace, name string, settings describe.Descr
 	return DescribeRole(role)
 }
 
-func DescribeRole(role *authorizationapi.Role) (string, error) {
+func DescribeRole(role *authorizationv1.Role) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, role.ObjectMeta)
 
@@ -1526,7 +1520,7 @@ func DescribeRole(role *authorizationapi.Role) (string, error) {
 
 // RoleBindingDescriber generates information about a Project
 type RoleBindingDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
+	c oauthorizationclient.AuthorizationV1Interface
 }
 
 // Describe returns the description of a roleBinding
@@ -1537,9 +1531,9 @@ func (d *RoleBindingDescriber) Describe(namespace, name string, settings describ
 		return "", err
 	}
 
-	var role *authorizationapi.Role
+	var role *authorizationv1.Role
 	if len(roleBinding.RoleRef.Namespace) == 0 {
-		var clusterRole *authorizationapi.ClusterRole
+		var clusterRole *authorizationv1.ClusterRole
 		clusterRole, err = d.c.ClusterRoles().Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
 		role = authorizationapi.ToRole(clusterRole)
 	} else {
@@ -1550,8 +1544,8 @@ func (d *RoleBindingDescriber) Describe(namespace, name string, settings describ
 }
 
 // DescribeRoleBinding prints out information about a role binding and its associated role
-func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *authorizationapi.Role, err error) (string, error) {
-	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+func DescribeRoleBinding(roleBinding *authorizationv1.RoleBinding, role *authorizationv1.Role, err error) (string, error) {
+	users, groups, sas, others := authorizationv1.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, roleBinding.ObjectMeta)
@@ -1581,7 +1575,7 @@ func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *author
 }
 
 type ClusterRoleDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
+	c oauthorizationclient.AuthorizationV1Interface
 }
 
 // Describe returns the description of a role
@@ -1597,7 +1591,7 @@ func (d *ClusterRoleDescriber) Describe(namespace, name string, settings describ
 
 // ClusterRoleBindingDescriber generates information about a Project
 type ClusterRoleBindingDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
+	c oauthorizationclient.AuthorizationV1Interface
 }
 
 // Describe returns the description of a roleBinding
@@ -1828,7 +1822,7 @@ func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings
 }
 
 type RoleBindingRestrictionDescriber struct {
-	c oauthorizationclient.AuthorizationInterface
+	c oauthorizationclient.AuthorizationV1Interface
 }
 
 // Describe returns the description of a RoleBindingRestriction.
@@ -1901,7 +1895,7 @@ func (d *SecurityContextConstraintsDescriber) Describe(namespace, name string, s
 	return describeSecurityContextConstraints(scc)
 }
 
-func describeSecurityContextConstraints(scc *securityapi.SecurityContextConstraints) (string, error) {
+func describeSecurityContextConstraints(scc *securityv1.SecurityContextConstraints) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", scc.Name)
 
@@ -1991,7 +1985,7 @@ func stringOrDefaultValue(s, defaultValue string) string {
 	return defaultValue
 }
 
-func fsTypeToString(volumes []securityapi.FSType) string {
+func fsTypeToString(volumes []securityv1.FSType) string {
 	strVolumes := []string{}
 	for _, v := range volumes {
 		strVolumes = append(strVolumes, string(v))
@@ -1999,7 +1993,7 @@ func fsTypeToString(volumes []securityapi.FSType) string {
 	return stringOrNone(strings.Join(strVolumes, ","))
 }
 
-func flexVolumesToString(flexVolumes []securityapi.AllowedFlexVolume) string {
+func flexVolumesToString(flexVolumes []securityv1.AllowedFlexVolume) string {
 	volumes := []string{}
 	for _, flexVolume := range flexVolumes {
 		volumes = append(volumes, "driver="+flexVolume.Driver)
@@ -2011,7 +2005,7 @@ func sysctlsToString(sysctls []string) string {
 	return stringOrNone(strings.Join(sysctls, ","))
 }
 
-func idRangeToString(ranges []securityapi.IDRange) string {
+func idRangeToString(ranges []securityv1.IDRange) string {
 	formattedString := ""
 	if ranges != nil {
 		strRanges := []string{}
@@ -2023,7 +2017,7 @@ func idRangeToString(ranges []securityapi.IDRange) string {
 	return stringOrNone(formattedString)
 }
 
-func capsToString(caps []kapi.Capability) string {
+func capsToString(caps []corev1.Capability) string {
 	formattedString := ""
 	if caps != nil {
 		strCaps := []string{}

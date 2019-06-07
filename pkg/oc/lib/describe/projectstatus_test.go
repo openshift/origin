@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api"
+	"github.com/openshift/api/annotations"
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -38,7 +39,6 @@ import (
 	fakerouteclient "github.com/openshift/client-go/route/clientset/versioned/fake"
 	fakeroutev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake"
 	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
-	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/install"
 )
 
@@ -68,7 +68,7 @@ func TestProjectStatus(t *testing.T) {
 						Name:      "example",
 						Namespace: "",
 						Annotations: map[string]string{
-							oapi.OpenShiftDisplayName: "Test",
+							annotations.OpenShiftDisplayName: "Test",
 						},
 					},
 				},
