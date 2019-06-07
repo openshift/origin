@@ -12,10 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -36,19 +36,19 @@ func TestOAuthExpiration(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	oauthClient := oauthclient.NewForConfigOrDie(clientConfig)
+	oauthClient := oauthv1client.NewForConfigOrDie(clientConfig)
 
 	// Use the server and CA info
 	anonConfig := restclient.AnonymousClientConfig(clientConfig)
 
 	{
 		zero := int32(0)
-		client, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 			ObjectMeta:               metav1.ObjectMeta{Name: "nonexpiring"},
 			RespondWithChallenges:    true,
 			RedirectURIs:             []string{"http://localhost"},
 			AccessTokenMaxAgeSeconds: &zero,
-			GrantMethod:              oauthapi.GrantHandlerAuto,
+			GrantMethod:              oauthv1.GrantHandlerAuto,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -59,12 +59,12 @@ func TestOAuthExpiration(t *testing.T) {
 
 	{
 		ten := int32(10)
-		client, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 			ObjectMeta:               metav1.ObjectMeta{Name: "shortexpiring"},
 			RespondWithChallenges:    true,
 			RedirectURIs:             []string{"http://localhost"},
 			AccessTokenMaxAgeSeconds: &ten,
-			GrantMethod:              oauthapi.GrantHandlerAuto,
+			GrantMethod:              oauthv1.GrantHandlerAuto,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -88,8 +88,8 @@ func TestOAuthExpiration(t *testing.T) {
 	}
 }
 
-func testExpiringOAuthFlows(t *testing.T, clusterAdminClientConfig *restclient.Config, oauthClient *oauthapi.OAuthClient, anonConfig *restclient.Config, expectedExpires int) string {
-	oauthClientset := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
+func testExpiringOAuthFlows(t *testing.T, clusterAdminClientConfig *restclient.Config, oauthClient *oauthv1.OAuthClient, anonConfig *restclient.Config, expectedExpires int) string {
+	oauthClientset := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// token flow
 	{
@@ -110,7 +110,7 @@ func testExpiringOAuthFlows(t *testing.T, clusterAdminClientConfig *restclient.C
 		// Make sure we can use the token, and it represents who we expect
 		userConfig := *anonConfig
 		userConfig.BearerToken = token
-		userClient, err := userclient.NewForConfig(&userConfig)
+		userClient, err := userv1client.NewForConfig(&userConfig)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -193,7 +193,7 @@ func testExpiringOAuthFlows(t *testing.T, clusterAdminClientConfig *restclient.C
 		// Make sure we can use the token, and it represents who we expect
 		userConfig := *anonConfig
 		userConfig.BearerToken = token
-		userClient, err := userclient.NewForConfig(&userConfig)
+		userClient, err := userv1client.NewForConfig(&userConfig)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

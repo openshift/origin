@@ -8,8 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -75,7 +75,7 @@ func TestOAuthHTPasswd(t *testing.T) {
 	// Make sure we can use the token, and it represents who we expect
 	userConfig := anonConfig
 	userConfig.BearerToken = accessToken
-	userClient, err := userclient.NewForConfig(&userConfig)
+	userClient, err := userv1client.NewForConfig(&userConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

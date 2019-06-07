@@ -16,11 +16,11 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	authapi "github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/oc/pkg/cli/admin/cert"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -243,7 +243,7 @@ func TestOAuthLDAP(t *testing.T) {
 	userConfig := anonConfig
 	userConfig.BearerToken = accessToken
 
-	user, err := userclient.NewForConfigOrDie(&userConfig).Users().Get("~", metav1.GetOptions{})
+	user, err := userv1client.NewForConfigOrDie(&userConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Make sure the identity got created and contained the mapped attributes
-	identity, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.GetOptions{})
+	identity, err := userv1client.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
