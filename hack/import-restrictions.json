@@ -503,8 +503,6 @@
       "github.com/openshift/origin/pkg/unidling/util",
       "github.com/openshift/origin/pkg/version",
 
-      "vendor/github.com/coreos/etcd/clientv3",
-      "vendor/github.com/coreos/etcd/pkg/transport",
       "vendor/github.com/ghodss/yaml",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",

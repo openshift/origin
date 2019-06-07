@@ -16,7 +16,7 @@ import (
 
 	templatev1 "github.com/openshift/api/template/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
-	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
+	"github.com/openshift/oc/pkg/cli/admin/migrate"
 )
 
 type apiType struct {

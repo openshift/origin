@@ -10,10 +10,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	groupsnewcmd "github.com/openshift/oc/pkg/cli/admin/groups/new"
+	groupsuserscmd "github.com/openshift/oc/pkg/cli/admin/groups/users"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	groupsnewcmd "github.com/openshift/origin/pkg/oc/cli/admin/groups/new"
-	groupsuserscmd "github.com/openshift/origin/pkg/oc/cli/admin/groups/users"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
