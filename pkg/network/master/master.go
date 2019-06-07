@@ -2,10 +2,8 @@ package master
 
 import (
 	"fmt"
-	"time"
 
 	kapi "k8s.io/api/core/v1"
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -17,7 +15,6 @@ import (
 	"k8s.io/klog"
 
 	networkapi "github.com/openshift/api/network/v1"
-	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinternalinformers "github.com/openshift/client-go/network/informers/externalversions"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
@@ -49,10 +46,10 @@ type OsdnMaster struct {
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networkClient networkclient.Interface,
-	kClient kclientset.Interface, kubeInformers informers.SharedInformerFactory,
+func Start(networkClient networkclient.Interface, kClient kclientset.Interface,
+	kubeInformers informers.SharedInformerFactory,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
-	klog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
+	klog.Infof("Initializing SDN master")
 
 	master := &OsdnMaster{
 		kClient:       kClient,
@@ -67,90 +64,24 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 		hostSubnetNodeIPs:  map[ktypes.UID]string{},
 	}
 
-	var err error
-	var clusterNetworkEntries []networkapi.ClusterNetworkEntry
-	for _, entry := range networkConfig.ClusterNetworks {
-		clusterNetworkEntries = append(clusterNetworkEntries, networkapi.ClusterNetworkEntry{CIDR: entry.CIDR, HostSubnetLength: entry.HostSubnetLength})
+	cn, err := networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("no ClusterNetwork: %v", err)
 	}
-	master.networkInfo, err = common.ParseNetworkInfo(clusterNetworkEntries, networkConfig.ServiceNetworkCIDR, &networkConfig.VXLANPort)
+	if err = common.ValidateClusterNetwork(cn); err != nil {
+		return fmt.Errorf("ClusterNetwork is invalid (%v)", err)
+	}
+
+	master.networkInfo, err = common.ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork, cn.VXLANPort)
 	if err != nil {
 		return err
 	}
-	if len(clusterNetworkEntries) == 0 {
-		panic("No ClusterNetworks set in networkConfig; should have been defaulted in if not configured")
-	}
 
-	var parsedClusterNetworkEntries []networkapi.ClusterNetworkEntry
-	for _, entry := range master.networkInfo.ClusterNetworks {
-		parsedClusterNetworkEntries = append(parsedClusterNetworkEntries, networkapi.ClusterNetworkEntry{CIDR: entry.ClusterCIDR.String(), HostSubnetLength: entry.HostSubnetLength})
-	}
-
-	configCN := &networkapi.ClusterNetwork{
-		TypeMeta:   metav1.TypeMeta{Kind: "ClusterNetwork"},
-		ObjectMeta: metav1.ObjectMeta{Name: networkapi.ClusterNetworkDefault},
-
-		ClusterNetworks: parsedClusterNetworkEntries,
-		ServiceNetwork:  master.networkInfo.ServiceNetwork.String(),
-		PluginName:      networkConfig.NetworkPluginName,
-		VXLANPort:       &networkConfig.VXLANPort,
-
-		// Need to set these for backward compat
-		Network:          parsedClusterNetworkEntries[0].CIDR,
-		HostSubnetLength: parsedClusterNetworkEntries[0].HostSubnetLength,
-	}
-
-	// try this for a while before just dying
-	var getError error
-	err = wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
-		// reset this so that failures come through correctly.
-		getError = nil
-		existingCN, err := master.networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
-		if err != nil {
-			if !kapierrors.IsNotFound(err) {
-				// the first request can fail on permissions
-				getError = err
-				return false, nil
-			}
-			if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
-				return false, err
-			}
-
-			if _, err = master.networkClient.NetworkV1().ClusterNetworks().Create(configCN); err != nil {
-				return false, err
-			}
-			klog.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
-
-			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-				utilruntime.HandleError(fmt.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err))
-			}
-		} else {
-			configChanged, err := clusterNetworkChanged(configCN, existingCN)
-			if err != nil {
-				return false, err
-			}
-			if configChanged {
-				configCN.TypeMeta = existingCN.TypeMeta
-				configCN.ObjectMeta = existingCN.ObjectMeta
-				if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-					utilruntime.HandleError(fmt.Errorf("Attempting to modify cluster to exclude existing objects: %v", err))
-					return false, err
-				}
-				if _, err = master.networkClient.NetworkV1().ClusterNetworks().Update(configCN); err != nil {
-					return false, err
-				}
-				klog.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
-			} else {
-				klog.V(5).Infof("No change to ClusterNetwork %s", common.ClusterNetworkToString(configCN))
-			}
-		}
-
-		return true, nil
-	})
-	if err != nil {
-		if getError != nil {
-			return getError
-		}
+	if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
 		return err
+	}
+	if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Cluster contains objects incompatible with ClusterNetwork: %v", err))
 	}
 
 	// FIXME: this is required to register informers for the types we care about to ensure the informers are started.
@@ -160,7 +91,7 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 	master.hostSubnetInformer.Informer().GetController()
 	master.netNamespaceInformer.Informer().GetController()
 
-	go master.startSubSystems(networkConfig.NetworkPluginName)
+	go master.startSubSystems(cn.PluginName)
 
 	return nil
 }
@@ -218,36 +149,4 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 	}
 
 	return master.networkInfo.CheckClusterObjects(subnets, pods, services)
-}
-
-func clusterNetworkChanged(obj *networkapi.ClusterNetwork, old *networkapi.ClusterNetwork) (bool, error) {
-	if err := common.ValidateClusterNetwork(old); err != nil {
-		utilruntime.HandleError(fmt.Errorf("Ignoring invalid existing default ClusterNetwork (%v)", err))
-		return true, nil
-	}
-
-	if old.ServiceNetwork != obj.ServiceNetwork {
-		return true, fmt.Errorf("cannot change the serviceNetworkCIDR of an already-deployed cluster")
-	} else if old.PluginName != obj.PluginName {
-		return true, nil
-	} else if len(old.ClusterNetworks) != len(obj.ClusterNetworks) {
-		return true, nil
-	} else {
-		changed := false
-		for _, oldCIDR := range old.ClusterNetworks {
-			found := false
-			for _, newCIDR := range obj.ClusterNetworks {
-				if newCIDR.CIDR == oldCIDR.CIDR && newCIDR.HostSubnetLength == oldCIDR.HostSubnetLength {
-					found = true
-					break
-				}
-			}
-			if !found {
-				changed = true
-				break
-			}
-		}
-		return changed, nil
-
-	}
 }
