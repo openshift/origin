@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/admin/network"
 	"github.com/openshift/oc/pkg/cli/admin/node"
 	"github.com/openshift/oc/pkg/cli/admin/upgrade"
+	"github.com/openshift/oc/pkg/cli/kubectlwrappers"
 	"github.com/openshift/oc/pkg/cli/options"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -40,7 +41,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/release"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
-	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
 )
 
 var adminLong = ktemplates.LongDesc(`
