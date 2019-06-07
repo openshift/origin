@@ -27,10 +27,10 @@ import (
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 
 	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
-	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
-	"github.com/openshift/origin/pkg/build/webhook/github"
-	"github.com/openshift/origin/pkg/build/webhook/gitlab"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/bitbucket"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/github"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/gitlab"
 	// _ "github.com/openshift/origin/pkg/api/install"
 )
 

@@ -41,12 +41,12 @@ import (
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	"github.com/openshift/origin/pkg/build/buildutil"
-	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
-	"github.com/openshift/origin/pkg/build/controller/common"
-	"github.com/openshift/origin/pkg/build/controller/policy"
-	"github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
+	builddefaults "github.com/openshift/openshift-controller-manager/pkg/build/controller/build/defaults"
+	buildoverrides "github.com/openshift/openshift-controller-manager/pkg/build/controller/build/overrides"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/common"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/policy"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/strategy"
 )
 
 const (

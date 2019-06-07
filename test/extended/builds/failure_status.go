@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/buildutil"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

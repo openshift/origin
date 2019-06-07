@@ -25,7 +25,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
-	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook"
 )
 
 var (

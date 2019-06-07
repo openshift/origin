@@ -26,8 +26,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	buildclientmanual "github.com/openshift/oc/pkg/helpers/build/client/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclientmanual "github.com/openshift/origin/pkg/build/client/v1"
 
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 )

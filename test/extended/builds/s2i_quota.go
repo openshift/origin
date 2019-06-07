@@ -7,7 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

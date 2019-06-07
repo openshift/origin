@@ -18,7 +18,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

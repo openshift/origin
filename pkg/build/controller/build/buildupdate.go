@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/controller/common"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/common"
 )
 
 // buildUpdate holds a set of updates to be made to a build object.

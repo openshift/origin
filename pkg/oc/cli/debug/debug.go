@@ -51,7 +51,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/oc/pkg/helpers/conditions"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
-	"github.com/openshift/origin/pkg/image/util"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
@@ -505,7 +504,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *corev1.Pod, con
 			trigger.ImageChangeParams != nil &&
 			trigger.ImageChangeParams.From.Kind == "ImageStreamTag" {
 
-			isname, _, err := util.ParseImageStreamTagName(trigger.ImageChangeParams.From.Name)
+			isname, _, err := imageutil.ParseImageStreamTagName(trigger.ImageChangeParams.From.Name)
 			if err != nil {
 				return nil, err
 			}

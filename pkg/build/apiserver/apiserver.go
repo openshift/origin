@@ -21,11 +21,11 @@ import (
 	buildconfigetcd "github.com/openshift/origin/pkg/build/apiserver/registry/buildconfig/etcd"
 	"github.com/openshift/origin/pkg/build/apiserver/registry/buildconfiginstantiate"
 	buildlogregistry "github.com/openshift/origin/pkg/build/apiserver/registry/buildlog"
-	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
-	"github.com/openshift/origin/pkg/build/webhook/generic"
-	"github.com/openshift/origin/pkg/build/webhook/github"
-	"github.com/openshift/origin/pkg/build/webhook/gitlab"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/bitbucket"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/generic"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/github"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/gitlab"
 )
 
 type ExtraConfig struct {

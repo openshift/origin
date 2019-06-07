@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	templatev1 "github.com/openshift/api/template/v1"
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

@@ -15,9 +15,9 @@ import (
 
 	templatev1 "github.com/openshift/api/template/v1"
 
+	"github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/controller"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 	osbclient "github.com/openshift/template-service-broker/pkg/openservicebroker/client"
