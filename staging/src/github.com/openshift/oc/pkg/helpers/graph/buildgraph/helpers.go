@@ -6,7 +6,6 @@ import (
 	"github.com/gonum/graph"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/oc/pkg/helpers/build"
 	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 )
@@ -56,13 +55,13 @@ func belongsToBuildConfig(config *buildv1.BuildConfig, b *buildv1.Build) bool {
 	if b.Labels == nil {
 		return false
 	}
-	if b.Annotations != nil && b.Annotations[buildutil.BuildConfigAnnotation] == config.Name {
+	if b.Annotations != nil && b.Annotations[buildv1.BuildConfigAnnotation] == config.Name {
 		return true
 	}
-	if b.Labels[buildutil.BuildConfigLabel] == config.Name {
+	if b.Labels[buildv1.BuildConfigLabel] == config.Name {
 		return true
 	}
-	if b.Labels[buildutil.BuildConfigLabelDeprecated] == config.Name {
+	if b.Labels[buildv1.BuildConfigLabelDeprecated] == config.Name {
 		return true
 	}
 	return false

@@ -1,7 +1,6 @@
 package util
 
 import (
-	"reflect"
 	"testing"
 )
 

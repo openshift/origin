@@ -30,8 +30,8 @@ func FilterBuilds(builds []buildv1.Build, predicate PredicateFunc) []buildv1.Bui
 // ByBuildConfigPredicate matches all builds that have build config annotation or label with specified value.
 func ByBuildConfigPredicate(labelValue string) PredicateFunc {
 	return func(arg interface{}) bool {
-		return hasBuildConfigAnnotation(arg.(buildv1.Build), BuildConfigAnnotation, labelValue) ||
-			hasBuildConfigLabel(arg.(buildv1.Build), BuildConfigLabel, labelValue)
+		return hasBuildConfigAnnotation(arg.(buildv1.Build), buildv1.BuildConfigAnnotation, labelValue) ||
+			hasBuildConfigLabel(arg.(buildv1.Build), buildv1.BuildConfigLabel, labelValue)
 	}
 }
 
