@@ -38,9 +38,9 @@ import (
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
-	imageappend "github.com/openshift/origin/pkg/oc/cli/image/append"
-	"github.com/openshift/origin/pkg/oc/cli/image/extract"
-	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
+	imageappend "github.com/openshift/oc/pkg/cli/image/append"
+	"github.com/openshift/oc/pkg/cli/image/extract"
+	imagemanifest "github.com/openshift/oc/pkg/cli/image/manifest"
 )
 
 func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {

@@ -24,6 +24,7 @@ import (
 	migratetemplateinstances "github.com/openshift/oc/pkg/cli/admin/migrate/templateinstances"
 	"github.com/openshift/oc/pkg/cli/admin/network"
 	"github.com/openshift/oc/pkg/cli/admin/node"
+	"github.com/openshift/oc/pkg/cli/admin/release"
 	"github.com/openshift/oc/pkg/cli/admin/upgrade"
 	"github.com/openshift/oc/pkg/cli/kubectlwrappers"
 	"github.com/openshift/oc/pkg/cli/options"
@@ -38,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
-	"github.com/openshift/origin/pkg/oc/cli/admin/release"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
 )

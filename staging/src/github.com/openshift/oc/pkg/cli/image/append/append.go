@@ -30,10 +30,10 @@ import (
 	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/registryclient"
+	imagemanifest "github.com/openshift/oc/pkg/cli/image/manifest"
+	"github.com/openshift/oc/pkg/cli/image/workqueue"
 	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 	"github.com/openshift/oc/pkg/helpers/image/dockerlayer/add"
-	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
-	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
 
 var (
