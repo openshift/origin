@@ -543,7 +543,7 @@ items:
       name: frontend
     tls:
       insecureEdgeTerminationPolicy: Redirect
-      type: Edge
+      termination: edge
   status:
     ingress:
     - routerName: other

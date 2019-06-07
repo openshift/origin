@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
@@ -55,17 +56,18 @@ import (
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	projectclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
-	"github.com/openshift/library-go/pkg/build/naming"
-	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
-	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	securityclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/library-go/pkg/build/naming"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	authorizationhelpers "github.com/openshift/oc/pkg/helpers/authorization"
+	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 	"github.com/openshift/oc/pkg/helpers/legacy"
 	quotahelpers "github.com/openshift/oc/pkg/helpers/quota"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
-	"github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 func describerMap(clientConfig *rest.Config, kclient kubernetes.Interface, host string) map[schema.GroupKind]describe.Describer {
@@ -288,7 +290,7 @@ func nameAndNamespace(ns, name string) string {
 }
 
 func describeCommonSpec(p buildv1.CommonSpec, out *tabwriter.Writer) {
-	formatString(out, "\nStrategy", buildapihelpers.StrategyType(p.Strategy))
+	formatString(out, "\nStrategy", buildhelpers.StrategyType(p.Strategy))
 	noneType := true
 	if p.Source.Git != nil {
 		noneType = false
@@ -550,7 +552,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings describ
 	if err != nil {
 		return "", err
 	}
-	buildList.Items = ocbuildapihelpers.FilterBuilds(buildList.Items, ocbuildapihelpers.ByBuildConfigPredicate(name))
+	buildList.Items = buildhelpers.FilterBuilds(buildList.Items, buildhelpers.ByBuildConfigPredicate(name))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, buildConfig.ObjectMeta)
@@ -577,7 +579,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings describ
 			fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 			builds := buildList.Items
-			sort.Sort(sort.Reverse(buildapihelpers.BuildSliceByCreationTimestamp(builds)))
+			sort.Sort(sort.Reverse(buildhelpers.BuildSliceByCreationTimestamp(builds)))
 
 			for i, build := range builds {
 				fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",
@@ -685,14 +687,22 @@ func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 			formatAnnotations(out, image.ObjectMeta, "")
 		}
 
+		if err := ocimageutil.ImageWithMetadata(image); err != nil {
+			return err
+		}
+		dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
+		if !ok {
+			klog.V(1).Infof("Unable to cast image metadata: %s, %#v", string(image.DockerImageMetadata.Raw), image.DockerImageMetadata.Object)
+			return fmt.Errorf("unable to read image metadata")
+		}
 		switch l := len(image.DockerImageLayers); l {
 		case 0:
 			// legacy case, server does not know individual layers
-			formatString(out, "Layer Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+			formatString(out, "Layer Size", units.HumanSize(float64(dockerImage.Size)))
 		case 1:
-			formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+			formatString(out, "Image Size", units.HumanSize(float64(dockerImage.Size)))
 		default:
-			formatString(out, "Image Size", fmt.Sprintf("%s in %d layers", units.HumanSize(float64(image.DockerImageMetadata.Size)), len(image.DockerImageLayers)))
+			formatString(out, "Image Size", fmt.Sprintf("%s in %d layers", units.HumanSize(float64(dockerImage.Size)), len(image.DockerImageLayers)))
 			var layers []string
 			for _, layer := range image.DockerImageLayers {
 				layers = append(layers, fmt.Sprintf("%s\t%s", units.HumanSize(float64(layer.LayerSize)), layer.Name))
@@ -707,16 +717,15 @@ func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 				}
 			}
 		}
-		//formatString(out, "Parent Image", image.DockerImageMetadata.Parent)
-		formatString(out, "Image Created", fmt.Sprintf("%s ago", formatRelativeTime(image.DockerImageMetadata.Created.Time)))
-		formatString(out, "Author", image.DockerImageMetadata.Author)
-		formatString(out, "Arch", image.DockerImageMetadata.Architecture)
-		describeDockerImage(out, image.DockerImageMetadata.Config)
+		formatString(out, "Image Created", fmt.Sprintf("%s ago", formatRelativeTime(dockerImage.Created.Time)))
+		formatString(out, "Author", dockerImage.Author)
+		formatString(out, "Arch", dockerImage.Architecture)
+		describeDockerImage(out, &dockerImage.ContainerConfig)
 		return nil
 	})
 }
 
-func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
+func describeDockerImage(out *tabwriter.Writer, image *dockerv10.DockerConfig) {
 	if image == nil {
 		return
 	}
@@ -768,7 +777,7 @@ type ImageStreamTagDescriber struct {
 // Describe returns the description of an imageStreamTag
 func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings describe.DescriberSettings) (string, error) {
 	c := d.c.ImageStreamTags(namespace)
-	repo, tag, err := util.ParseImageStreamTagName(name)
+	repo, tag, err := imageutil.ParseImageStreamTagName(name)
 	if err != nil {
 		return "", err
 	}
@@ -872,11 +881,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 				if len(ingress.RouterCanonicalHostname) > 0 {
 					hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 				}
-				external := routev1.RouteIngress{}
-				if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
-					return err
-				}
-				switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+				switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routev1.RouteAdmitted); status {
 				case corev1.ConditionTrue:
 					fmt.Fprintf(out, "\t  exposed on router %s%s %s ago\n", ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 				case corev1.ConditionFalse:
@@ -898,11 +903,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 			if len(ingress.RouterCanonicalHostname) > 0 {
 				hostName = fmt.Sprintf(" (host %s)", ingress.RouterCanonicalHostname)
 			}
-			external := routev1.RouteIngress{}
-			if err := routev1conversions.Convert_route_RouteIngress_To_v1_RouteIngress(&ingress, &external, nil); err != nil {
-				return err
-			}
-			switch status, condition := routedisplayhelpers.IngressConditionStatus(&external, routev1.RouteAdmitted); status {
+			switch status, condition := routedisplayhelpers.IngressConditionStatus(&ingress, routev1.RouteAdmitted); status {
 			case corev1.ConditionTrue:
 				fmt.Fprintf(out, "\t%s exposed on router %s %s%s ago\n", ingress.Host, ingress.RouterName, hostName, strings.ToLower(formatRelativeTime(condition.LastTransitionTime.Time)))
 			case corev1.ConditionFalse:
@@ -1163,12 +1164,19 @@ func (d *TemplateDescriber) DescribeParameters(params []templatev1.Parameter, ou
 }
 
 // describeObjects prints out information about the objects of a template
-func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwriter.Writer) {
+func (d *TemplateDescriber) describeObjects(objects []runtime.RawExtension, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 	indent := "    "
 	for _, obj := range objects {
+		converted, err := runtime.Decode(unstructured.UnstructuredJSONScheme, obj.Raw)
+		if err != nil {
+			klog.V(1).Infof("Unable to process %s, skipping: %v", string(obj.Raw), err)
+			fmt.Fprintln(out, "<unknown>")
+			continue
+		}
+
 		if d.ObjectDescriber != nil {
-			output, err := d.DescribeObject(obj)
+			output, err := d.DescribeObject(converted)
 			if err != nil {
 				fmt.Fprintf(out, "error: %v\n", err)
 				continue
@@ -1178,25 +1186,19 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 			continue
 		}
 
-		name, _ := d.MetadataAccessor.Name(obj)
+		name, _ := d.MetadataAccessor.Name(converted)
 		groupKind := "<unknown>"
-		if gvk, _, err := d.ObjectTyper.ObjectKinds(obj); err == nil {
+		if gvk, _, err := d.ObjectTyper.ObjectKinds(converted); err == nil {
 			gk := gvk[0].GroupKind()
 			groupKind = gk.String()
 		} else {
-			if unstructured, ok := obj.(*unstructured.Unstructured); ok {
+			if unstructured, ok := converted.(*unstructured.Unstructured); ok {
 				gvk := unstructured.GroupVersionKind()
 				gk := gvk.GroupKind()
 				groupKind = gk.String()
 			}
 		}
 		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, groupKind, name))
-		//meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
-		//meta.Labels, _ = d.MetadataAccessor.Labels(obj)
-		/*if len(meta.Labels) > 0 {
-			formatString(out, indent+"Labels", formatLabels(meta.Labels))
-		}
-		formatAnnotations(out, meta, indent)*/
 	}
 }
 
@@ -1209,9 +1211,6 @@ func (d *TemplateDescriber) Describe(namespace, name string, settings describe.D
 	}
 	return d.DescribeTemplate(template)
 }
-
-	// TODO: write error?
-	_ = runtime.DecodeList(template.Objects, unstructured.UnstructuredJSONScheme)
 
 func (d *TemplateDescriber) DescribeTemplate(template *templatev1.Template) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
@@ -1473,18 +1472,18 @@ func (d *GroupDescriber) Describe(namespace, name string, settings describe.Desc
 
 const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tResource Names\tAPI Groups\tResources"
 
-	if rule.AttributeRestrictions != nil {
 func DescribePolicyRule(out *tabwriter.Writer, rule authorizationv1.PolicyRule, indent string) {
+	if len(rule.AttributeRestrictions.Raw) != 0 {
 		// We are not supporting attribute restrictions going forward
 		return
 	}
 
 	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\n",
-		rule.Verbs.List(),
-		rule.NonResourceURLs.List(),
-		rule.ResourceNames.List(),
+		rule.Verbs,
+		rule.NonResourceURLsSlice,
+		rule.ResourceNames,
 		rule.APIGroups,
-		rule.Resources.List(),
+		rule.Resources,
 	)
 }
 
@@ -1535,7 +1534,7 @@ func (d *RoleBindingDescriber) Describe(namespace, name string, settings describ
 	if len(roleBinding.RoleRef.Namespace) == 0 {
 		var clusterRole *authorizationv1.ClusterRole
 		clusterRole, err = d.c.ClusterRoles().Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
-		role = authorizationapi.ToRole(clusterRole)
+		role = authorizationhelpers.ToRole(clusterRole)
 	} else {
 		role, err = d.c.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
 	}
@@ -1545,7 +1544,7 @@ func (d *RoleBindingDescriber) Describe(namespace, name string, settings describ
 
 // DescribeRoleBinding prints out information about a role binding and its associated role
 func DescribeRoleBinding(roleBinding *authorizationv1.RoleBinding, role *authorizationv1.Role, err error) (string, error) {
-	users, groups, sas, others := authorizationv1.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+	users, groups, sas, others := authorizationhelpers.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, roleBinding.ObjectMeta)
@@ -1586,7 +1585,7 @@ func (d *ClusterRoleDescriber) Describe(namespace, name string, settings describ
 		return "", err
 	}
 
-	return DescribeRole(authorizationapi.ToRole(role))
+	return DescribeRole(authorizationhelpers.ToRole(role))
 }
 
 // ClusterRoleBindingDescriber generates information about a Project
@@ -1603,7 +1602,7 @@ func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings 
 	}
 
 	role, err := d.c.ClusterRoles().Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
-	return DescribeRoleBinding(authorizationapi.ToRoleBinding(roleBinding), authorizationapi.ToRole(role), err)
+	return DescribeRoleBinding(authorizationhelpers.ToRoleBinding(roleBinding), authorizationhelpers.ToRole(role), err)
 }
 
 func describeBuildTriggerCauses(causes []buildv1.BuildTriggerCause, out *tabwriter.Writer) {

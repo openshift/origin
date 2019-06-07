@@ -176,6 +176,7 @@ func TestFollowTagReference(t *testing.T) {
 			tag:         "mytag",
 			expFinalTag: "sometag",
 			expRef: &imagev1.TagReference{
+				Name: "sometag",
 				From: &corev1.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:sometag"},
 			},
 			expMultiple: true,
@@ -196,6 +197,7 @@ func TestFollowTagReference(t *testing.T) {
 			tag:         "mytag",
 			expFinalTag: "sometag",
 			expRef: &imagev1.TagReference{
+				Name: "sometag",
 				From: &corev1.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:sometag"},
 			},
 			expMultiple: true,

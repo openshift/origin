@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: hello
 spec:
+  completions: 1
   template:
     metadata:
       name: hello

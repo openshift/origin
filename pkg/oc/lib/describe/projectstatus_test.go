@@ -2,7 +2,6 @@ package describe
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -39,7 +38,6 @@ import (
 	fakerouteclient "github.com/openshift/client-go/route/clientset/versioned/fake"
 	fakeroutev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake"
 	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
-	"github.com/openshift/origin/pkg/api/install"
 )
 
 func mustParseTime(t string) time.Time {
@@ -678,16 +676,12 @@ func readObjectsFromPath(path, namespace string) ([]runtime.Object, error) {
 	}
 	// Create a scheme with only the types we care about, also to ensure we
 	// are not messing with the bult-in schemes.
-	// We need to perform roundtripping to invoke defaulting, just deserializing
-	// files is not sufficient here.
 	scheme := runtime.NewScheme()
 	kubernetesscheme.AddToScheme(scheme)
 	api.Install(scheme)
-	install.InstallInternalKube(scheme)
-	install.InstallInternalOpenShift(scheme)
 	codecs := serializer.NewCodecFactory(scheme)
-	decoder := codecs.UniversalDecoder()
-	obj, err := runtime.Decode(decoder, data)
+	deserializer := codecs.UniversalDeserializer()
+	obj, err := runtime.Decode(deserializer, data)
 	if err != nil {
 		return nil, err
 	}
@@ -695,13 +689,13 @@ func readObjectsFromPath(path, namespace string) ([]runtime.Object, error) {
 		if err := setNamespace(scheme, obj, namespace); err != nil {
 			return nil, err
 		}
-		return convertToExternal(scheme, []runtime.Object{obj})
+		return []runtime.Object{obj}, nil
 	}
 	list, err := meta.ExtractList(obj)
 	if err != nil {
 		return nil, err
 	}
-	errs := runtime.DecodeList(list, decoder)
+	errs := runtime.DecodeList(list, deserializer)
 	if len(errs) > 0 {
 		return nil, errs[0]
 	}
@@ -710,30 +704,7 @@ func readObjectsFromPath(path, namespace string) ([]runtime.Object, error) {
 			return nil, err
 		}
 	}
-	return convertToExternal(scheme, list)
-}
-
-func convertToExternal(scheme *runtime.Scheme, objs []runtime.Object) ([]runtime.Object, error) {
-	result := make([]runtime.Object, 0, len(objs))
-	for _, obj := range objs {
-		gvks, _, err := scheme.ObjectKinds(obj)
-		if err != nil {
-			return nil, err
-		}
-		if len(gvks) == 0 {
-			return nil, fmt.Errorf("Unknown GroupVersionKind for %#v", obj)
-		}
-		gvs := scheme.PrioritizedVersionsForGroup(gvks[0].Group)
-		if len(gvs) == 0 {
-			return nil, fmt.Errorf("Unknown GroupVersion for %#v", obj)
-		}
-		ext, err := scheme.ConvertToVersion(obj, gvs[0])
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, ext)
-	}
-	return result, nil
+	return list, nil
 }
 
 func setNamespace(scheme *runtime.Scheme, obj runtime.Object, namespace string) error {

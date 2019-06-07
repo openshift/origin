@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 )
 
 const emptyString = "<none>"
@@ -211,12 +212,12 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 	now := timeNowFn()
 
 	images := make(map[string]string)
-	for tag, tags := range stream.Status.Tags {
-		for _, item := range tags.Items {
+	for _, tag := range stream.Status.Tags {
+		for _, item := range tag.Items {
 			switch {
 			case len(item.Image) > 0:
 				if _, ok := images[item.Image]; !ok {
-					images[item.Image] = tag
+					images[item.Image] = tag.Tag
 				}
 			case len(item.DockerImageReference) > 0:
 				if _, ok := images[item.DockerImageReference]; !ok {
@@ -227,30 +228,29 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 	}
 
 	sortedTags := []string{}
-	for k := range stream.Status.Tags {
-		sortedTags = append(sortedTags, k)
+	for _, tag := range stream.Status.Tags {
+		sortedTags = append(sortedTags, tag.Tag)
 	}
 	var localReferences sets.String
 	var referentialTags map[string]sets.String
-	for k := range stream.Spec.Tags {
-		// there is a v1helper version of this
-		if target, _, multiple, err := followTagReference(stream, k); err == nil && multiple {
+	for _, tag := range stream.Spec.Tags {
+		if target, _, multiple, err := imagehelpers.FollowTagReference(stream, tag.Name); err == nil && multiple {
 			if referentialTags == nil {
 				referentialTags = make(map[string]sets.String)
 			}
 			if localReferences == nil {
 				localReferences = sets.NewString()
 			}
-			localReferences.Insert(k)
+			localReferences.Insert(tag.Name)
 			v := referentialTags[target]
 			if v == nil {
 				v = sets.NewString()
 				referentialTags[target] = v
 			}
-			v.Insert(k)
+			v.Insert(tag.Name)
 		}
-		if _, ok := stream.Status.Tags[k]; !ok {
-			sortedTags = append(sortedTags, k)
+		if _, ok := imagehelpers.StatusHasTag(stream, tag.Name); !ok {
+			sortedTags = append(sortedTags, tag.Name)
 		}
 	}
 	fmt.Fprintf(out, "Unique Images:\t%d\nTags:\t%d\n\n", len(images), len(sortedTags))
@@ -266,8 +266,8 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 		} else {
 			fmt.Fprintf(out, "\n")
 		}
-		taglist, _ := stream.Status.Tags[tag]
-		tagRef, hasSpecTag := stream.Spec.Tags[tag]
+		taglist, _ := imagehelpers.StatusHasTag(stream, tag)
+		tagRef, hasSpecTag := imagehelpers.SpecHasTag(stream, tag)
 		scheduled := false
 		insecure := false
 		importing := false
@@ -431,7 +431,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 // LatestObservedTagGeneration returns the generation value for the given tag that has been observed by the controller
 // monitoring the image stream. If the tag has not been observed, the generation is zero.
 func latestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 {
-	tagEvents, ok := stream.Status.Tags[tag]
+	tagEvents, ok := imagehelpers.StatusHasTag(stream, tag)
 	if !ok {
 		return 0
 	}

@@ -11,21 +11,16 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/api"
 	appsv1 "github.com/openshift/api/apps/v1"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/api/image/docker10"
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/api/legacy"
-	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
-	_ "k8s.io/kubernetes/pkg/apis/batch/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -43,15 +38,15 @@ type describeClient struct {
 // If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
 // reason.
 var DescriberCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&buildv1.BuildLog{}),                  // normal users don't ever look at these
-	reflect.TypeOf(&buildv1.BuildLogOptions{}),           // normal users don't ever look at these
-	reflect.TypeOf(&buildv1.BinaryBuildRequestOptions{}), // normal users don't ever look at these
-	reflect.TypeOf(&buildv1.BuildRequest{}),              // normal users don't ever look at these
-	reflect.TypeOf(&appsv1.DeploymentConfigRollback{}),   // normal users don't ever look at these
-	reflect.TypeOf(&appsv1.DeploymentLog{}),              // normal users don't ever look at these
-	reflect.TypeOf(&appsv1.DeploymentLogOptions{}),       // normal users don't ever look at these
-	reflect.TypeOf(&appsv1.DeploymentRequest{}),          // normal users don't ever look at these
-	// reflect.TypeOf(&imagev1.DockerImage{}),                           // not a top level resource
+	reflect.TypeOf(&buildv1.BuildLog{}),                              // normal users don't ever look at these
+	reflect.TypeOf(&buildv1.BuildLogOptions{}),                       // normal users don't ever look at these
+	reflect.TypeOf(&buildv1.BinaryBuildRequestOptions{}),             // normal users don't ever look at these
+	reflect.TypeOf(&buildv1.BuildRequest{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentConfigRollback{}),               // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentLog{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentLogOptions{}),                   // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentRequest{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&dockerv10.DockerImage{}),                         // not a top level resource
 	reflect.TypeOf(&imagev1.ImageStreamImport{}),                     // normal users don't ever look at these
 	reflect.TypeOf(&oauthv1.OAuthAccessToken{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&oauthv1.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
@@ -87,10 +82,13 @@ var MissingDescriberCoverageExceptions = []reflect.Type{
 }
 
 func TestDescriberCoverage(t *testing.T) {
+	scheme := runtime.NewScheme()
+	kubernetesscheme.AddToScheme(scheme)
+	api.Install(scheme)
 
 main:
-	for _, apiType := range legacyscheme.Scheme.KnownTypes(legacy.InternalGroupVersion) {
-		if !strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin") || strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
+	for gvk, apiType := range scheme.AllKnownTypes() {
+		if !strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/api") || strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}
 		// we don't describe lists
@@ -110,8 +108,7 @@ main:
 			}
 		}
 
-		gk := legacy.InternalGroupVersion.WithKind(apiType.Name()).GroupKind()
-		_, ok := DescriberFor(gk, &rest.Config{}, fake.NewSimpleClientset(), "")
+		_, ok := DescriberFor(gvk.GroupKind(), &rest.Config{}, fake.NewSimpleClientset(), "")
 		if !ok {
 			t.Errorf("missing describer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}
@@ -450,6 +447,7 @@ func TestDescribeImage(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
+				DockerImageMetadata: runtime.RawExtension{Object: &dockerv10.DockerImage{}},
 			},
 			want: []string{"Name:.+test"},
 		},
@@ -462,6 +460,7 @@ func TestDescribeImage(t *testing.T) {
 					{Name: "sha256:1234", LayerSize: 3409},
 					{Name: "sha256:5678", LayerSize: 1024},
 				},
+				DockerImageMetadata: runtime.RawExtension{Object: &dockerv10.DockerImage{}},
 			},
 			want: []string{
 				"Layers:.+3.409kB\\ssha256:1234",
@@ -474,13 +473,11 @@ func TestDescribeImage(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				DockerImageMetadata: docker10.DockerImage{
-					Size: 4430,
-				},
-				DockerImageLayers: []imageapi.ImageLayer{
+				DockerImageLayers: []imagev1.ImageLayer{
 					{Name: "sha256:1234", LayerSize: 3409},
 					{Name: "sha256:5678", LayerSize: 1024},
 				},
+				DockerImageMetadata: runtime.RawExtension{Object: &dockerv10.DockerImage{Size: 4430}},
 			},
 			want: []string{
 				"Layers:.+3.409kB\\ssha256:1234",

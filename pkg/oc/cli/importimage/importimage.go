@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -20,7 +19,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
@@ -204,15 +202,8 @@ func (o *ImportImageOptions) Run() error {
 	message = fmt.Sprintf("%s\n\n", message)
 
 	if result.Status.Import != nil {
-
-		// TODO: remove once we have external describers
-		internalResult := &imageapi.ImageStreamImport{}
-		if legacyscheme.Scheme.Convert(result, internalResult, nil); err != nil {
-			return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
-		}
-
 		// TODO: dry-run doesn't return an image stream, so we have to display partial results
-		info, err := describe.DescribeImageStream(internalResult.Status.Import)
+		info, err := describe.DescribeImageStream(result.Status.Import)
 		if err != nil {
 			return err
 		}
@@ -223,13 +214,7 @@ func (o *ImportImageOptions) Run() error {
 	if repo := result.Status.Repository; repo != nil {
 		for _, image := range repo.Images {
 			if image.Image != nil {
-				// TODO: remove once we have external describers
-				var internalImage imageapi.Image
-				if legacyscheme.Scheme.Convert(image.Image, &internalImage, nil); err != nil {
-					return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
-				}
-
-				info, err := describe.DescribeImage(&internalImage, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
+				info, err := describe.DescribeImage(image.Image, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
 				if err != nil {
 					fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 				} else {
@@ -243,13 +228,7 @@ func (o *ImportImageOptions) Run() error {
 
 	for _, image := range result.Status.Images {
 		if image.Image != nil {
-			// TODO: remove once we have external describers
-			var internalImage imageapi.Image
-			if legacyscheme.Scheme.Convert(image.Image, &internalImage, nil); err != nil {
-				return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
-			}
-
-			info, err := describe.DescribeImage(&internalImage, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
+			info, err := describe.DescribeImage(image.Image, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
 			if err != nil {
 				fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 			} else {

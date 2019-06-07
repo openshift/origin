@@ -36,8 +36,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 )
 
 var (
@@ -179,17 +177,11 @@ func (p *processPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
 			return fmt.Errorf("attempt to describe a non-template object of type %T", obj)
 		}
 
-		// TODO(juanvallejo): remove once we have external describers
-		internalTemplate := &templateapi.Template{}
-		if err := templateapiv1.Convert_v1_Template_To_template_Template(templateObj, internalTemplate, nil); err != nil {
-			return err
-		}
-
 		s, err := (&describe.TemplateDescriber{
 			MetadataAccessor: meta.NewAccessor(),
 			ObjectTyper:      legacyscheme.Scheme,
 			ObjectDescriber:  nil,
-		}).DescribeTemplate(internalTemplate)
+		}).DescribeTemplate(templateObj)
 
 		if err != nil {
 			return fmt.Errorf("error describing %q: %v\n", templateObj.Name, err)
@@ -395,12 +387,7 @@ func (o *ProcessOptions) RunProcess() error {
 	// If 'parameters' flag is set it does not do processing but only print
 	// the template parameters to console for inspection.
 	if o.parameters {
-		// TODO(juanvallejo): remove once we have external describers
-		internalTemplate := &templateapi.Template{}
-		if err := templateapiv1.Convert_v1_Template_To_template_Template(obj, internalTemplate, nil); err != nil {
-			return err
-		}
-		return describe.PrintTemplateParameters(internalTemplate.Parameters, o.Out)
+		return describe.PrintTemplateParameters(obj.Parameters, o.Out)
 	}
 
 	if label := o.labels; len(label) > 0 {
