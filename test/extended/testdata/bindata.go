@@ -385,6 +385,7 @@
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
+// test/extended/testdata/oauth_idp/basic-auth-server.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
@@ -51697,6 +51698,133 @@ func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOauth_idpBasicAuthServerYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-basic-auth
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-basic-auth
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.8
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/
+        - name: cache
+          mountPath: /var/cache/nginx/
+        - name: htpasswd-secret
+          mountPath: /etc/secret
+        - name: index
+          mountPath: /var/www
+        securityContext:
+          privileged: true
+      volumes:
+       - name: config
+         configMap:
+           name: config
+       - name: htpasswd-secret
+         secret:
+           secretName: htpasswd-secret
+       - name: index
+         configMap:
+           name: index
+       - name: cache
+         emptyDir: {}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+  labels:
+    app: nginx-basic-auth
+spec:
+  ports:
+    - name: login
+      port: 8080
+  selector:
+    app: nginx-basic-auth
+
+---
+apiVersion: v1
+kind: Route
+metadata:
+  labels:
+    app: nginx-basic-auth
+  name: nginx-route
+spec:
+  port:
+    targetPort: login
+  to:
+    kind: Service
+    name: nginx-svc
+  tls:
+    termination: edge
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: htpasswd-secret
+data:
+  htpasswd: ZnJhbnRhOiRhcHIxJFo3V0R0b2VKJFFwdFEyVHNPOWVOamlOOWU4NHY3dDAK # franta:natrabanta
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: index
+data:
+  index.json: |
+    {"sub": "franta"}
+  401.json: |
+    {"error": "bad-user"}
+
+---
+
+apiVersion: v1
+kind: ClusterRole
+metadata:
+  name: scc-privileged-user
+rules:
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+  resourceNames:
+  - privileged
+`)
+
+func testExtendedTestdataOauth_idpBasicAuthServerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauth_idpBasicAuthServerYaml, nil
+}
+
+func testExtendedTestdataOauth_idpBasicAuthServerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauth_idpBasicAuthServerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauth_idp/basic-auth-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -56628,6 +56756,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/oauth_idp/basic-auth-server.yaml": testExtendedTestdataOauth_idpBasicAuthServerYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
@@ -57305,6 +57434,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"oauth_idp": &bintree{nil, map[string]*bintree{
+					"basic-auth-server.yaml": &bintree{testExtendedTestdataOauth_idpBasicAuthServerYaml, map[string]*bintree{}},
+				}},
 				"oauthserver": &bintree{nil, map[string]*bintree{
 					"cabundle-cm.yaml": &bintree{testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
 					"oauth-network.yaml": &bintree{testExtendedTestdataOauthserverOauthNetworkYaml, map[string]*bintree{}},
