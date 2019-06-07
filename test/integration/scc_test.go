@@ -10,11 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
-	"github.com/openshift/origin/pkg/security/apis/security"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -132,13 +131,13 @@ func TestAllowedSCCViaRBAC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	user1SecurityClient := securityclient.NewForConfigOrDie(user1Config)
+	user1SecurityClient := securityv1client.NewForConfigOrDie(user1Config)
 
 	user2Client, user2Config, err := testserver.CreateNewProject(clusterAdminClientConfig, project2, user2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	user2SecurityClient := securityclient.NewForConfigOrDie(user2Config)
+	user2SecurityClient := securityv1client.NewForConfigOrDie(user2Config)
 
 	// make sure the SAs are ready so we can deploy pods
 
@@ -269,16 +268,16 @@ func getPrivilegedPod(name string) *corev1.Pod {
 	}
 }
 
-func runAsRootPSPSSR() *security.PodSecurityPolicySelfSubjectReview {
-	return &security.PodSecurityPolicySelfSubjectReview{
-		Spec: security.PodSecurityPolicySelfSubjectReviewSpec{
-			Template: kapi.PodTemplateSpec{
-				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{
+func runAsRootPSPSSR() *securityv1.PodSecurityPolicySelfSubjectReview {
+	return &securityv1.PodSecurityPolicySelfSubjectReview{
+		Spec: securityv1.PodSecurityPolicySelfSubjectReviewSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:  "fake",
 							Image: "fake",
-							SecurityContext: &kapi.SecurityContext{
+							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: new(int64), // root
 							},
 						},

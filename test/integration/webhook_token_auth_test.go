@@ -20,10 +20,10 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	oauthv1typedclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/cli/whoami"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -194,11 +194,11 @@ func TestWebhookTokenAuthn(t *testing.T) {
 		t.Errorf("Server was not called in the test")
 	}
 
-	oauthClient, err := oauthclient.NewForConfig(userConfig)
+	oauthClient, err := oauthv1typedclient.NewForConfig(userConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	err = oauthClient.Oauth().OAuthAccessTokens().Delete("XYZ", &metav1.DeleteOptions{})
+	err = oauthClient.OAuthAccessTokens().Delete("XYZ", &metav1.DeleteOptions{})
 	if !kerrors.IsForbidden(err) {
 		t.Errorf("expected a forbidden error, got %v", err)
 	}

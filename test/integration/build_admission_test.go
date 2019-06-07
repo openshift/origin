@@ -18,8 +18,8 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	templatev1clienttyped "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -258,7 +258,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	template.Name = "jenkins-ephemeral"
 	template.Namespace = "openshift"
 
-	_, err = templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template().Templates("openshift").Create(template)
+	_, err = templatev1clienttyped.NewForConfigOrDie(clusterAdminClientConfig).Templates("openshift").Create(template)
 	if err != nil {
 		t.Fatalf("Couldn't create jenkins template: %v", err)
 	}

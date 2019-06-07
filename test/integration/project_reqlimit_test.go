@@ -11,11 +11,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	projectv1 "github.com/openshift/api/project/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -48,9 +49,9 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 	}
 }
 
-func setupProjectRequestLimitUsers(t *testing.T, client userclient.UserInterface, users map[string]labels.Set) {
+func setupProjectRequestLimitUsers(t *testing.T, client userv1client.UserV1Interface, users map[string]labels.Set) {
 	for userName, labels := range users {
-		user := &userapi.User{}
+		user := &userv1.User{}
 		user.Name = userName
 		user.Labels = map[string]string(labels)
 		_, err := client.Users().Create(user)
@@ -125,7 +126,7 @@ func projectRequestLimitUsers() map[string]labels.Set {
 func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
 	kclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitMultiLevelConfig())
 	defer fn()
-	setupProjectRequestLimitUsers(t, userclient.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
+	setupProjectRequestLimitUsers(t, userv1client.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 0,
 		"silver":  2,
@@ -141,7 +142,7 @@ func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
 func TestProjectRequestLimitEmptyConfig(t *testing.T) {
 	kclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitEmptyConfig())
 	defer fn()
-	setupProjectRequestLimitUsers(t, userclient.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
+	setupProjectRequestLimitUsers(t, userv1client.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 5,
 		"silver":  2,
@@ -157,7 +158,7 @@ func TestProjectRequestLimitEmptyConfig(t *testing.T) {
 func TestProjectRequestLimitSingleConfig(t *testing.T) {
 	kclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 	defer fn()
-	setupProjectRequestLimitUsers(t, userclient.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
+	setupProjectRequestLimitUsers(t, userv1client.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 0,
 		"silver":  1,
@@ -175,14 +176,14 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 	_, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 	defer fn()
-	projectClient := projectclient.NewForConfigOrDie(clientConfig).Project()
+	projectClient := projectv1client.NewForConfigOrDie(clientConfig)
 
-	if _, err := projectClient.ProjectRequests().Create(&projectapi.ProjectRequest{
+	if _, err := projectClient.ProjectRequests().Create(&projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}); err != nil {
 		t.Errorf("uenxpected error: %v", err)
 	}
-	if _, err := projectClient.ProjectRequests().Create(&projectapi.ProjectRequest{
+	if _, err := projectClient.ProjectRequests().Create(&projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "bar"},
 	}); !apierrors.IsForbidden(err) {
 		t.Errorf("missing error: %v", err)
@@ -195,9 +196,9 @@ func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientCo
 		if err != nil {
 			t.Fatalf("Error getting client for user %s: %v", user, err)
 		}
-		projectRequest := &projectapi.ProjectRequest{}
+		projectRequest := &projectv1.ProjectRequest{}
 		projectRequest.Name = names.SimpleNameGenerator.GenerateName("test-projectreq")
-		_, err = projectclient.NewForConfigOrDie(clientConfig).Project().ProjectRequests().Create(projectRequest)
+		_, err = projectv1client.NewForConfigOrDie(clientConfig).ProjectRequests().Create(projectRequest)
 		if err != nil && expectSuccess {
 			t.Errorf("%s: unexpected error for user %s: %v", errorPrefix, user, err)
 			continue
