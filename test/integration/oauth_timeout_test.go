@@ -8,11 +8,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -21,7 +21,7 @@ func testTokenWorks(t *testing.T, anonConfig *restclient.Config, token string, e
 	// Make sure we can use the token, and it represents who we expect
 	userConfig := *anonConfig
 	userConfig.BearerToken = token
-	userClient, err := userclient.NewForConfig(&userConfig)
+	userClient, err := userv1client.NewForConfig(&userConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func testTokenWorks(t *testing.T, anonConfig *restclient.Config, token string, e
 	}
 }
 
-func testTimeoutOAuthFlows(t *testing.T, tokens oauthclient.OAuthAccessTokenInterface, oauthClient *oauthapi.OAuthClient, anonConfig *restclient.Config, expectedTimeout int32) string {
+func testTimeoutOAuthFlows(t *testing.T, tokens oauthv1client.OAuthAccessTokenInterface, oauthClient *oauthv1.OAuthClient, anonConfig *restclient.Config, expectedTimeout int32) string {
 	var lastToken string
 
 	// token flow followed by code flow
@@ -90,17 +90,17 @@ func TestOAuthTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oauthClient := oauthclient.NewForConfigOrDie(clientConfig)
+	oauthClient := oauthv1client.NewForConfigOrDie(clientConfig)
 
 	// Use the server and CA info
 	anonConfig := restclient.AnonymousClientConfig(clientConfig)
 
 	{
-		client, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 			ObjectMeta:            metav1.ObjectMeta{Name: "defaulttimeout"},
 			RespondWithChallenges: true,
 			RedirectURIs:          []string{"http://localhost"},
-			GrantMethod:           oauthapi.GrantHandlerAuto,
+			GrantMethod:           oauthv1.GrantHandlerAuto,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -110,12 +110,12 @@ func TestOAuthTimeout(t *testing.T) {
 	}
 
 	{
-		client, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 			ObjectMeta:                          metav1.ObjectMeta{Name: "notimeout"},
 			RespondWithChallenges:               true,
 			RedirectURIs:                        []string{"http://localhost"},
 			AccessTokenInactivityTimeoutSeconds: new(int32),
-			GrantMethod:                         oauthapi.GrantHandlerAuto,
+			GrantMethod:                         oauthv1.GrantHandlerAuto,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -128,12 +128,12 @@ func TestOAuthTimeout(t *testing.T) {
 	// than the allowable minimum
 	{
 		invalid := int32(oauthvalidation.MinimumInactivityTimeoutSeconds - 1)
-		_, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		_, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 			ObjectMeta:                          metav1.ObjectMeta{Name: "notvalid"},
 			RespondWithChallenges:               true,
 			RedirectURIs:                        []string{"http://localhost"},
 			AccessTokenInactivityTimeoutSeconds: &invalid,
-			GrantMethod:                         oauthapi.GrantHandlerAuto,
+			GrantMethod:                         oauthv1.GrantHandlerAuto,
 		})
 		if !kerrors.IsInvalid(err) {
 			t.Errorf("The 'notvalid' test is supposed to be invalid but gave=%v", err)
@@ -142,12 +142,12 @@ func TestOAuthTimeout(t *testing.T) {
 
 	{
 		min := int32(oauthvalidation.MinimumInactivityTimeoutSeconds)
-		client, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 			ObjectMeta:                          metav1.ObjectMeta{Name: "mintimeout"},
 			RespondWithChallenges:               true,
 			RedirectURIs:                        []string{"http://localhost"},
 			AccessTokenInactivityTimeoutSeconds: &min,
-			GrantMethod:                         oauthapi.GrantHandlerAuto,
+			GrantMethod:                         oauthv1.GrantHandlerAuto,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -176,18 +176,18 @@ func TestOAuthTimeoutNotEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oauthClient := oauthclient.NewForConfigOrDie(clientConfig)
+	oauthClient := oauthv1client.NewForConfigOrDie(clientConfig)
 
 	// Use the server and CA info
 	anonConfig := restclient.AnonymousClientConfig(clientConfig)
 
 	min := int32(oauthvalidation.MinimumInactivityTimeoutSeconds)
-	client, err := oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
+	client, err := oauthClient.OAuthClients().Create(&oauthv1.OAuthClient{
 		ObjectMeta:                          metav1.ObjectMeta{Name: "shorttimeoutthatisignored"},
 		RespondWithChallenges:               true,
 		RedirectURIs:                        []string{"http://localhost"},
 		AccessTokenInactivityTimeoutSeconds: &min,
-		GrantMethod:                         oauthapi.GrantHandlerAuto,
+		GrantMethod:                         oauthv1.GrantHandlerAuto,
 	})
 	if err != nil {
 		t.Fatal(err)

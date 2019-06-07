@@ -18,13 +18,13 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	projectapiv1 "github.com/openshift/api/project/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -88,7 +88,7 @@ func TestFrontProxy(t *testing.T) {
 	defer proxyServer.Close()
 	t.Logf("front proxy server is on %v\n", proxyServer.URL)
 
-	w, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Watch(metav1.ListOptions{})
+	w, err := projectv1client.NewForConfigOrDie(clusterAdminClientConfig).Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestFrontProxy(t *testing.T) {
 			continue
 		}
 
-		projectList := &projectapiv1.ProjectList{}
+		projectList := &projectv1.ProjectList{}
 		if err := json.Unmarshal(data, projectList); err != nil {
 			t.Errorf("%s failed to unmarshal project list: %v %s", test.name, err, dataString)
 			continue

@@ -26,11 +26,11 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
 	"github.com/openshift/oauth-server/pkg/scopecovers"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -67,7 +67,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig).Oauth()
-	clusterAdminUserClient := userclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminUserClient := userv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	projectName := "hammer-project"
 	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, "harold"); err != nil {
@@ -438,7 +438,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	}
 }
 
-func deleteUser(clusterAdminUserClient userclient.UserInterface, name string) error {
+func deleteUser(clusterAdminUserClient userv1client.UserV1Interface, name string) error {
 	oldUser, err := clusterAdminUserClient.Users().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -592,7 +592,7 @@ func runOAuthFlow(
 		whoamiConfig := restclient.AnonymousClientConfig(clusterAdminClientConfig)
 		whoamiConfig.BearerToken = accessData.AccessToken
 		whoamiBuildClient := buildv1client.NewForConfigOrDie(whoamiConfig).BuildV1()
-		whoamiUserClient := userclient.NewForConfigOrDie(whoamiConfig)
+		whoamiUserClient := userv1client.NewForConfigOrDie(whoamiConfig)
 
 		_, err = whoamiBuildClient.Builds(projectName).List(metav1.ListOptions{})
 		if expectBuildSuccess && err != nil {
