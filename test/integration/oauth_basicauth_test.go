@@ -13,10 +13,11 @@ import (
 
 	"k8s.io/client-go/util/cert"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
+
 	"github.com/openshift/origin/pkg/cmd/util"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -271,7 +272,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		// Make sure we can use the token, and it represents who we expect
 		userConfig := anonConfig
 		userConfig.BearerToken = accessToken
-		userClient, err := userclient.NewForConfig(&userConfig)
+		userClient, err := userv1client.NewForConfig(&userConfig)
 		if err != nil {
 			t.Fatalf("%s: Unexpected error: %v", k, err)
 		}

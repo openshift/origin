@@ -15,8 +15,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/oc/cli/login"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -277,7 +277,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 		// Make sure we can use the token, and it represents who we expect
 		userConfig := anonConfig
 		userConfig.BearerToken = accessToken
-		userClient := userclient.NewForConfigOrDie(&userConfig)
+		userClient := userv1client.NewForConfigOrDie(&userConfig)
 		user, err := userClient.Users().Get("~", metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", k, err)

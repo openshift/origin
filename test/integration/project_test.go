@@ -14,16 +14,14 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	projectinternalversion "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -40,7 +38,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project()
+	clusterAdminProjectClient := projectv1client.NewForConfigOrDie(clusterAdminClientConfig)
 	kubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -65,7 +63,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now create a project
-	project = &projectapi.Project{
+	project = &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "new-project",
 			Annotations: map[string]string{
@@ -110,7 +108,7 @@ func TestProjectWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	bobProjectClient := projectclient.NewForConfigOrDie(bobConfig).Project()
+	bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
 	w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -191,7 +189,7 @@ func TestProjectWatchWithSelectionPredicate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	bobProjectClient := projectclient.NewForConfigOrDie(bobConfig).Project()
+	bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
 	w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
 		FieldSelector: "metadata.name=ns-01",
 	})
@@ -246,7 +244,7 @@ func waitForNoEvent(w watch.Interface, skipProject string, t *testing.T) {
 			if event.Type != watch.Modified {
 				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
 			}
-			project, ok := event.Object.(*projectapi.Project)
+			project, ok := event.Object.(*projectv1.Project)
 			if !ok {
 				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
 			}
@@ -266,7 +264,7 @@ func waitForDelete(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
 		case event := <-w.ResultChan():
-			project := event.Object.(*projectapi.Project)
+			project := event.Object.(*projectv1.Project)
 			t.Logf("got %#v %#v", event, project)
 			if event.Type == watch.Deleted && project.Name == projectName {
 				return
@@ -281,7 +279,7 @@ func waitForAdd(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
 		case event := <-w.ResultChan():
-			project := event.Object.(*projectapi.Project)
+			project := event.Object.(*projectv1.Project)
 			t.Logf("got %#v %#v", event, project)
 			if event.Type == watch.Added && project.Name == projectName {
 				return
@@ -297,7 +295,7 @@ func waitForOnlyAdd(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
 		case event := <-w.ResultChan():
-			project := event.Object.(*projectapi.Project)
+			project := event.Object.(*projectv1.Project)
 			t.Logf("got %#v %#v", event, project)
 			if project.Name == projectName {
 				// the first event we see for the expected project must be an ADD
@@ -322,7 +320,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
 		case event := <-w.ResultChan():
-			project := event.Object.(*projectapi.Project)
+			project := event.Object.(*projectv1.Project)
 			t.Logf("got %#v %#v", event, project)
 			if project.Name == projectName {
 				if event.Type == watch.Deleted {
@@ -330,7 +328,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
 				}
 				// if its an event indicating Terminated status, don't fail, but keep waiting
 				if event.Type == watch.Modified {
-					terminating := project.Status.Phase == kapi.NamespaceTerminating
+					terminating := project.Status.Phase == corev1.NamespaceTerminating
 					if !terminating && hasTerminated.Has(project.Name) {
 						t.Fatalf("project %s was terminating, but then got an event where it was not terminating: %#v", project.Name, project)
 					}
@@ -368,7 +366,7 @@ func TestScopedProjectAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fullBobClient := projectclient.NewForConfigOrDie(fullBobConfig).Project()
+	fullBobClient := projectv1client.NewForConfigOrDie(fullBobConfig)
 
 	_, oneTwoBobConfig, err := testutil.GetScopedClientForUser(clusterAdminClientConfig, "bob", []string{
 		scope.UserListScopedProjects,
@@ -378,14 +376,14 @@ func TestScopedProjectAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	oneTwoBobClient := projectclient.NewForConfigOrDie(oneTwoBobConfig).Project()
+	oneTwoBobClient := projectv1client.NewForConfigOrDie(oneTwoBobConfig)
 
 	_, twoThreeBobConfig, err := testutil.GetScopedClientForUser(clusterAdminClientConfig, "bob", []string{
 		scope.UserListScopedProjects,
 		scope.ClusterRoleIndicator + "view:two",
 		scope.ClusterRoleIndicator + "view:three",
 	})
-	twoThreeBobClient := projectclient.NewForConfigOrDie(twoThreeBobConfig).Project()
+	twoThreeBobClient := projectv1client.NewForConfigOrDie(twoThreeBobConfig)
 
 	_, allBobConfig, err := testutil.GetScopedClientForUser(clusterAdminClientConfig, "bob", []string{
 		scope.UserListScopedProjects,
@@ -394,7 +392,7 @@ func TestScopedProjectAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	allBobClient := projectclient.NewForConfigOrDie(allBobConfig).Project()
+	allBobClient := projectv1client.NewForConfigOrDie(allBobConfig)
 
 	oneTwoWatch, err := oneTwoBobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
@@ -485,7 +483,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminRbacClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig)
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	_, bobConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "bob")
 	if err != nil {
@@ -537,7 +535,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 
 	// wait for evaluation errors to show up in both namespaces and at cluster scope
 	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-		review := &authorizationapi.ResourceAccessReview{Action: authorizationapi.Action{Verb: "get", Resource: "pods"}}
+		review := &authorizationv1.ResourceAccessReview{Action: authorizationv1.Action{Verb: "get", Resource: "pods"}}
 		review.Action.Namespace = "foo"
 		if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
 			return false, err
@@ -556,15 +554,15 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	// Make sure bob still sees his project (and only his project)
-	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(bobConfig).Project().Projects(), sets.NewString("foo")); hasErr != nil {
+	if hasErr := hasExactlyTheseProjects(projectv1client.NewForConfigOrDie(bobConfig).Projects(), sets.NewString("foo")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure alice still sees her project (and only her project)
-	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(aliceConfig).Project().Projects(), sets.NewString("bar")); hasErr != nil {
+	if hasErr := hasExactlyTheseProjects(projectv1client.NewForConfigOrDie(aliceConfig).Projects(), sets.NewString("bar")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure cluster admin still sees all projects
-	if projects, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().List(metav1.ListOptions{}); err != nil {
+	if projects, err := projectv1client.NewForConfigOrDie(clusterAdminClientConfig).Projects().List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else {
 		projectNames := sets.NewString()
@@ -577,7 +575,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 }
 
-func hasExactlyTheseProjects(lister projectinternalversion.ProjectResourceInterface, projects sets.String) error {
+func hasExactlyTheseProjects(lister projectv1client.ProjectInterface, projects sets.String) error {
 	var lastErr error
 	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 		list, err := lister.List(metav1.ListOptions{})

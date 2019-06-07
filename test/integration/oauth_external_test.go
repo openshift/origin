@@ -20,10 +20,10 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -205,7 +205,7 @@ func TestOauthExternal(t *testing.T) {
 	clientConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	clientConfig.BearerToken = accessToken
 
-	user, err := userclient.NewForConfigOrDie(clientConfig).Users().Get("~", metav1.GetOptions{})
+	user, err := userv1client.NewForConfigOrDie(clientConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
