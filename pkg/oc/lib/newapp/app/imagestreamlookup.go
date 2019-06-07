@@ -59,7 +59,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 		followTag := false
 		searchTag := ref.Tag
 		if len(searchTag) == 0 {
-			searchTag = imageapi.DefaultImageTag
+			searchTag = imagev1.DefaultImageTag
 			followTag = true
 		}
 		for _, namespace := range namespaces {

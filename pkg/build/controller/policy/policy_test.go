@@ -14,8 +14,6 @@ import (
 	"github.com/openshift/client-go/build/clientset/versioned/fake"
 	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func newTestClient(builds ...buildv1.Build) v1.BuildsGetter {
@@ -67,11 +65,11 @@ func addBuild(name, bcName string, phase buildv1.BuildPhase, policy buildv1.Buil
 			Name:      name,
 			Namespace: "test",
 			Labels: map[string]string{
-				buildutil.BuildRunPolicyLabel: string(policy),
-				buildutil.BuildConfigLabel:    bcName,
+				buildv1.BuildRunPolicyLabel: string(policy),
+				buildv1.BuildConfigLabel:    bcName,
 			},
 			Annotations: map[string]string{
-				buildutil.BuildNumberAnnotation: parts[len(parts)-1],
+				buildv1.BuildNumberAnnotation: parts[len(parts)-1],
 			},
 		},
 		Status: buildv1.BuildStatus{Phase: phase},

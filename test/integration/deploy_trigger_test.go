@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
@@ -152,7 +153,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	createTagEvent := func() {
 		mapping := &imageapi.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{Name: imageStream.Name},
-			Tag:        imageapi.DefaultImageTag,
+			Tag:        imagev1.DefaultImageTag,
 			Image: imageapi.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: updatedImage,
@@ -170,7 +171,7 @@ func TestTriggers_imageChange(t *testing.T) {
 			select {
 			case event := <-imageWatch.ResultChan():
 				stream := event.Object.(*imageapi.ImageStream)
-				if _, ok := stream.Status.Tags[imageapi.DefaultImageTag]; ok {
+				if _, ok := stream.Status.Tags[imagev1.DefaultImageTag]; ok {
 					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 					break statusLoop
 				}
@@ -246,7 +247,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	// then wait for the stream status to be asynchronously updated.
 	mapping := &imageapi.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: imageStream.Name},
-		Tag:        imageapi.DefaultImageTag,
+		Tag:        imagev1.DefaultImageTag,
 		Image: imageapi.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: image,
@@ -268,7 +269,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 			select {
 			case event := <-imageWatch.ResultChan():
 				stream := event.Object.(*imageapi.ImageStream)
-				tagEventList, ok := stream.Status.Tags[imageapi.DefaultImageTag]
+				tagEventList, ok := stream.Status.Tags[imagev1.DefaultImageTag]
 				if ok && len(tagEventList.Items) > 0 && tagEventList.Items[0].DockerImageReference == mapping.Image.DockerImageReference {
 					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 					return
@@ -415,7 +416,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	firstTrigger := appstest.OkImageChangeTrigger()
 	secondTrigger := appstest.OkImageChangeTrigger()
 	secondTrigger.ImageChangeParams.ContainerNames = []string{"container2"}
-	secondTrigger.ImageChangeParams.From.Name = imageutil.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
+	secondTrigger.ImageChangeParams.From.Name = imageutil.JoinImageStreamTag("sample", imagev1.DefaultImageTag)
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
 
 	configWatch, err := adminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
@@ -482,7 +483,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	timeout := time.After(30 * time.Second)
 
 	t.Log("Should not trigger a new deployment in response to the first imagestream update")
-	createTagEvent(imageStream.Name, imageapi.DefaultImageTag, updatedImage, updatedPullSpec)
+	createTagEvent(imageStream.Name, imagev1.DefaultImageTag, updatedImage, updatedPullSpec)
 out:
 	for {
 		select {
@@ -510,7 +511,7 @@ out:
 	t.Log("Should trigger a new deployment in response to the second imagestream update")
 	secondImage := "sampleimage"
 	secondPullSpec := "samplepullspec"
-	createTagEvent(secondImageStream.Name, imageapi.DefaultImageTag, secondImage, secondPullSpec)
+	createTagEvent(secondImageStream.Name, imagev1.DefaultImageTag, secondImage, secondPullSpec)
 	for {
 	inner:
 		select {

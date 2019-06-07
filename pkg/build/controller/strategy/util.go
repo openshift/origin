@@ -299,7 +299,7 @@ func setupAdditionalSecrets(pod *corev1.Pod, container *corev1.Container, secret
 
 // getPodLabels creates labels for the Build Pod
 func getPodLabels(build *buildv1.Build) map[string]string {
-	return map[string]string{buildutil.BuildLabel: buildapihelpers.LabelValue(build.Name)}
+	return map[string]string{buildv1.BuildLabel: buildapihelpers.LabelValue(build.Name)}
 }
 
 func makeOwnerReference(build *buildv1.Build) metav1.OwnerReference {

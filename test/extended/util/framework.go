@@ -35,6 +35,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
@@ -821,7 +822,7 @@ func WaitForAnImageStream(client imagetypeclientset.ImageStreamInterface,
 			}
 			if isFailed(&list.Items[i]) {
 				return fmt.Errorf("The image stream %q status is %q",
-					name, list.Items[i].Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
+					name, list.Items[i].Annotations[imagev1.DockerImageRepositoryCheckAnnotation])
 			}
 		}
 
@@ -844,7 +845,7 @@ func WaitForAnImageStream(client imagetypeclientset.ImageStreamInterface,
 				}
 				if isFailed(e) {
 					return fmt.Errorf("The image stream %q status is %q",
-						name, e.Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
+						name, e.Annotations[imagev1.DockerImageRepositoryCheckAnnotation])
 				}
 			}
 		}
@@ -895,8 +896,8 @@ func CheckImageStreamLatestTagPopulated(i *imageapi.ImageStream) bool {
 
 // CheckImageStreamTagNotFound return true if the imagestream update was not successful
 func CheckImageStreamTagNotFound(i *imageapi.ImageStream) bool {
-	return strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "not") ||
-		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
+	return strings.Contains(i.Annotations[imagev1.DockerImageRepositoryCheckAnnotation], "not") ||
+		strings.Contains(i.Annotations[imagev1.DockerImageRepositoryCheckAnnotation], "error")
 }
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition

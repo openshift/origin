@@ -69,7 +69,7 @@ func checkBuildConfigReadiness(oc buildv1client.Interface, obj runtime.Object) (
 	}
 
 	for _, item := range builds.Items {
-		if item.Annotations[buildutil.BuildNumberAnnotation] == strconv.FormatInt(bc.Status.LastVersion, 10) {
+		if item.Annotations[buildv1.BuildNumberAnnotation] == strconv.FormatInt(bc.Status.LastVersion, 10) {
 			return checkBuildReadiness(&item)
 		}
 	}

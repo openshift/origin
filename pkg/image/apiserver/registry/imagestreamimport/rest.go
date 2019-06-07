@@ -7,10 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/image/internalimageutil"
-
 	gocontext "golang.org/x/net/context"
-	"k8s.io/klog"
 
 	authorizationapi "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,12 +19,13 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	"github.com/openshift/api/image"
-	imageapiv1 "github.com/openshift/api/image/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -38,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/internalimageutil"
 )
 
 // ImporterFunc returns an instance of the importer that should be used per invocation.
@@ -266,7 +265,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		stream.Annotations = make(map[string]string)
 	}
 	now := metav1.Now()
-	_, hasAnnotation := stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
+	_, hasAnnotation := stream.Annotations[imagev1.DockerImageRepositoryCheckAnnotation]
 	nextGeneration := stream.Generation + 1
 
 	original := stream.DeepCopy()
@@ -340,7 +339,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	// ensure defaulting is applied by round trip converting
 	// TODO: convert to using versioned types.
-	external, err := legacyscheme.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
+	external, err := legacyscheme.Scheme.ConvertToVersion(stream, imagev1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +354,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	// an import
 	hasChanges := !kapihelper.Semantic.DeepEqual(original, stream)
 	if create {
-		stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
+		stream.Annotations[imagev1.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 		klog.V(4).Infof("create new stream: %#v", stream)
 		obj, err = r.internalStreams.Create(ctx, stream, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	} else {
@@ -366,7 +365,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			if klog.V(4) {
 				klog.V(4).Infof("updating stream %s", diff.ObjectDiff(original, stream))
 			}
-			stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
+			stream.Annotations[imagev1.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{})
 		}
 	}

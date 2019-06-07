@@ -8,17 +8,18 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
-	"k8s.io/klog"
 
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -569,7 +570,7 @@ func isRepositoryInsecure(obj runtime.Object) bool {
 		klog.V(4).Infof("Error getting accessor for %#v", obj)
 		return false
 	}
-	return accessor.GetAnnotations()[imageapi.InsecureRepositoryAnnotation] == "true"
+	return accessor.GetAnnotations()[imagev1.InsecureRepositoryAnnotation] == "true"
 }
 
 func getWhitelistTransportForFlag(insecure, allowSecureFallback bool) whitelist.WhitelistTransport {

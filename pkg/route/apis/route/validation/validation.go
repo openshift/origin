@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
@@ -14,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -190,36 +188,6 @@ var knownBlockDecoders = map[string]blockVerifierFunc{
 	"EC PARAMETERS": ignoreBlockVerifier,
 }
 
-// sanitizePEM takes a block of data that should be encoded in PEM and returns only
-// the parts of it that parse and serialize as valid recognized certs in valid PEM blocks.
-// We perform this transformation to eliminate potentially incorrect / invalid PEM contents
-// to prevent OpenSSL or other non Golang tools from receiving unsanitized input.
-func sanitizePEM(data []byte) ([]byte, error) {
-	var block *pem.Block
-	buf := &bytes.Buffer{}
-	for len(data) > 0 {
-		block, data = pem.Decode(data)
-		if block == nil {
-			return buf.Bytes(), nil
-		}
-		fn, ok := knownBlockDecoders[block.Type]
-		if !ok {
-			return nil, fmt.Errorf("unrecognized PEM block %s", block.Type)
-		}
-		newBlock, err := fn(block)
-		if err != nil {
-			return nil, err
-		}
-		if newBlock == nil {
-			continue
-		}
-		if err := pem.Encode(buf, newBlock); err != nil {
-			return nil, err
-		}
-	}
-	return buf.Bytes(), nil
-}
-
 // validateTLS tests fields for different types of TLS combinations are set.  Called
 // by ValidateRoute.
 func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
@@ -302,37 +270,6 @@ func validateInsecureEdgeTerminationPolicy(tls *routeapi.TLSConfig, fldPath *fie
 	}
 
 	return nil
-}
-
-// validateCertificatePEM checks if a certificate PEM is valid and
-// optionally verifies the certificate using the options.
-func validateCertificatePEM(certPEM string, options *x509.VerifyOptions) ([]*x509.Certificate, error) {
-	certs, err := cert.ParseCertsPEM([]byte(certPEM))
-	if err != nil {
-		return nil, err
-	}
-
-	if len(certs) < 1 {
-		return nil, fmt.Errorf("invalid/empty certificate data")
-	}
-
-	if options != nil {
-		// Ensure we don't report errors for expired certs or if
-		// the validity is in the future.
-		// Not that this can be for the actual certificate or any
-		// intermediates in the CA chain. This allows the router to
-		// still serve an expired/valid-in-the-future certificate
-		// and lets the client to control if it can tolerate that
-		// (just like for self-signed certs).
-		_, err = certs[0].Verify(*options)
-		if err != nil {
-			if invalidErr, ok := err.(x509.CertificateInvalidError); !ok || invalidErr.Reason != x509.Expired {
-				return certs, fmt.Errorf("error verifying certificate: %s", err.Error())
-			}
-		}
-	}
-
-	return certs, nil
 }
 
 var (

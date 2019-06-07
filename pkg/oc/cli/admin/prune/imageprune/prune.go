@@ -40,7 +40,6 @@ import (
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
@@ -959,7 +958,7 @@ func edgeKind(g genericgraph.Graph, from, to gonum.Node, desiredKind string) boo
 // age.
 func imageIsPrunable(g genericgraph.Graph, imageNode *imagegraph.ImageNode, algorithm pruneAlgorithm) bool {
 	if !algorithm.allImages {
-		if imageNode.Image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
+		if imageNode.Image.Annotations[imagev1.ManagedByOpenShiftAnnotation] != "true" {
 			klog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping",
 				imageNode.Image.Name, imageNode.Image.DockerImageReference)
 			return false

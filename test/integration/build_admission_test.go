@@ -18,8 +18,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -354,8 +352,8 @@ func strategyForType(t *testing.T, strategy string) buildv1.BuildStrategy {
 func createBuild(t *testing.T, buildInterface buildv1clienttyped.BuildInterface, strategy string) (*buildv1.Build, error) {
 	build := &buildv1.Build{}
 	build.ObjectMeta.Labels = map[string]string{
-		buildutil.BuildConfigLabel:    "mock-build-config",
-		buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
+		buildv1.BuildConfigLabel:    "mock-build-config",
+		buildv1.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 	}
 	build.GenerateName = strings.ToLower(string(strategy)) + "-build-"
 	build.Spec.Strategy = strategyForType(t, strategy)

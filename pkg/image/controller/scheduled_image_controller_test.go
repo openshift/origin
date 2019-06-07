@@ -14,7 +14,6 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestScheduledImport(t *testing.T) {
@@ -22,7 +21,7 @@ func TestScheduledImport(t *testing.T) {
 	stream := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test", Namespace: "other", UID: "1", ResourceVersion: "1",
-			Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: "done"},
+			Annotations: map[string]string{imagev1.DockerImageRepositoryCheckAnnotation: "done"},
 			Generation:  1,
 		},
 		Spec: imagev1.ImageStreamSpec{

@@ -240,7 +240,7 @@ func getBaseImageWith1Layer() imageapi.Image {
 	return imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        testutil.BaseImageWith1LayerDigest,
-			Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
+			Annotations: map[string]string{imagev1.ManagedByOpenShiftAnnotation: "true"},
 		},
 		DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s", "test", testutil.BaseImageWith1LayerDigest),
 		DockerImageManifest:  testutil.BaseImageWith1Layer,

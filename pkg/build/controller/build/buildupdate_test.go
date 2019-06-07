@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestBuildUpdateSetters(t *testing.T) {
@@ -87,7 +86,7 @@ func TestBuildUpdateSetters(t *testing.T) {
 				u.setPodNameAnnotation("test-pod-name")
 			},
 			validateApply: func(b *buildv1.Build) bool {
-				return b.Annotations != nil && b.Annotations[buildutil.BuildPodNameAnnotation] == "test-pod-name"
+				return b.Annotations != nil && b.Annotations[buildv1.BuildPodNameAnnotation] == "test-pod-name"
 			},
 			expected: "buildUpdate(podName: \"test-pod-name\")",
 		},

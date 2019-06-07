@@ -14,6 +14,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	authclient "github.com/openshift/openshift-apiserver/pkg/client/impersonatingclient"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -83,7 +84,7 @@ func (si *secretInjector) admit(attr admission.Attributes, mutationAllowed bool)
 		}
 
 		for k, v := range secret.GetAnnotations() {
-			if strings.HasPrefix(k, buildapi.BuildSourceSecretMatchURIAnnotationPrefix) {
+			if strings.HasPrefix(k, buildv1.BuildSourceSecretMatchURIAnnotationPrefix) {
 				v = strings.TrimSpace(v)
 				if v == "" {
 					continue

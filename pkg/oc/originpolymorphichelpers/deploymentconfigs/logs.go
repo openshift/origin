@@ -1,14 +1,14 @@
-package internalversion
+package deploymentconfigs
 
 import (
-	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
 )
 
 type RolloutLogInterface interface {
-	Logs(name string, options appsapi.DeploymentLogOptions) *rest.Request
+	Logs(name string, options appsv1.DeploymentLogOptions) *rest.Request
 }
 
 func NewRolloutLogClient(c rest.Interface, ns string) RolloutLogInterface {
@@ -20,7 +20,7 @@ type rolloutLogs struct {
 	ns     string
 }
 
-func (c *rolloutLogs) Logs(name string, options appsapi.DeploymentLogOptions) *rest.Request {
+func (c *rolloutLogs) Logs(name string, options appsv1.DeploymentLogOptions) *rest.Request {
 	return c.client.
 		Get().
 		Namespace(c.ns).

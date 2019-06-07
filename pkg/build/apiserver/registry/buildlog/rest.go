@@ -377,7 +377,7 @@ func versionForBuild(build *buildv1.Build) int {
 	if build == nil {
 		return 0
 	}
-	versionString := build.Annotations[buildapi.BuildNumberAnnotation]
+	versionString := build.Annotations[buildv1.BuildNumberAnnotation]
 	version, err := strconv.Atoi(versionString)
 	if err != nil {
 		return 0

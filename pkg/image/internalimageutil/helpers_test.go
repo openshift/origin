@@ -11,6 +11,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -52,7 +53,7 @@ func TestImageWithMetadata(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 					Annotations: map[string]string{
-						imageapi.DockerImageLayersOrderAnnotation: imageapi.DockerImageLayersOrderAscending,
+						imagev1.DockerImageLayersOrderAnnotation: imagev1.DockerImageLayersOrderAscending,
 					},
 				},
 				DockerImageManifest: validImageWithManifestData().DockerImageManifest,
@@ -134,7 +135,7 @@ func TestImageWithMetadata(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 					Annotations: map[string]string{
-						imageapi.DockerImageLayersOrderAnnotation: imageapi.DockerImageLayersOrderAscending,
+						imagev1.DockerImageLayersOrderAnnotation: imagev1.DockerImageLayersOrderAscending,
 					},
 				},
 				DockerImageConfig:            validImageWithManifestV2Data().DockerImageConfig,

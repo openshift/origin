@@ -58,7 +58,6 @@ import (
 	routegraph "github.com/openshift/oc/pkg/helpers/graph/routegraph/nodes"
 	"github.com/openshift/oc/pkg/helpers/parallel"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 const ForbiddenListWarning = "Forbidden"
@@ -1615,7 +1614,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 			return nil, err
 		}
 		_, isDeployerPod := meta.GetLabels()[appsv1.DeployerPodForDeploymentLabel]
-		_, isBuilderPod := meta.GetAnnotations()[buildapi.BuildAnnotation]
+		_, isBuilderPod := meta.GetAnnotations()[buildv1.BuildAnnotation]
 		isFinished := actualPod.Status.Phase == corev1.PodSucceeded || actualPod.Status.Phase == corev1.PodFailed
 		if isDeployerPod || isBuilderPod || isFinished {
 			continue

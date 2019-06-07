@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -166,8 +167,8 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 			}
 			tagReference := stream.Spec.Tags[toName]
 
-			preferArch := tagReference.Annotations[imageapi.ImporterPreferArchAnnotation]
-			preferOS := tagReference.Annotations[imageapi.ImporterPreferOSAnnotation]
+			preferArch := tagReference.Annotations[imagev1.ImporterPreferArchAnnotation]
+			preferOS := tagReference.Annotations[imagev1.ImporterPreferOSAnnotation]
 
 			tag := manifestKey{repositoryKey: key, preferArch: preferArch, preferOS: preferOS}
 			tag.value = defaultRef.Tag
@@ -521,7 +522,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		set := sets.NewString(tags...)
 		if set.Has("") {
 			set.Delete("")
-			set.Insert(imageapi.DefaultImageTag)
+			set.Insert(imagev1.DefaultImageTag)
 		}
 		tags = set.List()
 		// include only the top N tags in the result, put the rest in AdditionalTags
@@ -625,7 +626,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 		set := sets.NewString(tags...)
 		if set.Has("") {
 			set.Delete("")
-			set.Insert(imageapi.DefaultImageTag)
+			set.Insert(imagev1.DefaultImageTag)
 		}
 		tags = set.List()
 		// include only the top N tags in the result, put the rest in AdditionalTags

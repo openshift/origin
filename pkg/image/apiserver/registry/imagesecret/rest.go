@@ -13,7 +13,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	corev1conversion "k8s.io/kubernetes/pkg/apis/core/v1"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagev1 "github.com/openshift/api/image/v1"
 )
 
 // REST implements the RESTStorage interface for ImageStreamImport
@@ -57,7 +57,7 @@ func (r *REST) Get(ctx context.Context, _ string, options runtime.Object) (runti
 	}
 	filtered := make([]coreapi.Secret, 0, len(secrets.Items))
 	for i := range secrets.Items {
-		if secrets.Items[i].Annotations[imageapi.ExcludeImageSecretAnnotation] == "true" {
+		if secrets.Items[i].Annotations[imagev1.ExcludeImageSecretAnnotation] == "true" {
 			continue
 		}
 		switch secrets.Items[i].Type {

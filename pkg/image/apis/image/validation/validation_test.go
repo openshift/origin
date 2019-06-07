@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
@@ -259,7 +260,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 				},
-				Tag: imageapi.DefaultImageTag,
+				Tag: imagev1.DefaultImageTag,
 				Image: imageapi.Image{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo",
@@ -276,7 +277,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 				},
-				Tag: imageapi.DefaultImageTag,
+				Tag: imagev1.DefaultImageTag,
 				Image: imageapi.Image{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo",
@@ -311,7 +312,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 					Namespace: "default",
 				},
 				DockerImageRepository: "openshift/ruby-19-centos",
-				Tag:                   imageapi.DefaultImageTag,
+				Tag:                   imagev1.DefaultImageTag,
 				Image: imageapi.Image{
 					DockerImageReference: "openshift/ruby-19-centos",
 				},
@@ -325,7 +326,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 					Namespace: "default",
 				},
 				DockerImageRepository: "registry/extra/openshift//ruby-19-centos",
-				Tag:                   imageapi.DefaultImageTag,
+				Tag:                   imagev1.DefaultImageTag,
 				Image: imageapi.Image{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo",

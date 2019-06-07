@@ -64,10 +64,10 @@ func mockBuild() *buildv1.Build {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "mock-build",
 			Labels: map[string]string{
-				"label1":                      "value1",
-				"label2":                      "value2",
-				buildutil.BuildConfigLabel:    "mock-build-config",
-				buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
+				"label1":                    "value1",
+				"label2":                    "value2",
+				buildv1.BuildConfigLabel:    "mock-build-config",
+				buildv1.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 			},
 		},
 		Spec: buildv1.BuildSpec{

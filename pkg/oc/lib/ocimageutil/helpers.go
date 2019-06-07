@@ -6,8 +6,8 @@ import (
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil/internal/digest"
 )
 
 // ImageWithMetadata mutates the given image. It parses raw DockerImageManifest data stored in the image and
@@ -60,7 +60,7 @@ func HasAnnotationTag(tagRef *imagev1.TagReference, searchTag string) bool {
 // ShortDockerImageID returns a short form of the provided DockerImage ID for display
 func ShortDockerImageID(image *imageapi.DockerImage, length int) string {
 	id := image.ID
-	if s, err := digest.ParseDigest(id); err == nil {
+	if s, err := imageutil.ParseDigest(id); err == nil {
 		id = s.Hex()
 	}
 	if len(id) > length {

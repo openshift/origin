@@ -163,7 +163,7 @@ func (o *ImportImageOptions) parseImageReference() error {
 		return fmt.Errorf("cannot specify a tag %q as well as --all", o.Target)
 	case len(targetRef.Tag) == 0 && !o.All:
 		// apply the default tag
-		targetRef.Tag = imageapi.DefaultImageTag
+		targetRef.Tag = imagev1.DefaultImageTag
 	}
 	o.Name = targetRef.Name
 	o.Tag = targetRef.Tag
@@ -378,7 +378,7 @@ func (o *ImportImageOptions) importTag(stream *imagev1.ImageStream) (*imagev1.Im
 		return nil, fmt.Errorf("tag %q on the image stream is a reference to same tag", tag)
 	case imageapi.ErrNotFoundReference:
 		// create a new tag
-		if len(from) == 0 && tag == imageapi.DefaultImageTag {
+		if len(from) == 0 && tag == imagev1.DefaultImageTag {
 			from = stream.Spec.DockerImageRepository
 		}
 		// if the from is still empty this means there's no such tag defined
@@ -416,7 +416,7 @@ func (o *ImportImageOptions) importTag(stream *imagev1.ImageStream) (*imagev1.Im
 		}
 
 		// clear the legacy annotation
-		delete(existing.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
+		delete(existing.Annotations, imagev1.DockerImageRepositoryCheckAnnotation)
 		// reset the generation
 		zero := int64(0)
 		existing.Generation = &zero
@@ -508,7 +508,7 @@ func (o *ImportImageOptions) newImageStreamImport(stream *imagev1.ImageStream) (
 		},
 		Spec: imagev1.ImageStreamImportSpec{Import: !o.DryRun},
 	}
-	insecureAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
+	insecureAnnotation := stream.Annotations[imagev1.InsecureRepositoryAnnotation]
 	insecure := insecureAnnotation == "true"
 	// --insecure flag (if provided) takes precedence over insecure annotation
 	if o.InsecureFlagProvided {
