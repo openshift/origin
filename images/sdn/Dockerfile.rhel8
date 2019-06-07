@@ -1,0 +1,25 @@
+# This image contains the RHEL8 base and ovs/ovn fastdatapath RHEL8 rpms needed to set up ovs/ovn
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+
+RUN INSTALL_PKGS=" \
+      which tar wget hostname shadow-utils \
+      socat findutils lsof bind-utils gzip \
+      procps-ng rsync ethtool socat nmap-ncat \
+      libmnl libnetfilter_conntrack \
+      libnfnetlink iproute procps-ng openssl \
+      binutils xz dbus \
+      openvswitch2.11 container-selinux \
+      openvswitch2.11-ovn-common openvswitch2.11-ovn-central \
+      openvswitch2.11-ovn-host openvswitch2.11-ovn-vtep \
+      openvswitch2.11-devel containernetworking-plugins \
+      conntrack-tools bridge-utils nftables sysvinit-tools \
+      " && \
+    if [ ! -e /usr/bin/dnf ]; then ln -s /usr/bin/microdnf /usr/bin/dnf; fi && \
+    dnf install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    dnf clean all && rm -rf /var/cache/*
+
+
+LABEL io.k8s.display-name="openvirtualswitch" \
+      io.k8s.description="This is a component of OpenShift and contains the openvswitch (ovs/ovn) networking tool stack for the default SDN implementation." \
+      io.openshift.tags="openshift,sdn,ovs,ovn"
