@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/signature"
 	"github.com/google/uuid"
-	toml "github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -41,13 +41,12 @@ import (
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 const (
@@ -92,7 +91,7 @@ func TestHandleBuild(t *testing.T) {
 	build := func(phase buildv1.BuildPhase) *buildv1.Build {
 		b := dockerStrategy(mockBuild(phase, buildv1.BuildOutput{}))
 		if phase != buildv1.BuildPhaseNew {
-			podName := buildapihelpers.GetBuildPodName(b)
+			podName := buildutil.GetBuildPodName(b)
 			common.SetBuildPodNameAnnotation(b, podName)
 		}
 		return b
@@ -500,7 +499,7 @@ func TestCreateBuildPod(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 		return
 	}
-	podName := buildapihelpers.GetBuildPodName(build)
+	podName := buildutil.GetBuildPodName(build)
 	// Validate update
 	expected := &buildUpdate{}
 	expected.setPodNameAnnotation(podName)
@@ -514,7 +513,7 @@ func TestCreateBuildPod(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	// Make sure that a configMap was created, with an ownerRef
-	configMapName := buildapihelpers.GetBuildCAConfigMapName(build)
+	configMapName := buildutil.GetBuildCAConfigMapName(build)
 	configMap, err := kubeClient.CoreV1().ConfigMaps("namespace").Get(configMapName, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -559,7 +558,7 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	bc := newFakeBuildController(nil, imageClient, nil, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{To: imageStreamRef, PushSecret: &corev1.LocalObjectReference{}}))
-	podName := buildapihelpers.GetBuildPodName(build)
+	podName := buildutil.GetBuildPodName(build)
 
 	update, err := bc.createBuildPod(build)
 	if err != nil {
@@ -671,7 +670,7 @@ func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
 
 	existingPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapihelpers.GetBuildPodName(build),
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			UID:       types.UID(uuid.New().String()),
 			OwnerReferences: []metav1.OwnerReference{
@@ -704,7 +703,7 @@ func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
 	expected.setPhase(buildv1.BuildPhasePending)
 	expected.setReason("")
 	expected.setMessage("")
-	expected.setPodNameAnnotation(buildapihelpers.GetBuildPodName(build))
+	expected.setPodNameAnnotation(buildutil.GetBuildPodName(build))
 	validateUpdate(t, "create build pod with existing related pod error", expected, update)
 }
 
@@ -714,7 +713,7 @@ func TestCreateBuildPodWithExistingRelatedPodMissingCA(t *testing.T) {
 
 	existingPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapihelpers.GetBuildPodName(build),
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			UID:       types.UID(uuid.New().String()),
 			OwnerReferences: []metav1.OwnerReference{
@@ -727,7 +726,7 @@ func TestCreateBuildPodWithExistingRelatedPodMissingCA(t *testing.T) {
 			},
 		},
 	}
-	caMapName := buildapihelpers.GetBuildCAConfigMapName(build)
+	caMapName := buildutil.GetBuildCAConfigMapName(build)
 	kubeClient := fakeKubeExternalClientSet(existingPod, registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
@@ -752,7 +751,7 @@ func TestCreateBuildPodWithExistingRelatedPodMissingCA(t *testing.T) {
 	expected.setPhase(buildv1.BuildPhasePending)
 	expected.setReason("")
 	expected.setMessage("")
-	expected.setPodNameAnnotation(buildapihelpers.GetBuildPodName(build))
+	expected.setPodNameAnnotation(buildutil.GetBuildPodName(build))
 	validateUpdate(t, "create build pod with existing related pod and missing CA configMap error", expected, update)
 }
 
@@ -762,7 +761,7 @@ func TestCreateBuildPodWithExistingRelatedPodBadCA(t *testing.T) {
 
 	existingPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapihelpers.GetBuildPodName(build),
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			UID:       types.UID(uuid.New().String()),
 			OwnerReferences: []metav1.OwnerReference{
@@ -778,7 +777,7 @@ func TestCreateBuildPodWithExistingRelatedPodBadCA(t *testing.T) {
 	badPod := mockBuildPod(build)
 	existingCA := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapihelpers.GetBuildCAConfigMapName(build),
+			Name:      buildutil.GetBuildCAConfigMapName(build),
 			Namespace: build.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -819,7 +818,7 @@ func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
 
 	existingPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapihelpers.GetBuildPodName(build),
+			Name:      buildutil.GetBuildPodName(build),
 			Namespace: build.Namespace,
 		},
 	}
@@ -2056,7 +2055,7 @@ func (f *fakeRunPolicy) Handles(buildv1.BuildRunPolicy) bool {
 
 func mockBuildPod(build *buildv1.Build) *corev1.Pod {
 	pod := &corev1.Pod{}
-	pod.Name = buildapihelpers.GetBuildPodName(build)
+	pod.Name = buildutil.GetBuildPodName(build)
 	pod.Namespace = build.Namespace
 	pod.Annotations = map[string]string{}
 	pod.Annotations[buildv1.BuildAnnotation] = build.Name
@@ -2065,7 +2064,7 @@ func mockBuildPod(build *buildv1.Build) *corev1.Pod {
 
 func mockBuildCAConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{}
-	cm.Name = buildapihelpers.GetBuildCAConfigMapName(build)
+	cm.Name = buildutil.GetBuildCAConfigMapName(build)
 	cm.Namespace = build.Namespace
 	if pod != nil {
 		pod.OwnerReferences = []metav1.OwnerReference{
@@ -2082,7 +2081,7 @@ func mockBuildCAConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigM
 
 func mockBuildSystemConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{}
-	cm.Name = buildapihelpers.GetBuildSystemConfigMapName(build)
+	cm.Name = buildutil.GetBuildSystemConfigMapName(build)
 	cm.Namespace = build.Namespace
 	if pod != nil {
 		pod.OwnerReferences = []metav1.OwnerReference{

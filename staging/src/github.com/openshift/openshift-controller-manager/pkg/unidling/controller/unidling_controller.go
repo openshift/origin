@@ -6,10 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/api"
-
-	"k8s.io/klog"
-
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,10 +22,12 @@ import (
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
+	"github.com/openshift/api"
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	unidlingutil "github.com/openshift/origin/pkg/unidling/util"
+	"github.com/openshift/library-go/pkg/unidling/unidlingclient"
 )
 
 const MaxRetries = 5
@@ -310,7 +308,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		delete(annotations, unidlingapi.PreviousScaleAnnotation)
 	}
 
-	scaleAnnotater := unidlingutil.NewScaleAnnotater(c.scaleNamespacer, c.mapper, c.dcNamespacer, c.rcNamespacer, deleteIdlingAnnotations)
+	scaleAnnotater := unidlingclient.NewScaleAnnotater(c.scaleNamespacer, c.mapper, c.dcNamespacer, c.rcNamespacer, deleteIdlingAnnotations)
 
 	for _, scalableRef := range targetScalables {
 		var scale *autoscalingv1.Scale
@@ -334,7 +332,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 
 		scale.Spec.Replicas = scalableRef.Replicas
 
-		updater := unidlingutil.NewScaleUpdater(codecs.LegacyCodec(scheme.PrioritizedVersionsAllGroups()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
+		updater := unidlingclient.NewScaleUpdater(codecs.LegacyCodec(scheme.PrioritizedVersionsAllGroups()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
 		if err = scaleAnnotater.UpdateObjectScale(updater, info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
 			if errors.IsNotFound(err) {
 				utilruntime.HandleError(fmt.Errorf("%s %q does not exist, removing from list of scalables while unidling service %s/%s: %v", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name, err))

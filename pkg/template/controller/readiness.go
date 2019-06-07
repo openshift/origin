@@ -21,7 +21,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 // readinessScheme defines a scheme which include only resources this controller understand how to get the readiness checks.

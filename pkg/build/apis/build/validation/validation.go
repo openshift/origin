@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )

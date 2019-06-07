@@ -17,8 +17,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 const (
@@ -299,7 +298,7 @@ func setupAdditionalSecrets(pod *corev1.Pod, container *corev1.Container, secret
 
 // getPodLabels creates labels for the Build Pod
 func getPodLabels(build *buildv1.Build) map[string]string {
-	return map[string]string{buildv1.BuildLabel: buildapihelpers.LabelValue(build.Name)}
+	return map[string]string{buildv1.BuildLabel: buildutil.LabelValue(build.Name)}
 }
 
 func makeOwnerReference(build *buildv1.Build) metav1.OwnerReference {
@@ -353,7 +352,7 @@ func setupContainersConfigs(build *buildv1.Build, pod *corev1.Pod) {
 	if !exists {
 		cmSource := &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: buildapihelpers.GetBuildSystemConfigMapName(build),
+				Name: buildutil.GetBuildSystemConfigMapName(build),
 			},
 		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes,
@@ -492,7 +491,7 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, additionalCAs map[stri
 		// See https://github.com/openshift/service-serving-cert-signer
 		cmSource := &corev1.ConfigMapVolumeSource{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: buildapihelpers.GetBuildCAConfigMapName(build),
+				Name: buildutil.GetBuildCAConfigMapName(build),
 			},
 			Items: []corev1.KeyToPath{
 				{

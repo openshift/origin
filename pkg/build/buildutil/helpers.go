@@ -1,8 +1,7 @@
-package buildapihelpers
+package buildutil
 
 import (
 	buildv1 "github.com/openshift/api/build/v1"
-	corev1 "k8s.io/api/core/v1"
 )
 
 // FindTriggerPolicy retrieves the BuildTrigger(s) of a given type from a build configuration.
@@ -19,19 +18,4 @@ func FindTriggerPolicy(triggerType buildv1.BuildTriggerType, config *buildv1.Bui
 func HasTriggerType(triggerType buildv1.BuildTriggerType, bc *buildv1.BuildConfig) bool {
 	matches := FindTriggerPolicy(triggerType, bc)
 	return len(matches) > 0
-}
-
-// GetInputReference returns the From ObjectReference associated with the
-// BuildStrategy.
-func GetInputReference(strategy buildv1.BuildStrategy) *corev1.ObjectReference {
-	switch {
-	case strategy.SourceStrategy != nil:
-		return &strategy.SourceStrategy.From
-	case strategy.DockerStrategy != nil:
-		return strategy.DockerStrategy.From
-	case strategy.CustomStrategy != nil:
-		return &strategy.CustomStrategy.From
-	default:
-		return nil
-	}
 }

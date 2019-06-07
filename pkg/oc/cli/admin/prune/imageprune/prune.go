@@ -39,8 +39,8 @@ import (
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/oc/lib/ocbuildutil"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
@@ -772,7 +772,7 @@ func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *corev1.ObjectR
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
 func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectReference, strategy buildv1.BuildStrategy, predecessor gonum.Node) []error {
-	from := buildapihelpers.GetInputReference(strategy)
+	from := ocbuildutil.GetInputReference(strategy)
 	if from == nil {
 		klog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return nil

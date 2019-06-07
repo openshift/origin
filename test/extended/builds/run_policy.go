@@ -13,7 +13,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

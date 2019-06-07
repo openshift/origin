@@ -10,7 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/build/buildutil"
 )
 
 const (
@@ -328,13 +328,13 @@ func TestSetupBuildCAs(t *testing.T) {
 				}
 			}
 
-			foundItem, ok := resultItems[util.ServiceCAKey]
+			foundItem, ok := resultItems[buildutil.ServiceCAKey]
 			if !ok {
-				t.Errorf("could not find %s as a referenced key in volume source", util.ServiceCAKey)
+				t.Errorf("could not find %s as a referenced key in volume source", buildutil.ServiceCAKey)
 			}
 			expectedPath := fmt.Sprintf("certs.d/%s/ca.crt", testInternalRegistryHost)
 			if foundItem.Path != expectedPath {
-				t.Errorf("expected %s to be mounted at %s, got %s", util.ServiceCAKey, expectedPath, foundItem.Path)
+				t.Errorf("expected %s to be mounted at %s, got %s", buildutil.ServiceCAKey, expectedPath, foundItem.Path)
 			}
 
 			for _, c := range podSpec.Spec.Containers {
@@ -417,14 +417,14 @@ func TestSetupBuildSystem(t *testing.T) {
 		for _, env := range c.Env {
 			if env.Name == "BUILD_REGISTRIES_CONF_PATH" {
 				foundRegistriesConf = true
-				expectedMountPath := filepath.Join(ConfigMapBuildSystemConfigsMountPath, util.RegistryConfKey)
+				expectedMountPath := filepath.Join(ConfigMapBuildSystemConfigsMountPath, buildutil.RegistryConfKey)
 				if env.Value != expectedMountPath {
 					t.Errorf("expected BUILD_REGISTRIES_CONF_PATH %s, got %s", expectedMountPath, env.Value)
 				}
 			}
 			if env.Name == "BUILD_SIGNATURE_POLICY_PATH" {
 				foundSignaturePolicy = true
-				expectedMountMapth := filepath.Join(ConfigMapBuildSystemConfigsMountPath, util.SignaturePolicyKey)
+				expectedMountMapth := filepath.Join(ConfigMapBuildSystemConfigsMountPath, buildutil.SignaturePolicyKey)
 				if env.Value != expectedMountMapth {
 					t.Errorf("expected BUILD_SIGNATURE_POLICY_PATH %s, got %s", expectedMountMapth, env.Value)
 				}
