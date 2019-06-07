@@ -24,44 +24,43 @@ type BaseMetrics struct {
 
 type TestDuration struct {
 	BaseMetrics
-	StartTime    time.Time     `json:"startTime"`
-	TestDuration time.Duration `json:"testDuration"`
+	StartTime    time.Time      `json:"startTime"`
+	TestDuration time.Duration  `json:"testDuration"`
+	Steps        []StepDuration `json:"Steps"`
+}
+
+type StepDuration interface {
+}
+
+type BaseStepDuration struct {
+	Type      string        `json:"type"`
+	StartTime time.Time     `json:"startTime"`
+	TotalTime time.Duration `json:"totalTime"`
+}
+
+type TemplateStepDuration struct {
+	BaseStepDuration
+	RateDelay      time.Duration `json:"rateDelay"`
+	RateDelayCount int           `json:"rateDelayCount"`
+	StepPause      time.Duration `json:"stepPause"`
+	StepPauseCount int           `json:"stepPauseCount"`
+	SyncTime       time.Duration `json:"syncTime"`
+}
+
+type PodStepDuration struct {
+	BaseStepDuration
+	WaitPodsDurations []time.Duration `json:"waitPodsDurations"`
+	RateDelay         time.Duration   `json:"rateDelay"`
+	RateDelayCount    int             `json:"rateDelayCount"`
+	StepPause         time.Duration   `json:"stepPause"`
+	StepPauseCount    int             `json:"stepPauseCount"`
+	SyncTime          time.Duration   `json:"syncTime"`
 }
 
 func (td TestDuration) printLog() error {
 	b, err := json.Marshal(td)
 	fmt.Println(string(b))
 	return err
-}
-
-func (td TestDuration) MarshalJSON() ([]byte, error) {
-	type Alias TestDuration
-	return json.Marshal(&struct {
-		Alias
-		TestDuration string `json:"testDuration"`
-	}{
-		Alias:        (Alias)(td),
-		TestDuration: td.TestDuration.String(),
-	})
-}
-
-func (td *TestDuration) UnmarshalJSON(b []byte) error {
-	var err error
-	type Alias TestDuration
-	s := &struct {
-		TestDuration string `json:"testDuration"`
-		*Alias
-	}{
-		Alias: (*Alias)(td),
-	}
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
-	}
-	td.TestDuration, err = time.ParseDuration(s.TestDuration)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func LogMetrics(metrics []Metrics) error {
@@ -74,7 +73,7 @@ func LogMetrics(metrics []Metrics) error {
 	return nil
 }
 
-func NewTestDuration(name string, startTime time.Time, testDuration time.Duration) TestDuration {
+func NewTestDuration(name string, startTime time.Time, testDuration time.Duration, steps []StepDuration) TestDuration {
 	return TestDuration{
 		BaseMetrics: BaseMetrics{
 			Marker: marker_name,
@@ -82,5 +81,29 @@ func NewTestDuration(name string, startTime time.Time, testDuration time.Duratio
 			Type:   fmt.Sprintf("%T", (*TestDuration)(nil))[1:]},
 		StartTime:    startTime,
 		TestDuration: testDuration,
+		Steps:        steps,
+	}
+}
+
+func NewTemplateStepDuration(rateDelay, stepPause time.Duration) TemplateStepDuration {
+	return TemplateStepDuration{
+		BaseStepDuration: BaseStepDuration{StartTime: time.Now(),
+			Type: fmt.Sprintf("%T", (*TemplateStepDuration)(nil))[1:]},
+		RateDelay:      rateDelay,
+		RateDelayCount: 0,
+		StepPause:      stepPause,
+		StepPauseCount: 0,
+	}
+}
+
+func NewPodStepDuration(rateDelay, stepPause time.Duration) PodStepDuration {
+	return PodStepDuration{
+		BaseStepDuration: BaseStepDuration{StartTime: time.Now(),
+			Type: fmt.Sprintf("%T", (*PodStepDuration)(nil))[1:]},
+		RateDelay:         rateDelay,
+		RateDelayCount:    0,
+		StepPause:         stepPause,
+		StepPauseCount:    0,
+		WaitPodsDurations: []time.Duration{},
 	}
 }
