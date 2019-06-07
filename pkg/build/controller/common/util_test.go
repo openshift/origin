@@ -18,7 +18,7 @@ import (
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
-
+	sharedbuildutil "github.com/openshift/library-go/pkg/build/buildutil"
 	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
@@ -157,7 +157,7 @@ func TestHandleBuildPruning(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	bcName := buildutil.ConfigNameForBuild(build)
+	bcName := sharedbuildutil.ConfigNameForBuild(build)
 	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildClient.BuildV1(), build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulStartingBuilds))
 

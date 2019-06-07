@@ -11,6 +11,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	sharedbuildutil "github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/build/controller/common"
 )
@@ -269,7 +270,7 @@ func (b BuildDefaults) applyBuildDefaults(build *buildv1.Build) {
 }
 
 func addDefaultEnvVar(build *buildv1.Build, v corev1.EnvVar) {
-	envVars := buildutil.GetBuildEnv(build)
+	envVars := sharedbuildutil.GetBuildEnv(build)
 
 	for i := range envVars {
 		if envVars[i].Name == v.Name {
@@ -277,7 +278,7 @@ func addDefaultEnvVar(build *buildv1.Build, v corev1.EnvVar) {
 		}
 	}
 	envVars = append(envVars, v)
-	buildutil.SetBuildEnv(build, envVars)
+	sharedbuildutil.SetBuildEnv(build, envVars)
 }
 
 func addDefaultLabel(defaultLabel buildv1.ImageLabel, buildLabels *[]buildv1.ImageLabel) {

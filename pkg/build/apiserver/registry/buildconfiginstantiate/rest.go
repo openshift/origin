@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"k8s.io/klog"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,6 +15,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -24,10 +23,9 @@ import (
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
+	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
 	"github.com/openshift/origin/pkg/build/apiserver/buildgenerator"
 	buildwait "github.com/openshift/origin/pkg/build/apiserver/registry/wait"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 )
 
 var (
@@ -231,7 +229,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	switch {
 	// err checks, no ok check, needs to occur before ref to latest
 	case err == buildwait.ErrBuildDeleted:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 	case err != nil:
 		return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
 	case !ok:
@@ -239,7 +237,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	case latest.Status.Phase == buildv1.BuildPhaseError:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 	case latest.Status.Phase == buildv1.BuildPhaseFailed:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
@@ -247,7 +245,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	case latest.Status.Phase == buildv1.BuildPhaseCancelled:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 	case latest.Status.Phase != buildv1.BuildPhaseRunning:
 		return nil, errors.NewBadRequest(fmt.Sprintf("cannot upload file to build %s with status %s", build.Name, latest.Status.Phase))
 	}
@@ -255,12 +253,12 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	buildPodName := buildinternalhelpers.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
 		Stdin:     true,
-		Container: buildstrategy.GitCloneContainer,
+		Container: apiserverbuildutil.GitCloneContainer,
 	}
 	// Custom builds don't have a gitclone container, so we inject the source
 	// directly into the main container.
 	if build.Spec.Strategy.CustomStrategy != nil {
-		opts.Container = buildstrategy.CustomBuild
+		opts.Container = apiserverbuildutil.CustomBuild
 	}
 
 	restClient, err := restclient.RESTClientFor(h.r.ClientConfig)

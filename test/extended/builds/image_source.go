@@ -11,7 +11,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -235,7 +234,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 						o.Expect(build.Spec.Output.To.Kind).To(o.Equal("DockerImage"))
 						o.Expect(build.Spec.Output.PushSecret).NotTo(o.BeNil())
 					}
-					if env.Name == buildutil.CustomBuildStrategyBaseImageKey {
+					if env.Name == buildv1.CustomBuildStrategyBaseImageKey {
 						foundCustomEnv = true
 						o.Expect(env.Value).To(o.ContainSubstring("@sha256:"))
 					}

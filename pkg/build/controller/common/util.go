@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/openshift/origin/pkg/build/buildutil"
+
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,9 +18,8 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlisterv1 "github.com/openshift/client-go/build/listers/build/v1"
+	sharedbuildutil "github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/build/envresolve"
-
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 type ByCreationTimestamp []*buildv1.Build
@@ -133,7 +134,7 @@ func ResolveValueFrom(pod *corev1.Pod, client kubernetes.Interface) error {
 
 	mapEnvs := map[string]string{}
 	mapping := expansion.MappingFuncFor(mapEnvs)
-	inputEnv := buildutil.GetBuildEnv(build)
+	inputEnv := sharedbuildutil.GetBuildEnv(build)
 	store := envresolve.NewResourceStore()
 
 	for _, e := range inputEnv {
@@ -158,6 +159,6 @@ func ResolveValueFrom(pod *corev1.Pod, client kubernetes.Interface) error {
 		return ErrEnvVarResolver{utilerrors.NewAggregate(allErrs)}
 	}
 
-	buildutil.SetBuildEnv(build, outputEnv)
+	sharedbuildutil.SetBuildEnv(build, outputEnv)
 	return SetBuildInPod(pod, build)
 }

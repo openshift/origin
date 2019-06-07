@@ -8,14 +8,12 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/build/buildutil"
-
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 

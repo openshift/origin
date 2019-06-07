@@ -55,8 +55,8 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 		// be controlled via the SCC that's in effect for the build service account
 		// For now, both are hard-coded based on whether the build service account can
 		// run as root.
-		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildutil.AllowedUIDs, Value: "1-"})
-		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildutil.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildv1.AllowedUIDs, Value: "1-"})
+		containerEnv = append(containerEnv, corev1.EnvVar{Name: buildv1.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
 	}
 
 	serviceAccount := build.Spec.ServiceAccount

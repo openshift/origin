@@ -32,6 +32,7 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
@@ -45,7 +46,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/jenkinsfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
-	"github.com/openshift/origin/pkg/oc/lib/ocbuildutil"
 )
 
 const (
@@ -1278,7 +1278,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 		}
 
 		if bc, ok := obj.(*buildv1.BuildConfig); ok {
-			input := ocbuildutil.GetInputReference(bc.Spec.Strategy)
+			input := buildutil.GetInputReference(bc.Spec.Strategy)
 			output := bc.Spec.Output.To
 
 			if output == nil || input == nil {

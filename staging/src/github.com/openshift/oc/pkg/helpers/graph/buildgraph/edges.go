@@ -5,9 +5,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	buildutil "github.com/openshift/oc/pkg/helpers/build"
 	buildgraph "github.com/openshift/oc/pkg/helpers/graph/buildgraph/nodes"
 	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"

@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -300,9 +299,9 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			}
 			o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default successful history limit set")
 			o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default failed history limit set")
-			o.Expect(*buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.Equal(buildutil.DefaultSuccessfulBuildsHistoryLimit),
+			o.Expect(*buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.Equal(int32(5)),
 				"the buildconfig should have the default successful history limit set")
-			o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(buildutil.DefaultFailedBuildsHistoryLimit),
+			o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(int32(5)),
 				"the buildconfig should have the default failed history limit set")
 		})
 	})

@@ -3,8 +3,7 @@ package policy
 import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	sharedbuildutil "github.com/openshift/library-go/pkg/build/buildutil"
 )
 
 // SerialPolicy implements the RunPolicy interface. Using this run policy, every
@@ -18,7 +17,7 @@ type SerialPolicy struct {
 
 // IsRunnable implements the RunPolicy interface.
 func (s *SerialPolicy) IsRunnable(build *buildv1.Build) (bool, error) {
-	bcName := buildutil.ConfigNameForBuild(build)
+	bcName := sharedbuildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return true, nil
 	}

@@ -32,6 +32,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
@@ -40,7 +41,6 @@ import (
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
 	"github.com/openshift/origin/pkg/image/util"
-	"github.com/openshift/origin/pkg/oc/lib/ocbuildutil"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
@@ -772,7 +772,7 @@ func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *corev1.ObjectR
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
 func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectReference, strategy buildv1.BuildStrategy, predecessor gonum.Node) []error {
-	from := ocbuildutil.GetInputReference(strategy)
+	from := buildutil.GetInputReference(strategy)
 	if from == nil {
 		klog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return nil

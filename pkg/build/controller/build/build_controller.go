@@ -43,17 +43,18 @@ import (
 	configv1lister "github.com/openshift/client-go/config/listers/config/v1"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	sharedbuildutil "github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/referencemutator"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	metrics "github.com/openshift/openshift-controller-manager/pkg/build/metrics/prometheus"
+	"github.com/openshift/origin/pkg/build/buildutil"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
-	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
@@ -494,7 +495,7 @@ func (bc *BuildController) handleBuild(build *buildv1.Build) error {
 	// If pipeline build, handle pruning.
 	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
 		if buildutil.IsBuildComplete(build) {
-			if err := common.HandleBuildPruning(buildutil.ConfigNameForBuild(build), build.Namespace, bc.buildLister, bc.buildConfigLister, bc.buildDeleter); err != nil {
+			if err := common.HandleBuildPruning(sharedbuildutil.ConfigNameForBuild(build), build.Namespace, bc.buildLister, bc.buildConfigLister, bc.buildDeleter); err != nil {
 				utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", build.Namespace, build.Name, err))
 			}
 		}
@@ -597,7 +598,7 @@ func (bc *BuildController) cancelBuild(build *buildv1.Build) (*buildUpdate, erro
 		return nil, fmt.Errorf("could not delete build pod %s/%s to cancel build %s: %v", build.Namespace, podName, buildDesc(build), err)
 	}
 
-	return transitionToPhase(buildv1.BuildPhaseCancelled, buildv1.StatusReasonCancelledBuild, buildutil.StatusMessageCancelledBuild), nil
+	return transitionToPhase(buildv1.BuildPhaseCancelled, buildv1.StatusReasonCancelledBuild, "The build was cancelled by the user."), nil
 }
 
 // handleNewBuild will check whether policy allows running the new build and if so, creates a pod
@@ -627,7 +628,7 @@ func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod)
 		}
 		// If a pod was not created by the current build, move the build to
 		// error.
-		return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists), nil
+		return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, "The pod for this build already exists and is older than the build."), nil
 	}
 
 	runPolicy := policy.ForBuild(build, bc.runPolicies)
@@ -948,7 +949,7 @@ func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *
 		// may not yet exist. The build should remain in the new state and show the
 		// reason that it is still in the new state.
 		update.setReason(buildv1.StatusReasonInvalidOutputReference)
-		update.setMessage(buildutil.StatusMessageInvalidOutputRef)
+		update.setMessage("Output image could not be resolved.")
 		if err == errNoIntegratedRegistry {
 			e := fmt.Errorf("an image stream cannot be used as build output because the integrated Docker registry is not configured")
 			bc.recorder.Eventf(build, corev1.EventTypeWarning, "InvalidOutput", "Error starting build: %v", e)
@@ -976,7 +977,7 @@ func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *
 
 	if len(errs) > 0 {
 		update.setReason(buildv1.StatusReasonInvalidImageReference)
-		update.setMessage(buildutil.StatusMessageInvalidImageRef)
+		update.setMessage("Referenced image could not be resolved.")
 		return errs.ToAggregate()
 	}
 	// we have resolved all images, and will not need any further notifications
@@ -1013,7 +1014,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		pushSecret, err = bc.resolveImageSecretAsReference(build, build.Spec.Output.To.Name)
 		if err != nil {
 			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
+			update.setMessage("Unable to look up the service account secrets for this build.")
 			return update, err
 		}
 	}
@@ -1044,7 +1045,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		pullSecret, err = bc.resolveImageSecretAsReference(build, imageName)
 		if err != nil {
 			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
+			update.setMessage("Unable to look up the service account secrets for this build.")
 			return update, err
 		}
 		if pullSecret != nil {
@@ -1067,7 +1068,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		imageInputPullSecret, err := bc.resolveImageSecretAsReference(build, s.From.Name)
 		if err != nil {
 			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
+			update.setMessage("Unable to look up the service account secrets for this build.")
 			return update, err
 		}
 		build.Spec.Source.Images[i].PullSecret = imageInputPullSecret
@@ -1087,10 +1088,10 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		switch err.(type) {
 		case common.ErrEnvVarResolver:
 			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonUnresolvableEnvironmentVariable, fmt.Sprintf("%v, %v",
-				buildutil.StatusMessageUnresolvableEnvironmentVariable, err.Error()))
+				"Unable to resolve build environment variable reference.", err.Error()))
 		default:
 			update.setReason(buildv1.StatusReasonCannotCreateBuildPodSpec)
-			update.setMessage(buildutil.StatusMessageCannotCreateBuildPodSpec)
+			update.setMessage("Failed to create pod spec.")
 
 		}
 		// If an error occurred when creating the pod spec, it likely means
@@ -1117,7 +1118,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		// Log an event if the pod is not created (most likely due to quota denial).
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build pod: %v", err)
 		update.setReason(buildv1.StatusReasonCannotCreateBuildPod)
-		update.setMessage(buildutil.StatusMessageCannotCreateBuildPod)
+		update.setMessage("Failed creating build pod.")
 		return update, fmt.Errorf("failed to create build pod: %v", err)
 
 	} else if err != nil {
@@ -1132,7 +1133,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		}
 		if !strategy.HasOwnerReference(existingPod, build) {
 			klog.V(4).Infof("Did not recognise pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
-			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists)
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, "The pod for this build already exists and is older than the build.")
 			return update, nil
 		}
 		klog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
@@ -1194,7 +1195,7 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 		pod = bc.findMissingPod(build)
 		if pod == nil {
 			klog.V(4).Infof("Failed to find the build pod for build %s. Moving it to Error state", buildDesc(build))
-			return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, buildutil.StatusMessageBuildPodDeleted), nil
+			return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, "The pod for this build was deleted before the build completed."), nil
 		}
 	}
 
@@ -1227,7 +1228,7 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 			if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildv1.StatusReasonMissingPushSecret {
 				if _, err := bc.secretStore.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
 					klog.V(4).Infof("Setting reason for pending build to %q due to missing secret for %s", build.Status.Reason, buildDesc(build))
-					update = transitionToPhase(buildv1.BuildPhasePending, buildv1.StatusReasonMissingPushSecret, buildutil.StatusMessageMissingPushSecret)
+					update = transitionToPhase(buildv1.BuildPhasePending, buildv1.StatusReasonMissingPushSecret, "Missing push secret.")
 				}
 			}
 		default:
@@ -1249,19 +1250,19 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 			// should be set to an error state
 			klog.V(2).Infof("Setting build %s to error state because its pod has no containers", buildDesc(build))
 			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonNoBuildContainerStatus,
-				buildutil.StatusMessageNoBuildContainerStatus)
+				"The pod for this build has no container statuses indicating success or failure.")
 		} else {
 			for _, info := range pod.Status.ContainerStatuses {
 				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
 					klog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
-					update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonFailedContainer, buildutil.StatusMessageFailedContainer)
+					update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonFailedContainer, "The pod for this build has at least one container with a non-zero exit status.")
 					break
 				}
 			}
 		}
 	case corev1.PodFailed:
 		if isOOMKilled(pod) {
-			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, buildutil.StatusMessageOutOfMemoryKilled)
+			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, "The build pod was killed due to an out of memory condition.")
 		} else if isPodEvicted(pod) {
 			// Use the pod status message to report why the build pod was evicted.
 			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonBuildPodEvicted, pod.Status.Message)
@@ -1269,9 +1270,9 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 			// If a DeletionTimestamp has been set, it means that the pod will
 			// soon be deleted. The build should be transitioned to the Error phase.
 			if pod.DeletionTimestamp != nil {
-				update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, buildutil.StatusMessageBuildPodDeleted)
+				update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, "The pod for this build was deleted before the build completed.")
 			} else {
-				update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonGenericBuildFailed, buildutil.StatusMessageGenericBuildFailed)
+				update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonGenericBuildFailed, "Generic Build failure - check logs for details.")
 			}
 		}
 	}
@@ -1316,7 +1317,7 @@ func (bc *BuildController) handleCompletedBuild(build *buildv1.Build, pod *corev
 
 	update := &buildUpdate{}
 	if isOOMKilled(pod) {
-		update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, buildutil.StatusMessageOutOfMemoryKilled)
+		update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, "The build pod was killed due to an out of memory condition.")
 	}
 	setBuildCompletionData(build, pod, update)
 
@@ -1398,7 +1399,7 @@ func (bc *BuildController) updateBuild(build *buildv1.Build, update *buildUpdate
 }
 
 func (bc *BuildController) handleBuildCompletion(build *buildv1.Build) {
-	bcName := buildutil.ConfigNameForBuild(build)
+	bcName := sharedbuildutil.ConfigNameForBuild(build)
 	bc.enqueueBuildConfig(build.Namespace, bcName)
 	if err := common.HandleBuildPruning(bcName, build.Namespace, bc.buildLister, bc.buildConfigLister, bc.buildDeleter); err != nil {
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", build.Namespace, build.Name, err))
@@ -1562,7 +1563,7 @@ func (bc *BuildController) buildDeleted(obj interface{}) {
 	}
 	// If the build was not in a complete state, poke the buildconfig to run the next build
 	if !buildutil.IsBuildComplete(build) {
-		bcName := buildutil.ConfigNameForBuild(build)
+		bcName := sharedbuildutil.ConfigNameForBuild(build)
 		bc.enqueueBuildConfig(build.Namespace, bcName)
 	}
 }
@@ -1645,7 +1646,7 @@ func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod
 	if err != nil {
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build certificate authority configMap: %v", err)
 		update.setReason("CannotCreateCAConfigMap")
-		update.setMessage(buildutil.StatusMessageCannotCreateCAConfigMap)
+		update.setMessage("Failed creating build certificate authority configMap.")
 		return update, fmt.Errorf("failed to create build certificate authority configMap: %v", err)
 	}
 	klog.V(4).Infof("Created certificate authority configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
@@ -1683,12 +1684,12 @@ func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buil
 		klog.V(2).Infof("WARNING - certificate authority for the internal registry not available. Image pulls/pushes to the internal registry within build %s/%s will fail.", build.Namespace, build.Name)
 		return cm
 	}
-	registryCAData, exists := registryCAMap.Data[buildutil.ServiceCAKey]
+	registryCAData, exists := registryCAMap.Data[buildv1.ServiceCAKey]
 	if !exists {
 		klog.V(2).Infof("WARNING - certificate authority for the internal registry is missing. Image pulls/pushes to the internal registry within build %s/%s will fail.", build.Namespace, build.Name)
 		return cm
 	}
-	cm.Data[buildutil.ServiceCAKey] = registryCAData
+	cm.Data[buildv1.ServiceCAKey] = registryCAData
 	return cm
 }
 
@@ -1712,7 +1713,7 @@ func (bc *BuildController) createBuildSystemConfConfigMap(build *buildv1.Build, 
 	if err != nil {
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build system config configMap: %v", err)
 		update.setReason("CannotCreateBuildSysConfigMap")
-		update.setMessage(buildutil.StatusMessageCannotCreateBuildSysConfigMap)
+		update.setMessage("Failed creating build system config configMap.")
 		return update, fmt.Errorf("failed to create build system config configMap: %v", err)
 	}
 	klog.V(4).Infof("Created build system config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
@@ -1731,11 +1732,11 @@ func (bc *BuildController) createBuildSystemConfigMapSpec(build *buildv1.Build, 
 	}
 	registryConf := bc.registryConfTOML()
 	if len(registryConf) > 0 {
-		cm.Data[buildutil.RegistryConfKey] = registryConf
+		cm.Data[buildv1.RegistryConfKey] = registryConf
 	}
 	signaturePolicy := bc.signaturePolicyJSON()
 	if len(signaturePolicy) > 0 {
-		cm.Data[buildutil.SignaturePolicyKey] = signaturePolicy
+		cm.Data[buildv1.SignaturePolicyKey] = signaturePolicy
 	}
 	return cm
 }

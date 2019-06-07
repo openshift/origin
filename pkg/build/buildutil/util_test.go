@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -69,7 +70,7 @@ func TestMergeEnvWithoutDuplicates(t *testing.T) {
 		{
 			name:                "use source with trusted whitelist",
 			useSourcePrecedence: true,
-			whitelist:           WhitelistEnvVarNames,
+			whitelist:           buildv1.WhitelistEnvVarNames,
 			input: []corev1.EnvVar{
 				// stripped by whitelist
 				{Name: "foo", Value: "bar"},
@@ -92,7 +93,7 @@ func TestMergeEnvWithoutDuplicates(t *testing.T) {
 		},
 		{
 			name:      "use target with trusted whitelist",
-			whitelist: WhitelistEnvVarNames,
+			whitelist: buildv1.WhitelistEnvVarNames,
 			input: []corev1.EnvVar{
 				// stripped by whitelist
 				{Name: "foo", Value: "bar"},

@@ -48,8 +48,6 @@ const (
 	StiBuild    = "sti-build"
 )
 
-var BuildContainerNames = []string{CustomBuild, StiBuild, DockerBuild}
-
 var (
 	// BuildControllerRefKind contains the schema.GroupVersionKind for builds.
 	// This is used in the ownerRef of builder pods.
@@ -387,10 +385,10 @@ func updateConfigsForContainer(c corev1.Container, volumeName string, configDir 
 		},
 	)
 	// registries.conf is the primary registry config file mounted in by OpenShift
-	registriesConfPath := filepath.Join(configDir, buildutil.RegistryConfKey)
+	registriesConfPath := filepath.Join(configDir, buildv1.RegistryConfKey)
 
 	// policy.json sets image policies for buildah (allowed repositories for image pull/push, etc.)
-	signaturePolicyPath := filepath.Join(configDir, buildutil.SignaturePolicyKey)
+	signaturePolicyPath := filepath.Join(configDir, buildv1.SignaturePolicyKey)
 
 	// registries.d is a directory used by buildah to support multiple registries.conf files
 	// currently not created/managed by OpenShift
@@ -495,7 +493,7 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, additionalCAs map[stri
 			},
 			Items: []corev1.KeyToPath{
 				{
-					Key:  buildutil.ServiceCAKey,
+					Key:  buildv1.ServiceCAKey,
 					Path: fmt.Sprintf("certs.d/%s/ca.crt", internalRegistryHost),
 				},
 			},

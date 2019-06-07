@@ -12,6 +12,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	sharedbuildutil "github.com/openshift/library-go/pkg/build/buildutil"
 
 	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
@@ -32,7 +33,7 @@ type SerialLatestOnlyPolicy struct {
 // 'new' phase will be automatically cancelled. This will also cancel any
 // "serial" build (when you changed the build config run policy on-the-fly).
 func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildv1.Build) (bool, error) {
-	bcName := buildutil.ConfigNameForBuild(build)
+	bcName := sharedbuildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return true, nil
 	}
@@ -54,7 +55,7 @@ func (s *SerialLatestOnlyPolicy) Handles(policy buildv1.BuildRunPolicy) bool {
 // cancelPreviousBuilds cancels all queued builds that have the build sequence number
 // lower than the given build. It retries the cancellation in case of conflict.
 func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildv1.Build) []error {
-	bcName := buildutil.ConfigNameForBuild(build)
+	bcName := sharedbuildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return []error{}
 	}

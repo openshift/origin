@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
+
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +15,6 @@ import (
 	"k8s.io/klog"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 )
 
 const (
@@ -77,7 +78,7 @@ func CheckSecret(namespace, userSecret string, triggers []*buildv1.WebHookTrigge
 			if err != nil && !kerrors.IsNotFound(err) {
 				return nil, err
 			}
-			if v, ok := s.Data[buildutil.WebHookSecretKey]; ok {
+			if v, ok := s.Data[buildv1.WebHookSecretKey]; ok {
 				if hmac.Equal(v, []byte(userSecret)) {
 					return triggers[i], nil
 				}
@@ -94,7 +95,7 @@ func GenerateBuildTriggerInfo(revision *buildv1.SourceRevision, hookType string)
 	case hookType == "generic":
 		buildTriggerCauses = append(buildTriggerCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildutil.BuildTriggerCauseGenericMsg,
+				Message: apiserverbuildutil.BuildTriggerCauseGenericMsg,
 				GenericWebHook: &buildv1.GenericWebHookCause{
 					Revision: revision,
 					Secret:   hiddenSecret,
@@ -103,7 +104,7 @@ func GenerateBuildTriggerInfo(revision *buildv1.SourceRevision, hookType string)
 	case hookType == "github":
 		buildTriggerCauses = append(buildTriggerCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildutil.BuildTriggerCauseGithubMsg,
+				Message: apiserverbuildutil.BuildTriggerCauseGithubMsg,
 				GitHubWebHook: &buildv1.GitHubWebHookCause{
 					Revision: revision,
 					Secret:   hiddenSecret,
@@ -112,7 +113,7 @@ func GenerateBuildTriggerInfo(revision *buildv1.SourceRevision, hookType string)
 	case hookType == "gitlab":
 		buildTriggerCauses = append(buildTriggerCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildutil.BuildTriggerCauseGitLabMsg,
+				Message: apiserverbuildutil.BuildTriggerCauseGitLabMsg,
 				GitLabWebHook: &buildv1.GitLabWebHookCause{
 					CommonWebHookCause: buildv1.CommonWebHookCause{
 						Revision: revision,
@@ -123,7 +124,7 @@ func GenerateBuildTriggerInfo(revision *buildv1.SourceRevision, hookType string)
 	case hookType == "bitbucket":
 		buildTriggerCauses = append(buildTriggerCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildutil.BuildTriggerCauseBitbucketMsg,
+				Message: apiserverbuildutil.BuildTriggerCauseBitbucketMsg,
 				BitbucketWebHook: &buildv1.BitbucketWebHookCause{
 					CommonWebHookCause: buildv1.CommonWebHookCause{
 						Revision: revision,

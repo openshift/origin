@@ -168,10 +168,10 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		if v.Name == "ILLEGAL" {
 			foundIllegal = true
 		}
-		if v.Name == buildutil.AllowedUIDs && v.Value == "1-" {
+		if v.Name == buildv1.AllowedUIDs && v.Value == "1-" {
 			foundAllowedUIDs = true
 		}
-		if v.Name == buildutil.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID" {
+		if v.Name == buildv1.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID" {
 			foundDropCaps = true
 		}
 	}
@@ -182,16 +182,16 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
 	}
 	if foundAllowedUIDs && rootAllowed {
-		t.Fatalf("Did not expect %s when root is allowed", buildutil.AllowedUIDs)
+		t.Fatalf("Did not expect %s when root is allowed", buildv1.AllowedUIDs)
 	}
 	if !foundAllowedUIDs && !rootAllowed {
-		t.Fatalf("Expected %s when root is not allowed", buildutil.AllowedUIDs)
+		t.Fatalf("Expected %s when root is not allowed", buildv1.AllowedUIDs)
 	}
 	if foundDropCaps && rootAllowed {
-		t.Fatalf("Did not expect %s when root is allowed", buildutil.DropCapabilities)
+		t.Fatalf("Did not expect %s when root is allowed", buildv1.DropCapabilities)
 	}
 	if !foundDropCaps && !rootAllowed {
-		t.Fatalf("Expected %s when root is not allowed", buildutil.DropCapabilities)
+		t.Fatalf("Expected %s when root is not allowed", buildv1.DropCapabilities)
 	}
 	buildJSON, _ := runtime.Encode(buildJSONCodec, build)
 	errorCases := map[int][]string{

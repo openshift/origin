@@ -119,7 +119,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 	request := &buildv1.BuildRequest{
 		TriggeredBy: append(buildTriggerCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildutil.BuildTriggerCauseConfigMsg,
+				Message: "Build configuration change",
 			}),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      bc.Name,
@@ -132,7 +132,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s due to a conflicting update: %v", bcDesc(bc), err)
 			utilruntime.HandleError(instantiateErr)
-		} else if buildutil.IsFatalGeneratorError(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) || kerrors.IsForbidden(err) {
+		} else if isFatalGeneratorError(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) || kerrors.IsForbidden(err) {
 			instantiateErr = fmt.Errorf("gave up on Build for BuildConfig %s due to fatal error: %v", bcDesc(bc), err)
 			utilruntime.HandleError(instantiateErr)
 			// Fixes https://github.com/openshift/origin/issues/16557
@@ -149,6 +149,17 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 		return instantiateErr
 	}
 	return nil
+}
+
+// IsFatal returns true if err is a fatal error
+func isFatalGeneratorError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.HasPrefix(err.Error(), "fatal error generating Build from BuildConfig") {
+		return true
+	}
+	return false
 }
 
 // buildConfigAdded is called by the buildconfig informer event handler whenever a

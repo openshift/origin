@@ -705,12 +705,6 @@ type BuildStrategy struct {
 // BuildStrategyType describes a particular way of performing a build.
 type BuildStrategyType string
 
-const (
-	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
-	// performing a custom build, if needed.
-	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
-)
-
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
 	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which

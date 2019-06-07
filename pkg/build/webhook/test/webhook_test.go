@@ -10,7 +10,6 @@ import (
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
@@ -422,13 +421,13 @@ func TestCheckSecret(t *testing.T) {
 func TestCheckSecretRef(t *testing.T) {
 	secret1 := &corev1.Secret{
 		Data: map[string][]byte{
-			buildutil.WebHookSecretKey: []byte("secretvalue1"),
-			"otherkey":                 []byte("othersecretvalue"),
+			buildv1.WebHookSecretKey: []byte("secretvalue1"),
+			"otherkey":               []byte("othersecretvalue"),
 		},
 	}
 	secret2 := &corev1.Secret{
 		Data: map[string][]byte{
-			buildutil.WebHookSecretKey: []byte("secretvalue2"),
+			buildv1.WebHookSecretKey: []byte("secretvalue2"),
 		},
 	}
 	invalidSecret := &corev1.Secret{

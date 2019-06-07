@@ -33,6 +33,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
@@ -944,7 +945,7 @@ Outer:
 // strategyTrigger returns a synthetic ImageChangeTrigger that represents the image stream tag the build strategy
 // points to, or nil if no such strategy trigger is possible (if the build doesn't point to an ImageStreamTag).
 func strategyTrigger(config *buildv1.BuildConfig) *ImageChangeTrigger {
-	if from := getInputReference(config.Spec.Strategy); from != nil {
+	if from := buildutil.GetInputReference(config.Spec.Strategy); from != nil {
 		if from.Kind == "ImageStreamTag" {
 			// normalize the strategy object reference
 			from.Namespace = defaultNamespace(from.Namespace, config.Namespace)
@@ -1050,18 +1051,5 @@ func UpdateTriggersForObject(obj runtime.Object, fn func(*TriggerDefinition) err
 		return true, triggers.Apply(obj)
 	default:
 		return false, fmt.Errorf("the object does not support triggers: %T", t)
-	}
-}
-
-func getInputReference(strategy buildv1.BuildStrategy) *corev1.ObjectReference {
-	switch {
-	case strategy.SourceStrategy != nil:
-		return &strategy.SourceStrategy.From
-	case strategy.DockerStrategy != nil:
-		return strategy.DockerStrategy.From
-	case strategy.CustomStrategy != nil:
-		return &strategy.CustomStrategy.From
-	default:
-		return nil
 	}
 }
