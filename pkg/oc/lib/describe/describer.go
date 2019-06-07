@@ -48,6 +48,7 @@ import (
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
+	quotahelpers "github.com/openshift/oc/pkg/helpers/quota"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -62,7 +63,6 @@ import (
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
-	quotaconvert "github.com/openshift/origin/pkg/quota/apis/quota"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
@@ -1730,7 +1730,7 @@ func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings
 	if err != nil {
 		return "", err
 	}
-	return DescribeClusterQuota(quotaconvert.ConvertV1AppliedClusterResourceQuotaToV1ClusterResourceQuota(quota))
+	return DescribeClusterQuota(quotahelpers.ConvertV1AppliedClusterResourceQuotaToV1ClusterResourceQuota(quota))
 }
 
 type ClusterNetworkDescriber struct {

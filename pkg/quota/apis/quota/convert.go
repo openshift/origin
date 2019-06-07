@@ -19,12 +19,3 @@ func ConvertV1ClusterResourceQuotaToV1AppliedClusterResourceQuota(in *quotav1.Cl
 		Status:     in.Status,
 	}
 }
-
-// ConvertV1AppliedClusterResourceQuotaToV1ClusterResourceQuota returns back a converted AppliedClusterResourceQuota which is NOT a deep copy.
-func ConvertV1AppliedClusterResourceQuotaToV1ClusterResourceQuota(in *quotav1.AppliedClusterResourceQuota) *quotav1.ClusterResourceQuota {
-	return &quotav1.ClusterResourceQuota{
-		ObjectMeta: in.ObjectMeta,
-		Spec:       in.Spec,
-		Status:     in.Status,
-	}
-}
