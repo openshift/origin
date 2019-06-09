@@ -1,5 +1,6 @@
 package v1
 
+// annotations
 const (
 	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
 	BuildAnnotation = "openshift.io/build.name"
@@ -15,11 +16,6 @@ const (
 
 	// BuildPodNameAnnotation is an annotation whose value is the name of the pod running this build
 	BuildPodNameAnnotation = "openshift.io/build.pod-name"
-
-	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-	// on which the Build is based. NOTE: The value for this label may not contain the entire
-	// BuildConfig name because it will be truncated to maximum label length.
-	BuildConfigLabel = "openshift.io/build-config.name"
 
 	// BuildJenkinsStatusJSONAnnotation is an annotation holding the Jenkins status information
 	BuildJenkinsStatusJSONAnnotation = "openshift.io/jenkins-status-json"
@@ -44,7 +40,13 @@ const (
 	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
 )
 
+// labels
 const (
+	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
+	// on which the Build is based. NOTE: The value for this label may not contain the entire
+	// BuildConfig name because it will be truncated to maximum label length.
+	BuildConfigLabel = "openshift.io/build-config.name"
+
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	// NOTE: The value for this label may not contain the entire Build name because it will be
 	// truncated to maximum label length.
@@ -152,4 +154,39 @@ const (
 	// StatusReasonBuildPodEvicted is the reason a build fails due to the build pod being evicted
 	// from its node
 	StatusReasonBuildPodEvicted StatusReason = "BuildPodEvicted"
+)
+
+// env vars
+// WhitelistEnvVarNames is a list of special env vars allows s2i containers
+var WhitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY", "HTTP_PROXY", "HTTPS_PROXY", "LANG", "NO_PROXY"}
+
+// env vars
+const (
+
+	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
+	// performing a custom build, if needed.
+	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
+
+	// AllowedUIDs is an environment variable that contains ranges of UIDs that are allowed in
+	// Source builder images
+	AllowedUIDs = "ALLOWED_UIDS"
+	// DropCapabilities is an environment variable that contains a list of capabilities to drop when
+	// executing a Source build
+	DropCapabilities = "DROP_CAPS"
+)
+
+// keys inside of secrets and configmaps
+const (
+	// WebHookSecretKey is the key used to identify the value containing the webhook invocation
+	// secret within a secret referenced by a webhook trigger.
+	WebHookSecretKey = "WebHookSecretKey"
+
+	// RegistryConfKey is the ConfigMap key for the build pod's registry configuration file.
+	RegistryConfKey = "registries.conf"
+
+	// SignaturePolicyKey is the ConfigMap key for the build pod's image signature policy file.
+	SignaturePolicyKey = "policy.json"
+
+	// ServiceCAKey is the ConfigMap key for the service signing certificate authority mounted into build pods.
+	ServiceCAKey = "service-ca.crt"
 )

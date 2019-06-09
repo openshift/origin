@@ -1,5 +1,5 @@
 hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
-updated: 2019-06-06T14:54:48.443128179-04:00
+updated: 2019-06-09T14:11:20.623198212-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -891,7 +891,7 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: github.com/opencontainers/go-digest
-  version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
+  version: ac19fd6e7483ff933754af248d80be865e543d22
 - name: github.com/opencontainers/image-spec
   version: 372ad780f63454fbbbbcc7cf80e5b90245c13e13
   subpackages:
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 353170832db777aa57e3bb3b083bb3fd27a05d0d
+  version: 03f675a820a710503424722d69ab43614d4efd6a
   subpackages:
   - annotations
   - apps
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: a56f86358bff444e116cb5e1916671aff8a07744
+  version: 03147f3df0d317e6294355115993291659808735
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -1124,6 +1124,7 @@ imports:
   - pkg/config/validation
   - pkg/crypto
   - pkg/git
+  - pkg/image/dockerv1client
   - pkg/image/imageutil
   - pkg/image/internal/digest
   - pkg/image/internal/reference
@@ -1151,6 +1152,7 @@ imports:
   - pkg/template/generator
   - pkg/template/templateprocessing
   - pkg/template/templateprocessingclient
+  - pkg/unidling/unidlingclient
 - name: github.com/openshift/oauth-server
   version: addeeedebc59feb04d7f845af019181739c22199
   subpackages:
@@ -1198,8 +1200,24 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: c63545c5e3bb7f90adbe0c15965d9796f0f37b56
+  version: 315df81dafd49982fa95a2b78fbd30603036c681
   subpackages:
+  - pkg/cli/admin/cert
+  - pkg/cli/admin/createerrortemplate
+  - pkg/cli/admin/createlogintemplate
+  - pkg/cli/admin/createproviderselectiontemplate
+  - pkg/cli/admin/groups/new
+  - pkg/cli/admin/groups/users
+  - pkg/cli/admin/migrate
+  - pkg/cli/admin/migrate/etcd
+  - pkg/cli/admin/migrate/legacyhpa
+  - pkg/cli/admin/migrate/storage
+  - pkg/cli/admin/migrate/templateinstances
+  - pkg/cli/admin/network
+  - pkg/cli/admin/node
+  - pkg/cli/admin/prune/builds
+  - pkg/cli/admin/prune/deployments
+  - pkg/cli/admin/upgrade
   - pkg/cli/create
   - pkg/cli/create/route
   - pkg/cli/deployer
@@ -1212,10 +1230,14 @@ imports:
   - pkg/cli/experimental/dockergc
   - pkg/cli/expose
   - pkg/cli/extract
+  - pkg/cli/kubectlwrappers
+  - pkg/cli/logout
   - pkg/cli/logs
   - pkg/cli/observe
   - pkg/cli/options
   - pkg/cli/recycle
+  - pkg/cli/rollback
+  - pkg/cli/rsh
   - pkg/cli/secrets
   - pkg/cli/serviceaccounts
   - pkg/cli/version
@@ -1255,6 +1277,8 @@ imports:
   - pkg/helpers/groupsync/rfc2307
   - pkg/helpers/groupsync/syncerror
   - pkg/helpers/image
+  - pkg/helpers/image/dockerlayer
+  - pkg/helpers/image/dockerlayer/add
   - pkg/helpers/image/test
   - pkg/helpers/kubeconfig
   - pkg/helpers/legacy
@@ -1263,6 +1287,7 @@ imports:
   - pkg/helpers/project
   - pkg/helpers/quota
   - pkg/helpers/route
+  - pkg/helpers/route/generator
   - pkg/helpers/template/templateprocessorclient
   - pkg/helpers/term
   - pkg/helpers/tokencmd
@@ -1276,7 +1301,7 @@ imports:
   - pkg/quota/quotautil
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: c6ba47efbd46b7d8919f954ecbda458c71778664
+  version: d9240da9b35cfb2a8689286c22a25c61fcb106c0
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1299,9 +1324,10 @@ imports:
   - pkg/security/mcs
   - pkg/security/uidallocator
   - pkg/serviceaccounts/controllers
+  - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/source-to-image
-  version: 45ec6af23200658c5e04d09b67433ae0dd48ae04
+  version: 3dee73c8b712954df879fc5d40f6bb66b4bc8ff5
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1906,7 +1932,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: f0c5ddddae39c9b6945dbd14e03f4c2460591b33
+  version: a93f9e7440297895d7482102382b5d9a4b58f52b
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2376,7 +2402,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 0182fb7a90c1d055915c47a065351c638ed5b140
+  version: 992c5f7caa1f1af2358f97a492286619b2a6d06a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

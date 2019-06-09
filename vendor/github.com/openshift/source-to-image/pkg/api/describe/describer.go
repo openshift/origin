@@ -98,11 +98,11 @@ func Config(client docker.Client, config *api.Config) string {
 
 func describeBuilderImage(client docker.Client, config *api.Config, out io.Writer) {
 	c := &api.Config{
-		DockerConfig:       config.DockerConfig,
-		PullAuthentication: config.PullAuthentication,
-		BuilderImage:       config.BuilderImage,
-		BuilderPullPolicy:  config.BuilderPullPolicy,
-		Tag:                config.Tag,
+		DockerConfig:              config.DockerConfig,
+		PullAuthentication:        config.PullAuthentication,
+		BuilderImage:              config.BuilderImage,
+		BuilderPullPolicy:         config.BuilderPullPolicy,
+		Tag:                       config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
 	dkr := docker.New(client, c.PullAuthentication)

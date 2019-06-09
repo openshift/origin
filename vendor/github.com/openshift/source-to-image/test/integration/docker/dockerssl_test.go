@@ -1,6 +1,6 @@
 // +build integration
 
-package integration
+package docker
 
 import (
 	"crypto/tls"
@@ -28,12 +28,12 @@ var caPool *x509.CertPool
 
 func init() {
 	var err error
-	serverCert, err = tls.LoadX509KeyPair("testdata/127.0.0.1.crt", "testdata/127.0.0.1.key")
+	serverCert, err = tls.LoadX509KeyPair("../testdata/127.0.0.1.crt", "../testdata/127.0.0.1.key")
 	if err != nil {
 		panic(err)
 	}
 
-	ca, err := ioutil.ReadFile("testdata/ca.crt")
+	ca, err := ioutil.ReadFile("../testdata/ca.crt")
 	if err != nil {
 		panic(err)
 	}
@@ -132,9 +132,9 @@ func TestTCP(t *testing.T) {
 
 	for _, dc.UseTLS = range []bool{true, false} {
 		for _, dc.TLSVerify = range []bool{true, false} {
-			for _, dc.CAFile = range []string{"testdata/ca.crt", "bad", ""} {
-				for _, dc.CertFile = range []string{"testdata/client.crt", "bad", ""} {
-					for _, dc.KeyFile = range []string{"testdata/client.key", "bad", ""} {
+			for _, dc.CAFile = range []string{"../testdata/ca.crt", "bad", ""} {
+				for _, dc.CertFile = range []string{"../testdata/client.crt", "bad", ""} {
+					for _, dc.KeyFile = range []string{"../testdata/client.key", "bad", ""} {
 						runTest(t, dc, !dc.UseTLS && !dc.TLSVerify)
 					}
 				}
@@ -155,9 +155,9 @@ func TestUNIX(t *testing.T) {
 
 	for _, dc.UseTLS = range []bool{true, false} {
 		for _, dc.TLSVerify = range []bool{true, false} {
-			for _, dc.CAFile = range []string{"testdata/ca.crt", "bad", ""} {
-				for _, dc.CertFile = range []string{"testdata/client.crt", "bad", ""} {
-					for _, dc.KeyFile = range []string{"testdata/client.key", "bad", ""} {
+			for _, dc.CAFile = range []string{"../testdata/ca.crt", "bad", ""} {
+				for _, dc.CertFile = range []string{"../testdata/client.crt", "bad", ""} {
+					for _, dc.KeyFile = range []string{"../testdata/client.key", "bad", ""} {
 						runTest(t, dc, !dc.UseTLS && !dc.TLSVerify)
 					}
 				}
@@ -174,12 +174,12 @@ func TestSSL(t *testing.T) {
 
 	for _, dc.UseTLS = range []bool{true, false} {
 		for _, dc.TLSVerify = range []bool{true, false} {
-			for _, dc.CAFile = range []string{"testdata/ca.crt", "bad", ""} {
-				for _, dc.CertFile = range []string{"testdata/client.crt", "bad", ""} {
-					for _, dc.KeyFile = range []string{"testdata/client.key", "bad", ""} {
-						expected := dc.UseTLS && !dc.TLSVerify || dc.TLSVerify && dc.CAFile == "testdata/ca.crt"
+			for _, dc.CAFile = range []string{"../testdata/ca.crt", "bad", ""} {
+				for _, dc.CertFile = range []string{"../testdata/client.crt", "bad", ""} {
+					for _, dc.KeyFile = range []string{"../testdata/client.key", "bad", ""} {
+						expected := dc.UseTLS && !dc.TLSVerify || dc.TLSVerify && dc.CAFile == "../testdata/ca.crt"
 
-						if (dc.CertFile == "testdata/client.crt") != (dc.KeyFile == "testdata/client.key") {
+						if (dc.CertFile == "../testdata/client.crt") != (dc.KeyFile == "../testdata/client.key") {
 							expected = false
 						}
 
@@ -202,12 +202,12 @@ func TestSSLClientCert(t *testing.T) {
 
 	for _, dc.UseTLS = range []bool{true, false} {
 		for _, dc.TLSVerify = range []bool{true, false} {
-			for _, dc.CAFile = range []string{"testdata/ca.crt", "bad", ""} {
-				for _, dc.CertFile = range []string{"testdata/client.crt", "bad", ""} {
-					for _, dc.KeyFile = range []string{"testdata/client.key", "bad", ""} {
-						expected := dc.UseTLS && !dc.TLSVerify || dc.TLSVerify && dc.CAFile == "testdata/ca.crt"
+			for _, dc.CAFile = range []string{"../testdata/ca.crt", "bad", ""} {
+				for _, dc.CertFile = range []string{"../testdata/client.crt", "bad", ""} {
+					for _, dc.KeyFile = range []string{"../testdata/client.key", "bad", ""} {
+						expected := dc.UseTLS && !dc.TLSVerify || dc.TLSVerify && dc.CAFile == "../testdata/ca.crt"
 
-						if dc.CertFile != "testdata/client.crt" || dc.KeyFile != "testdata/client.key" {
+						if dc.CertFile != "../testdata/client.crt" || dc.KeyFile != "../testdata/client.key" {
 							expected = false
 						}
 
