@@ -47,6 +47,7 @@ import (
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	onetworktypedclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
+	"github.com/openshift/library-go/pkg/build/naming"
 	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	quotahelpers "github.com/openshift/oc/pkg/helpers/quota"
@@ -57,7 +58,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/util"
@@ -183,6 +183,11 @@ type BuildDescriber struct {
 	kubeClient  kubernetes.Interface
 }
 
+// GetBuildPodName returns name of the build pod.
+func getBuildPodName(build *buildv1.Build) string {
+	return naming.GetPodName(build.Name, "build")
+}
+
 // Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string, settings describe.DescriberSettings) (string, error) {
 	c := d.buildClient.Builds(namespace)
@@ -195,7 +200,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings describe.Desc
 		events = &corev1.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.CoreV1().Pods(namespace).Get(buildutil.GetBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
+	if pod, err := d.kubeClient.CoreV1().Pods(namespace).Get(getBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.CoreV1().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -229,7 +234,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings describe.Desc
 		if buildObj.Status.Config != nil {
 			formatString(out, "Build Config", buildObj.Status.Config.Name)
 		}
-		formatString(out, "Build Pod", buildutil.GetBuildPodName(buildObj))
+		formatString(out, "Build Pod", getBuildPodName(buildObj))
 
 		if buildObj.Status.Output.To != nil && len(buildObj.Status.Output.To.ImageDigest) > 0 {
 			formatString(out, "Image Digest", buildObj.Status.Output.To.ImageDigest)

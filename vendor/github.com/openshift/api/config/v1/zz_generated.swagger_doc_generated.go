@@ -1098,8 +1098,9 @@ func (TemplateReference) SwaggerDoc() map[string]string {
 }
 
 var map_Proxy = map[string]string{
-	"":     "Proxy holds cluster-wide information on how to configure default proxies for the cluster. The canonical name is `cluster`",
-	"spec": "Spec holds user-settable values for the proxy configuration",
+	"":       "Proxy holds cluster-wide information on how to configure default proxies for the cluster. The canonical name is `cluster`",
+	"spec":   "Spec holds user-settable values for the proxy configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Proxy) SwaggerDoc() map[string]string {
@@ -1115,13 +1116,25 @@ func (ProxyList) SwaggerDoc() map[string]string {
 }
 
 var map_ProxySpec = map[string]string{
+	"":           "ProxySpec contains cluster proxy creation configuration.",
 	"httpProxy":  "httpProxy is the URL of the proxy for HTTP requests.  Empty means unset and will not result in an env var.",
 	"httpsProxy": "httpsProxy is the URL of the proxy for HTTPS requests.  Empty means unset and will not result in an env var.",
-	"noProxy":    "noProxy is the list of domains for which the proxy should not be used.  Empty means unset and will not result in an env var.",
+	"noProxy":    "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Each name is matched as either a domain which contains the host name as a suffix, or the host name itself. For instance, example.com would match example.com, example.com:80, and www.example.com. Wildcard(*) characters are not accepted, except a single * character which matches all hosts and effectively disables the proxy. Empty means unset and will not result in an env var.",
 }
 
 func (ProxySpec) SwaggerDoc() map[string]string {
 	return map_ProxySpec
+}
+
+var map_ProxyStatus = map[string]string{
+	"":           "ProxyStatus shows current known state of the cluster proxy.",
+	"httpProxy":  "httpProxy is the URL of the proxy for HTTP requests.",
+	"httpsProxy": "httpsProxy is the URL of the proxy for HTTPS requests.",
+	"noProxy":    "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used.",
+}
+
+func (ProxyStatus) SwaggerDoc() map[string]string {
+	return map_ProxyStatus
 }
 
 var map_Scheduler = map[string]string{

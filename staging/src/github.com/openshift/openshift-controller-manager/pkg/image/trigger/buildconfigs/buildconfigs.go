@@ -19,26 +19,12 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
 )
 
 const BuildTriggerCauseImageMsg = "Image change"
-
-// GetInputReference returns the From ObjectReference associated with the
-// BuildStrategy.
-func GetInputReference(strategy buildv1.BuildStrategy) *corev1.ObjectReference {
-	switch {
-	case strategy.SourceStrategy != nil:
-		return &strategy.SourceStrategy.From
-	case strategy.DockerStrategy != nil:
-		return strategy.DockerStrategy.From
-	case strategy.CustomStrategy != nil:
-		return &strategy.CustomStrategy.From
-	default:
-		return nil
-	}
-}
 
 // calculateBuildConfigTriggers transforms a build config into a set of image change triggers.
 // It uses synthetic field paths since we don't need to generically transform the config.
@@ -56,7 +42,7 @@ func calculateBuildConfigTriggers(bc *buildv1.BuildConfig) []triggerutil.ObjectF
 			from = t.ImageChange.From
 			fieldPath = "spec.triggers"
 		} else {
-			from = GetInputReference(bc.Spec.Strategy)
+			from = buildutil.GetInputReference(bc.Spec.Strategy)
 			fieldPath = "spec.strategy.*.from"
 		}
 		if from == nil || from.Kind != "ImageStreamTag" || len(from.Name) == 0 {
@@ -170,7 +156,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 		if p.From != nil {
 			from = p.From
 		} else {
-			from = GetInputReference(bc.Spec.Strategy)
+			from = buildutil.GetInputReference(bc.Spec.Strategy)
 		}
 		namespace := from.Namespace
 		if len(namespace) == 0 {

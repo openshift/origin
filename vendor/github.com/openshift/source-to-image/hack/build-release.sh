@@ -42,7 +42,7 @@ gzip -f "${context}/archive.tar"
 
 # Perform the build and release in podman.
 cat "${context}/archive.tar.gz" | podman run -i --cidfile="${context}/cid" -e RELEASE_LDFLAGS="-w -s" openshift/sti-release
-podman cp $(cat ${context}/cid):/go/src/github.com/openshift/source-to-image/_output/local/releases "${S2I_LOCAL_RELEASEPATH}"
+podman cp $(cat ${context}/cid):/go/src/github.com/openshift/source-to-image/_output/local/releases "${S2I_OUTPUT}"
 echo "${S2I_GIT_COMMIT}" > "${S2I_LOCAL_RELEASEPATH}/.commit"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

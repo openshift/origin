@@ -20,9 +20,9 @@ import (
 
 	templatev1 "github.com/openshift/api/template/v1"
 
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 )

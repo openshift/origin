@@ -9,7 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 
-	"github.com/openshift/origin/pkg/oc/cli/admin/release"
+	"github.com/openshift/oc/pkg/cli/admin/release"
 	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

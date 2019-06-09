@@ -229,6 +229,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.Proxy":                                                                    schema_openshift_api_config_v1_Proxy(ref),
 		"github.com/openshift/api/config/v1.ProxyList":                                                                schema_openshift_api_config_v1_ProxyList(ref),
 		"github.com/openshift/api/config/v1.ProxySpec":                                                                schema_openshift_api_config_v1_ProxySpec(ref),
+		"github.com/openshift/api/config/v1.ProxyStatus":                                                              schema_openshift_api_config_v1_ProxyStatus(ref),
 		"github.com/openshift/api/config/v1.RegistryLocation":                                                         schema_openshift_api_config_v1_RegistryLocation(ref),
 		"github.com/openshift/api/config/v1.RegistrySources":                                                          schema_openshift_api_config_v1_RegistrySources(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                                     schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
@@ -246,6 +247,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.Update":                                                                   schema_openshift_api_config_v1_Update(ref),
 		"github.com/openshift/api/config/v1.UpdateHistory":                                                            schema_openshift_api_config_v1_UpdateHistory(ref),
 		"github.com/openshift/api/config/v1.WebhookTokenAuthenticator":                                                schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref),
+		"github.com/openshift/api/console/v1.ConsoleCLIDownload":                                                      schema_openshift_api_console_v1_ConsoleCLIDownload(ref),
+		"github.com/openshift/api/console/v1.ConsoleCLIDownloadList":                                                  schema_openshift_api_console_v1_ConsoleCLIDownloadList(ref),
+		"github.com/openshift/api/console/v1.ConsoleCLIDownloadSpec":                                                  schema_openshift_api_console_v1_ConsoleCLIDownloadSpec(ref),
+		"github.com/openshift/api/console/v1.ConsoleLink":                                                             schema_openshift_api_console_v1_ConsoleLink(ref),
+		"github.com/openshift/api/console/v1.ConsoleLinkList":                                                         schema_openshift_api_console_v1_ConsoleLinkList(ref),
+		"github.com/openshift/api/console/v1.ConsoleLinkSpec":                                                         schema_openshift_api_console_v1_ConsoleLinkSpec(ref),
+		"github.com/openshift/api/console/v1.ConsoleNotification":                                                     schema_openshift_api_console_v1_ConsoleNotification(ref),
+		"github.com/openshift/api/console/v1.ConsoleNotificationList":                                                 schema_openshift_api_console_v1_ConsoleNotificationList(ref),
+		"github.com/openshift/api/console/v1.ConsoleNotificationSpec":                                                 schema_openshift_api_console_v1_ConsoleNotificationSpec(ref),
+		"github.com/openshift/api/console/v1.Link":                                                                    schema_openshift_api_console_v1_Link(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                                      schema_openshift_api_image_v1_DockerImageReference(ref),
 		"github.com/openshift/api/image/v1.Image":                                                                     schema_openshift_api_image_v1_Image(ref),
 		"github.com/openshift/api/image/v1.ImageBlobReferences":                                                       schema_openshift_api_image_v1_ImageBlobReferences(ref),
@@ -11214,12 +11225,18 @@ func schema_openshift_api_config_v1_Proxy(ref common.ReferenceCallback) common.O
 							Ref:         ref("github.com/openshift/api/config/v1.ProxySpec"),
 						},
 					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status holds observed values from the cluster. They may not be overridden.",
+							Ref:         ref("github.com/openshift/api/config/v1.ProxyStatus"),
+						},
+					},
 				},
 				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ProxySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/openshift/api/config/v1.ProxySpec", "github.com/openshift/api/config/v1.ProxyStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -11274,7 +11291,8 @@ func schema_openshift_api_config_v1_ProxySpec(ref common.ReferenceCallback) comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ProxySpec contains cluster proxy creation configuration.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"httpProxy": {
 						SchemaProps: spec.SchemaProps{
@@ -11292,7 +11310,41 @@ func schema_openshift_api_config_v1_ProxySpec(ref common.ReferenceCallback) comm
 					},
 					"noProxy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "noProxy is the list of domains for which the proxy should not be used.  Empty means unset and will not result in an env var.",
+							Description: "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Each name is matched as either a domain which contains the host name as a suffix, or the host name itself. For instance, example.com would match example.com, example.com:80, and www.example.com. Wildcard(*) characters are not accepted, except a single * character which matches all hosts and effectively disables the proxy. Empty means unset and will not result in an env var.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_ProxyStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ProxyStatus shows current known state of the cluster proxy.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"httpProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "httpProxy is the URL of the proxy for HTTP requests.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"httpsProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "httpsProxy is the URL of the proxy for HTTPS requests.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"noProxy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -12014,6 +12066,426 @@ func schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref common.Referen
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/config/v1.SecretNameReference"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleCLIDownload(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConsoleCLIDownload is an extension for configuring openshift web console command line interface (CLI) downloads.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/console/v1.ConsoleCLIDownloadSpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ConsoleCLIDownloadSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleCLIDownloadList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/console/v1.ConsoleCLIDownload"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ConsoleCLIDownload", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleCLIDownloadSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConsoleCLIDownloadSpec is the desired cli download configuration.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"displayName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "displayName is the display name of the CLI download.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "description is the description of the CLI download (can include markdown).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"links": {
+						SchemaProps: spec.SchemaProps{
+							Description: "links is a list of objects that provide CLI download link details.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/console/v1.Link"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"displayName", "description", "links"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.Link"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleLink(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConsoleLink is an extension for customizing OpenShift web console links.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/console/v1.ConsoleLinkSpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ConsoleLinkSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleLinkList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/console/v1.ConsoleLink"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ConsoleLink", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleLinkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConsoleLinkSpec is the desired console link configuration.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"text": {
+						SchemaProps: spec.SchemaProps{
+							Description: "text is the display text for the link",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"href": {
+						SchemaProps: spec.SchemaProps{
+							Description: "href is the absolute secure URL for the link (must use https)",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"location": {
+						SchemaProps: spec.SchemaProps{
+							Description: "location determines which location in the console the link will be appended to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"text", "href", "location"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleNotification(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConsoleNotification is the extension for configuring openshift web console notifications.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/console/v1.ConsoleNotificationSpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ConsoleNotificationSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleNotificationList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/console/v1.ConsoleNotification"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ConsoleNotification", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_console_v1_ConsoleNotificationSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConsoleNotificationSpec is the desired console notification configuration.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"text": {
+						SchemaProps: spec.SchemaProps{
+							Description: "text is the visible text of the notification.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"location": {
+						SchemaProps: spec.SchemaProps{
+							Description: "location is the location of the notification in the console.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"link": {
+						SchemaProps: spec.SchemaProps{
+							Description: "link is an object that holds notification link details.",
+							Ref:         ref("github.com/openshift/api/console/v1.Link"),
+						},
+					},
+					"color": {
+						SchemaProps: spec.SchemaProps{
+							Description: "color is the color of the text for the notification as CSS data type color.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"backgroundColor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "backgroundColor is the color of the background for the notification as CSS data type color.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"text"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.Link"},
+	}
+}
+
+func schema_openshift_api_console_v1_Link(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Represents a standard link that could be generated in HTML",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"text": {
+						SchemaProps: spec.SchemaProps{
+							Description: "text is the display text for the link",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"href": {
+						SchemaProps: spec.SchemaProps{
+							Description: "href is the absolute secure URL for the link (must use https)",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"text", "href"},
+			},
+		},
 	}
 }
 
@@ -18783,6 +19255,13 @@ func schema_openshift_api_network_v1_ClusterNetwork(ref common.ReferenceCallback
 					"vxlanPort": {
 						SchemaProps: spec.SchemaProps{
 							Description: "VXLANPort sets the VXLAN destination port used by the cluster. It is set by the master configuration file on startup and cannot be edited manually. Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789. Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"mtu": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MTU is the MTU for the overlay network. This should be 50 less than the MTU of the network connecting the nodes. It is normally autodetected by the cluster network operator.",
 							Type:        []string{"integer"},
 							Format:      "int64",
 						},

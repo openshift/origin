@@ -15,8 +15,12 @@ type Proxy struct {
 	// Spec holds user-settable values for the proxy configuration
 	// +required
 	Spec ProxySpec `json:"spec"`
+	// status holds observed values from the cluster. They may not be overridden.
+	// +optional
+	Status ProxyStatus `json:"status"`
 }
 
+// ProxySpec contains cluster proxy creation configuration.
 type ProxySpec struct {
 	// httpProxy is the URL of the proxy for HTTP requests.  Empty means unset and will not result in an env var.
 	// +optional
@@ -26,7 +30,26 @@ type ProxySpec struct {
 	// +optional
 	HTTPSProxy string `json:"httpsProxy,omitempty"`
 
-	// noProxy is the list of domains for which the proxy should not be used.  Empty means unset and will not result in an env var.
+	// noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used.
+	// Each name is matched as either a domain which contains the host name as a suffix, or the host name itself.
+	// For instance, example.com would match example.com, example.com:80, and www.example.com.
+	// Wildcard(*) characters are not accepted, except a single * character which matches all hosts
+	// and effectively disables the proxy. Empty means unset and will not result in an env var.
+	// +optional
+	NoProxy string `json:"noProxy,omitempty"`
+}
+
+// ProxyStatus shows current known state of the cluster proxy.
+type ProxyStatus struct {
+	// httpProxy is the URL of the proxy for HTTP requests.
+	// +optional
+	HTTPProxy string `json:"httpProxy,omitempty"`
+
+	// httpsProxy is the URL of the proxy for HTTPS requests.
+	// +optional
+	HTTPSProxy string `json:"httpsProxy,omitempty"`
+
+	// noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used.
 	// +optional
 	NoProxy string `json:"noProxy,omitempty"`
 }

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -64,7 +64,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonGenericBuildFailed))
-				o.Expect(build.Status.Message).To(o.Equal(buildutil.StatusMessageGenericBuildFailed))
+				o.Expect(build.Status.Message).To(o.Equal("Generic Build failure - check logs for details."))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 
@@ -144,7 +144,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonOutOfMemoryKilled))
-				o.Expect(build.Status.Message).To(o.Equal(buildutil.StatusMessageOutOfMemoryKilled))
+				o.Expect(build.Status.Message).To(o.Equal("The build pod was killed due to an out of memory condition."))
 
 				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, buildutil.BuildFailedEventReason, buildutil.BuildFailedEventMessage)
 			})

@@ -1,7 +1,7 @@
 package controller
 
 import (
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	"k8s.io/client-go/dynamic"
 )
 

@@ -21,9 +21,10 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
@@ -1377,7 +1378,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	// both should be replaced.  Additional environment variables should not be touched.
 	build.Spec.Strategy.CustomStrategy.Env = make([]corev1.EnvVar, 2)
 	build.Spec.Strategy.CustomStrategy.Env[0] = corev1.EnvVar{Name: "someImage", Value: originalImage}
-	build.Spec.Strategy.CustomStrategy.Env[1] = corev1.EnvVar{Name: buildutil.CustomBuildStrategyBaseImageKey, Value: originalImage}
+	build.Spec.Strategy.CustomStrategy.Env[1] = corev1.EnvVar{Name: buildv1.CustomBuildStrategyBaseImageKey, Value: originalImage}
 	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
 	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Spec.Strategy.CustomStrategy.Env[0].Name)
@@ -1430,7 +1431,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	// Environment variables should not be updated.
 	build.Spec.Strategy.CustomStrategy.Env = make([]corev1.EnvVar, 2)
 	build.Spec.Strategy.CustomStrategy.Env[0] = corev1.EnvVar{Name: "someEnvVar", Value: originalImage}
-	build.Spec.Strategy.CustomStrategy.Env[1] = corev1.EnvVar{Name: buildutil.CustomBuildStrategyBaseImageKey, Value: "dummy"}
+	build.Spec.Strategy.CustomStrategy.Env[1] = corev1.EnvVar{Name: buildv1.CustomBuildStrategyBaseImageKey, Value: "dummy"}
 	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
 	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Spec.Strategy.CustomStrategy.Env[0].Name)
@@ -1463,7 +1464,7 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable was improperly substituted in custom strategy")
 	}
-	if build.Spec.Strategy.CustomStrategy.Env[1].Name != buildutil.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[1].
+	if build.Spec.Strategy.CustomStrategy.Env[1].Name != buildv1.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[1].
 		Value != newImage {
 		t.Errorf("Image env variable was not added in custom strategy %s %s |", build.Spec.Strategy.CustomStrategy.Env[1].Name, build.Spec.Strategy.CustomStrategy.Env[1].Value)
 	}
@@ -1486,7 +1487,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	// Custom build with a base Image but no environment variables
 	// base image should be replaced, new image environment variable should be added
 	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
-	if build.Spec.Strategy.CustomStrategy.Env[0].Name != buildutil.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[0].
+	if build.Spec.Strategy.CustomStrategy.Env[0].Name != buildv1.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[0].
 		Value != newImage {
 		t.Errorf("New image name variable was not added to environment list in custom strategy")
 	}
@@ -1856,7 +1857,7 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 }
 
 func TestInstantiateBuildTriggerCauseConfigChange(t *testing.T) {
-	changeMessage := buildutil.BuildTriggerCauseConfigMsg
+	changeMessage := "Build configuration change"
 
 	buildTriggerCauses := []buildv1.BuildTriggerCause{}
 	buildRequest := &buildv1.BuildRequest{
@@ -1881,7 +1882,7 @@ func TestInstantiateBuildTriggerCauseConfigChange(t *testing.T) {
 
 func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 	buildTriggerCauses := []buildv1.BuildTriggerCause{}
-	changeMessage := buildutil.BuildTriggerCauseImageMsg
+	changeMessage := "Image change"
 	imageID := "centos@sha256:b3da5267165b"
 	refName := "centos:7"
 	refKind := "ImageStreamTag"
@@ -1907,7 +1908,7 @@ func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
 	for _, cause := range buildObject.Spec.TriggeredBy {
-		if cause.Message != buildutil.BuildTriggerCauseImageMsg {
+		if cause.Message != "Image change" {
 			t.Errorf("Expected reason %s, got %s", changeMessage, cause.Message)
 		}
 		if cause.ImageChangeBuild.ImageID != imageID {
@@ -1969,7 +1970,7 @@ func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 
 func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 	buildTriggerCauses := []buildv1.BuildTriggerCause{}
-	changeMessage := buildutil.BuildTriggerCauseGithubMsg
+	changeMessage := apiserverbuildutil.BuildTriggerCauseGithubMsg
 	webHookSecret := "<secret>"
 
 	gitRevision := &buildv1.SourceRevision{
@@ -2014,7 +2015,7 @@ func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 
 func TestInstantiateBuildTriggerCauseGitLabWebHook(t *testing.T) {
 	buildTriggerCauses := []buildv1.BuildTriggerCause{}
-	changeMessage := buildutil.BuildTriggerCauseGitLabMsg
+	changeMessage := apiserverbuildutil.BuildTriggerCauseGitLabMsg
 	webHookSecret := "<secret>"
 
 	gitRevision := &buildv1.SourceRevision{
@@ -2061,7 +2062,7 @@ func TestInstantiateBuildTriggerCauseGitLabWebHook(t *testing.T) {
 
 func TestInstantiateBuildTriggerCauseBitbucketWebHook(t *testing.T) {
 	buildTriggerCauses := []buildv1.BuildTriggerCause{}
-	changeMessage := buildutil.BuildTriggerCauseBitbucketMsg
+	changeMessage := apiserverbuildutil.BuildTriggerCauseBitbucketMsg
 	webHookSecret := "<secret>"
 
 	gitRevision := &buildv1.SourceRevision{

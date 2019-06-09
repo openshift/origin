@@ -41,12 +41,12 @@ import (
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
-	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
-	"github.com/openshift/origin/pkg/build/controller/common"
-	"github.com/openshift/origin/pkg/build/controller/policy"
-	"github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
+	builddefaults "github.com/openshift/openshift-controller-manager/pkg/build/controller/build/defaults"
+	buildoverrides "github.com/openshift/openshift-controller-manager/pkg/build/controller/build/overrides"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/common"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/policy"
+	"github.com/openshift/openshift-controller-manager/pkg/build/controller/strategy"
 )
 
 const (
@@ -77,7 +77,7 @@ var registryCAConfigMap = &corev1.ConfigMap{
 		},
 	},
 	Data: map[string]string{
-		buildutil.ServiceCAKey: dummyCA,
+		buildv1.ServiceCAKey: dummyCA,
 	},
 }
 
@@ -182,7 +182,7 @@ func TestHandleBuild(t *testing.T) {
 			pod:   pod(corev1.PodRunning),
 			expectUpdate: newUpdate().phase(buildv1.BuildPhaseCancelled).
 				reason(buildv1.StatusReasonCancelledBuild).
-				message(buildutil.StatusMessageCancelledBuild).
+				message("The build was cancelled by the user.").
 				completionTime(now).
 				startTime(now).update,
 			expectPodDeleted: true,
@@ -231,7 +231,7 @@ func TestHandleBuild(t *testing.T) {
 			expectUpdate: newUpdate().
 				phase(buildv1.BuildPhaseError).
 				reason(buildv1.StatusReasonBuildPodExists).
-				message(buildutil.StatusMessageBuildPodExists).
+				message("The pod for this build already exists and is older than the build.").
 				podNameAnnotation(pod(corev1.PodRunning).Name).
 				startTime(now).
 				completionTime(now).
@@ -278,7 +278,7 @@ func TestHandleBuild(t *testing.T) {
 			expectUpdate: newUpdate().
 				phase(buildv1.BuildPhaseFailed).
 				reason(buildv1.StatusReasonGenericBuildFailed).
-				message(buildutil.StatusMessageGenericBuildFailed).
+				message("Generic Build failure - check logs for details.").
 				startTime(now).
 				completionTime(now).
 				update,
@@ -313,7 +313,7 @@ func TestHandleBuild(t *testing.T) {
 			expectUpdate: newUpdate().
 				phase(buildv1.BuildPhaseError).
 				reason(buildv1.StatusReasonBuildPodDeleted).
-				message(buildutil.StatusMessageBuildPodDeleted).
+				message("The pod for this build was deleted before the build completed.").
 				startTime(now).
 				completionTime(now).
 				update,
@@ -589,7 +589,7 @@ func TestCreateBuildPodWithOutputImageStreamMissing(t *testing.T) {
 	}
 	expected := &buildUpdate{}
 	expected.setReason(buildv1.StatusReasonInvalidOutputReference)
-	expected.setMessage(buildutil.StatusMessageInvalidOutputRef)
+	expected.setMessage("Output image could not be resolved.")
 	validateUpdate(t, "create build pod with image stream error", expected, update)
 	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("isnamespace/isname"), []string{"namespace/data-build"}) {
 		t.Errorf("should have queued build update: %#v", bc.imageStreamQueue)
@@ -609,7 +609,7 @@ func TestCreateBuildPodWithImageStreamMissing(t *testing.T) {
 	}
 	expected := &buildUpdate{}
 	expected.setReason(buildv1.StatusReasonInvalidImageReference)
-	expected.setMessage(buildutil.StatusMessageInvalidImageRef)
+	expected.setMessage("Referenced image could not be resolved.")
 	validateUpdate(t, "create build pod with image stream error", expected, update)
 	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("namespace/isname"), []string{"namespace/data-build"}) {
 		t.Errorf("should have queued build update: %#v", bc.imageStreamQueue)
@@ -634,7 +634,7 @@ func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
 	}
 	expected := &buildUpdate{}
 	expected.setReason(buildv1.StatusReasonInvalidOutputReference)
-	expected.setMessage(buildutil.StatusMessageInvalidOutputRef)
+	expected.setMessage("Output image could not be resolved.")
 	validateUpdate(t, "create build pod with image stream error", expected, update)
 	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("isnamespace/isname"), []string{"namespace/data-build"}) {
 		t.Errorf("should have queued build update")
@@ -660,7 +660,7 @@ func TestCreateBuildPodWithPodSpecCreationError(t *testing.T) {
 	}
 	expected := &buildUpdate{}
 	expected.setReason(buildv1.StatusReasonCannotCreateBuildPodSpec)
-	expected.setMessage(buildutil.StatusMessageCannotCreateBuildPodSpec)
+	expected.setMessage("Failed to create pod spec.")
 	validateUpdate(t, "create build pod with pod spec creation error", expected, update)
 }
 
@@ -840,7 +840,7 @@ func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
 	expected := &buildUpdate{}
 	expected.setPhase(buildv1.BuildPhaseError)
 	expected.setReason(buildv1.StatusReasonBuildPodExists)
-	expected.setMessage(buildutil.StatusMessageBuildPodExists)
+	expected.setMessage("The pod for this build already exists and is older than the build.")
 	validateUpdate(t, "create build pod with pod with older existing pod", expected, update)
 }
 
@@ -862,7 +862,7 @@ func TestCreateBuildPodWithPodCreationError(t *testing.T) {
 
 	expected := &buildUpdate{}
 	expected.setReason(buildv1.StatusReasonCannotCreateBuildPod)
-	expected.setMessage(buildutil.StatusMessageCannotCreateBuildPod)
+	expected.setMessage("Failed creating build pod.")
 	validateUpdate(t, "create build pod with pod creation error", expected, update)
 }
 
@@ -884,7 +884,7 @@ func TestCreateBuildPodWithCACreationError(t *testing.T) {
 
 	expected := &buildUpdate{}
 	expected.setReason("CannotCreateCAConfigMap")
-	expected.setMessage(buildutil.StatusMessageCannotCreateCAConfigMap)
+	expected.setMessage("Failed creating build certificate authority configMap.")
 	validateUpdate(t, "create build pod with CA ConfigMap creation error", expected, update)
 }
 
@@ -912,8 +912,8 @@ func TestCancelBuild(t *testing.T) {
 	if update.reason == nil || *update.reason != buildv1.StatusReasonCancelledBuild {
 		t.Errorf("expected status reason to be set to %s", buildv1.StatusReasonCancelledBuild)
 	}
-	if update.message == nil || *update.message != buildutil.StatusMessageCancelledBuild {
-		t.Errorf("expected status message to be set to %s", buildutil.StatusMessageCancelledBuild)
+	if update.message == nil || *update.message != ("The build was cancelled by the user.") {
+		t.Errorf("expected status message to be set to %s", "The build was cancelled by the user.")
 	}
 }
 
@@ -1232,7 +1232,7 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 				expectedData[k] = v
 			}
 			// Add registry CA
-			expectedData[buildutil.ServiceCAKey] = dummyCA
+			expectedData[buildv1.ServiceCAKey] = dummyCA
 
 			if !reflect.DeepEqual(expectedData, caMap.Data) {
 				t.Errorf("expected CA configMap %v\ngot:\n%v", expectedData, caMap.Data)
@@ -1659,14 +1659,14 @@ func TestCreateBuildRegistryConfConfigMap(t *testing.T) {
 	if !hasBuildPodOwnerRef(pod, caMap) {
 		t.Error("build system config configMap is missing owner ref to the build pod")
 	}
-	if _, hasConf := caMap.Data[buildutil.RegistryConfKey]; !hasConf {
-		t.Errorf("expected build system config configMap to have key %s", buildutil.RegistryConfKey)
+	if _, hasConf := caMap.Data[buildv1.RegistryConfKey]; !hasConf {
+		t.Errorf("expected build system config configMap to have key %s", buildv1.RegistryConfKey)
 	}
-	if caMap.Data[buildutil.RegistryConfKey] != dummyRegistryConf {
+	if caMap.Data[buildv1.RegistryConfKey] != dummyRegistryConf {
 		t.Errorf("expected build system config configMap.%s to contain\n%s\ngot:\n%s",
-			buildutil.RegistryConfKey,
+			buildv1.RegistryConfKey,
 			dummyCA,
-			caMap.Data[buildutil.RegistryConfKey])
+			caMap.Data[buildv1.RegistryConfKey])
 	}
 }
 

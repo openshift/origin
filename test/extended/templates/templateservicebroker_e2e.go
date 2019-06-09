@@ -33,10 +33,10 @@ import (
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

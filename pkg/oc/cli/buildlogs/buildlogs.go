@@ -15,7 +15,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 	"github.com/openshift/oc/pkg/cli/logs"
-	buildmanualclient "github.com/openshift/origin/pkg/build/client/v1"
+	buildmanualclient "github.com/openshift/oc/pkg/helpers/build/client/v1"
 )
 
 var (

@@ -3,8 +3,6 @@ package build
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-
 	buildv1 "github.com/openshift/api/build/v1"
 )
 
@@ -82,19 +80,4 @@ func IsTerminalPhase(phase buildv1.BuildPhase) bool {
 		return false
 	}
 	return true
-}
-
-// GetInputReference returns the From ObjectReference associated with the
-// BuildStrategy.
-func GetInputReference(strategy buildv1.BuildStrategy) *corev1.ObjectReference {
-	switch {
-	case strategy.SourceStrategy != nil:
-		return &strategy.SourceStrategy.From
-	case strategy.DockerStrategy != nil:
-		return strategy.DockerStrategy.From
-	case strategy.CustomStrategy != nil:
-		return &strategy.CustomStrategy.From
-	default:
-		return nil
-	}
 }

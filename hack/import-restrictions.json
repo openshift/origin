@@ -417,13 +417,9 @@
       "github.com/openshift/origin/pkg/oc/cli/admin/groups/examples"
     ],
     "allowedImportPackageRoots": [
-      "vendor/github.com/aws/aws-sdk-go",
-      "vendor/github.com/blang/semver",
       "vendor/github.com/containers/image",
       "vendor/github.com/docker/distribution",
-      "vendor/github.com/docker/docker",
       "vendor/github.com/docker/go-units",
-      "vendor/github.com/docker/libtrust",
       "vendor/github.com/fsnotify/fsnotify",
       "vendor/github.com/fsouza/go-dockerclient",
       "vendor/k8s.io/klog",
@@ -438,7 +434,6 @@
       "vendor/github.com/openshift/source-to-image",
       "vendor/github.com/spf13/cobra",
       "vendor/github.com/spf13/pflag",
-      "vendor/golang.org",
       "vendor/gopkg.in/ldap.v2",
       "vendor/k8s.io/api",
       "vendor/k8s.io/apimachinery",
@@ -477,8 +472,6 @@
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
-      "github.com/openshift/origin/pkg/build/buildutil",
-      "github.com/openshift/origin/pkg/build/client/v1",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/templates",
@@ -493,8 +486,6 @@
       "github.com/openshift/origin/pkg/security/apis/security",
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/version",
-
-      "vendor/github.com/ghodss/yaml",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "vendor/k8s.io/kubernetes/pkg/controller",

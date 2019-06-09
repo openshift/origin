@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -25,9 +26,9 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/build/naming"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
@@ -272,7 +273,7 @@ func (g *BuildGenerator) instantiate(ctx context.Context, request *buildv1.Build
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
-		buildutil.UpdateBuildEnv(newBuild, request.Env)
+		updateBuildEnv(newBuild, request.Env)
 	}
 
 	// Update the Docker strategy options
@@ -428,7 +429,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildv1.BuildReques
 			return nil, err
 		}
 		if isPaused(buildConfig) {
-			return nil, errors.NewInternalError(&buildutil.GeneratorFatalError{Reason: fmt.Sprintf(
+			return nil, errors.NewInternalError(&generatorFatalError{Reason: fmt.Sprintf(
 				"can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)})
 		}
 	}
@@ -440,7 +441,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildv1.BuildReques
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
-		buildutil.UpdateBuildEnv(newBuild, request.Env)
+		updateBuildEnv(newBuild, request.Env)
 	}
 
 	// Update the Docker build args
@@ -463,6 +464,18 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildv1.BuildReques
 	}
 
 	return g.createBuild(ctx, newBuild)
+}
+
+// GeneratorFatalError represents a fatal error while generating a build.
+// An operation that fails because of a fatal error should not be retried.
+type generatorFatalError struct {
+	// Reason the fatal error occurred
+	Reason string
+}
+
+// Error returns the error string for this fatal error
+func (e *generatorFatalError) Error() string {
+	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
 }
 
 // createBuild is responsible for validating build object and saving it and returning newly created object
@@ -839,12 +852,12 @@ func getNextBuildName(buildConfig *buildv1.BuildConfig) string {
 func updateCustomImageEnv(strategy *buildv1.CustomBuildStrategy, newImage string) {
 	if strategy.Env == nil {
 		strategy.Env = make([]corev1.EnvVar, 1)
-		strategy.Env[0] = corev1.EnvVar{Name: buildutil.CustomBuildStrategyBaseImageKey, Value: newImage}
+		strategy.Env[0] = corev1.EnvVar{Name: buildv1.CustomBuildStrategyBaseImageKey, Value: newImage}
 	} else {
 		found := false
 		for i := range strategy.Env {
 			klog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
-			if strategy.Env[i].Name == buildutil.CustomBuildStrategyBaseImageKey {
+			if strategy.Env[i].Name == buildv1.CustomBuildStrategyBaseImageKey {
 				found = true
 				strategy.Env[i].Value = newImage
 				klog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
@@ -852,7 +865,7 @@ func updateCustomImageEnv(strategy *buildv1.CustomBuildStrategy, newImage string
 			}
 		}
 		if !found {
-			strategy.Env = append(strategy.Env, corev1.EnvVar{Name: buildutil.CustomBuildStrategyBaseImageKey, Value: newImage})
+			strategy.Env = append(strategy.Env, corev1.EnvVar{Name: buildv1.CustomBuildStrategyBaseImageKey, Value: newImage})
 		}
 	}
 }
@@ -978,9 +991,16 @@ func setBuildAnnotationAndLabel(bcCopy *buildv1.BuildConfig, build *buildv1.Buil
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
-	build.Labels[buildv1.BuildConfigLabelDeprecated] = buildutil.LabelValue(bcCopy.Name)
-	build.Labels[buildv1.BuildConfigLabel] = buildutil.LabelValue(bcCopy.Name)
+	build.Labels[buildv1.BuildConfigLabelDeprecated] = labelValue(bcCopy.Name)
+	build.Labels[buildv1.BuildConfigLabel] = labelValue(bcCopy.Name)
 	build.Labels[buildv1.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
+}
+
+func labelValue(name string) string {
+	if len(name) <= validation.DNS1123LabelMaxLength {
+		return name
+	}
+	return name[:validation.DNS1123LabelMaxLength]
 }
 
 // mergeMaps will merge to map[string]string instances, with
@@ -1007,4 +1027,28 @@ func mergeMaps(a, b map[string]string) map[string]string {
 // isPaused returns true if the provided BuildConfig is paused and cannot be used to create a new Build
 func isPaused(bc *buildv1.BuildConfig) bool {
 	return strings.ToLower(bc.Annotations[buildv1.BuildConfigPausedAnnotation]) == "true"
+}
+
+// UpdateBuildEnv updates the strategy environment
+// This will replace the existing variable definitions with provided env
+func updateBuildEnv(build *buildv1.Build, env []corev1.EnvVar) {
+	// TODO moving to library-go
+	buildEnv := buildutil.GetBuildEnv(build)
+
+	newEnv := []corev1.EnvVar{}
+	for _, e := range buildEnv {
+		exists := false
+		for _, n := range env {
+			if e.Name == n.Name {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			newEnv = append(newEnv, e)
+		}
+	}
+	newEnv = append(newEnv, env...)
+	// TODO moving to library-go
+	buildutil.SetBuildEnv(build, newEnv)
 }

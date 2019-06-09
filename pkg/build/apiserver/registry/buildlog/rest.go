@@ -7,9 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,18 +16,21 @@ import (
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kubetypedclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
+	"github.com/openshift/library-go/pkg/build/naming"
 	apiserverrest "github.com/openshift/openshift-apiserver/pkg/apiserver/rest"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
+	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
 	buildwait "github.com/openshift/origin/pkg/build/apiserver/registry/wait"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 )
 
 // REST is an implementation of RESTStorage for the api server.
@@ -77,7 +77,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		version := versionForBuild(build)
 		// Use the previous version
 		version--
-		previousBuildName := buildutil.BuildNameForConfigVersion(buildutil.ConfigNameForBuild(build), version)
+		previousBuildName := buildNameForConfigVersion(buildutil.ConfigNameForBuild(build), version)
 		previous, err := r.BuildClient.Builds(apirequest.NamespaceValue(ctx)).Get(previousBuildName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
@@ -99,9 +99,9 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		}
 		switch latest.Status.Phase {
 		case buildv1.BuildPhaseError:
-			return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
+			return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 		case buildv1.BuildPhaseCancelled:
-			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
+			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 		}
 		if !ok {
 			return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, r.Timeout), 1)
@@ -109,15 +109,15 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 
 	// The build was cancelled
 	case buildv1.BuildPhaseCancelled:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled. %s", build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled. %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 
 	// An error occurred launching the build, return an error
 	case buildv1.BuildPhaseError:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is in an error state. %s", build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is in an error state. %s", build.Name, apiserverbuildutil.NoBuildLogsMessage))
 	}
 
 	// The container should be the default build container, so setting it to blank
-	buildPodName := buildutil.GetBuildPodName(build)
+	buildPodName := getBuildPodName(build)
 
 	// if we can't at least get the build pod, we're not going to get very far, so
 	// error out now.
@@ -306,6 +306,19 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	return &pipeStreamer, nil
 }
 
+// BuildNameForConfigVersion returns the name of the version-th build
+// for the config that has the provided name.
+func buildNameForConfigVersion(name string, version int) string {
+	return fmt.Sprintf("%s-%d", name, version)
+}
+
+const buildPodSuffix = "build"
+
+// GetBuildPodName returns name of the build pod.
+func getBuildPodName(build *buildv1.Build) string {
+	return naming.GetPodName(build.Name, buildPodSuffix)
+}
+
 // NewGetOptions returns a new options object for build logs
 func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
 	return &buildapi.BuildLogOptions{}, false, ""
@@ -347,7 +360,7 @@ func podLogOptionsToV1(options *kapi.PodLogOptions) *corev1.PodLogOptions {
 // the build pod. We are interested in logs from the build container only
 func selectBuilderContainer(containers []corev1.Container) string {
 	for _, c := range containers {
-		for _, bcName := range buildstrategy.BuildContainerNames {
+		for _, bcName := range apiserverbuildutil.BuildContainerNames {
 			if c.Name == bcName {
 				return bcName
 			}

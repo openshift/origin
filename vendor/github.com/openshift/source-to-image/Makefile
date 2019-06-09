@@ -63,11 +63,27 @@ check: verify test
 # Run unit tests
 # Example:
 #   make test
+#   make test-unit
 #   make test WHAT=pkg/docker TESTFLAGS=-v 
-test: 
+test test-unit: 
 	hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
-.PHONY: test
+.PHONY: test test-unit
 
+# Run dockerfile integration tests
+# Example:
+#   make test-dockerfile
+#   make test-dockerfile TESTFLAGS="-run TestDockerfileIncremental"
+test-dockerfile:
+	hack/test-dockerfile.sh $(TESTFLAGS)
+.PHONY: test-dockerfile
+
+# Run docker integration tests - may require sudo permissions
+# Exmaple:
+#   make test-docker
+#   make test-docker TESTFLAGS="-run TestCleanBuild"
+test-docker:
+	hack/test-docker.sh $(TESTFLAGS)
+.PHONY: test-docker
 
 # Remove all build artifacts.
 #

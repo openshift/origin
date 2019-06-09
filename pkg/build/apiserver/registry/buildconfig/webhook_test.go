@@ -26,11 +26,11 @@ import (
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
-	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
-	"github.com/openshift/origin/pkg/build/webhook/github"
-	"github.com/openshift/origin/pkg/build/webhook/gitlab"
+	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/bitbucket"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/github"
+	"github.com/openshift/origin/pkg/build/apiserver/webhook/gitlab"
 	// _ "github.com/openshift/origin/pkg/api/install"
 )
 
@@ -569,7 +569,7 @@ func TestGeneratedBuildTriggerInfoGenericWebHook(t *testing.T) {
 		if cause.GenericWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != buildutil.BuildTriggerCauseGenericMsg {
+		if cause.Message != apiserverbuildutil.BuildTriggerCauseGenericMsg {
 			t.Errorf("Expected build reason to be 'Generic WebHook, go %s'", cause.Message)
 		}
 	}
@@ -603,7 +603,7 @@ func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
 		if cause.GitHubWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != buildutil.BuildTriggerCauseGithubMsg {
+		if cause.Message != apiserverbuildutil.BuildTriggerCauseGithubMsg {
 			t.Errorf("Expected build reason to be 'GitHub WebHook, go %s'", cause.Message)
 		}
 	}
@@ -637,7 +637,7 @@ func TestGeneratedBuildTriggerInfoGitLabWebHook(t *testing.T) {
 		if cause.GitLabWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != buildutil.BuildTriggerCauseGitLabMsg {
+		if cause.Message != apiserverbuildutil.BuildTriggerCauseGitLabMsg {
 			t.Errorf("Expected build reason to be 'GitLab WebHook, go %s'", cause.Message)
 		}
 	}
@@ -671,7 +671,7 @@ func TestGeneratedBuildTriggerInfoBitbucketWebHook(t *testing.T) {
 		if cause.BitbucketWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != buildutil.BuildTriggerCauseBitbucketMsg {
+		if cause.Message != apiserverbuildutil.BuildTriggerCauseBitbucketMsg {
 			t.Errorf("Expected build reason to be 'Bitbucket WebHook, go %s'", cause.Message)
 		}
 	}

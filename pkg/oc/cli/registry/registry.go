@@ -9,9 +9,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/oc/pkg/cli/registry/info"
+	"github.com/openshift/oc/pkg/cli/registry/login"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/oc/cli/registry/info"
-	"github.com/openshift/origin/pkg/oc/cli/registry/login"
 )
 
 var (

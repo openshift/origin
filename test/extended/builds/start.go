@@ -18,7 +18,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

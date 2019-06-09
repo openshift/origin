@@ -20,6 +20,7 @@ var map_ClusterNetwork = map[string]string{
 	"pluginName":       "PluginName is the name of the network plugin being used",
 	"clusterNetworks":  "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.",
 	"vxlanPort":        "VXLANPort sets the VXLAN destination port used by the cluster. It is set by the master configuration file on startup and cannot be edited manually. Valid values for VXLANPort are integers 1-65535 inclusive and if unset defaults to 4789. Changing VXLANPort allows users to resolve issues between openshift SDN and other software trying to use the same VXLAN destination port.",
+	"mtu":              "MTU is the MTU for the overlay network. This should be 50 less than the MTU of the network connecting the nodes. It is normally autodetected by the cluster network operator.",
 }
 
 func (ClusterNetwork) SwaggerDoc() map[string]string {

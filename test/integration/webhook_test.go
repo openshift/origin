@@ -409,7 +409,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 }
 
 func postFile(client rest.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t *testing.T) []byte {
-	data, err := ioutil.ReadFile("../../pkg/build/webhook/" + filename)
+	data, err := ioutil.ReadFile("../../pkg/build/apiserver/webhook/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}

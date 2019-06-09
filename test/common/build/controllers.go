@@ -20,7 +20,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
+	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	testutil "github.com/openshift/origin/test/util"
 )
 

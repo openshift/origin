@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,6 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	buildutil "github.com/openshift/origin/pkg/build/buildutil"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
@@ -266,16 +266,36 @@ func validateGitSource(git *buildapi.GitBuildSource, fldPath *field.Path) field.
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), git.URI, err.Error()))
 	}
 	if git.HTTPProxy != nil && len(*git.HTTPProxy) != 0 {
-		if _, err := buildutil.ParseProxyURL(*git.HTTPProxy); err != nil {
+		if _, err := parseProxyURL(*git.HTTPProxy); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("httpproxy"), *git.HTTPProxy, err.Error()))
 		}
 	}
 	if git.HTTPSProxy != nil && len(*git.HTTPSProxy) != 0 {
-		if _, err := buildutil.ParseProxyURL(*git.HTTPSProxy); err != nil {
+		if _, err := parseProxyURL(*git.HTTPSProxy); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), *git.HTTPSProxy, err.Error()))
 		}
 	}
 	return allErrs
+}
+
+// ParseProxyURL parses a proxy URL and allows fallback to non-URLs like
+// myproxy:80 (for example) which url.Parse no longer accepts in Go 1.8.  The
+// logic is copied from net/http.ProxyFromEnvironment to try to maintain
+// backwards compatibility.
+func parseProxyURL(proxy string) (*url.URL, error) {
+	proxyURL, err := url.Parse(proxy)
+
+	// logic copied from net/http.ProxyFromEnvironment
+	if err != nil || !strings.HasPrefix(proxyURL.Scheme, "http") {
+		// proxy was bogus. Try prepending "http://" to it and see if that
+		// parses correctly. If not, we fall through and complain about the
+		// original one.
+		if proxyURL, err := url.Parse("http://" + proxy); err == nil {
+			return proxyURL, nil
+		}
+	}
+
+	return proxyURL, err
 }
 
 func validateConfigMaps(configs []buildapi.ConfigMapBuildSource, isDockerStrategy bool, fldPath *field.Path) field.ErrorList {

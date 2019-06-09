@@ -28,12 +28,12 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	"github.com/openshift/library-go/pkg/build/buildutil"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/annotations"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/buildconfigs"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger/deploymentconfigs"
-	"github.com/openshift/origin/pkg/build/buildutil"
 )
 
 type fakeTagResponse struct {

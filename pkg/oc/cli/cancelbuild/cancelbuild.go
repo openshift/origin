@@ -13,6 +13,8 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
@@ -23,9 +25,8 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	ocbuildutil "github.com/openshift/oc/pkg/helpers/build"
+	buildclientv1 "github.com/openshift/oc/pkg/helpers/build/client/v1"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-	"github.com/openshift/origin/pkg/build/buildutil"
-	buildclientv1 "github.com/openshift/origin/pkg/build/client/v1"
 )
 
 // CancelBuildRecommendedCommandName is the recommended command name.
@@ -169,7 +170,7 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 
 		switch resource {
 		case build.Resource("buildconfigs"):
-			list, err := buildutil.BuildConfigBuilds(o.Client, o.Namespace, name, nil)
+			list, err := buildConfigBuilds(o.Client, o.Namespace, name, nil)
 			if err != nil {
 				return err
 			}
@@ -184,6 +185,48 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 	}
 
 	return nil
+}
+
+type buildFilter func(*buildv1.Build) bool
+
+// buildConfigSelector returns a label Selector which can be used to find all
+// builds for a BuildConfig.
+func buildConfigSelector(name string) labels.Selector {
+	return labels.Set{buildv1.BuildConfigLabel: labelValue(name)}.AsSelector()
+}
+
+// labelValue returns a string to use as a value for the Build
+// label in a pod. If the length of the string parameter exceeds
+// the maximum label length, the value will be truncated.
+func labelValue(name string) string {
+	if len(name) <= validation.DNS1123LabelMaxLength {
+		return name
+	}
+	return name[:validation.DNS1123LabelMaxLength]
+}
+
+// BuildConfigBuilds return a list of builds for the given build config.
+// Optionally you can specify a filter function to select only builds that
+// matches your criteria.
+func buildConfigBuilds(c buildtv1client.BuildsGetter, namespace, name string, filterFunc buildFilter) ([]*buildv1.Build, error) {
+	result, err := c.Builds(namespace).List(metav1.ListOptions{LabelSelector: buildConfigSelector(name).String()})
+	if err != nil {
+		return nil, err
+	}
+	builds := make([]*buildv1.Build, len(result.Items))
+	for i := range result.Items {
+		builds[i] = &result.Items[i]
+	}
+	if filterFunc == nil {
+		return builds, nil
+	}
+	var filteredList []*buildv1.Build
+	for _, b := range builds {
+		if filterFunc(b) {
+			filteredList = append(filteredList, b)
+		}
+	}
+	return filteredList, nil
 }
 
 func (o *CancelBuildOptions) Validate() error {
