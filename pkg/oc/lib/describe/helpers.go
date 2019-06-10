@@ -16,15 +16,15 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 )
 
 const emptyString = "<none>"
@@ -203,7 +203,7 @@ func webHooksDescribe(triggers []buildv1.BuildTriggerPolicy, name, namespace str
 	return result
 }
 
-func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) {
+func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 	if len(stream.Status.Tags) == 0 && len(stream.Spec.Tags) == 0 {
 		fmt.Fprintf(out, "Tags:\t<none>\n")
 		return
@@ -212,12 +212,12 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 	now := timeNowFn()
 
 	images := make(map[string]string)
-	for tag, tags := range stream.Status.Tags {
-		for _, item := range tags.Items {
+	for _, tag := range stream.Status.Tags {
+		for _, item := range tag.Items {
 			switch {
 			case len(item.Image) > 0:
 				if _, ok := images[item.Image]; !ok {
-					images[item.Image] = tag
+					images[item.Image] = tag.Tag
 				}
 			case len(item.DockerImageReference) > 0:
 				if _, ok := images[item.DockerImageReference]; !ok {
@@ -228,30 +228,29 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 	}
 
 	sortedTags := []string{}
-	for k := range stream.Status.Tags {
-		sortedTags = append(sortedTags, k)
+	for _, tag := range stream.Status.Tags {
+		sortedTags = append(sortedTags, tag.Tag)
 	}
 	var localReferences sets.String
 	var referentialTags map[string]sets.String
-	for k := range stream.Spec.Tags {
-		// there is a v1helper version of this
-		if target, _, multiple, err := followTagReference(stream, k); err == nil && multiple {
+	for _, tag := range stream.Spec.Tags {
+		if target, _, multiple, err := imagehelpers.FollowTagReference(stream, tag.Name); err == nil && multiple {
 			if referentialTags == nil {
 				referentialTags = make(map[string]sets.String)
 			}
 			if localReferences == nil {
 				localReferences = sets.NewString()
 			}
-			localReferences.Insert(k)
+			localReferences.Insert(tag.Name)
 			v := referentialTags[target]
 			if v == nil {
 				v = sets.NewString()
 				referentialTags[target] = v
 			}
-			v.Insert(k)
+			v.Insert(tag.Name)
 		}
-		if _, ok := stream.Status.Tags[k]; !ok {
-			sortedTags = append(sortedTags, k)
+		if _, ok := imagehelpers.StatusHasTag(stream, tag.Name); !ok {
+			sortedTags = append(sortedTags, tag.Name)
 		}
 	}
 	fmt.Fprintf(out, "Unique Images:\t%d\nTags:\t%d\n\n", len(images), len(sortedTags))
@@ -267,8 +266,8 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		} else {
 			fmt.Fprintf(out, "\n")
 		}
-		taglist, _ := stream.Status.Tags[tag]
-		tagRef, hasSpecTag := stream.Spec.Tags[tag]
+		taglist, _ := imagehelpers.StatusHasTag(stream, tag)
+		tagRef, hasSpecTag := imagehelpers.SpecHasTag(stream, tag)
 		scheduled := false
 		insecure := false
 		importing := false
@@ -304,9 +303,9 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 
 		//var shortErrors []string
 		/*
-			var internalReference *imageapi.DockerImageReference
+			var internalReference *imagev1.DockerImageReference
 			if value := stream.Status.DockerImageRepository; len(value) > 0 {
-				ref, err := imageapi.ParseDockerImageReference(value)
+				ref, err := imagev1.ParseDockerImageReference(value)
 				if err != nil {
 					internalReference = &ref
 				}
@@ -363,7 +362,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			fmt.Fprintf(out, "    will use insecure HTTPS or HTTP connections\n")
 		}
 		switch tagRef.ReferencePolicy.Type {
-		case imageapi.LocalTagReferencePolicy:
+		case imagev1.LocalTagReferencePolicy:
 			fmt.Fprintf(out, "    prefer registry pullthrough when referencing this tag\n")
 		}
 
@@ -397,8 +396,8 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		for i := range taglist.Conditions {
 			condition := &taglist.Conditions[i]
 			switch condition.Type {
-			case imageapi.ImportSuccess:
-				if condition.Status == api.ConditionFalse {
+			case imagev1.ImportSuccess:
+				if condition.Status == corev1.ConditionFalse {
 					d := now.Sub(condition.LastTransitionTime.Time)
 					fmt.Fprintf(out, "  ! error: Import failed (%s): %s\n      %s ago\n", condition.Reason, condition.Message, units.HumanDuration(d))
 				}
@@ -431,8 +430,8 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 
 // LatestObservedTagGeneration returns the generation value for the given tag that has been observed by the controller
 // monitoring the image stream. If the tag has not been observed, the generation is zero.
-func latestObservedTagGeneration(stream *imageapi.ImageStream, tag string) int64 {
-	tagEvents, ok := stream.Status.Tags[tag]
+func latestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 {
+	tagEvents, ok := imagehelpers.StatusHasTag(stream, tag)
 	if !ok {
 		return 0
 	}
@@ -446,7 +445,7 @@ func latestObservedTagGeneration(stream *imageapi.ImageStream, tag string) int64
 		}
 	}
 	for _, condition := range tagEvents.Conditions {
-		if condition.Type != imageapi.ImportSuccess {
+		if condition.Type != imagev1.ImportSuccess {
 			continue
 		}
 		if condition.Generation > lastGen {
@@ -457,56 +456,9 @@ func latestObservedTagGeneration(stream *imageapi.ImageStream, tag string) int64
 	return lastGen
 }
 
-// FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
-// Will return multiple if the tag had at least reference, and ref and finalTag will be the last tag seen.
-// If an invalid reference is found, err will be returned.
-func followTagReference(stream *imageapi.ImageStream, tag string) (finalTag string, ref *imageapi.TagReference, multiple bool, err error) {
-	seen := sets.NewString()
-	for {
-		if seen.Has(tag) {
-			// circular reference
-			return tag, nil, multiple, imageapi.ErrCircularReference
-		}
-		seen.Insert(tag)
-
-		tagRef, ok := stream.Spec.Tags[tag]
-		if !ok {
-			// no tag at the end of the rainbow
-			return tag, nil, multiple, imageapi.ErrNotFoundReference
-		}
-		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
-			// terminating tag
-			return tag, &tagRef, multiple, nil
-		}
-
-		if tagRef.From.Namespace != "" && tagRef.From.Namespace != stream.ObjectMeta.Namespace {
-			return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
-		}
-
-		// The reference needs to be followed with two format patterns:
-		// a) sameis:sometag and b) sometag
-		if strings.Contains(tagRef.From.Name, ":") {
-			name, tagref, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
-			if !ok {
-				return tag, nil, multiple, imageapi.ErrInvalidReference
-			}
-			if name != stream.ObjectMeta.Name {
-				// anotheris:sometag - this should not happen.
-				return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
-			}
-			// sameis:sometag - follow the reference as sometag
-			tag = tagref
-		} else {
-			// sometag - follow the reference
-			tag = tagRef.From.Name
-		}
-		multiple = true
-	}
-}
-
 // roleBindingRestrictionType returns a string that indicates the type of the
 // given RoleBindingRestriction.
-func roleBindingRestrictionType(rbr *authorizationapi.RoleBindingRestriction) string {
+func roleBindingRestrictionType(rbr *authorizationv1.RoleBindingRestriction) string {
 	switch {
 	case rbr.Spec.UserRestriction != nil:
 		return "User"
@@ -519,7 +471,7 @@ func roleBindingRestrictionType(rbr *authorizationapi.RoleBindingRestriction) st
 }
 
 // PrintTemplateParameters the Template parameters with their default values
-func PrintTemplateParameters(params []templateapi.Parameter, output io.Writer) error {
+func PrintTemplateParameters(params []templatev1.Parameter, output io.Writer) error {
 	w := tabwriter.NewWriter(output, 20, 5, 3, ' ', 0)
 	defer w.Flush()
 	parameterColumns := []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}

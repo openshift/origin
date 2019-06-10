@@ -11,29 +11,21 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/api"
+	appsv1 "github.com/openshift/api/apps/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/api/image/docker10"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/api/legacy"
-	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
-	_ "k8s.io/kubernetes/pkg/apis/batch/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+	dockerv10 "github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	securityv1 "github.com/openshift/api/security/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
 type describeClient struct {
@@ -46,54 +38,57 @@ type describeClient struct {
 // If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
 // reason.
 var DescriberCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&buildapi.BuildLog{}),                              // normal users don't ever look at these
-	reflect.TypeOf(&buildapi.BuildLogOptions{}),                       // normal users don't ever look at these
-	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),             // normal users don't ever look at these
-	reflect.TypeOf(&buildapi.BuildRequest{}),                          // normal users don't ever look at these
-	reflect.TypeOf(&appsapi.DeploymentConfigRollback{}),               // normal users don't ever look at these
-	reflect.TypeOf(&appsapi.DeploymentLog{}),                          // normal users don't ever look at these
-	reflect.TypeOf(&appsapi.DeploymentLogOptions{}),                   // normal users don't ever look at these
-	reflect.TypeOf(&appsapi.DeploymentRequest{}),                      // normal users don't ever look at these
-	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
-	reflect.TypeOf(&imageapi.ImageStreamImport{}),                     // normal users don't ever look at these
-	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
-	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
-	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these
-	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
-	reflect.TypeOf(&templateapi.TemplateInstance{}),                   // normal users don't ever look at these
-	reflect.TypeOf(&templateapi.BrokerTemplateInstance{}),             // normal users don't ever look at these
-	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
+	reflect.TypeOf(&buildv1.BuildLog{}),                              // normal users don't ever look at these
+	reflect.TypeOf(&buildv1.BuildLogOptions{}),                       // normal users don't ever look at these
+	reflect.TypeOf(&buildv1.BinaryBuildRequestOptions{}),             // normal users don't ever look at these
+	reflect.TypeOf(&buildv1.BuildRequest{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentConfigRollback{}),               // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentLog{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentLogOptions{}),                   // normal users don't ever look at these
+	reflect.TypeOf(&appsv1.DeploymentRequest{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&dockerv10.DockerImage{}),                         // not a top level resource
+	reflect.TypeOf(&imagev1.ImageStreamImport{}),                     // normal users don't ever look at these
+	reflect.TypeOf(&oauthv1.OAuthAccessToken{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&oauthv1.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
+	reflect.TypeOf(&oauthv1.OAuthClientAuthorization{}),              // normal users don't ever look at these
+	reflect.TypeOf(&projectv1.ProjectRequest{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&templatev1.TemplateInstance{}),                   // normal users don't ever look at these
+	reflect.TypeOf(&templatev1.BrokerTemplateInstance{}),             // normal users don't ever look at these
+	reflect.TypeOf(&authorizationv1.IsPersonalSubjectAccessReview{}), // not a top level resource
 	// ATM image signature doesn't provide any human readable information
-	reflect.TypeOf(&imageapi.ImageSignature{}),
+	reflect.TypeOf(&imagev1.ImageSignature{}),
 
 	// these resources can't be "GET"ed, so you can't make a describer for them
-	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
-	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),
-	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),
-	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
-	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
-	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
-	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
-	reflect.TypeOf(&authorizationapi.SubjectRulesReview{}),
-	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
-	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
-	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
-	reflect.TypeOf(&oauthapi.OAuthRedirectReference{}),
+	reflect.TypeOf(&authorizationv1.SubjectAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationv1.ResourceAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationv1.SubjectAccessReview{}),
+	reflect.TypeOf(&authorizationv1.ResourceAccessReview{}),
+	reflect.TypeOf(&authorizationv1.LocalSubjectAccessReview{}),
+	reflect.TypeOf(&authorizationv1.LocalResourceAccessReview{}),
+	reflect.TypeOf(&authorizationv1.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&authorizationv1.SubjectRulesReview{}),
+	reflect.TypeOf(&securityv1.PodSecurityPolicySubjectReview{}),
+	reflect.TypeOf(&securityv1.PodSecurityPolicySelfSubjectReview{}),
+	reflect.TypeOf(&securityv1.PodSecurityPolicyReview{}),
+	reflect.TypeOf(&oauthv1.OAuthRedirectReference{}),
 }
 
 // MissingDescriberCoverageExceptions is the list of types that were missing describer methods when I started
 // You should never add to this list
 // TODO describers should be added for these types
 var MissingDescriberCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
-	reflect.TypeOf(&oauthapi.OAuthClient{}),
+	reflect.TypeOf(&imagev1.ImageStreamMapping{}),
+	reflect.TypeOf(&oauthv1.OAuthClient{}),
 }
 
 func TestDescriberCoverage(t *testing.T) {
+	scheme := runtime.NewScheme()
+	kubernetesscheme.AddToScheme(scheme)
+	api.Install(scheme)
 
 main:
-	for _, apiType := range legacyscheme.Scheme.KnownTypes(legacy.InternalGroupVersion) {
-		if !strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin") || strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
+	for gvk, apiType := range scheme.AllKnownTypes() {
+		if !strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/api") || strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}
 		// we don't describe lists
@@ -113,8 +108,7 @@ main:
 			}
 		}
 
-		gk := legacy.InternalGroupVersion.WithKind(apiType.Name()).GroupKind()
-		_, ok := DescriberFor(gk, &rest.Config{}, fake.NewSimpleClientset(), "")
+		_, ok := DescriberFor(gvk.GroupKind(), &rest.Config{}, fake.NewSimpleClientset(), "")
 		if !ok {
 			t.Errorf("missing describer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}
@@ -261,15 +255,15 @@ func mkV1Pod(status corev1.PodPhase, exitCode int) *corev1.Pod {
 	}
 }
 
-func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
-	return &kapi.Pod{
+func mkPod(status corev1.PodPhase, exitCode int) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "PodName"},
-		Status: kapi.PodStatus{
+		Status: corev1.PodStatus{
 			Phase: status,
-			ContainerStatuses: []kapi.ContainerStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
-					State: kapi.ContainerState{
-						Terminated: &kapi.ContainerStateTerminated{ExitCode: int32(exitCode)},
+					State: corev1.ContainerState{
+						Terminated: &corev1.ContainerStateTerminated{ExitCode: int32(exitCode)},
 					},
 				},
 			},
@@ -445,26 +439,28 @@ func TestDescribeBuildSpec(t *testing.T) {
 
 func TestDescribeImage(t *testing.T) {
 	tests := []struct {
-		image imageapi.Image
+		image imagev1.Image
 		want  []string
 	}{
 		{
-			image: imageapi.Image{
+			image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
+				DockerImageMetadata: runtime.RawExtension{Object: &dockerv10.DockerImage{}},
 			},
 			want: []string{"Name:.+test"},
 		},
 		{
-			image: imageapi.Image{
+			image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				DockerImageLayers: []imageapi.ImageLayer{
+				DockerImageLayers: []imagev1.ImageLayer{
 					{Name: "sha256:1234", LayerSize: 3409},
 					{Name: "sha256:5678", LayerSize: 1024},
 				},
+				DockerImageMetadata: runtime.RawExtension{Object: &dockerv10.DockerImage{}},
 			},
 			want: []string{
 				"Layers:.+3.409kB\\ssha256:1234",
@@ -473,17 +469,15 @@ func TestDescribeImage(t *testing.T) {
 			},
 		},
 		{
-			image: imageapi.Image{
+			image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				DockerImageMetadata: docker10.DockerImage{
-					Size: 4430,
-				},
-				DockerImageLayers: []imageapi.ImageLayer{
+				DockerImageLayers: []imagev1.ImageLayer{
 					{Name: "sha256:1234", LayerSize: 3409},
 					{Name: "sha256:5678", LayerSize: 1024},
 				},
+				DockerImageMetadata: runtime.RawExtension{Object: &dockerv10.DockerImage{Size: 4430}},
 			},
 			want: []string{
 				"Layers:.+3.409kB\\ssha256:1234",

@@ -9,10 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -20,7 +18,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	"github.com/openshift/origin/pkg/oc/cli/tag"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
@@ -204,15 +202,8 @@ func (o *ImportImageOptions) Run() error {
 	message = fmt.Sprintf("%s\n\n", message)
 
 	if result.Status.Import != nil {
-
-		// TODO: remove once we have external describers
-		internalResult := &imageapi.ImageStreamImport{}
-		if legacyscheme.Scheme.Convert(result, internalResult, nil); err != nil {
-			return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
-		}
-
 		// TODO: dry-run doesn't return an image stream, so we have to display partial results
-		info, err := describe.DescribeImageStream(internalResult.Status.Import)
+		info, err := describe.DescribeImageStream(result.Status.Import)
 		if err != nil {
 			return err
 		}
@@ -223,13 +214,7 @@ func (o *ImportImageOptions) Run() error {
 	if repo := result.Status.Repository; repo != nil {
 		for _, image := range repo.Images {
 			if image.Image != nil {
-				// TODO: remove once we have external describers
-				var internalImage imageapi.Image
-				if legacyscheme.Scheme.Convert(image.Image, &internalImage, nil); err != nil {
-					return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
-				}
-
-				info, err := describe.DescribeImage(&internalImage, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
+				info, err := describe.DescribeImage(image.Image, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
 				if err != nil {
 					fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 				} else {
@@ -243,13 +228,7 @@ func (o *ImportImageOptions) Run() error {
 
 	for _, image := range result.Status.Images {
 		if image.Image != nil {
-			// TODO: remove once we have external describers
-			var internalImage imageapi.Image
-			if legacyscheme.Scheme.Convert(image.Image, &internalImage, nil); err != nil {
-				return fmt.Errorf("unable to convert *v1.Image to internal object: %v", err)
-			}
-
-			info, err := describe.DescribeImage(&internalImage, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
+			info, err := describe.DescribeImage(image.Image, imageutil.JoinImageStreamTag(stream.Name, image.Tag))
 			if err != nil {
 				fmt.Fprintf(o.ErrOut, "error: tag %s failed: %v\n", image.Tag, err)
 			} else {
@@ -368,15 +347,15 @@ func (o *ImportImageOptions) importTag(stream *imagev1.ImageStream) (*imagev1.Im
 	tag := o.Tag
 
 	// follow any referential tags to the destination
-	finalTag, existing, multiple, err := followTagReferenceV1(stream, tag)
+	finalTag, existing, multiple, err := imagehelpers.FollowTagReference(stream, tag)
 	switch err {
-	case imageapi.ErrInvalidReference:
+	case imagehelpers.ErrInvalidReference:
 		return nil, fmt.Errorf("tag %q points to an invalid imagestreamtag", tag)
-	case imageapi.ErrCrossImageStreamReference:
+	case imagehelpers.ErrCrossImageStreamReference:
 		return nil, fmt.Errorf("tag %q points to an imagestreamtag from another ImageStream", tag)
-	case imageapi.ErrCircularReference:
+	case imagehelpers.ErrCircularReference:
 		return nil, fmt.Errorf("tag %q on the image stream is a reference to same tag", tag)
-	case imageapi.ErrNotFoundReference:
+	case imagehelpers.ErrNotFoundReference:
 		// create a new tag
 		if len(from) == 0 && tag == imagev1.DefaultImageTag {
 			from = stream.Spec.DockerImageRepository
@@ -569,60 +548,4 @@ func (o *ImportImageOptions) newImageStreamImportTags(stream *imagev1.ImageStrea
 		})
 	}
 	return isi
-}
-
-// followTagReferenceV1 walks through the defined tags on a stream, following any referential tags in the stream.
-// Will return multiple if the tag had at least reference, and ref and finalTag will be the last tag seen.
-// If an invalid reference is found, err will be returned.
-func followTagReferenceV1(stream *imagev1.ImageStream, tag string) (finalTag string, ref *imagev1.TagReference, multiple bool, err error) {
-	seen := sets.NewString()
-	for {
-		if seen.Has(tag) {
-			// circular reference
-			return tag, nil, multiple, imageapi.ErrCircularReference
-		}
-		seen.Insert(tag)
-
-		tagRefFound := false
-		var tagRef imagev1.TagReference
-		for _, t := range stream.Spec.Tags {
-			if t.Name == tag {
-				tagRef = t
-				tagRefFound = true
-				break
-			}
-		}
-
-		if !tagRefFound {
-			// no tag at the end of the rainbow
-			return tag, nil, multiple, imageapi.ErrNotFoundReference
-		}
-		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
-			// terminating tag
-			return tag, &tagRef, multiple, nil
-		}
-
-		if tagRef.From.Namespace != "" && tagRef.From.Namespace != stream.ObjectMeta.Namespace {
-			return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
-		}
-
-		// The reference needs to be followed with two format patterns:
-		// a) sameis:sometag and b) sometag
-		if strings.Contains(tagRef.From.Name, ":") {
-			name, tagref, ok := imageutil.SplitImageStreamTag(tagRef.From.Name)
-			if !ok {
-				return tag, nil, multiple, imageapi.ErrInvalidReference
-			}
-			if name != stream.ObjectMeta.Name {
-				// anotheris:sometag - this should not happen.
-				return tag, nil, multiple, imageapi.ErrCrossImageStreamReference
-			}
-			// sameis:sometag - follow the reference as sometag
-			tag = tagref
-		} else {
-			// sometag - follow the reference
-			tag = tagRef.From.Name
-		}
-		multiple = true
-	}
 }
