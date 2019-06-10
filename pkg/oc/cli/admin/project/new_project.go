@@ -24,7 +24,6 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
 const NewProjectRecommendedName = "new-project"
@@ -129,7 +128,7 @@ func (o *NewProjectOptions) Run() error {
 	project.Annotations[oapi.OpenShiftDescription] = o.Description
 	project.Annotations[oapi.OpenShiftDisplayName] = o.DisplayName
 	if o.UseNodeSelector {
-		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
+		project.Annotations[projectv1.ProjectNodeSelector] = o.NodeSelector
 	}
 	project, err := o.ProjectClient.Projects().Create(project)
 	if err != nil {
