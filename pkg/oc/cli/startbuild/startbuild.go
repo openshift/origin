@@ -382,7 +382,7 @@ func (o *StartBuildOptions) Run() error {
 	request := &buildv1.BuildRequest{
 		TriggeredBy: append(buildRequestCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseManualMsg,
+				Message: "Manually triggered",
 			},
 		),
 		ObjectMeta: metav1.ObjectMeta{Name: o.Name},

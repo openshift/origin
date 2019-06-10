@@ -52,15 +52,11 @@ import (
 
 	"github.com/openshift/oc/pkg/helpers/bulk"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // NewAppRecommendedCommandName is the recommended command name.
@@ -417,10 +413,10 @@ func (o *AppOptions) RunNewApp() error {
 	}
 
 	supportedTypes := map[schema.GroupVersionKind]bool{
-		{Version: "v1", Kind: "Pod"}:                                    true,
-		{Group: buildapi.GroupName, Version: "v1", Kind: "BuildConfig"}: true,
-		{Group: imageapi.GroupName, Version: "v1", Kind: "ImageStream"}: true,
-		{Group: routeapi.GroupName, Version: "v1", Kind: "Route"}:       true,
+		{Version: "v1", Kind: "Pod"}:                                   true,
+		{Group: buildv1.GroupName, Version: "v1", Kind: "BuildConfig"}: true,
+		{Group: imagev1.GroupName, Version: "v1", Kind: "ImageStream"}: true,
+		{Group: routev1.GroupName, Version: "v1", Kind: "Route"}:       true,
 	}
 
 	hasMissingRepo := false
@@ -1149,7 +1145,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 			if len(imageStream.Status.Tags) > 0 {
 				set := sets.NewString()
 				for _, tag := range imageStream.Status.Tags {
-					if refTag, ok := imageutilinternal.SpecHasTag(imageStream, tag.Tag); ok {
+					if refTag, ok := imageutil.SpecHasTag(imageStream, tag.Tag); ok {
 						if !ocimageutil.HasAnnotationTag(&refTag, imagehelpers.TagReferenceAnnotationTagHidden) {
 							set.Insert(tag.Tag)
 						}

@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +31,6 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
@@ -522,7 +523,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !(image.Kind("ImageStream") == gk || legacy.Kind("ImageStream") == gk) {
+	if !(image.Kind("ImageStream") == gk || schema.GroupKind{Group: "", Kind: "ImageStream"} == gk) {
 		return true
 	}
 	is, ok := from.(*imagev1.ImageStream)
@@ -571,7 +572,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !(image.Kind("ImageStreamTag") == gk || legacy.Kind("ImageStreamTag") == gk) {
+	if !(image.Kind("ImageStreamTag") == gk || schema.GroupKind{Group: "", Kind: "ImageStreamTag"} == gk) {
 		return true
 	}
 	ist, ok := from.(*imagev1.ImageStreamTag)

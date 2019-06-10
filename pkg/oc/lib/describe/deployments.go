@@ -30,7 +30,6 @@ import (
 	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 const (
@@ -301,7 +300,7 @@ func printDeploymentConfigSpec(kc kubernetes.Interface, dc appsv1.DeploymentConf
 		[]schema.GroupResource{
 			apps.Resource("DeploymentConfig"),
 			// this needs to remain as long as HPA supports putting in the "wrong" DC scheme
-			legacy.Resource("DeploymentConfig"),
+			{Group: "", Resource: "DeploymentConfig"},
 		},
 		dc.Namespace, dc.Name, kc, w)
 
