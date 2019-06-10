@@ -976,8 +976,10 @@ func TestHighProirotyFlushUnschedulableQLeftover(t *testing.T) {
 
 	addOrUpdateUnschedulablePod(q, &highPod)
 	addOrUpdateUnschedulablePod(q, &midPod)
+	q.lock.Lock()
 	q.unschedulableQ.podInfoMap[util.GetPodFullName(&highPod)].timestamp = time.Now().Add(-1 * unschedulableQTimeInterval)
 	q.unschedulableQ.podInfoMap[util.GetPodFullName(&midPod)].timestamp = time.Now().Add(-1 * unschedulableQTimeInterval)
+	q.lock.Unlock()
 
 	if p, err := q.Pop(); err != nil || p != &highPod {
 		t.Errorf("Expected: %v after Pop, but got: %v", highPriorityPod.Name, p.Name)
