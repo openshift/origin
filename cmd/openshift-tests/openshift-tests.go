@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	goflag "flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -14,14 +15,14 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
 
+	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -33,6 +34,9 @@ func main() {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
+	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+
 	root := &cobra.Command{
 		Long: templates.LongDesc(`
 		OpenShift Tests
@@ -42,7 +46,6 @@ func main() {
 		or require elevated privileges - see the descriptions of each test suite.
 		`),
 	}
-	flagtypes.GLog(root.PersistentFlags())
 
 	root.AddCommand(
 		newRunCommand(),

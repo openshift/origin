@@ -18,7 +18,6 @@ import (
 	cmdversion "github.com/openshift/oc/pkg/cli/version"
 	osversion "github.com/openshift/oc/pkg/version"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
@@ -48,7 +47,6 @@ func CommandFor(basename string) *cobra.Command {
 	if cmd.UsageFunc() == nil {
 		templates.ActsAsRootCommand(cmd, []string{"options"})
 	}
-	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd
 }

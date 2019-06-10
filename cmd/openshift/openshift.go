@@ -1,19 +1,21 @@
 package main
 
 import (
+	goflag "flag"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"k8s.io/component-base/logs"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift"
 	"github.com/openshift/origin/pkg/version"
+	"github.com/spf13/pflag"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -28,6 +30,9 @@ func main() {
 	defer logs.FlushLogs()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+
+	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
 	legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
 
