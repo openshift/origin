@@ -16,8 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/oc/pkg/helpers/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"

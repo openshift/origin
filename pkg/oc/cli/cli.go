@@ -37,7 +37,6 @@ import (
 	"github.com/openshift/oc/pkg/cli/whoami"
 	"github.com/openshift/oc/pkg/helpers/term"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/admin"
 	"github.com/openshift/origin/pkg/oc/cli/admin/buildchain"
@@ -402,6 +401,5 @@ func CommandFor(basename string) *cobra.Command {
 	if cmd.UsageFunc() == nil {
 		templates.ActsAsRootCommand(cmd, []string{"options"})
 	}
-	flagtypes.GLog(cmd.PersistentFlags())
 	return cmd
 }
