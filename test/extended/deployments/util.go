@@ -30,6 +30,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

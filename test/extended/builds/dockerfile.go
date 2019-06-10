@@ -3,14 +3,14 @@ package builds
 import (
 	"fmt"
 
-	"github.com/openshift/api/image/docker10"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -73,6 +73,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
 				o.Expect(err).NotTo(o.HaveOccurred())
+				imageutil.ImageWithMetadataOrDie(&image.Image)
 				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 			})
 

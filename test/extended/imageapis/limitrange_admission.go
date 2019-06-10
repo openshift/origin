@@ -8,15 +8,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
+
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -36,9 +35,9 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
-		_, err := createLimitRangeOfType(oc, imageapi.LimitTypeImage, kapi.ResourceList{
-			kapi.ResourceStorage: resource.MustParse("10Ki"),
+	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit", imagev1.LimitTypeImage), func() {
+		_, err := createLimitRangeOfType(oc, imagev1.LimitTypeImage, corev1.ResourceList{
+			corev1.ResourceStorage: resource.MustParse("10Ki"),
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -59,19 +58,19 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a push of built image exceeding limit on %s resource", imageapi.ResourceImageStreamImages), func() {
-		limits := kapi.ResourceList{
-			imageapi.ResourceImageStreamTags:   resource.MustParse("0"),
-			imageapi.ResourceImageStreamImages: resource.MustParse("0"),
+	g.It(fmt.Sprintf("should deny a push of built image exceeding limit on %s resource", imagev1.ResourceImageStreamImages), func() {
+		limits := corev1.ResourceList{
+			imagev1.ResourceImageStreamTags:   resource.MustParse("0"),
+			imagev1.ResourceImageStreamImages: resource.MustParse("0"),
 		}
-		_, err := createLimitRangeOfType(oc, imageapi.LimitTypeImageStream, limits)
+		_, err := createLimitRangeOfType(oc, imagev1.LimitTypeImageStream, limits)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
 		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "refused", imageSize, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		limits, err = bumpLimit(oc, imageapi.ResourceImageStreamImages, "1")
+		limits, err = bumpLimit(oc, imagev1.ResourceImageStreamImages, "1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
@@ -86,7 +85,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "another", "second", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		limits, err = bumpLimit(oc, imageapi.ResourceImageStreamImages, "2")
+		limits, err = bumpLimit(oc, imagev1.ResourceImageStreamImages, "2")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
@@ -106,21 +105,21 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a docker image reference exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
+	g.It(fmt.Sprintf("should deny a docker image reference exceeding limit on %s resource", imagev1.ResourceImageStreamTags), func() {
 		tag2Image, err := buildAndPushTestImagesTo(oc, "src", "tag", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		limit := kapi.ResourceList{imageapi.ResourceImageStreamTags: resource.MustParse("0")}
-		_, err = createLimitRangeOfType(oc, imageapi.LimitTypeImageStream, limit)
+		limit := corev1.ResourceList{imagev1.ResourceImageStreamTags: resource.MustParse("0")}
+		_, err = createLimitRangeOfType(oc, imagev1.LimitTypeImageStream, limit)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
 		out, err := oc.Run("import-image").Args("stream:dockerimage", "--confirm", "--insecure", "--from", tag2Image["tag1"].DockerImageReference).Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).Should(o.ContainSubstring("exceeds the maximum limit"))
-		o.Expect(out).Should(o.ContainSubstring(string(imageapi.ResourceImageStreamTags)))
+		o.Expect(out).Should(o.ContainSubstring(string(imagev1.ResourceImageStreamTags)))
 
-		limit, err = bumpLimit(oc, imageapi.ResourceImageStreamTags, "1")
+		limit, err = bumpLimit(oc, imagev1.ResourceImageStreamTags, "1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image below limit %v", limit))
@@ -163,7 +162,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
+	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource", imagev1.ResourceImageStreamTags), func() {
 		maxBulkImport, err := getMaxImagesBulkImportedPerRepository()
 		if err != nil {
 			g.Skip(err.Error())
@@ -174,11 +173,11 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		s2tag2Image, err := buildAndPushTestImagesTo(oc, "src2nd", "t", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		limit := kapi.ResourceList{
-			imageapi.ResourceImageStreamTags:   *resource.NewQuantity(int64(maxBulkImport)+1, resource.DecimalSI),
-			imageapi.ResourceImageStreamImages: *resource.NewQuantity(int64(maxBulkImport)+1, resource.DecimalSI),
+		limit := corev1.ResourceList{
+			imagev1.ResourceImageStreamTags:   *resource.NewQuantity(int64(maxBulkImport)+1, resource.DecimalSI),
+			imagev1.ResourceImageStreamImages: *resource.NewQuantity(int64(maxBulkImport)+1, resource.DecimalSI),
 		}
-		_, err = createLimitRangeOfType(oc, imageapi.LimitTypeImageStream, limit)
+		_, err = createLimitRangeOfType(oc, imagev1.LimitTypeImageStream, limit)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		s1ref, err := reference.Parse(s1tag2Image["tag1"].DockerImageReference)
@@ -200,8 +199,8 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		out, err := oc.Run("import-image").Args("bulkimport", "--confirm", "--insecure", "--all", "--from", s2ref.Exact()).Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).Should(o.ContainSubstring("exceeds the maximum limit"))
-		o.Expect(out).Should(o.ContainSubstring(string(imageapi.ResourceImageStreamTags)))
-		o.Expect(out).Should(o.ContainSubstring(string(imageapi.ResourceImageStreamImages)))
+		o.Expect(out).Should(o.ContainSubstring(string(imagev1.ResourceImageStreamTags)))
+		o.Expect(out).Should(o.ContainSubstring(string(imagev1.ResourceImageStreamImages)))
 	})
 })
 
@@ -238,13 +237,13 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 }
 
 // createLimitRangeOfType creates a new limit range object with given limits for given limit type in current namespace
-func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits kapi.ResourceList) (*kapi.LimitRange, error) {
-	lr := &kapi.LimitRange{
+func createLimitRangeOfType(oc *exutil.CLI, limitType corev1.LimitType, maxLimits corev1.ResourceList) (*corev1.LimitRange, error) {
+	lr := &corev1.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: limitRangeName,
 		},
-		Spec: kapi.LimitRangeSpec{
-			Limits: []kapi.LimitRangeItem{
+		Spec: corev1.LimitRangeSpec{
+			Limits: []corev1.LimitRangeItem{
 				{
 					Type: limitType,
 					Max:  maxLimits,
@@ -254,18 +253,18 @@ func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits 
 	}
 
 	g.By(fmt.Sprintf("creating limit range object %q with %s limited to: %v", limitRangeName, limitType, maxLimits))
-	lr, err := oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(lr)
+	lr, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(lr)
 	return lr, err
 }
 
 // bumpLimit changes the limit value for given resource for all the limit types of limit range object
-func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (kapi.ResourceList, error) {
+func bumpLimit(oc *exutil.CLI, resourceName corev1.ResourceName, limit string) (corev1.ResourceList, error) {
 	g.By(fmt.Sprintf("bump a limit on resource %q to %s", resourceName, limit))
-	lr, err := oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
+	lr, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	res := kapi.ResourceList{}
+	res := corev1.ResourceList{}
 
 	change := false
 	for i := range lr.Spec.Limits {
@@ -285,7 +284,7 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 	if !change {
 		return res, nil
 	}
-	_, err = oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Update(lr)
+	_, err = oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Update(lr)
 	return res, err
 }
 

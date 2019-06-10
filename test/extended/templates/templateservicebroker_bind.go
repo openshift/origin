@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -59,7 +58,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 				},
 				Subjects: []corev1.ObjectReference{
 					{
-						Kind: authorizationapi.GroupKind,
+						Kind: authorizationv1.GroupKind,
 						Name: "system:unauthenticated",
 					},
 				},

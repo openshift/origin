@@ -32,7 +32,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	projectv1 "github.com/openshift/api/project/v1"
@@ -49,8 +48,9 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
-	_ "github.com/openshift/origin/pkg/api/install"
+
 	testutil "github.com/openshift/origin/test/util"
+
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
@@ -442,14 +442,6 @@ func (c *CLI) AdminRouteClient() routev1client.Interface {
 	return client
 }
 
-func (c *CLI) AdminTemplateClient() templatev1client.Interface {
-	client, err := templatev1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
 func (c *CLI) AdminUserClient() userv1client.Interface {
 	client, err := userv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
@@ -466,24 +458,22 @@ func (c *CLI) AdminSecurityClient() securityv1client.Interface {
 	return client
 }
 
+func (c *CLI) AdminTemplateClient() templatev1client.Interface {
+	client, err := templatev1client.NewForConfig(c.AdminConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
 // KubeClient provides a Kubernetes client for the current namespace
 func (c *CLI) KubeClient() kclientset.Interface {
 	return kclientset.NewForConfigOrDie(c.UserConfig())
 }
 
-// KubeClient provides a Kubernetes client for the current namespace
-func (c *CLI) InternalKubeClient() kinternalclientset.Interface {
-	return kinternalclientset.NewForConfigOrDie(c.UserConfig())
-}
-
 // AdminKubeClient provides a Kubernetes client for the cluster admin user.
 func (c *CLI) AdminKubeClient() kclientset.Interface {
 	return kclientset.NewForConfigOrDie(c.AdminConfig())
-}
-
-// AdminKubeClient provides a Kubernetes client for the cluster admin user.
-func (c *CLI) InternalAdminKubeClient() kinternalclientset.Interface {
-	return kinternalclientset.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) UserConfig() *restclient.Config {

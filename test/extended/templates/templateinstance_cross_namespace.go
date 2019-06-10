@@ -16,10 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	templatev1 "github.com/openshift/api/template/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -70,13 +70,13 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 
 		err = addObjectsToTemplate(&templateinstance.Spec.Template, []runtime.Object{
 			// secret in the same namespace
-			&kapi.Secret{
+			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "secret1",
 				},
 			},
 			// secret in a different namespace
-			&kapi.Secret{
+			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "secret2",
 					Namespace: "${NAMESPACE}",

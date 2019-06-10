@@ -6,6 +6,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/api/apitesting"
 
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -15,15 +16,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/storage"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -38,29 +37,41 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 		adminuser, edituser, editbygroupuser *userv1.User
 		editgroup                            *userv1.Group
 
-		dummyroute = &routeapi.Route{
+		dummyroute = &routev1.Route{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Route",
+				APIVersion: "route.openshift.io/v1",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "route",
 				Namespace: "${NAMESPACE}",
 			},
-			Spec: routeapi.RouteSpec{
-				To: routeapi.RouteTargetReference{
+			Spec: routev1.RouteSpec{
+				To: routev1.RouteTargetReference{
 					Name: "dummyroute",
 				},
 			},
 		}
 
-		dummyrolebinding = &authorizationapi.RoleBinding{
+		dummyrolebinding = &authorizationv1.RoleBinding{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "RoleBinding",
+				APIVersion: "authorization.openshift.io/v1",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rolebinding",
 				Namespace: "${NAMESPACE}",
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: "admin",
 			},
 		}
 
-		storageclass = &storage.StorageClass{
+		storageclass = &storagev1.StorageClass{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "StorageClass",
+				APIVersion: "storage.k8s.io/v1",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "storageclass",
 			},
@@ -255,9 +266,13 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					},
 				}
 
+				_, testCodecFactory := apitesting.SchemeForOrDie(routev1.Install, authorizationv1.Install, storagev1.AddToScheme)
+				testCodec := testCodecFactory.LegacyCodec(routev1.GroupVersion, authorizationv1.SchemeGroupVersion, storagev1.SchemeGroupVersion)
+
 				for i := range test.objects {
 					templateinstance.Spec.Template.Objects = append(templateinstance.Spec.Template.Objects, runtime.RawExtension{
-						Raw: []byte(runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), test.objects[i])),
+						Raw:    []byte(runtime.EncodeOrDie(testCodec, test.objects[i])),
+						Object: test.objects[i],
 					})
 				}
 

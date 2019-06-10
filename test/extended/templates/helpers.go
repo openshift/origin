@@ -17,10 +17,9 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	exutil "github.com/openshift/origin/test/extended/util"
 	osbclient "github.com/openshift/template-service-broker/pkg/openservicebroker/client"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func createUser(cli *exutil.CLI, name, role string) *userv1.User {
@@ -43,7 +42,7 @@ func createUser(cli *exutil.CLI, name, role string) *userv1.User {
 			},
 			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.UserKind,
+					Kind: authorizationv1.UserKind,
 					Name: name,
 				},
 			},
@@ -74,7 +73,7 @@ func createGroup(cli *exutil.CLI, name, role string) *userv1.Group {
 			},
 			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: authorizationv1.GroupKind,
 					Name: name,
 				},
 			},
@@ -129,7 +128,7 @@ func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
 				InsecureSkipVerify: true,
 			},
 		},
-	}, "https://"+svc.Spec.ClusterIP+templateapi.ServiceBrokerRoot), nil
+	}, "https://"+svc.Spec.ClusterIP+"/brokers/template.openshift.io"), nil
 }
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateInstance) error {
@@ -156,7 +155,7 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateIn
 			return kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name)
 		}
 
-		if strings.ToLower(obj.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+		if strings.ToLower(obj.GetAnnotations()[templatev1.WaitForReadyAnnotation]) != "true" {
 			continue
 		}
 

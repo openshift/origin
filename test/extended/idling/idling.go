@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -365,14 +366,16 @@ var _ = g.Describe("idling and unidling", func() {
 
 			connWG.Wait()
 
-			g.By(fmt.Sprintf("Expecting all but %v of those connections to fail", MaxHeldConnections))
+			maxHeldConnections := 16
+
+			g.By(fmt.Sprintf("Expecting all but %v of those connections to fail", maxHeldConnections))
 			errCount := 0
 			for _, err := range errors {
 				if err != nil {
 					errCount++
 				}
 			}
-			o.Expect(errCount).To(o.Equal(connectionsToStart - MaxHeldConnections))
+			o.Expect(errCount).To(o.Equal(connectionsToStart - 16))
 
 			g.By("Waiting until we have endpoints")
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)

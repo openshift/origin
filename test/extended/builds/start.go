@@ -9,10 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/api/image/docker10"
-
-	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -22,7 +18,10 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -113,6 +112,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = imageutil.ImageWithMetadata(&istag.Image)
 					o.Expect(err).NotTo(o.HaveOccurred())
+					imageutil.ImageWithMetadataOrDie(&istag.Image)
 					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
 					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
 

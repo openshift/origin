@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -171,7 +172,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		expectedDeletions := &RegistryStorageFiles{
 			/* TODO: reenable once we delete layer links as well
 			LayerLinks: RepoLinks{oc.Namespace()+"/a": []string{
-				imgs[baseImg1].DockerImageMetadata.ID,
+				imgs[baseImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 				imgs[baseImg1].DockerImageLayers[0].Name,
 				imgs[baseImg1].DockerImageLayers[1].Name,
 			}},
@@ -189,11 +190,12 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[childImg1])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/c": []string{
-					imgs[childImg1].DockerImageMetadata.ID,
+					imgs[childImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[childImg1].DockerImageLayers[0].Name,
 				}},
 				*/
@@ -212,6 +214,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[baseImg1])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				Blobs: []string{
@@ -229,11 +232,12 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[childImg2])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[childImg2].DockerImageMetadata.ID,
+					imgs[childImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[childImg2].DockerImageLayers[0].Name,
 				}},
 				*/
@@ -256,11 +260,12 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[baseImg2])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[baseImg2].DockerImageMetadata.ID,
+					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[baseImg2].DockerImageLayers[0].Name,
 					imgs[baseImg2].DockerImageLayers[1].Name,
 				}},
@@ -290,6 +295,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 			"prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring(baseImg3))
+		imageutil.ImageWithMetadataOrDie(imgs[baseImg3])
 		o.Expect(output).To(o.ContainSubstring(imgs[baseImg3].DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 		for _, layer := range imgs[baseImg3].DockerImageLayers {
 			o.Expect(output).To(o.ContainSubstring(layer.Name))
@@ -310,11 +316,12 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[childImg3])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[baseImg2].DockerImageMetadata.ID,
+					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[baseImg2].DockerImageLayers[0].Name,
 					imgs[baseImg2].DockerImageLayers[1].Name,
 				}},
@@ -338,6 +345,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		 */
 
 		assertImageBlobsPresent := func(present bool, img *imagev1.Image) {
+			imageutil.ImageWithMetadataOrDie(img)
 			for _, layer := range img.DockerImageLayers {
 				o.Expect(pathExistsInRegistry(oc, strings.Split(blobToPath("", layer.Name), "/")...)).
 					To(o.Equal(present))
