@@ -345,6 +345,22 @@ func (c *TemplateInstanceController) enqueueAfter(templateInstance *templatev1.T
 	c.queue.AddAfter(key, duration)
 }
 
+func (c *TemplateInstanceController) processNamespace(templateNamespace, objNamespace string, clusterScoped bool) (string, error) {
+	if clusterScoped {
+		return "", nil
+	}
+	namespace := templateNamespace
+	if len(objNamespace) > 0 {
+		namespace = objNamespace
+	}
+	var err error
+	if len(namespace) == 0 {
+		err = errors.New("namespace was empty")
+	}
+
+	return namespace, err
+}
+
 // instantiate instantiates the objects contained in a TemplateInstance.  Any
 // parameters for instantiation are contained in the Secret linked to the
 // TemplateInstance.
@@ -437,12 +453,9 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 			continue
 		}
 
-		namespace := templateInstance.Namespace
-		if len(currObj.GetNamespace()) > 0 {
-			namespace = currObj.GetNamespace()
-		}
-		if namespace == "" {
-			allErrors = append(allErrors, errors.New("namespace was empty"))
+		namespace, nsErr := c.processNamespace(templateInstance.Namespace, currObj.GetNamespace(), restMapping.Scope.Name() == meta.RESTScopeNameRoot)
+		if nsErr != nil {
+			allErrors = append(allErrors, nsErr)
 			continue
 		}
 
@@ -473,12 +486,9 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 			continue
 		}
 
-		namespace := templateInstance.Namespace
-		if len(currObj.GetNamespace()) > 0 {
-			namespace = currObj.GetNamespace()
-		}
-		if namespace == "" {
-			allErrors = append(allErrors, errors.New("namespace was empty"))
+		namespace, nsErr := c.processNamespace(templateInstance.Namespace, currObj.GetNamespace(), restMapping.Scope.Name() == meta.RESTScopeNameRoot)
+		if nsErr != nil {
+			allErrors = append(allErrors, nsErr)
 			continue
 		}
 
