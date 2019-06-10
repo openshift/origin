@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // ImageStreamSearcher searches the openshift server image streams for images matching a particular name
@@ -34,7 +33,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 	var errs []error
 	for _, term := range terms {
 		var (
-			ref imageapi.DockerImageReference
+			ref reference.DockerImageReference
 			err error
 		)
 		switch term {
@@ -42,7 +41,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 			errs = append(errs, fmt.Errorf("unable to find the specified image: %s", term))
 			continue
 		case "*":
-			ref = imageapi.DockerImageReference{Name: term}
+			ref = reference.DockerImageReference{Name: term}
 		default:
 			ref, err = reference.Parse(term)
 			if err != nil || len(ref.Registry) != 0 {

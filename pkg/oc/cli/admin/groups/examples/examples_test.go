@@ -7,7 +7,7 @@ import (
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
+	"github.com/openshift/oc/pkg/helpers/groupsync/ldap"
 )
 
 func TestLDAPSyncConfigFixtures(t *testing.T) {

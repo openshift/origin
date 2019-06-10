@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	"github.com/openshift/oc/pkg/helpers/newapp"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
 )
 
 // TestResolveJenkinsfileAndDockerfile ensures that if a repo has a Jenkinsfile

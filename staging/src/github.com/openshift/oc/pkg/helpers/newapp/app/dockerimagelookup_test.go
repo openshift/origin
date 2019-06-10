@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	docker "github.com/fsouza/go-dockerclient"
-	apptest "github.com/openshift/origin/pkg/oc/lib/newapp/app/test"
+	apptest "github.com/openshift/oc/pkg/helpers/newapp/app/test"
 )
 
 type fakeRegistrySearcher struct {

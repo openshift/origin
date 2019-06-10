@@ -11,8 +11,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
+	"github.com/openshift/oc/pkg/helpers/originkubeconfignames"
 	"github.com/openshift/origin/pkg/oauth/util"
-	"github.com/openshift/origin/pkg/oc/lib/ockubeconfignames"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"

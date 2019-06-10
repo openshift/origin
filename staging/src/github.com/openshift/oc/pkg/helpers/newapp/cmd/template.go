@@ -7,8 +7,8 @@ import (
 
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessing"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
 
 // TransformTemplateV1 processes a template with the provided parameters, returning an error if transformation fails.

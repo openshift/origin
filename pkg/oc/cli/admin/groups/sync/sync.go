@@ -27,8 +27,8 @@ import (
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/oc/pkg/helpers/groupsync"
 	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/ldap"
 	"github.com/openshift/oc/pkg/helpers/groupsync/syncerror"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
 )
 
 const SyncRecommendedName = "sync"

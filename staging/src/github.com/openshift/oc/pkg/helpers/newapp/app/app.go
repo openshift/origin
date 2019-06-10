@@ -19,7 +19,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/git"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
+	"github.com/openshift/oc/pkg/helpers/newapp"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )

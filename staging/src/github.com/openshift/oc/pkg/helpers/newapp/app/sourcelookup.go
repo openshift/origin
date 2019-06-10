@@ -21,8 +21,8 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/git"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
+	"github.com/openshift/oc/pkg/helpers/newapp"
+	"github.com/openshift/oc/pkg/helpers/newapp/source"
 )
 
 type Dockerfile interface {

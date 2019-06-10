@@ -23,11 +23,11 @@ import (
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/helpers/errors"
 	cliconfig "github.com/openshift/oc/pkg/helpers/kubeconfig"
+	"github.com/openshift/oc/pkg/helpers/originkubeconfignames"
 	"github.com/openshift/oc/pkg/helpers/project"
 	loginutil "github.com/openshift/oc/pkg/helpers/project"
 	"github.com/openshift/oc/pkg/helpers/term"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	"github.com/openshift/origin/pkg/oc/lib/ockubeconfignames"
 )
 
 const defaultClusterURL = "https://localhost:8443"

@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/oc/lib/ockubeconfignames"
+	"github.com/openshift/oc/pkg/helpers/originkubeconfignames"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -16,7 +16,7 @@ import (
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
 	configcmd "github.com/openshift/oc/pkg/helpers/bulk"
-	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
+	newcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
 )
 
 // TestNewAppDefaultFlags ensures that flags default values are set.
