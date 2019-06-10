@@ -506,7 +506,7 @@ func TestProjectStatus(t *testing.T) {
 			if len(test.File) > 0 {
 				// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 				var err error
-				objs, err = readObjectsFromPath("../../../../staging/src/github.com/openshift/oc/pkg/helpers/graph/genericgraph/test/"+test.File, "example")
+				objs, err = readObjectsFromPath("../graph/genericgraph/test/"+test.File, "example")
 				if err != nil {
 					t.Errorf("%s: unexpected error: %v", k, err)
 				}

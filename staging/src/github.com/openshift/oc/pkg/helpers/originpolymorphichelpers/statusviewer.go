@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
+	deploymentcmd "github.com/openshift/oc/pkg/helpers/originpolymorphichelpers/deploymentconfigs"
 )
 
 func NewStatusViewerFn(delegate polymorphichelpers.StatusViewerFunc) polymorphichelpers.StatusViewerFunc {

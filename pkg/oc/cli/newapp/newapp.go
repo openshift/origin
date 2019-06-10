@@ -58,7 +58,6 @@ import (
 	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 // NewAppRecommendedCommandName is the recommended command name.
@@ -1148,7 +1147,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 				set := sets.NewString()
 				for _, tag := range imageStream.Status.Tags {
 					if refTag, ok := imageutil.SpecHasTag(imageStream, tag.Tag); ok {
-						if !ocimageutil.HasAnnotationTag(&refTag, imagehelpers.TagReferenceAnnotationTagHidden) {
+						if !imagehelpers.HasAnnotationTag(&refTag, imagehelpers.TagReferenceAnnotationTagHidden) {
 							set.Insert(tag.Tag)
 						}
 					} else {

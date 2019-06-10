@@ -21,7 +21,6 @@ import (
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 // DockerClient is the local interface for the docker client
@@ -376,7 +375,7 @@ func descriptionFor(image *dockerv10.DockerImage, value, from string, tag string
 	if len(from) == 0 {
 		from = "local"
 	}
-	shortID := ocimageutil.ShortDockerImageID(image, 7)
+	shortID := imagehelpers.ShortDockerImageID(image, 7)
 	tagPart := ""
 	if len(tag) > 0 {
 		tagPart = fmt.Sprintf(" (tag %q)", tag)

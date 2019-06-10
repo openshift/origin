@@ -8,7 +8,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	deploymentcmd "github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
+	deploymentcmd "github.com/openshift/oc/pkg/helpers/originpolymorphichelpers/deploymentconfigs"
 )
 
 func NewRollbackerFn(delegate polymorphichelpers.RollbackerFunc) polymorphichelpers.RollbackerFunc {
