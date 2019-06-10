@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/prometheus"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
-	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 )
 
@@ -89,17 +87,11 @@ func NewLogin(provider string, csrf csrf.CSRF, auth PasswordAuthenticator, rende
 	}
 }
 
-// Install registers the login handler into a mux. It is expected that the
-// provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Login) Install(mux oauthserver.Mux, paths ...string) {
-	for _, path := range paths {
-		path = strings.TrimRight(path, "/")
-		mux.HandleFunc(path, l.ServeHTTP)
-	}
+func (l *Login) Install(mux oauthserver.Mux, prefix string) {
+	mux.Handle(prefix, l)
 }
 
 func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	headers.SetStandardHeaders(w)
 	switch req.Method {
 	case "GET":
 		l.handleLoginForm(w, req)

@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
+	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 )
 
@@ -220,6 +221,7 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 	handler = genericfilters.WithCORS(handler, genericConfig.CorsAllowedOriginList, nil, nil, nil, "true")
 	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.LongRunningFunc, genericConfig.RequestTimeout)
 	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig))
+	handler = headers.WithStandardHeaders(handler)
 	handler = genericfilters.WithPanicRecovery(handler)
 	return handler
 }
