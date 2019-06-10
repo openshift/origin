@@ -449,7 +449,6 @@
       "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
-      "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
       "github.com/openshift/origin/pkg/cmd/flagtypes",
       "github.com/openshift/origin/pkg/cmd/templates",

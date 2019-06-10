@@ -56,7 +56,6 @@ import (
 	newappapp "github.com/openshift/oc/pkg/helpers/newapp/app"
 	newcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
 	dockerutil "github.com/openshift/oc/pkg/helpers/newapp/docker"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -415,7 +414,7 @@ func (o *AppOptions) RunNewApp() error {
 
 	supportedTypes := map[schema.GroupVersionKind]bool{
 		{Version: "v1", Kind: "Pod"}:                                    true,
-		{Group: buildapi.GroupName, Version: "v1", Kind: "BuildConfig"}: true,
+		{Group: buildv1.GroupName, Version: "v1", Kind: "BuildConfig"}:  true,
 		{Group: imageapi.GroupName, Version: "v1", Kind: "ImageStream"}: true,
 		{Group: routev1.GroupName, Version: "v1", Kind: "Route"}:        true,
 	}
