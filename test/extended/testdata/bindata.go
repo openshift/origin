@@ -117,6 +117,17 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
+// test/extended/testdata/disaster-recovery/rollback-A.yaml
+// test/extended/testdata/disaster-recovery/rollback-B.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/clusterrole.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/clusterrolebinding.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/deployment.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/namespace.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/role.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/rolebinding.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/service.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/serviceaccount.yaml
+// test/extended/testdata/disaster-recovery/ssh-bastion/sshd_config
 // test/extended/testdata/forcepull-test.json
 // test/extended/testdata/gssapi/config/kubeconfig
 // test/extended/testdata/gssapi/config/oauth_config.json
@@ -6358,6 +6369,384 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/deployments/test-deployment-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoveryRollbackAYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-rollback-test
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    storage:
+      files:
+      - contents:
+          source: data:,A
+        filesystem: root
+        mode: 420
+        path: /etc/rollback-test
+`)
+
+func testExtendedTestdataDisasterRecoveryRollbackAYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoveryRollbackAYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoveryRollbackAYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoveryRollbackAYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/rollback-A.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoveryRollbackBYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-rollback-test
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    storage:
+      files:
+      - contents:
+          source: data:,B
+        filesystem: root
+        mode: 420
+        path: /etc/rollback-test
+`)
+
+func testExtendedTestdataDisasterRecoveryRollbackBYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoveryRollbackBYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoveryRollbackBYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoveryRollbackBYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/rollback-B.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ssh-bastion
+rules:
+- apiGroups:
+  - "machineconfiguration.openshift.io"
+  resources:
+  - "machineconfigs"
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - "nodes"
+  verbs:
+  - list
+  - get
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionClusterroleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionClusterroleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/clusterrole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    openshift.io/description: Allows ssh-pod to read nodes and machineconfigs
+  name: ssh-bastion
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ssh-bastion
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: system:serviceaccount:ssh-bastion:ssh-bastion
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/clusterrolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml = []byte(`apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: ssh-bastion
+  name: ssh-bastion
+  namespace: ssh-bastion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: ssh-bastion
+  template:
+    metadata:
+      labels:
+        run: ssh-bastion
+    spec:
+      serviceAccountName: "ssh-bastion"
+      containers:
+      - image: quay.io/eparis/ssh:latest
+        imagePullPolicy: Always
+        name: ssh-bastion
+        ports:
+        - containerPort: 22
+          name: ssh
+          protocol: TCP
+        volumeMounts:
+        - name: ssh-host-keys
+          mountPath: "/etc/ssh/"
+          readOnly: true
+        securityContext:
+          privileged: true
+      volumes:
+      - name: ssh-host-keys
+        secret:
+          secretName: ssh-host-keys
+          items:
+          - key: ssh_host_rsa_key
+            path: ssh_host_rsa_key
+            mode: 256
+          - key: ssh_host_ecdsa_key
+            path: ssh_host_ecdsa_key
+            mode: 256
+          - key: ssh_host_ed25519_key
+            path: ssh_host_ed25519_key
+            mode: 256
+          - key: sshd_config
+            path: sshd_config
+      restartPolicy: Always
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: ssh-bastion
+  labels:
+    openshift.io/run-level: "0"
+
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionNamespaceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionNamespaceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionRoleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ssh-bastion
+  namespace: ssh-bastion
+rules:
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+  resourceNames:
+  - privileged
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionRoleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionRoleYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionRoleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionRoleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    openshift.io/description: Allows ssh-pod to run as root
+  name: ssh-bastion
+  namespace: ssh-bastion
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ssh-bastion
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: system:serviceaccount:ssh-bastion:ssh-bastion
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionRolebindingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionRolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/rolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionServiceYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: ssh-bastion
+  name: ssh-bastion
+  namespace: ssh-bastion
+spec:
+  externalTrafficPolicy: Local
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: ssh
+  selector:
+    run: ssh-bastion
+  type: LoadBalancer
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionServiceYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ssh-bastion
+  namespace: ssh-bastion
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionServiceaccountYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionServiceaccountYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/serviceaccount.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDisasterRecoverySshBastionSshd_config = []byte(`HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+SyslogFacility AUTHPRIV
+PermitRootLogin no
+AuthorizedKeysFile /home/core/.ssh/authorized_keys
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+GSSAPIAuthentication yes
+GSSAPICleanupCredentials no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+AcceptEnv XMODIFIERS
+Subsystem	sftp	/usr/libexec/openssh/sftp-server
+`)
+
+func testExtendedTestdataDisasterRecoverySshBastionSshd_configBytes() ([]byte, error) {
+	return _testExtendedTestdataDisasterRecoverySshBastionSshd_config, nil
+}
+
+func testExtendedTestdataDisasterRecoverySshBastionSshd_config() (*asset, error) {
+	bytes, err := testExtendedTestdataDisasterRecoverySshBastionSshd_configBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/disaster-recovery/ssh-bastion/sshd_config", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32666,6 +33055,17 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml": testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml": testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml": testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/disaster-recovery/rollback-A.yaml": testExtendedTestdataDisasterRecoveryRollbackAYaml,
+	"test/extended/testdata/disaster-recovery/rollback-B.yaml": testExtendedTestdataDisasterRecoveryRollbackBYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/clusterrole.yaml": testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/clusterrolebinding.yaml": testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/deployment.yaml": testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/namespace.yaml": testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/role.yaml": testExtendedTestdataDisasterRecoverySshBastionRoleYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/rolebinding.yaml": testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/service.yaml": testExtendedTestdataDisasterRecoverySshBastionServiceYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/serviceaccount.yaml": testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml,
+	"test/extended/testdata/disaster-recovery/ssh-bastion/sshd_config": testExtendedTestdataDisasterRecoverySshBastionSshd_config,
 	"test/extended/testdata/forcepull-test.json": testExtendedTestdataForcepullTestJson,
 	"test/extended/testdata/gssapi/config/kubeconfig": testExtendedTestdataGssapiConfigKubeconfig,
 	"test/extended/testdata/gssapi/config/oauth_config.json": testExtendedTestdataGssapiConfigOauth_configJson,
@@ -33108,6 +33508,21 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"tag-images-deployment.yaml": &bintree{testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
+				}},
+				"disaster-recovery": &bintree{nil, map[string]*bintree{
+					"rollback-A.yaml": &bintree{testExtendedTestdataDisasterRecoveryRollbackAYaml, map[string]*bintree{}},
+					"rollback-B.yaml": &bintree{testExtendedTestdataDisasterRecoveryRollbackBYaml, map[string]*bintree{}},
+					"ssh-bastion": &bintree{nil, map[string]*bintree{
+						"clusterrole.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionClusterroleYaml, map[string]*bintree{}},
+						"clusterrolebinding.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionClusterrolebindingYaml, map[string]*bintree{}},
+						"deployment.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionDeploymentYaml, map[string]*bintree{}},
+						"namespace.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionNamespaceYaml, map[string]*bintree{}},
+						"role.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionRoleYaml, map[string]*bintree{}},
+						"rolebinding.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionRolebindingYaml, map[string]*bintree{}},
+						"service.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionServiceYaml, map[string]*bintree{}},
+						"serviceaccount.yaml": &bintree{testExtendedTestdataDisasterRecoverySshBastionServiceaccountYaml, map[string]*bintree{}},
+						"sshd_config": &bintree{testExtendedTestdataDisasterRecoverySshBastionSshd_config, map[string]*bintree{}},
+					}},
 				}},
 				"forcepull-test.json": &bintree{testExtendedTestdataForcepullTestJson, map[string]*bintree{}},
 				"gssapi": &bintree{nil, map[string]*bintree{

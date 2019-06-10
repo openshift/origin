@@ -49,6 +49,7 @@ func main() {
 		newRunUpgradeCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
+		newRunDisasterRecoveryRestoreSnapshotCommand(),
 	)
 
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
@@ -189,6 +190,45 @@ func newRunUpgradeCommand() *cobra.Command {
 
 	bindOptions(opt, cmd.Flags())
 	bindUpgradeOptions(upgradeOpt, cmd.Flags())
+	return cmd
+}
+
+func newRunDisasterRecoveryRestoreSnapshotCommand() *cobra.Command {
+	opt := &testginkgo.Options{Suites: disasterRecoverySuites}
+	disasterRecoveryOpt := &DisasterRecoveryOptions{}
+
+	cmd := &cobra.Command{
+		Use:   "run-dr-restore-snapshot SUITE",
+		Short: "Run a restore snapshot disaster recovery suite",
+		Long: templates.LongDesc(`
+		Help, I'm being held at long description factory
+
+		`) + testginkgo.SuitesString(opt.Suites, "\n\nAvailable test suites:\n\n"),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return mirrorToFile(opt, func() error {
+				if err := initProvider(opt.Provider); err != nil {
+					return err
+				}
+
+				disasterRecoveryOpt.Suite = "all"
+				value := disasterRecoveryOpt.ToEnv()
+				if err := initDRSnapshotRestore(value); err != nil {
+					return err
+				}
+				opt.SuiteOptions = value
+
+				e2e.AfterReadingAllFlags(exutil.TestContext)
+				e2e.TestContext.DumpLogsOnFailure = true
+				exutil.TestContext.DumpLogsOnFailure = true
+				return opt.Run(args)
+			})
+		},
+	}
+
+	bindOptions(opt, cmd.Flags())
 	return cmd
 }
 
