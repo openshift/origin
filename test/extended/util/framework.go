@@ -14,9 +14,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	authorizationapi "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -28,21 +30,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	imageapi "github.com/openshift/api/image/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagetypeclientset "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+
 	"github.com/openshift/origin/test/extended/testdata"
 )
 
@@ -90,7 +91,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	scan := func() bool {
 		for _, lang := range langs {
 			e2e.Logf("Checking language %v \n", lang)
-			is, err := oc.ImageClient().Image().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
+			is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("ImageStream Error: %#v \n", err)
 				return false
@@ -101,8 +102,8 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 			}
 			for tag := range is.Spec.Tags {
 				e2e.Logf("Checking tag %v \n", tag)
-				if _, ok := is.Status.Tags[tag]; !ok {
-					e2e.Logf("Tag Error: %#v \n", ok)
+				if len(GetTagEvents(is.Status.Tags, is.Spec.Tags[tag].Name)) == 0 {
+					e2e.Logf("Tag Error: %#v \n", is.Status.Tags)
 					return false
 				}
 			}
@@ -539,7 +540,7 @@ func (t *BuildResult) dumpRegistryLogs() {
 	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
 		buildStarted = &t.Build.CreationTimestamp.Time
 	} else {
-		proj, err := oc.ProjectClient().Project().Projects().Get(oc.Namespace(), metav1.GetOptions{})
+		proj, err := oc.ProjectClient().ProjectV1().Projects().Get(oc.Namespace(), metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get project %s: %v\n", oc.Namespace(), err)
 		} else {
@@ -866,13 +867,10 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 	c := make(chan error)
 	go func() {
 		err := WaitForAnImageStream(
-			oc.ImageClient().Image().ImageStreams(namespace),
+			oc.ImageClient().ImageV1().ImageStreams(namespace),
 			name,
 			func(is *imageapi.ImageStream) bool {
-				if history, exists := is.Status.Tags[tag]; !exists || len(history.Items) == 0 {
-					return false
-				}
-				return true
+				return len(GetTagEvents(is.Status.Tags, tag)) > 0
 			},
 			func(is *imageapi.ImageStream) bool {
 				return time.Now().After(start.Add(waitTimeout))
@@ -890,8 +888,7 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 
 // CheckImageStreamLatestTagPopulated returns true if the imagestream has a ':latest' tag filed
 func CheckImageStreamLatestTagPopulated(i *imageapi.ImageStream) bool {
-	_, ok := i.Status.Tags["latest"]
-	return ok
+	return len(GetTagEvents(i.Status.Tags, "latest")) != 0
 }
 
 // CheckImageStreamTagNotFound return true if the imagestream update was not successful
@@ -1152,14 +1149,11 @@ func GetDockerImageReference(c imagetypeclientset.ImageStreamInterface, name, ta
 	if err != nil {
 		return "", err
 	}
-	isTag, ok := imageStream.Status.Tags[tag]
-	if !ok {
+	tagEvents := GetTagEvents(imageStream.Status.Tags, tag)
+	if len(tagEvents) == 0 {
 		return "", fmt.Errorf("ImageStream %q does not have tag %q", name, tag)
 	}
-	if len(isTag.Items) == 0 {
-		return "", fmt.Errorf("ImageStreamTag %q is empty", tag)
-	}
-	return isTag.Items[0].DockerImageReference, nil
+	return tagEvents[0].DockerImageReference, nil
 }
 
 // GetPodForContainer creates a new Pod that runs specified container
@@ -1347,9 +1341,10 @@ func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) s
 // CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
 // the specified reason and message template.
 func CheckForBuildEvent(client corev1client.CoreV1Interface, build *buildv1.Build, reason, message string) {
+	scheme, _ := apitesting.SchemeForOrDie(buildv1.Install)
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
-		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)
+		events, err := client.Events(build.Namespace).Search(scheme, build)
 		if err != nil {
 			return false, err
 		}
@@ -1459,9 +1454,9 @@ func NewGitRepo(repoName string) (GitRepo, error) {
 // WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
 // and the provided user is authorized to perform the action on the resource.
 func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
-	sar := &authorization.SubjectAccessReview{
-		Spec: authorization.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorization.ResourceAttributes{
+	sar := &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Namespace: oc.Namespace(),
 				Verb:      verb,
 				Resource:  resource,
@@ -1470,7 +1465,7 @@ func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		resp, err := oc.InternalAdminKubeClient().Authorization().SubjectAccessReviews().Create(sar)
+		resp, err := oc.AdminKubeClient().AuthorizationV1().SubjectAccessReviews().Create(sar)
 		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil
 		}

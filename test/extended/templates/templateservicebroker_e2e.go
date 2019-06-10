@@ -20,24 +20,20 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/api/authorization"
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	templateapi "github.com/openshift/api/template/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
-
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
-
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
-	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
@@ -85,16 +81,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// enable unauthenticated access to the service broker
-		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: "system:openshift:templateservicebroker-client",
 			},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: "Group",
 					Name: "system:unauthenticated",
 				},
 			},
@@ -104,13 +100,13 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	})
 
 	g.AfterEach(func() {
-		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// it shouldn't be around, but if it is, clean up the
 		// BrokerTemplateInstance object.  The object is not namespaced so the
 		// namespace cleanup doesn't catch this.
-		cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
+		cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, nil)
 	})
 
 	catalog := func() {
@@ -257,7 +253,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 
@@ -270,20 +266,20 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		err := brokercli.Unbind(context.Background(), cliUser, instanceID, bindingID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 	}
 
 	deprovision := func() {
 		g.By("deprovisioning a service")
-		err := cli.InternalTemplateClient().Template().Templates(cli.Namespace()).Delete(privatetemplate.Name, &metav1.DeleteOptions{})
+		err := cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Delete(privatetemplate.Name, &metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = brokercli.Deprovision(context.Background(), cliUser, instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		_, err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
@@ -303,12 +299,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				}
 
 				switch gvk.GroupKind() {
-				case kapi.Kind("Event"),
-					kapi.Kind("ServiceAccount"),
-					kapi.Kind("Secret"),
-					kapi.Kind("RoleBinding"),
+				case schema.GroupKind{Kind: "Event"},
+					schema.GroupKind{Kind: "ServiceAccount"},
+					schema.GroupKind{Kind: "Secret"},
+					schema.GroupKind{Kind: "RoleBinding"},
 					rbacapi.Kind("RoleBinding"),
-					legacy.Kind("RoleBinding"),
+					schema.GroupKind{Kind: "RoleBinding"},
 					authorization.Kind("RoleBinding"),
 					schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
 					continue

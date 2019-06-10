@@ -6,16 +6,16 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	templateapi "github.com/openshift/api/template/v1"
+	userapi "github.com/openshift/api/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -65,21 +65,21 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		addUserToGroup(cli, impersonatebygroupuser.Name, impersonategroup.Name)
 
 		// additional plumbing to enable impersonateuser to impersonate edituser1
-		role, err := cli.AdminAuthorizationClient().Authorization().Roles(cli.Namespace()).Create(&authorizationapi.Role{
+		role, err := cli.AdminAuthorizationClient().AuthorizationV1().Roles(cli.Namespace()).Create(&authorizationapi.Role{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater",
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     sets.NewString("assign"),
+					Verbs:     sets.NewString("assign").List(),
 					APIGroups: []string{templateapi.GroupName},
-					Resources: sets.NewString("templateinstances"),
+					Resources: sets.NewString("templateinstances").List(),
 				},
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater-binding",
 			},
@@ -89,11 +89,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			},
 			Subjects: []kapi.ObjectReference{
 				{
-					Kind: authorizationapi.UserKind,
+					Kind: "User",
 					Name: impersonateuser.Name,
 				},
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: "Group",
 					Name: impersonategroup.Name,
 				},
 			},
@@ -106,7 +106,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
 			for _, user := range []*userapi.User{adminuser, impersonateuser, impersonatebygroupuser, edituser1, edituser2, viewuser} {
 				cli.ChangeUser(user.Name)
-				sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
+				sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
 					Action: authorizationapi.Action{
 						Verb:     "get",
 						Resource: "pods",
@@ -121,7 +121,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			}
 
 			cli.ChangeUser(impersonatebygroupuser.Name)
-			sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
+			sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
 				Action: authorizationapi.Action{
 					Verb:     "assign",
 					Group:    templateapi.GroupName,
@@ -234,7 +234,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			setUser(cli, test.user)
 
 			templateinstancecopy := dummytemplateinstance.DeepCopy()
-			templateinstance, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy)
+			templateinstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstancecopy)
 
 			if !test.expectCreateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
@@ -242,7 +242,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -260,30 +260,30 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			var templateinstancecopy *templateapi.TemplateInstance
 			setUser(cli, test.user)
 
-			templateinstance, err := cli.AdminInternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(dummytemplateinstance)
+			templateinstance, err := cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// ensure spec (particularly including spec.requester.username and groups) are
 			// immutable via Update()
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				templateinstancecopy.Spec.Requester.Username = edituser2.Name
 
-				_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
+				_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
 				return err
 			})
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
 
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				templateinstancecopy.Spec.Requester.Groups = append(templateinstancecopy.Spec.Requester.Groups, "foo")
 
-				_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
+				_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
 				return err
 			})
 			o.Expect(err).To(o.HaveOccurred())
@@ -291,12 +291,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 
 			// ensure status changes are ignored via Update()
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				templateinstancecopy.Status.Conditions = append(templateinstancecopy.Status.Conditions, dummycondition)
 
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
 				return err
 			})
 			if !test.hasUpdatePermission {
@@ -309,12 +309,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 
 			// ensure spec changes are ignored via UpdateStatus()
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				templateinstancecopy.Spec.Requester.Username = edituser2.Name
 
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).UpdateStatus(templateinstancecopy)
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).UpdateStatus(templateinstancecopy)
 				return err
 			})
 			if !test.hasUpdateStatusPermission {
@@ -327,12 +327,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 
 			// ensure status changes are allowed via UpdateStatus()
 			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				templateinstancecopy.Status.Conditions = []templateapi.TemplateInstanceCondition{dummycondition}
 
-				templateinstancecopy, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).UpdateStatus(templateinstancecopy)
+				templateinstancecopy, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).UpdateStatus(templateinstancecopy)
 				return err
 			})
 			if !test.hasUpdateStatusPermission {
@@ -343,7 +343,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 				o.Expect(templateinstancecopy.Status.Conditions).To(o.ContainElement(dummycondition))
 			}
 
-			err = cli.AdminInternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
@@ -354,17 +354,17 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			setUser(cli, test.user)
 
 			templateinstancecopy := dummytemplateinstance.DeepCopy()
-			templateinstance, err := cli.AdminInternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy)
+			templateinstance, err := cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstancecopy)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			if test.expectDeleteSuccess {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			} else {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsForbidden(err)).To(o.BeTrue())
 
-				err = cli.AdminInternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				err = cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}

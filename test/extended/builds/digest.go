@@ -74,7 +74,7 @@ func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
 		g.By("checking that the image digest has been saved to the build status")
 		o.Expect(br.Build.Status.Output.To).NotTo(o.BeNil())
 
-		ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("test:latest", v1.GetOptions{})
+		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("test:latest", v1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(br.Build.Status.Output.To.ImageDigest).To(o.Equal(ist.Image.Name))
 	})
