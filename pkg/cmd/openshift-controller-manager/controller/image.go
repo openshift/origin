@@ -17,12 +17,12 @@ import (
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
+	imagecontroller "github.com/openshift/openshift-controller-manager/pkg/image/controller"
+	imagesignaturecontroller "github.com/openshift/openshift-controller-manager/pkg/image/controller/signature"
+	imagetriggercontroller "github.com/openshift/openshift-controller-manager/pkg/image/controller/trigger"
 	triggerannotations "github.com/openshift/openshift-controller-manager/pkg/image/trigger/annotations"
 	triggerbuildconfigs "github.com/openshift/openshift-controller-manager/pkg/image/trigger/buildconfigs"
 	triggerdeploymentconfigs "github.com/openshift/openshift-controller-manager/pkg/image/trigger/deploymentconfigs"
-	imagecontroller "github.com/openshift/origin/pkg/image/controller"
-	imagesignaturecontroller "github.com/openshift/origin/pkg/image/controller/signature"
-	imagetriggercontroller "github.com/openshift/origin/pkg/image/controller/trigger"
 )
 
 func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
