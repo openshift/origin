@@ -22,8 +22,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	imageapi "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -292,19 +292,19 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			name := "deployment-image-resolution"
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentImageTriggersResolved(2))).NotTo(o.HaveOccurred())
 
-			is, err := oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get(name, metav1.GetOptions{})
+			is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty())
-			o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
-			o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
+			o.Expect(exutil.GetTagEvents(is.Status.Tags, "direct")).NotTo(o.BeEmpty())
+			o.Expect(exutil.GetTagEvents(is.Status.Tags, "pullthrough")).NotTo(o.BeEmpty())
 
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
 
-			imageID := is.Status.Tags["pullthrough"].Items[0].Image
+			imageID := exutil.GetTagEvents(is.Status.Tags, "pullthrough")[0].Image
 			resolvedReference := fmt.Sprintf("%s@%s", is.Status.DockerImageRepository, imageID)
-			directReference := is.Status.Tags["direct"].Items[0].DockerImageReference
+			directReference := exutil.GetTagEvents(is.Status.Tags, "direct")[0].DockerImageReference
 
 			// controller should be using pullthrough for this (pointing to local registry)
 			o.Expect(dc.Spec.Triggers[1].ImageChangeParams).NotTo(o.BeNil())
@@ -478,7 +478,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("verifying the post deployment action happened: tag is set")
 			var istag *imageapi.ImageStreamTag
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				istag, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("sample-stream:deployed", metav1.GetOptions{})
+				istag, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("sample-stream:deployed", metav1.GetOptions{})
 				if kerrors.IsNotFound(err) {
 					return false, nil
 				}

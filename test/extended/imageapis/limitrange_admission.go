@@ -5,16 +5,16 @@ import (
 	"os"
 	"strconv"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	imageapi "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -96,7 +96,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(`removing tag "second" from "another" image stream`)
-		err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("another:second", nil)
+		err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Delete("another:second", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
@@ -128,9 +128,9 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
-		is, err := oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		is.Spec.Tags["foo"] = imageapi.TagReference{
+		is.Spec.Tags = append(is.Spec.Tags, imageapi.TagReference{
 			Name: "foo",
 			From: &kapi.ObjectReference{
 				Kind: "DockerImage",
@@ -139,15 +139,15 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 			ImportPolicy: imageapi.TagImportPolicy{
 				Insecure: true,
 			},
-		}
-		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
+		})
+		_, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(quotautil.IsErrorQuotaExceeded(err)).Should(o.Equal(true))
 
 		g.By("re-tagging the image under different tag")
-		is, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
+		is, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		is.Spec.Tags["duplicate"] = imageapi.TagReference{
+		is.Spec.Tags = append(is.Spec.Tags, imageapi.TagReference{
 			Name: "duplicate",
 			From: &kapi.ObjectReference{
 				Kind: "DockerImage",
@@ -156,8 +156,8 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 			ImportPolicy: imageapi.TagImportPolicy{
 				Insecure: true,
 			},
-		}
-		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
+		})
+		_, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -214,7 +214,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 		if err != nil {
 			return nil, err
 		}
-		ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get(isName+":"+tag, metav1.GetOptions{})
+		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(isName+":"+tag, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -241,14 +241,14 @@ func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits 
 	}
 
 	g.By(fmt.Sprintf("creating limit range object %q with %s limited to: %v", limitRangeName, limitType, maxLimits))
-	lr, err := oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(lr)
+	lr, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(lr)
 	return lr, err
 }
 
 // bumpLimit changes the limit value for given resource for all the limit types of limit range object
 func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump a limit on resource %q to %s", resourceName, limit))
-	lr, err := oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
+	lr, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 	if !change {
 		return res, nil
 	}
-	_, err = oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Update(lr)
+	_, err = oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Update(lr)
 	return res, err
 }
 

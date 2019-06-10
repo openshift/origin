@@ -30,7 +30,7 @@ var _ = g.Describe("[Feature:ImageExtract] Image extract", func() {
 	oc = exutil.NewCLI("image-extract", exutil.KubeConfigPath())
 
 	g.It("should extract content from an image", func() {
-		is, err := oc.ImageClient().Image().ImageStreams("openshift").Get("php", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get("php", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
 		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]

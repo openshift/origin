@@ -18,6 +18,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -105,15 +107,17 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					g.By("confirm the correct commit level was retrieved")
 					o.Expect(out).Should(o.Not(o.ContainSubstring("gunicorn")))
 
-					istag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref:latest", metav1.GetOptions{})
+					istag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref:latest", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
-					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
+					imageutil.ImageWithMetadataOrDie(&istag.Image)
+					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
 
-					istag, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref-docker:latest", metav1.GetOptions{})
+					istag, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref-docker:latest", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
-					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
+					imageutil.ImageWithMetadataOrDie(&istag.Image)
+					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/121/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/121/head"))
 				})
 
 			})
@@ -505,7 +509,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					}
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					tag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("symlink-is:latest", metav1.GetOptions{})
+					tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("symlink-is:latest", metav1.GetOptions{})
 					err = oc.Run("run").Args("-i", "-t", "symlink-test", "--image="+tag.Image.DockerImageReference, "--restart=Never", "--command", "--", "bash", "-c", "if [ ! -L link ]; then ls -ltr; exit 1; fi").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})

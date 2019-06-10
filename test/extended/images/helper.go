@@ -26,8 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
+	"github.com/openshift/api/image/docker10"
+	imagetypedclientset "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	imagetypedclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -148,7 +149,12 @@ func GetImageLabels(c imagetypedclientset.ImageStreamImageInterface, imageRepoNa
 	if err != nil {
 		return map[string]string{}, err
 	}
-	return image.Image.DockerImageMetadata.Config.Labels, nil
+	imageutil.ImageWithMetadataOrDie(&image.Image)
+	dockerImage, ok := image.Image.DockerImageMetadata.Object.(*docker10.DockerImage)
+	if !ok {
+		return nil, fmt.Errorf("unexpected object: %v", image.Image.DockerImageMetadata.Object)
+	}
+	return dockerImage.Config.Labels, nil
 }
 
 // BuildAndPushImageOfSizeWithBuilder tries to build an image of wanted size and number of layers. Built image
@@ -771,19 +777,19 @@ func (c *CleanUpContainer) AddImageStream(isName string) {
 // Run deletes all the marked objects.
 func (c *CleanUpContainer) Run() {
 	for image := range c.imageNames {
-		err := c.OC.AsAdmin().ImageClient().Image().Images().Delete(image, nil)
+		err := c.OC.AsAdmin().ImageClient().ImageV1().Images().Delete(image, nil)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image %q failed: %v\n", image, err)
 		}
 	}
 	for isName := range c.isNames {
-		err := c.OC.AsAdmin().ImageClient().Image().ImageStreams(c.OC.Namespace()).Delete(isName, nil)
+		err := c.OC.AsAdmin().ImageClient().ImageV1().ImageStreams(c.OC.Namespace()).Delete(isName, nil)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image stream %q failed: %v\n", isName, err)
 		}
 	}
 	for isTag := range c.isTags {
-		err := c.OC.ImageClient().Image().ImageStreamTags(c.OC.Namespace()).Delete(isTag, nil)
+		err := c.OC.ImageClient().ImageV1().ImageStreamTags(c.OC.Namespace()).Delete(isTag, nil)
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "clean up of image stream tag %q failed: %v\n", isTag, err)
 		}

@@ -9,16 +9,16 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapi "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	templatev1 "github.com/openshift/api/template/v1"
 
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	templateapi "github.com/openshift/api/template/v1"
+	userapi "github.com/openshift/api/user/v1"
 	"github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 	osbclient "github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 )
@@ -26,7 +26,7 @@ import (
 func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	name = cli.Namespace() + "-" + name
 
-	user, err := cli.AdminUserClient().User().Users().Create(&userapi.User{
+	user, err := cli.AdminUserClient().UserV1().Users().Create(&userapi.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -34,7 +34,7 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if role != "" {
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-%s-binding", name, role),
 			},
@@ -43,7 +43,7 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 			},
 			Subjects: []kapi.ObjectReference{
 				{
-					Kind: authorizationapi.UserKind,
+					Kind: "User",
 					Name: name,
 				},
 			},
@@ -57,7 +57,7 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
 	name = cli.Namespace() + "-" + name
 
-	group, err := cli.AdminUserClient().User().Groups().Create(&userapi.Group{
+	group, err := cli.AdminUserClient().UserV1().Groups().Create(&userapi.Group{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -65,7 +65,7 @@ func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if role != "" {
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-%s-binding", name, role),
 			},
@@ -74,7 +74,7 @@ func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
 			},
 			Subjects: []kapi.ObjectReference{
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: "Group",
 					Name: name,
 				},
 			},
@@ -86,23 +86,23 @@ func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
 }
 
 func addUserToGroup(cli *exutil.CLI, username, groupname string) {
-	group, err := cli.AdminUserClient().User().Groups().Get(groupname, metav1.GetOptions{})
+	group, err := cli.AdminUserClient().UserV1().Groups().Get(groupname, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if group != nil {
 		group.Users = append(group.Users, username)
-		_, err = cli.AdminUserClient().User().Groups().Update(group)
+		_, err = cli.AdminUserClient().UserV1().Groups().Update(group)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 }
 
 func deleteGroup(cli *exutil.CLI, group *userapi.Group) {
-	err := cli.AdminUserClient().User().Groups().Delete(group.Name, nil)
+	err := cli.AdminUserClient().UserV1().Groups().Delete(group.Name, nil)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func deleteUser(cli *exutil.CLI, user *userapi.User) {
-	err := cli.AdminUserClient().User().Users().Delete(user.Name, nil)
+	err := cli.AdminUserClient().UserV1().Users().Delete(user.Name, nil)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
@@ -129,7 +129,7 @@ func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
 				InsecureSkipVerify: true,
 			},
 		},
-	}, "https://"+svc.Spec.ClusterIP+templateapi.ServiceBrokerRoot), nil
+	}, "https://"+svc.Spec.ClusterIP+"/brokers/template.openshift.io"), nil
 }
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateInstance) error {

@@ -32,27 +32,26 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	projectapi "github.com/openshift/api/project/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
+	authorizationclientset "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	imageclientset "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	securityclientset "github.com/openshift/client-go/security/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	userclientset "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
-	_ "github.com/openshift/origin/pkg/api/install"
-	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	securityclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
+
 	testutil "github.com/openshift/origin/test/util"
+
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
@@ -190,7 +189,7 @@ func (c *CLI) SetupProject() {
 	e2e.Logf("The user is now %q", c.Username())
 
 	e2e.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -270,7 +269,7 @@ func (c *CLI) SetupProject() {
 func (c *CLI) CreateProject() string {
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	e2e.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -354,8 +353,8 @@ func (c *CLI) ImageClient() imageclientset.Interface {
 	return client
 }
 
-func (c *CLI) ProjectClient() projectclientset.Interface {
-	client, err := projectclientset.NewForConfig(c.UserConfig())
+func (c *CLI) ProjectClient() projectv1client.Interface {
+	client, err := projectv1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -364,16 +363,6 @@ func (c *CLI) ProjectClient() projectclientset.Interface {
 
 func (c *CLI) RouteClient() routeclientset.Interface {
 	client, err := routeclientset.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-// Client provides an OpenShift client for the current user. If the user is not
-// set, then it provides client for the cluster admin user
-func (c *CLI) InternalTemplateClient() templateclientset.Interface {
-	client, err := templateclientset.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -446,17 +435,8 @@ func (c *CLI) AdminOperatorClient() operatorv1client.Interface {
 	return client
 }
 
-// DEPRECATED: use external
-func (c *CLI) AdminInternalImageClient() imageclientset.Interface {
-	client, err := imageclientset.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) AdminProjectClient() projectclientset.Interface {
-	client, err := projectclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminProjectClient() projectv1client.Interface {
+	client, err := projectv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -465,15 +445,6 @@ func (c *CLI) AdminProjectClient() projectclientset.Interface {
 
 func (c *CLI) AdminRouteClient() routeclientset.Interface {
 	client, err := routeclientset.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-// AdminClient provides an OpenShift client for the cluster admin user.
-func (c *CLI) AdminInternalTemplateClient() templateclientset.Interface {
-	client, err := templateclientset.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -509,19 +480,9 @@ func (c *CLI) KubeClient() kclientset.Interface {
 	return kclientset.NewForConfigOrDie(c.UserConfig())
 }
 
-// KubeClient provides a Kubernetes client for the current namespace
-func (c *CLI) InternalKubeClient() kinternalclientset.Interface {
-	return kinternalclientset.NewForConfigOrDie(c.UserConfig())
-}
-
 // AdminKubeClient provides a Kubernetes client for the cluster admin user.
 func (c *CLI) AdminKubeClient() kclientset.Interface {
 	return kclientset.NewForConfigOrDie(c.AdminConfig())
-}
-
-// AdminKubeClient provides a Kubernetes client for the cluster admin user.
-func (c *CLI) InternalAdminKubeClient() kinternalclientset.Interface {
-	return kinternalclientset.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) UserConfig() *restclient.Config {

@@ -13,17 +13,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	routeapi "github.com/openshift/api/route/v1"
 	templatev1 "github.com/openshift/api/template/v1"
-
+	userapi "github.com/openshift/api/user/v1"
 	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -55,7 +55,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				Name:      "rolebinding",
 				Namespace: "${NAMESPACE}",
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: "admin",
 			},
 		}
@@ -83,7 +83,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 			err := wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
 				for _, user := range []*userapi.User{adminuser, edituser, editbygroupuser} {
 					cli.ChangeUser(user.Name)
-					sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
+					sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
 						Action: authorizationapi.Action{
 							Verb:     "get",
 							Resource: "pods",
@@ -103,7 +103,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
-				templateinstances, err := cli.AdminInternalTemplateClient().Template().TemplateInstances(cli.Namespace()).List(metav1.ListOptions{})
+				templateinstances, err := cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).List(metav1.ListOptions{})
 				if err == nil {
 					fmt.Fprintf(g.GinkgoWriter, "TemplateInstances: %#v", templateinstances.Items)
 				}
@@ -132,7 +132,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceReady,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err == nil
 					},
 				},
@@ -143,7 +143,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceReady,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err == nil
 					},
 				},
@@ -154,7 +154,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -165,7 +165,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -176,7 +176,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyrolebinding},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						_, err := cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -187,7 +187,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyrolebinding},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						_, err := cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -198,7 +198,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyrolebinding},
 					expectCondition: templatev1.TemplateInstanceReady,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						_, err := cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 						return err == nil
 					},
 				},
@@ -255,9 +255,17 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					},
 				}
 
+				testScheme := runtime.NewScheme()
+				utilruntime.Must(routeapi.Install(testScheme))
+				utilruntime.Must(authorizationapi.Install(testScheme))
+				utilruntime.Must(storage.AddToScheme(testScheme))
+
+				testCodecFactory := serializer.NewCodecFactory(testScheme)
+				testCodec := testCodecFactory.LegacyCodec(routeapi.GroupVersion, authorizationapi.SchemeGroupVersion, storage.SchemeGroupVersion)
+
 				for i := range test.objects {
 					templateinstance.Spec.Template.Objects = append(templateinstance.Spec.Template.Objects, runtime.RawExtension{
-						Raw: []byte(runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...), test.objects[i])),
+						Raw: []byte(runtime.EncodeOrDie(testCodec, test.objects[i])),
 					})
 				}
 
@@ -277,12 +285,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				o.Expect(test.checkOK(test.namespace)).To(o.BeTrue())
 
 				foreground := metav1.DeletePropagationForeground
-				err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
+				err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// wait for garbage collector to do its thing
 				err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-					_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+					_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 					if kerrors.IsNotFound(err) {
 						return true, nil
 					}
