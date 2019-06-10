@@ -67,6 +67,61 @@ func TestParseImageStreamTagName(t *testing.T) {
 	}
 }
 
+func TestParseImageStreamImageName(t *testing.T) {
+	tests := map[string]struct {
+		input        string
+		expectedRepo string
+		expectedId   string
+		expectError  bool
+	}{
+		"empty string": {
+			input:       "",
+			expectError: true,
+		},
+		"one part": {
+			input:       "a",
+			expectError: true,
+		},
+		"more than 2 parts": {
+			input:       "a@b@c",
+			expectError: true,
+		},
+		"empty name part": {
+			input:       "@id",
+			expectError: true,
+		},
+		"empty id part": {
+			input:       "name@",
+			expectError: true,
+		},
+		"valid input": {
+			input:        "repo@id",
+			expectedRepo: "repo",
+			expectedId:   "id",
+			expectError:  false,
+		},
+	}
+
+	for name, test := range tests {
+		repo, id, err := ParseImageStreamImageName(test.input)
+		didError := err != nil
+		if e, a := test.expectError, didError; e != a {
+			t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+			continue
+		}
+		if test.expectError {
+			continue
+		}
+		if e, a := test.expectedRepo, repo; e != a {
+			t.Errorf("%s: repo: expected %q, got %q", name, e, a)
+			continue
+		}
+		if e, a := test.expectedId, id; e != a {
+			t.Errorf("%s: id: expected %q, got %q", name, e, a)
+			continue
+		}
+	}
+}
 func TestPrioritizeTags(t *testing.T) {
 	tests := []struct {
 		tags     []string
