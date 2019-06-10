@@ -361,3 +361,19 @@ func DigestOrImageMatch(image, imageID string) bool {
 	}
 	return strings.HasPrefix(image, imageID)
 }
+
+// ParseDockerImageReference parses a Docker pull spec string into a
+// DockerImageReference.
+func ParseDockerImageReference(spec string) (imagev1.DockerImageReference, error) {
+	ref, err := imagereference.Parse(spec)
+	if err != nil {
+		return imagev1.DockerImageReference{}, err
+	}
+	return imagev1.DockerImageReference{
+		Registry:  ref.Registry,
+		Namespace: ref.Namespace,
+		Name:      ref.Name,
+		Tag:       ref.Tag,
+		ID:        ref.ID,
+	}, nil
+}
