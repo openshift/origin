@@ -1,18 +1,26 @@
 package appsutil
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/watch"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
@@ -22,6 +30,51 @@ import (
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment string) string {
 	return naming.GetPodName(deployment, "deploy")
+}
+
+// WaitForRunningDeployerPod waits a given period of time until the deployer pod
+// for given replication controller is not running.
+func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *corev1.ReplicationController, timeout time.Duration) error {
+	podName := DeployerPodNameForDeployment(rc.Name)
+	canGetLogs := func(p *corev1.Pod) bool {
+		return corev1.PodSucceeded == p.Status.Phase || corev1.PodFailed == p.Status.Phase || corev1.PodRunning == p.Status.Phase
+	}
+
+	fieldSelector := fields.OneTermEqualSelector("metadata.name", podName).String()
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = fieldSelector
+			return podClient.Pods(rc.Namespace).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = fieldSelector
+			return podClient.Pods(rc.Namespace).Watch(options)
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	_, err := watchtools.UntilWithSync(ctx, lw, &corev1.Pod{}, nil, func(e watch.Event) (bool, error) {
+		switch e.Type {
+		case watch.Added, watch.Modified:
+			newPod, ok := e.Object.(*corev1.Pod)
+			if !ok {
+				return true, fmt.Errorf("unknown event object %#v", e.Object)
+			}
+
+			return canGetLogs(newPod), nil
+
+		case watch.Deleted:
+			return true, fmt.Errorf("pod got deleted %#v", e.Object)
+
+		case watch.Error:
+			return true, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
+
+		default:
+			return true, fmt.Errorf("unexpected event type: %T", e.Type)
+		}
+	})
+	return err
 }
 
 func newControllerRef(config *appsv1.DeploymentConfig) *metav1.OwnerReference {

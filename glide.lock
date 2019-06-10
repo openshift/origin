@@ -1,5 +1,5 @@
 hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
-updated: 2019-06-09T14:11:20.623198212-04:00
+updated: 2019-06-10T08:54:54.407024316-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 03147f3df0d317e6294355115993291659808735
+  version: 45f5fc965849b1cc08fde2949d217cdfa74e0805
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -1114,6 +1114,7 @@ imports:
   - pkg/authentication/bootstrapauthenticator
   - pkg/authorization/authorizationutil
   - pkg/authorization/scopemetadata
+  - pkg/build/buildutil
   - pkg/build/envresolve
   - pkg/build/naming
   - pkg/certs
@@ -1200,7 +1201,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 315df81dafd49982fa95a2b78fbd30603036c681
+  version: 1ebaf171af8344a61df80be0a400aeca3f3b4a9c
   subpackages:
   - pkg/cli/admin/cert
   - pkg/cli/admin/createerrortemplate
@@ -1217,6 +1218,7 @@ imports:
   - pkg/cli/admin/node
   - pkg/cli/admin/prune/builds
   - pkg/cli/admin/prune/deployments
+  - pkg/cli/admin/release
   - pkg/cli/admin/upgrade
   - pkg/cli/create
   - pkg/cli/create/route
@@ -1230,14 +1232,26 @@ imports:
   - pkg/cli/experimental/dockergc
   - pkg/cli/expose
   - pkg/cli/extract
+  - pkg/cli/idle
+  - pkg/cli/image/append
+  - pkg/cli/image/archive
+  - pkg/cli/image/extract
+  - pkg/cli/image/info
+  - pkg/cli/image/manifest
+  - pkg/cli/image/manifest/dockercredentials
+  - pkg/cli/image/mirror
+  - pkg/cli/image/workqueue
   - pkg/cli/kubectlwrappers
   - pkg/cli/logout
   - pkg/cli/logs
   - pkg/cli/observe
   - pkg/cli/options
   - pkg/cli/recycle
+  - pkg/cli/registry/info
+  - pkg/cli/registry/login
   - pkg/cli/rollback
   - pkg/cli/rsh
+  - pkg/cli/rsync/fsnotification
   - pkg/cli/secrets
   - pkg/cli/serviceaccounts
   - pkg/cli/version
@@ -1245,6 +1259,7 @@ imports:
   - pkg/helpers/apps/test
   - pkg/helpers/authorization
   - pkg/helpers/build
+  - pkg/helpers/build/client/v1
   - pkg/helpers/bulk
   - pkg/helpers/clientcmd
   - pkg/helpers/cmd
@@ -1301,7 +1316,7 @@ imports:
   - pkg/quota/quotautil
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: d9240da9b35cfb2a8689286c22a25c61fcb106c0
+  version: b61940a433dc0dfb70d23061b4acec196a5107a4
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1309,6 +1324,16 @@ imports:
   - pkg/apps/metrics/prometheus
   - pkg/authorization/defaultrolebindings
   - pkg/build/buildscheme
+  - pkg/build/buildutil
+  - pkg/build/controller/build/defaults
+  - pkg/build/controller/build/overrides
+  - pkg/build/controller/buildconfig
+  - pkg/build/controller/common
+  - pkg/build/controller/common/internal/expansion
+  - pkg/build/controller/common/testutil
+  - pkg/build/controller/policy
+  - pkg/build/controller/strategy
+  - pkg/build/metrics/prometheus
   - pkg/client/genericinformers
   - pkg/cmd/imageformat
   - pkg/image/metrics/prometheus
@@ -1324,6 +1349,7 @@ imports:
   - pkg/security/mcs
   - pkg/security/uidallocator
   - pkg/serviceaccounts/controllers
+  - pkg/template/controller
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/source-to-image
@@ -2402,7 +2428,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 992c5f7caa1f1af2358f97a492286619b2a6d06a
+  version: 80cacafcdb41a20378add94b917d43faf91b00a2
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
