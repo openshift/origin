@@ -42,9 +42,9 @@ import (
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 
+	openshiftcontrollermanager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/api/legacy"
 	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
-	openshiftcontrollermanager "github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	openshiftkubeapiserver "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
