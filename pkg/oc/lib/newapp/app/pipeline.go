@@ -27,13 +27,14 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 func init() {
@@ -438,13 +439,13 @@ func AddRoutes(objects Objects) Objects {
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *kapi.Service:
-			routes = append(routes, &routeapi.Route{
+			routes = append(routes, &routev1.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   t.Name,
 					Labels: t.Labels,
 				},
-				Spec: routeapi.RouteSpec{
-					To: routeapi.RouteTargetReference{
+				Spec: routev1.RouteSpec{
+					To: routev1.RouteTargetReference{
 						Name: t.Name,
 					},
 				},
