@@ -19,8 +19,8 @@ import (
 	stratsupport "github.com/openshift/oc/pkg/cli/deployer/strategy/support"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagetest "github.com/openshift/origin/pkg/image/apiserver/testutil"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

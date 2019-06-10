@@ -19,8 +19,8 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagetest "github.com/openshift/origin/pkg/image/apiserver/testutil"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
