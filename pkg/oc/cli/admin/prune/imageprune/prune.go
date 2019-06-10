@@ -40,8 +40,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/image/util"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
@@ -358,7 +356,7 @@ func (p *pruner) addImagesToGraph(images *imagev1.ImageList) []error {
 		klog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(p.g, image)
 
-		if err := ocimageutil.ImageWithMetadata(image); err != nil {
+		if err := imageutil.ImageWithMetadata(image); err != nil {
 			klog.V(1).Infof("Failed to read image metadata for image %s: %v", image.Name, err)
 			errs = append(errs, err)
 			continue
@@ -493,7 +491,7 @@ func exceedsLimits(is *imagev1.ImageStream, image *imagev1.Image, limits map[str
 		return false
 	}
 
-	if err := ocimageutil.ImageWithMetadata(image); err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
 		return false
 	}
 	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
@@ -749,7 +747,7 @@ func (p *pruner) addBuildsToGraph(builds *buildv1.BuildList) []error {
 // resolveISTagName parses  and tries to find it in the graph. If the parsing fails,
 // an error is returned. If the istag cannot be found, nil is returned.
 func (p *pruner) resolveISTagName(g genericgraph.Graph, referrer *corev1.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
-	name, tag, err := util.ParseImageStreamTagName(istagName)
+	name, tag, err := imageutil.ParseImageStreamTagName(istagName)
 	if err != nil {
 		if p.ignoreInvalidRefs {
 			klog.Warningf("Failed to parse ImageStreamTag name %q: %v", istagName, err)
@@ -799,8 +797,7 @@ func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *corev1.ObjectR
 		imageID = ref.ID
 
 	case "ImageStreamImage":
-		// TODO(juanvallejo): add remaining imageapi helpers to library-go
-		_, id, err := util.ParseImageStreamImageName(from.Name)
+		_, id, err := imageutil.ParseImageStreamImageName(from.Name)
 		if err != nil {
 			klog.Warningf("Failed to parse ImageStreamImage name %q of %s: %v", from.Name, getKindName(referrer), err)
 			if !p.ignoreInvalidRefs {
@@ -1109,7 +1106,7 @@ func pruneISTagHistory(
 	imageStream *imagev1.ImageStream,
 	tag string,
 ) (tagUpdated, tagDeleted bool) {
-	history, _ := ocimageutil.StatusHasTag(imageStream, tag)
+	history, _ := imageutil.StatusHasTag(imageStream, tag)
 	newHistory := imagev1.NamedTagEventList{Tag: tag}
 
 	for _, tagEvent := range history.Items {

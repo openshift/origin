@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openshift/origin/pkg/image/internalimageutil"
-	"github.com/openshift/origin/pkg/image/util"
 
 	"k8s.io/klog"
 
@@ -76,7 +75,7 @@ func (s *REST) NamespaceScoped() bool {
 // nameAndTag splits a string into its name component and tag component, and returns an error
 // if the string is not in the right form.
 func nameAndTag(id string) (name string, tag string, err error) {
-	name, tag, err = util.ParseImageStreamTagName(id)
+	name, tag, err = imageutil.ParseImageStreamTagName(id)
 	if err != nil {
 		err = kapierrors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 	}

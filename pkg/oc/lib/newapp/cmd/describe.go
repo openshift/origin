@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +16,6 @@ import (
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	oapi "github.com/openshift/origin/pkg/api"
-	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"

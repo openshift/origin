@@ -27,7 +27,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
 	"github.com/openshift/openshift-controller-manager/pkg/image/trigger"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -85,7 +84,7 @@ func (r tagRetriever) ImageStreamTag(namespace, name string) (ref string, rv int
 	if err != nil {
 		return "", 0, false
 	}
-	ref, ok = imageutilinternal.ResolveLatestTaggedImage(is, tag)
+	ref, ok = imageutil.ResolveLatestTaggedImage(is, tag)
 	return ref, rv, ok
 }
 

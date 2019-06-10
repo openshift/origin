@@ -3,8 +3,6 @@ package image
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/image/util"
-
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -19,6 +17,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagev1conversions "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
@@ -94,7 +93,7 @@ func (i *imageStreamTagEvaluator) Usage(item runtime.Object) (corev1.ResourceLis
 		imagev1.ResourceImageStreams: *resource.NewQuantity(0, resource.BinarySI),
 	}
 
-	isName, _, err := util.ParseImageStreamTagName(ist.Name)
+	isName, _, err := imageutil.ParseImageStreamTagName(ist.Name)
 	if err != nil {
 		return corev1.ResourceList{}, err
 	}

@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/containers/image/docker"
-	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type containerImageSignatureDownloader struct {
@@ -58,7 +57,7 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 
 	ret := []imagev1.ImageSignature{}
 	for _, blob := range signatures {
-		sig := imagev1.ImageSignature{Type: imageapi.ImageSignatureTypeAtomicImageV1}
+		sig := imagev1.ImageSignature{Type: imagev1.ImageSignatureTypeAtomicImageV1}
 		// This will use the name of the image (sha256:xxxx) and the SHA256 of the
 		// signature itself as the signature name has to be unique for each
 		// signature.

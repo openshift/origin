@@ -16,6 +16,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -258,7 +259,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 			ref.Registry = "Docker Hub"
 		}
 
-		if err := ocimageutil.ImageWithMetadata(image.Image); err != nil {
+		if err := imageutil.ImageWithMetadata(image.Image); err != nil {
 			errs = append(errs, err)
 			continue
 		}

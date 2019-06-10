@@ -23,9 +23,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	v1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/operator/resource/retry"
 
-	"github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/cli/rsync"
 )
 
@@ -130,7 +130,7 @@ func (o *MustGatherOptions) resolveMustGatherImage() (string, error) {
 	}
 	var image string
 	var ok bool
-	if image, ok = util.ResolveLatestTaggedImage(imageStream, "latest"); !ok {
+	if image, ok = imageutil.ResolveLatestTaggedImage(imageStream, "latest"); !ok {
 		return "", fmt.Errorf("unable to resolve the openshift imagestream tag must-gather:latest")
 	}
 	return image, nil

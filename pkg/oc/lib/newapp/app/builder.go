@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
-
 	"k8s.io/apimachinery/pkg/util/errors"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 var s2iEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILDER"}

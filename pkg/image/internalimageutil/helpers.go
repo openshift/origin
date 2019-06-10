@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerapi10 "github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // InternalImageWithMetadata mutates the given image. It parses raw DockerImageManifest data stored in the image and
@@ -448,7 +447,7 @@ func ResolveImageID(stream *imageapi.ImageStream, imageID string) (*imageapi.Tag
 	for _, history := range stream.Status.Tags {
 		for i := range history.Items {
 			tagging := &history.Items[i]
-			if util.DigestOrImageMatch(tagging.Image, imageID) {
+			if imageutil.DigestOrImageMatch(tagging.Image, imageID) {
 				event = tagging
 				set.Insert(tagging.Image)
 			}
