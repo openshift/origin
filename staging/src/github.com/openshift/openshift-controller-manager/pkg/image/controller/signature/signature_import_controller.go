@@ -32,7 +32,7 @@ type SignatureImportController struct {
 	queue workqueue.RateLimitingInterface
 
 	// signatureImportLimit limits amount of signatures we will import.
-	// By default this is set to 3 signatures.
+	// By default this is set to 10 signatures.
 	signatureImportLimit int
 
 	fetcher SignatureDownloader
