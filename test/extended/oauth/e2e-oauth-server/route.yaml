@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: e2e-oauth
+  name: e2e-oauth
+  namespace: e2e-oauth
+spec:
+  port:
+    targetPort: 6443
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: passthrough
+  to:
+    kind: Service
+    name: e2e-oauth
+    weight: 100
+  wildcardPolicy: None

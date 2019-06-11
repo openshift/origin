@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: e2e-oauth
+  annotations:
+    openshift.io/node-selector: ""
+  labels:
+    openshift.io/cluster-monitoring: "true"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  labels:
+    app: e2e-oauth
+  name: e2e-oauth
+  namespace: e2e-oauth
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app: e2e-oauth
+  sessionAffinity: None
+  type: ClusterIP
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: e2e-oauth
+  name: e2e-oauth
+  labels:
+    app: e2e-oauth
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:e2e:authentication
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin  # TODO fix, this is madness
+subjects:
+- kind: ServiceAccount
+  namespace: e2e-oauth
+  name: e2e-oauth
+

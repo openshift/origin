@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: e2e-oauth
+  annotations:
+    openshift.io/scc: anyuid
+  name: e2e-oauth
+  namespace: e2e-oauth
+spec:
+  containers:
+  - command:
+    - hypershift
+    - openshift-osinserver
+    - --config=/var/config/system/configmaps/e2e-oauth-cliconfig/e2e-cliconfig
+    - --v=100
+    image: registry.svc.ci.openshift.org/ocp/4.2-2019-06-10-121736@sha256:38e800312afa329a9c794b32133dead59ecf15e298c926f4dea19a1db3d18fb3
+    imagePullPolicy: IfNotPresent
+    name: e2e-oauth-1
+    ports:
+    - containerPort: 6443
+      name: https
+      protocol: TCP
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+    securityContext:
+      capabilities:
+        drop:
+        - MKNOD
+      procMount: Default
+    volumeMounts:
+    - mountPath: /var/config/system/secrets/session
+      name: session
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/e2e-oauth-cliconfig
+      name: e2e-oauth-cliconfig
+      readOnly: true
+    - mountPath: /var/config/system/secrets/serving-cert
+      name: serving-cert
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/service-ca
+      name: service-ca
+      readOnly: true
+  serviceAccount: e2e-oauth
+  serviceAccountName: e2e-oauth
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: e2e-cliconfig
+        path: e2e-cliconfig
+      name: e2e-oauth-cliconfig
+    name: e2e-oauth-cliconfig
+  - name: session
+    secret:
+      defaultMode: 420
+      items:
+      - key: session
+        path: session
+      secretName: session
+  - name: serving-cert
+    secret:
+      defaultMode: 420
+      items:
+      - key: tls.crt
+        path: tls.crt
+      - key: tls.key
+        path: tls.key
+      secretName: serving-cert
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: service-ca.crt
+        path: service-ca.crt
+      name: service-ca
+    name: service-ca
