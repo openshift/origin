@@ -29,15 +29,12 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const openshiftCNIFile string = "80-openshift-network.conf"
-
 // OpenShiftSDN stores the variables needed to initialize the real networking
 // processess from the command line.
 type OpenShiftSDN struct {
 	ConfigFilePath            string
 	KubeConfigFilePath        string
 	URLOnlyKubeConfigFilePath string
-	cniConfFile               string
 
 	NodeConfig  *legacyconfigv1.NodeConfig
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
@@ -99,11 +96,6 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 				os.Exit(255)
 			}
 		}
-		klog.Fatal(err)
-	}
-
-	// Exit early if we can't create the CNI config file directory
-	if err := os.MkdirAll(filepath.Base(sdn.cniConfFile), 0755); err != nil {
 		klog.Fatal(err)
 	}
 
@@ -173,12 +165,6 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 		klog.V(4).Infof("Unable to build proxy config: %v", err)
 		return err
 	}
-
-	cniConfDir := "/etc/cni/net.d"
-	if val, ok := sdn.NodeConfig.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
-		cniConfDir = val[0]
-	}
-	sdn.cniConfFile = filepath.Join(cniConfDir, openshiftCNIFile)
 
 	return nil
 }

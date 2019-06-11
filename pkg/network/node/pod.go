@@ -23,11 +23,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	kubehostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
-	utilexec "k8s.io/utils/exec"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -47,9 +43,8 @@ type podHandler interface {
 }
 
 type runningPod struct {
-	podPortMapping *kubehostport.PodPortMapping
-	vnid           uint32
-	ofport         int
+	vnid   uint32
+	ofport int
 }
 
 type podManager struct {
@@ -58,39 +53,29 @@ type podManager struct {
 	cniServer  *cniserver.CNIServer
 	// Request queue for pod operations incoming from the CNIServer
 	requests chan (*cniserver.PodRequest)
-	// Tracks pod :: IP address for hostport and multicast handling
+	// Tracks pod info for updates
 	runningPods     map[string]*runningPod
 	runningPodsLock sync.Mutex
 
 	// Live pod setup/teardown stuff not used in testing code
-	kClient    kubernetes.Interface
-	policy     osdnPolicy
-	mtu        uint32
-	cniBinPath string
-	ovs        *ovsController
-
-	enableHostports bool
-	// true if hostports have been synced at least once
-	hostportsSynced bool
-	// true if at least one running pod has a hostport mapping
-	activeHostports bool
+	kClient kubernetes.Interface
+	policy  osdnPolicy
+	mtu     uint32
+	ovs     *ovsController
 
 	// Things only accessed through the processCNIRequests() goroutine
 	// and thus can be set from Start()
-	ipamConfig     []byte
-	hostportSyncer kubehostport.HostportSyncer
+	ipamConfig []byte
 }
 
 // Creates a new live podManager; used by node code0
-func newPodManager(kClient kubernetes.Interface, policy osdnPolicy, mtu uint32, cniBinPath string, ovs *ovsController, enableHostports bool) *podManager {
+func newPodManager(kClient kubernetes.Interface, policy osdnPolicy, mtu uint32, ovs *ovsController) *podManager {
 	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
-	pm.cniBinPath = cniBinPath
 	pm.podHandler = pm
 	pm.ovs = ovs
-	pm.enableHostports = enableHostports
 	return pm
 }
 
@@ -163,15 +148,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string, clearHostPorts bool) error {
-	if m.enableHostports {
-		iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
-		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
-		if clearHostPorts {
-			_ = m.hostportSyncer.SyncHostports(Tun0, nil)
-		}
-	}
-
+func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork, serviceNetworkCIDR string) error {
 	var err error
 	if m.ipamConfig, err = getIPAMConfig(clusterNetworks, localSubnetCIDR); err != nil {
 		return err
@@ -188,50 +165,8 @@ func getPodKey(request *cniserver.PodRequest) string {
 	return fmt.Sprintf("%s/%s", request.PodNamespace, request.PodName)
 }
 
-func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPortMapping {
-	if pod := m.runningPods[getPodKey(request)]; pod != nil {
-		return pod.podPortMapping
-	}
-	return nil
-}
-
-func hasHostPorts(pod *kubehostport.PodPortMapping) bool {
-	for _, mapping := range pod.PortMappings {
-		if mapping.HostPort != 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// Return a list of Kubernetes RunningPod objects for hostport operations
-func (m *podManager) shouldSyncHostports(newPod *kubehostport.PodPortMapping) []*kubehostport.PodPortMapping {
-	if m.hostportSyncer == nil {
-		return nil
-	}
-
-	newActiveHostports := false
-	mappings := make([]*kubehostport.PodPortMapping, 0)
-	for _, runningPod := range m.runningPods {
-		mappings = append(mappings, runningPod.podPortMapping)
-		if !newActiveHostports && hasHostPorts(runningPod.podPortMapping) {
-			newActiveHostports = true
-		}
-	}
-	if newPod != nil && hasHostPorts(newPod) {
-		newActiveHostports = true
-	}
-
-	// Sync the first time a pod is started (to clear out stale mappings
-	// if kubelet crashed), or when there are any/will be active hostports.
-	// Otherwise don't bother.
-	if !m.hostportsSynced || m.activeHostports || newActiveHostports {
-		m.hostportsSynced = true
-		m.activeHostports = newActiveHostports
-		return mappings
-	}
-
-	return nil
+func (m *podManager) getPod(request *cniserver.PodRequest) *runningPod {
+	return m.runningPods[getPodKey(request)]
 }
 
 // Add a request to the podManager CNI request queue
@@ -406,13 +341,13 @@ func maybeAddMacvlan(pod *corev1.Pod, netns string) error {
 	return nil
 }
 
-func createIPAMArgs(netnsPath, cniBinPath string, action cniserver.CNICommand, id string) *invoke.Args {
+func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *invoke.Args {
 	return &invoke.Args{
 		Command:     string(action),
 		ContainerID: id,
 		NetNS:       netnsPath,
 		IfName:      podInterfaceName,
-		Path:        cniBinPath,
+		Path:        cniBinDir,
 	}
 }
 
@@ -422,8 +357,8 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*current.Result, net.
 		return nil, nil, fmt.Errorf("netns required for CNI_ADD")
 	}
 
-	args := createIPAMArgs(netnsPath, m.cniBinPath, cniserver.CNI_ADD, id)
-	r, err := invoke.ExecPluginWithResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
+	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
+	r, err := invoke.ExecPluginWithResult(cniBinDir+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
@@ -442,8 +377,8 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*current.Result, net.
 
 // Run CNI IPAM release for the container
 func (m *podManager) ipamDel(id string) error {
-	args := createIPAMArgs("", m.cniBinPath, cniserver.CNI_DEL, id)
-	err := invoke.ExecPluginWithoutResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
+	args := createIPAMArgs("", cniserver.CNI_DEL, id)
+	err := invoke.ExecPluginWithoutResult(cniBinDir+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
 	}
@@ -495,16 +430,11 @@ func podIsExited(p *kcontainer.Pod) bool {
 func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *runningPod, error) {
 	defer PodOperationsLatency.WithLabelValues(PodOperationSetup).Observe(sinceInMicroseconds(time.Now()))
 
-	// Release any IPAM allocations and hostports if the setup failed
+	// Release any IPAM allocations if the setup failed
 	var success bool
 	defer func() {
 		if !success {
 			m.ipamDel(req.SandboxID)
-			if mappings := m.shouldSyncHostports(nil); mappings != nil {
-				if err := m.hostportSyncer.SyncHostports(Tun0, mappings); err != nil {
-					klog.Warningf("failed syncing hostports: %v", err)
-				}
-			}
 		}
 	}()
 
@@ -525,14 +455,6 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		}
 	}
 
-	// Open any hostports the pod wants
-	podPortMapping := constructPodPortMapping(v1Pod, podIP)
-	if mappings := m.shouldSyncHostports(podPortMapping); mappings != nil {
-		if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, mappings); err != nil {
-			return nil, nil, err
-		}
-	}
-
 	vnid, err := m.policy.GetVNID(req.PodNamespace)
 	if err != nil {
 		return nil, nil, err
@@ -548,7 +470,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 
 	m.policy.EnsureVNIDRules(vnid)
 	success = true
-	return ipamResult, &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: ofport}, nil
+	return ipamResult, &runningPod{vnid: vnid, ofport: ofport}, nil
 }
 
 // Update OVS flows when something (like the pod's namespace VNID) changes
@@ -578,36 +500,5 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		errList = append(errList, err)
 	}
 
-	if mappings := m.shouldSyncHostports(nil); mappings != nil {
-		if err := m.hostportSyncer.SyncHostports(Tun0, mappings); err != nil {
-			errList = append(errList, err)
-		}
-	}
-
 	return kerrors.NewAggregate(errList)
-}
-
-// constructPodPortMapping creates a PodPortMapping from the ports specified in the pod's
-// containers.
-func constructPodPortMapping(pod *corev1.Pod, podIP net.IP) *kubehostport.PodPortMapping {
-	portMappings := make([]*kubehostport.PortMapping, 0)
-	for _, c := range pod.Spec.Containers {
-		for _, port := range c.Ports {
-			portMappings = append(portMappings, &kubehostport.PortMapping{
-				Name:          port.Name,
-				HostPort:      port.HostPort,
-				ContainerPort: port.ContainerPort,
-				Protocol:      port.Protocol,
-				HostIP:        port.HostIP,
-			})
-		}
-	}
-
-	return &kubehostport.PodPortMapping{
-		Namespace:    pod.Namespace,
-		Name:         pod.Name,
-		PortMappings: portMappings,
-		HostNetwork:  pod.Spec.HostNetwork,
-		IP:           podIP,
-	}
 }

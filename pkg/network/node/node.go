@@ -43,6 +43,7 @@ import (
 )
 
 const hostLocalDataDir = "/var/lib/cni/networks"
+const cniBinDir = "/opt/cni/bin"
 
 type osdnPolicy interface {
 	Name() string
@@ -62,13 +63,10 @@ type osdnPolicy interface {
 }
 
 type OsdnNodeConfig struct {
-	PluginName      string
-	Hostname        string
-	SelfIP          string
-	RuntimeEndpoint string
-	MTU             uint32
-	EnableHostports bool
-	CNIBinDir       string
+	PluginName string
+	Hostname   string
+	SelfIP     string
+	MTU        uint32
 
 	NetworkClient networkclient.Interface
 	KClient       kubernetes.Interface
@@ -106,9 +104,7 @@ type OsdnNode struct {
 	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds runtime endpoint shim to make SDN <-> runtime communication
-	runtimeEndpoint       string
-	runtimeRequestTimeout time.Duration
-	runtimeService        kubeletapi.RuntimeService
+	runtimeService kubeletapi.RuntimeService
 
 	egressIP *egressIPWatcher
 }
@@ -157,7 +153,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		networkClient:      c.NetworkClient,
 		recorder:           c.Recorder,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports),
+		podManager:         newPodManager(c.KClient, policy, c.MTU, oc),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
@@ -168,12 +164,6 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
-
-		runtimeEndpoint: c.RuntimeEndpoint,
-		// 2 minutes is the current default value used in kubelet
-		runtimeRequestTimeout: 2 * time.Minute,
-		// populated on demand
-		runtimeService: nil,
 	}
 
 	RegisterMetrics()
@@ -337,8 +327,7 @@ func (node *OsdnNode) Start() error {
 
 	klog.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
-		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String(),
-		networkChanged); err != nil {
+		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String()); err != nil {
 		return err
 	}
 
