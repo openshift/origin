@@ -33,8 +33,6 @@ var _ = g.Describe("[Feature:Platform] ClusterOperators", func() {
 	whitelistNoOperatorConfig := sets.NewString(
 		"cloud-credential",
 		"cluster-autoscaler",
-		"dns",
-		"ingress",
 		"machine-api",
 		"machine-config",
 		"marketplace",
