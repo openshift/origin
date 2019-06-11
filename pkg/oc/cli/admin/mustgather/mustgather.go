@@ -25,8 +25,7 @@ import (
 	v1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/operator/resource/retry"
-
-	"github.com/openshift/origin/pkg/oc/cli/rsync"
+	"github.com/openshift/oc/pkg/cli/rsync"
 )
 
 var (

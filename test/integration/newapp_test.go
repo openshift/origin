@@ -44,6 +44,7 @@ import (
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/git"
 	dockerregistry "github.com/openshift/library-go/pkg/image/dockerv1client"
+	newappapp "github.com/openshift/oc/pkg/cli/newapp"
 	"github.com/openshift/oc/pkg/helpers/newapp"
 	"github.com/openshift/oc/pkg/helpers/newapp/app"
 	apptest "github.com/openshift/oc/pkg/helpers/newapp/app/test"
@@ -51,7 +52,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/newapp/dockerfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/jenkinsfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/source"
-	newappapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	_ "github.com/openshift/origin/pkg/api/install"

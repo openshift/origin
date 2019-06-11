@@ -37,7 +37,6 @@ import (
 	"github.com/openshift/oc/pkg/cli/kubectlwrappers"
 	"github.com/openshift/oc/pkg/cli/options"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-	"github.com/openshift/oc/pkg/helpers/templates"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/mustgather"
@@ -119,7 +118,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 	cmds.AddCommand(cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, streams))
 
 	groups.Add(cmds)
-	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
+	cmdutil.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
 	cmds.AddCommand(
 		release.NewCmd(f, fullName, streams),

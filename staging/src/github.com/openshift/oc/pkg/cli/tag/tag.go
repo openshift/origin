@@ -22,7 +22,6 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
 // TagOptions contains all the necessary options for the cli tag command.
@@ -316,7 +315,7 @@ func (o TagOptions) Validate() error {
 		if len(o.sourceKind) > 0 {
 			return errors.New("cannot specify a source kind when deleting")
 		}
-		if len(imageutilinternal.DockerImageReferenceString(o.ref)) > 0 {
+		if len(imagehelpers.DockerImageReferenceString(o.ref)) > 0 {
 			return errors.New("cannot specify a source when deleting")
 		}
 		if o.scheduleTag || o.insecureTag {
@@ -448,12 +447,12 @@ func (o TagOptions) Run() error {
 			localRef := o.ref
 			switch o.sourceKind {
 			case "DockerImage":
-				istag.Tag.From.Name = imageutilinternal.DockerImageReferenceExact(localRef)
+				istag.Tag.From.Name = imagehelpers.DockerImageReferenceExact(localRef)
 				gen := int64(0)
 				istag.Tag.Generation = &gen
 
 			default:
-				istag.Tag.From.Name = imageutilinternal.DockerImageReferenceNameString(localRef)
+				istag.Tag.From.Name = imagehelpers.DockerImageReferenceNameString(localRef)
 				istag.Tag.From.Namespace = o.ref.Namespace
 				if len(o.ref.Namespace) == 0 && o.destNamespace[i] != o.namespace {
 					istag.Tag.From.Namespace = o.namespace
@@ -464,22 +463,22 @@ func (o TagOptions) Run() error {
 			sameNamespace := o.namespace == o.destNamespace[i]
 			if o.aliasTag {
 				if sameNamespace {
-					msg = fmt.Sprintf("Tag %s set up to track %s.", destNameAndTag, imageutilinternal.DockerImageReferenceExact(o.ref))
+					msg = fmt.Sprintf("Tag %s set up to track %s.", destNameAndTag, imagehelpers.DockerImageReferenceExact(o.ref))
 				} else {
-					msg = fmt.Sprintf("Tag %s/%s set up to track %s.", o.destNamespace[i], destNameAndTag, imageutilinternal.DockerImageReferenceExact(o.ref))
+					msg = fmt.Sprintf("Tag %s/%s set up to track %s.", o.destNamespace[i], destNameAndTag, imagehelpers.DockerImageReferenceExact(o.ref))
 				}
 			} else {
 				if istag.Tag.ImportPolicy.Scheduled {
 					if sameNamespace {
-						msg = fmt.Sprintf("Tag %s set to import %s periodically.", destNameAndTag, imageutilinternal.DockerImageReferenceExact(o.ref))
+						msg = fmt.Sprintf("Tag %s set to import %s periodically.", destNameAndTag, imagehelpers.DockerImageReferenceExact(o.ref))
 					} else {
-						msg = fmt.Sprintf("Tag %s/%s set to %s periodically.", o.destNamespace[i], destNameAndTag, imageutilinternal.DockerImageReferenceExact(o.ref))
+						msg = fmt.Sprintf("Tag %s/%s set to %s periodically.", o.destNamespace[i], destNameAndTag, imagehelpers.DockerImageReferenceExact(o.ref))
 					}
 				} else {
 					if sameNamespace {
-						msg = fmt.Sprintf("Tag %s set to %s.", destNameAndTag, imageutilinternal.DockerImageReferenceExact(o.ref))
+						msg = fmt.Sprintf("Tag %s set to %s.", destNameAndTag, imagehelpers.DockerImageReferenceExact(o.ref))
 					} else {
-						msg = fmt.Sprintf("Tag %s/%s set to %s.", o.destNamespace[i], destNameAndTag, imageutilinternal.DockerImageReferenceExact(o.ref))
+						msg = fmt.Sprintf("Tag %s/%s set to %s.", o.destNamespace[i], destNameAndTag, imagehelpers.DockerImageReferenceExact(o.ref))
 					}
 				}
 			}

@@ -27,9 +27,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientmanual "github.com/openshift/oc/pkg/helpers/build/client/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 )
 
 type FakeClientConfig struct {
@@ -90,9 +87,9 @@ func TestStartBuildWebHook(t *testing.T) {
 }
 
 func TestStartBuildHookPostReceive(t *testing.T) {
-	invoked := make(chan *buildapi.GenericWebHookEvent, 1)
+	invoked := make(chan *buildv1.GenericWebHookEvent, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		event := buildapi.GenericWebHookEvent{}
+		event := buildv1.GenericWebHookEvent{}
 		decoder := json.NewDecoder(r.Body)
 		if err := decoder.Decode(&event); err != nil {
 			t.Errorf("unmarshal failed: %v", err)

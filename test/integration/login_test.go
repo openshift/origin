@@ -16,7 +16,6 @@ import (
 	newproject "github.com/openshift/oc/pkg/cli/admin/project"
 	"github.com/openshift/oc/pkg/cli/login"
 	"github.com/openshift/oc/pkg/cli/whoami"
-
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
