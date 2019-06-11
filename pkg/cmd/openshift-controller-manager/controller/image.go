@@ -143,7 +143,7 @@ func RunImageSignatureImportController(ctx *ControllerContext) (bool, error) {
 	// TODO these should really be configurable
 	resyncPeriod := 1 * time.Hour
 	signatureFetchTimeout := 1 * time.Minute
-	signatureImportLimit := 3
+	signatureImportLimit := 10
 
 	controller := imagesignaturecontroller.NewSignatureImportController(
 		context.Background(),
