@@ -44,9 +44,9 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
+	"github.com/openshift/oc/pkg/cli/admin/prune/imageprune"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 
-	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune"
 	"github.com/openshift/origin/pkg/version"
 )
 

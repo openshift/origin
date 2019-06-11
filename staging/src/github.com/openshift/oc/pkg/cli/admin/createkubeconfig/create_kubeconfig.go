@@ -17,7 +17,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/oc/pkg/helpers/originkubeconfignames"
+	"github.com/openshift/oc/pkg/helpers/kubeconfig"
+
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -165,15 +166,15 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	}
 
 	// determine all the nicknames
-	clusterNick, err := ockubeconfignames.GetClusterNicknameFromURL(o.APIServerURL)
+	clusterNick, err := kubeconfig.GetClusterNicknameFromURL(o.APIServerURL)
 	if err != nil {
 		return nil, err
 	}
-	userNick, err := ockubeconfignames.GetUserNicknameFromCert(clusterNick, certConfig.Certs...)
+	userNick, err := kubeconfig.GetUserNicknameFromCert(clusterNick, certConfig.Certs...)
 	if err != nil {
 		return nil, err
 	}
-	contextNick := ockubeconfignames.GetContextNickname(o.ContextNamespace, clusterNick, userNick)
+	contextNick := kubeconfig.GetContextNickname(o.ContextNamespace, clusterNick, userNick)
 
 	credentials := make(map[string]*clientcmdapi.AuthInfo)
 	credentials[userNick] = &clientcmdapi.AuthInfo{
@@ -182,7 +183,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	}
 
 	// normalize the provided server to a format expected by config
-	o.APIServerURL, err = ockubeconfignames.NormalizeServerURL(o.APIServerURL)
+	o.APIServerURL, err = kubeconfig.NormalizeServerURL(o.APIServerURL)
 	if err != nil {
 		return nil, err
 	}
@@ -198,11 +199,11 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 
 	createPublic := (len(o.PublicAPIServerURL) > 0) && o.APIServerURL != o.PublicAPIServerURL
 	if createPublic {
-		publicClusterNick, err := ockubeconfignames.GetClusterNicknameFromURL(o.PublicAPIServerURL)
+		publicClusterNick, err := kubeconfig.GetClusterNicknameFromURL(o.PublicAPIServerURL)
 		if err != nil {
 			return nil, err
 		}
-		publicContextNick := ockubeconfignames.GetContextNickname(o.ContextNamespace, publicClusterNick, userNick)
+		publicContextNick := kubeconfig.GetContextNickname(o.ContextNamespace, publicClusterNick, userNick)
 
 		clusters[publicClusterNick] = &clientcmdapi.Cluster{
 			Server:                   o.PublicAPIServerURL,

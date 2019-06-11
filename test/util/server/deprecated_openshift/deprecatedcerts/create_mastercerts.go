@@ -15,8 +15,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/util/cert"
 
+	"github.com/openshift/oc/pkg/cli/admin/createkubeconfig"
 	"github.com/openshift/oc/pkg/helpers/parallel"
-	"github.com/openshift/origin/pkg/oc/cli/admin/createkubeconfig"
 )
 
 type CreateMasterCertsOptions struct {

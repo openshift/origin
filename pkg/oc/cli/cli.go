@@ -19,6 +19,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/oc/pkg/cli/admin/buildchain"
 	"github.com/openshift/oc/pkg/cli/deployer"
 	"github.com/openshift/oc/pkg/cli/experimental/dockergc"
 	"github.com/openshift/oc/pkg/cli/expose"
@@ -40,7 +41,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/admin"
-	"github.com/openshift/origin/pkg/oc/cli/admin/buildchain"
 	"github.com/openshift/origin/pkg/oc/cli/admin/groups/sync"
 	"github.com/openshift/origin/pkg/oc/cli/buildlogs"
 	"github.com/openshift/origin/pkg/oc/cli/cancelbuild"

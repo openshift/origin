@@ -17,14 +17,13 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/api/annotations"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
 const NewProjectRecommendedName = "new-project"
@@ -126,10 +125,10 @@ func (o *NewProjectOptions) Run() error {
 	project := &projectv1.Project{}
 	project.Name = o.ProjectName
 	project.Annotations = make(map[string]string)
-	project.Annotations[oapi.OpenShiftDescription] = o.Description
-	project.Annotations[oapi.OpenShiftDisplayName] = o.DisplayName
+	project.Annotations[annotations.OpenShiftDescription] = o.Description
+	project.Annotations[annotations.OpenShiftDisplayName] = o.DisplayName
 	if o.UseNodeSelector {
-		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
+		project.Annotations[projectv1.ProjectNodeSelector] = o.NodeSelector
 	}
 	project, err := o.ProjectClient.Projects().Create(project)
 	if err != nil {
