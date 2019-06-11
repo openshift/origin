@@ -95,7 +95,7 @@ func (b BuildDefaults) applyPodProxyDefaults(pod *corev1.Pod, isCustomBuild bool
 	for _, c := range allContainers {
 		// All env vars are allowed to be set in a custom build pod, the user already has
 		// total control over the env+logic in a custom build pod anyway.
-		externalEnv := make([]corev1.EnvVar, 3)
+		externalEnv := []corev1.EnvVar{}
 		externalEnv = append(externalEnv, corev1.EnvVar{Name: "HTTP_PROXY", Value: b.DefaultProxy.HTTPProxy})
 		externalEnv = append(externalEnv, corev1.EnvVar{Name: "HTTPS_PROXY", Value: b.DefaultProxy.HTTPSProxy})
 		externalEnv = append(externalEnv, corev1.EnvVar{Name: "NO_PROXY", Value: b.DefaultProxy.NoProxy})
