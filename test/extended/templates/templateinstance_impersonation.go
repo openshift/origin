@@ -13,9 +13,9 @@ import (
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	userv1 "github.com/openshift/api/user/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -29,13 +29,13 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	var (
 		cli = exutil.NewCLI("templates", exutil.KubeConfigPath())
 
-		adminuser              *userapi.User // project admin, but can't impersonate anyone
-		impersonateuser        *userapi.User // project edit, and can impersonate edituser1
-		impersonatebygroupuser *userapi.User
-		impersonategroup       *userapi.Group
-		edituser1              *userapi.User // project edit, can be impersonated by impersonateuser
-		edituser2              *userapi.User // project edit
-		viewuser               *userapi.User // project view
+		adminuser              *userv1.User // project admin, but can't impersonate anyone
+		impersonateuser        *userv1.User // project edit, and can impersonate edituser1
+		impersonatebygroupuser *userv1.User
+		impersonategroup       *userv1.Group
+		edituser1              *userv1.User // project edit, can be impersonated by impersonateuser
+		edituser2              *userv1.User // project edit
+		viewuser               *userv1.User // project view
 
 		dummytemplateinstance *templateapi.TemplateInstance
 
@@ -45,7 +45,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		}
 
 		tests []struct {
-			user                      *userapi.User
+			user                      *userv1.User
 			expectCreateSuccess       bool
 			expectDeleteSuccess       bool
 			hasUpdatePermission       bool
@@ -104,7 +104,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		// new group membership made above.  Wait until all it looks like
 		// all the users above have access to the namespace as expected.
 		err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
-			for _, user := range []*userapi.User{adminuser, impersonateuser, impersonatebygroupuser, edituser1, edituser2, viewuser} {
+			for _, user := range []*userv1.User{adminuser, impersonateuser, impersonatebygroupuser, edituser1, edituser2, viewuser} {
 				cli.ChangeUser(user.Name)
 				sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
 					Action: authorizationapi.Action{
@@ -159,7 +159,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		}
 
 		tests = []struct {
-			user                      *userapi.User
+			user                      *userv1.User
 			expectCreateSuccess       bool
 			expectDeleteSuccess       bool
 			hasUpdatePermission       bool

@@ -41,6 +41,7 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -51,7 +52,6 @@ import (
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	securityclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -390,14 +390,6 @@ func (c *CLI) TemplateClient() templateclient.Interface {
 	return client
 }
 
-func (c *CLI) UserClient() userclientset.Interface {
-	client, err := userclientset.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
 func (c *CLI) AdminAppsClient() appsv1client.Interface {
 	client, err := appsv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
@@ -488,8 +480,8 @@ func (c *CLI) AdminTemplateClient() templateclient.Interface {
 	return client
 }
 
-func (c *CLI) AdminUserClient() userclientset.Interface {
-	client, err := userclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminUserClient() userv1client.Interface {
+	client, err := userv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

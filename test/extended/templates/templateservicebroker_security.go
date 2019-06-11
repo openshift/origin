@@ -16,12 +16,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	userv1 "github.com/openshift/api/user/v1"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -37,9 +37,9 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		brokercli          client.Client
 		service            *api.Service
 		plan               *api.Plan
-		viewuser           *userapi.User
-		edituser           *userapi.User
-		nopermsuser        *userapi.User
+		viewuser           *userv1.User
+		edituser           *userv1.User
+		nopermsuser        *userv1.User
 	)
 
 	g.JustBeforeEach(func() {

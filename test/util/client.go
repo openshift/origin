@@ -29,10 +29,10 @@ import (
 	"k8s.io/kubernetes/pkg/quota/v1"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 // GetBaseDir returns the base directory used for test.
@@ -76,20 +76,20 @@ func GetClusterAdminClientConfigOrDie(adminKubeConfigFile string) *restclient.Co
 }
 
 func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (kubernetes.Interface, *restclient.Config, error) {
-	userClient, err := userclient.NewForConfig(clusterAdminConfig)
+	userClient, err := userv1client.NewForConfig(clusterAdminConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	user, err := userClient.User().Users().Get(username, metav1.GetOptions{})
+	user, err := userClient.UserV1().Users().Get(username, metav1.GetOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return nil, nil, err
 	}
 	if err != nil {
-		user = &userapi.User{
+		user = &userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
 		}
-		user, err = userClient.User().Users().Create(user)
+		user, err = userClient.UserV1().Users().Create(user)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -142,7 +142,7 @@ func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, usernam
 	if _, _, err := GetClientForUser(clusterAdminClientConfig, username); err != nil {
 		return nil, nil, err
 	}
-	user, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).User().Users().Get(username, metav1.GetOptions{})
+	user, err := userv1client.NewForConfigOrDie(clusterAdminClientConfig).UserV1().Users().Get(username, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}

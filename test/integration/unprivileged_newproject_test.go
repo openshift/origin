@@ -13,6 +13,7 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
 
+	"github.com/openshift/api/project"
 	projectv1 "github.com/openshift/api/project/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -21,28 +22,6 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-
-	// make sure all generated clients compile
-	// these are only here because it's the spot I chose to use a generated clientset for a test
-	"github.com/openshift/api/project"
-	_ "github.com/openshift/client-go/apps/clientset/versioned"
-	_ "github.com/openshift/client-go/authorization/clientset/versioned"
-	_ "github.com/openshift/client-go/build/clientset/versioned"
-	_ "github.com/openshift/client-go/image/clientset/versioned"
-	_ "github.com/openshift/client-go/network/clientset/versioned"
-	_ "github.com/openshift/client-go/project/clientset/versioned"
-	_ "github.com/openshift/client-go/quota/clientset/versioned"
-	_ "github.com/openshift/client-go/route/clientset/versioned"
-	_ "github.com/openshift/client-go/template/clientset/versioned"
-	_ "github.com/openshift/client-go/user/clientset/versioned"
-
-	_ "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
