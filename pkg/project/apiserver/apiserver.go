@@ -19,12 +19,12 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
-	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	projectproxy "github.com/openshift/origin/pkg/project/apiserver/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 )
 
 type ExtraConfig struct {
@@ -112,11 +112,11 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	projectClient, err := projectclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	projectClient, err := projectv1client.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	templateClient, err := templateclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	templateClient, err := templatev1client.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	projectRequestStorage := projectrequeststorage.NewREST(
 		c.ExtraConfig.ProjectRequestMessage,
 		namespace, templateName,
-		projectClient.Project(),
+		projectClient.ProjectV1(),
 		templateClient,
 		authorizationClient.SubjectAccessReviews(),
 		dynamicClient,

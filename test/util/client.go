@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
-
 	"github.com/pborman/uuid"
 
 	corev1 "k8s.io/api/core/v1"
@@ -29,10 +27,11 @@ import (
 	"k8s.io/kubernetes/pkg/quota/v1"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
 // GetBaseDir returns the base directory used for test.
@@ -76,35 +75,35 @@ func GetClusterAdminClientConfigOrDie(adminKubeConfigFile string) *restclient.Co
 }
 
 func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (kubernetes.Interface, *restclient.Config, error) {
-	userClient, err := userclient.NewForConfig(clusterAdminConfig)
+	userClient, err := userv1client.NewForConfig(clusterAdminConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	user, err := userClient.User().Users().Get(username, metav1.GetOptions{})
+	user, err := userClient.UserV1().Users().Get(username, metav1.GetOptions{})
 	if err != nil && !kerrs.IsNotFound(err) {
 		return nil, nil, err
 	}
 	if err != nil {
-		user = &userapi.User{
+		user = &userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
 		}
-		user, err = userClient.User().Users().Create(user)
+		user, err = userClient.UserV1().Users().Create(user)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	oauthClient, err := oauthclient.NewForConfig(clusterAdminConfig)
+	oauthClient, err := oauthv1client.NewForConfig(clusterAdminConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	oauthClientObj := &oauthapi.OAuthClient{
+	oauthClientObj := &oauthv1.OAuthClient{
 		ObjectMeta:  metav1.ObjectMeta{Name: "test-integration-client"},
-		GrantMethod: oauthapi.GrantHandlerAuto,
+		GrantMethod: oauthv1.GrantHandlerAuto,
 	}
-	if _, err := oauthClient.Oauth().OAuthClients().Create(oauthClientObj); err != nil && !kerrs.IsAlreadyExists(err) {
+	if _, err := oauthClient.OauthV1().OAuthClients().Create(oauthClientObj); err != nil && !kerrs.IsAlreadyExists(err) {
 		return nil, nil, err
 	}
 
@@ -114,7 +113,7 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 	for i := len(accesstoken); i < 32; i++ {
 		accesstoken += "A"
 	}
-	token := &oauthapi.OAuthAccessToken{
+	token := &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
 		ClientName:  oauthClientObj.Name,
 		UserName:    username,
@@ -122,7 +121,7 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 		Scopes:      []string{"user:full"},
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}
-	if _, err := oauthClient.Oauth().OAuthAccessTokens().Create(token); err != nil {
+	if _, err := oauthClient.OauthV1().OAuthAccessTokens().Create(token); err != nil {
 		return nil, nil, err
 	}
 
@@ -142,12 +141,12 @@ func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, usernam
 	if _, _, err := GetClientForUser(clusterAdminClientConfig, username); err != nil {
 		return nil, nil, err
 	}
-	user, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).User().Users().Get(username, metav1.GetOptions{})
+	user, err := userv1client.NewForConfigOrDie(clusterAdminClientConfig).UserV1().Users().Get(username, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	token := &oauthapi.OAuthAccessToken{
+	token := &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
 		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   86400,
@@ -156,7 +155,7 @@ func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, usernam
 		UserName:    user.Name,
 		UserUID:     string(user.UID),
 	}
-	if _, err := oauthclient.NewForConfigOrDie(clusterAdminClientConfig).Oauth().OAuthAccessTokens().Create(token); err != nil {
+	if _, err := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig).OauthV1().OAuthAccessTokens().Create(token); err != nil {
 		return nil, nil, err
 	}
 

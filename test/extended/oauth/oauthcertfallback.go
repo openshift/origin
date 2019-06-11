@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -149,8 +149,8 @@ var _ = g.Describe("The OAuth server", func() {
 			adminConfig.TLSClientConfig = test.cert
 			adminConfig.CAData = oc.AdminConfig().CAData
 
-			userClient := userclient.NewForConfigOrDie(adminConfig)
-			user, err := userClient.Users().Get("~", metav1.GetOptions{})
+			userClient := userv1client.NewForConfigOrDie(adminConfig)
+			user, err := userClient.UserV1().Users().Get("~", metav1.GetOptions{})
 
 			if test.errorExpected {
 				o.Expect(err).ToNot(o.BeNil())

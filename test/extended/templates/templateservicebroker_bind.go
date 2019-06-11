@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -70,16 +71,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 
 			// wait for templateinstance controller to do its thing
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				templateinstance, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+				templateinstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
 
 				for _, c := range templateinstance.Status.Conditions {
-					if c.Reason == "Failed" && c.Status == kapi.ConditionTrue {
+					if c.Reason == "Failed" && c.Status == corev1.ConditionTrue {
 						return false, fmt.Errorf("failed condition: %s", c.Message)
 					}
-					if c.Reason == "Created" && c.Status == kapi.ConditionTrue {
+					if c.Reason == "Created" && c.Status == corev1.ConditionTrue {
 						return true, nil
 					}
 				}
@@ -101,7 +102,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 			err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
+			err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 

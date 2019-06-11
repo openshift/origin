@@ -35,23 +35,22 @@ import (
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	projectv1 "github.com/openshift/api/project/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
-	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	securityclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -190,7 +189,7 @@ func (c *CLI) SetupProject() {
 	e2e.Logf("The user is now %q", c.Username())
 
 	e2e.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -270,7 +269,7 @@ func (c *CLI) SetupProject() {
 func (c *CLI) CreateProject() string {
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	e2e.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
+	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(&projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -354,26 +353,16 @@ func (c *CLI) ImageClient() imageclientset.Interface {
 	return client
 }
 
-func (c *CLI) ProjectClient() projectclientset.Interface {
-	client, err := projectclientset.NewForConfig(c.UserConfig())
+func (c *CLI) ProjectClient() projectv1client.Interface {
+	client, err := projectv1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
 
-func (c *CLI) RouteClient() routeclientset.Interface {
-	client, err := routeclientset.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-// Client provides an OpenShift client for the current user. If the user is not
-// set, then it provides client for the cluster admin user
-func (c *CLI) InternalTemplateClient() templateclientset.Interface {
-	client, err := templateclientset.NewForConfig(c.UserConfig())
+func (c *CLI) RouteClient() routev1client.Interface {
+	client, err := routev1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -382,16 +371,8 @@ func (c *CLI) InternalTemplateClient() templateclientset.Interface {
 
 // Client provides an OpenShift client for the current user. If the user is not
 // set, then it provides client for the cluster admin user
-func (c *CLI) TemplateClient() templateclient.Interface {
-	client, err := templateclient.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) UserClient() userclientset.Interface {
-	client, err := userclientset.NewForConfig(c.UserConfig())
+func (c *CLI) TemplateClient() templatev1client.Interface {
+	client, err := templatev1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -455,49 +436,40 @@ func (c *CLI) AdminInternalImageClient() imageclientset.Interface {
 	return client
 }
 
-func (c *CLI) AdminProjectClient() projectclientset.Interface {
-	client, err := projectclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminProjectClient() projectv1client.Interface {
+	client, err := projectv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
 
-func (c *CLI) AdminRouteClient() routeclientset.Interface {
-	client, err := routeclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminRouteClient() routev1client.Interface {
+	client, err := routev1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
 
-// AdminClient provides an OpenShift client for the cluster admin user.
-func (c *CLI) AdminInternalTemplateClient() templateclientset.Interface {
-	client, err := templateclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminTemplateClient() templatev1client.Interface {
+	client, err := templatev1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
 
-func (c *CLI) AdminTemplateClient() templateclient.Interface {
-	client, err := templateclient.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminUserClient() userv1client.Interface {
+	client, err := userv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
 
-func (c *CLI) AdminUserClient() userclientset.Interface {
-	client, err := userclientset.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) AdminSecurityClient() securityclientset.Interface {
-	client, err := securityclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminSecurityClient() securityv1client.Interface {
+	client, err := securityv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
