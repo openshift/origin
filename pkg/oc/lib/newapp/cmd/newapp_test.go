@@ -21,7 +21,6 @@ import (
 	clientfake "k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/restmapper"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -30,10 +29,10 @@ import (
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	routefakev1client "github.com/openshift/client-go/route/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
-	"github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/source-to-image/pkg/scm/git"
+
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 func TestValidate(t *testing.T) {
@@ -463,18 +462,19 @@ func TestBuildOutputCycleResilience(t *testing.T) {
 
 	config := &AppConfig{}
 
-	mockIS := &image.ImageStream{
+	mockIS := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "mockimagestream",
 		},
-		Spec: image.ImageStreamSpec{
-			Tags: make(map[string]image.TagReference),
-		},
-	}
-	mockIS.Spec.Tags["latest"] = image.TagReference{
-		From: &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: "mockimage:latest",
+		Spec: imagev1.ImageStreamSpec{
+			Tags: []imagev1.TagReference{
+				{
+					From: &corev1.ObjectReference{
+						Kind: "DockerImage",
+						Name: "mockimage:latest",
+					},
+				},
+			},
 		},
 	}
 

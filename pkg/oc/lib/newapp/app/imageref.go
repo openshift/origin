@@ -20,7 +20,7 @@ import (
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
 )
@@ -59,7 +59,7 @@ func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	return &ImageRef{
 		Reference: ref,
 		Info: &dockerv10.DockerImage{
-			Config: &imageapi.DockerConfig{},
+			Config: &dockerv10.DockerConfig{},
 		},
 	}, nil
 }
@@ -78,7 +78,7 @@ func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*Imag
 	}
 
 	imageRef.Info = &dockerv10.DockerImage{
-		Config: &imageapi.DockerConfig{
+		Config: &dockerv10.DockerConfig{
 			ExposedPorts: exposedPorts,
 		},
 	}
@@ -136,9 +136,9 @@ func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) 
 
 // ImageRef is a reference to an image
 type ImageRef struct {
-	Reference imageapi.DockerImageReference
+	Reference reference.DockerImageReference
 	// If specified, a more specific location the image is available at
-	ResolvedReference *imageapi.DockerImageReference
+	ResolvedReference *reference.DockerImageReference
 
 	AsResolvedImage bool
 	AsImageStream   bool

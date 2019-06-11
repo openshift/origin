@@ -6,24 +6,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/api"
-	"k8s.io/apimachinery/pkg/api/apitesting"
-
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"github.com/openshift/api"
 	buildv1 "github.com/openshift/api/build/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/source-to-image/pkg/scm/git"
+
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
-func testImageInfo() *imageapi.DockerImage {
-	return &imageapi.DockerImage{
-		Config: &imageapi.DockerConfig{},
+func testImageInfo() *dockerv10.DockerImage {
+	return &dockerv10.DockerImage{
+		Config: &dockerv10.DockerConfig{},
 	}
 }
 
@@ -123,7 +124,7 @@ func TestBuildConfigBinaryWithImageSource(t *testing.T) {
 	source := &SourceRef{
 		Name: "binarybuild",
 		SourceImage: &ImageRef{
-			Reference: imageapi.DockerImageReference{
+			Reference: reference.DockerImageReference{
 				Name:     "foo",
 				Registry: "bar",
 			},
@@ -149,7 +150,7 @@ func TestBuildConfigWithImageSource(t *testing.T) {
 	source := &SourceRef{
 		Name: "binarybuild",
 		SourceImage: &ImageRef{
-			Reference: imageapi.DockerImageReference{
+			Reference: reference.DockerImageReference{
 				Name:     "foo",
 				Registry: "bar",
 			},
@@ -222,7 +223,7 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 	// deployment configs in templates (hint: yes).
 	// SOLUTION? Make deployment config accept unqualified image repo names (foo) and then prior to creating the RC resolve those.
 	output := &ImageRef{
-		Reference: imageapi.DockerImageReference{
+		Reference: reference.DockerImageReference{
 			Name: name,
 		},
 		AsImageStream: true,
@@ -281,7 +282,7 @@ func TestImageStream(t *testing.T) {
 		{
 			name: "input stream",
 			r: &ImageRef{
-				Reference: imageapi.DockerImageReference{
+				Reference: reference.DockerImageReference{
 					Namespace: "test",
 					Name:      "input",
 				},
@@ -299,7 +300,7 @@ func TestImageStream(t *testing.T) {
 		{
 			name: "insecure input stream",
 			r: &ImageRef{
-				Reference: imageapi.DockerImageReference{
+				Reference: reference.DockerImageReference{
 					Namespace: "test",
 					Name:      "insecure",
 				},
@@ -321,7 +322,7 @@ func TestImageStream(t *testing.T) {
 		{
 			name: "output stream",
 			r: &ImageRef{
-				Reference: imageapi.DockerImageReference{
+				Reference: reference.DockerImageReference{
 					Namespace: "test",
 					Name:      "output",
 				},

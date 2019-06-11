@@ -53,7 +53,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/bulk"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
@@ -174,7 +173,7 @@ type AppOptions struct {
 	genericclioptions.IOStreams
 }
 
-//Complete sets all common default options for commands (new-app and new-build)
+// Complete sets all common default options for commands (new-app and new-build)
 func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdutil.Factory, c *cobra.Command, args []string) error {
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
@@ -417,7 +416,7 @@ func (o *AppOptions) RunNewApp() error {
 	supportedTypes := map[schema.GroupVersionKind]bool{
 		{Version: "v1", Kind: "Pod"}:                                    true,
 		{Group: buildapi.GroupName, Version: "v1", Kind: "BuildConfig"}: true,
-		{Group: imageapi.GroupName, Version: "v1", Kind: "ImageStream"}: true,
+		{Group: imagev1.GroupName, Version: "v1", Kind: "ImageStream"}:  true,
 		{Group: routev1.GroupName, Version: "v1", Kind: "Route"}:        true,
 	}
 

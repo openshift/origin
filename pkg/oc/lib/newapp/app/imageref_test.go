@@ -9,10 +9,12 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
+	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/source-to-image/pkg/scm/git"
+
+	"github.com/openshift/origin/pkg/oc/lib/newapp"
 )
 
 func TestBuildConfigOutput(t *testing.T) {
@@ -21,14 +23,14 @@ func TestBuildConfigOutput(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	output := &ImageRef{
-		Reference: imageapi.DockerImageReference{
+		Reference: reference.DockerImageReference{
 			Registry:  "myregistry",
 			Namespace: "openshift",
 			Name:      "origin",
 		},
 	}
 	base := &ImageRef{
-		Reference: imageapi.DockerImageReference{
+		Reference: reference.DockerImageReference{
 			Namespace: "openshift",
 			Name:      "ruby",
 		},
@@ -89,7 +91,7 @@ func TestBuildConfigOutput(t *testing.T) {
 
 func TestSimpleDeploymentConfig(t *testing.T) {
 	image := &ImageRef{
-		Reference: imageapi.DockerImageReference{
+		Reference: reference.DockerImageReference{
 			Registry:  "myregistry",
 			Namespace: "openshift",
 			Name:      "origin",
@@ -197,13 +199,13 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 	}
 	for _, test := range tests {
 		imageRef := &ImageRef{
-			Reference: imageapi.DockerImageReference{
+			Reference: reference.DockerImageReference{
 				Namespace: "test",
 				Name:      "image",
 				Tag:       imagev1.DefaultImageTag,
 			},
-			Info: &imageapi.DockerImage{
-				Config: &imageapi.DockerConfig{
+			Info: &dockerv10.DockerImage{
+				Config: &dockerv10.DockerConfig{
 					ExposedPorts: test.inputPorts,
 				},
 			},
