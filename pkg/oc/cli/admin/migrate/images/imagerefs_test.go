@@ -14,7 +14,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
+	"github.com/openshift/oc/pkg/helpers/originpolymorphichelpers"
 )
 
 func TestImageReferenceMappingsMapReference(t *testing.T) {

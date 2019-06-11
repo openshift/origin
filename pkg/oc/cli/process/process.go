@@ -33,8 +33,8 @@ import (
 	"github.com/openshift/library-go/pkg/template/generator"
 	"github.com/openshift/library-go/pkg/template/templateprocessing"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
+	"github.com/openshift/oc/pkg/helpers/describe"
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
-	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
 

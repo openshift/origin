@@ -9,7 +9,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 )
 
 var s2iEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILDER"}
@@ -50,7 +50,7 @@ func IsBuilderStreamTag(stream *imagev1.ImageStream, tag string) bool {
 		return false
 	}
 
-	return ocimageutil.HasAnnotationTag(&t, "builder")
+	return imagehelpers.HasAnnotationTag(&t, "builder")
 }
 
 func IsBuilderMatch(match *ComponentMatch) bool {

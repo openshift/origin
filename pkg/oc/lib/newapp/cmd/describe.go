@@ -6,17 +6,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openshift/library-go/pkg/image/imageutil"
-
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/oc/pkg/helpers/describe"
+	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
@@ -63,7 +61,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		return ""
 	case match.ImageStream != nil:
 		if image := match.DockerImage; image != nil {
-			shortID := ocimageutil.ShortDockerImageID(image, 7)
+			shortID := imagehelpers.ShortDockerImageID(image, 7)
 			if !image.Created.IsZero() {
 				shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 			}
@@ -72,7 +70,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		return fmt.Sprintf("Found tag :%s in image stream %q for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
 	case match.DockerImage != nil:
 		image := match.DockerImage
-		shortID := ocimageutil.ShortDockerImageID(image, 7)
+		shortID := imagehelpers.ShortDockerImageID(image, 7)
 		if !image.Created.IsZero() {
 			shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 		}

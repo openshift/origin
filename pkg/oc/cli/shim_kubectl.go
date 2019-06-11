@@ -12,7 +12,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/legacyapi/legacygroupification"
 	"github.com/openshift/oc/pkg/helpers/clientcmd"
-	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
+	"github.com/openshift/oc/pkg/helpers/originpolymorphichelpers"
 	oversion "github.com/openshift/origin/pkg/version"
 )
 

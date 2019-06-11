@@ -18,7 +18,7 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	buildmanualclientv1 "github.com/openshift/oc/pkg/helpers/build/client/v1"
-	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers/deploymentconfigs"
+	"github.com/openshift/oc/pkg/helpers/originpolymorphichelpers/deploymentconfigs"
 )
 
 func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorphichelpers.LogsForObjectFunc {

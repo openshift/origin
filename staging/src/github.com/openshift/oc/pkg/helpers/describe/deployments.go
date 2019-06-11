@@ -30,7 +30,7 @@ import (
 	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/oc/pkg/helpers/legacy"
 )
 
 const (

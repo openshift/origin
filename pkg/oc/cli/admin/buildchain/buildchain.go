@@ -21,8 +21,8 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	osutil "github.com/openshift/oc/pkg/helpers/cmd"
+	"github.com/openshift/oc/pkg/helpers/describe"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
-	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
 
 // BuildChainRecommendedCommandName is the recommended command name

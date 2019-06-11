@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/kubectl/describe"
 
-	odescribe "github.com/openshift/origin/pkg/oc/lib/describe"
+	odescribe "github.com/openshift/oc/pkg/helpers/describe"
 )
 
 func NewDescriberFn(delegate describe.DescriberFunc) describe.DescriberFunc {

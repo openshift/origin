@@ -18,9 +18,9 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	"github.com/openshift/oc/pkg/helpers/describe"
 	dotutil "github.com/openshift/oc/pkg/helpers/dot"
 	loginutil "github.com/openshift/oc/pkg/helpers/project"
-	"github.com/openshift/origin/pkg/oc/lib/describe"
 )
 
 // StatusRecommendedName is the recommended command name.

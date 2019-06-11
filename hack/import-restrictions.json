@@ -466,8 +466,6 @@
       "github.com/openshift/origin/pkg/version",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
-      "vendor/k8s.io/kubernetes/pkg/controller",
-      "vendor/k8s.io/kubernetes/pkg/controller/deployment/util",
       "vendor/k8s.io/kubernetes/pkg/credentialprovider",
       "vendor/github.com/pkg/errors",
 
