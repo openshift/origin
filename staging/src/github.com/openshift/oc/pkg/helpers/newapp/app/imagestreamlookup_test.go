@@ -15,7 +15,6 @@ import (
 	imagefake "github.com/openshift/client-go/image/clientset/versioned/fake"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func testImageStreamClient(imageStreams *imagev1.ImageStreamList, images map[string]*imagev1.ImageStreamImage) imagev1client.ImageV1Interface {
@@ -545,7 +544,7 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "docker image",
 			match: &ComponentMatch{
-				DockerImage: &imageapi.DockerImage{},
+				DockerImage: &dockerv10.DockerImage{},
 				Value:       "test/dockerimage",
 			},
 			expectedRef: "test/dockerimage",
@@ -553,7 +552,7 @@ func TestInputImageFromMatch(t *testing.T) {
 		{
 			name: "docker image with tag",
 			match: &ComponentMatch{
-				DockerImage: &imageapi.DockerImage{},
+				DockerImage: &dockerv10.DockerImage{},
 				Value:       "test/dockerimage:tag",
 			},
 			expectedRef: "test/dockerimage:tag",

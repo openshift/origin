@@ -16,11 +16,10 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	dockerregistry "github.com/openshift/library-go/pkg/image/dockerv1client"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 // DockerClient is the local interface for the docker client
@@ -56,7 +55,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 	errs := []error{}
 	for _, term := range terms {
 		var (
-			ref imageapi.DockerImageReference
+			ref reference.DockerImageReference
 			err error
 		)
 		switch term {
@@ -74,7 +73,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 			})
 			return componentMatches, errs
 		case "*":
-			ref = imageapi.DockerImageReference{Name: term}
+			ref = reference.DockerImageReference{Name: term}
 		default:
 			ref, err = reference.Parse(term)
 			if err != nil {
@@ -140,7 +139,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				}
 				continue
 			}
-			dockerImage := &imageapi.DockerImage{}
+			dockerImage := &dockerv10.DockerImage{}
 			if err := legacyscheme.Scheme.Convert(image, dockerImage, nil); err != nil {
 				errs = append(errs, err)
 				continue
@@ -304,7 +303,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 	var errs []error
 	for _, term := range terms {
 		var (
-			ref imageapi.DockerImageReference
+			ref reference.DockerImageReference
 			err error
 		)
 		if term != "*" {
@@ -313,7 +312,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 				continue
 			}
 		} else {
-			ref = imageapi.DockerImageReference{Name: term}
+			ref = reference.DockerImageReference{Name: term}
 		}
 
 		klog.V(4).Infof("checking Docker registry for %q, allow-insecure=%v", ref.String(), r.AllowInsecure)
@@ -347,7 +346,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		}
 		klog.V(4).Infof("found image: %#v", image)
 
-		dockerImage := &imageapi.DockerImage{}
+		dockerImage := &dockerv10.DockerImage{}
 		if err = legacyscheme.Scheme.Convert(&image.Image, dockerImage, nil); err != nil {
 			errs = append(errs, err)
 			continue

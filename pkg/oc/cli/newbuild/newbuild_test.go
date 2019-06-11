@@ -11,9 +11,9 @@ import (
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/fake"
 	faketemplatev1client "github.com/openshift/client-go/template/clientset/versioned/fake"
 	configcmd "github.com/openshift/oc/pkg/helpers/bulk"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
+	newcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
 	ocnewapp "github.com/openshift/origin/pkg/oc/cli/newapp"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 )
 
 // TestNewBuildRun ensures that Run command calls the right actions

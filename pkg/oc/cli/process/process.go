@@ -34,8 +34,8 @@ import (
 	"github.com/openshift/library-go/pkg/template/templateprocessing"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/oc/pkg/helpers/describe"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 )
 
 var (

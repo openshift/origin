@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
+	"github.com/openshift/oc/pkg/helpers/newapp"
 )
 
 func TestAddBuildSecrets(t *testing.T) {

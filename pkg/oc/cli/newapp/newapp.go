@@ -52,12 +52,12 @@ import (
 
 	"github.com/openshift/oc/pkg/helpers/bulk"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
+	"github.com/openshift/oc/pkg/helpers/newapp"
+	newappapp "github.com/openshift/oc/pkg/helpers/newapp/app"
+	newcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
+	dockerutil "github.com/openshift/oc/pkg/helpers/newapp/docker"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
-	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
-	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
 )
 
 // NewAppRecommendedCommandName is the recommended command name.

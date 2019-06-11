@@ -18,9 +18,9 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	templatev1 "github.com/openshift/api/template/v1"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
+	"github.com/openshift/oc/pkg/helpers/newapp"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
+	"github.com/openshift/oc/pkg/helpers/newapp/docker/dockerfile"
 )
 
 type EnvVarOrString struct {

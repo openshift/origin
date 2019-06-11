@@ -10,19 +10,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift/api/annotations"
 	dockerv10 "github.com/openshift/api/image/docker10"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/oc/pkg/helpers/describe"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
-	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
+	"github.com/openshift/oc/pkg/helpers/newapp"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
+	"github.com/openshift/oc/pkg/helpers/newapp/portutils"
 )
 
 func displayName(meta metav1.ObjectMeta) string {
 	// If an object has a display name, prefer it over the meta name.
-	displayName := meta.Annotations[oapi.OpenShiftDisplayName]
+	displayName := meta.Annotations[annotations.OpenShiftDisplayName]
 	if len(displayName) > 0 {
 		return displayName
 	}

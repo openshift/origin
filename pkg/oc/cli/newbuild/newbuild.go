@@ -16,9 +16,9 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	configcmd "github.com/openshift/oc/pkg/helpers/bulk"
+	newapp "github.com/openshift/oc/pkg/helpers/newapp/app"
+	newcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
 	ocnewapp "github.com/openshift/origin/pkg/oc/cli/newapp"
-	newapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 )
 
 // NewBuildRecommendedCommandName is the recommended command name.

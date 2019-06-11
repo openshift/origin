@@ -51,7 +51,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/oc/pkg/helpers/conditions"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
-	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	generateapp "github.com/openshift/oc/pkg/helpers/newapp/app"
 )
 
 const (

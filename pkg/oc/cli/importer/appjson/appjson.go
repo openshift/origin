@@ -30,9 +30,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/oc/pkg/helpers/newapp/appjson"
+	appcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/appjson"
-	appcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 )
 
 const AppJSONV1GeneratorName = "app-json/v1"

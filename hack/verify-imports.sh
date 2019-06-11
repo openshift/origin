@@ -76,7 +76,7 @@ function print_forbidden_imports () {
 # for some reason, if you specify nothing, then you never get an error.  Specify something, even if it never shows up
 RC=0
 print_forbidden_imports oauth-server k8s.io/kubernetes/pkg/apis || RC=1
-print_forbidden_imports oc k8s.io/kubernetes/pkg || RC=1
+print_forbidden_imports oc github.com/openshift/source-to-image k8s.io/kubernetes/pkg || RC=1
 print_forbidden_imports openshift-apiserver k8s.io/kubernetes/pkg/apis || RC=1
 print_forbidden_imports openshift-controller-manager k8s.io/kubernetes/cmd/controller-manager/app \
   k8s.io/kubernetes/pkg/api/legacyscheme \

@@ -419,9 +419,7 @@
       "vendor/github.com/fsouza/go-dockerclient",
       "vendor/k8s.io/klog",
       "vendor/github.com/gonum/graph",
-      "vendor/github.com/joho/godotenv",
       "vendor/github.com/MakeNowJust/heredoc",
-      "vendor/github.com/moby/buildkit",
       "vendor/github.com/opencontainers/go-digest",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
@@ -429,7 +427,6 @@
       "vendor/github.com/openshift/source-to-image",
       "vendor/github.com/spf13/cobra",
       "vendor/github.com/spf13/pflag",
-      "vendor/gopkg.in/ldap.v2",
       "vendor/k8s.io/api",
       "vendor/k8s.io/apimachinery",
       "vendor/k8s.io/apiserver",
@@ -449,7 +446,6 @@
       "vendor/github.com/openshift/oc"
     ],
     "allowedImportPackages": [
-      "github.com/openshift/origin/pkg/api/legacy",
       "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
@@ -458,7 +454,6 @@
       "github.com/openshift/origin/pkg/cmd/flagtypes",
       "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/image/apis/image",
-      "github.com/openshift/origin/pkg/image/importer/dockerv1client",
       "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/project/apis/project",
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
@@ -466,7 +461,6 @@
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "vendor/k8s.io/kubernetes/pkg/credentialprovider",
-      "vendor/github.com/pkg/errors",
 
       "vendor/github.com/openshift/library-go/pkg/git"
     ]

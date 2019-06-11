@@ -37,7 +37,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/library-go/pkg/image/referencemutator"
 	triggerutil "github.com/openshift/library-go/pkg/image/trigger"
-	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
+	"github.com/openshift/oc/pkg/helpers/newapp/app"
 )
 
 var (
