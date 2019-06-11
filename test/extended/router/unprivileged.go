@@ -97,7 +97,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			}
 
 			g.By("checking that the route doesn't have an ingress status")
-			r, err := oc.RouteClient().Route().Routes(ns).Get("route-1", metav1.GetOptions{})
+			r, err := oc.RouteClient().RouteV1().Routes(ns).Get("route-1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ingress := ingressForName(r, "test-unprivileged")
 			o.Expect(ingress).To(o.BeNil())

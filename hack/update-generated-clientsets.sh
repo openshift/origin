@@ -11,7 +11,6 @@ packages=(
   github.com/openshift/origin/pkg/image/apis/image
   github.com/openshift/origin/pkg/oauth/apis/oauth
   github.com/openshift/origin/pkg/project/apis/project
-  github.com/openshift/origin/pkg/route/apis/route
 )
 
 function generate_clientset_for() {

@@ -67,7 +67,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 			g.By(fmt.Sprintf("verifying the %s/%s route has an ingress host", r.ns, r.name))
 			var hostname string
 			err := wait.Poll(time.Second, routeHostWait, func() (bool, error) {
-				route, err := oc.AdminRouteClient().Route().Routes(r.ns).Get(r.name, metav1.GetOptions{})
+				route, err := oc.AdminRouteClient().RouteV1().Routes(r.ns).Get(r.name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

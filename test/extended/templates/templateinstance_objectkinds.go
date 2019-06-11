@@ -57,10 +57,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 		_, err = cli.KubeClient().AppsV1beta1().Deployments(cli.Namespace()).Get("deployment", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete("templateinstance", nil)
@@ -87,12 +87,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
 		if !kapierrs.IsNotFound(err) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		if !kapierrs.IsNotFound(err) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}

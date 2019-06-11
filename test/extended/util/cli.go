@@ -40,6 +40,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
@@ -50,7 +51,6 @@ import (
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -361,8 +361,8 @@ func (c *CLI) ProjectClient() projectclientset.Interface {
 	return client
 }
 
-func (c *CLI) RouteClient() routeclientset.Interface {
-	client, err := routeclientset.NewForConfig(c.UserConfig())
+func (c *CLI) RouteClient() routev1client.Interface {
+	client, err := routev1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -444,8 +444,8 @@ func (c *CLI) AdminProjectClient() projectclientset.Interface {
 	return client
 }
 
-func (c *CLI) AdminRouteClient() routeclientset.Interface {
-	client, err := routeclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminRouteClient() routev1client.Interface {
+	client, err := routev1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

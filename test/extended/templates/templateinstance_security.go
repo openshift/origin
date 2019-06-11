@@ -131,7 +131,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceReady,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err == nil
 					},
 				},
@@ -142,7 +142,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceReady,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err == nil
 					},
 				},
@@ -153,7 +153,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -164,7 +164,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyroute},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminRouteClient().Route().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
+						_, err := cli.AdminRouteClient().RouteV1().Routes(namespace).Get(dummyroute.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},

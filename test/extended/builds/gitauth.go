@@ -62,7 +62,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 
 			sourceSecretName := secretFunc()
 
-			route, err := oc.AdminRouteClient().Route().Routes(oc.Namespace()).Get(routeName, metav1.GetOptions{})
+			route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(routeName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			sourceURL := fmt.Sprintf(urlTemplate, route.Spec.Host)

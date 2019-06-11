@@ -57,7 +57,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 			var hostname string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				route, err := oc.RouteClient().Route().Routes(ns).Get("serving-cert", metav1.GetOptions{})
+				route, err := oc.RouteClient().RouteV1().Routes(ns).Get("serving-cert", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

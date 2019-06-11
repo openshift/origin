@@ -32,7 +32,7 @@ var _ = g.Describe("[Suite:openshift/oauth] The OAuth server well-known endpoint
 		err = json.Unmarshal([]byte(metadataJSON), metadata)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// compare to openshift-authentication route
-		route, err := oc.AdminRouteClient().Route().Routes(oauthNamespace).Get(oauthRoute, metav1.GetOptions{})
+		route, err := oc.AdminRouteClient().RouteV1().Routes(oauthNamespace).Get(oauthRoute, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		u, err := url.Parse("https://" + route.Spec.Host)
 		o.Expect(err).NotTo(o.HaveOccurred())
