@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/pkg/admission/admissiontimeout"
+
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -127,6 +129,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		options.Decorators = admission.Decorators{
 			admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 			admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
+			admission.DecoratorFunc(admissiontimeout.AdmissionTimeout{Timeout: 13 * time.Second}.WithTimeout),
 		}
 		// END ADMISSION
 
