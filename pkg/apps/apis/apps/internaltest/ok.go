@@ -1,20 +1,13 @@
 package test
 
 import (
-	"testing"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsv1conversions "github.com/openshift/origin/pkg/apps/apis/apps/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 const (
@@ -87,19 +80,6 @@ func OkStrategy() appsapi.DeploymentStrategy {
 	}
 }
 
-func OkCustomStrategy() appsapi.DeploymentStrategy {
-	return appsapi.DeploymentStrategy{
-		Type:         appsapi.DeploymentStrategyTypeCustom,
-		CustomParams: OkCustomParams(),
-		Resources: kapi.ResourceRequirements{
-			Limits: kapi.ResourceList{
-				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
-			},
-		},
-	}
-}
-
 func OkCustomParams() *appsapi.CustomDeploymentStrategyParams {
 	return &appsapi.CustomDeploymentStrategyParams{
 		Image: "openshift/origin-deployer",
@@ -116,23 +96,6 @@ func OkCustomParams() *appsapi.CustomDeploymentStrategyParams {
 func mkintp(i int) *int64 {
 	v := int64(i)
 	return &v
-}
-
-func OkRollingStrategy() appsapi.DeploymentStrategy {
-	return appsapi.DeploymentStrategy{
-		Type: appsapi.DeploymentStrategyTypeRolling,
-		RollingParams: &appsapi.RollingDeploymentStrategyParams{
-			UpdatePeriodSeconds: mkintp(1),
-			IntervalSeconds:     mkintp(1),
-			TimeoutSeconds:      mkintp(20),
-		},
-		Resources: kapi.ResourceRequirements{
-			Limits: kapi.ResourceList{
-				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
-			},
-		},
-	}
 }
 
 func OkSelector() map[string]string {
@@ -215,82 +178,4 @@ func OkImageChangeTrigger() appsapi.DeploymentTriggerPolicy {
 			},
 		},
 	}
-}
-
-func OkTriggeredImageChange() appsapi.DeploymentTriggerPolicy {
-	ict := OkImageChangeTrigger()
-	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
-	return ict
-}
-
-func OkNonAutomaticICT() appsapi.DeploymentTriggerPolicy {
-	ict := OkImageChangeTrigger()
-	ict.ImageChangeParams.Automatic = false
-	return ict
-}
-
-func OkTriggeredNonAutomatic() appsapi.DeploymentTriggerPolicy {
-	ict := OkNonAutomaticICT()
-	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
-	return ict
-}
-
-func TestDeploymentConfig(config *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
-	config.Spec.Test = true
-	return config
-}
-
-func OkHPAForDeploymentConfig(config *appsapi.DeploymentConfig, min, max int) *autoscaling.HorizontalPodAutoscaler {
-	newMin := int32(min)
-	return &autoscaling.HorizontalPodAutoscaler{
-		ObjectMeta: metav1.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
-		Spec: autoscaling.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
-				Name: config.Name,
-				Kind: "DeploymentConfig",
-			},
-			MinReplicas: &newMin,
-			MaxReplicas: int32(max),
-		},
-	}
-}
-
-func OkStreamForConfig(config *appsapi.DeploymentConfig) *imageapi.ImageStream {
-	for _, t := range config.Spec.Triggers {
-		if t.Type != appsapi.DeploymentTriggerOnImageChange {
-			continue
-		}
-
-		ref := t.ImageChangeParams.From
-		name, tag, _ := imageutil.SplitImageStreamTag(ref.Name)
-
-		return &imageapi.ImageStream{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: ref.Namespace,
-			},
-			Status: imageapi.ImageStreamStatus{
-				Tags: map[string]imageapi.TagEventList{
-					tag: {
-						Items: []imageapi.TagEvent{{DockerImageReference: t.ImageChangeParams.LastTriggeredImage}}}}},
-		}
-	}
-	return nil
-}
-
-func RoundTripConfig(t *testing.T, config *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
-	scheme := runtime.NewScheme()
-	appsv1conversions.Install(scheme)
-
-	versioned, err := scheme.ConvertToVersion(config, appsv1.GroupVersion)
-	if err != nil {
-		t.Errorf("unexpected conversion error: %v", err)
-		return nil
-	}
-	defaulted, err := scheme.ConvertToVersion(versioned, appsapi.SchemeGroupVersion)
-	if err != nil {
-		t.Errorf("unexpected conversion error: %v", err)
-		return nil
-	}
-	return defaulted.(*appsapi.DeploymentConfig)
 }

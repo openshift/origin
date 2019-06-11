@@ -5,20 +5,22 @@ import (
 	"context"
 	"errors"
 
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	imagegroup "github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	imageconversions "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"github.com/openshift/origin/pkg/image/util"
 )
 
 // REST implements the RESTStorage interface for ImageSignature
 type REST struct {
-	imageClient imageclient.ImagesGetter
+	imageClient imagev1typedclient.ImagesGetter
 }
 
 var _ rest.Creater = &REST{}
@@ -26,7 +28,7 @@ var _ rest.GracefulDeleter = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(imageClient imageclient.ImagesGetter) *REST {
+func NewREST(imageClient imagev1typedclient.ImagesGetter) *REST {
 	return &REST{imageClient: imageClient}
 }
 
@@ -55,7 +57,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	imageName, _, err := util.SplitImageSignatureName(signature.Name)
 	if err != nil {
-		return nil, kapierrors.NewBadRequest(err.Error())
+		return nil, apierrors.NewBadRequest(err.Error())
 	}
 
 	image, err := r.imageClient.Images().Get(imageName, metav1.GetOptions{})
@@ -65,10 +67,15 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	// ensure that given signature already doesn't exist - either by its name or type:content
 	if byName, byContent := indexOfImageSignatureByName(image.Signatures, signature.Name), indexOfImageSignature(image.Signatures, signature.Type, signature.Content); byName >= 0 || byContent >= 0 {
-		return nil, kapierrors.NewAlreadyExists(imagegroup.Resource("imageSignatures"), signature.Name)
+		return nil, apierrors.NewAlreadyExists(imagegroup.Resource("imageSignatures"), signature.Name)
 	}
 
-	image.Signatures = append(image.Signatures, *signature)
+	externalSignature := &imagev1.ImageSignature{}
+	if err := imageconversions.Convert_image_ImageSignature_To_v1_ImageSignature(signature, externalSignature, nil); err != nil {
+		return nil, apierrors.NewInternalError(err)
+	}
+
+	image.Signatures = append(image.Signatures, *externalSignature)
 
 	image, err = r.imageClient.Images().Update(image)
 	if err != nil {
@@ -77,7 +84,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	byName := indexOfImageSignatureByName(image.Signatures, signature.Name)
 	if byName < 0 {
-		return nil, kapierrors.NewInternalError(errors.New("failed to store given signature"))
+		return nil, apierrors.NewInternalError(errors.New("failed to store given signature"))
 	}
 
 	return &image.Signatures[byName], nil
@@ -86,7 +93,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	imageName, _, err := util.SplitImageSignatureName(name)
 	if err != nil {
-		return nil, false, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
+		return nil, false, apierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}
 
 	image, err := r.imageClient.Images().Get(imageName, metav1.GetOptions{})
@@ -96,7 +103,7 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 
 	index := indexOfImageSignatureByName(image.Signatures, name)
 	if index < 0 {
-		return nil, false, kapierrors.NewNotFound(imagegroup.Resource("imageSignatures"), name)
+		return nil, false, apierrors.NewNotFound(imagegroup.Resource("imageSignatures"), name)
 	}
 
 	size := len(image.Signatures)
@@ -112,7 +119,7 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 
 // IndexOfImageSignatureByName returns an index of signature identified by name in the image if present. It
 // returns -1 otherwise.
-func indexOfImageSignatureByName(signatures []imageapi.ImageSignature, name string) int {
+func indexOfImageSignatureByName(signatures []imagev1.ImageSignature, name string) int {
 	for i := range signatures {
 		if signatures[i].Name == name {
 			return i
@@ -123,7 +130,7 @@ func indexOfImageSignatureByName(signatures []imageapi.ImageSignature, name stri
 
 // IndexOfImageSignature returns index of signature identified by type and blob in the image if present. It
 // returns -1 otherwise.
-func indexOfImageSignature(signatures []imageapi.ImageSignature, sType string, sContent []byte) int {
+func indexOfImageSignature(signatures []imagev1.ImageSignature, sType string, sContent []byte) int {
 	for i := range signatures {
 		if signatures[i].Type == sType && bytes.Equal(signatures[i].Content, sContent) {
 			return i

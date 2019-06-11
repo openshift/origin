@@ -3,15 +3,17 @@ package rules
 import (
 	"testing"
 
+	"github.com/openshift/api/image/docker10"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 )
 
-func imageref(name string) imageapi.DockerImageReference {
+func imageref(name string) reference.DockerImageReference {
 	ref, err := reference.Parse(name)
 	if err != nil {
 		panic(err)
@@ -71,11 +73,11 @@ func TestAccept(t *testing.T) {
 				}},
 			},
 			accepts: []acceptResult{
-				{ImagePolicyAttributes{Image: &imageapi.Image{}}, true},
-				{ImagePolicyAttributes{Image: &imageapi.Image{}, Name: imageref("myregistry.io:5000/test:latest")}, true},
-				{ImagePolicyAttributes{Image: &imageapi.Image{}, Resource: podResource, Name: imageref("myregistry.io:5000/test:latest")}, true},
-				{ImagePolicyAttributes{Image: &imageapi.Image{}, Resource: podResource, Name: imageref("index.docker.io/namespace/test:latest")}, false},
-				{ImagePolicyAttributes{Image: &imageapi.Image{}, Resource: podResource, Name: imageref("test:latest")}, true},
+				{ImagePolicyAttributes{Image: &imagev1.Image{}}, true},
+				{ImagePolicyAttributes{Image: &imagev1.Image{}, Name: imageref("myregistry.io:5000/test:latest")}, true},
+				{ImagePolicyAttributes{Image: &imagev1.Image{}, Resource: podResource, Name: imageref("myregistry.io:5000/test:latest")}, true},
+				{ImagePolicyAttributes{Image: &imagev1.Image{}, Resource: podResource, Name: imageref("index.docker.io/namespace/test:latest")}, false},
+				{ImagePolicyAttributes{Image: &imagev1.Image{}, Resource: podResource, Name: imageref("test:latest")}, true},
 			},
 		},
 		"exclude a deny rule": {
@@ -131,7 +133,7 @@ func TestAccept(t *testing.T) {
 				{ImagePolicyAttributes{
 					Resource: podResource,
 					Name:     imageref("test:latest"),
-					Image:    &imageapi.Image{},
+					Image:    &imagev1.Image{},
 				}, true},
 			},
 		},
@@ -153,9 +155,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value1"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value2"}}}}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label2": "value1"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value1"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value2"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label2": "value1"}}}}, false},
 			},
 		},
 		"accepts matching multiple image label values": {
@@ -166,9 +168,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value1"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value2"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label2": "value1"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value1"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value2"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label2": "value1"}}}}, false},
 			},
 		},
 		"accepts matching image labels by key": {
@@ -178,9 +180,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value1"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value2"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label2": "value1"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value1"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label1": "value2"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"label2": "value1"}}}}, false},
 			},
 		},
 		"accepts matching image annotations": {
@@ -190,9 +192,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value1"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value2"}}}}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label2": "value1"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value1"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value2"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label2": "value1"}}}}, false},
 			},
 		},
 		"accepts matching multiple image annotations values": {
@@ -203,9 +205,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value1"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value2"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label2": "value1"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value1"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value2"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label2": "value1"}}}}, false},
 			},
 		},
 		"accepts matching image annotations by key": {
@@ -215,9 +217,9 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value1"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value2"}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label2": "value1"}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value1"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label1": "value2"}}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"label2": "value1"}}}}, false},
 			},
 		},
 		"accepts matching docker image labels": {
@@ -227,9 +229,15 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label1": "value1"}}},
+				}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label1": "value2"}}},
+				}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label2": "value1"}}},
+				}}}, false},
 			},
 		},
 		"accepts matching multiple docker image label values": {
@@ -240,9 +248,15 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label1": "value1"}}},
+				}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label1": "value2"}}},
+				}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label2": "value1"}}},
+				}}}, false},
 			},
 		},
 		"accepts matching docker image labels by key": {
@@ -252,9 +266,15 @@ func TestAccept(t *testing.T) {
 			},
 			accepts: []acceptResult{
 				{ImagePolicyAttributes{Resource: podResource}, false},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value1"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label1": "value2"}}}}}, true},
-				{ImagePolicyAttributes{Resource: podResource, Image: &imageapi.Image{DockerImageMetadata: imageapi.DockerImage{Config: &imageapi.DockerConfig{Labels: map[string]string{"label2": "value1"}}}}}, false},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label1": "value1"}}},
+				}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label1": "value2"}}},
+				}}}, true},
+				{ImagePolicyAttributes{Resource: podResource, Image: &imagev1.Image{DockerImageMetadata: runtime.RawExtension{
+					Object: &docker10.DockerImage{Config: &docker10.DockerConfig{Labels: map[string]string{"label2": "value1"}}},
+				}}}, false},
 			},
 		},
 		"covers calculations": {

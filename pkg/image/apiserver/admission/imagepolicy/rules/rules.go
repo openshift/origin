@@ -1,20 +1,22 @@
 package rules
 
 import (
-	"k8s.io/klog"
-
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 )
 
 type ImagePolicyAttributes struct {
 	Resource           metav1.GroupResource
-	Name               imageapi.DockerImageReference
-	Image              *imageapi.Image
+	Name               reference.DockerImageReference
+	Image              *imagev1.Image
 	ExcludedRules      sets.String
 	IntegratedRegistry bool
 	LocalRewrite       bool
@@ -119,12 +121,21 @@ func matchImageConditionValues(rule *imagepolicy.ImageCondition, integrated Regi
 	}
 
 	if len(rule.MatchDockerImageLabels) > 0 {
-		if image.DockerImageMetadata.Config == nil {
+		if err := imageutil.ImageWithMetadata(image); err != nil {
+			if rule.SkipOnResolutionFailure {
+				return false
+			} else {
+				return true
+			}
+		}
+		dockerImageMetadata, hasMetadata := image.DockerImageMetadata.Object.(*docker10.DockerImage)
+		if !hasMetadata {
 			klog.V(5).Infof("image has no labels to match rule labels")
 			return false
 		}
-		if !matchKeyValue(image.DockerImageMetadata.Config.Labels, rule.MatchDockerImageLabels) {
-			klog.V(5).Infof("image labels %#v do not match rule labels %#v", image.DockerImageMetadata.Config.Labels, rule.MatchDockerImageLabels)
+
+		if !matchKeyValue(dockerImageMetadata.Config.Labels, rule.MatchDockerImageLabels) {
+			klog.V(5).Infof("image labels %#v do not match rule labels %#v", dockerImageMetadata.Config.Labels, rule.MatchDockerImageLabels)
 			return false
 		}
 	}

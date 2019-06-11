@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,28 +16,26 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
-
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/image/internalimageutil"
 )
 
 // NewREST provides new REST storage for the apps API group.
-func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kubernetes.Interface, admission admission.Interface) *REST {
+func NewREST(store registry.Store, imagesclient imagev1client.Interface, kc kubernetes.Interface, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
-	return &REST{store: &store, is: imagesclient.Image(), rn: kc.CoreV1(), admit: admission}
+	return &REST{store: &store, is: imagesclient.ImageV1(), rn: kc.CoreV1(), admit: admission}
 }
 
 // REST implements the Creater interface.
@@ -47,7 +43,7 @@ var _ = rest.Creater(&REST{})
 
 type REST struct {
 	store *registry.Store
-	is    images.ImageStreamsGetter
+	is    imagev1typedclient.ImageStreamsGetter
 	rn    corev1client.ReplicationControllersGetter
 	admit admission.Interface
 }
@@ -136,7 +132,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 // processTriggers will go over all deployment triggers that require processing and update
 // the deployment config accordingly. This contains the work that the image change controller
 // had been doing up to the point we got the /instantiate endpoint.
-func processTriggers(config *appsapi.DeploymentConfig, is images.ImageStreamsGetter, force bool, exclude []appsapi.DeploymentTriggerType) error {
+func processTriggers(config *appsapi.DeploymentConfig, is imagev1typedclient.ImageStreamsGetter, force bool, exclude []appsapi.DeploymentTriggerType) error {
 	errs := []error{}
 
 	// Process any image change triggers.
@@ -168,7 +164,7 @@ func processTriggers(config *appsapi.DeploymentConfig, is images.ImageStreamsGet
 		}
 
 		// Find the latest tag event for the trigger reference.
-		latestReference, ok := internalimageutil.ResolveLatestTaggedImage(stream, tag)
+		latestReference, ok := imageutil.ResolveLatestTaggedImage(stream, tag)
 		if !ok {
 			continue
 		}

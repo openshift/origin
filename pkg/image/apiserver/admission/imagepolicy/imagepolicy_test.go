@@ -25,12 +25,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1fakeclient "github.com/openshift/client-go/image/clientset/versioned/fake"
+	"github.com/openshift/library-go/pkg/image/reference"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 const (
@@ -86,11 +87,11 @@ func TestDefaultPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	goodImage := &imageapi.Image{
+	goodImage := &imagev1.Image{
 		ObjectMeta:           metav1.ObjectMeta{Name: goodSHA},
 		DockerImageReference: "integrated.registry/goodns/goodimage:good",
 	}
-	badImage := &imageapi.Image{
+	badImage := &imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: badSHA,
 			Annotations: map[string]string{
@@ -100,16 +101,16 @@ func TestDefaultPolicy(t *testing.T) {
 		DockerImageReference: "integrated.registry/badns/badimage:bad",
 	}
 
-	goodTag := &imageapi.ImageStreamTag{
+	goodTag := &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Name: "mysql:goodtag", Namespace: "repo"},
 		Image:      *goodImage,
 	}
-	badTag := &imageapi.ImageStreamTag{
+	badTag := &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Name: "mysql:badtag", Namespace: "repo"},
 		Image:      *badImage,
 	}
 
-	client := &imageclient.Clientset{}
+	client := &imagev1fakeclient.Clientset{}
 	client.AddReactor("get", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		name := action.(clientgotesting.GetAction).GetName()
 		switch name {
@@ -134,7 +135,7 @@ func TestDefaultPolicy(t *testing.T) {
 	})
 
 	store := setDefaultCache(plugin)
-	plugin.client = client.Image()
+	plugin.client = client
 	plugin.SetDefaultRegistryFunc(func() (string, bool) {
 		return "integrated.registry", true
 	})
@@ -431,14 +432,14 @@ func TestAdmissionResolution(t *testing.T) {
 		switch ref.Name {
 		case "index.docker.io/mysql:latest":
 			return &rules.ImagePolicyAttributes{
-				Name:  imageapi.DockerImageReference{Registry: "index.docker.io", Name: "mysql", Tag: "latest"},
-				Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "1"}},
+				Name:  reference.DockerImageReference{Registry: "index.docker.io", Name: "mysql", Tag: "latest"},
+				Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Name: "1"}},
 			}, nil
 		case "myregistry.com/mysql/mysql:latest",
 			"myregistry.com/mysql/mysql@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4":
 			return &rules.ImagePolicyAttributes{
-				Name:  imageapi.DockerImageReference{Registry: "myregistry.com", Namespace: "mysql", Name: "mysql", ID: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"},
-				Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "2"}},
+				Name:  reference.DockerImageReference{Registry: "myregistry.com", Namespace: "mysql", Name: "mysql", ID: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"},
+				Image: &imagev1.Image{ObjectMeta: metav1.ObjectMeta{Name: "2"}},
 			}, nil
 		}
 		t.Fatalf("unexpected call to resolve image: %v", ref)
@@ -513,7 +514,7 @@ func TestAdmissionResolution(t *testing.T) {
 }
 
 func TestAdmissionResolveImages(t *testing.T) {
-	image1 := &imageapi.Image{
+	image1 := &imagev1.Image{
 		ObjectMeta:           metav1.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		DockerImageReference: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001",
 	}
@@ -534,7 +535,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		client *imageclient.Clientset
+		client *imagev1fakeclient.Clientset
 		policy imagepolicy.ImageResolutionType
 		config *imagepolicy.ImagePolicyConfig
 		attrs  admission.Attributes
@@ -545,7 +546,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "fails resolution",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(),
+			client: imagev1fakeclient.NewSimpleClientset(),
 			attrs: admission.NewAttributesRecord(
 				&kapi.Pod{
 					Spec: kapi.PodSpec{
@@ -564,7 +565,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves images in the integrated registry without altering their ref (avoids looking up the tag)",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
+			client: imagev1fakeclient.NewSimpleClientset(
 				image1,
 			),
 			attrs: admission.NewAttributesRecord(
@@ -590,7 +591,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves images in the integrated registry without altering their ref (avoids looking up the tag)",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
+			client: imagev1fakeclient.NewSimpleClientset(
 				image1,
 			),
 			attrs: admission.NewAttributesRecord(
@@ -616,7 +617,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
+			client: imagev1fakeclient.NewSimpleClientset(
 				image1,
 			),
 			attrs: admission.NewAttributesRecord(
@@ -650,8 +651,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves builds with image stream tags, uses the image DockerImageReference with SHA set",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -687,8 +688,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "does not resolve a build update because the reference didn't change",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -736,7 +737,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
+			client: imagev1fakeclient.NewSimpleClientset(
 				image1,
 			),
 			attrs: admission.NewAttributesRecord(
@@ -775,8 +776,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}},
 				},
 			},
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -817,8 +818,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, Policy: imagepolicy.Attempt},
 				},
 			},
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -859,8 +860,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, Policy: imagepolicy.AttemptRewrite},
 				},
 			},
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -896,8 +897,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -933,8 +934,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves builds with image stream images",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamImage{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamImage{
 					ObjectMeta: metav1.ObjectMeta{Name: "test@sha256:0000000000000000000000000000000000000000000000000000000000000001", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -970,10 +971,10 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves builds that have a local name to their image stream tags, uses the image DockerImageReference with SHA set",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
-					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					LookupPolicy: imagev1.ImageLookupPolicy{Local: true},
 					Image:        *image1,
 				},
 			),
@@ -1008,10 +1009,10 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves pods",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
-					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					LookupPolicy: imagev1.ImageLookupPolicy{Local: true},
 					Image:        *image1,
 				},
 			),
@@ -1038,10 +1039,10 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves replica sets that have a local name to their image stream tags, uses the image DockerImageReference with SHA set",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
-					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					LookupPolicy: imagev1.ImageLookupPolicy{Local: true},
 					Image:        *image1,
 				},
 			),
@@ -1076,8 +1077,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "does not resolve replica sets by default",
 			config: defaultPolicyConfig,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
 					Image:      *image1,
 				},
@@ -1113,10 +1114,10 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "resolves replica sets that specifically request lookup",
 			policy: imagepolicy.RequiredRewrite,
-			client: imageclient.NewSimpleClientset(
-				&imageapi.ImageStreamTag{
+			client: imagev1fakeclient.NewSimpleClientset(
+				&imagev1.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
-					LookupPolicy: imageapi.ImageLookupPolicy{Local: false},
+					LookupPolicy: imagev1.ImageLookupPolicy{Local: false},
 					Image:        *image1,
 				},
 			),
@@ -1153,18 +1154,18 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "if the tag is not found, but the stream is and resolves, resolve to the tag",
 			policy: imagepolicy.AttemptRewrite,
-			client: (func() *imageclient.Clientset {
-				fake := &imageclient.Clientset{}
+			client: (func() *imagev1fakeclient.Clientset {
+				fake := &imagev1fakeclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, nil, kerrors.NewNotFound(schema.GroupResource{Group: "image.openshift.io", Resource: "imagestreamtags"}, "test:other")
 				})
 				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-					return true, &imageapi.ImageStream{
+					return true, &imagev1.ImageStream{
 						ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
-						Spec: imageapi.ImageStreamSpec{
-							LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+						Spec: imagev1.ImageStreamSpec{
+							LookupPolicy: imagev1.ImageLookupPolicy{Local: true},
 						},
-						Status: imageapi.ImageStreamStatus{
+						Status: imagev1.ImageStreamStatus{
 							DockerImageRepository: "integrated.registry:5000/default/test",
 						},
 					}, nil
@@ -1202,18 +1203,18 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "if the tag is not found, but the stream is and doesn't resolve, use the original value",
 			policy: imagepolicy.AttemptRewrite,
-			client: (func() *imageclient.Clientset {
-				fake := &imageclient.Clientset{}
+			client: (func() *imagev1fakeclient.Clientset {
+				fake := &imagev1fakeclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, nil, kerrors.NewNotFound(schema.GroupResource{Resource: "imagestreamtags"}, "test:other")
 				})
 				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-					return true, &imageapi.ImageStream{
+					return true, &imagev1.ImageStream{
 						ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
-						Spec: imageapi.ImageStreamSpec{
-							LookupPolicy: imageapi.ImageLookupPolicy{Local: false},
+						Spec: imagev1.ImageStreamSpec{
+							LookupPolicy: imagev1.ImageLookupPolicy{Local: false},
 						},
-						Status: imageapi.ImageStreamStatus{
+						Status: imagev1.ImageStreamStatus{
 							DockerImageRepository: "integrated.registry:5000/default/test",
 						},
 					}, nil
@@ -1251,18 +1252,18 @@ func TestAdmissionResolveImages(t *testing.T) {
 		{
 			name:   "if the tag is not found, the stream resolves, but the registry is not installed, don't match",
 			policy: imagepolicy.AttemptRewrite,
-			client: (func() *imageclient.Clientset {
-				fake := &imageclient.Clientset{}
+			client: (func() *imagev1fakeclient.Clientset {
+				fake := &imagev1fakeclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, nil, kerrors.NewNotFound(schema.GroupResource{Resource: "imagestreamtags"}, "test:other")
 				})
 				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-					return true, &imageapi.ImageStream{
+					return true, &imagev1.ImageStream{
 						ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
-						Spec: imageapi.ImageStreamSpec{
-							LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+						Spec: imagev1.ImageStreamSpec{
+							LookupPolicy: imagev1.ImageLookupPolicy{Local: true},
 						},
-						Status: imageapi.ImageStreamStatus{
+						Status: imagev1.ImageStreamStatus{
 							DockerImageRepository: "",
 						},
 					}, nil
@@ -1321,7 +1322,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			}
 
 			setDefaultCache(p)
-			p.client = test.client.Image()
+			p.client = test.client
 			p.SetDefaultRegistryFunc(func() (string, bool) {
 				return "integrated.registry", true
 			})

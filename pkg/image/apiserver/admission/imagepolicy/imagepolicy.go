@@ -27,6 +27,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -35,7 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
-	imageinternalclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -68,7 +69,7 @@ func Register(plugins *admission.Plugins) {
 type imagePolicyPlugin struct {
 	*admission.Handler
 	config *imagepolicy.ImagePolicyConfig
-	client imageinternalclient.ImageInterface
+	client imagev1client.Interface
 
 	accepter rules.Accepter
 
@@ -130,7 +131,7 @@ func (a *imagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
 
 func (a *imagePolicyPlugin) SetRESTClientConfig(restClientConfig rest.Config) {
 	var err error
-	a.client, err = imageinternalclient.NewForConfig(&restClientConfig)
+	a.client, err = imagev1client.NewForConfig(&restClientConfig)
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
@@ -149,7 +150,7 @@ func (a *imagePolicyPlugin) ValidateInitialization() error {
 	if a.nsLister == nil {
 		return fmt.Errorf("%s needs a namespace lister", imagepolicy.PluginName)
 	}
-	imageResolver, err := newImageResolutionCache(a.client, a.integratedRegistryMatcher)
+	imageResolver, err := newImageResolutionCache(a.client.ImageV1(), a.integratedRegistryMatcher)
 	if err != nil {
 		return fmt.Errorf("unable to create image policy controller: %v", err)
 	}
@@ -237,7 +238,7 @@ func (m *mutationPreventer) Mutate(fn internalimagereferencemutators.ImageRefere
 }
 
 type imageResolutionCache struct {
-	imageClient imageinternalclient.ImageInterface
+	imageClient imagev1typedclient.ImageV1Interface
 	integrated  rules.RegistryMatcher
 	expiration  time.Duration
 
@@ -246,11 +247,11 @@ type imageResolutionCache struct {
 
 type imageCacheEntry struct {
 	expires time.Time
-	image   *imageapi.Image
+	image   *imagev1.Image
 }
 
 // newImageResolutionCache creates a new resolver that caches frequently loaded images for one minute.
-func newImageResolutionCache(imageClient imageinternalclient.ImageInterface, integratedRegistry rules.RegistryMatcher) (*imageResolutionCache, error) {
+func newImageResolutionCache(imageClient imagev1typedclient.ImageV1Interface, integratedRegistry rules.RegistryMatcher) (*imageResolutionCache, error) {
 	imageCache, err := lru.New(128)
 	if err != nil {
 		return nil, err

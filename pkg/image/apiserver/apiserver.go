@@ -24,9 +24,9 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 
-	imageapiv1 "github.com/openshift/api/image/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
-	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
@@ -39,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreamtag"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -107,8 +106,8 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(imageapiv1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.VersionedResourcesStorageMap[imageapiv1.SchemeGroupVersion.Version] = v1Storage
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(imagev1.GroupName, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
+	apiGroupInfo.VersionedResourcesStorageMap[imagev1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
 	}
@@ -198,12 +197,12 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	imageClient, err := imageclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	imageClient, err := imagev1client.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	imageV1Client, err := imageclientv1.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	imageV1Client, err := imagev1client.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +228,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	c.ExtraConfig.startFns = append(c.ExtraConfig.startFns, imageLayerIndex.Run)
 
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageSignatureStorage := imagesignature.NewREST(imageClient.Image())
+	imageSignatureStorage := imagesignature.NewREST(imageClient.ImageV1())
 	imageStreamSecretsStorage := imagesecret.NewREST(kubeClient.CoreV1())
 	imageStreamStorage, imageStreamLayersStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(
 		c.GenericConfig.RESTOptionsGetter,
