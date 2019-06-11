@@ -40,7 +40,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
-	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
@@ -51,7 +51,6 @@ import (
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	securityclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
-	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -372,18 +371,8 @@ func (c *CLI) RouteClient() routeclientset.Interface {
 
 // Client provides an OpenShift client for the current user. If the user is not
 // set, then it provides client for the cluster admin user
-func (c *CLI) InternalTemplateClient() templateclientset.Interface {
-	client, err := templateclientset.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-// Client provides an OpenShift client for the current user. If the user is not
-// set, then it provides client for the cluster admin user
-func (c *CLI) TemplateClient() templateclient.Interface {
-	client, err := templateclient.NewForConfig(c.UserConfig())
+func (c *CLI) TemplateClient() templatev1client.Interface {
+	client, err := templatev1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -463,17 +452,8 @@ func (c *CLI) AdminRouteClient() routeclientset.Interface {
 	return client
 }
 
-// AdminClient provides an OpenShift client for the cluster admin user.
-func (c *CLI) AdminInternalTemplateClient() templateclientset.Interface {
-	client, err := templateclientset.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) AdminTemplateClient() templateclient.Interface {
-	client, err := templateclient.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminTemplateClient() templatev1client.Interface {
+	client, err := templatev1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

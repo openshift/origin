@@ -102,7 +102,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
-				templateinstances, err := cli.AdminInternalTemplateClient().Template().TemplateInstances(cli.Namespace()).List(metav1.ListOptions{})
+				templateinstances, err := cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).List(metav1.ListOptions{})
 				if err == nil {
 					fmt.Fprintf(g.GinkgoWriter, "TemplateInstances: %#v", templateinstances.Items)
 				}
@@ -276,12 +276,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				o.Expect(test.checkOK(test.namespace)).To(o.BeTrue())
 
 				foreground := metav1.DeletePropagationForeground
-				err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
+				err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// wait for garbage collector to do its thing
 				err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-					_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+					_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 					if kerrors.IsNotFound(err) {
 						return true, nil
 					}

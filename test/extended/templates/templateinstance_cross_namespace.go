@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatev1 "github.com/openshift/api/template/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -45,23 +46,23 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		templateinstance := &templateapi.TemplateInstance{
+		templateinstance := &templatev1.TemplateInstance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "templateinstance",
 			},
-			Spec: templateapi.TemplateInstanceSpec{
-				Template: templateapi.Template{
+			Spec: templatev1.TemplateInstanceSpec{
+				Template: templatev1.Template{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "template",
 						Namespace: cli.Namespace(),
 					},
-					Parameters: []templateapi.Parameter{
+					Parameters: []templatev1.Parameter{
 						{
 							Name: "NAMESPACE",
 						},
 					},
 				},
-				Secret: &kapi.LocalObjectReference{
+				Secret: &corev1.LocalObjectReference{
 					Name: "secret",
 				},
 			},
@@ -85,21 +86,21 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("creating the templateinstance")
-		_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)
+		_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Create(templateinstance)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for templateinstance controller to do its thing
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			templateinstance, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+			templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
 
 			for _, c := range templateinstance.Status.Conditions {
-				if c.Reason == "Failed" && c.Status == kapi.ConditionTrue {
+				if c.Reason == "Failed" && c.Status == corev1.ConditionTrue {
 					return false, fmt.Errorf("failed condition: %s", c.Message)
 				}
-				if c.Reason == "Created" && c.Status == kapi.ConditionTrue {
+				if c.Reason == "Created" && c.Status == corev1.ConditionTrue {
 					return true, nil
 				}
 			}
@@ -117,12 +118,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 
 		g.By("deleting the templateinstance")
 		foreground := metav1.DeletePropagationForeground
-		err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
+		err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// wait for garbage collector to do its thing
 		err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
-			_, err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+			_, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 			if kerrors.IsNotFound(err) {
 				return true, nil
 			}
@@ -139,7 +140,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace te
 })
 
 // AddObjectsToTemplate adds the objects to the template using the target versions to choose the conversion destination
-func addObjectsToTemplate(template *templateapi.Template, objects []runtime.Object, targetVersions ...schema.GroupVersion) error {
+func addObjectsToTemplate(template *templatev1.Template, objects []runtime.Object, targetVersions ...schema.GroupVersion) error {
 	for i := range objects {
 		obj := objects[i]
 		if obj == nil {
@@ -170,7 +171,7 @@ func addObjectsToTemplate(template *templateapi.Template, objects []runtime.Obje
 		}
 
 		wrappedObject := runtime.NewEncodable(legacyscheme.Codecs.LegacyCodec(*targetVersion), obj)
-		template.Objects = append(template.Objects, wrappedObject)
+		template.Objects = append(template.Objects, runtime.RawExtension{Object: wrappedObject})
 	}
 
 	return nil
