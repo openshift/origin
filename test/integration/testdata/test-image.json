@@ -1,6 +1,6 @@
 {
   "kind": "Image",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test",
     "creationTimestamp": null

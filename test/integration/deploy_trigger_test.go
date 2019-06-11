@@ -14,7 +14,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
@@ -121,7 +121,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).AppsV1()
-	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig)
+	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
 
 	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
 
@@ -170,11 +170,9 @@ func TestTriggers_imageChange(t *testing.T) {
 			select {
 			case event := <-imageWatch.ResultChan():
 				stream := event.Object.(*imagev1.ImageStream)
-				for _, tagEvent := range stream.Status.Tags {
-					if tagEvent.Tag == imagev1.DefaultImageTag {
-						t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
-						break statusLoop
-					}
+				if _, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag); ok {
+					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
+					break statusLoop
 				}
 				t.Logf("Still waiting for latest tag status on imagestream %q", stream.Name)
 			}
@@ -228,7 +226,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
-	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig)
+	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
 
 	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
 
@@ -270,14 +268,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 			select {
 			case event := <-imageWatch.ResultChan():
 				stream := event.Object.(*imagev1.ImageStream)
-				var tagEventList imagev1.NamedTagEventList
-				ok := false
-				for _, tagEvent := range stream.Status.Tags {
-					if tagEvent.Tag == imagev1.DefaultImageTag {
-						tagEventList = tagEvent
-						ok = true
-					}
-				}
+				tagEventList, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag)
 				if ok && len(tagEventList.Items) > 0 && tagEventList.Items[0].DockerImageReference == mapping.Image.DockerImageReference {
 					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 					return
@@ -414,7 +405,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
-	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig)
+	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
 
 	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
 	secondImageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
@@ -475,11 +466,9 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 				if stream.Name != name {
 					continue
 				}
-				for _, tagEvent := range stream.Status.Tags {
-					if tagEvent.Tag == tag {
-						t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
-						break statusLoop
-					}
+				if _, ok := imageutil.StatusHasTag(stream, tag); ok {
+					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
+					break statusLoop
 				}
 				t.Logf("Still waiting for latest tag status on imagestream %q", stream.Name)
 			}

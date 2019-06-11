@@ -17,8 +17,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -220,6 +219,7 @@ func mockImageStream2(tag string) *imagev1.ImageStream {
 			DockerImageRepository: registryHostname + "/openshift/test-image-trigger",
 			Tags: []imagev1.TagReference{
 				{
+					Name: tag,
 					From: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: registryHostname + "/openshift/test-image-trigger:" + tag,
@@ -267,7 +267,7 @@ func setup(t *testing.T) (*rest.Config, kubernetes.Interface, *rest.Config, func
 
 func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imagev1.ImageStream, imageStreamMapping *imagev1.ImageStreamMapping, config *buildv1.BuildConfig, tag string) {
 	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminClientConfig).BuildV1()
-	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig)
+	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
@@ -438,6 +438,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 				DockerImageRepository: "registry:5000/openshift/" + name,
 				Tags: []imagev1.TagReference{
 					{
+						Name: tag,
 						From: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "registry:5000/openshift/" + name + ":" + tag,
@@ -516,7 +517,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		},
 	}
 	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminConfig).BuildV1()
-	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminConfig)
+	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminConfig).ImageV1()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {

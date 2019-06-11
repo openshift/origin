@@ -15,9 +15,8 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	quotav1 "github.com/openshift/api/quota/v1"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
-
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -38,7 +37,7 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminQuotaClient := quotaclient.NewForConfigOrDie(testutil.NonProtobufConfig(clusterAdminClientConfig))
-	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
 
 	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig); err != nil {
 		t.Fatal(err)

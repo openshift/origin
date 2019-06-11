@@ -78,7 +78,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry] Image resource quota", func()
 		assertQuotaExceeded(err)
 
 		g.By("deleting first image stream")
-		err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Delete("first", nil)
+		err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Delete("first", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = exutil.WaitForResourceQuotaSync(
 			oc.KubeClient().CoreV1().ResourceQuotas(oc.Namespace()),

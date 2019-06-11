@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -12,6 +13,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -96,7 +98,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(`removing tag "second" from "another" image stream`)
-		err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("another:second", nil)
+		err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Delete("another:second", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
@@ -128,36 +130,36 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
-		is, err := oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		is.Spec.Tags["foo"] = imageapi.TagReference{
+		upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{
 			Name: "foo",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: tag2Image["tag2"].DockerImageReference,
 			},
-			ImportPolicy: imageapi.TagImportPolicy{
+			ImportPolicy: imagev1.TagImportPolicy{
 				Insecure: true,
 			},
-		}
-		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
+		})
+		_, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(quotautil.IsErrorQuotaExceeded(err)).Should(o.Equal(true))
 
 		g.By("re-tagging the image under different tag")
-		is, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
+		is, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		is.Spec.Tags["duplicate"] = imageapi.TagReference{
+		upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{
 			Name: "duplicate",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: tag2Image["tag1"].DockerImageReference,
 			},
-			ImportPolicy: imageapi.TagImportPolicy{
+			ImportPolicy: imagev1.TagImportPolicy{
 				Insecure: true,
 			},
-		}
-		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
+		})
+		_, err = oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -203,10 +205,21 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 	})
 })
 
+func upsertSpecTag(tags *[]imagev1.TagReference, tagReference imagev1.TagReference) {
+	for i := range *tags {
+		curr := (*tags)[i]
+		if curr.Name == tagReference.Name {
+			(*tags)[i] = tagReference
+			return
+		}
+	}
+	*tags = append(*tags, tagReference)
+}
+
 // buildAndPushTestImagesTo builds a given number of test images. The images are pushed to a new image stream
 // of given name under <tagPrefix><X> where X is a number of image starting from 1.
-func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, numberOfImages int) (tag2Image map[string]imageapi.Image, err error) {
-	tag2Image = make(map[string]imageapi.Image)
+func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, numberOfImages int) (tag2Image map[string]imagev1.Image, err error) {
+	tag2Image = make(map[string]imagev1.Image)
 
 	for i := 1; i <= numberOfImages; i++ {
 		tag := fmt.Sprintf("%s%d", tagPrefix, i)
@@ -214,7 +227,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 		if err != nil {
 			return nil, err
 		}
-		ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get(isName+":"+tag, metav1.GetOptions{})
+		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(isName+":"+tag, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

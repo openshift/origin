@@ -50,7 +50,6 @@ import (
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -345,8 +344,8 @@ func (c *CLI) BuildClient() buildv1client.Interface {
 	return client
 }
 
-func (c *CLI) ImageClient() imageclientset.Interface {
-	client, err := imageclientset.NewForConfig(c.UserConfig())
+func (c *CLI) ImageClient() imagev1client.Interface {
+	client, err := imagev1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -421,15 +420,6 @@ func (c *CLI) AdminImageClient() imagev1client.Interface {
 
 func (c *CLI) AdminOperatorClient() operatorv1client.Interface {
 	client, err := operatorv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-// DEPRECATED: use external
-func (c *CLI) AdminInternalImageClient() imageclientset.Interface {
-	client, err := imageclientset.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

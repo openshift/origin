@@ -8,7 +8,6 @@ os::util::ensure::built_binary_exists 'client-gen' 'vendor/k8s.io/kubernetes/sta
 # list of package to generate client set for
 packages=(
   github.com/openshift/origin/pkg/authorization/apis/authorization
-  github.com/openshift/origin/pkg/image/apis/image
 )
 
 function generate_clientset_for() {
