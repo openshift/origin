@@ -18,7 +18,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/util/testutil"
+	"github.com/openshift/origin/pkg/image/apiserver/testutil"
 )
 
 func TestAdmitImageStreamMapping(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 )
 
 func TestLatestTaggedImage(t *testing.T) {
@@ -70,7 +71,7 @@ func TestLatestTaggedImage(t *testing.T) {
 		stream := &imagev1.ImageStream{}
 		stream.Status.Tags = test.tags
 
-		actual := LatestTaggedImage(stream, test.tag)
+		actual := imageutil.LatestTaggedImage(stream, test.tag)
 		if actual == nil {
 			if !test.expectNotFound {
 				t.Errorf("%d: unexpected nil result", i)
@@ -234,7 +235,7 @@ func TestResolveLatestTaggedImage(t *testing.T) {
 		stream.Status.Tags = test.tags
 		stream.Spec.Tags = test.refs
 
-		actual, ok := ResolveLatestTaggedImage(stream, test.tag)
+		actual, ok := imageutil.ResolveLatestTaggedImage(stream, test.tag)
 		if !ok {
 			if !test.expectNotFound {
 				t.Errorf("%d: unexpected nil result", i)

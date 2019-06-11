@@ -20,8 +20,8 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
-	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 var ErrNotImportable = errors.New("requested image cannot be imported")

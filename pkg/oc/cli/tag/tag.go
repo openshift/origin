@@ -197,7 +197,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 			}
 		}
 
-		ref, err := imageutilinternal.ParseDockerImageReference(source)
+		ref, err := imageutil.ParseDockerImageReference(source)
 		if err != nil {
 			return fmt.Errorf("invalid SOURCE: %v", err)
 		}
@@ -244,12 +244,12 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 			if err != nil {
 				return err
 			}
-			event := imageutilinternal.LatestTaggedImage(is, ref.Tag)
+			event := imageutil.LatestTaggedImage(is, ref.Tag)
 			if event == nil {
 				return fmt.Errorf("%q is not currently pointing to an image, cannot use it as the source of a tag", args[0])
 			}
 			if len(event.Image) == 0 {
-				imageRef, err := imageutilinternal.ParseDockerImageReference(event.DockerImageReference)
+				imageRef, err := imageutil.ParseDockerImageReference(event.DockerImageReference)
 				if err != nil {
 					return fmt.Errorf("the image stream tag %q has an invalid pull spec and cannot be used to tag: %v", args[0], err)
 				}
@@ -404,7 +404,7 @@ func (o TagOptions) Run() error {
 				}
 
 				// The user wants to delete a spec tag.
-				if _, ok := imageutilinternal.SpecHasTag(target, destTag); !ok {
+				if _, ok := imageutil.SpecHasTag(target, destTag); !ok {
 					return fmt.Errorf("destination tag %s/%s does not exist.\n", o.destNamespace[i], destNameAndTag)
 				}
 				// delete tag
@@ -527,7 +527,7 @@ func (o TagOptions) Run() error {
 				target.Spec.Tags = []imagev1.TagReference{}
 			}
 
-			if oldTargetTag, exists := imageutilinternal.SpecHasTag(target, destTag); exists {
+			if oldTargetTag, exists := imageutil.SpecHasTag(target, destTag); exists {
 				if oldTargetTag.Generation == nil {
 					// for servers that do not support tag generations, we need to force re-import to fetch its metadata
 					delete(target.Annotations, imagev1.DockerImageRepositoryCheckAnnotation)

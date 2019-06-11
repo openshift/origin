@@ -40,7 +40,6 @@ import (
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	"github.com/openshift/oc/pkg/helpers/template/templateprocessorclient"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
@@ -1036,7 +1035,7 @@ func (c *AppConfig) crossStreamCircularTagReference(stream *imagev1.ImageStream,
 			return true
 		}
 		seen.Insert(stream.ObjectMeta.Namespace + ":" + stream.ObjectMeta.Name + ":" + tag)
-		tagRef, ok := imageutilinternal.SpecHasTag(stream, tag)
+		tagRef, ok := imageutil.SpecHasTag(stream, tag)
 		if !ok {
 			// no tag at the end of the rainbow
 			return false
@@ -1084,7 +1083,7 @@ func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *im
 			return true
 		}
 
-		tagRef, ok := imageutilinternal.SpecHasTag(instream, intag)
+		tagRef, ok := imageutil.SpecHasTag(instream, intag)
 		if !ok {
 			// no tag at the end of the rainbow
 			return false
@@ -1200,7 +1199,7 @@ func (c *AppConfig) followRefToDockerImage(ref *corev1.ObjectReference, isContex
 
 	// Dereference ImageStreamTag to see what it is pointing to
 	var target *corev1.ObjectReference
-	if tagRef, ok := imageutilinternal.SpecHasTag(isContext, isTag); ok {
+	if tagRef, ok := imageutil.SpecHasTag(isContext, isTag); ok {
 		target = tagRef.From
 	}
 
@@ -1238,7 +1237,7 @@ func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error
 			}
 			is := c.findImageStreamInObjectList(objects, streamName, istNamespace)
 			if is != nil {
-				if _, hasTag := imageutilinternal.SpecHasTag(is, tagName); hasTag {
+				if _, hasTag := imageutil.SpecHasTag(is, tagName); hasTag {
 					objectsToRemove[fmt.Sprintf("%s/%s", istNamespace, ist.Name)] = struct{}{}
 
 				}

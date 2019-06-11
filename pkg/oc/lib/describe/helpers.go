@@ -249,7 +249,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 			}
 			v.Insert(tag.Name)
 		}
-		if _, ok := imagehelpers.StatusHasTag(stream, tag.Name); !ok {
+		if _, ok := imageutil.StatusHasTag(stream, tag.Name); !ok {
 			sortedTags = append(sortedTags, tag.Name)
 		}
 	}
@@ -266,8 +266,8 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 		} else {
 			fmt.Fprintf(out, "\n")
 		}
-		taglist, _ := imagehelpers.StatusHasTag(stream, tag)
-		tagRef, hasSpecTag := imagehelpers.SpecHasTag(stream, tag)
+		taglist, _ := imageutil.StatusHasTag(stream, tag)
+		tagRef, hasSpecTag := imageutil.SpecHasTag(stream, tag)
 		scheduled := false
 		insecure := false
 		importing := false
@@ -431,7 +431,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imagev1.ImageStream) {
 // LatestObservedTagGeneration returns the generation value for the given tag that has been observed by the controller
 // monitoring the image stream. If the tag has not been observed, the generation is zero.
 func latestObservedTagGeneration(stream *imagev1.ImageStream, tag string) int64 {
-	tagEvents, ok := imagehelpers.StatusHasTag(stream, tag)
+	tagEvents, ok := imageutil.StatusHasTag(stream, tag)
 	if !ok {
 		return 0
 	}

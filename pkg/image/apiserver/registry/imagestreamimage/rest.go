@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/openshift/origin/pkg/image/internalimageutil"
-	"github.com/openshift/origin/pkg/image/util"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +61,7 @@ func (s *REST) NamespaceScoped() bool {
 // parseNameAndID splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.
 func parseNameAndID(input string) (name string, id string, err error) {
-	name, id, err = util.ParseImageStreamImageName(input)
+	name, id, err = imageutil.ParseImageStreamImageName(input)
 	if err != nil {
 		err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 	}

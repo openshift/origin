@@ -67,7 +67,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/legacy"
 	quotahelpers "github.com/openshift/oc/pkg/helpers/quota"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 func describerMap(clientConfig *rest.Config, kclient kubernetes.Interface, host string) map[schema.GroupKind]describe.Describer {
@@ -687,7 +686,7 @@ func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 			formatAnnotations(out, image.ObjectMeta, "")
 		}
 
-		if err := ocimageutil.ImageWithMetadata(image); err != nil {
+		if err := imageutil.ImageWithMetadata(image); err != nil {
 			return err
 		}
 		dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)

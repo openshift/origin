@@ -28,9 +28,10 @@ import (
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/build/buildutil"
 	"github.com/openshift/library-go/pkg/build/naming"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageutil "github.com/openshift/origin/pkg/image/util"
+	oldimageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const conflictRetries = 3
@@ -689,7 +690,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx context.Context, from c
 			klog.V(2).Info(err)
 			return "", err
 		}
-		reference, ok := imageutil.DockerImageReferenceForImage(stream, id)
+		reference, ok := oldimageutil.DockerImageReferenceForImage(stream, id)
 		if !ok {
 			err = resolveError(from.Kind, namespace, from.Name, fmt.Errorf("unable to find corresponding tag for image %q", id))
 			klog.V(2).Info(err)

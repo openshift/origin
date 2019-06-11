@@ -5,10 +5,6 @@ import (
 )
 
 const (
-	// DockerImageRepositoryCheckAnnotation indicates that OpenShift has
-	// attempted to import tag and image information from an external Docker
-	// image repository.
-	DockerImageRepositoryCheckAnnotation = "openshift.io/image.dockerRepositoryCheck"
 
 	// DockerDefaultNamespace is the value for namespace when a single segment name is provided.
 	DockerDefaultNamespace = "library"

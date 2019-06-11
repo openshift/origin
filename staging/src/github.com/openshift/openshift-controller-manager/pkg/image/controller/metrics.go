@@ -9,10 +9,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	metrics "github.com/openshift/openshift-controller-manager/pkg/image/metrics/prometheus"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const reasonUnknown = "Unknown"
@@ -159,7 +158,7 @@ func enumerateIsImportStatuses(isi *imagev1.ImageStreamImport, cb func(*metrics.
 // SetDockerClientDefaults set the default values used by the Docker client.
 func setDockerClientDefaults(r *imagev1.DockerImageReference) {
 	if len(r.Registry) == 0 {
-		r.Registry = imageapi.DockerDefaultRegistry
+		r.Registry = reference.DockerDefaultRegistry
 	}
 	if len(r.Namespace) == 0 && reference.IsRegistryDockerHub(r.Registry) {
 		r.Namespace = "library"

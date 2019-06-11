@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
 )
@@ -111,7 +110,7 @@ func (g *imageRefGenerator) FromStream(stream *imagev1.ImageStream, tag string) 
 		Stream: stream,
 	}
 
-	if tagged := imageutilinternal.LatestTaggedImage(stream, tag); tagged != nil {
+	if tagged := imageutil.LatestTaggedImage(stream, tag); tagged != nil {
 		if ref, err := reference.Parse(tagged.DockerImageReference); err == nil {
 			imageRef.ResolvedReference = &ref
 			imageRef.Reference = ref

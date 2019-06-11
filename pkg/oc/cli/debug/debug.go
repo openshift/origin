@@ -52,7 +52,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/conditions"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 const (
@@ -576,7 +575,7 @@ func (o *DebugOptions) getContainerImageCommand(pod *corev1.Pod, container *core
 		return nil, fmt.Errorf("error: no usable image found")
 	}
 
-	if err := ocimageutil.ImageWithMetadata(image); err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)

@@ -1,5 +1,5 @@
 hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
-updated: 2019-06-10T08:54:54.407024316-04:00
+updated: 2019-06-10T13:33:57.835017224-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 03f675a820a710503424722d69ab43614d4efd6a
+  version: 403f0b6bc08810d625f1b7a1928ff15e73a23ebe
   subpackages:
   - annotations
   - apps
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 45f5fc965849b1cc08fde2949d217cdfa74e0805
+  version: 19992070fc8d639e8bb44ff0c1bc05deaf6e9486
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -1201,7 +1201,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 1ebaf171af8344a61df80be0a400aeca3f3b4a9c
+  version: a6292ef9db3798374dbd4dc56230a28006539836
   subpackages:
   - pkg/cli/admin/cert
   - pkg/cli/admin/createerrortemplate

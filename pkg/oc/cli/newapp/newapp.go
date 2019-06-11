@@ -54,7 +54,6 @@ import (
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	newappapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
@@ -1149,7 +1148,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseNam
 			if len(imageStream.Status.Tags) > 0 {
 				set := sets.NewString()
 				for _, tag := range imageStream.Status.Tags {
-					if refTag, ok := imageutilinternal.SpecHasTag(imageStream, tag.Tag); ok {
+					if refTag, ok := imageutil.SpecHasTag(imageStream, tag.Tag); ok {
 						if !ocimageutil.HasAnnotationTag(&refTag, imagehelpers.TagReferenceAnnotationTagHidden) {
 							set.Insert(tag.Tag)
 						}

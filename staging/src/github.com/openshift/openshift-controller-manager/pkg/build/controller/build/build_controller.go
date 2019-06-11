@@ -55,7 +55,6 @@ import (
 	"github.com/openshift/openshift-controller-manager/pkg/build/controller/policy"
 	"github.com/openshift/openshift-controller-manager/pkg/build/controller/strategy"
 	metrics "github.com/openshift/openshift-controller-manager/pkg/build/metrics/prometheus"
-	imageutilinternal "github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -861,7 +860,7 @@ func resolveImageID(stream *imagev1.ImageStream, imageID string) (*imagev1.TagEv
 	for _, history := range stream.Status.Tags {
 		for i := range history.Items {
 			tagging := &history.Items[i]
-			if imageutilinternal.DigestOrImageMatch(tagging.Image, imageID) {
+			if imageutil.DigestOrImageMatch(tagging.Image, imageID) {
 				event = tagging
 				set.Insert(tagging.Image)
 			}
@@ -897,7 +896,7 @@ func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.Ima
 		}
 		return nil, fmt.Errorf("the referenced image stream %s/%s could not be found: %v", namespace, name, err)
 	}
-	if newRef, ok := imageutilinternal.ResolveLatestTaggedImage(stream, tag); ok {
+	if newRef, ok := imageutil.ResolveLatestTaggedImage(stream, tag); ok {
 		return &corev1.ObjectReference{Kind: "DockerImage", Name: newRef}, nil
 	}
 	return nil, fmt.Errorf("the referenced image stream tag %s/%s does not exist", namespace, ref.Name)

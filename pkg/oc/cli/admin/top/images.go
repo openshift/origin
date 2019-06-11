@@ -26,7 +26,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/graph/genericgraph"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/oc/pkg/helpers/graph/kubegraph/nodes"
-	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
 )
 
 const (
@@ -215,7 +214,7 @@ func getStorage(image *imagev1.Image) int64 {
 		blobSet.Insert(layer.Name)
 		storage += layer.LayerSize
 	}
-	if err := ocimageutil.ImageWithMetadata(image); err != nil {
+	if err := imageutil.ImageWithMetadata(image); err != nil {
 		return storage
 	}
 	dockerImage, ok := image.DockerImageMetadata.Object.(*dockerv10.DockerImage)
