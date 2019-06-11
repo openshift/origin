@@ -6,7 +6,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"github.com/openshift/openshift-controller-manager/pkg/quota/clusterquotareconciliation"
-	"github.com/openshift/origin/pkg/quota/image"
+	image "github.com/openshift/openshift-controller-manager/pkg/quota/quotaimageexternal"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/quota/v1/generic"

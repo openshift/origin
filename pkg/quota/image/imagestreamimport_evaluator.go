@@ -3,17 +3,14 @@ package image
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/quota/quotaimageexternal"
+
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kadmission "k8s.io/apiserver/pkg/admission"
 	kquota "k8s.io/kubernetes/pkg/quota/v1"
-	"k8s.io/kubernetes/pkg/quota/v1/generic"
 
-	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -25,7 +22,7 @@ var imageStreamImportResources = []corev1.ResourceName{
 }
 
 type imageStreamImportEvaluator struct {
-	store imagev1lister.ImageStreamLister
+	externalEvaluator kquota.Evaluator
 }
 
 // NewImageStreamImportEvaluator computes resource usage for ImageStreamImport objects. This particular kind
@@ -33,43 +30,41 @@ type imageStreamImportEvaluator struct {
 // the admission can work.
 func NewImageStreamImportEvaluator(store imagev1lister.ImageStreamLister) kquota.Evaluator {
 	return &imageStreamImportEvaluator{
-		store: store,
+		externalEvaluator: quotaimageexternal.NewImageStreamImportEvaluator(store),
 	}
 }
 
 // Constraints checks that given object is an image stream import.
 func (i *imageStreamImportEvaluator) Constraints(required []corev1.ResourceName, object runtime.Object) error {
 	_, okInt := object.(*imageapi.ImageStreamImport)
-	_, okExt := object.(*imagev1.ImageStreamImport)
-	if !okInt && !okExt {
-		return fmt.Errorf("unexpected input object %v", object)
+	if okInt {
+		return nil
 	}
-	return nil
+	return i.externalEvaluator.Constraints(required, object)
 }
 
 func (i *imageStreamImportEvaluator) GroupResource() schema.GroupResource {
-	return image.Resource("imagestreamimports")
+	return i.externalEvaluator.GroupResource()
 }
 
 func (i *imageStreamImportEvaluator) Handles(a kadmission.Attributes) bool {
-	return a.GetOperation() == kadmission.Create
+	return i.externalEvaluator.Handles(a)
 }
 
 func (i *imageStreamImportEvaluator) Matches(resourceQuota *corev1.ResourceQuota, item runtime.Object) (bool, error) {
-	matchesScopeFunc := func(corev1.ScopedResourceSelectorRequirement, runtime.Object) (bool, error) { return true, nil }
-	return generic.Matches(resourceQuota, item, i.MatchingResources, matchesScopeFunc)
+	return i.externalEvaluator.Matches(resourceQuota, item)
 }
 
-func (p *imageStreamImportEvaluator) MatchingScopes(item runtime.Object, scopes []corev1.ScopedResourceSelectorRequirement) ([]corev1.ScopedResourceSelectorRequirement, error) {
-	return []corev1.ScopedResourceSelectorRequirement{}, nil
+func (i *imageStreamImportEvaluator) MatchingScopes(item runtime.Object, scopes []corev1.ScopedResourceSelectorRequirement) ([]corev1.ScopedResourceSelectorRequirement, error) {
+	return i.externalEvaluator.MatchingScopes(item, scopes)
 }
 
-func (p *imageStreamImportEvaluator) UncoveredQuotaScopes(limitedScopes []corev1.ScopedResourceSelectorRequirement, matchedQuotaScopes []corev1.ScopedResourceSelectorRequirement) ([]corev1.ScopedResourceSelectorRequirement, error) {
-	return []corev1.ScopedResourceSelectorRequirement{}, nil
+func (i *imageStreamImportEvaluator) UncoveredQuotaScopes(limitedScopes []corev1.ScopedResourceSelectorRequirement, matchedQuotaScopes []corev1.ScopedResourceSelectorRequirement) ([]corev1.ScopedResourceSelectorRequirement, error) {
+	return i.externalEvaluator.UncoveredQuotaScopes(limitedScopes, matchedQuotaScopes)
 }
 
 func (i *imageStreamImportEvaluator) MatchingResources(input []corev1.ResourceName) []corev1.ResourceName {
-	return kquota.Intersection(input, imageStreamImportResources)
+	return i.externalEvaluator.MatchingResources(input)
 }
 
 func (i *imageStreamImportEvaluator) Usage(item runtime.Object) (corev1.ResourceList, error) {
@@ -80,30 +75,9 @@ func (i *imageStreamImportEvaluator) Usage(item runtime.Object) (corev1.Resource
 		}
 		item = out
 	}
-	isi, ok := item.(*imagev1.ImageStreamImport)
-	if !ok {
-		return corev1.ResourceList{}, fmt.Errorf("item is not an ImageStreamImport: %T", item)
-	}
-
-	usage := map[corev1.ResourceName]resource.Quantity{
-		imagev1.ResourceImageStreams: *resource.NewQuantity(0, resource.DecimalSI),
-	}
-
-	if !isi.Spec.Import || (len(isi.Spec.Images) == 0 && isi.Spec.Repository == nil) {
-		return usage, nil
-	}
-
-	is, err := i.store.ImageStreams(isi.Namespace).Get(isi.Name)
-	if err != nil && !kerrors.IsNotFound(err) {
-		utilruntime.HandleError(fmt.Errorf("failed to list image streams: %v", err))
-	}
-	if is == nil || kerrors.IsNotFound(err) {
-		usage[imagev1.ResourceImageStreams] = *resource.NewQuantity(1, resource.DecimalSI)
-	}
-
-	return usage, nil
+	return i.externalEvaluator.Usage(item)
 }
 
 func (i *imageStreamImportEvaluator) UsageStats(options kquota.UsageStatsOptions) (kquota.UsageStats, error) {
-	return kquota.UsageStats{}, nil
+	return i.externalEvaluator.UsageStats(options)
 }

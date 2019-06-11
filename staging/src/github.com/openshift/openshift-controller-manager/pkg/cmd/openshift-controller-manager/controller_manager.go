@@ -22,9 +22,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	origincontrollers "github.com/openshift/openshift-controller-manager/pkg/cmd/controller"
 	"github.com/openshift/openshift-controller-manager/pkg/cmd/imageformat"
 	"github.com/openshift/openshift-controller-manager/pkg/version"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"

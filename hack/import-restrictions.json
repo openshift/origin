@@ -169,12 +169,7 @@
     "checkedPackageRoots": [
       "github.com/openshift/origin/pkg"
     ],
-    "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/openshift-controller-manager",
-      "github.com/openshift/origin/pkg/build/controller",
-      "github.com/openshift/origin/pkg/image/controller",
-      "github.com/openshift/origin/pkg/security/controller"
-    ],
+    "ignoredSubTrees": [],
     "forbiddenImportPackageRoots": [
       "vendor/github.com/openshift/openshift-controller-manager"
     ],
