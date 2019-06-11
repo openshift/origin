@@ -453,6 +453,21 @@ var (
 // checkSyntheticInput selects tests based on synthetic skips or focuses
 func checkSyntheticInput() {
 	checkSuiteSkips()
+	checkSkipTestsEnvVar()
+}
+
+func checkSkipTestsEnvVar() {
+	envvar, exists := os.LookupEnv("SKIP_TESTS")
+
+	if exists {
+		skipTests := strings.Split(envvar, " ")
+
+		for _, v := range skipTests {
+			if testNameContains(v) {
+				ginkgo.Skip("skipping test declared in SKIP_TESTS envvar")
+			}
+		}
+	}
 }
 
 // checkSuiteSkips ensures Origin/Kubernetes synthetic skip labels are applied
