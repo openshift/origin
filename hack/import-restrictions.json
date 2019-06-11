@@ -468,7 +468,6 @@
       "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/project/apis/project",
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
-      "github.com/openshift/origin/pkg/route/apis/route",
       "github.com/openshift/origin/pkg/version",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",

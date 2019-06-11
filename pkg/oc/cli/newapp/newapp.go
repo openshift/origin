@@ -59,7 +59,6 @@ import (
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
 	"github.com/openshift/origin/pkg/oc/lib/ocimageutil"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // NewAppRecommendedCommandName is the recommended command name.
@@ -419,7 +418,7 @@ func (o *AppOptions) RunNewApp() error {
 		{Version: "v1", Kind: "Pod"}:                                    true,
 		{Group: buildapi.GroupName, Version: "v1", Kind: "BuildConfig"}: true,
 		{Group: imageapi.GroupName, Version: "v1", Kind: "ImageStream"}: true,
-		{Group: routeapi.GroupName, Version: "v1", Kind: "Route"}:       true,
+		{Group: routev1.GroupName, Version: "v1", Kind: "Route"}:        true,
 	}
 
 	hasMissingRepo := false

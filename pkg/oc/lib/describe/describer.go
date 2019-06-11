@@ -855,7 +855,6 @@ func (d *RouteDescriber) Describe(namespace, name string, settings describe.Desc
 	if err != nil {
 		return "", err
 	}
-
 	backends := append([]routev1.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
 	totalWeight := int32(0)
 	endpoints := make(map[string]routeEndpointInfo)
