@@ -174,11 +174,10 @@
 // test/extended/testdata/jenkins-plugin/shared-resources-template.json
 // test/extended/testdata/jenkins-slave-template.yaml
 // test/extended/testdata/jobs/v1.yaml
-// test/extended/testdata/ldap/ldapserver-buildconfig.json
-// test/extended/testdata/ldap/ldapserver-deploymentconfig.json
-// test/extended/testdata/ldap/ldapserver-imagestream-testenv.json
-// test/extended/testdata/ldap/ldapserver-imagestream.json
-// test/extended/testdata/ldap/ldapserver-service.json
+// test/extended/testdata/ldap/ldapserver-config-cm.yaml
+// test/extended/testdata/ldap/ldapserver-deployment.yaml
+// test/extended/testdata/ldap/ldapserver-scripts-cm.yaml
+// test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/multi-namespace-pipeline.yaml
@@ -9849,260 +9848,611 @@ func testExtendedTestdataJobsV1Yaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverBuildconfigJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "openldap"
-    }
-  },
-  "spec": {
-    "source": {
-      "type": "Binary"
-    },
-    "strategy": {
-      "type": "Docker",
-      "dockerStrategy": {
-        "from": {
-          "kind": "ImageStreamTag",
-          "name": "openldap:latest"
-        }
-      }
-    },
-    "output": {
-      "to": {
-        "kind": "ImageStreamTag",
-        "name": "openldap-testenv:latest"
-      }
-    },
-    "resources": {}
-  },
-  "status": {
-    "lastVersion": 0
-  }
-}
+var _testExtendedTestdataLdapLdapserverConfigCmYaml = []byte(`---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ldap-config
+data:
+  ldap.conf: |
+    TLS_CACERTDIR   /usr/local/etc/ldapcert
+    TLS_CACERT      /usr/local/etc/ldapcert/ca.crt
+
+  tls_conf.ldif: |
+    # Configures the TLS certs for slapd
+    dn: cn=config
+    changetype: modify
+    add: olcTLSCACertificateFile
+    olcTLSCACertificateFile: /usr/local/etc/ldapcert/ca.crt
+    -
+    replace: olcTLSCertificateFile
+    olcTLSCertificateFile: /usr/local/etc/ldapcert/tls.crt
+    -
+    replace: olcTLSCertificateKeyFile
+    olcTLSCertificateKeyFile: /usr/local/etc/ldapcert/tls.key
+
+  base_conf.ldif: |
+    # The base LDIF data
+    dn: dc=example,dc=com
+    objectClass: top
+    objectClass: dcObject
+    objectclass: organization
+    o: Example Com
+    dc: Example
+
+    dn: cn=Manager,dc=example,dc=com
+    objectClass: organizationalRole
+    cn: Manager
+    description: LDAP Directory Manager
+
+    dn: ou=People,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: People
+
+    dn: ou=Group,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: Group
+
+  domain_conf.ldif: |
+    # Domain setup
+    dn: olcDatabase={1}monitor,cn=config
+    changetype: modify
+    replace: olcAccess
+    olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth"
+      read by dn.base="cn=Manager,dc=example,dc=com" read by * none
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    replace: olcSuffix
+    olcSuffix: dc=example,dc=com
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    replace: olcRootDN
+    olcRootDN: cn=Manager,dc=example,dc=com
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    add: olcRootPW
+    olcRootPW: admin
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    add: olcAccess
+    olcAccess: {0}to attrs=userPassword,shadowLastChange by
+      dn="cn=Manager,dc=example,dc=com" write by anonymous auth by self write by * none
+    olcAccess: {1}to dn.base="" by * read
+    olcAccess: {2}to * by dn="cn=Manager,dc=example,dc=com" write by * read
+
+
+  groupsync.ldif: |
+    # Groupsync LDIF data
+    dn: ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: rfc2307
+    description: RFC2307-style Entries
+
+    dn: ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: User Groups
+
+    dn: ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: Users
+
+    dn: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+
+    dn: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+
+    dn: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+
+    dn: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+
+    dn: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person5
+    displayName: person5smith
+    mail: person5smith@example.com
+
+    dn: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group1
+    owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group2
+    owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person2's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group3
+    owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person3's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: ou=ad,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: ad
+    description: Active Directory-style Entries
+
+    dn: ou=people,ou=ad,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: AD-style users
+
+    dn: cn=Person1,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+    testMemberOf: group3
+
+    dn: cn=Person2,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+
+    dn: cn=Person3,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+
+    dn: cn=Person4,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+    testMemberOf: group1
+
+    dn: cn=Person5,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person5
+    displayName: person5smith
+    mail: person5smith@example.com
+    testMemberOf: group1
+    testMemberOf: group3
+
+    dn: ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: adextended
+    description: AD-style Entries with Group Entries
+
+    dn: ou=people,ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: AD-style users
+
+    dn: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person4,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person5,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: person5smith
+    displayName: person5smith
+    mail: person5smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: Group entries with metadata
+
+    dn: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group1
+    owner: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group2
+    owner: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+    description: Person2's Group
+    member: cn=fake
+
+    dn: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group3
+    owner: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+    description: Person3's Group
+    member: cn=fake
+
+    dn: ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: incomplete-rfc2307
+    description: OrganizationalUnit to hold malformed entries
+
+    dn: ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: Group entries with member lists containing missing members
+
+    dn: cn=group1,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group1
+    owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group2
+    owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person2's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+
+    dn: cn=group3,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group3
+    owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person3's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+
 `)
 
-func testExtendedTestdataLdapLdapserverBuildconfigJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverBuildconfigJson, nil
+func testExtendedTestdataLdapLdapserverConfigCmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverConfigCmYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverBuildconfigJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverBuildconfigJsonBytes()
+func testExtendedTestdataLdapLdapserverConfigCmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverConfigCmYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-buildconfig.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-config-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverDeploymentconfigJson = []byte(`{
-  "kind": "DeploymentConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap-server",
-    "creationTimestamp": null
-  },
-  "spec": {
-    "strategy": {
-      "type": "Recreate",
-      "resources": {}
-    },
-    "triggers": [
-      {
-        "type": "ImageChange",
-        "imageChangeParams": {
-          "automatic": true,
-          "containerNames": [
-            "openldap-server"
-          ],
-          "from": {
-            "kind": "ImageStreamTag",
-            "name": "openldap-testenv:latest"
-          },
-          "lastTriggeredImage": ""
-        }
-      },
-      {
-        "type": "ConfigChange"
-      }
-    ],
-    "replicas": 1,
-    "selector": {
-      "name": "openldap-server"
-    },
-    "template": {
-      "metadata": {
-        "creationTimestamp": null,
-        "labels": {
-          "name": "openldap-server"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "name": "openldap-server",
-            "image": "openldap-testenv",
-            "ports": [
-              {
-                "containerPort": 389,
-                "protocol": "TCP"
-              }
-            ],
-            "resources": {},
-            "terminationMessagePath": "/dev/termination-log",
-            "imagePullPolicy": "IfNotPresent",
-            "capabilities": {},
-            "securityContext": {
-              "capabilities": {},
-              "privileged": false
-            },
-            "readinessProbe": {
-              "exec": {
-                "command": ["ldapsearch", "-x", "-b", "dc=example,dc=com"]
-              },
-              "initialDelaySeconds": 5,
-              "timeoutSeconds": 1
-            }            
-          }
-        ],
-        "restartPolicy": "Always",
-        "dnsPolicy": "ClusterFirst",
-        "serviceAccount": ""
-      }
-    }
-  },
-  "status": {}
-}`)
+var _testExtendedTestdataLdapLdapserverDeploymentYaml = []byte(`---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: openldap-server
+  labels:
+    app: openldap-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openldap-server
+  template:
+    metadata:
+      name: openldap-server
+      labels:
+        app: openldap-server
+    spec:
+      serviceAccountName: ldap
+      containers:
+      - name: openldap-server
+        securityContext:
+          privileged: true
+        # This image is built from the images/openldap directory. Temporary repo location.
+        image: docker.io/mrogers950/origin-openldap-test:fedora29
+        ports:
+        # StartTLS works over 389
+        - containerPort: 389
+          protocol: TCP
+        terminationMessagePath: "/dev/termination-log"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: ldap-config
+          # Configs get copied to /etc/openldap by container run script.
+          mountPath: /usr/local/etc/ldapconf
+        - name: scripts
+          mountPath: /usr/local/bin
+        - name: ldap-cert
+          mountPath: /usr/local/etc/ldapcert
+      volumes:
+      - name: ldap-cert
+        secret:
+          secretName: ldap-cert
+      - name: ldap-config
+        configMap:
+          name: ldap-config
+      - name: scripts
+        configMap:
+          name: scripts
+          defaultMode: 0777
+      restartPolicy: Always
+`)
 
-func testExtendedTestdataLdapLdapserverDeploymentconfigJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverDeploymentconfigJson, nil
+func testExtendedTestdataLdapLdapserverDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverDeploymentYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverDeploymentconfigJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverDeploymentconfigJsonBytes()
+func testExtendedTestdataLdapLdapserverDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverDeploymentYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-deploymentconfig.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverImagestreamTestenvJson = []byte(`{
-  "kind": "ImageStream",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap-testenv",
-    "creationTimestamp": null
-  },
-  "spec": {},
-  "status": {
-    "dockerImageRepository": ""
-  }
-}`)
+var _testExtendedTestdataLdapLdapserverScriptsCmYaml = []byte(`---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scripts
+data:
+  run-openldap.sh: |
+    #!/bin/bash -x
+    # This script is the entrypoint for the openldap container. It configures and runs slapd.
+    # Modified slightly from https://raw.githubusercontent.com/openshift/openldap/master/2.4.41/run-openldap.sh
 
-func testExtendedTestdataLdapLdapserverImagestreamTestenvJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverImagestreamTestenvJson, nil
+    # Reduce maximum number of number of open file descriptors to 1024
+    # otherwise slapd consumes two orders of magnitude more of RAM
+    # see https://github.com/docker/docker/issues/8231
+    ulimit -n 1024
+
+    OPENLDAP_ROOT_PASSWORD=${OPENLDAP_ROOT_PASSWORD:-admin}
+    OPENLDAP_ROOT_DN_PREFIX=${OPENLDAP_ROOT_DN_PREFIX:-'cn=Manager'}
+    OPENLDAP_ROOT_DN_SUFFIX=${OPENLDAP_ROOT_DN_SUFFIX:-'dc=example,dc=com'}
+    OPENLDAP_DEBUG_LEVEL=${OPENLDAP_DEBUG_LEVEL:-256}
+
+    # Only run if no config has happened fully before
+    if [ ! -f /etc/openldap/CONFIGURED ]; then
+        user=`+"`"+`id | grep -Po "(?<=uid=)\d+"`+"`"+`
+        if (( user == 0 ))
+        then
+            # We are root, we can use user input!
+            # Bring in default databse config
+            cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+
+            # start the daemon in another process and make config changes
+            slapd -h "ldap:/// ldaps:/// ldapi:///" -d $OPENLDAP_DEBUG_LEVEL &
+            for ((i=30; i>0; i--))
+            do
+                ping_result=`+"`"+`ldapsearch 2>&1 | grep "Can.t contact LDAP server"`+"`"+`
+                if [ -z "$ping_result" ]
+                then
+                    break
+                fi
+                sleep 1
+            done
+            if [ $i -eq 0 ]
+            then
+                echo "slapd did not start correctly"
+                exit 1
+            fi
+
+            # add useful schemas
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # domain and TLS setup
+            ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/domain_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/tls_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # base and groupsync data
+            ldapadd -x -D cn=Manager,dc=example,dc=com -w admin -f /usr/local/etc/ldapconf/base_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -x -D cn=Manager,dc=example,dc=com -w admin -f /usr/local/etc/ldapconf/groupsync.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # stop the daemon
+            pid=$(ps -A | grep slapd | awk '{print $1}')
+            kill -2 $pid || echo $?
+
+            # ensure the daemon stopped
+            for ((i=30; i>0; i--))
+            do
+                exists=$(ps -A | grep $pid)
+                if [ -z "${exists}" ]
+                then
+                    break
+                fi
+                sleep 1
+            done
+            if [ $i -eq 0 ]
+            then
+                echo "slapd did not stop correctly"
+                exit 1
+            fi
+        else
+            # Something has gone wrong with our image build
+            echo "FAILURE: Need to run pod as root"
+            exit 1
+        fi
+
+        # copy in ldap.conf
+        cp /usr/local/etc/ldapconf/*.conf /etc/openldap/
+
+        # Test configuration files, log checksum errors. Errors may be tolerated and repaired by slapd so don't exit
+        LOG=`+"`"+`slaptest 2>&1`+"`"+`
+        CHECKSUM_ERR=$(echo "${LOG}" | grep -Po "(?<=ldif_read_file: checksum error on \").+(?=\")")
+        for err in $CHECKSUM_ERR
+        do
+            echo "The file ${err} has a checksum error. Ensure that this file is not edited manually, or re-calculate the checksum."
+        done
+
+        touch /etc/openldap/CONFIGURED
+    fi
+
+    # Start the slapd service
+    exec slapd -h "ldap:///${HOSTNAME} ldapi:/// ldaps:///${HOSTNAME}" -d $OPENLDAP_DEBUG_LEVEL
+`)
+
+func testExtendedTestdataLdapLdapserverScriptsCmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverScriptsCmYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverImagestreamTestenvJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverImagestreamTestenvJsonBytes()
+func testExtendedTestdataLdapLdapserverScriptsCmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverScriptsCmYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-imagestream-testenv.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-scripts-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverImagestreamJson = []byte(`{
-  "kind": "ImageStream",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap",
-    "creationTimestamp": null
-  },
-  "spec": {
-    "dockerImageRepository": "openshift/openldap-2441-centos7",
-    "tags": [
-      {
-        "tag": "latest",
-        "annotations": {
-          "description": "Provides OpenLDAP v2.4.41",
-          "iconClass": "fa-server",
-          "tags": "server,openldap",
-          "version": "2.4.41"
-        }
-      }
-    ]
-  },
-  "status": {
-    "dockerImageRepository": ""
-  }
-}`)
+var _testExtendedTestdataLdapLdapserverServiceYaml = []byte(`---
+kind: Service
+apiVersion: v1
+metadata:
+  name: openldap-server
+spec:
+  ports:
+  - name: ldap
+    protocol: TCP
+    port: 389
+    targetPort: 389
+  selector:
+    app: openldap-server
+  type: ClusterIP
+`)
 
-func testExtendedTestdataLdapLdapserverImagestreamJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverImagestreamJson, nil
+func testExtendedTestdataLdapLdapserverServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverServiceYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverImagestreamJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverImagestreamJsonBytes()
+func testExtendedTestdataLdapLdapserverServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverServiceYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-imagestream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataLdapLdapserverServiceJson = []byte(`{
-  "kind": "Service",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap-server",
-    "creationTimestamp": null
-  },
-  "spec": {
-    "ports": [
-      {
-        "name": "ldap",
-        "protocol": "TCP",
-        "port": 389,
-        "targetPort": 389,
-        "nodePort": 0
-      }
-    ],
-    "selector": {
-      "name": "openldap-server"
-    },
-    "type": "ClusterIP",
-    "sessionAffinity": "None"
-  },
-  "status": {
-    "loadBalancer": {}
-  }
-}`)
-
-func testExtendedTestdataLdapLdapserverServiceJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverServiceJson, nil
-}
-
-func testExtendedTestdataLdapLdapserverServiceJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverServiceJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-service.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -33536,11 +33886,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/jenkins-plugin/shared-resources-template.json": testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
 	"test/extended/testdata/jenkins-slave-template.yaml": testExtendedTestdataJenkinsSlaveTemplateYaml,
 	"test/extended/testdata/jobs/v1.yaml": testExtendedTestdataJobsV1Yaml,
-	"test/extended/testdata/ldap/ldapserver-buildconfig.json": testExtendedTestdataLdapLdapserverBuildconfigJson,
-	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json": testExtendedTestdataLdapLdapserverDeploymentconfigJson,
-	"test/extended/testdata/ldap/ldapserver-imagestream-testenv.json": testExtendedTestdataLdapLdapserverImagestreamTestenvJson,
-	"test/extended/testdata/ldap/ldapserver-imagestream.json": testExtendedTestdataLdapLdapserverImagestreamJson,
-	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
+	"test/extended/testdata/ldap/ldapserver-config-cm.yaml": testExtendedTestdataLdapLdapserverConfigCmYaml,
+	"test/extended/testdata/ldap/ldapserver-deployment.yaml": testExtendedTestdataLdapLdapserverDeploymentYaml,
+	"test/extended/testdata/ldap/ldapserver-scripts-cm.yaml": testExtendedTestdataLdapLdapserverScriptsCmYaml,
+	"test/extended/testdata/ldap/ldapserver-service.yaml": testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
@@ -34029,11 +34378,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"v1.yaml": &bintree{testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
 				"ldap": &bintree{nil, map[string]*bintree{
-					"ldapserver-buildconfig.json": &bintree{testExtendedTestdataLdapLdapserverBuildconfigJson, map[string]*bintree{}},
-					"ldapserver-deploymentconfig.json": &bintree{testExtendedTestdataLdapLdapserverDeploymentconfigJson, map[string]*bintree{}},
-					"ldapserver-imagestream-testenv.json": &bintree{testExtendedTestdataLdapLdapserverImagestreamTestenvJson, map[string]*bintree{}},
-					"ldapserver-imagestream.json": &bintree{testExtendedTestdataLdapLdapserverImagestreamJson, map[string]*bintree{}},
-					"ldapserver-service.json": &bintree{testExtendedTestdataLdapLdapserverServiceJson, map[string]*bintree{}},
+					"ldapserver-config-cm.yaml": &bintree{testExtendedTestdataLdapLdapserverConfigCmYaml, map[string]*bintree{}},
+					"ldapserver-deployment.yaml": &bintree{testExtendedTestdataLdapLdapserverDeploymentYaml, map[string]*bintree{}},
+					"ldapserver-scripts-cm.yaml": &bintree{testExtendedTestdataLdapLdapserverScriptsCmYaml, map[string]*bintree{}},
+					"ldapserver-service.yaml": &bintree{testExtendedTestdataLdapLdapserverServiceYaml, map[string]*bintree{}},
 				}},
 				"long_names": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},

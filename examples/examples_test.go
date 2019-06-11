@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	app "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,11 +83,10 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"redis-ephemeral-template":       &templatev1.Template{},
 		},
 		"../test/extended/testdata/ldap": {
-			"ldapserver-buildconfig":         &buildv1.BuildConfig{},
-			"ldapserver-deploymentconfig":    &appsv1.DeploymentConfig{},
-			"ldapserver-imagestream":         &imagev1.ImageStream{},
-			"ldapserver-imagestream-testenv": &imagev1.ImageStream{},
-			"ldapserver-service":             &corev1.Service{},
+			"ldapserver-deployment": &app.Deployment{},
+			"ldapserver-config-cm":  &corev1.ConfigMap{},
+			"ldapserver-scripts-cm": &corev1.ConfigMap{},
+			"ldapserver-service":    &corev1.Service{},
 		},
 		"../test/integration/testdata": {
 			// TODO fix this test to  handle json and yaml
