@@ -69,11 +69,11 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		defer After(oc)
 		g.By("adding builder account to privileged SCC")
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			scc, err := oc.AdminSecurityClient().Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
+			scc, err := oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			scc.Users = append(scc.Users, "system:serviceaccount:"+oc.Namespace()+":builder")
-			_, err = oc.AdminSecurityClient().Security().SecurityContextConstraints().Update(scc)
+			_, err = oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Update(scc)
 			return err
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())

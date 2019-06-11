@@ -40,6 +40,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
@@ -50,7 +51,6 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	securityclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -468,8 +468,8 @@ func (c *CLI) AdminUserClient() userv1client.Interface {
 	return client
 }
 
-func (c *CLI) AdminSecurityClient() securityclientset.Interface {
-	client, err := securityclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminSecurityClient() securityv1client.Interface {
+	client, err := securityv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

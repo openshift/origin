@@ -31,8 +31,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/generated"
 
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -274,7 +274,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		if err != nil {
 			return ns, err
 		}
-		securityClient, err := securityclient.NewForConfig(clientConfig)
+		securityClient, err := securityv1client.NewForConfig(clientConfig)
 		if err != nil {
 			return ns, err
 		}
@@ -491,11 +491,11 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	}
 }
 
-func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespaces []kapiv1.Namespace, sccName string) {
+func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, namespaces []kapiv1.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := securityClient.Security().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
+		scc, err := securityClient.SecurityV1().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil
@@ -508,7 +508,7 @@ func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespa
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		if _, err := securityClient.Security().SecurityContextConstraints().Update(scc); err != nil {
+		if _, err := securityClient.SecurityV1().SecurityContextConstraints().Update(scc); err != nil {
 			return err
 		}
 		return nil
