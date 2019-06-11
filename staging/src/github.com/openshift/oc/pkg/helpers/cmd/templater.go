@@ -1,4 +1,4 @@
-package templates
+package cmd
 
 import (
 	"bytes"
@@ -7,11 +7,12 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/openshift/oc/pkg/helpers/term"
-	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
-
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
+
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
+
+	"github.com/openshift/oc/pkg/helpers/term"
 )
 
 type FlagExposer interface {

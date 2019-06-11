@@ -42,6 +42,6 @@ func NewCmd(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStr
 		},
 	}
 	groups.Add(image)
-	templates.ActsAsRootCommand(image, []string{"options"}, groups...)
+	cmd.ActsAsRootCommand(image, []string{"options"}, groups...)
 	return image
 }

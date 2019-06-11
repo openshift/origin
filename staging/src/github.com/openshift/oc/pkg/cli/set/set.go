@@ -74,7 +74,7 @@ func NewCmdSet(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 		},
 	}
 	groups.Add(set)
-	templates.ActsAsRootCommand(set, []string{"options"}, groups...)
+	cmd.ActsAsRootCommand(set, []string{"options"}, groups...)
 	return set
 }
 
