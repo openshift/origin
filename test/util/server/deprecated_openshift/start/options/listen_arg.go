@@ -1,8 +1,6 @@
 package options
 
-import (
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
-)
+import "github.com/openshift/oc/pkg/helpers/flagtypes"
 
 // ListenArg is a struct that the command stores flag values into.
 type ListenArg struct {

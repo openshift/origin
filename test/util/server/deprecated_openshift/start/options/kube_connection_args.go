@@ -7,7 +7,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/oc/pkg/helpers/flagtypes"
 )
 
 type KubeConnectionArgs struct {

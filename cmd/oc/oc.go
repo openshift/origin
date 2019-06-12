@@ -1,6 +1,7 @@
 package main
 
 import (
+	goflag "flag"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -8,7 +9,9 @@ import (
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/apps"
@@ -28,8 +31,21 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/oc/cli"
 	"github.com/openshift/origin/pkg/version"
+	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
+
+func injectLoglevelFlag(flags *pflag.FlagSet) {
+	from := goflag.CommandLine
+	if flag := from.Lookup("v"); flag != nil {
+		level := flag.Value.(*klog.Level)
+		levelPtr := (*int32)(level)
+		flags.Int32Var(levelPtr, "loglevel", 0, "Set the level of log output (0-10)")
+		if flags.Lookup("v") == nil {
+			flags.Int32Var(levelPtr, "v", 0, "Set the level of log output (0-10)")
+		}
+	}
+}
 
 func main() {
 	logs.InitLogs()
@@ -41,6 +57,10 @@ func main() {
 	if len(os.Getenv("GOMAXPROCS")) == 0 {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
+
+	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+	injectLoglevelFlag(pflag.CommandLine)
 
 	// the kubectl scheme expects to have all the recognizable external types it needs to consume.  Install those here.
 	// We can't use the "normal" scheme because apply will use that to build stategic merge patches on CustomResources
