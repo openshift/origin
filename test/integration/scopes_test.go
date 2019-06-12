@@ -19,20 +19,20 @@ import (
 	rbacvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectapiv1 "github.com/openshift/api/project/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	projectclient "github.com/openshift/client-go/project/clientset/versioned"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/openshift-apiserver/pkg/client/impersonatingclient"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -60,12 +60,12 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldUser, err := userclient.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
+	haroldUser, err := userv1client.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
+	whoamiOnlyToken := &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
 		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   200,
@@ -74,7 +74,7 @@ func TestScopedTokens(t *testing.T) {
 		UserUID:     string(haroldUser.UID),
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}
-	if _, err := oauthclient.NewForConfigOrDie(clusterAdminClientConfig).OAuthAccessTokens().Create(whoamiOnlyToken); err != nil {
+	if _, err := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig).OAuthAccessTokens().Create(whoamiOnlyToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -85,7 +85,7 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	user, err := userclient.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
+	user, err := userv1client.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestScopedTokens(t *testing.T) {
 
 	// try to impersonate a service account using this token
 	whoamiConfig.Impersonate = rest.ImpersonationConfig{UserName: apiserverserviceaccount.MakeUsername(projectName, "default")}
-	impersonatedUser, err := userclient.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
+	impersonatedUser, err := userv1client.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
 	if !kapierrors.IsForbidden(err) {
 		t.Fatalf("missing error: %v got user %#v", err, impersonatedUser)
 	}
@@ -128,8 +128,8 @@ func TestScopedImpersonation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	user := &userapi.User{}
-	err = userclient.NewForConfigOrDie(clusterAdminClientConfig).RESTClient().Get().
+	user := &userv1.User{}
+	err = userv1client.NewForConfigOrDie(clusterAdminClientConfig).RESTClient().Get().
 		SetHeader(authenticationv1.ImpersonateUserHeader, "harold").
 		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey, "user:info").
 		Resource("users").Name("~").Do().Into(user)
@@ -152,7 +152,7 @@ func TestScopeEscalations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminOAuthClient := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	projectName := "hammer-project"
 	userName := "harold"
@@ -165,12 +165,12 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldUser, err := userclient.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
+	haroldUser, err := userv1client.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
+	nonEscalatingEditToken := &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
 		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   200,
@@ -194,7 +194,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	escalatingEditToken := &oauthapi.OAuthAccessToken{
+	escalatingEditToken := &oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
 		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   200,
@@ -230,21 +230,21 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminOAuthClient := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig)
 
-	client := &oauthapi.OAuthClient{
+	client := &oauthv1.OAuthClient{
 		ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
-		ScopeRestrictions: []oauthapi.ScopeRestriction{
+		ScopeRestrictions: []oauthv1.ScopeRestriction{
 			{ExactValues: []string{"user:info"}},
 			{
-				ClusterRole: &oauthapi.ClusterRoleScopeRestriction{
+				ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two"},
 					Namespaces:      []string{"alfa", "bravo"},
 					AllowEscalation: false,
 				},
 			},
 		},
-		GrantMethod: oauthapi.GrantHandlerAuto,
+		GrantMethod: oauthv1.GrantHandlerAuto,
 	}
 	if _, err := clusterAdminOAuthClient.OAuthClients().Create(client); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -252,13 +252,13 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 
 	clientAuthorizationTests := []struct {
 		name string
-		obj  *oauthapi.OAuthClientAuthorization
+		obj  *oauthv1.OAuthClientAuthorization
 		fail bool
 	}{
 		{
 			name: "no scopes",
 			fail: true,
-			obj: &oauthapi.OAuthClientAuthorization{
+			obj: &oauthv1.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
@@ -268,7 +268,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "denied literal",
 			fail: true,
-			obj: &oauthapi.OAuthClientAuthorization{
+			obj: &oauthv1.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
@@ -279,7 +279,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "denied role",
 			fail: true,
-			obj: &oauthapi.OAuthClientAuthorization{
+			obj: &oauthv1.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
@@ -289,7 +289,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		},
 		{
 			name: "ok role",
-			obj: &oauthapi.OAuthClientAuthorization{
+			obj: &oauthv1.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
 				ClientName: client.Name,
 				UserName:   "name",
@@ -311,13 +311,13 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 
 	accessTokenTests := []struct {
 		name string
-		obj  *oauthapi.OAuthAccessToken
+		obj  *oauthv1.OAuthAccessToken
 		fail bool
 	}{
 		{
 			name: "no scopes",
 			fail: true,
-			obj: &oauthapi.OAuthAccessToken{
+			obj: &oauthv1.OAuthAccessToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				UserName:    "name",
@@ -328,7 +328,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "denied literal",
 			fail: true,
-			obj: &oauthapi.OAuthAccessToken{
+			obj: &oauthv1.OAuthAccessToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				UserName:    "name",
@@ -340,7 +340,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "denied role",
 			fail: true,
-			obj: &oauthapi.OAuthAccessToken{
+			obj: &oauthv1.OAuthAccessToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				UserName:    "name",
@@ -351,7 +351,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		},
 		{
 			name: "ok role",
-			obj: &oauthapi.OAuthAccessToken{
+			obj: &oauthv1.OAuthAccessToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				UserName:    "name",
@@ -374,13 +374,13 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 
 	authorizeTokenTests := []struct {
 		name string
-		obj  *oauthapi.OAuthAuthorizeToken
+		obj  *oauthv1.OAuthAuthorizeToken
 		fail bool
 	}{
 		{
 			name: "no scopes",
 			fail: true,
-			obj: &oauthapi.OAuthAuthorizeToken{
+			obj: &oauthv1.OAuthAuthorizeToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				ExpiresIn:   86400,
@@ -392,7 +392,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "denied literal",
 			fail: true,
-			obj: &oauthapi.OAuthAuthorizeToken{
+			obj: &oauthv1.OAuthAuthorizeToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				ExpiresIn:   86400,
@@ -405,7 +405,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		{
 			name: "denied role",
 			fail: true,
-			obj: &oauthapi.OAuthAuthorizeToken{
+			obj: &oauthv1.OAuthAuthorizeToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				ExpiresIn:   86400,
@@ -417,7 +417,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		},
 		{
 			name: "ok role",
-			obj: &oauthapi.OAuthAuthorizeToken{
+			obj: &oauthv1.OAuthAuthorizeToken{
 				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
 				ClientName:  client.Name,
 				ExpiresIn:   86400,
@@ -468,12 +468,12 @@ func TestUnknownScopes(t *testing.T) {
 		Extra: map[string][]string{
 			authorizationapi.ScopesKey: {"user:list-projects", "bad"}}}
 	impersonatingConfig := impersonatingclient.NewImpersonatingConfig(&userInfo, *clusterAdminClientConfig)
-	projectClient := projectclient.NewForConfigOrDie(&impersonatingConfig)
+	projectClient := projectv1client.NewForConfigOrDie(&impersonatingConfig)
 
 	var projects *projectapiv1.ProjectList
 	err = wait.Poll(100*time.Millisecond, 30*time.Second,
 		func() (bool, error) {
-			projects, err = projectClient.ProjectV1().Projects().List(metav1.ListOptions{})
+			projects, err = projectClient.Projects().List(metav1.ListOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -498,8 +498,8 @@ func TestUnknownScopes(t *testing.T) {
 			authorizationapi.ScopesKey: {"bad"}}}
 	badScopesImpersonatingConfig := impersonatingclient.NewImpersonatingConfig(
 		&badScopesUserInfo, *clusterAdminClientConfig)
-	badScopesProjectClient := projectclient.NewForConfigOrDie(&badScopesImpersonatingConfig)
-	projects, err = badScopesProjectClient.ProjectV1().Projects().List(metav1.ListOptions{})
+	badScopesProjectClient := projectv1client.NewForConfigOrDie(&badScopesImpersonatingConfig)
+	projects, err = badScopesProjectClient.Projects().List(metav1.ListOptions{})
 	if err == nil {
 		t.Fatalf("Expected forbidden error, but got no error")
 	}

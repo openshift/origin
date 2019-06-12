@@ -13,36 +13,15 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
 
+	"github.com/openshift/api/project"
+	projectv1 "github.com/openshift/api/project/v1"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/requestproject"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-
-	// make sure all generated clients compile
-	// these are only here because it's the spot I chose to use a generated clientset for a test
-	"github.com/openshift/api/project"
-	_ "github.com/openshift/client-go/apps/clientset/versioned"
-	_ "github.com/openshift/client-go/authorization/clientset/versioned"
-	_ "github.com/openshift/client-go/build/clientset/versioned"
-	_ "github.com/openshift/client-go/image/clientset/versioned"
-	_ "github.com/openshift/client-go/network/clientset/versioned"
-	_ "github.com/openshift/client-go/project/clientset/versioned"
-	_ "github.com/openshift/client-go/quota/clientset/versioned"
-	_ "github.com/openshift/client-go/route/clientset/versioned"
-	_ "github.com/openshift/client-go/template/clientset/versioned"
-	_ "github.com/openshift/client-go/user/clientset/versioned"
-
-	_ "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
@@ -132,8 +111,8 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig)
-	clusterAdminTemplateClient := templateclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminProjectClient := projectv1client.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminTemplateClient := templatev1client.NewForConfigOrDie(clusterAdminClientConfig)
 
 	valerieClientConfig := *clusterAdminClientConfig
 	valerieClientConfig.Username = ""
@@ -152,7 +131,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	valerieClientConfig.BearerToken = accessToken
 	valerieProjectClient := projectv1client.NewForConfigOrDie(&valerieClientConfig)
 
-	if _, err := clusterAdminProjectClient.Project().Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
+	if _, err := clusterAdminProjectClient.Projects().Create(&projectv1.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -163,7 +142,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	template.Name = templateName
 	template.Namespace = namespace
 
-	_, err = clusterAdminTemplateClient.Template().Templates(namespace).Create(template)
+	_, err = clusterAdminTemplateClient.Templates(namespace).Create(template)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,7 +169,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Errorf("unexpected project %#v", project)
 	}
 
-	if err := clusterAdminTemplateClient.Template().Templates(namespace).Delete(templateName, nil); err != nil {
+	if err := clusterAdminTemplateClient.Templates(namespace).Delete(templateName, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -232,7 +211,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 
 	valerieClientConfig.BearerToken = accessToken
 
-	valerieProjectClient := projectclient.NewForConfigOrDie(valerieClientConfig)
+	valerieProjectClient := projectv1client.NewForConfigOrDie(valerieClientConfig)
 	valerieKubeClient := kubernetes.NewForConfigOrDie(valerieClientConfig)
 
 	if err := testutil.WaitForClusterPolicyUpdate(valerieKubeClient.AuthorizationV1(), "create", project.Resource("projectrequests"), false); err != nil {
@@ -240,7 +219,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	err = valerieProjectClient.Project().RESTClient().Get().Resource("projectrequests").Do().Into(&metav1.Status{})
+	err = valerieProjectClient.RESTClient().Get().Resource("projectrequests").Do().Into(&metav1.Status{})
 	if err == nil {
 		t.Fatalf("expected error: %v", err)
 	}

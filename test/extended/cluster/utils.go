@@ -567,7 +567,7 @@ func SetNamespaceLabels(c kclientset.Interface, name string, labels map[string]s
 }
 
 func ProjectExists(oc *exutil.CLI, name string) (bool, error) {
-	p, err := oc.AdminProjectClient().Project().Projects().Get(name, metav1.GetOptions{})
+	p, err := oc.AdminProjectClient().ProjectV1().Projects().Get(name, metav1.GetOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return false, nil
@@ -582,7 +582,7 @@ func ProjectExists(oc *exutil.CLI, name string) (bool, error) {
 
 func DeleteProject(oc *exutil.CLI, name string, interval, timeout time.Duration) error {
 	e2e.Logf("Deleting project %v ...", name)
-	err := oc.AdminProjectClient().Project().Projects().Delete(name, &metav1.DeleteOptions{})
+	err := oc.AdminProjectClient().ProjectV1().Projects().Delete(name, &metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}

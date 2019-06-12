@@ -14,13 +14,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/apiserver/testutil"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -41,7 +39,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest, imagetest.MiscImageDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
-		image := &imageapi.Image{
+		image := &imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -49,7 +47,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 		}
 		tag := fmt.Sprintf("tag%d", i+1)
 
-		_, err := client.Image().ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
+		_, err := client.ImageV1().ImageStreamMappings(testutil.Namespace()).Create(&imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "src",
 			},
@@ -66,19 +64,19 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	createLimitRangeOfType(t, lrClient, limitRangeName, imagev1.LimitTypeImageStream, limit)
 
 	t.Logf("trying to create ImageStreamTag referencing isimage exceeding quota %v", limit)
-	ist := &imageapi.ImageStreamTag{
+	ist := &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag1",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "1",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: "src@" + imagetest.BaseImageWith1LayerDigest,
 			},
 		},
 	}
-	_, err := client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+	_, err := client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -89,13 +87,13 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	limit = bumpLimit(t, lrClient, limitRangeName, imagev1.ResourceImageStreamTags, "1")
 
 	t.Logf("trying to create ImageStreamTag referencing isimage below quota %v", limit)
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag1",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "1",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: "src@" + imagetest.BaseImageWith1LayerDigest,
 			},
@@ -103,7 +101,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	}
 	// we may hit cache with old limit, let's retry in such a case
 	err = wait.ExponentialBackoff(quotaExceededBackoff, func() (bool, error) {
-		_, err := client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+		_, err := client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 		if err != nil && !quotautil.IsErrorQuotaExceeded(err) {
 			return false, err
 		}
@@ -114,19 +112,19 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	}
 
 	t.Logf("trying to create ImageStreamTag exceeding quota %v", limit)
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag2",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "2",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: "src@" + imagetest.BaseImageWith2LayersDigest,
 			},
 		},
 	}
-	_, err = client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -135,37 +133,37 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	}
 
 	t.Log("trying to create ImageStreamTag referencing isimage already referenced")
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag1again",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "tag1again",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: "src@" + imagetest.BaseImageWith1LayerDigest,
 			},
 		},
 	}
-	_, err = client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	t.Log("trying to create ImageStreamTag in a new image stream")
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "new:misc",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "misc",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: "src@" + imagetest.MiscImageDigest,
 			},
 		},
 	}
-	_, err = client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -173,13 +171,13 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	limit = bumpLimit(t, lrClient, limitRangeName, imagev1.ResourceImageStreamTags, "2")
 
 	t.Logf("trying to create ImageStreamTag referencing istag below quota %v", limit)
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag2",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "2",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "src:tag2",
 			},
@@ -187,7 +185,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	}
 	// we may hit cache with old limit, let's retry in such a case
 	err = wait.ExponentialBackoff(quotaExceededBackoff, func() (bool, error) {
-		_, err := client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+		_, err := client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 		if err != nil && !quotautil.IsErrorQuotaExceeded(err) {
 			return false, err
 		}
@@ -198,19 +196,19 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	}
 
 	t.Logf("trying to create ImageStreamTag referencing istag exceeding quota %v", limit)
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag3",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "3",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "src:tag3",
 			},
 		},
 	}
-	_, err = client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 	if err == nil {
 		t.Fatal("creating image stream tag should have failed")
 	}
@@ -219,19 +217,19 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	}
 
 	t.Log("trying to create ImageStreamTag referencing istag already referenced")
-	ist = &imageapi.ImageStreamTag{
+	ist = &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dest:tag2again",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "tag2again",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "src:tag2",
 			},
 		},
 	}
-	_, err = client.Image().ImageStreamTags(testutil.Namespace()).Update(ist)
+	_, err = client.ImageV1().ImageStreamTags(testutil.Namespace()).Update(ist)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +241,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
-		image := &imageapi.Image{
+		image := &imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -251,7 +249,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 		}
 		tag := fmt.Sprintf("tag%d", i+1)
 
-		_, err := client.Image().ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
+		_, err := client.ImageV1().ImageStreamMappings(testutil.Namespace()).Create(&imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "src",
 			},
@@ -271,8 +269,8 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	createLimitRangeOfType(t, lrClient, limitRangeName, imagev1.LimitTypeImageStream, limit)
 
 	t.Logf("trying to create a new image stream with a tag exceeding limit %v", limit)
-	_, err := client.Image().ImageStreams(testutil.Namespace()).Create(
-		newImageStreamWithSpecTags("is", map[string]kapi.ObjectReference{
+	_, err := client.ImageV1().ImageStreams(testutil.Namespace()).Create(
+		newImageStreamWithSpecTags("is", map[string]corev1.ObjectReference{
 			"tag1": {Kind: "ImageStreamTag", Name: "src:tag1"},
 		}))
 
@@ -282,7 +280,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %#+v", err)
 	}
-	for _, res := range []kapi.ResourceName{imageapi.ResourceImageStreamTags, imageapi.ResourceImageStreamImages} {
+	for _, res := range []corev1.ResourceName{imagev1.ResourceImageStreamTags, imagev1.ResourceImageStreamImages} {
 		if !strings.Contains(err.Error(), string(res)) {
 			t.Errorf("expected resource %q in error string: %v", res, err)
 		}
@@ -294,8 +292,8 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	t.Logf("trying to create a new image stream with a tag below limit %v", limit)
 	// we may hit cache with old limit, let's retry in such a case
 	err = wait.ExponentialBackoff(quotaExceededBackoff, func() (bool, error) {
-		_, err = client.Image().ImageStreams(testutil.Namespace()).Create(
-			newImageStreamWithSpecTags("is", map[string]kapi.ObjectReference{"tag1": {
+		_, err = client.ImageV1().ImageStreams(testutil.Namespace()).Create(
+			newImageStreamWithSpecTags("is", map[string]corev1.ObjectReference{"tag1": {
 				Kind: "ImageStreamTag",
 				Name: "src:tag1",
 			}}))
@@ -309,56 +307,78 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	}
 
 	t.Logf("adding new tag to image stream spec exceeding limit %v", limit)
-	is, err := client.Image().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
+	is, err := client.ImageV1().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	is.Spec.Tags["tag2"] = imageapi.TagReference{
+	upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{
 		Name: "tag2",
-		From: &kapi.ObjectReference{
+		From: &corev1.ObjectReference{
 			Kind: "ImageStreamTag",
 			Name: "src:tag2",
 		},
-	}
-	_, err = client.Image().ImageStreams(testutil.Namespace()).Update(is)
+	})
+	_, err = client.ImageV1().ImageStreams(testutil.Namespace()).Update(is)
 	if err == nil {
 		t.Fatalf("unexpected non-error")
 	}
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
 	}
-	for _, res := range []kapi.ResourceName{imageapi.ResourceImageStreamTags, imageapi.ResourceImageStreamImages} {
+	for _, res := range []corev1.ResourceName{imagev1.ResourceImageStreamTags, imagev1.ResourceImageStreamImages} {
 		if !strings.Contains(err.Error(), string(res)) {
 			t.Errorf("expected resource %q in error string: %v", res, err)
 		}
 	}
 
 	t.Logf("re-tagging the image under different tag")
-	is, err = client.Image().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	is.Spec.Tags["1again"] = imageapi.TagReference{
+	upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{
 		Name: "1again",
-		From: &kapi.ObjectReference{
+		From: &corev1.ObjectReference{
 			Kind: "ImageStreamTag",
 			Name: "src:tag1",
 		},
-	}
-	_, err = client.Image().ImageStreams(testutil.Namespace()).Update(is)
+	})
+	_, err = client.ImageV1().ImageStreams(testutil.Namespace()).Update(is)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
+func upsertSpecTag(tags *[]imagev1.TagReference, tagReference imagev1.TagReference) {
+	for i := range *tags {
+		curr := (*tags)[i]
+		if curr.Name == tagReference.Name {
+			(*tags)[i] = tagReference
+			return
+		}
+	}
+	*tags = append(*tags, tagReference)
+}
+
+func upsertStatusTag(tags *[]imagev1.NamedTagEventList, tagEventList imagev1.NamedTagEventList) {
+	for i := range *tags {
+		curr := (*tags)[i]
+		if curr.Tag == tagEventList.Tag {
+			(*tags)[i] = tagEventList
+			return
+		}
+	}
+	*tags = append(*tags, tagEventList)
+}
+
 func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	kClient, client, fn := setupImageStreamAdmissionTest(t)
 	defer fn()
-	images := []*imageapi.Image{}
+	images := []*imagev1.Image{}
 
 	for _, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
-		image := &imageapi.Image{
+		image := &imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -366,7 +386,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 		}
 		images = append(images, image)
 
-		_, err := client.Image().Images().Create(image)
+		_, err := client.ImageV1().Images().Create(image)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -380,99 +400,103 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	createLimitRangeOfType(t, lrClient, limitRangeName, imagev1.LimitTypeImageStream, limit)
 
 	t.Logf("trying to create a new image stream with a tag exceeding limit %v", limit)
-	_, err := client.Image().ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("is", nil))
+	_, err := client.ImageV1().ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("is", nil))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	t.Logf("adding new tag to image stream status exceeding limit %v", limit)
-	is, err := client.Image().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
+	is, err := client.ImageV1().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	is.Status.Tags["tag1"] = imageapi.TagEventList{
-		Items: []imageapi.TagEvent{
+	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
+		Tag: "tag1",
+		Items: []imagev1.TagEvent{
 			{
 				DockerImageReference: images[0].DockerImageReference,
 				Image:                images[0].Name,
 			},
 		},
-	}
-	_, err = client.Image().ImageStreams(testutil.Namespace()).UpdateStatus(is)
+	})
+	_, err = client.ImageV1().ImageStreams(testutil.Namespace()).UpdateStatus(is)
 	if err == nil {
 		t.Fatalf("unexpected non-error")
 	}
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
 	}
-	if !strings.Contains(err.Error(), string(imageapi.ResourceImageStreamImages)) {
-		t.Errorf("expected resource %q in error string: %v", imageapi.ResourceImageStreamImages, err)
+	if !strings.Contains(err.Error(), string(imagev1.ResourceImageStreamImages)) {
+		t.Errorf("expected resource %q in error string: %v", imagev1.ResourceImageStreamImages, err)
 	}
 
 	limit = bumpLimit(t, lrClient, limitRangeName, imagev1.ResourceImageStreamImages, "1")
 
 	t.Logf("adding new tag to image stream status below limit %v", limit)
-	is, err = client.Image().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	is.Status.Tags["tag1"] = imageapi.TagEventList{
-		Items: []imageapi.TagEvent{
+	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
+		Tag: "tag1",
+		Items: []imagev1.TagEvent{
 			{
 				DockerImageReference: images[0].DockerImageReference,
 				Image:                images[0].Name,
 			},
 		},
-	}
-	_, err = client.Image().ImageStreams(testutil.Namespace()).UpdateStatus(is)
+	})
+	_, err = client.ImageV1().ImageStreams(testutil.Namespace()).UpdateStatus(is)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	t.Logf("adding new tag to image stream status exceeding limit %v", limit)
-	is, err = client.Image().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	is.Status.Tags["tag2"] = imageapi.TagEventList{
-		Items: []imageapi.TagEvent{
+	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
+		Tag: "tag2",
+		Items: []imagev1.TagEvent{
 			{
 				DockerImageReference: images[1].DockerImageReference,
 				Image:                images[1].Name,
 			},
 		},
-	}
-	_, err = client.Image().ImageStreams(testutil.Namespace()).UpdateStatus(is)
+	})
+	_, err = client.ImageV1().ImageStreams(testutil.Namespace()).UpdateStatus(is)
 	if err == nil {
 		t.Fatalf("unexpected non-error")
 	}
 	if !quotautil.IsErrorQuotaExceeded(err) {
 		t.Errorf("expected quota exceeded error, got instead: %v", err)
 	}
-	if !strings.Contains(err.Error(), string(imageapi.ResourceImageStreamImages)) {
-		t.Errorf("expected resource %q in error string: %v", imageapi.ResourceImageStreamImages, err)
+	if !strings.Contains(err.Error(), string(imagev1.ResourceImageStreamImages)) {
+		t.Errorf("expected resource %q in error string: %v", imagev1.ResourceImageStreamImages, err)
 	}
 
 	t.Logf("re-tagging the image under different tag")
-	is, err = client.Image().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
+	is, err = client.ImageV1().ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	is.Status.Tags["1again"] = imageapi.TagEventList{
-		Items: []imageapi.TagEvent{
+	upsertStatusTag(&is.Status.Tags, imagev1.NamedTagEventList{
+		Tag: "1again",
+		Items: []imagev1.TagEvent{
 			{
 				DockerImageReference: images[0].DockerImageReference,
 				Image:                images[0].Name,
 			},
 		},
-	}
-	_, err = client.Image().ImageStreams(testutil.Namespace()).UpdateStatus(is)
+	})
+	_, err = client.ImageV1().ImageStreams(testutil.Namespace()).UpdateStatus(is)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func setupImageStreamAdmissionTest(t *testing.T) (kubernetes.Interface, imageclient.Interface, func()) {
+func setupImageStreamAdmissionTest(t *testing.T) (kubernetes.Interface, imagev1client.Interface, func()) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -486,14 +510,14 @@ func setupImageStreamAdmissionTest(t *testing.T) (kubernetes.Interface, imagecli
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig)
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	for {
-		_, err = clusterAdminImageClient.Image().ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
+		_, err = clusterAdminImageClient.ImageV1().ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
 		t.Logf("initing: %v", err)
 		if err != nil {
 			if errForbiddenWithRetry(err) {
@@ -579,15 +603,15 @@ func bumpLimit(t *testing.T, lrClient corev1client.LimitRangeInterface, limitRan
 	return res
 }
 
-func newImageStreamWithSpecTags(name string, tags map[string]kapi.ObjectReference) *imageapi.ImageStream {
-	specTags := make(map[string]imageapi.TagReference)
+func newImageStreamWithSpecTags(name string, tags map[string]corev1.ObjectReference) *imagev1.ImageStream {
+	specTags := []imagev1.TagReference{}
 	for tag := range tags {
 		ref := tags[tag]
-		specTags[tag] = imageapi.TagReference{Name: tag, From: &ref}
+		specTags = append(specTags, imagev1.TagReference{Name: tag, From: &ref})
 	}
-	return &imageapi.ImageStream{
+	return &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec:       imageapi.ImageStreamSpec{Tags: specTags},
+		Spec:       imagev1.ImageStreamSpec{Tags: specTags},
 	}
 
 }

@@ -12,14 +12,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -213,15 +211,16 @@ func imageChangeBuildConfigWithConfigChange(name string, strategy buildv1.BuildS
 	return bc
 }
 
-func mockImageStream2(tag string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
+func mockImageStream2(tag string) *imagev1.ImageStream {
+	return &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-image-trigger-repo"},
 
-		Spec: imageapi.ImageStreamSpec{
+		Spec: imagev1.ImageStreamSpec{
 			DockerImageRepository: registryHostname + "/openshift/test-image-trigger",
-			Tags: map[string]imageapi.TagReference{
-				tag: {
-					From: &kapi.ObjectReference{
+			Tags: []imagev1.TagReference{
+				{
+					Name: tag,
+					From: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: registryHostname + "/openshift/test-image-trigger:" + tag,
 					},
@@ -231,12 +230,12 @@ func mockImageStream2(tag string) *imageapi.ImageStream {
 	}
 }
 
-func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.ImageStreamMapping {
+func mockImageStreamMapping(stream, image, tag, reference string) *imagev1.ImageStreamMapping {
 	// create a mapping to an image that doesn't exist
-	return &imageapi.ImageStreamMapping{
+	return &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: stream},
 		Tag:        tag,
-		Image: imageapi.Image{
+		Image: imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: image,
 			},
@@ -266,9 +265,9 @@ func setup(t *testing.T) (*rest.Config, kubernetes.Interface, *rest.Config, func
 	}
 }
 
-func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildv1.BuildConfig, tag string) {
+func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imagev1.ImageStream, imageStreamMapping *imagev1.ImageStreamMapping, config *buildv1.BuildConfig, tag string) {
 	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminClientConfig).BuildV1()
-	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
+	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
@@ -350,13 +349,13 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	}
 
 	// trigger a build by posting a new image
-	if _, err := projectAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
+	if _, err := projectAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(&imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      imageStream.Name,
 		},
 		Tag: tag,
-		Image: imageapi.Image{
+		Image: imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ref-2-random",
 			},
@@ -432,14 +431,15 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 
 func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 	testutil.SetAdditionalAllowedRegistries("registry:5000")
-	mockImageStream := func(name, tag string) *imageapi.ImageStream {
-		return &imageapi.ImageStream{
+	mockImageStream := func(name, tag string) *imagev1.ImageStream {
+		return &imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{Name: name},
-			Spec: imageapi.ImageStreamSpec{
+			Spec: imagev1.ImageStreamSpec{
 				DockerImageRepository: "registry:5000/openshift/" + name,
-				Tags: map[string]imageapi.TagReference{
-					tag: {
-						From: &kapi.ObjectReference{
+				Tags: []imagev1.TagReference{
+					{
+						Name: tag,
+						From: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "registry:5000/openshift/" + name + ":" + tag,
 						},
@@ -449,11 +449,11 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		}
 
 	}
-	mockStreamMapping := func(name, tag string) *imageapi.ImageStreamMapping {
-		return &imageapi.ImageStreamMapping{
+	mockStreamMapping := func(name, tag string) *imagev1.ImageStreamMapping {
+		return &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{Name: name},
 			Tag:        tag,
-			Image: imageapi.Image{
+			Image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 				},
@@ -517,7 +517,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		},
 	}
 	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminConfig).BuildV1()
-	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminConfig).Image()
+	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminConfig).ImageV1()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {

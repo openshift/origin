@@ -3,11 +3,14 @@ package builds
 import (
 	"fmt"
 
+	"github.com/openshift/api/image/docker10"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -66,9 +69,11 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the build Docker image reference from ImageStream")
-				image, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("busybox:custom", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:custom", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
+				err = imageutil.ImageWithMetadata(&image.Image)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 			})
 
 			g.It("should create a image via new-build and infer the origin tag", func() {
@@ -94,12 +99,14 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("getting the built Docker image reference from ImageStream")
-				image, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("centos:latest", metav1.GetOptions{})
+				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:latest", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
+				err = imageutil.ImageWithMetadata(&image.Image)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 
 				g.By("checking for the imported tag")
-				_, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("centos:7", metav1.GetOptions{})
+				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:7", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 

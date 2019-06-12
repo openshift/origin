@@ -6,27 +6,27 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	stratsupport "github.com/openshift/oc/pkg/cli/deployer/strategy/support"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/apiserver/testutil"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func mockImageStream() *imageapi.ImageStream {
-	return &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
+func mockImageStream() *imagev1.ImageStream {
+	return &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
 }
 
 func TestImageStreamMappingCreate(t *testing.T) {
@@ -40,7 +40,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -57,10 +57,10 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	}
 
 	// create a mapping to an image that doesn't exist
-	mapping := &imageapi.ImageStreamMapping{
+	mapping := &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "newer",
-		Image: imageapi.Image{
+		Image: imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "image1",
 			},
@@ -77,11 +77,13 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	}
 
 	// create an image directly
-	image := &imageapi.Image{
+	image := &imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{Name: "image2"},
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
-				Env: []string{"A=B"},
+		DockerImageMetadata: runtime.RawExtension{
+			Object: &docker10.DockerImage{
+				Config: &docker10.DockerConfig{
+					Env: []string{"A=B"},
+				},
 			},
 		},
 	}
@@ -98,7 +100,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	}
 
 	// verify that image stream mappings cannot mutate / overwrite the image (images are immutable)
-	mapping = &imageapi.ImageStreamMapping{
+	mapping = &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "newest",
 		Image:      *image,
@@ -142,7 +144,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 
 	// verify that image stream mappings can use the same image for different tags
 	image.ResourceVersion = ""
-	mapping = &imageapi.ImageStreamMapping{
+	mapping = &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "anothertag",
 		Image:      *image,
@@ -187,10 +189,10 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	}
 
 	// try an update with an incorrect resource version
-	if _, err := clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Update(&imageapi.ImageStreamTag{
+	if _, err := clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Update(&imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion + "0"},
-		Tag: &imageapi.TagReference{
-			From: &kapi.ObjectReference{
+		Tag: &imagev1.TagReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "newest",
 			},
@@ -200,10 +202,10 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	}
 
 	// update and create a new tag
-	fromTag, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Update(&imageapi.ImageStreamTag{
+	fromTag, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Update(&imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion},
-		Tag: &imageapi.TagReference{
-			From: &kapi.ObjectReference{
+		Tag: &imagev1.TagReference{
+			From: &corev1.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "newest",
 			},
@@ -228,7 +230,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -244,7 +246,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		t.Errorf("Unexpected empty image Name %v", expected)
 	}
 
-	imageConfig := imageapi.DockerConfig{
+	imageConfig := docker10.DockerConfig{
 		Hostname: "example.com",
 		Env:      []string{"A=B"},
 	}
@@ -254,14 +256,16 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		t.Fatalf("error marshaling image config: %s", err)
 	}
 
-	image := imageapi.Image{
+	image := imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: imagetest.BaseImageWith1LayerDigest,
 		},
-		DockerImageMetadata: imageapi.DockerImage{
-			Config: &imageapi.DockerConfig{
-				Hostname: "example.com",
-				Env:      []string{"A=B"},
+		DockerImageMetadata: runtime.RawExtension{
+			Object: &docker10.DockerImage{
+				Config: &docker10.DockerConfig{
+					Hostname: "example.com",
+					Env:      []string{"A=B"},
+				},
 			},
 		},
 		DockerImageConfig:    string(imageConfigBytes),
@@ -269,7 +273,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 	}
 
 	// create a mapping to an image that doesn't exist
-	mapping := &imageapi.ImageStreamMapping{
+	mapping := &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: stream.Name,
 		},
@@ -326,7 +330,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
 
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
@@ -375,7 +379,8 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	if stream, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(stream.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {
+
+	if tag, ok := imageutil.SpecHasTag(stream, "test"); !ok || tag.From == nil || tag.From.Name != "someimage:other" {
 		t.Fatalf("unexpected object: %#v", tag)
 	}
 
@@ -445,7 +450,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	if stream, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get("test2", metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {
+	if tag, ok := imageutil.SpecHasTag(stream, "test"); !ok || tag.From == nil || tag.From.Name != "someimage:other" {
 		t.Fatalf("unexpected object: %#v", tag)
 	}
 }
@@ -462,18 +467,18 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	stream := mockImageStream()
-	stream.Spec = imageapi.ImageStreamSpec{
-		Tags: map[string]imageapi.TagReference{
-			"latest": {
+	stream.Spec = imagev1.ImageStreamSpec{
+		Tags: []imagev1.TagReference{
+			{
 				Name: "latest",
-				From: &kapi.ObjectReference{
+				From: &corev1.ObjectReference{
 					Kind: "DockerImage",
 					Name: "my.test.registry/repo/sitory:latest",
 				},
@@ -489,19 +494,21 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 		t.Fatalf("expected string %q not contained in error: %s", e, a)
 	}
 
-	stream.Spec.Tags["latest"].From.Name = "docker.io/busybox"
+	latestSpecTag, _ := imageutil.SpecHasTag(stream, "latest")
+	latestSpecTag.From.Name = "docker.io/busybox"
+	upsertSpecTag(&stream.Spec.Tags, latestSpecTag)
 	stream, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(stream)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	stream.Spec.Tags["fail"] = imageapi.TagReference{
+	upsertSpecTag(&stream.Spec.Tags, imagev1.TagReference{
 		Name: "fail",
-		From: &kapi.ObjectReference{
+		From: &corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: "this.will.fail/repo:tag",
 		},
-	}
+	})
 	_, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Update(stream)
 	if err == nil || !errors.IsInvalid(err) {
 		t.Fatalf("expected invalid error, got: %T %v", err, err)
@@ -511,26 +518,33 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 	}
 
 	stream.Annotations = map[string]string{imagev1.InsecureRepositoryAnnotation: "true"}
-	delete(stream.Spec.Tags, "fail")
-	stream.Spec.Tags["pass"] = imageapi.TagReference{
+	newTags := []imagev1.TagReference{}
+	for i := range stream.Spec.Tags {
+		if stream.Spec.Tags[i].Name != "fail" {
+			newTags = append(newTags, stream.Spec.Tags[i])
+		}
+	}
+	stream.Spec.Tags = newTags
+
+	upsertSpecTag(&stream.Spec.Tags, imagev1.TagReference{
 		Name: "pass",
-		From: &kapi.ObjectReference{
+		From: &corev1.ObjectReference{
 			Kind: "DockerImage",
 			Name: "127.0.0.1:5000/repo:tag",
 		},
-	}
+	})
 	_, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Update(stream)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	istag := &imageapi.ImageStreamTag{
+	istag := &imagev1.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: stream.Name + ":new",
 		},
-		Tag: &imageapi.TagReference{
+		Tag: &imagev1.TagReference{
 			Name: "new",
-			From: &kapi.ObjectReference{
+			From: &corev1.ObjectReference{
 				Kind: "DockerImage",
 				Name: "my.insecure.registry/repo:new",
 			},
@@ -551,7 +565,7 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	istag.Tag.From = &kapi.ObjectReference{
+	istag.Tag.From = &corev1.ObjectReference{
 		Kind: "DockerImage",
 		Name: "example.com/repo:tag",
 	}
@@ -567,7 +581,7 @@ func TestRegistryWhitelistingValidation(t *testing.T) {
 		t.Fatalf("expected string %q not contained in error: %s", e, a)
 	}
 
-	istag.Tag.From = &kapi.ObjectReference{
+	istag.Tag.From = &corev1.ObjectReference{
 		Kind: "DockerImage",
 		Name: "myupstream/repo:latest",
 	}

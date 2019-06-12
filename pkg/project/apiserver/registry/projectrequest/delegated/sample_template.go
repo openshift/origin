@@ -1,14 +1,15 @@
 package delegated
 
 import (
+	"github.com/openshift/api/annotations"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/rbac"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
-	projectapiv1 "github.com/openshift/api/project/v1"
-	templateapi "github.com/openshift/api/template/v1"
-	oapi "github.com/openshift/origin/pkg/api"
+	projectv1 "github.com/openshift/api/project/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
@@ -27,34 +28,40 @@ var (
 	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam, ProjectRequesterParam}
 )
 
-func DefaultTemplate() *templateapi.Template {
-	ret := &templateapi.Template{}
+func DefaultTemplate() *templatev1.Template {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(rbacv1.AddToScheme(scheme))
+	utilruntime.Must(projectv1.Install(scheme))
+	utilruntime.Must(templatev1.Install(scheme))
+	codec := serializer.NewCodecFactory(scheme).LegacyCodec(scheme.PrioritizedVersionsAllGroups()...)
+
+	ret := &templatev1.Template{}
 	ret.Name = DefaultTemplateName
 
 	ns := "${" + ProjectNameParam + "}"
 
-	project := &projectapi.Project{}
+	project := &projectv1.Project{}
 	project.Name = ns
 	project.Annotations = map[string]string{
-		oapi.OpenShiftDescription:   "${" + ProjectDescriptionParam + "}",
-		oapi.OpenShiftDisplayName:   "${" + ProjectDisplayNameParam + "}",
-		projectapi.ProjectRequester: "${" + ProjectRequesterParam + "}",
+		annotations.OpenShiftDescription: "${" + ProjectDescriptionParam + "}",
+		annotations.OpenShiftDisplayName: "${" + ProjectDisplayNameParam + "}",
+		projectapi.ProjectRequester:      "${" + ProjectRequesterParam + "}",
 	}
-	objBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(projectapiv1.GroupVersion), project)
+	objBytes, err := runtime.Encode(codec, project)
 	if err != nil {
 		panic(err)
 	}
 	ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
 
-	binding := rbac.NewRoleBindingForClusterRole(bootstrappolicy.AdminRoleName, ns).Users("${" + ProjectAdminUserParam + "}").BindingOrDie()
-	objBytes, err = runtime.Encode(legacyscheme.Codecs.LegacyCodec(rbacv1.SchemeGroupVersion), &binding)
+	binding := rbacv1helpers.NewRoleBindingForClusterRole(bootstrappolicy.AdminRoleName, ns).Users("${" + ProjectAdminUserParam + "}").BindingOrDie()
+	objBytes, err = runtime.Encode(codec, &binding)
 	if err != nil {
 		panic(err)
 	}
 	ret.Objects = append(ret.Objects, runtime.RawExtension{Raw: objBytes})
 
 	for _, parameterName := range parameters {
-		parameter := templateapi.Parameter{}
+		parameter := templatev1.Parameter{}
 		parameter.Name = parameterName
 		ret.Parameters = append(ret.Parameters, parameter)
 	}

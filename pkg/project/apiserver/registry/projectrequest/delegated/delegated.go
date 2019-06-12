@@ -27,18 +27,17 @@ import (
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/api/project"
-	projectapiv1 "github.com/openshift/api/project/v1"
+	projectv1 "github.com/openshift/api/project/v1"
 	templatev1 "github.com/openshift/api/template/v1"
-	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest"
-	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
 type REST struct {
@@ -47,8 +46,8 @@ type REST struct {
 	templateName      string
 
 	sarClient      authorizationclient.SubjectAccessReviewInterface
-	projectGetter  projectclientinternal.ProjectsGetter
-	templateClient templateclient.Interface
+	projectGetter  projectv1typedclient.ProjectsGetter
+	templateClient templatev1client.Interface
 	client         dynamic.Interface
 	restMapper     meta.RESTMapper
 
@@ -62,8 +61,8 @@ var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 func NewREST(message, templateNamespace, templateName string,
-	projectClient projectclientinternal.ProjectsGetter,
-	templateClient templateclient.Interface,
+	projectClient projectv1typedclient.ProjectsGetter,
+	templateClient templatev1client.Interface,
 	sarClient authorizationclient.SubjectAccessReviewInterface,
 	client dynamic.Interface,
 	restMapper meta.RESTMapper,
@@ -163,7 +162,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 
 	// one of the items in this list should be the project.  We are going to locate it, remove it from the list, create it separately
-	var projectFromTemplate *projectapi.Project
+	var projectFromTemplate *projectv1.Project
 	lastRoleBindingName := ""
 	objectsToCreate := []*unstructured.Unstructured{}
 	for i := range processedList.Items {
@@ -173,13 +172,9 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			if projectFromTemplate != nil {
 				return nil, apierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain only one project resource", r.templateNamespace, r.templateName))
 			}
-			externalProjectFromTemplate := &projectapiv1.Project{}
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, externalProjectFromTemplate)
+			projectFromTemplate = &projectv1.Project{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, projectFromTemplate)
 			if err != nil {
-				return nil, err
-			}
-			projectFromTemplate = &projectapi.Project{}
-			if err := legacyscheme.Scheme.Convert(externalProjectFromTemplate, projectFromTemplate, nil); err != nil {
 				return nil, err
 			}
 			// don't add this to the list to create.  We'll create the project separately.
@@ -295,7 +290,7 @@ func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 		Spec: authorizationv1.SubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Verb:     "create",
-				Group:    projectapi.GroupName,
+				Group:    projectv1.GroupName,
 				Resource: "projectrequests",
 			},
 		},

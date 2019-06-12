@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -38,11 +40,10 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/extended/testdata"
 )
 
@@ -90,7 +91,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	scan := func() bool {
 		for _, lang := range langs {
 			e2e.Logf("Checking language %v \n", lang)
-			is, err := oc.ImageClient().Image().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
+			is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("ImageStream Error: %#v \n", err)
 				return false
@@ -99,10 +100,10 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 				e2e.Logf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname)
 				return false
 			}
-			for tag := range is.Spec.Tags {
+			for _, tag := range is.Spec.Tags {
 				e2e.Logf("Checking tag %v \n", tag)
-				if _, ok := is.Status.Tags[tag]; !ok {
-					e2e.Logf("Tag Error: %#v \n", ok)
+				if _, found := imageutil.StatusHasTag(is, tag.Name); !found {
+					e2e.Logf("Tag Error: %#v \n", tag)
 					return false
 				}
 			}
@@ -539,7 +540,7 @@ func (t *BuildResult) dumpRegistryLogs() {
 	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
 		buildStarted = &t.Build.CreationTimestamp.Time
 	} else {
-		proj, err := oc.ProjectClient().Project().Projects().Get(oc.Namespace(), metav1.GetOptions{})
+		proj, err := oc.ProjectClient().ProjectV1().Projects().Get(oc.Namespace(), metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get project %s: %v\n", oc.Namespace(), err)
 		} else {
@@ -808,9 +809,9 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
-func WaitForAnImageStream(client imagetypeclientset.ImageStreamInterface,
+func WaitForAnImageStream(client imagev1typedclient.ImageStreamInterface,
 	name string,
-	isOK, isFailed func(*imageapi.ImageStream) bool) error {
+	isOK, isFailed func(*imagev1.ImageStream) bool) error {
 	for {
 		list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
@@ -839,7 +840,7 @@ func WaitForAnImageStream(client imagetypeclientset.ImageStreamInterface,
 				// reget and re-watch
 				break
 			}
-			if e, ok := val.Object.(*imageapi.ImageStream); ok {
+			if e, ok := val.Object.(*imagev1.ImageStream); ok {
 				if isOK(e) {
 					return nil
 				}
@@ -866,15 +867,16 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 	c := make(chan error)
 	go func() {
 		err := WaitForAnImageStream(
-			oc.ImageClient().Image().ImageStreams(namespace),
+			oc.ImageClient().ImageV1().ImageStreams(namespace),
 			name,
-			func(is *imageapi.ImageStream) bool {
-				if history, exists := is.Status.Tags[tag]; !exists || len(history.Items) == 0 {
+			func(is *imagev1.ImageStream) bool {
+				statusTag, exists := imageutil.StatusHasTag(is, tag)
+				if !exists || len(statusTag.Items) == 0 {
 					return false
 				}
 				return true
 			},
-			func(is *imageapi.ImageStream) bool {
+			func(is *imagev1.ImageStream) bool {
 				return time.Now().After(start.Add(waitTimeout))
 			})
 		c <- err
@@ -889,13 +891,13 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 }
 
 // CheckImageStreamLatestTagPopulated returns true if the imagestream has a ':latest' tag filed
-func CheckImageStreamLatestTagPopulated(i *imageapi.ImageStream) bool {
-	_, ok := i.Status.Tags["latest"]
+func CheckImageStreamLatestTagPopulated(i *imagev1.ImageStream) bool {
+	_, ok := imageutil.StatusHasTag(i, "latest")
 	return ok
 }
 
 // CheckImageStreamTagNotFound return true if the imagestream update was not successful
-func CheckImageStreamTagNotFound(i *imageapi.ImageStream) bool {
+func CheckImageStreamTagNotFound(i *imagev1.ImageStream) bool {
 	return strings.Contains(i.Annotations[imagev1.DockerImageRepositoryCheckAnnotation], "not") ||
 		strings.Contains(i.Annotations[imagev1.DockerImageRepositoryCheckAnnotation], "error")
 }
@@ -1147,12 +1149,12 @@ func WaitUntilPodIsGone(c corev1client.PodInterface, podName string, timeout tim
 
 // GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream
 // and tag
-func GetDockerImageReference(c imagetypeclientset.ImageStreamInterface, name, tag string) (string, error) {
+func GetDockerImageReference(c imagev1typedclient.ImageStreamInterface, name, tag string) (string, error) {
 	imageStream, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	isTag, ok := imageStream.Status.Tags[tag]
+	isTag, ok := imageutil.StatusHasTag(imageStream, tag)
 	if !ok {
 		return "", fmt.Errorf("ImageStream %q does not have tag %q", name, tag)
 	}

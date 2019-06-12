@@ -255,7 +255,7 @@ RUN echo %s > /3
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("checking for the imported tag: %s", istName))
-	ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get(istName, metav1.GetOptions{})
+	ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(istName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return isName, ist.Image.Name

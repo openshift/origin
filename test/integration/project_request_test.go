@@ -12,10 +12,10 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 
+	projectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -88,7 +88,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Create project request
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+	_, err = projectv1client.NewForConfigOrDie(clusterAdminClientConfig).ProjectRequests().Create(&projectv1.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if err == nil || err.Error() != `Internal error occurred: ConfigMap "" is invalid: metadata.name: Required value: name or generateName is required` {
 		t.Fatalf("Expected internal error creating project, got %v", err)
 	}

@@ -13,11 +13,10 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	quotav1 "github.com/openshift/api/quota/v1"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -38,7 +37,7 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminQuotaClient := quotaclient.NewForConfigOrDie(testutil.NonProtobufConfig(clusterAdminClientConfig))
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
 
 	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig); err != nil {
 		t.Fatal(err)
@@ -136,7 +135,7 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	imagestream := &imageapi.ImageStream{}
+	imagestream := &imagev1.ImageStream{}
 	imagestream.GenerateName = "test"
 	if _, err := clusterAdminImageClient.ImageStreams("first").Create(imagestream); err != nil {
 		t.Fatalf("unexpected error: %v", err)

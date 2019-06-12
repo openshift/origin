@@ -9,15 +9,14 @@ import (
 	"k8s.io/cli-runtime/pkg/printers"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	projectv1 "github.com/openshift/api/project/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	groupsnewcmd "github.com/openshift/oc/pkg/cli/admin/groups/new"
 	groupsuserscmd "github.com/openshift/oc/pkg/cli/admin/groups/users"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -33,13 +32,13 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminUserClient := userclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminUserClient := userv1typedclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	valerieKubeClient, valerieConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig).Project()
+	valerieProjectClient := projectv1typedclient.NewForConfigOrDie(valerieConfig)
 
 	// make sure we don't get back system groups
 	userValerie, err := clusterAdminUserClient.Users().Get("valerie", metav1.GetOptions{})
@@ -60,7 +59,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Errorf("expected %v, got %v", expectedClusterAdminGroups, clusterAdminUser.Groups)
 	}
 
-	theGroup := &userapi.Group{}
+	theGroup := &userv1.Group{}
 	theGroup.Name = "theGroup"
 	theGroup.Users = append(theGroup.Users, "valerie")
 	_, err = clusterAdminUserClient.Groups().Create(theGroup)
@@ -70,7 +69,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 
 	// make sure that user/~ returns system groups for backed users when it merges
 	expectedValerieGroups := []string{"system:authenticated", "system:authenticated:oauth"}
-	secondValerie, err := userclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
+	secondValerie, err := userv1typedclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -83,9 +82,9 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 
-	emptyProject := &projectapi.Project{}
+	emptyProject := &projectv1.Project{}
 	emptyProject.Name = "empty"
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Create(emptyProject)
+	_, err = projectv1typedclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Create(emptyProject)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -126,12 +125,12 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig).Project()
+	valerieProjectClient := projectv1typedclient.NewForConfigOrDie(valerieConfig)
 
-	theGroup := &userapi.Group{}
+	theGroup := &userv1.Group{}
 	theGroup.Name = "thegroup"
 	theGroup.Users = append(theGroup.Users, "valerie", "victor")
-	_, err = userclient.NewForConfigOrDie(clusterAdminClientConfig).Groups().Create(theGroup)
+	_, err = userv1typedclient.NewForConfigOrDie(clusterAdminClientConfig).Groups().Create(theGroup)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -141,9 +140,9 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 
-	emptyProject := &projectapi.Project{}
+	emptyProject := &projectv1.Project{}
 	emptyProject.Name = "empty"
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Create(emptyProject)
+	_, err = projectv1typedclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Create(emptyProject)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -171,7 +170,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = projectclient.NewForConfigOrDie(victorConfig).Project().Projects().Get("empty", metav1.GetOptions{})
+	_, err = projectv1typedclient.NewForConfigOrDie(victorConfig).Projects().Get("empty", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

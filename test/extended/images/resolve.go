@@ -21,7 +21,7 @@ var _ = g.Describe("[Feature:ImageLookup][registry][Conformance] Image policy", 
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(tag.LookupPolicy.Local).To(o.BeTrue())
 
@@ -73,7 +73,7 @@ var _ = g.Describe("[Feature:ImageLookup][registry][Conformance] Image policy", 
 	g.It("should perform lookup when the pod has the resolve-names annotation", func() {
 		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:latest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// pods should auto replace local references

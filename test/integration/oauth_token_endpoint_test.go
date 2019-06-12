@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -105,7 +105,7 @@ func TestOAuthRequestTokenEndpoint(t *testing.T) {
 	// Verify use of the bearer token
 	userConfig := restclient.AnonymousClientConfig(clientConfig)
 	userConfig.BearerToken = apiToken
-	userClient, err := userclient.NewForConfig(userConfig)
+	userClient, err := userv1client.NewForConfig(userConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

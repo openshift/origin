@@ -14,11 +14,10 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/test/common/appstest"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -122,9 +121,9 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).AppsV1()
-	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
+	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
+	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
@@ -151,10 +150,10 @@ func TestTriggers_imageChange(t *testing.T) {
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	createTagEvent := func() {
-		mapping := &imageapi.ImageStreamMapping{
+		mapping := &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{Name: imageStream.Name},
 			Tag:        imagev1.DefaultImageTag,
-			Image: imageapi.Image{
+			Image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: updatedImage,
 				},
@@ -170,8 +169,8 @@ func TestTriggers_imageChange(t *testing.T) {
 		for {
 			select {
 			case event := <-imageWatch.ResultChan():
-				stream := event.Object.(*imageapi.ImageStream)
-				if _, ok := stream.Status.Tags[imagev1.DefaultImageTag]; ok {
+				stream := event.Object.(*imagev1.ImageStream)
+				if _, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag); ok {
 					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 					break statusLoop
 				}
@@ -227,9 +226,9 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
-	adminImageClient := imageclient.NewForConfigOrDie(adminConfig).Image()
+	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
+	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
 
 	if imageStream, err = adminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream: %v", err)
@@ -245,10 +244,10 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	pullSpec := fmt.Sprintf("registry:5000/%s/%s@%s", testutil.Namespace(), appstest.ImageStreamName, image)
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
-	mapping := &imageapi.ImageStreamMapping{
+	mapping := &imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: imageStream.Name},
 		Tag:        imagev1.DefaultImageTag,
-		Image: imageapi.Image{
+		Image: imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: image,
 			},
@@ -256,7 +255,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		},
 	}
 
-	createTagEvent := func(mapping *imageapi.ImageStreamMapping) {
+	createTagEvent := func(mapping *imagev1.ImageStreamMapping) {
 		if _, err := adminImageClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -268,8 +267,8 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		for {
 			select {
 			case event := <-imageWatch.ResultChan():
-				stream := event.Object.(*imageapi.ImageStream)
-				tagEventList, ok := stream.Status.Tags[imagev1.DefaultImageTag]
+				stream := event.Object.(*imagev1.ImageStream)
+				tagEventList, ok := imageutil.StatusHasTag(stream, imagev1.DefaultImageTag)
 				if ok && len(tagEventList.Items) > 0 && tagEventList.Items[0].DockerImageReference == mapping.Image.DockerImageReference {
 					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 					return
@@ -406,10 +405,10 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		t.Fatalf("error creating project: %v", err)
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
-	adminImageClient := imageclient.NewForConfigOrDie(adminConfig).Image()
+	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
 
-	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
-	secondImageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
+	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
+	secondImageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
@@ -444,10 +443,10 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	createTagEvent := func(name, tag, image, pullSpec string) {
-		mapping := &imageapi.ImageStreamMapping{
+		mapping := &imagev1.ImageStreamMapping{
 			ObjectMeta: metav1.ObjectMeta{Name: name},
 			Tag:        tag,
-			Image: imageapi.Image{
+			Image: imagev1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: image,
 				},
@@ -463,11 +462,11 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		for {
 			select {
 			case event := <-imageWatch.ResultChan():
-				stream := event.Object.(*imageapi.ImageStream)
+				stream := event.Object.(*imagev1.ImageStream)
 				if stream.Name != name {
 					continue
 				}
-				if _, ok := stream.Status.Tags[tag]; ok {
+				if _, ok := imageutil.StatusHasTag(stream, tag); ok {
 					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
 					break statusLoop
 				}

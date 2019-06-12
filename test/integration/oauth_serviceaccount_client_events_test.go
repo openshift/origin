@@ -24,10 +24,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	oauthapiv1 "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
 	"github.com/openshift/oauth-server/pkg/scopecovers"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -37,7 +37,7 @@ import (
 type testServer struct {
 	clusterAdminKubeClient   kubernetes.Interface
 	clusterAdminClientConfig *restclient.Config
-	clusterAdminOAuthClient  *oauthclient.Clientset
+	clusterAdminOAuthClient  oauthv1client.OauthV1Interface
 	authCodes                chan string
 	authErrors               chan string
 	oauthServer              *httptest.Server
@@ -198,14 +198,14 @@ func collectEventsWithReason(eventList *corev1.EventList, reason string) []corev
 }
 
 func buildRedirectObjectReferenceString(t *testing.T, kind, name, group string) string {
-	ref := &oauthapiv1.OAuthRedirectReference{
-		Reference: oauthapiv1.RedirectReference{
+	ref := &oauthv1.OAuthRedirectReference{
+		Reference: oauthv1.RedirectReference{
 			Kind:  kind,
 			Name:  name,
 			Group: group,
 		},
 	}
-	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion), ref)
+	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(oauthv1.SchemeGroupVersion), ref)
 	if err != nil {
 		t.Fatalf("unexpected err %v", err)
 	}
@@ -237,7 +237,7 @@ func setupTestOAuthServer() (*testServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminOAuthClient := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +335,7 @@ func runTestOAuthFlow(t *testing.T, ts *testServer, sa *corev1.ServiceAccount, s
 		"code",
 	})
 
-	ts.clusterAdminOAuthClient.Oauth().OAuthClientAuthorizations().Delete(adminUser+":"+oauthClientConfig.ClientId, nil)
+	ts.clusterAdminOAuthClient.OAuthClientAuthorizations().Delete(adminUser+":"+oauthClientConfig.ClientId, nil)
 }
 
 func doOAuthFlow(

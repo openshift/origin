@@ -36,7 +36,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for imagestreams to be imported")
-			err := exutil.WaitForAnImageStream(oc.AdminInternalImageClient().Image().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
+			err := exutil.WaitForAnImageStream(oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
