@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
@@ -82,8 +83,8 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 			err := wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
 				for _, user := range []*userv1.User{adminuser, edituser, editbygroupuser} {
 					cli.ChangeUser(user.Name)
-					sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
-						Action: authorizationapi.Action{
+					sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationv1.LocalSubjectAccessReview{
+						Action: authorizationv1.Action{
 							Verb:     "get",
 							Resource: "pods",
 						},
@@ -175,7 +176,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyrolebinding},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						_, err := cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -186,7 +187,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyrolebinding},
 					expectCondition: templatev1.TemplateInstanceInstantiateFailure,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						_, err := cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
 					},
 				},
@@ -197,7 +198,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					objects:         []runtime.Object{dummyrolebinding},
 					expectCondition: templatev1.TemplateInstanceReady,
 					checkOK: func(namespace string) bool {
-						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						_, err := cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 						return err == nil
 					},
 				},

@@ -18,7 +18,7 @@ import (
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
-	authorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	kauthorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -26,21 +26,20 @@ import (
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 
 	oapps "github.com/openshift/api/apps"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/api/build"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-
 	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func prettyPrintAction(act *authorizationapi.Action, defaultNamespaceStr string) string {
+func prettyPrintAction(act *authorizationv1.Action, defaultNamespaceStr string) string {
 	nsStr := fmt.Sprintf("in namespace %q", act.Namespace)
 	if act.Namespace == "" {
 		nsStr = defaultNamespaceStr
@@ -61,23 +60,23 @@ func prettyPrintAction(act *authorizationapi.Action, defaultNamespaceStr string)
 		base = fmt.Sprintf("who can %s the %s named %q %s", act.Verb, resourceStr, act.ResourceName, nsStr)
 	}
 
-	if act.Content != nil {
+	if len(act.Content.Raw) != 0 {
 		return fmt.Sprintf("%s with content %#v", base, act.Content)
 	}
 
 	return base
 }
 
-func prettyPrintReviewResponse(resp *authorizationapi.ResourceAccessReviewResponse) string {
+func prettyPrintReviewResponse(resp *authorizationv1.ResourceAccessReviewResponse) string {
 	nsStr := fmt.Sprintf("(in the namespace %q)\n", resp.Namespace)
 	if resp.Namespace == "" {
 		nsStr = "(in all namespaces)\n"
 	}
 
 	var usersStr string
-	if resp.Users.Len() > 0 {
-		userStrList := make([]string, 0, len(resp.Users))
-		for userName := range resp.Users {
+	if len(resp.UsersSlice) > 0 {
+		userStrList := make([]string, 0, len(resp.UsersSlice))
+		for _, userName := range resp.UsersSlice {
 			userStrList = append(userStrList, fmt.Sprintf("    - %s\n", userName))
 		}
 
@@ -85,9 +84,9 @@ func prettyPrintReviewResponse(resp *authorizationapi.ResourceAccessReviewRespon
 	}
 
 	var groupsStr string
-	if resp.Groups.Len() > 0 {
-		groupStrList := make([]string, 0, len(resp.Groups))
-		for groupName := range resp.Groups {
+	if len(resp.GroupsSlice) > 0 {
+		groupStrList := make([]string, 0, len(resp.GroupsSlice))
+		for _, groupName := range resp.GroupsSlice {
 			groupStrList = append(groupStrList, fmt.Sprintf("    - %s\n", groupName))
 		}
 
@@ -237,10 +236,10 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 
 type resourceAccessReviewTest struct {
 	description     string
-	clientInterface authorizationtypedclient.ResourceAccessReviewInterface
-	review          *authorizationapi.ResourceAccessReview
+	clientInterface authorizationv1typedclient.ResourceAccessReviewInterface
+	review          *authorizationv1.ResourceAccessReview
 
-	response authorizationapi.ResourceAccessReviewResponse
+	response authorizationv1.ResourceAccessReviewResponse
 	err      string
 }
 
@@ -268,8 +267,8 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 		}
 
 		if actualResponse.Namespace != test.response.Namespace ||
-			!reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) ||
-			!reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) ||
+			!reflect.DeepEqual(sets.NewString(actualResponse.UsersSlice...), sets.NewString(test.response.UsersSlice...)) ||
+			!reflect.DeepEqual(sets.NewString(actualResponse.GroupsSlice...), sets.NewString(test.response.GroupsSlice...)) ||
 			actualResponse.EvaluationError != test.response.EvaluationError {
 			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in any namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
@@ -290,10 +289,10 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 
 type localResourceAccessReviewTest struct {
 	description     string
-	clientInterface authorizationtypedclient.LocalResourceAccessReviewInterface
-	review          *authorizationapi.LocalResourceAccessReview
+	clientInterface authorizationv1typedclient.LocalResourceAccessReviewInterface
+	review          *authorizationv1.LocalResourceAccessReview
 
-	response authorizationapi.ResourceAccessReviewResponse
+	response authorizationv1.ResourceAccessReviewResponse
 	err      string
 }
 
@@ -329,12 +328,12 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 			return false, nil
 		}
 
-		if !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) {
+		if !reflect.DeepEqual(sets.NewString(actualResponse.UsersSlice...), sets.NewString(test.response.UsersSlice...)) {
 			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in the current namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
 		}
 
-		if !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
+		if !reflect.DeepEqual(sets.NewString(actualResponse.GroupsSlice...), sets.NewString(test.response.GroupsSlice...)) {
 			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in the current namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
 		}
@@ -362,19 +361,19 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1()
 
 	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()
+	haroldAuthorizationClient := authorizationv1client.NewForConfigOrDie(haroldConfig).AuthorizationV1()
 
 	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	markAuthorizationClient := authorizationclient.NewForConfigOrDie(markConfig).Authorization()
+	markAuthorizationClient := authorizationv1client.NewForConfigOrDie(markConfig).AuthorizationV1()
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "hammer-project",
@@ -402,12 +401,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	requestWhoCanViewDeploymentConfigs := &authorizationapi.ResourceAccessReview{
-		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
+	requestWhoCanViewDeploymentConfigs := &authorizationv1.ResourceAccessReview{
+		Action: authorizationv1.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
 	}
 
-	localRequestWhoCanViewDeploymentConfigs := &authorizationapi.LocalResourceAccessReview{
-		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
+	localRequestWhoCanViewDeploymentConfigs := &authorizationv1.LocalResourceAccessReview{
+		Action: authorizationv1.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
 	}
 
 	{
@@ -415,15 +414,15 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			description:     "who can view deploymentconfigs in hammer by harold",
 			clientInterface: haroldAuthorizationClient.LocalResourceAccessReviews("hammer-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
-			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     sets.NewString("harold", "valerie"),
-				Groups:    sets.NewString(),
-				Namespace: "hammer-project",
+			response: authorizationv1.ResourceAccessReviewResponse{
+				UsersSlice:  []string{"harold", "valerie"},
+				GroupsSlice: []string{},
+				Namespace:   "hammer-project",
 			},
 		}
-		test.response.Users.Insert(globalClusterReaderUsers.List()...)
-		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
-		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
+		test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 	{
@@ -431,15 +430,15 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			description:     "who can view deploymentconfigs in mallet by mark",
 			clientInterface: markAuthorizationClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
-			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     sets.NewString("mark", "edgar"),
-				Groups:    sets.NewString(),
-				Namespace: "mallet-project",
+			response: authorizationv1.ResourceAccessReviewResponse{
+				UsersSlice:  []string{"mark", "edgar"},
+				GroupsSlice: []string{},
+				Namespace:   "mallet-project",
 			},
 		}
-		test.response.Users.Insert(globalClusterReaderUsers.List()...)
-		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
-		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
+		test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 
@@ -460,14 +459,14 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			description:     "who can view deploymentconfigs in all by cluster-admin",
 			clientInterface: clusterAdminAuthorizationClient.ResourceAccessReviews(),
 			review:          requestWhoCanViewDeploymentConfigs,
-			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:  sets.NewString(),
-				Groups: sets.NewString(),
+			response: authorizationv1.ResourceAccessReviewResponse{
+				UsersSlice:  []string{},
+				GroupsSlice: []string{},
 			},
 		}
-		test.response.Users.Insert(globalClusterReaderUsers.List()...)
-		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
-		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
+		test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 
@@ -479,35 +478,43 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			description:     "who can view deploymentconfigs in mallet by cluster-admin",
 			clientInterface: clusterAdminAuthorizationClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
-			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:           sets.NewString("edgar"),
-				Groups:          sets.NewString(),
+			response: authorizationv1.ResourceAccessReviewResponse{
+				UsersSlice:      []string{"edgar"},
+				GroupsSlice:     []string{},
 				Namespace:       "mallet-project",
 				EvaluationError: `clusterrole.rbac.authorization.k8s.io "admin" not found`,
 			},
 		}
-		test.response.Users.Insert(globalClusterReaderUsers.List()...)
-		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
-		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-controller")
-		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-finalizer-controller")
-		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
+		test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
+
+		newList := []string{}
+		toRemove := sets.NewString("system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:openshift-infra:template-instance-finalizer-controller")
+		for _, curr := range test.response.UsersSlice {
+			if toRemove.Has(curr) {
+				continue
+			}
+			newList = append(newList, curr)
+		}
+		test.response.UsersSlice = newList
+		test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
 }
 
 type subjectAccessReviewTest struct {
 	description      string
-	localInterface   authorizationtypedclient.LocalSubjectAccessReviewInterface
-	clusterInterface authorizationtypedclient.SubjectAccessReviewInterface
-	localReview      *authorizationapi.LocalSubjectAccessReview
-	clusterReview    *authorizationapi.SubjectAccessReview
+	localInterface   authorizationv1typedclient.LocalSubjectAccessReviewInterface
+	clusterInterface authorizationv1typedclient.SubjectAccessReviewInterface
+	localReview      *authorizationv1.LocalSubjectAccessReview
+	clusterReview    *authorizationv1.SubjectAccessReview
 
 	kubeNamespace     string
 	kubeErr           string
 	kubeSkip          bool
-	kubeAuthInterface authorizationv1client.AuthorizationV1Interface
+	kubeAuthInterface kauthorizationv1client.AuthorizationV1Interface
 
-	response authorizationapi.SubjectAccessReviewResponse
+	response authorizationv1.SubjectAccessReviewResponse
 	err      string
 }
 
@@ -516,7 +523,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 		failMessage := ""
 		err := wait.Poll(testutil.PolicyCachePollInterval, testutil.PolicyCachePollTimeout, func() (bool, error) {
 			var err error
-			var actualResponse *authorizationapi.SubjectAccessReviewResponse
+			var actualResponse *authorizationv1.SubjectAccessReviewResponse
 			if test.localReview != nil {
 				actualResponse, err = test.localInterface.Create(test.localReview)
 			} else {
@@ -581,7 +588,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 			var err error
 			var actualResponse kubeauthorizationv1.SubjectAccessReviewStatus
 			if test.localReview != nil {
-				if len(test.localReview.User) == 0 && (test.localReview.Groups == nil || len(test.localReview.Groups.UnsortedList()) == 0) {
+				if len(test.localReview.User) == 0 && (len(test.localReview.GroupsSlice) == 0) {
 					var tmp *kubeauthorizationv1.SelfSubjectAccessReview
 					if tmp, err = test.kubeAuthInterface.SelfSubjectAccessReviews().Create(toKubeSelfSAR(testNS, test.localReview)); err == nil {
 						actualResponse = tmp.Status
@@ -642,7 +649,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 }
 
 // TODO handle Subresource and NonResourceAttributes
-func toKubeSelfSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationv1.SelfSubjectAccessReview {
+func toKubeSelfSAR(testNS string, sar *authorizationv1.LocalSubjectAccessReview) *kubeauthorizationv1.SelfSubjectAccessReview {
 	return &kubeauthorizationv1.SelfSubjectAccessReview{
 		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
@@ -658,12 +665,12 @@ func toKubeSelfSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview
 }
 
 // TODO handle Extra/Scopes, Subresource and NonResourceAttributes
-func toKubeLocalSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationv1.LocalSubjectAccessReview {
+func toKubeLocalSAR(testNS string, sar *authorizationv1.LocalSubjectAccessReview) *kubeauthorizationv1.LocalSubjectAccessReview {
 	return &kubeauthorizationv1.LocalSubjectAccessReview{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNS},
 		Spec: kubeauthorizationv1.SubjectAccessReviewSpec{
 			User:   sar.User,
-			Groups: sar.Groups.List(),
+			Groups: sar.GroupsSlice,
 			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 				Namespace: testNS,
 				Verb:      sar.Verb,
@@ -677,11 +684,11 @@ func toKubeLocalSAR(testNS string, sar *authorizationapi.LocalSubjectAccessRevie
 }
 
 // TODO handle Extra/Scopes, Subresource and NonResourceAttributes
-func toKubeClusterSAR(sar *authorizationapi.SubjectAccessReview) *kubeauthorizationv1.SubjectAccessReview {
+func toKubeClusterSAR(sar *authorizationv1.SubjectAccessReview) *kubeauthorizationv1.SubjectAccessReview {
 	return &kubeauthorizationv1.SubjectAccessReview{
 		Spec: kubeauthorizationv1.SubjectAccessReviewSpec{
 			User:   sar.User,
-			Groups: sar.Groups.List(),
+			Groups: sar.GroupsSlice,
 			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 				Verb:     sar.Verb,
 				Group:    sar.Group,
@@ -710,7 +717,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1()
 
 	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
@@ -721,12 +728,12 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold can get autoscaling.horizontalpodautoscalers in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
+		localReview: &authorizationv1.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.Action{Verb: "get", Group: "autoscaling", Resource: "horizontalpodautoscalers"},
+			Action: authorizationv1.Action{Verb: "get", Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "admin/hammer-project" of ClusterRole "admin" to User "harold"`,
 			Namespace: "hammer-project",
@@ -735,12 +742,12 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold cannot get horizontalpodautoscalers (with no API group) in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
+		localReview: &authorizationv1.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
+			Action: authorizationv1.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "hammer-project",
@@ -749,12 +756,12 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold cannot get horizontalpodautoscalers (with invalid API group) in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
+		localReview: &authorizationv1.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
+			Action: authorizationv1.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminKubeClient.AuthorizationV1(),
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "hammer-project",
@@ -763,12 +770,12 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold cannot get horizontalpodautoscalers (with * API group) in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
+		localReview: &authorizationv1.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
+			Action: authorizationv1.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "hammer-project",
@@ -779,11 +786,11 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get autoscaling.horizontalpodautoscalers in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "get", Group: "autoscaling", Resource: "horizontalpodautoscalers"},
+		localReview: &authorizationv1.LocalSubjectAccessReview{
+			Action: authorizationv1.Action{Verb: "get", Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    "",
 			Namespace: "any-project",
@@ -792,11 +799,11 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get horizontalpodautoscalers (with no API group) in project any-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
+		localReview: &authorizationv1.LocalSubjectAccessReview{
+			Action: authorizationv1.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    "",
 			Namespace: "any-project",
@@ -805,11 +812,11 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get horizontalpodautoscalers (with invalid API group) in project any-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
+		localReview: &authorizationv1.LocalSubjectAccessReview{
+			Action: authorizationv1.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    "",
 			Namespace: "any-project",
@@ -818,11 +825,11 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get horizontalpodautoscalers (with * API group) in project any-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
+		localReview: &authorizationv1.LocalSubjectAccessReview{
+			Action: authorizationv1.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    "",
 			Namespace: "any-project",
@@ -847,7 +854,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1()
 
 	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
@@ -857,7 +864,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()
+	haroldAuthorizationClient := authorizationv1client.NewForConfigOrDie(haroldConfig).AuthorizationV1()
 	haroldSARGetter := haroldKubeClient.AuthorizationV1()
 
 	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
@@ -868,18 +875,18 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	markAuthorizationClient := authorizationclient.NewForConfigOrDie(markConfig).Authorization()
+	markAuthorizationClient := authorizationv1client.NewForConfigOrDie(markConfig).AuthorizationV1()
 	markSARGetter := markKubeClient.AuthorizationV1()
 
 	dannyKubeClient, dannyConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "danny")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}
-	dannyAuthorizationClient := authorizationclient.NewForConfigOrDie(dannyConfig).Authorization()
+	dannyAuthorizationClient := authorizationv1client.NewForConfigOrDie(dannyConfig).AuthorizationV1()
 	dannySARGetter := dannyKubeClient.AuthorizationV1()
 
 	anonymousConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
-	anonymousAuthorizationClient := authorizationclient.NewForConfigOrDie(anonymousConfig).Authorization()
+	anonymousAuthorizationClient := authorizationv1client.NewForConfigOrDie(anonymousConfig).AuthorizationV1()
 	anonymousKubeClient, err := kubernetes.NewForConfig(anonymousConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -911,19 +918,19 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	if err := addDanny.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	askCanDannyGetProject := &authorizationapi.SubjectAccessReview{
+	askCanDannyGetProject := &authorizationv1.SubjectAccessReview{
 		User:   "danny",
-		Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
+		Action: authorizationv1.Action{Verb: "get", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:    "cluster admin told danny can get project default",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("default"),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
+		localReview: &authorizationv1.LocalSubjectAccessReview{
 			User:   "danny",
-			Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
+			Action: authorizationv1.Action{Verb: "get", Resource: "projects"},
 		},
 		kubeAuthInterface: clusterAdminLocalSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "view/default" of ClusterRole "view" to User "danny"`,
 			Namespace: "default",
@@ -934,7 +941,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterInterface:  clusterAdminAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: clusterAdminLocalSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "",
@@ -983,16 +990,16 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	askCanValerieGetProject := &authorizationapi.LocalSubjectAccessReview{
+	askCanValerieGetProject := &authorizationv1.LocalSubjectAccessReview{
 		User:   "valerie",
-		Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
+		Action: authorizationv1.Action{Verb: "get", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:       "harold told valerie can get project hammer-project",
 		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanValerieGetProject,
 		kubeAuthInterface: haroldSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "view/hammer-project" of ClusterRole "view" to User "valerie"`,
 			Namespace: "hammer-project",
@@ -1003,23 +1010,23 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localInterface:    markAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanValerieGetProject,
 		kubeAuthInterface: markSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
 
-	askCanEdgarDeletePods := &authorizationapi.LocalSubjectAccessReview{
+	askCanEdgarDeletePods := &authorizationv1.LocalSubjectAccessReview{
 		User:   "edgar",
-		Action: authorizationapi.Action{Verb: "delete", Resource: "pods"},
+		Action: authorizationv1.Action{Verb: "delete", Resource: "pods"},
 	}
 	subjectAccessReviewTest{
 		description:       "mark told edgar can delete pods in mallet-project",
 		localInterface:    markAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: markSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "edit/mallet-project" of ClusterRole "edit" to User "edgar"`,
 			Namespace: "mallet-project",
@@ -1064,32 +1071,32 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "system:anonymous" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "nonexistent-project"`,
 	}.run(t)
 
-	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{
+	askCanHaroldUpdateProject := &authorizationv1.LocalSubjectAccessReview{
 		User:   "harold",
-		Action: authorizationapi.Action{Verb: "update", Resource: "projects"},
+		Action: authorizationv1.Action{Verb: "update", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:       "harold told harold can update project hammer-project",
 		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanHaroldUpdateProject,
 		kubeAuthInterface: haroldSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "admin/hammer-project" of ClusterRole "admin" to User "harold"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
 
-	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{
-		Groups: sets.NewString("system:cluster-admins"),
-		Action: authorizationapi.Action{Verb: "create", Resource: "projects"},
+	askCanClusterAdminsCreateProject := &authorizationv1.SubjectAccessReview{
+		GroupsSlice: []string{"system:cluster-admins"},
+		Action:      authorizationv1.Action{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:       "cluster admin told cluster admins can create projects",
 		clusterInterface:  clusterAdminAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanClusterAdminsCreateProject,
 		kubeAuthInterface: clusterAdminLocalSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by ClusterRoleBinding "cluster-admins" of ClusterRole "cluster-admin" to Group "system:cluster-admins"`,
 			Namespace: "",
@@ -1104,15 +1111,15 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeErr:           `subjectaccessreviews.authorization.k8s.io is forbidden: User "harold" cannot create resource "subjectaccessreviews" in API group "authorization.k8s.io" at the cluster scope`,
 	}.run(t)
 
-	askCanICreatePods := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.Action{Verb: "create", Resource: "pods"},
+	askCanICreatePods := &authorizationv1.LocalSubjectAccessReview{
+		Action: authorizationv1.Action{Verb: "create", Resource: "pods"},
 	}
 	subjectAccessReviewTest{
 		description:       "harold told he can create pods in project hammer-project",
 		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: haroldSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "admin/hammer-project" of ClusterRole "admin" to User "harold"`,
 			Namespace: "hammer-project",
@@ -1123,7 +1130,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: anonymousSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   true,
 			Reason:    `RBAC: allowed by RoleBinding "edit/hammer-project" of ClusterRole "edit" to User "system:anonymous"`,
 			Namespace: "hammer-project",
@@ -1136,7 +1143,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: haroldSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "mallet-project",
@@ -1147,7 +1154,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: anonymousSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "mallet-project",
@@ -1161,7 +1168,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: haroldSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "nonexistent-project",
@@ -1172,22 +1179,22 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: anonymousSARGetter,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "nonexistent-project",
 		},
 	}.run(t)
 
-	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
+	askCanICreatePolicyBindings := &authorizationv1.LocalSubjectAccessReview{
+		Action: authorizationv1.Action{Verb: "create", Resource: "policybindings"},
 	}
 	subjectAccessReviewTest{
 		description:       "harold told he can create policybindings in project hammer-project",
 		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		kubeAuthInterface: haroldSARGetter,
 		localReview:       askCanICreatePolicyBindings,
-		response: authorizationapi.SubjectAccessReviewResponse{
+		response: authorizationv1.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
 			Namespace: "hammer-project",

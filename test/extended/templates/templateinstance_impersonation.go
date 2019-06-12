@@ -9,11 +9,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -67,29 +66,29 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		addUserToGroup(cli, impersonatebygroupuser.Name, impersonategroup.Name)
 
 		// additional plumbing to enable impersonateuser to impersonate edituser1
-		role, err := cli.AdminAuthorizationClient().Authorization().Roles(cli.Namespace()).Create(&authorizationapi.Role{
+		role, err := cli.AdminAuthorizationClient().AuthorizationV1().Roles(cli.Namespace()).Create(&authorizationv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater",
 			},
-			Rules: []authorizationapi.PolicyRule{
+			Rules: []authorizationv1.PolicyRule{
 				{
-					Verbs:     sets.NewString("assign"),
+					Verbs:     []string{"assign"},
 					APIGroups: []string{templateapi.GroupName},
-					Resources: sets.NewString("templateinstances"),
+					Resources: []string{"templateinstances"},
 				},
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(cli.Namespace()).Create(&authorizationv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater-binding",
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name:      role.Name,
 				Namespace: cli.Namespace(),
 			},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
 					Kind: authorizationapi.UserKind,
 					Name: impersonateuser.Name,
@@ -108,8 +107,8 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
 			for _, user := range []*userv1.User{adminuser, impersonateuser, impersonatebygroupuser, edituser1, edituser2, viewuser} {
 				cli.ChangeUser(user.Name)
-				sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
-					Action: authorizationapi.Action{
+				sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationv1.LocalSubjectAccessReview{
+					Action: authorizationv1.Action{
 						Verb:     "get",
 						Resource: "pods",
 					},
@@ -123,10 +122,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			}
 
 			cli.ChangeUser(impersonatebygroupuser.Name)
-			sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
-				Action: authorizationapi.Action{
+			sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationv1.LocalSubjectAccessReview{
+				Action: authorizationv1.Action{
 					Verb:     "assign",
-					Group:    templateapi.GroupName,
+					Group:    templatev1.GroupName,
 					Resource: "templateinstances",
 				},
 			})

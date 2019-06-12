@@ -13,18 +13,17 @@ import (
 	"sync"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	projectv1 "github.com/openshift/api/project/v1"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-
-	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -78,7 +77,7 @@ func TestFrontProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1()
 
 	proxyHTTPHandler, err := newFrontProxyHandler(clusterAdminClientConfig.Host, masterConfig.ServingInfo.ClientCA, proxyUserHeader, proxyGroupHeader, proxyCert)
 	if err != nil {
@@ -96,10 +95,10 @@ func TestFrontProxy(t *testing.T) {
 
 	listProjectsRoleName := "list-projects-role"
 	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(
-		&authorizationapi.ClusterRole{
+		&authorizationv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: listProjectsRoleName},
-			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("list").Groups(legacy.GroupName).Resources("projects").RuleOrDie(),
+			Rules: []authorizationv1.PolicyRule{
+				{Verbs: []string{"list"}, APIGroups: []string{""}, Resources: []string{"projects"}},
 			},
 		},
 	); err != nil {
@@ -115,12 +114,12 @@ func TestFrontProxy(t *testing.T) {
 
 		// make it so that the user can list projects without any groups
 		if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(
-			&authorizationapi.ClusterRoleBinding{
+			&authorizationv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: username + "-clusterrolebinding"},
-				Subjects: []kapi.ObjectReference{
+				Subjects: []corev1.ObjectReference{
 					{Kind: authorizationapi.UserKind, Name: username},
 				},
-				RoleRef: kapi.ObjectReference{Name: listProjectsRoleName},
+				RoleRef: corev1.ObjectReference{Name: listProjectsRoleName},
 			},
 		); err != nil {
 			t.Fatal(err)

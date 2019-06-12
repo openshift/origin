@@ -10,12 +10,13 @@ import (
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
@@ -33,7 +34,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
 		template           *templatev1.Template
-		clusterrolebinding *authorizationapi.ClusterRoleBinding
+		clusterrolebinding *authorizationv1.ClusterRoleBinding
 		brokercli          client.Client
 		service            *api.Service
 		plan               *api.Plan
@@ -53,14 +54,14 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		template, err = cli.TemplateClient().TemplateV1().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: "system:openshift:templateservicebroker-client",
 			},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
 					Kind: authorizationapi.GroupKind,
 					Name: "system:unauthenticated",
@@ -79,7 +80,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		deleteUser(cli, edituser)
 		deleteUser(cli, nopermsuser)
 
-		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, nil)
