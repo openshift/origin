@@ -42,12 +42,12 @@ import (
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 
+	newproject "github.com/openshift/oc/pkg/cli/admin/project"
 	openshiftcontrollermanager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/api/legacy"
 	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	openshiftkubeapiserver "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/test/util"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
@@ -55,7 +55,7 @@ import (
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd/etcdserver"
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/openshift-controller-manager"
+	openshift_controller_manager "github.com/openshift/origin/test/util/server/deprecated_openshift/openshift-controller-manager"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/start"
 
 	_ "k8s.io/kubernetes/pkg/apis/core/install"

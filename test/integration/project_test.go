@@ -19,9 +19,9 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	"github.com/openshift/oc/pkg/cli/admin/policy"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

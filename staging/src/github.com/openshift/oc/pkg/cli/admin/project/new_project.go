@@ -22,8 +22,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/oc/pkg/cli/admin/policy"
 )
 
 const NewProjectRecommendedName = "new-project"

@@ -19,7 +19,7 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	templatev1clienttyped "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
-	policy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/oc/pkg/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"

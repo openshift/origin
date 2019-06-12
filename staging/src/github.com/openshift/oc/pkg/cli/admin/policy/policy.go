@@ -16,7 +16,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/oc/pkg/helpers/templates"
 )
 
 const PolicyRecommendedName = "policy"

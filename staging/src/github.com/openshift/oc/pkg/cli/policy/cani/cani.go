@@ -21,7 +21,7 @@ import (
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/oc/pkg/cli/admin/policy"
 )
 
 const (
