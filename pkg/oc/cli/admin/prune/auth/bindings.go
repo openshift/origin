@@ -3,15 +3,13 @@ package auth
 import (
 	"fmt"
 	"io"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
-	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	authv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 // reapClusterBindings removes the subject from cluster-level role bindings
@@ -32,12 +30,7 @@ func reapClusterBindings(removedSubject corev1.ObjectReference, c authv1client.A
 		if len(retainedSubjects) != len(binding.Subjects) {
 			updatedBinding := binding
 			updatedBinding.Subjects = retainedSubjects
-			coreSubjects, err := convertObjectReference(retainedSubjects)
-			if err != nil {
-				errors = append(errors, err)
-				continue
-			}
-			updatedBinding.UserNames, updatedBinding.GroupNames = authorizationapi.StringSubjectsFor(binding.Namespace, coreSubjects)
+			updatedBinding.UserNames, updatedBinding.GroupNames = stringSubjectsFor(binding.Namespace, retainedSubjects)
 			if _, err := c.ClusterRoleBindings().Update(&updatedBinding); err != nil && !kerrors.IsNotFound(err) {
 				errors = append(errors, err)
 			} else {
@@ -66,12 +59,7 @@ func reapNamespacedBindings(removedSubject corev1.ObjectReference, c authv1clien
 		if len(retainedSubjects) != len(binding.Subjects) {
 			updatedBinding := binding
 			updatedBinding.Subjects = retainedSubjects
-			coreSubjects, err := convertObjectReference(retainedSubjects)
-			if err != nil {
-				errors = append(errors, err)
-				continue
-			}
-			updatedBinding.UserNames, updatedBinding.GroupNames = authorizationapi.StringSubjectsFor(binding.Namespace, coreSubjects)
+			updatedBinding.UserNames, updatedBinding.GroupNames = stringSubjectsFor(binding.Namespace, retainedSubjects)
 			if _, err := c.RoleBindings(binding.Namespace).Update(&updatedBinding); err != nil && !kerrors.IsNotFound(err) {
 				errors = append(errors, err)
 			} else {
@@ -82,14 +70,30 @@ func reapNamespacedBindings(removedSubject corev1.ObjectReference, c authv1clien
 	return errors
 }
 
-func convertObjectReference(ins []corev1.ObjectReference) ([]core.ObjectReference, error) {
-	result := []core.ObjectReference{}
-	for _, subject := range ins {
-		ref := &core.ObjectReference{}
-		if err := corev1conversions.Convert_v1_ObjectReference_To_core_ObjectReference(&subject, ref, nil); err != nil {
-			return nil, err
+// stringSubjectsFor returns users and groups for comparison against user.Info.  currentNamespace is used to
+// to create usernames for service accounts where namespace=="".
+func stringSubjectsFor(currentNamespace string, subjects []corev1.ObjectReference) ([]string, []string) {
+	// these MUST be nil to indicate empty
+	var users, groups []string
+
+	for _, subject := range subjects {
+		switch subject.Kind {
+		case "ServiceAccount":
+			namespace := currentNamespace
+			if len(subject.Namespace) > 0 {
+				namespace = subject.Namespace
+			}
+			if len(namespace) > 0 {
+				users = append(users, serviceaccount.MakeUsername(namespace, subject.Name))
+			}
+
+		case "User":
+			users = append(users, subject.Name)
+
+		case "Group":
+			groups = append(groups, subject.Name)
 		}
-		result = append(result, *ref)
 	}
-	return result, nil
+
+	return users, groups
 }
