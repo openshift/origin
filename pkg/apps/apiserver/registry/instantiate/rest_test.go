@@ -15,16 +15,14 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/image"
-
+	imagev1 "github.com/openshift/api/image/v1"
+	imagev1fakeclient "github.com/openshift/client-go/image/clientset/versioned/fake"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-
-	imagev1 "github.com/openshift/api/image/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	appsv1conversions "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 )
 
 // TestProcess_changeForNonAutomaticTag ensures that an image update for which
@@ -70,10 +68,10 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		// The image has been resolved at least once before.
 		config.Spec.Triggers[0].ImageChangeParams.LastTriggeredImage = appstest.DockerImageReference
 
-		stream := appstest.OkStreamForConfig(config)
+		stream := OkStreamForConfig(config)
 		config.Spec.Triggers[0].ImageChangeParams.LastTriggeredImage = "someotherresolveddockerimagereference"
 
-		fake := &imagefake.Clientset{}
+		fake := &imagev1fakeclient.Clientset{}
 		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if !test.expected {
 				t.Errorf("unexpected imagestream call")
@@ -84,7 +82,7 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		image := config.Spec.Template.Spec.Containers[0].Image
 
 		// Force equals to false; we shouldn't update the config anyway
-		err := processTriggers(config, fake.Image(), test.force, test.excludes)
+		err := processTriggers(config, fake.ImageV1(), test.force, test.excludes)
 		if err == nil && test.expectedErr {
 			t.Errorf("%s: expected an error", test.name)
 			continue
@@ -106,11 +104,11 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 // the trigger not matching the tags defined on the image stream.
 func TestProcess_changeForUnregisteredTag(t *testing.T) {
 	config := appstest.OkDeploymentConfig(0)
-	stream := appstest.OkStreamForConfig(config)
+	stream := OkStreamForConfig(config)
 	// The image has been resolved at least once before.
 	config.Spec.Triggers[0].ImageChangeParams.From.Name = imageutil.JoinImageStreamTag(stream.Name, "unrelatedtag")
 
-	fake := &imagefake.Clientset{}
+	fake := &imagev1fakeclient.Clientset{}
 	fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, stream, nil
 	})
@@ -118,14 +116,14 @@ func TestProcess_changeForUnregisteredTag(t *testing.T) {
 	image := config.Spec.Template.Spec.Containers[0].Image
 
 	// verify no-op; should be the same for force=true and force=false
-	if err := processTriggers(config, fake.Image(), false, nil); err != nil {
+	if err := processTriggers(config, fake.ImageV1(), false, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if image != config.Spec.Template.Spec.Containers[0].Image {
 		t.Fatalf("unexpected image update: %#v", config.Spec.Template.Spec.Containers[0].Image)
 	}
 
-	if err := processTriggers(config, fake.Image(), true, nil); err != nil {
+	if err := processTriggers(config, fake.ImageV1(), true, nil); err != nil {
 		t.Fatalf("unexpected error when forced: %v", err)
 	}
 	if image != config.Spec.Template.Spec.Containers[0].Image {
@@ -242,7 +240,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 		test := tests[i]
 		t.Logf("running test %q", test.name)
 
-		fake := &imagefake.Clientset{}
+		fake := &imagev1fakeclient.Clientset{}
 		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if test.notFound {
 				name := action.(clientgotesting.GetAction).GetName()
@@ -266,7 +264,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 		}
 		image := config.Spec.Template.Spec.Containers[0].Image
 
-		err := processTriggers(config, fake.Image(), false, nil)
+		err := processTriggers(config, fake.ImageV1(), false, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			continue
@@ -285,19 +283,12 @@ func TestProcess_matchScenarios(t *testing.T) {
 	}
 }
 
-func fakeStream(name, tag, dir, image string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
+func fakeStream(name, tag, dir, image string) *imagev1.ImageStream {
+	return &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metav1.NamespaceDefault},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				tag: {
-					Items: []imageapi.TagEvent{
-						{
-							DockerImageReference: dir,
-							Image:                image,
-						},
-					},
-				},
+		Status: imagev1.ImageStreamStatus{
+			Tags: []imagev1.NamedTagEventList{
+				{Tag: tag, Items: []imagev1.TagEvent{{DockerImageReference: dir, Image: image}}},
 			},
 		},
 	}
@@ -453,7 +444,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplateChanged(), // Irrelevant change
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkNonAutomaticICT(), // Image still to be resolved but it's false anyway
+						OkNonAutomaticICT(), // Image still to be resolved but it's false anyway
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -463,7 +454,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplate(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkNonAutomaticICT(),
+						OkNonAutomaticICT(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -482,7 +473,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplateChanged(), // Image has been updated in the template but automatic=false
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkTriggeredNonAutomatic(),
+						OkTriggeredNonAutomatic(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -492,7 +483,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplate(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkNonAutomaticICT(),
+						OkNonAutomaticICT(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -510,7 +501,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplateChanged(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkTriggeredImageChange(),
+						OkTriggeredImageChange(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -538,7 +529,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplateChanged(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkTriggeredImageChange(),
+						OkTriggeredImageChange(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -548,7 +539,7 @@ func TestCanTrigger(t *testing.T) {
 				Spec: appsapi.DeploymentConfigSpec{
 					Template: appstest.OkPodTemplateChanged(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
-						appstest.OkTriggeredImageChange(),
+						OkTriggeredImageChange(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -567,7 +558,7 @@ func TestCanTrigger(t *testing.T) {
 					Template: appstest.OkPodTemplateChanged(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
 						appstest.OkConfigChangeTrigger(),
-						appstest.OkTriggeredNonAutomatic(),
+						OkTriggeredNonAutomatic(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(0),
@@ -578,7 +569,7 @@ func TestCanTrigger(t *testing.T) {
 					Template: appstest.OkPodTemplate(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
 						appstest.OkConfigChangeTrigger(),
-						appstest.OkNonAutomaticICT(),
+						OkNonAutomaticICT(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(0),
@@ -597,7 +588,7 @@ func TestCanTrigger(t *testing.T) {
 					Template: appstest.OkPodTemplate(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
 						appstest.OkConfigChangeTrigger(),
-						appstest.OkNonAutomaticICT(), // Image is not resolved yet
+						OkNonAutomaticICT(), // Image is not resolved yet
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(0),
@@ -608,7 +599,7 @@ func TestCanTrigger(t *testing.T) {
 					Template: appstest.OkPodTemplate(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
 						appstest.OkConfigChangeTrigger(),
-						appstest.OkNonAutomaticICT(),
+						OkNonAutomaticICT(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(0),
@@ -659,7 +650,7 @@ func TestCanTrigger(t *testing.T) {
 					Template: appstest.OkPodTemplateChanged(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
 						appstest.OkConfigChangeTrigger(),
-						appstest.OkTriggeredImageChange(),
+						OkTriggeredImageChange(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(0),
@@ -689,7 +680,7 @@ func TestCanTrigger(t *testing.T) {
 					Template: appstest.OkPodTemplateChanged(),
 					Triggers: []appsapi.DeploymentTriggerPolicy{
 						appstest.OkConfigChangeTrigger(),
-						appstest.OkTriggeredImageChange(),
+						OkTriggeredImageChange(),
 					},
 				},
 				Status: appstest.OkDeploymentConfigStatus(1),
@@ -710,12 +701,12 @@ func TestCanTrigger(t *testing.T) {
 			if config == nil {
 				config = test.config
 			}
-			config = appstest.RoundTripConfig(t, config)
+			config = RoundTripConfig(t, config)
 			deployment, _ := makeDeployment(config)
 			return true, deployment, nil
 		})
 
-		test.config = appstest.RoundTripConfig(t, test.config)
+		test.config = RoundTripConfig(t, test.config)
 
 		got, gotCauses, err := canTrigger(test.config, client.CoreV1(), test.force)
 		if err != nil && !test.expectedErr {
@@ -741,4 +732,63 @@ func makeDeployment(config *appsapi.DeploymentConfig) (*corev1.ReplicationContro
 		return nil, err
 	}
 	return appsutil.MakeDeployment(configExternal)
+}
+
+func OkStreamForConfig(config *appsapi.DeploymentConfig) *imagev1.ImageStream {
+	for _, t := range config.Spec.Triggers {
+		if t.Type != appsapi.DeploymentTriggerOnImageChange {
+			continue
+		}
+
+		ref := t.ImageChangeParams.From
+		name, tag, _ := imageutil.SplitImageStreamTag(ref.Name)
+
+		return &imagev1.ImageStream{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: ref.Namespace,
+			},
+			Status: imagev1.ImageStreamStatus{
+				Tags: []imagev1.NamedTagEventList{
+					{Tag: tag, Items: []imagev1.TagEvent{{DockerImageReference: t.ImageChangeParams.LastTriggeredImage}}},
+				},
+			},
+		}
+	}
+	return nil
+}
+
+func OkNonAutomaticICT() appsapi.DeploymentTriggerPolicy {
+	ict := appstest.OkImageChangeTrigger()
+	ict.ImageChangeParams.Automatic = false
+	return ict
+}
+
+func OkTriggeredNonAutomatic() appsapi.DeploymentTriggerPolicy {
+	ict := OkNonAutomaticICT()
+	ict.ImageChangeParams.LastTriggeredImage = appstest.DockerImageReference
+	return ict
+}
+
+func OkTriggeredImageChange() appsapi.DeploymentTriggerPolicy {
+	ict := appstest.OkImageChangeTrigger()
+	ict.ImageChangeParams.LastTriggeredImage = appstest.DockerImageReference
+	return ict
+}
+
+func RoundTripConfig(t *testing.T, config *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
+	scheme := runtime.NewScheme()
+	appsv1conversions.Install(scheme)
+
+	versioned, err := scheme.ConvertToVersion(config, appsv1.GroupVersion)
+	if err != nil {
+		t.Errorf("unexpected conversion error: %v", err)
+		return nil
+	}
+	defaulted, err := scheme.ConvertToVersion(versioned, appsapi.SchemeGroupVersion)
+	if err != nil {
+		t.Errorf("unexpected conversion error: %v", err)
+		return nil
+	}
+	return defaulted.(*appsapi.DeploymentConfig)
 }

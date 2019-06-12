@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -97,23 +98,23 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 func TestIndexOfImageSignature(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
-		signatures    []imageapi.ImageSignature
+		signatures    []imagev1.ImageSignature
 		matchType     string
 		matchContent  []byte
 		expectedIndex int
 	}{
 		{
 			name:          "empty",
-			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchType:     imagev1.ImageSignatureTypeAtomicImageV1,
 			matchContent:  []byte("blob"),
 			expectedIndex: -1,
 		},
 
 		{
 			name: "not present",
-			signatures: []imageapi.ImageSignature{
+			signatures: []imagev1.ImageSignature{
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("binary"),
 				},
 				{
@@ -121,29 +122,29 @@ func TestIndexOfImageSignature(t *testing.T) {
 					Content: []byte("blob"),
 				},
 			},
-			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchType:     imagev1.ImageSignatureTypeAtomicImageV1,
 			matchContent:  []byte("blob"),
 			expectedIndex: -1,
 		},
 
 		{
 			name: "first and only",
-			signatures: []imageapi.ImageSignature{
+			signatures: []imagev1.ImageSignature{
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("binary"),
 				},
 			},
-			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchType:     imagev1.ImageSignatureTypeAtomicImageV1,
 			matchContent:  []byte("binary"),
 			expectedIndex: 0,
 		},
 
 		{
 			name: "last",
-			signatures: []imageapi.ImageSignature{
+			signatures: []imagev1.ImageSignature{
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("binary"),
 				},
 				{
@@ -151,24 +152,24 @@ func TestIndexOfImageSignature(t *testing.T) {
 					Content: []byte("blob"),
 				},
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("blob"),
 				},
 			},
-			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchType:     imagev1.ImageSignatureTypeAtomicImageV1,
 			matchContent:  []byte("blob"),
 			expectedIndex: 2,
 		},
 
 		{
 			name: "many matches",
-			signatures: []imageapi.ImageSignature{
+			signatures: []imagev1.ImageSignature{
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("blob2"),
 				},
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("blob"),
 				},
 				{
@@ -176,26 +177,26 @@ func TestIndexOfImageSignature(t *testing.T) {
 					Content: []byte("blob"),
 				},
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("blob"),
 				},
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("blob"),
 				},
 				{
-					Type:    imageapi.ImageSignatureTypeAtomicImageV1,
+					Type:    imagev1.ImageSignatureTypeAtomicImageV1,
 					Content: []byte("binary"),
 				},
 			},
-			matchType:     imageapi.ImageSignatureTypeAtomicImageV1,
+			matchType:     imagev1.ImageSignatureTypeAtomicImageV1,
 			matchContent:  []byte("blob"),
 			expectedIndex: 1,
 		},
 	} {
 
-		im := imageapi.Image{
-			Signatures: make([]imageapi.ImageSignature, len(tc.signatures)),
+		im := imagev1.Image{
+			Signatures: make([]imagev1.ImageSignature, len(tc.signatures)),
 		}
 		for i, signature := range tc.signatures {
 			signature.Name = fmt.Sprintf("%s:%s", signature.Type, signature.Content)

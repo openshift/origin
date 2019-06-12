@@ -10,13 +10,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 
-	appsapiv1 "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	deployconfigetcd "github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/apiserver/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/apps/apiserver/registry/rollback"
-	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 )
 
 type ExtraConfig struct {
@@ -77,8 +77,8 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	parameterCodec := runtime.NewParameterCodec(c.ExtraConfig.Scheme)
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(appsapiv1.GroupName, c.ExtraConfig.Scheme, parameterCodec, c.ExtraConfig.Codecs)
-	apiGroupInfo.VersionedResourcesStorageMap[appsapiv1.SchemeGroupVersion.Version] = v1Storage
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(appsv1.GroupName, c.ExtraConfig.Scheme, parameterCodec, c.ExtraConfig.Codecs)
+	apiGroupInfo.VersionedResourcesStorageMap[appsv1.SchemeGroupVersion.Version] = v1Storage
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 	// This client is using the core api server client config, since the apps server doesn't host images
-	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	openshiftImageClient, err := imagev1client.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 	dcInstantiateStorage := deployconfiginstantiate.NewREST(
 		*deployConfigStorage.Store,
-		openshiftInternalImageClient,
+		openshiftImageClient,
 		kubeClient,
 		c.GenericConfig.AdmissionControl,
 	)
