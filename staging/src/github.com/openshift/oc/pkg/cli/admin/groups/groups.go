@@ -7,8 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/oc/pkg/cli/admin/groups/new"
+	"github.com/openshift/oc/pkg/cli/admin/groups/sync"
 	"github.com/openshift/oc/pkg/cli/admin/groups/users"
-	"github.com/openshift/origin/pkg/oc/cli/admin/groups/sync"
 )
 
 const GroupsRecommendedName = "groups"

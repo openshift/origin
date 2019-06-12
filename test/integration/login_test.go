@@ -13,10 +13,10 @@ import (
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/oc/pkg/cli/login"
 	"github.com/openshift/oc/pkg/cli/whoami"
 
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
-	"github.com/openshift/origin/pkg/oc/cli/login"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

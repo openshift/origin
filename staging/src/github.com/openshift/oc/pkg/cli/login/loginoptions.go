@@ -112,7 +112,7 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	}
 
 	// normalize the provided server to a format expected by config
-	serverNormalized, err := ockubeconfignames.NormalizeServerURL(o.Server)
+	serverNormalized, err := originkubeconfignames.NormalizeServerURL(o.Server)
 	if err != nil {
 		return nil, err
 	}

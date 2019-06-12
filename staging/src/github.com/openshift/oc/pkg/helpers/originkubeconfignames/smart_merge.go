@@ -1,4 +1,4 @@
-package ockubeconfignames
+package originkubeconfignames
 
 import (
 	"crypto/x509"

@@ -435,8 +435,6 @@
       "vendor/k8s.io/kubernetes/pkg/apis",
       "vendor/k8s.io/kubernetes/pkg/kubectl",
       "vendor/k8s.io/kubernetes/pkg/printers",
-      "vendor/k8s.io/kubernetes/pkg/util",
-      "vendor/github.com/davecgh/go-spew/spew",
 
       "github.com/openshift/origin/pkg/image/util",
 
@@ -450,7 +448,6 @@
       "github.com/openshift/origin/pkg/build/apis/build/install",
       "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/image/apis/image",
-      "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
       "github.com/openshift/origin/pkg/version",
 
