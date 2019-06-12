@@ -306,7 +306,7 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 
 	o.Name = name
 
-	o.BuildLogClient = buildclientmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
+	o.BuildLogClient = buildclientmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace, scheme.Scheme)
 
 	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")

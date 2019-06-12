@@ -13,18 +13,18 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	restclient "k8s.io/client-go/rest"
 	restfake "k8s.io/client-go/rest/fake"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	"github.com/openshift/api"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclientmanual "github.com/openshift/oc/pkg/helpers/build/client/v1"
 )
@@ -328,6 +328,8 @@ func TestStreamBuildLogs(t *testing.T) {
 		},
 	}
 
+	scheme, codecFactory := apitesting.SchemeForOrDie(api.Install)
+
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			out := &bytes.Buffer{}
@@ -339,8 +341,8 @@ func TestStreamBuildLogs(t *testing.T) {
 			}
 			// Set up dummy RESTClient to handle requests
 			fakeREST := &restfake.RESTClient{
-				NegotiatedSerializer: legacyscheme.Codecs,
-				GroupVersion:         schema.GroupVersion{Group: "build.openshift.io", Version: "v1"},
+				NegotiatedSerializer: codecFactory,
+				GroupVersion:         buildv1.GroupVersion,
 				Client: restfake.CreateHTTPClient(func(*http.Request) (*http.Response, error) {
 					if tc.RequestErr != nil {
 						return nil, tc.RequestErr
@@ -364,7 +366,7 @@ func TestStreamBuildLogs(t *testing.T) {
 
 			o := &StartBuildOptions{
 				IOStreams:      ioStreams,
-				BuildLogClient: buildclientmanual.NewBuildLogClient(fakeREST, build.Namespace),
+				BuildLogClient: buildclientmanual.NewBuildLogClient(fakeREST, build.Namespace, scheme),
 			}
 
 			err := o.streamBuildLogs(build)

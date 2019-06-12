@@ -11,6 +11,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -53,7 +54,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				return nil, err
 			}
 			// TODO: support allContainers flag
-			return []rest.ResponseWrapper{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
+			return []rest.ResponseWrapper{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace, scheme.Scheme).Logs(t.Name, *bopts)}, nil
 		case *buildv1.BuildConfig:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -63,7 +64,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 			if err != nil {
 				return nil, err
 			}
-			logClient := buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace)
+			logClient := buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace, scheme.Scheme)
 			builds, err := buildClient.Builds(t.Namespace).List(metav1.ListOptions{})
 			if err != nil {
 				return nil, err

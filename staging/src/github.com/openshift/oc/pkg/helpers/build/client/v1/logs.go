@@ -1,8 +1,8 @@
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
 )
@@ -11,13 +11,14 @@ type BuildLogInterface interface {
 	Logs(name string, options buildv1.BuildLogOptions) *rest.Request
 }
 
-func NewBuildLogClient(c rest.Interface, ns string) BuildLogInterface {
-	return &buildLogs{client: c, ns: ns}
+func NewBuildLogClient(c rest.Interface, ns string, scheme *runtime.Scheme) BuildLogInterface {
+	return &buildLogs{client: c, ns: ns, codec: runtime.NewParameterCodec(scheme)}
 }
 
 type buildLogs struct {
 	client rest.Interface
 	ns     string
+	codec  runtime.ParameterCodec
 }
 
 func (c *buildLogs) Logs(name string, options buildv1.BuildLogOptions) *rest.Request {
@@ -27,5 +28,5 @@ func (c *buildLogs) Logs(name string, options buildv1.BuildLogOptions) *rest.Req
 		Resource("builds").
 		Name(name).
 		SubResource("log").
-		VersionedParams(&options, legacyscheme.ParameterCodec)
+		VersionedParams(&options, c.codec)
 }

@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -100,7 +101,7 @@ func (o *BuildLogsOptions) RunBuildLogs() error {
 		Follow: o.Follow,
 		NoWait: o.NoWait,
 	}
-	readCloser, err := buildmanualclient.NewBuildLogClient(o.BuildClient.BuildV1().RESTClient(), o.Namespace).Logs(o.Name, opts).Stream()
+	readCloser, err := buildmanualclient.NewBuildLogClient(o.BuildClient.BuildV1().RESTClient(), o.Namespace, scheme.Scheme).Logs(o.Name, opts).Stream()
 	if err != nil {
 		return err
 	}
