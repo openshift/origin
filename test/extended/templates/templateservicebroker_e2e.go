@@ -25,6 +25,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/api/authorization"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 
@@ -50,7 +51,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		template           *templatev1.Template
 		processedtemplate  *unstructured.UnstructuredList
 		privatetemplate    *templatev1.Template
-		clusterrolebinding *authorizationapi.ClusterRoleBinding
+		clusterrolebinding *authorizationv1.ClusterRoleBinding
 		brokercli          client.Client
 		service            *api.Service
 		plan               *api.Plan
@@ -85,14 +86,14 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// enable unauthenticated access to the service broker
-		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: "system:openshift:templateservicebroker-client",
 			},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
 					Kind: authorizationapi.GroupKind,
 					Name: "system:unauthenticated",
@@ -104,7 +105,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	})
 
 	g.AfterEach(func() {
-		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+		err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// it shouldn't be around, but if it is, clean up the

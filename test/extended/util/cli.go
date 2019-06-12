@@ -37,6 +37,7 @@ import (
 
 	projectv1 "github.com/openshift/api/project/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
@@ -49,7 +50,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
 	_ "github.com/openshift/origin/pkg/api/install"
-	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
@@ -328,8 +328,8 @@ func (c *CLI) AppsClient() appsv1client.Interface {
 	return client
 }
 
-func (c *CLI) AuthorizationClient() authorizationclientset.Interface {
-	client, err := authorizationclientset.NewForConfig(c.UserConfig())
+func (c *CLI) AuthorizationClient() authorizationv1client.Interface {
+	client, err := authorizationv1client.NewForConfig(c.UserConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -386,8 +386,8 @@ func (c *CLI) AdminAppsClient() appsv1client.Interface {
 	return client
 }
 
-func (c *CLI) AdminAuthorizationClient() authorizationclientset.Interface {
-	client, err := authorizationclientset.NewForConfig(c.AdminConfig())
+func (c *CLI) AdminAuthorizationClient() authorizationv1client.Interface {
+	client, err := authorizationv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}

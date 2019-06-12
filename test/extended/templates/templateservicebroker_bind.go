@@ -14,9 +14,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
@@ -33,7 +33,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 		bindingID          = uuid.NewRandom().String()
 		serviceID          = "d261a5c9-db37-40b5-ac0f-5709e0e3aac4"
 		fixture            = exutil.FixturePath("testdata", "templates", "templateservicebroker_bind.yaml")
-		clusterrolebinding *authorizationapi.ClusterRoleBinding
+		clusterrolebinding *authorizationv1.ClusterRoleBinding
 		brokercli          client.Client
 		cliUser            user.Info
 	)
@@ -50,14 +50,14 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 			cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
 			// enable unauthenticated access to the service broker
-			clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+			clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: cli.Namespace() + "templateservicebroker-client",
 				},
-				RoleRef: kapi.ObjectReference{
+				RoleRef: corev1.ObjectReference{
 					Name: "system:openshift:templateservicebroker-client",
 				},
-				Subjects: []kapi.ObjectReference{
+				Subjects: []corev1.ObjectReference{
 					{
 						Kind: authorizationapi.GroupKind,
 						Name: "system:unauthenticated",
@@ -99,7 +99,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 				cli.SetNamespace(ns)
 			}
 
-			err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+			err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})

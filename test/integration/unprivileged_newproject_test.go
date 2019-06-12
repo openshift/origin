@@ -10,14 +10,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	"github.com/openshift/oc/pkg/helpers/tokencmd"
-
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/api/project"
 	projectv1 "github.com/openshift/api/project/v1"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	"github.com/openshift/origin/pkg/oc/cli/requestproject"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	testutil "github.com/openshift/origin/test/util"
@@ -192,12 +191,12 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationConfig := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationConfig := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1()
 	role, err := clusterAdminAuthorizationConfig.ClusterRoles().Get("self-provisioner", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	role.Rules = []authorizationapi.PolicyRule{}
+	role.Rules = []authorizationv1.PolicyRule{}
 	if _, err := clusterAdminAuthorizationConfig.ClusterRoles().Update(role); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

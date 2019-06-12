@@ -4,19 +4,20 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	groupsnewcmd "github.com/openshift/oc/pkg/cli/admin/groups/new"
 	groupsuserscmd "github.com/openshift/oc/pkg/cli/admin/groups/users"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -89,11 +90,13 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	roleBinding := &authorizationapi.RoleBinding{}
+	roleBinding := &authorizationv1.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name})
-	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization().RoleBindings("empty").Create(roleBinding)
+	roleBinding.Subjects = []corev1.ObjectReference{
+		{Kind: "Group", Name: theGroup.Name},
+	}
+	_, err = authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1().RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -147,11 +150,13 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	roleBinding := &authorizationapi.RoleBinding{}
+	roleBinding := &authorizationv1.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name})
-	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization().RoleBindings("empty").Create(roleBinding)
+	roleBinding.Subjects = []corev1.ObjectReference{
+		{Kind: "Group", Name: theGroup.Name},
+	}
+	_, err = authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).AuthorizationV1().RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
