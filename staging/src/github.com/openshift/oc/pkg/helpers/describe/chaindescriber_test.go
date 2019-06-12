@@ -52,7 +52,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "test",
 			name:             "ruby-22-centos7",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/single-namespace-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/single-namespace-bcs.yaml",
 			humanReadable: map[string]int{
 				"istag/ruby-22-centos7:latest":        1,
 				"\tbc/ruby-hello-world":               1,
@@ -69,7 +69,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "test",
 			name:             "ruby-22-centos7",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/single-namespace-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/single-namespace-bcs.yaml",
 			dot: []string{
 				"digraph \"ruby-22-centos7:latest\" {",
 				"// Node definitions.",
@@ -95,7 +95,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "master",
 			name:             "ruby-22-centos7",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/multiple-namespaces-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/multiple-namespaces-bcs.yaml",
 			humanReadable: map[string]int{
 				"<master istag/ruby-22-centos7:latest>":         1,
 				"\t<default bc/ruby-hello-world>":               1,
@@ -112,7 +112,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "master",
 			name:             "ruby-22-centos7",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/multiple-namespaces-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/multiple-namespaces-bcs.yaml",
 			dot: []string{
 				"digraph \"ruby-22-centos7:latest\" {",
 				"// Node definitions.",
@@ -136,7 +136,7 @@ func TestChainDescriber(t *testing.T) {
 			name:             "ruby-22-centos7",
 			defaultNamespace: "test",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/multiple-trigger-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/multiple-trigger-bcs.yaml",
 			namespaces:       sets.NewString("test"),
 			humanReadable: map[string]int{
 				"istag/ruby-22-centos7:latest":   1,
@@ -159,7 +159,7 @@ func TestChainDescriber(t *testing.T) {
 			name:             "ruby-22-centos7",
 			defaultNamespace: "test",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/multiple-trigger-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/multiple-trigger-bcs.yaml",
 			namespaces:       sets.NewString("test"),
 			includeInputImg:  true,
 			humanReadable: map[string]int{
@@ -184,7 +184,7 @@ func TestChainDescriber(t *testing.T) {
 			reverse:          true,
 			defaultNamespace: "test",
 			tag:              "latest",
-			path:             "../../../../../../../../pkg/oc/cli/admin/buildchain/test/multiple-trigger-bcs.yaml",
+			path:             "../../../pkg/cli/admin/buildchain/test/multiple-trigger-bcs.yaml",
 			namespaces:       sets.NewString("test"),
 			humanReadable: map[string]int{
 				"istag/child2img:latest":               1,

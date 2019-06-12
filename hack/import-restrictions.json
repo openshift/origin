@@ -413,7 +413,6 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/github.com/containers/image",
-      "vendor/github.com/docker/distribution",
       "vendor/github.com/docker/go-units",
       "vendor/github.com/fsnotify/fsnotify",
       "vendor/github.com/fsouza/go-dockerclient",
