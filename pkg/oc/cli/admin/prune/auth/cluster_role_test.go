@@ -11,8 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
 func TestClusterRoleReaper(t *testing.T) {
