@@ -6,13 +6,14 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/oauth/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -28,7 +29,7 @@ var _ = g.Describe("[Suite:openshift/oauth] The OAuth server well-known endpoint
 		metadataJSON, err := oc.Run("get").Args("--raw", "/.well-known/oauth-authorization-server").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		metadata := &util.OauthAuthorizationServerMetadata{}
+		metadata := &oauthdiscovery.OauthAuthorizationServerMetadata{}
 		err = json.Unmarshal([]byte(metadataJSON), metadata)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// compare to openshift-authentication route

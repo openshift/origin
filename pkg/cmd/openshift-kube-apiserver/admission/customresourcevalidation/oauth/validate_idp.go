@@ -10,8 +10,15 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	crvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
-	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	userapivalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+)
+
+const (
+	// MinimumInactivityTimeoutSeconds defines the the smallest value allowed
+	// for AccessTokenInactivityTimeoutSeconds.
+	// It also defines the ticker interval for the token update routine as
+	// MinimumInactivityTimeoutSeconds / 3 is used there.
+	MinimumInactivityTimeoutSeconds = 5 * 60
 )
 
 var validMappingMethods = sets.NewString(
@@ -66,11 +73,11 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 
 	// TODO move to ValidateTokenConfig
 	timeout := spec.TokenConfig.AccessTokenInactivityTimeoutSeconds
-	if timeout > 0 && timeout < oauthvalidation.MinimumInactivityTimeoutSeconds {
+	if timeout > 0 && timeout < MinimumInactivityTimeoutSeconds {
 		errs = append(errs, field.Invalid(
 			specPath.Child("tokenConfig", "accessTokenInactivityTimeoutSeconds"), timeout,
 			fmt.Sprintf("the minimum acceptable token timeout value is %d seconds",
-				oauthvalidation.MinimumInactivityTimeoutSeconds)))
+				MinimumInactivityTimeoutSeconds)))
 	}
 
 	if tokenMaxAge := spec.TokenConfig.AccessTokenMaxAgeSeconds; tokenMaxAge < 0 {
