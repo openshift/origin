@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1 "github.com/openshift/api/config/v1"
-	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	crvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
 )
 
 func ValidateGitHubIdentityProvider(provider *configv1.GitHubIdentityProvider, mappingMethod configv1.MappingMethodType, fieldPath *field.Path) field.ErrorList {

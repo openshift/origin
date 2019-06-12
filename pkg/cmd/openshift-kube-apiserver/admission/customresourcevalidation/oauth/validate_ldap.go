@@ -7,7 +7,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
-	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	crvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
 )
 
 func ValidateLDAPIdentityProvider(provider *configv1.LDAPIdentityProvider, fldPath *field.Path) field.ErrorList {

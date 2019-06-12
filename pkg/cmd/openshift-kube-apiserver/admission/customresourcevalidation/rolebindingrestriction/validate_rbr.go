@@ -12,8 +12,8 @@ import (
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	rbrvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation/rolebindingrestriction/validation"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
+	rbrvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/rolebindingrestriction/validation"
 )
 
 const PluginName = "authorization.openshift.io/ValidateRoleBindingRestriction"

@@ -10,7 +10,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/config/validation"
-	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	crvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
 )
 
 const (

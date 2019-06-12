@@ -9,7 +9,7 @@ import (
 	pointerutil "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
-	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	crvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	userapivalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
