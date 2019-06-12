@@ -7,10 +7,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	groups "github.com/openshift/oc/pkg/cli/admin/groups/sync"
+	"github.com/openshift/oc/pkg/cli/admin/prune/auth"
 	"github.com/openshift/oc/pkg/cli/admin/prune/builds"
 	"github.com/openshift/oc/pkg/cli/admin/prune/deployments"
-	groups "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync"
-	"github.com/openshift/origin/pkg/oc/cli/admin/prune/auth"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/images"
 )
 

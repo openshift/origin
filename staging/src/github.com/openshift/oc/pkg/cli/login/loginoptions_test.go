@@ -11,8 +11,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/oc/pkg/helpers/originkubeconfignames"
-	"github.com/openshift/origin/pkg/oauth/util"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -57,7 +57,7 @@ func TestNormalizeServerURL(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Logf("evaluating test: normalize %s -> %s", test.originalServerURL, test.normalizedServerURL)
-		normalized, err := ockubeconfignames.NormalizeServerURL(test.originalServerURL)
+		normalized, err := originkubeconfignames.NormalizeServerURL(test.originalServerURL)
 		if err != nil {
 			t.Errorf("unexpected error normalizing %s: %s", test.originalServerURL, err)
 		}
@@ -259,7 +259,7 @@ func TestDialToHTTPServer(t *testing.T) {
 }
 
 type oauthMetadataResponse struct {
-	metadata *util.OauthAuthorizationServerMetadata
+	metadata *oauthdiscovery.OauthAuthorizationServerMetadata
 }
 
 func (r *oauthMetadataResponse) Serialize() ([]byte, error) {
@@ -293,7 +293,7 @@ func TestPreserveErrTypeAuthInfo(t *testing.T) {
 	defer server.Close()
 
 	metadataResponse := &oauthMetadataResponse{}
-	metadataResponse.metadata = &util.OauthAuthorizationServerMetadata{
+	metadataResponse.metadata = &oauthdiscovery.OauthAuthorizationServerMetadata{
 		Issuer:                        server.URL,
 		AuthorizationEndpoint:         server.URL + "/oauth/authorize",
 		TokenEndpoint:                 server.URL + "/oauth/token",

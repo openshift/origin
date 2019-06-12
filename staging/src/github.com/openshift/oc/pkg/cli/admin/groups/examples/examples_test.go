@@ -25,7 +25,7 @@ func TestLDAPSyncConfigFixtures(t *testing.T) {
 	fixtures = append(fixtures, "rfc2307/sync-config-tolerating.yaml")
 
 	for _, fixture := range fixtures {
-		yamlConfig, err := ioutil.ReadFile("./../../../../../../test/extended/authentication/ldap/" + fixture)
+		yamlConfig, err := ioutil.ReadFile("./../../../../../../../../../../test/extended/authentication/ldap/" + fixture)
 		if err != nil {
 			t.Errorf("could not read fixture at %q: %v", fixture, err)
 			continue

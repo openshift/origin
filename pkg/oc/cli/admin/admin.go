@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/admin/createkubeconfig"
 	"github.com/openshift/oc/pkg/cli/admin/createlogintemplate"
 	"github.com/openshift/oc/pkg/cli/admin/createproviderselectiontemplate"
+	"github.com/openshift/oc/pkg/cli/admin/groups"
 	"github.com/openshift/oc/pkg/cli/admin/migrate"
 	migrateetcd "github.com/openshift/oc/pkg/cli/admin/migrate/etcd"
 	migratehpa "github.com/openshift/oc/pkg/cli/admin/migrate/legacyhpa"
@@ -35,7 +36,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate"
-	"github.com/openshift/origin/pkg/oc/cli/admin/groups"
 	migrateimages "github.com/openshift/origin/pkg/oc/cli/admin/migrate/images"
 	"github.com/openshift/origin/pkg/oc/cli/admin/mustgather"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
