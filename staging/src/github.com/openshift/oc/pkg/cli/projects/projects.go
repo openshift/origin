@@ -15,12 +15,12 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/api/annotations"
 	projectv1 "github.com/openshift/api/project/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	ocproject "github.com/openshift/oc/pkg/cli/project"
 	cliconfig "github.com/openshift/oc/pkg/helpers/kubeconfig"
 	clientcfg "github.com/openshift/oc/pkg/helpers/originkubeconfignames"
-	oapi "github.com/openshift/origin/pkg/api"
-	ocproject "github.com/openshift/origin/pkg/oc/cli/project"
 )
 
 type ProjectsOptions struct {
@@ -166,7 +166,7 @@ func (o ProjectsOptions) Run() error {
 			sort.Sort(SortByProjectName(projects))
 			for _, project := range projects {
 				count = count + 1
-				displayName := project.Annotations[oapi.OpenShiftDisplayName]
+				displayName := project.Annotations[annotations.OpenShiftDisplayName]
 				linebreak := "\n"
 				if len(displayName) == 0 {
 					displayName = project.Annotations["displayName"]

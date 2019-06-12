@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/admin/groups"
 	"github.com/openshift/oc/pkg/cli/admin/migrate"
 	migrateetcd "github.com/openshift/oc/pkg/cli/admin/migrate/etcd"
+	migrateimages "github.com/openshift/oc/pkg/cli/admin/migrate/images"
 	migratehpa "github.com/openshift/oc/pkg/cli/admin/migrate/legacyhpa"
 	migratestorage "github.com/openshift/oc/pkg/cli/admin/migrate/storage"
 	migratetemplateinstances "github.com/openshift/oc/pkg/cli/admin/migrate/templateinstances"
@@ -30,18 +31,17 @@ import (
 	"github.com/openshift/oc/pkg/cli/admin/release"
 	"github.com/openshift/oc/pkg/cli/admin/top"
 	"github.com/openshift/oc/pkg/cli/admin/upgrade"
+	"github.com/openshift/oc/pkg/cli/admin/verifyimagesignature"
 	"github.com/openshift/oc/pkg/cli/kubectlwrappers"
 	"github.com/openshift/oc/pkg/cli/options"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate"
-	migrateimages "github.com/openshift/origin/pkg/oc/cli/admin/migrate/images"
 	"github.com/openshift/origin/pkg/oc/cli/admin/mustgather"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
-	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
 )
 
 var adminLong = ktemplates.LongDesc(`

@@ -21,8 +21,8 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	imageref "github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/oc/pkg/cli/admin/migrate"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 var (
@@ -425,7 +425,7 @@ func (m ImageReferenceMappings) MapReference(in string) string {
 func (m ImageReferenceMappings) MapDockerAuthKey(in string) string {
 	value := in
 	if len(value) == 0 {
-		value = imageapi.DockerDefaultV1Registry
+		value = imageref.DockerDefaultV1Registry
 	}
 	if !strings.HasPrefix(value, "https://") && !strings.HasPrefix(value, "http://") {
 		value = "https://" + value
