@@ -33,9 +33,10 @@ func ConvertJSONSchemaPropsToOpenAPIv2Schema(in *apiextensions.JSONSchemaProps) 
 	}
 
 	// dirty hack to temporarily set the type at the root. See continuation at the func bottom.
-	// TODO: remove for Kubernetes 1.15
 	oldRootType := in.Type
 	if len(in.Type) == 0 {
+		shallowClone := *in
+		in = &shallowClone
 		in.Type = "object"
 	}
 
@@ -111,9 +112,6 @@ func ConvertJSONSchemaPropsToOpenAPIv2Schema(in *apiextensions.JSONSchemaProps) 
 		return nil
 	})
 
-	// restore root level type in input, and remove it in output if we had added it
-	// TODO: remove with Kubernetes 1.15
-	in.Type = oldRootType
 	if len(oldRootType) == 0 {
 		out.Type = nil
 	}
