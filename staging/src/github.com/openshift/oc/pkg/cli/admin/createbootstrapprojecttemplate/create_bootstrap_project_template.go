@@ -9,8 +9,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/printers"
-
-	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 )
 
 const CreateBootstrapProjectTemplateCommand = "create-bootstrap-project-template"
@@ -29,7 +27,7 @@ type CreateBootstrapProjectTemplateOptions struct {
 func NewCreateBootstrapProjectTemplateOptions(streams genericclioptions.IOStreams) *CreateBootstrapProjectTemplateOptions {
 	return &CreateBootstrapProjectTemplateOptions{
 		PrintFlags: genericclioptions.NewPrintFlags("created").WithTypeSetter(scheme.Scheme).WithDefaultOutput("json"),
-		Name:       delegated.DefaultTemplateName,
+		Name:       DefaultTemplateName,
 		IOStreams:  streams,
 	}
 }
@@ -74,7 +72,7 @@ func (o *CreateBootstrapProjectTemplateOptions) Validate() error {
 }
 
 func (o *CreateBootstrapProjectTemplateOptions) Run() error {
-	template := delegated.DefaultTemplate()
+	template := DefaultTemplate()
 	template.Name = o.Name
 
 	return o.Printer.PrintObj(template, o.Out)
