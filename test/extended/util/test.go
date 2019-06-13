@@ -221,6 +221,18 @@ func AnnotateTestSuite() {
 			node.SetText(node.Text() + " [Suite:k8s]")
 		}
 		node.SetText(node.Text() + labels)
+
+		skipTestsEnvVar, skipTestsEnvVarExists := os.LookupEnv("SKIP_TESTS")
+
+		if skipTestsEnvVarExists {
+			skipTests := strings.Split(skipTestsEnvVar, "\n")
+
+			for _, v := range skipTests {
+				if strings.Contains(name, v) {
+					node.SetText(node.Text() + " [Disabled:SpecialConfig]")
+				}
+			}
+		}
 	})
 }
 
@@ -453,21 +465,6 @@ var (
 // checkSyntheticInput selects tests based on synthetic skips or focuses
 func checkSyntheticInput() {
 	checkSuiteSkips()
-	checkSkipTestsEnvVar()
-}
-
-func checkSkipTestsEnvVar() {
-	envvar, exists := os.LookupEnv("SKIP_TESTS")
-
-	if exists {
-		skipTests := strings.Split(envvar, " ")
-
-		for _, v := range skipTests {
-			if testNameContains(v) {
-				ginkgo.Skip("skipping test declared in SKIP_TESTS envvar")
-			}
-		}
-	}
 }
 
 // checkSuiteSkips ensures Origin/Kubernetes synthetic skip labels are applied
