@@ -20,7 +20,7 @@ func TestTLSDefaults(t *testing.T) {
 	}
 
 	// Verify we fail with TLS versions less than the default, and work with TLS versions >= the default
-	for _, tlsVersionName := range crypto.ValidTLSVersions() {
+	for _, tlsVersionName := range crypto.SupportedTLSVersions() {
 		tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
 		expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
 		config := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
@@ -79,7 +79,7 @@ func TestTLSOverrides(t *testing.T) {
 	}
 
 	// Verify we work with all TLS versions
-	for _, tlsVersionName := range crypto.ValidTLSVersions() {
+	for _, tlsVersionName := range crypto.SupportedTLSVersions() {
 		tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
 		expectSuccess := true
 		config := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
@@ -140,7 +140,7 @@ func TestMasterTLSDefaults(t *testing.T) {
 	}
 
 	// Verify we fail with TLS versions less than the default, and work with TLS versions >= the default
-	for _, tlsVersionName := range crypto.ValidTLSVersions() {
+	for _, tlsVersionName := range crypto.SupportedTLSVersions() {
 		tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
 		expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
 		config := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
@@ -199,7 +199,7 @@ func TestMasterTLSOverrides(t *testing.T) {
 	}
 
 	// Verify we work with all TLS versions
-	for _, tlsVersionName := range crypto.ValidTLSVersions() {
+	for _, tlsVersionName := range crypto.SupportedTLSVersions() {
 		tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
 		expectSuccess := true
 		config := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
