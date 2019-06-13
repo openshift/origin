@@ -65,7 +65,7 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func New(pluginName string, networkClient networkclient.Interface, kClient kubernetes.Interface,
+func New(networkClient networkclient.Interface, kClient kubernetes.Interface,
 	networkInformers networkinformers.SharedInformerFactory) (*OsdnProxy, error) {
 	return &OsdnProxy{
 		kClient:          kClient,
