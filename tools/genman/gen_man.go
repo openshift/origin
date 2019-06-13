@@ -7,11 +7,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openshift/origin/pkg/oc/cli"
-	mangen "github.com/openshift/origin/tools/genman/md2man"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
 	"k8s.io/kubernetes/cmd/genutils"
+
+	"github.com/openshift/oc/pkg/cli"
+	mangen "github.com/openshift/origin/tools/genman/md2man"
 )
 
 func main() {

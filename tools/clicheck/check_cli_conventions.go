@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openshift/origin/pkg/oc/cli"
+	"github.com/openshift/oc/pkg/cli"
 	"github.com/openshift/origin/tools/clicheck/sanity"
 )
 
