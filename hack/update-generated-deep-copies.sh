@@ -19,21 +19,22 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config
     github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1
 
-    github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride
-    github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1
-    github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration
-    github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/externalipranger
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/externalipranger/v1
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/restrictedendpoints
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route/apis/ingressadmission
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route/apis/ingressadmission/v1
+
     github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1
-    github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission
-    github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission/v1
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1
-    github.com/openshift/origin/pkg/network/admission/apis/externalipranger
-    github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1
-    github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints
-    github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1
     github.com/openshift/origin/pkg/apps/apis/apps
     github.com/openshift/origin/pkg/authorization/apis/authorization
     github.com/openshift/origin/pkg/build/apis/build

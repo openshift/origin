@@ -167,9 +167,5 @@ func (r *REST) isAllowed(user user.Info, sar *authorizationapi.SubjectAccessRevi
 
 // isPersonalAccessReviewFromSAR this variant handles the case where we have an SAR
 func isPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bool {
-	if len(sar.User) == 0 && len(sar.Groups) == 0 {
-		return true
-	}
-
-	return false
+	return len(sar.User) == 0 && len(sar.Groups) == 0
 }
