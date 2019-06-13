@@ -46,8 +46,7 @@ import (
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/oc/pkg/cli/admin/prune/imageprune"
 	imagegraph "github.com/openshift/oc/pkg/helpers/graph/imagegraph/nodes"
-
-	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/oc/pkg/version"
 )
 
 // PruneImagesRecommendedName is the recommended command name

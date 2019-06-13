@@ -19,8 +19,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/origin/pkg/oc/cli/admin"
-
+	"github.com/openshift/oc/pkg/cli/admin"
 	"github.com/openshift/oc/pkg/cli/admin/buildchain"
 	"github.com/openshift/oc/pkg/cli/admin/groups/sync"
 	"github.com/openshift/oc/pkg/cli/buildlogs"
