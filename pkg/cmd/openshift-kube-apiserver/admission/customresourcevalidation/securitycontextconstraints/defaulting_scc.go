@@ -13,8 +13,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 const DefaultingPluginName = "security.openshift.io/DefaultSecurityContextConstraints"
@@ -38,7 +36,6 @@ func NewDefaulter() admission.Interface {
 	scheme := runtime.NewScheme()
 	codecFactory := runtimeserializer.NewCodecFactory(scheme)
 	utilruntime.Must(securityv1.Install(scheme))
-	utilruntime.Must(securityapiv1.Install(scheme))
 
 	return &defaultSCC{
 		Handler:      admission.NewHandler(admission.Create, admission.Update),
@@ -67,14 +64,9 @@ func (a *defaultSCC) Admit(attributes admission.Attributes, o admission.ObjectIn
 		return err
 	}
 
-	internalSCC := uncastObj.(*securityapi.SecurityContextConstraints)
-	outSCCExternal := &securityv1.SecurityContextConstraints{}
-	if err := a.scheme.Convert(internalSCC, outSCCExternal, nil); err != nil {
-		return apierrors.NewForbidden(attributes.GetResource().GroupResource(), attributes.GetName(), err)
-	}
-
+	outSCCExternal := uncastObj.(*securityv1.SecurityContextConstraints)
 	defaultedBytes, err := runtime.Encode(a.codecFactory.LegacyCodec(securityv1.GroupVersion), outSCCExternal)
-	if err := a.scheme.Convert(internalSCC, outSCCExternal, nil); err != nil {
+	if err != nil {
 		return apierrors.NewForbidden(attributes.GetResource().GroupResource(), attributes.GetName(), err)
 	}
 

@@ -3,6 +3,7 @@ package seccomp
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -25,7 +26,7 @@ func NewWithSeccompProfile(allowedProfiles []string) (SeccompStrategy, error) {
 }
 
 // Generate creates the profile based on policy rules.
-func (s *withSeccompProfile) Generate(pod *api.Pod) (string, error) {
+func (s *withSeccompProfile) Generate(pod *corev1.Pod) (string, error) {
 	// return the first non-wildcard profile
 	for _, p := range s.allowedProfiles {
 		if p != allowAnyProfile {
@@ -40,7 +41,7 @@ func (s *withSeccompProfile) Generate(pod *api.Pod) (string, error) {
 
 // ValidatePod ensures that the specified values on the pod fall within the range
 // of the strategy.
-func (s *withSeccompProfile) ValidatePod(pod *api.Pod) field.ErrorList {
+func (s *withSeccompProfile) ValidatePod(pod *corev1.Pod) field.ErrorList {
 	allErrs := field.ErrorList{}
 	fieldPath := field.NewPath("pod", "metadata", "annotations", api.SeccompPodAnnotationKey)
 
@@ -62,7 +63,7 @@ func (s *withSeccompProfile) ValidatePod(pod *api.Pod) field.ErrorList {
 
 // ValidateContainer ensures that the specified values on the container fall within
 // the range of the strategy.
-func (s *withSeccompProfile) ValidateContainer(pod *api.Pod, container *api.Container) field.ErrorList {
+func (s *withSeccompProfile) ValidateContainer(pod *corev1.Pod, container *corev1.Container) field.ErrorList {
 	allErrs := field.ErrorList{}
 	fieldPath := field.NewPath("pod", "metadata", "annotations", api.SeccompContainerAnnotationKeyPrefix+container.Name)
 
@@ -104,7 +105,7 @@ func isProfileAllowed(profile string, allowedProfiles []string) bool {
 // profileForContainer returns the container profile or the pod profile if the container annotatation is not set.
 // If the container profile is set but empty then empty will be returned.  This mirrors the functionality in the
 // kubelet's docker tools.
-func profileForContainer(pod *api.Pod, container *api.Container) string {
+func profileForContainer(pod *corev1.Pod, container *corev1.Container) string {
 	containerProfile, hasContainerProfile := pod.Annotations[api.SeccompContainerAnnotationKeyPrefix+container.Name]
 	if hasContainerProfile {
 		return containerProfile

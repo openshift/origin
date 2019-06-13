@@ -1,23 +1,23 @@
 package user
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 type nonRoot struct{}
 
 var _ RunAsUserSecurityContextConstraintsStrategy = &nonRoot{}
 
-func NewRunAsNonRoot(options *securityapi.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
+func NewRunAsNonRoot(options *securityv1.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	return &nonRoot{}, nil
 }
 
 // Generate creates the uid based on policy rules.  This strategy does return a UID.  It assumes
 // that the user will specify a UID or the container image specifies a UID.
-func (s *nonRoot) Generate(pod *api.Pod, container *api.Container) (*int64, error) {
+func (s *nonRoot) Generate(pod *corev1.Pod, container *corev1.Container) (*int64, error) {
 	return nil, nil
 }
 
@@ -25,7 +25,7 @@ func (s *nonRoot) Generate(pod *api.Pod, container *api.Container) (*int64, erro
 // of this will pass if either the UID is not set, assuming that the image will provided the UID
 // or if the UID is set it is not root.  In order to work properly this assumes that the kubelet
 // will populate an
-func (s *nonRoot) Validate(fldPath *field.Path, _ *api.Pod, _ *api.Container, runAsNonRoot *bool, runAsUser *int64) field.ErrorList {
+func (s *nonRoot) Validate(fldPath *field.Path, _ *corev1.Pod, _ *corev1.Container, runAsNonRoot *bool, runAsUser *int64) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if runAsNonRoot == nil && runAsUser == nil {
 		allErrs = append(allErrs, field.Required(fldPath.Child("runAsNonRoot"), "must be true"))

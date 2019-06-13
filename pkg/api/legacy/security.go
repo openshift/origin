@@ -7,7 +7,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/security/apis/security"
 	securityv1helpers "github.com/openshift/origin/pkg/security/apis/security/v1"
 	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 )
@@ -52,11 +51,11 @@ func addUngroupifiedSecurityTypes(scheme *runtime.Scheme) error {
 
 func addUngroupifiedInternalSecurityTypes(scheme *runtime.Scheme) error {
 	types := []runtime.Object{
-		&security.SecurityContextConstraints{},
-		&security.SecurityContextConstraintsList{},
-		&security.PodSecurityPolicySubjectReview{},
-		&security.PodSecurityPolicySelfSubjectReview{},
-		&security.PodSecurityPolicyReview{},
+		&securityv1.SecurityContextConstraints{},
+		&securityv1.SecurityContextConstraintsList{},
+		&securityv1.PodSecurityPolicySubjectReview{},
+		&securityv1.PodSecurityPolicySelfSubjectReview{},
+		&securityv1.PodSecurityPolicyReview{},
 	}
 	scheme.AddKnownTypes(InternalGroupVersion, types...)
 	return nil

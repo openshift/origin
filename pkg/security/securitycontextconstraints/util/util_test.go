@@ -6,7 +6,7 @@ import (
 
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // TestVolumeSourceFSTypeDrift ensures that for every known type of volume source (by the fields on
@@ -38,39 +38,39 @@ func TestVolumeSourceFSTypeDrift(t *testing.T) {
 
 func TestSCCAllowsVolumeType(t *testing.T) {
 	tests := map[string]struct {
-		scc    *securityapi.SecurityContextConstraints
-		fsType securityapi.FSType
+		scc    *securityv1.SecurityContextConstraints
+		fsType securityv1.FSType
 		allows bool
 	}{
 		"nil scc": {
 			scc:    nil,
-			fsType: securityapi.FSTypeHostPath,
+			fsType: securityv1.FSTypeHostPath,
 			allows: false,
 		},
 		"empty volumes": {
-			scc:    &securityapi.SecurityContextConstraints{},
-			fsType: securityapi.FSTypeHostPath,
+			scc:    &securityv1.SecurityContextConstraints{},
+			fsType: securityv1.FSTypeHostPath,
 			allows: false,
 		},
 		"non-matching": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeAWSElasticBlockStore},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeAWSElasticBlockStore},
 			},
-			fsType: securityapi.FSTypeHostPath,
+			fsType: securityv1.FSTypeHostPath,
 			allows: false,
 		},
 		"match on FSTypeAll": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeAll},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeAll},
 			},
-			fsType: securityapi.FSTypeHostPath,
+			fsType: securityv1.FSTypeHostPath,
 			allows: true,
 		},
 		"match on direct match": {
-			scc: &securityapi.SecurityContextConstraints{
-				Volumes: []securityapi.FSType{securityapi.FSTypeHostPath},
+			scc: &securityv1.SecurityContextConstraints{
+				Volumes: []securityv1.FSType{securityv1.FSTypeHostPath},
 			},
-			fsType: securityapi.FSTypeHostPath,
+			fsType: securityv1.FSTypeHostPath,
 			allows: true,
 		},
 	}

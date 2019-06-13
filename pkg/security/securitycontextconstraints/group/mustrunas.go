@@ -3,22 +3,22 @@ package group
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // mustRunAs implements the GroupSecurityContextConstraintsStrategy interface
 type mustRunAs struct {
-	ranges []securityapi.IDRange
+	ranges []securityv1.IDRange
 	field  string
 }
 
 var _ GroupSecurityContextConstraintsStrategy = &mustRunAs{}
 
 // NewMustRunAs provides a new MustRunAs strategy based on ranges.
-func NewMustRunAs(ranges []securityapi.IDRange, field string) (GroupSecurityContextConstraintsStrategy, error) {
+func NewMustRunAs(ranges []securityv1.IDRange, field string) (GroupSecurityContextConstraintsStrategy, error) {
 	if len(ranges) == 0 {
 		return nil, fmt.Errorf("ranges must be supplied for MustRunAs")
 	}
@@ -30,13 +30,13 @@ func NewMustRunAs(ranges []securityapi.IDRange, field string) (GroupSecurityCont
 
 // Generate creates the group based on policy rules.  By default this returns the first group of the
 // first range (min val).
-func (s *mustRunAs) Generate(_ *api.Pod) ([]int64, error) {
+func (s *mustRunAs) Generate(_ *corev1.Pod) ([]int64, error) {
 	return []int64{s.ranges[0].Min}, nil
 }
 
 // Generate a single value to be applied.  This is used for FSGroup.  This strategy will return
 // the first group of the first range (min val).
-func (s *mustRunAs) GenerateSingle(_ *api.Pod) (*int64, error) {
+func (s *mustRunAs) GenerateSingle(_ *corev1.Pod) (*int64, error) {
 	single := new(int64)
 	*single = s.ranges[0].Min
 	return single, nil
@@ -45,7 +45,7 @@ func (s *mustRunAs) GenerateSingle(_ *api.Pod) (*int64, error) {
 // Validate ensures that the specified values fall within the range of the strategy.
 // Groups are passed in here to allow this strategy to support multiple group fields (fsgroup and
 // supplemental groups).
-func (s *mustRunAs) Validate(_ *api.Pod, groups []int64) field.ErrorList {
+func (s *mustRunAs) Validate(_ *corev1.Pod, groups []int64) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(groups) == 0 && len(s.ranges) > 0 {
@@ -71,6 +71,6 @@ func (s *mustRunAs) isGroupValid(group int64) bool {
 	return false
 }
 
-func fallsInRange(group int64, rng securityapi.IDRange) bool {
+func fallsInRange(group int64, rng securityv1.IDRange) bool {
 	return group >= rng.Min && group <= rng.Max
 }

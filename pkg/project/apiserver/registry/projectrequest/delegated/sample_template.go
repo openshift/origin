@@ -16,6 +16,7 @@ import (
 
 const (
 	DefaultTemplateName = "project-request"
+	AdminRoleName       = "admin"
 
 	ProjectNameParam        = "PROJECT_NAME"
 	ProjectDisplayNameParam = "PROJECT_DISPLAYNAME"
