@@ -1,5 +1,5 @@
 hash: 45df463952cff63a4a6cf6acad8de842e65e68f763ca203db6da32fe6edcd2ff
-updated: 2019-06-10T13:33:57.835017224-04:00
+updated: 2019-06-13T17:06:54.294558583-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 403f0b6bc08810d625f1b7a1928ff15e73a23ebe
+  version: 5114e14c97ff18657b68d15224a520a278861e8a
   subpackages:
   - annotations
   - apps
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 19992070fc8d639e8bb44ff0c1bc05deaf6e9486
+  version: e617f832835dbbef6cdab6f18930d051f91947da
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
@@ -1201,27 +1201,41 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: a6292ef9db3798374dbd4dc56230a28006539836
+  version: fb4d4d41f2e3654a9deab18b5ebb3e0ce0eeb426
   subpackages:
+  - pkg/cli/admin/buildchain
   - pkg/cli/admin/cert
   - pkg/cli/admin/createerrortemplate
+  - pkg/cli/admin/createkubeconfig
   - pkg/cli/admin/createlogintemplate
   - pkg/cli/admin/createproviderselectiontemplate
+  - pkg/cli/admin/groups
   - pkg/cli/admin/groups/new
+  - pkg/cli/admin/groups/sync
   - pkg/cli/admin/groups/users
   - pkg/cli/admin/migrate
   - pkg/cli/admin/migrate/etcd
+  - pkg/cli/admin/migrate/images
   - pkg/cli/admin/migrate/legacyhpa
   - pkg/cli/admin/migrate/storage
   - pkg/cli/admin/migrate/templateinstances
   - pkg/cli/admin/network
   - pkg/cli/admin/node
+  - pkg/cli/admin/policy
+  - pkg/cli/admin/project
+  - pkg/cli/admin/prune/auth
   - pkg/cli/admin/prune/builds
   - pkg/cli/admin/prune/deployments
+  - pkg/cli/admin/prune/imageprune
   - pkg/cli/admin/release
+  - pkg/cli/admin/top
   - pkg/cli/admin/upgrade
+  - pkg/cli/admin/verifyimagesignature
+  - pkg/cli/buildlogs
+  - pkg/cli/cancelbuild
   - pkg/cli/create
   - pkg/cli/create/route
+  - pkg/cli/debug
   - pkg/cli/deployer
   - pkg/cli/deployer/strategy
   - pkg/cli/deployer/strategy/recreate
@@ -1233,6 +1247,7 @@ imports:
   - pkg/cli/expose
   - pkg/cli/extract
   - pkg/cli/idle
+  - pkg/cli/image
   - pkg/cli/image/append
   - pkg/cli/image/archive
   - pkg/cli/image/extract
@@ -1241,19 +1256,37 @@ imports:
   - pkg/cli/image/manifest/dockercredentials
   - pkg/cli/image/mirror
   - pkg/cli/image/workqueue
+  - pkg/cli/importer/appjson
+  - pkg/cli/importimage
   - pkg/cli/kubectlwrappers
+  - pkg/cli/login
   - pkg/cli/logout
   - pkg/cli/logs
+  - pkg/cli/newapp
+  - pkg/cli/newbuild
   - pkg/cli/observe
   - pkg/cli/options
+  - pkg/cli/policy
+  - pkg/cli/policy/cani
+  - pkg/cli/process
+  - pkg/cli/project
+  - pkg/cli/projects
   - pkg/cli/recycle
+  - pkg/cli/registry
   - pkg/cli/registry/info
   - pkg/cli/registry/login
+  - pkg/cli/requestproject
   - pkg/cli/rollback
+  - pkg/cli/rollout
   - pkg/cli/rsh
+  - pkg/cli/rsync
   - pkg/cli/rsync/fsnotification
   - pkg/cli/secrets
   - pkg/cli/serviceaccounts
+  - pkg/cli/set
+  - pkg/cli/startbuild
+  - pkg/cli/status
+  - pkg/cli/tag
   - pkg/cli/version
   - pkg/cli/whoami
   - pkg/helpers/apps/test
@@ -1264,10 +1297,12 @@ imports:
   - pkg/helpers/clientcmd
   - pkg/helpers/cmd
   - pkg/helpers/conditions
+  - pkg/helpers/describe
   - pkg/helpers/dot
   - pkg/helpers/env
   - pkg/helpers/errors
   - pkg/helpers/file
+  - pkg/helpers/flagtypes
   - pkg/helpers/graph/appsgraph
   - pkg/helpers/graph/appsgraph/analysis
   - pkg/helpers/graph/appsgraph/nodes
@@ -1289,6 +1324,7 @@ imports:
   - pkg/helpers/groupsync/ad
   - pkg/helpers/groupsync/groupdetector
   - pkg/helpers/groupsync/interfaces
+  - pkg/helpers/groupsync/ldap
   - pkg/helpers/groupsync/rfc2307
   - pkg/helpers/groupsync/syncerror
   - pkg/helpers/image
@@ -1297,6 +1333,20 @@ imports:
   - pkg/helpers/image/test
   - pkg/helpers/kubeconfig
   - pkg/helpers/legacy
+  - pkg/helpers/newapp
+  - pkg/helpers/newapp/app
+  - pkg/helpers/newapp/app/test
+  - pkg/helpers/newapp/appjson
+  - pkg/helpers/newapp/cmd
+  - pkg/helpers/newapp/docker
+  - pkg/helpers/newapp/docker/dockerfile
+  - pkg/helpers/newapp/dockerfile
+  - pkg/helpers/newapp/jenkinsfile
+  - pkg/helpers/newapp/portutils
+  - pkg/helpers/newapp/source
+  - pkg/helpers/originkubeconfignames
+  - pkg/helpers/originpolymorphichelpers
+  - pkg/helpers/originpolymorphichelpers/deploymentconfigs
   - pkg/helpers/parallel
   - pkg/helpers/proc
   - pkg/helpers/project
@@ -1316,7 +1366,7 @@ imports:
   - pkg/quota/quotautil
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: b61940a433dc0dfb70d23061b4acec196a5107a4
+  version: 761150ebc21c9fe9a4877d5cad8171303a52a024
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1325,6 +1375,7 @@ imports:
   - pkg/authorization/defaultrolebindings
   - pkg/build/buildscheme
   - pkg/build/buildutil
+  - pkg/build/controller/build
   - pkg/build/controller/build/defaults
   - pkg/build/controller/build/overrides
   - pkg/build/controller/buildconfig
@@ -1335,7 +1386,12 @@ imports:
   - pkg/build/controller/strategy
   - pkg/build/metrics/prometheus
   - pkg/client/genericinformers
+  - pkg/cmd/controller
   - pkg/cmd/imageformat
+  - pkg/cmd/openshift-controller-manager
+  - pkg/image/controller
+  - pkg/image/controller/signature
+  - pkg/image/controller/trigger
   - pkg/image/metrics/prometheus
   - pkg/image/trigger
   - pkg/image/trigger/annotations
@@ -1343,6 +1399,7 @@ imports:
   - pkg/image/trigger/deploymentconfigs
   - pkg/project/controller
   - pkg/quota/clusterquotareconciliation
+  - pkg/quota/quotaimageexternal
   - pkg/route/ingress
   - pkg/route/ingressip
   - pkg/security/controller
@@ -1849,7 +1906,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: b146dc0b36ca23726a14389af9d690bc1d5c4d21
+  version: d4b26e32461e939592c021a8a75d9f1b2c809d08
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -2098,7 +2155,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 2ba7d9757d55d68c4302f4ae153823fdd2205952
+  version: 63fdf1d9468152856e26300fe2b793e8f2ff5f1a
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2428,7 +2485,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 80cacafcdb41a20378add94b917d43faf91b00a2
+  version: 6db6f01cb085eb4cf6e61782f10018da7ee8e486
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

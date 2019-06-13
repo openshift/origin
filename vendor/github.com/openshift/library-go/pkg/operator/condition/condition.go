@@ -25,7 +25,7 @@ const (
 	// This condition is set to false when the operator can successfully synchronize installer SA and CRB.
 	BackingResourceControllerDegradedConditionType = "BackingResourceControllerDegraded"
 
-	// ManagementStateDegradedConditionType is true when the operator observe errors when installing the new revision static pods.
+	// StaticPodsDegradedConditionType is true when the operator observe errors when installing the new revision static pods.
 	// This condition report Error reason when the pods are terminated or not ready or waiting during which the operand quality of service is degraded.
 	// This condition is set to False when the pods change state to running and are observed ready.
 	StaticPodsDegradedConditionType = "StaticPodsDegraded"
@@ -59,4 +59,8 @@ const (
 	// the operator attempted to created required resource(s) (secrets, configmaps, ...).
 	// This condition mean no new revision will be created.
 	RevisionControllerDegradedConditionType = "RevisionControllerDegraded"
+
+	// NodeControllerDegradedConditionType is true when the operator observed a master node that is not ready.
+	// Note that a node is not ready when its Condition.NodeReady wasn't set to true
+	NodeControllerDegradedConditionType = "NodeControllerDegraded"
 )
