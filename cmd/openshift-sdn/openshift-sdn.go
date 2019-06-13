@@ -11,7 +11,7 @@ import (
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-sdn"
+	"github.com/openshift/sdn/pkg/openshift-sdn"
 )
 
 func main() {
