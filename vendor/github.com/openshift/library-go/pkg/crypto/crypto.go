@@ -31,7 +31,16 @@ import (
 	"k8s.io/client-go/util/cert"
 )
 
+// Package-supported versions
 var versions = map[string]uint16{
+	"VersionTLS10": tls.VersionTLS10,
+	"VersionTLS11": tls.VersionTLS11,
+	"VersionTLS12": tls.VersionTLS12,
+	"VersionTLS13": tls.VersionTLS13,
+}
+
+// Enabled versions
+var supportedVersions = map[string]uint16{
 	"VersionTLS10": tls.VersionTLS10,
 	"VersionTLS11": tls.VersionTLS11,
 	"VersionTLS12": tls.VersionTLS12,
@@ -70,6 +79,14 @@ func TLSVersionOrDie(versionName string) uint16 {
 		panic(err)
 	}
 	return version
+}
+func SupportedTLSVersions() []string {
+	supported := []string{}
+	for k := range supportedVersions {
+		supported = append(supported, k)
+	}
+	sort.Strings(supported)
+	return supported
 }
 func ValidTLSVersions() []string {
 	validVersions := []string{}

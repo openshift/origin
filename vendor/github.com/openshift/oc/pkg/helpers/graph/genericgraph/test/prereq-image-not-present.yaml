@@ -1,0 +1,143 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: ruby
+    name: ruby-hello-world
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-20-centos7:latest
+          namespace: openshift
+      type: Docker
+    triggers:
+    - github:
+        secret: LyddbeCAaw1a0x08xz9n
+      type: GitHub
+    - generic:
+        secret: ZnYJJeEvo1ri0Gk0f6YY
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      name: test
+    name: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: test:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/origin
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/ruby-20-centos7
+      type: Docker
+    triggers:
+    - github:
+        secret: LyddbeCAaw1a0x08xz9n
+      type: GitHub
+    - generic:
+        secret: ZnYJJeEvo1ri0Gk0f6YY
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      name: test2
+    name: test2
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: test2:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/origin
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamImage
+          name: ruby-20-centos7@sha256:603bfa418e1ff0a486f3d795a8b69a2f8f5eed488fbf5c286bffd8ab77b8e7a5
+          namespace: openshift
+      type: Docker
+    triggers:
+    - github:
+        secret: LyddbeCAaw1a0x08xz9n
+      type: GitHub
+    - generic:
+        secret: ZnYJJeEvo1ri0Gk0f6YY
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      name: test3
+    name: test3
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: test3:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/origin
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStream
+          name: ruby-20-centos7
+          namespace: openshift
+      type: Docker
+    triggers:
+    - github:
+        secret: LyddbeCAaw1a0x08xz9n
+      type: GitHub
+    - generic:
+        secret: ZnYJJeEvo1ri0Gk0f6YY
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+kind: List
+metadata: {}

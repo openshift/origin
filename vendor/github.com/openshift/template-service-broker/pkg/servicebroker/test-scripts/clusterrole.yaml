@@ -1,0 +1,12 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: templateservicebroker-client-anonymous
+  roleRef:
+    name: system:openshift:templateservicebroker-client
+  groupNames:
+  - system:unauthenticated
+  - system:authenticated

@@ -59,7 +59,7 @@ func ValidateServingInfo(info configv1.ServingInfo, certificatesRequired bool, f
 	}
 
 	if _, err := crypto.TLSVersion(info.MinTLSVersion); err != nil {
-		validationResults.AddErrors(field.NotSupported(fldPath.Child("minTLSVersion"), info.MinTLSVersion, crypto.ValidTLSVersions()))
+		validationResults.AddErrors(field.NotSupported(fldPath.Child("minTLSVersion"), info.MinTLSVersion, crypto.SupportedTLSVersions()))
 	}
 	for i, cipher := range info.CipherSuites {
 		if _, err := crypto.CipherSuite(cipher); err != nil {

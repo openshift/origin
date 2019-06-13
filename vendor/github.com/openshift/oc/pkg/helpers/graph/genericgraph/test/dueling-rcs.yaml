@@ -1,0 +1,108 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    creationTimestamp: null
+    generation: 1
+    labels:
+      name: rc-1
+    name: rc-1
+  spec:
+    replicas: 1
+    selector:
+      name: rc-1
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: rc-1
+      spec:
+        containers:
+        - image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 0
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    creationTimestamp: null
+    generation: 1
+    labels:
+      notname: rc-2
+    name: rc-2
+  spec:
+    replicas: 1
+    selector:
+      notname: rc-2
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          notname: rc-2
+      spec:
+        containers:
+        - image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 0
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: '{"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"ReplicationController","namespace":"dueling-rc","name":"rc-1","uid":"a18e8784-2c9f-11e5-9c26-28d2447dc82b","apiVersion":"v1","resourceVersion":"10170"}}'
+      openshift.io/scc: restricted
+    creationTimestamp: null
+    name: conflicted-pod
+    labels:
+      name: rc-1
+      notname: rc-2
+  spec:
+    containers:
+    - image: centos/mysql-56-centos7
+      imagePullPolicy: IfNotPresent
+      name: ruby-helloworld-database
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+        runAsUser: 1000060000
+        seLinuxOptions:
+          level: s0:c8,c2
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-rm9j0
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: deads-dev-01
+    imagePullSecrets:
+    - name: default-dockercfg-91w6c
+    nodeName: deads-dev-01
+    restartPolicy: Always
+    serviceAccount: default
+    serviceAccountName: default
+    volumes:
+    - name: default-token-rm9j0
+      secret:
+        secretName: default-token-rm9j0
+  status:
+    phase: Pending
+kind: List
+metadata: {}

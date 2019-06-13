@@ -1,0 +1,90 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: ruby
+    name: ruby-hello-world
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-22-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: LyddbeCAaw1a0x08xz9n
+      type: GitHub
+    - generic:
+        secret: ZnYJJeEvo1ri0Gk0f6YY
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: Build
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: ruby
+      buildconfig: ruby-hello-world
+    name: ruby-hello-world-1
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+    resources: {}
+    serviceAccount: builder
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7:latest
+      type: Docker
+  status:
+    config:
+      name: ruby-hello-world
+    phase: Failed
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/image.dockerRepositoryCheck: 2015-07-06T19:05:12Z
+    creationTimestamp: null
+    labels:
+      app: ruby
+    name: ruby-22-centos7
+  spec:
+    dockerImageRepository: centos/ruby-22-centos7
+  status:
+    dockerImageRepository: centos/ruby-22-centos7
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: ruby
+    name: ruby-hello-world
+  spec: {}
+  status:
+    dockerImageRepository: 172.30.222.57:5000/foo/ruby-hello-world
+kind: List
+metadata: {}

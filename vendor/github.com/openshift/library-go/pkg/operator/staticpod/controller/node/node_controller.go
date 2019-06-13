@@ -2,13 +2,10 @@ package node
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
-	"k8s.io/klog"
-
-	"k8s.io/apimachinery/pkg/api/equality"
+	coreapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -17,9 +14,12 @@ import (
 	corelisterv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const nodeControllerWorkQueueKey = "key"
@@ -59,11 +59,10 @@ func NewNodeController(
 }
 
 func (c NodeController) sync() error {
-	_, originalOperatorStatus, resourceVersion, err := c.operatorClient.GetStaticPodOperatorState()
+	_, originalOperatorStatus, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
-	operatorStatus := originalOperatorStatus.DeepCopy()
 
 	selector, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Equals, []string{""})
 	if err != nil {
@@ -106,13 +105,52 @@ func (c NodeController) sync() error {
 		newTargetNodeStates = append(newTargetNodeStates, operatorv1.NodeStatus{NodeName: node.Name})
 	}
 
-	operatorStatus.NodeStatuses = newTargetNodeStates
-	if !equality.Semantic.DeepEqual(originalOperatorStatus, operatorStatus) {
-		if _, updateError := c.operatorClient.UpdateStaticPodOperatorStatus(resourceVersion, operatorStatus); updateError != nil {
-			return updateError
+	// detect and report master nodes that are not ready
+	notReadyNodes := []string{}
+	for _, node := range nodes {
+		for _, con := range node.Status.Conditions {
+			if con.Type == coreapiv1.NodeReady && con.Status != coreapiv1.ConditionTrue {
+				notReadyNodes = append(notReadyNodes, node.Name)
+			}
 		}
 	}
+	newCondition := operatorv1.OperatorCondition{
+		Type: condition.NodeControllerDegradedConditionType,
+	}
+	if len(notReadyNodes) > 0 {
+		newCondition.Status = operatorv1.ConditionTrue
+		newCondition.Reason = "MasterNodesReady"
+		newCondition.Message = fmt.Sprintf("The master node(s) %q not ready", strings.Join(notReadyNodes, ","))
+	} else {
+		newCondition.Status = operatorv1.ConditionFalse
+		newCondition.Reason = "MasterNodesReady"
+		newCondition.Message = "All master node(s) are ready"
+	}
 
+	oldStatus := &operatorv1.StaticPodOperatorStatus{}
+	_, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(newCondition), func(status *operatorv1.StaticPodOperatorStatus) error {
+		status.NodeStatuses = newTargetNodeStates
+		return nil
+	}, func(status *operatorv1.StaticPodOperatorStatus) error {
+		//a hack for storing the old status (before the update)
+		oldStatus = status
+		return nil
+	})
+
+	if updateError != nil {
+		return updateError
+	}
+
+	if !updated {
+		return nil
+	}
+
+	for _, oldCondition := range oldStatus.Conditions {
+		if oldCondition.Type == condition.NodeControllerDegradedConditionType && oldCondition.Message != newCondition.Message {
+			c.eventRecorder.Eventf("MasterNodesReadyChanged", newCondition.Message)
+			break
+		}
+	}
 	return nil
 }
 
