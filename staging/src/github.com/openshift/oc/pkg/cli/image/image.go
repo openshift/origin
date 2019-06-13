@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/image/extract"
 	"github.com/openshift/oc/pkg/cli/image/info"
 	"github.com/openshift/oc/pkg/cli/image/mirror"
-	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/oc/pkg/helpers/templates"
 )
 
 var (

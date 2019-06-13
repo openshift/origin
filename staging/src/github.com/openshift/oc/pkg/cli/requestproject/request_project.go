@@ -13,8 +13,8 @@ import (
 
 	projectv1 "github.com/openshift/api/project/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	ocproject "github.com/openshift/oc/pkg/cli/project"
 	cliconfig "github.com/openshift/oc/pkg/helpers/kubeconfig"
-	ocproject "github.com/openshift/origin/pkg/oc/cli/project"
 )
 
 // RequestProjectOptions contains all the options for running the RequestProject cli command.

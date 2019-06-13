@@ -23,7 +23,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/pkg/oc/cli/set"
+	"github.com/openshift/oc/pkg/cli/set"
 )
 
 type RetryOptions struct {

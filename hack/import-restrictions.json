@@ -412,14 +412,11 @@
       "github.com/openshift/origin/pkg/oc/cli/admin/groups/examples"
     ],
     "allowedImportPackageRoots": [
-      "vendor/github.com/containers/image",
-      "vendor/github.com/docker/go-units",
       "vendor/github.com/fsnotify/fsnotify",
       "vendor/github.com/fsouza/go-dockerclient",
       "vendor/k8s.io/klog",
       "vendor/github.com/gonum/graph",
       "vendor/github.com/MakeNowJust/heredoc",
-      "vendor/github.com/opencontainers/go-digest",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
       "vendor/github.com/openshift/library-go",
@@ -428,7 +425,6 @@
       "vendor/github.com/spf13/pflag",
       "vendor/k8s.io/api",
       "vendor/k8s.io/apimachinery",
-      "vendor/k8s.io/apiserver",
       "vendor/k8s.io/client-go",
       "vendor/k8s.io/cli-runtime",
       "vendor/k8s.io/klog",
@@ -443,16 +439,13 @@
       "vendor/github.com/openshift/oc"
     ],
     "allowedImportPackages": [
-      "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
-      "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
       "github.com/openshift/origin/pkg/version",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
-      "vendor/k8s.io/kubernetes/pkg/credentialprovider",
 
       "vendor/github.com/openshift/library-go/pkg/git"
     ]

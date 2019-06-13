@@ -16,9 +16,8 @@ import (
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	cmdversion "github.com/openshift/oc/pkg/cli/version"
+	"github.com/openshift/oc/pkg/helpers/templates"
 	osversion "github.com/openshift/oc/pkg/version"
-
-	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 var (

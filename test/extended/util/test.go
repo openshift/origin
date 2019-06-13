@@ -32,7 +32,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/generated"
 
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/oc/pkg/cli/admin/policy"
 	"github.com/openshift/origin/pkg/version"
 	testutil "github.com/openshift/origin/test/util"
 )

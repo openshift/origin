@@ -21,7 +21,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/helpers"
-	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
+	"github.com/openshift/oc/pkg/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

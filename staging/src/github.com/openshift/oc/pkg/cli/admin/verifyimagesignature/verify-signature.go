@@ -26,7 +26,6 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 var (
@@ -222,7 +221,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 		now := metav1.Now()
 		newConditions := []imagev1.SignatureCondition{
 			{
-				Type:               imageapi.SignatureTrusted,
+				Type:               "Trusted",
 				Status:             corev1.ConditionTrue,
 				LastProbeTime:      now,
 				LastTransitionTime: now,
@@ -231,7 +230,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 			},
 			// TODO: This should be not needed (need to relax validation).
 			{
-				Type:               imageapi.SignatureForImage,
+				Type:               "ForImage",
 				Status:             corev1.ConditionTrue,
 				LastProbeTime:      now,
 				LastTransitionTime: now,

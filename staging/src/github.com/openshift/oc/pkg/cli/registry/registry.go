@@ -11,7 +11,7 @@ import (
 
 	"github.com/openshift/oc/pkg/cli/registry/info"
 	"github.com/openshift/oc/pkg/cli/registry/login"
-	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/oc/pkg/helpers/templates"
 )
 
 var (
