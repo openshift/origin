@@ -5,10 +5,10 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
 
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
 	quotaclusterresourceoverride "github.com/openshift/origin/pkg/autoscaling/admission/clusterresourceoverride"
 	quotarunonceduration "github.com/openshift/origin/pkg/autoscaling/admission/runonceduration"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
 	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/network/admission/externalipranger"

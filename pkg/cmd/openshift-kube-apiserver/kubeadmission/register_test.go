@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 
 	"github.com/openshift/origin/pkg/admission/admissionregistrationtesting"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
 )
 
 func TestAdmissionRegistration(t *testing.T) {

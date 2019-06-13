@@ -12,8 +12,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/RangelReale/osin"
-
 	kauthn "k8s.io/api/authentication/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -21,9 +19,9 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -151,12 +149,12 @@ func TestOauthExternal(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer os.Remove(authServerMetadataFile.Name())
-	authServerMetadata := oauthutil.OauthAuthorizationServerMetadata{
+	authServerMetadata := oauthdiscovery.OauthAuthorizationServerMetadata{
 		Issuer:                        authServer.URL,
 		AuthorizationEndpoint:         authServer.URL + "/oauth/authorize",
 		TokenEndpoint:                 authServer.URL + "/oauth/token",
-		ResponseTypesSupported:        osin.AllowedAuthorizeType{osin.CODE, osin.TOKEN},
-		GrantTypesSupported:           osin.AllowedAccessType{osin.AUTHORIZATION_CODE, "implicit"},
+		ResponseTypesSupported:        []string{"code", "token"},
+		GrantTypesSupported:           []string{"authorization_code", "implicit"},
 		CodeChallengeMethodsSupported: []string{"plain", "S256"},
 	}
 	authServerMetadataSerialized, _ := json.MarshalIndent(authServerMetadata, "", "  ")

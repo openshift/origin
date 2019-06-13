@@ -14,12 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/openshift-apiserver/pkg/version"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 )
 
-func DefaultOpenAPIConfig(oauthMetadata *oauthutil.OauthAuthorizationServerMetadata) *openapicommon.Config {
+func DefaultOpenAPIConfig() *openapicommon.Config {
 	securityDefinitions := spec.SecurityDefinitions{}
 	securityDefinitions["BearerToken"] = &spec.SecurityScheme{
 		SecuritySchemeProps: spec.SecuritySchemeProps{
@@ -28,25 +26,6 @@ func DefaultOpenAPIConfig(oauthMetadata *oauthutil.OauthAuthorizationServerMetad
 			In:          "header",
 			Description: "Bearer Token authentication",
 		},
-	}
-	if oauthMetadata != nil {
-		securityDefinitions["Oauth2Implicit"] = &spec.SecurityScheme{
-			SecuritySchemeProps: spec.SecuritySchemeProps{
-				Type:             "oauth2",
-				Flow:             "implicit",
-				AuthorizationURL: oauthMetadata.AuthorizationEndpoint,
-				Scopes:           scope.DescribeScopes(oauthMetadata.ScopesSupported),
-			},
-		}
-		securityDefinitions["Oauth2AccessToken"] = &spec.SecurityScheme{
-			SecuritySchemeProps: spec.SecuritySchemeProps{
-				Type:             "oauth2",
-				Flow:             "accessCode",
-				AuthorizationURL: oauthMetadata.AuthorizationEndpoint,
-				TokenURL:         oauthMetadata.TokenEndpoint,
-				Scopes:           scope.DescribeScopes(oauthMetadata.ScopesSupported),
-			},
-		}
 	}
 	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(legacyscheme.Scheme, extensionsapiserver.Scheme, aggregatorscheme.Scheme)
 	return &openapicommon.Config{

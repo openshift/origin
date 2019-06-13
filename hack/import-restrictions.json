@@ -86,6 +86,22 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/apiserver/admission",
       "github.com/openshift/origin/pkg/autoscaling/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/image/generated",

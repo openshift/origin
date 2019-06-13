@@ -20,10 +20,33 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	admissiontesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
 	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
 )
+
+// createSAForTest Build and Initializes a ServiceAccount for tests
+func createSAForTest() *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "default",
+			Namespace: "default",
+		},
+	}
+}
+
+// createNamespaceForTest builds and initializes a Namespaces for tests
+func createNamespaceForTest() *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				securityv1.UIDRangeAnnotation:           "1/3",
+				securityv1.MCSAnnotation:                "s0:c1,c0",
+				securityv1.SupplementalGroupsAnnotation: "2/3",
+			},
+		},
+	}
+}
 
 func newTestAdmission(lister securityv1listers.SecurityContextConstraintsLister, kclient kubernetes.Interface, authorizer authorizer.Authorizer) admission.Interface {
 	return &constraint{
@@ -187,9 +210,9 @@ func testSCCAdmit(testCaseName string, sccs []*securityv1.SecurityContextConstra
 
 func TestAdmitSuccess(t *testing.T) {
 	// create the annotated namespace and add it to the fake client
-	namespace := admissiontesting.CreateNamespaceForTest()
+	namespace := createNamespaceForTest()
 
-	serviceAccount := admissiontesting.CreateSAForTest()
+	serviceAccount := createSAForTest()
 	serviceAccount.Namespace = namespace.Name
 
 	tc := fake.NewSimpleClientset(namespace, serviceAccount)
@@ -1245,8 +1268,8 @@ func podSC(seLinuxLevel string, fsGroup, supGroup int64) *coreapi.PodSecurityCon
 
 func setupClientSet() *fake.Clientset {
 	// create the annotated namespace and add it to the fake client
-	namespace := admissiontesting.CreateNamespaceForTest()
-	serviceAccount := admissiontesting.CreateSAForTest()
+	namespace := createNamespaceForTest()
+	serviceAccount := createSAForTest()
 	serviceAccount.Namespace = namespace.Name
 
 	return fake.NewSimpleClientset(namespace, serviceAccount)

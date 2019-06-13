@@ -5,15 +5,14 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationv1helpers "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 )
 
 type personalSARRequestInfoResolver struct {
@@ -85,15 +84,15 @@ func isPersonalAccessReviewFromRequest(req *http.Request, requestInfo *request.R
 		defaultGVK.Kind = "LocalSubjectAccessReview"
 	}
 
-	obj, _, err := sarCodecFactory.UniversalDecoder().Decode(body, &defaultGVK, nil)
+	obj, _, err := sarCodecFactory.UniversalDeserializer().Decode(body, &defaultGVK, nil)
 	if err != nil {
 		return false, err
 	}
 	switch castObj := obj.(type) {
-	case *authorizationapi.SubjectAccessReview:
+	case *authorizationv1.SubjectAccessReview:
 		return IsPersonalAccessReviewFromSAR(castObj), nil
 
-	case *authorizationapi.LocalSubjectAccessReview:
+	case *authorizationv1.LocalSubjectAccessReview:
 		return isPersonalAccessReviewFromLocalSAR(castObj), nil
 
 	default:
@@ -102,8 +101,8 @@ func isPersonalAccessReviewFromRequest(req *http.Request, requestInfo *request.R
 }
 
 // IsPersonalAccessReviewFromSAR this variant handles the case where we have an SAR
-func IsPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bool {
-	if len(sar.User) == 0 && len(sar.Groups) == 0 {
+func IsPersonalAccessReviewFromSAR(sar *authorizationv1.SubjectAccessReview) bool {
+	if len(sar.User) == 0 && len(sar.GroupsSlice) == 0 {
 		return true
 	}
 
@@ -111,8 +110,8 @@ func IsPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bo
 }
 
 // isPersonalAccessReviewFromLocalSAR this variant handles the case where we have a local SAR
-func isPersonalAccessReviewFromLocalSAR(sar *authorizationapi.LocalSubjectAccessReview) bool {
-	if len(sar.User) == 0 && len(sar.Groups) == 0 {
+func isPersonalAccessReviewFromLocalSAR(sar *authorizationv1.LocalSubjectAccessReview) bool {
+	if len(sar.User) == 0 && len(sar.GroupsSlice) == 0 {
 		return true
 	}
 
@@ -125,6 +124,6 @@ var (
 )
 
 func init() {
-	legacy.InstallInternalLegacyAuthorization(sarScheme)
-	utilruntime.Must(authorizationv1helpers.Install(sarScheme))
+	utilruntime.Must(authorizationv1.Install(sarScheme))
+	utilruntime.Must(authorizationv1.DeprecatedInstallWithoutGroup(sarScheme))
 }

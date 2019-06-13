@@ -11,7 +11,6 @@ import (
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 )
 
 func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInformers informers.SharedInformerFactory, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig) (*OpenshiftNonAPIConfig, error) {
@@ -22,7 +21,7 @@ func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInforme
 			SharedInformerFactory: kubeInformers,
 		},
 	}
-	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(oauthConfig, authConfig.OAuthMetadataFile)
+	ret.ExtraConfig.OAuthMetadata, _, err = prepOauthMetadata(oauthConfig, authConfig.OAuthMetadataFile)
 	if err != nil {
 		// invalid metadata must not prevent the kube api server from starting
 		klog.Errorf("Unable to initialize OAuth authorization server metadata: %v", err)

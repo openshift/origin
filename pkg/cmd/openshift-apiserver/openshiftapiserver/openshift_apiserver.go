@@ -404,7 +404,7 @@ func (c *completedConfig) withOpenAPIAggregationController(delegatedAPIServer *g
 		&specDownloader,
 		delegatedAPIServer,
 		delegatedAPIServer.Handler.GoRestfulContainer.RegisteredWebServices(),
-		configprocessing.DefaultOpenAPIConfig(nil),
+		configprocessing.DefaultOpenAPIConfig(),
 		delegatedAPIServer.Handler.NonGoRestfulMux)
 	if err != nil {
 		return err

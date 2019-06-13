@@ -96,7 +96,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	genericConfig.ExternalAddress = "apiserver.openshift-apiserver.svc"
 	genericConfig.BuildHandlerChainFunc = OpenshiftHandlerChain
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
-	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(nil)
+	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig()
 	genericConfig.RESTOptionsGetter = restOptsGetter
 	// previously overwritten.  I don't know why
 	genericConfig.RequestTimeout = time.Duration(60) * time.Second

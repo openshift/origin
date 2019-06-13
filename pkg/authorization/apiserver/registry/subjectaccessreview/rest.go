@@ -17,7 +17,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/apiserver/registry/util"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
@@ -133,7 +132,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 func (r *REST) isAllowed(user user.Info, sar *authorizationapi.SubjectAccessReview) error {
 	var localSARAttributes kauthorizer.AttributesRecord
 	// if they are running a personalSAR, create synthentic check for selfSAR
-	if authorizer.IsPersonalAccessReviewFromSAR(sar) {
+	if isPersonalAccessReviewFromSAR(sar) {
 		localSARAttributes = kauthorizer.AttributesRecord{
 			User:            user,
 			Verb:            "create",
@@ -164,4 +163,13 @@ func (r *REST) isAllowed(user user.Info, sar *authorizationapi.SubjectAccessRevi
 	}
 
 	return nil
+}
+
+// isPersonalAccessReviewFromSAR this variant handles the case where we have an SAR
+func isPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bool {
+	if len(sar.User) == 0 && len(sar.Groups) == 0 {
+		return true
+	}
+
+	return false
 }
