@@ -17,9 +17,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
-	unidlingproxy "github.com/openshift/origin/pkg/proxy/unidler"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+const MaxHeldConnections = 16
 
 func tryEchoUDPOnce(ip net.IP, udpPort int, expectedBuff []byte, readTimeout time.Duration) ([]byte, error) {
 	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: ip, Port: udpPort})
@@ -364,14 +365,14 @@ var _ = g.Describe("idling and unidling", func() {
 
 			connWG.Wait()
 
-			g.By(fmt.Sprintf("Expecting all but %v of those connections to fail", unidlingproxy.MaxHeldConnections))
+			g.By(fmt.Sprintf("Expecting all but %v of those connections to fail", MaxHeldConnections))
 			errCount := 0
 			for _, err := range errors {
 				if err != nil {
 					errCount++
 				}
 			}
-			o.Expect(errCount).To(o.Equal(connectionsToStart - unidlingproxy.MaxHeldConnections))
+			o.Expect(errCount).To(o.Equal(connectionsToStart - MaxHeldConnections))
 
 			g.By("Waiting until we have endpoints")
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)

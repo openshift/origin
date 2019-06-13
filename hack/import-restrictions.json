@@ -197,6 +197,21 @@
 
   {
     "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg",
+      "github.com/openshift/origin/test"
+    ],
+    "ignoredSubTrees": [],
+    "forbiddenImportPackageRoots": [
+      "vendor/github.com/openshift/sdn"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
@@ -360,19 +375,6 @@
       "vendor/github.com/davecgh/go-spew/spew",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1"
 
-    ]
-  },
-
-  {
-    "checkedPackages": [
-      "github.com/openshift/origin/pkg/network/master",
-      "github.com/openshift/origin/pkg/network/common"
-    ],
-    "forbiddenImportPackageRoots": [
-      "vendor/github.com/vishvananda/netlink"
-    ],
-    "allowedImportPackageRoots": [
-      ""
     ]
   },
 

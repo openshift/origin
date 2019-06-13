@@ -20,8 +20,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
-	"github.com/openshift/origin/pkg/cmd/openshift-network-controller"
 	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/sdn/pkg/openshift-network-controller"
 )
 
 func main() {

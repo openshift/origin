@@ -6,14 +6,13 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
