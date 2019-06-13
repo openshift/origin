@@ -36,8 +36,8 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
-	"github.com/openshift/origin/pkg/proxy/hybrid"
-	"github.com/openshift/origin/pkg/proxy/unidler"
+	"github.com/openshift/origin/pkg/network/proxyimpl/hybrid"
+	"github.com/openshift/origin/pkg/network/proxyimpl/unidler"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
 )

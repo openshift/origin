@@ -17,7 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
-	unidlingproxy "github.com/openshift/origin/pkg/proxy/unidler"
+	unidlingproxy "github.com/openshift/origin/pkg/network/proxyimpl/unidler"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
