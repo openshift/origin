@@ -13,10 +13,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/oc/pkg/helpers/templates"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 
 const PolicyRecommendedName = "policy"
@@ -32,13 +32,13 @@ var policyLong = ktemplates.LongDesc(`
 	and 'scc'.`)
 
 // NewCmdPolicy implements the OpenShift cli policy command
-func NewCmdPolicy(name, fullName string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Manage cluster authorization and security policy",
 		Long:  policyLong,
-		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
+		Run:   kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	groups := ktemplates.CommandGroups{
@@ -86,7 +86,7 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, streams genericcliop
 		},
 	}
 	groups.Add(cmds)
-	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
+	cmdutil.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
 	return cmds
 }

@@ -10,7 +10,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imagefake "github.com/openshift/client-go/image/clientset/versioned/fake"
-	"github.com/openshift/origin/pkg/oc/cli/tag"
+	"github.com/openshift/oc/pkg/cli/tag"
 )
 
 func TestCreateImageImport(t *testing.T) {

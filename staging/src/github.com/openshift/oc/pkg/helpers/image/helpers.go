@@ -8,6 +8,7 @@ import (
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/library-go/pkg/image/reference"
 )
 
 // FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
@@ -77,4 +78,52 @@ func ShortDockerImageID(image *dockerv10.DockerImage, length int) string {
 		id = id[:length]
 	}
 	return id
+}
+
+// DockerImageReferenceNameString returns the name of the reference with its tag or ID.
+func DockerImageReferenceNameString(r imagev1.DockerImageReference) string {
+	switch {
+	case len(r.Name) == 0:
+		return ""
+	case len(r.Tag) > 0:
+		return r.Name + ":" + r.Tag
+	case len(r.ID) > 0:
+		var ref string
+		if _, err := imageutil.ParseDigest(r.ID); err == nil {
+			// if it parses as a digest, its v2 pull by id
+			ref = "@" + r.ID
+		} else {
+			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag
+			ref = ":" + r.ID
+		}
+		return r.Name + ref
+	default:
+		return r.Name
+	}
+}
+
+// DockerImageReferenceExact returns a string representation of the set fields on the DockerImageReference
+func DockerImageReferenceExact(r imagev1.DockerImageReference) string {
+	name := DockerImageReferenceNameString(r)
+	if len(name) == 0 {
+		return name
+	}
+	s := r.Registry
+	if len(s) > 0 {
+		s += "/"
+	}
+	if len(r.Namespace) != 0 {
+		s += r.Namespace + "/"
+	}
+	return s + name
+}
+
+// DockerImageReferenceString converts a DockerImageReference to a Docker pull spec
+// (which implies a default namespace according to V1 Docker registry rules).
+// Use DockerImageReferenceExact() if you want no defaulting.
+func DockerImageReferenceString(r imagev1.DockerImageReference) string {
+	if len(r.Namespace) == 0 && reference.IsRegistryDockerHub(r.Registry) {
+		r.Namespace = "library"
+	}
+	return DockerImageReferenceExact(r)
 }

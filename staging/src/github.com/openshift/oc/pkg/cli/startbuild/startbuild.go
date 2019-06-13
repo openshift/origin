@@ -45,7 +45,6 @@ import (
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	ocerrors "github.com/openshift/oc/pkg/helpers/errors"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 var (
@@ -307,7 +306,7 @@ func (o *StartBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, cmd
 
 	o.Name = name
 
-	o.BuildLogClient = buildclientmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
+	o.BuildLogClient = buildclientmanual.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace, scheme.Scheme)
 
 	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
@@ -382,7 +381,7 @@ func (o *StartBuildOptions) Run() error {
 	request := &buildv1.BuildRequest{
 		TriggeredBy: append(buildRequestCauses,
 			buildv1.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseManualMsg,
+				Message: "Manually triggered",
 			},
 		),
 		ObjectMeta: metav1.ObjectMeta{Name: o.Name},
@@ -846,10 +845,10 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 
 // hookEventFromPostReceive creates a GenericWebHookEvent from the provided git repository and
 // post receive input. If no inputs are available, it will return nil.
-func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string) (*buildapi.GenericWebHookEvent, error) {
+func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string) (*buildv1.GenericWebHookEvent, error) {
 	// TODO: support other types of refs
-	event := &buildapi.GenericWebHookEvent{
-		Git: &buildapi.GitInfo{},
+	event := &buildv1.GenericWebHookEvent{
+		Git: &buildv1.GitInfo{},
 	}
 
 	// attempt to extract a post receive body
@@ -891,10 +890,10 @@ func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string)
 	return event, nil
 }
 
-// gitRefInfo extracts a buildapi.GitRefInfo from the specified repository or returns
+// gitRefInfo extracts a buildv1.GitRefInfo from the specified repository or returns
 // an error.
-func gitRefInfo(repo git.Repository, dir, ref string) (buildapi.GitRefInfo, error) {
-	info := buildapi.GitRefInfo{}
+func gitRefInfo(repo git.Repository, dir, ref string) (buildv1.GitRefInfo, error) {
+	info := buildv1.GitRefInfo{}
 	if repo == nil {
 		return info, nil
 	}

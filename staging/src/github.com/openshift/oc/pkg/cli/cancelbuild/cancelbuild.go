@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubectl/scheme"
-
 	"github.com/spf13/cobra"
+
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/api/build"
@@ -268,7 +268,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			if b.Status.Phase == buildv1.BuildPhaseNew {
 				continue
 			}
-			logClient := buildclientv1.NewBuildLogClient(o.Client.RESTClient(), o.Namespace)
+			logClient := buildclientv1.NewBuildLogClient(o.Client.RESTClient(), o.Namespace, scheme.Scheme)
 			opts := buildv1.BuildLogOptions{NoWait: true}
 			response, err := logClient.Logs(b.Name, opts).Do().Raw()
 			if err != nil {

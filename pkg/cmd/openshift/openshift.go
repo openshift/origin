@@ -16,7 +16,7 @@ import (
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	cmdversion "github.com/openshift/oc/pkg/cli/version"
-	"github.com/openshift/oc/pkg/helpers/templates"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	osversion "github.com/openshift/oc/pkg/version"
 )
 
@@ -44,7 +44,7 @@ func CommandFor(basename string) *cobra.Command {
 	}
 
 	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd, []string{"options"})
+		cmdutil.ActsAsRootCommand(cmd, []string{"options"})
 	}
 
 	return cmd
@@ -64,7 +64,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(newCmdOptions())
 
 	// TODO: add groups
-	templates.ActsAsRootCommand(root, []string{"options"})
+	cmdutil.ActsAsRootCommand(root, []string{"options"})
 
 	return root
 }

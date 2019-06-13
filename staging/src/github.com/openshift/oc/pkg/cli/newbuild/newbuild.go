@@ -15,10 +15,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	ocnewapp "github.com/openshift/oc/pkg/cli/newapp"
 	configcmd "github.com/openshift/oc/pkg/helpers/bulk"
 	newapp "github.com/openshift/oc/pkg/helpers/newapp/app"
 	newcmd "github.com/openshift/oc/pkg/helpers/newapp/cmd"
-	ocnewapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 )
 
 // NewBuildRecommendedCommandName is the recommended command name.

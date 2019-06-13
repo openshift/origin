@@ -10,7 +10,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/oc/pkg/helpers/templates"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 
 var (
@@ -74,7 +74,7 @@ func NewCmdSet(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 		},
 	}
 	groups.Add(set)
-	templates.ActsAsRootCommand(set, []string{"options"}, groups...)
+	cmdutil.ActsAsRootCommand(set, []string{"options"}, groups...)
 	return set
 }
 

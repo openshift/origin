@@ -6,7 +6,6 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	imagereference "github.com/openshift/library-go/pkg/image/reference"
 )
 
 // DockerImageReferenceForImage returns the docker reference for specified image. Assuming
@@ -41,16 +40,6 @@ func DockerImageReferenceForImage(stream *imagev1.ImageStream, imageID string) (
 	default:
 		return event.DockerImageReference, true
 	}
-}
-
-// DockerImageReferenceString converts a DockerImageReference to a Docker pull spec
-// (which implies a default namespace according to V1 Docker registry rules).
-// Use DockerImageReferenceExact() if you want no defaulting.
-func DockerImageReferenceString(r imagev1.DockerImageReference) string {
-	if len(r.Namespace) == 0 && imagereference.IsRegistryDockerHub(r.Registry) {
-		r.Namespace = "library"
-	}
-	return DockerImageReferenceExact(r)
 }
 
 // DockerImageReferenceNameString returns the name of the reference with its tag or ID.

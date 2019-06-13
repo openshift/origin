@@ -11,7 +11,7 @@ import (
 
 	"github.com/openshift/oc/pkg/cli/registry/info"
 	"github.com/openshift/oc/pkg/cli/registry/login"
-	"github.com/openshift/oc/pkg/helpers/templates"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 
 var (
@@ -42,6 +42,6 @@ func NewCmd(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStr
 		},
 	}
 	groups.Add(image)
-	templates.ActsAsRootCommand(image, []string{"options"}, groups...)
+	cmdutil.ActsAsRootCommand(image, []string{"options"}, groups...)
 	return image
 }

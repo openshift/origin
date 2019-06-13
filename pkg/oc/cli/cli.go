@@ -19,6 +19,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/origin/pkg/oc/cli/admin"
+
 	"github.com/openshift/oc/pkg/cli/admin/buildchain"
 	"github.com/openshift/oc/pkg/cli/admin/groups/sync"
 	"github.com/openshift/oc/pkg/cli/buildlogs"
@@ -30,10 +32,13 @@ import (
 	"github.com/openshift/oc/pkg/cli/extract"
 	"github.com/openshift/oc/pkg/cli/idle"
 	"github.com/openshift/oc/pkg/cli/image"
+	"github.com/openshift/oc/pkg/cli/importimage"
 	"github.com/openshift/oc/pkg/cli/kubectlwrappers"
 	"github.com/openshift/oc/pkg/cli/login"
 	"github.com/openshift/oc/pkg/cli/logout"
 	"github.com/openshift/oc/pkg/cli/logs"
+	"github.com/openshift/oc/pkg/cli/newapp"
+	"github.com/openshift/oc/pkg/cli/newbuild"
 	"github.com/openshift/oc/pkg/cli/observe"
 	"github.com/openshift/oc/pkg/cli/options"
 	"github.com/openshift/oc/pkg/cli/policy"
@@ -46,21 +51,16 @@ import (
 	"github.com/openshift/oc/pkg/cli/rollback"
 	"github.com/openshift/oc/pkg/cli/rollout"
 	"github.com/openshift/oc/pkg/cli/rsh"
+	"github.com/openshift/oc/pkg/cli/rsync"
 	"github.com/openshift/oc/pkg/cli/secrets"
 	"github.com/openshift/oc/pkg/cli/serviceaccounts"
 	"github.com/openshift/oc/pkg/cli/set"
+	"github.com/openshift/oc/pkg/cli/startbuild"
 	"github.com/openshift/oc/pkg/cli/status"
+	"github.com/openshift/oc/pkg/cli/tag"
 	"github.com/openshift/oc/pkg/cli/whoami"
-	"github.com/openshift/oc/pkg/helpers/templates"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/oc/pkg/helpers/term"
-
-	"github.com/openshift/origin/pkg/oc/cli/admin"
-	"github.com/openshift/origin/pkg/oc/cli/importimage"
-	"github.com/openshift/origin/pkg/oc/cli/newapp"
-	"github.com/openshift/origin/pkg/oc/cli/newbuild"
-	"github.com/openshift/origin/pkg/oc/cli/rsync"
-	"github.com/openshift/origin/pkg/oc/cli/startbuild"
-	"github.com/openshift/origin/pkg/oc/cli/tag"
 )
 
 const productName = `OpenShift`
@@ -262,7 +262,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 	}
 
 	changeSharedFlagDefaults(cmds)
-	templates.ActsAsRootCommand(cmds, filters, groups...).
+	cmdutil.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
 	cmds.AddCommand(newExperimentalCommand("ex", name+" ex", f, ioStreams))
@@ -399,7 +399,7 @@ func CommandFor(basename string) *cobra.Command {
 	}
 
 	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd, []string{"options"})
+		cmdutil.ActsAsRootCommand(cmd, []string{"options"})
 	}
 	return cmd
 }
