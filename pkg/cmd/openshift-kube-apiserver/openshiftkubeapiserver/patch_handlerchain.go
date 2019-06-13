@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/library-go/pkg/apiserver/httprequest"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	"github.com/openshift/origin/pkg/oauth/util"
 )
 
 const (
@@ -28,7 +27,7 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osin
 	// ignore oauthConfig if we have a valid OAuth metadata file
 	// this prevents us from running the internal OAuth server when we are honoring an external one
 	if oauthMetadataFile := authConfig.OAuthMetadataFile; len(oauthMetadataFile) > 0 {
-		if _, _, err := util.LoadOAuthMetadataFile(oauthMetadataFile); err == nil {
+		if _, _, err := loadOAuthMetadataFile(oauthMetadataFile); err == nil {
 			oauthConfig = nil // simplest way to keep existing code paths working
 		}
 	}

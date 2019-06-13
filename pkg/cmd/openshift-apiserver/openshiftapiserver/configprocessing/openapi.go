@@ -13,13 +13,14 @@ import (
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/openshift-apiserver/pkg/version"
+
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 )
 
-func DefaultOpenAPIConfig(oauthMetadata *oauthutil.OauthAuthorizationServerMetadata) *openapicommon.Config {
+func DefaultOpenAPIConfig(oauthMetadata *oauthdiscovery.OauthAuthorizationServerMetadata) *openapicommon.Config {
 	securityDefinitions := spec.SecurityDefinitions{}
 	securityDefinitions["BearerToken"] = &spec.SecurityScheme{
 		SecuritySchemeProps: spec.SecuritySchemeProps{

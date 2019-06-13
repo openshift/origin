@@ -1,15 +1,15 @@
-package util
+package openshiftkubeapiserver
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/RangelReale/osin"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 )
 
 func TestGetOauthMetadata(t *testing.T) {
 	actual := getOauthMetadata("https://localhost:8443")
-	expected := OauthAuthorizationServerMetadata{
+	expected := oauthdiscovery.OauthAuthorizationServerMetadata{
 		Issuer:                "https://localhost:8443",
 		AuthorizationEndpoint: "https://localhost:8443/oauth/authorize",
 		TokenEndpoint:         "https://localhost:8443/oauth/token",
@@ -20,11 +20,11 @@ func TestGetOauthMetadata(t *testing.T) {
 			"user:list-projects",
 			"user:list-scoped-projects",
 		},
-		ResponseTypesSupported: osin.AllowedAuthorizeType{
+		ResponseTypesSupported: []string{
 			"code",
 			"token",
 		},
-		GrantTypesSupported: osin.AllowedAccessType{
+		GrantTypesSupported: []string{
 			"authorization_code",
 			"implicit",
 		},
