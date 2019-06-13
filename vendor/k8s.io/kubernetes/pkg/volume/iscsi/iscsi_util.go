@@ -54,6 +54,9 @@ const (
 	// How many seconds to wait for a multipath device if at least two paths are available.
 	multipathDeviceTimeout = 10
 
+	// How many seconds to wait for a device/path to appear before giving up.
+	deviceDiscoveryTimeout = 30
+
 	// 'iscsiadm' error code stating that a session is logged in
 	// See https://github.com/open-iscsi/open-iscsi/blob/7d121d12ad6ba7783308c25ffd338a9fa0cc402b/include/iscsi_err.h#L37-L38
 	iscsiadmErrorSessExists = 15
@@ -419,10 +422,10 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) (string, error) {
 				devicePath = strings.Join([]string{"/dev/disk/by-path/pci", "*", "ip", tp, "iscsi", b.Iqn, "lun", b.Lun}, "-")
 			}
 
-			if exist := waitForPathToExist(&devicePath, multipathDeviceTimeout, iscsiTransport); !exist {
-				glog.Errorf("Could not attach disk: Timeout after 10s")
+			if exist := waitForPathToExist(&devicePath, deviceDiscoveryTimeout, iscsiTransport); !exist {
+				glog.Errorf("Could not attach disk: Timeout after %ds", deviceDiscoveryTimeout)
 				// update last error
-				lastErr = fmt.Errorf("Could not attach disk: Timeout after 10s")
+				lastErr = fmt.Errorf("Could not attach disk: Timeout after %ds", deviceDiscoveryTimeout)
 				continue
 			} else {
 				devicePaths[tp] = devicePath
@@ -458,8 +461,8 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) (string, error) {
 	}
 	// Try to find a multipath device for the volume
 	if len(bkpPortal) > 1 {
-		// Multipath volume was requested. Wait up to 10 seconds for the multipath device to appear.
-		devicePath = waitForMultiPathToExist(devicePathList, 10, b.deviceUtil)
+		// Multipath volume was requested. Wait up to multipathDeviceTimeout seconds for the multipath device to appear.
+		devicePath = waitForMultiPathToExist(devicePathList, multipathDeviceTimeout, b.deviceUtil)
 	} else {
 		// For PVs with 1 portal, just try one time to find the multipath device. This
 		// avoids a long pause when the multipath device will never get created, and
