@@ -12,25 +12,13 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationapi "github.com/openshift/api/authorization/v1"
 	userapi "github.com/openshift/api/user/v1"
-	authorizationv1listers "github.com/openshift/client-go/authorization/listers/authorization/v1"
+	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
-
-func newTestAdmission(lister authorizationv1listers.RoleBindingRestrictionLister, kclient *fake.Clientset, userclient *fakeuserclient.Clientset, groupcache GroupCache) admission.Interface {
-	return &restrictUsersAdmission{
-		Handler:    admission.NewHandler(admission.Create),
-		rbrLister:  lister,
-		rbrSynced:  func() bool { return true },
-		userClient: userclient,
-		kubeClient: kclient,
-		groupCache: groupcache,
-	}
-}
 
 func TestAdmission(t *testing.T) {
 	var (
@@ -84,15 +72,15 @@ func TestAdmission(t *testing.T) {
 		name        string
 		expectedErr string
 
-		object      runtime.Object
-		oldObject   runtime.Object
-		kind        schema.GroupVersionKind
-		resource    schema.GroupVersionResource
-		namespace   string
-		subresource string
-		rbrs        []*authorizationv1.RoleBindingRestriction
-		kubeObjects []runtime.Object
-		userObjects []runtime.Object
+		object               runtime.Object
+		oldObject            runtime.Object
+		kind                 schema.GroupVersionKind
+		resource             schema.GroupVersionResource
+		namespace            string
+		subresource          string
+		kubeObjects          []runtime.Object
+		authorizationObjects []runtime.Object
+		userObjects          []runtime.Object
 	}{
 		{
 			name: "ignore (allow) if subresource is nonempty",
@@ -114,7 +102,6 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "subresource",
-			rbrs:        []*authorizationv1.RoleBindingRestriction{},
 			kubeObjects: []runtime.Object{
 				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
@@ -144,7 +131,6 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "",
 			subresource: "",
-			rbrs:        []*authorizationv1.RoleBindingRestriction{},
 			kubeObjects: []runtime.Object{
 				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
@@ -180,7 +166,6 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "",
-			rbrs:        []*authorizationv1.RoleBindingRestriction{},
 			kubeObjects: []runtime.Object{
 				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
@@ -226,14 +211,14 @@ func TestAdmission(t *testing.T) {
 					},
 				},
 			},
-			rbrs: []*authorizationv1.RoleBindingRestriction{
-				{
+			authorizationObjects: []runtime.Object{
+				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "bogus-matcher",
 						Namespace: "namespace",
 					},
-					Spec: authorizationv1.RoleBindingRestrictionSpec{
-						UserRestriction: &authorizationv1.UserRestriction{},
+					Spec: authorizationapi.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationapi.UserRestriction{},
 					},
 				},
 			},
@@ -271,37 +256,37 @@ func TestAdmission(t *testing.T) {
 					},
 				},
 			},
-			rbrs: []*authorizationv1.RoleBindingRestriction{
-				{
+			authorizationObjects: []runtime.Object{
+				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-users",
 						Namespace: "namespace",
 					},
-					Spec: authorizationv1.RoleBindingRestrictionSpec{
-						UserRestriction: &authorizationv1.UserRestriction{
+					Spec: authorizationapi.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationapi.UserRestriction{
 							Users: []string{userAlice.Name},
 						},
 					},
 				},
-				{
+				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-groups",
 						Namespace: "namespace",
 					},
-					Spec: authorizationv1.RoleBindingRestrictionSpec{
-						GroupRestriction: &authorizationv1.GroupRestriction{
+					Spec: authorizationapi.RoleBindingRestrictionSpec{
+						GroupRestriction: &authorizationapi.GroupRestriction{
 							Groups: []string{group.Name},
 						},
 					},
 				},
-				{
+				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-serviceaccounts",
 						Namespace: "namespace",
 					},
-					Spec: authorizationv1.RoleBindingRestrictionSpec{
-						ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
-							ServiceAccounts: []authorizationv1.ServiceAccountReference{
+					Spec: authorizationapi.RoleBindingRestrictionSpec{
+						ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+							ServiceAccounts: []authorizationapi.ServiceAccountReference{
 								{
 									Name:      serviceaccount.Name,
 									Namespace: serviceaccount.Namespace,
@@ -345,14 +330,14 @@ func TestAdmission(t *testing.T) {
 					},
 				},
 			},
-			rbrs: []*authorizationv1.RoleBindingRestriction{
-				{
+			authorizationObjects: []runtime.Object{
+				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-users-bob",
 						Namespace: "namespace",
 					},
-					Spec: authorizationv1.RoleBindingRestrictionSpec{
-						UserRestriction: &authorizationv1.UserRestriction{
+					Spec: authorizationapi.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationapi.UserRestriction{
 							Users: []string{userBobSubj.Name},
 						},
 					},
@@ -371,14 +356,19 @@ func TestAdmission(t *testing.T) {
 	for _, tc := range testCases {
 		kclientset := fake.NewSimpleClientset(tc.kubeObjects...)
 		fakeUserClient := fakeuserclient.NewSimpleClientset(tc.userObjects...)
-		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		for _, rbr := range tc.rbrs {
-			indexer.Add(rbr)
-		}
-		rbrLister := authorizationv1listers.NewRoleBindingRestrictionLister(indexer)
-		plugin := newTestAdmission(rbrLister, kclientset, fakeUserClient, fakeGroupCache{})
+		fakeAuthorizationClient := fakeauthorizationclient.NewSimpleClientset(tc.authorizationObjects...)
 
-		err := admission.ValidateInitialization(plugin)
+		plugin, err := NewRestrictUsersAdmission()
+		if err != nil {
+			t.Errorf("unexpected error initializing admission plugin: %v", err)
+		}
+
+		plugin.(*restrictUsersAdmission).kubeClient = kclientset
+		plugin.(*restrictUsersAdmission).roleBindingRestrictionsGetter = fakeAuthorizationClient.AuthorizationV1()
+		plugin.(*restrictUsersAdmission).userClient = fakeUserClient
+		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
+
+		err = admission.ValidateInitialization(plugin)
 		if err != nil {
 			t.Errorf("unexpected error validating admission plugin: %v", err)
 		}
