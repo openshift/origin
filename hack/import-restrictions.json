@@ -175,7 +175,8 @@
 
   {
     "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
+      "github.com/openshift/origin/pkg",
+      "github.com/openshift/origin/test"
     ],
     "ignoredSubTrees": [],
     "forbiddenImportPackageRoots": [
