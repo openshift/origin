@@ -14,7 +14,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
+	"github.com/openshift/library-go/pkg/quota/quotautil"
 
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
