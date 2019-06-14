@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -13,8 +12,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 const DefaultingPluginName = "security.openshift.io/DefaultSecurityContextConstraints"
@@ -38,7 +35,6 @@ func NewDefaulter() admission.Interface {
 	scheme := runtime.NewScheme()
 	codecFactory := runtimeserializer.NewCodecFactory(scheme)
 	utilruntime.Must(securityv1.Install(scheme))
-	utilruntime.Must(securityapiv1.Install(scheme))
 
 	return &defaultSCC{
 		Handler:      admission.NewHandler(admission.Create, admission.Update),
@@ -62,26 +58,19 @@ func (a *defaultSCC) Admit(attributes admission.Attributes, o admission.ObjectIn
 		return err
 	}
 
-	uncastObj, err := runtime.Decode(a.codecFactory.LegacyCodec(securityv1.GroupVersion), buf.Bytes())
+	uncastObj, err := runtime.Decode(a.codecFactory.UniversalDeserializer(), buf.Bytes())
 	if err != nil {
 		return err
 	}
 
-	internalSCC := uncastObj.(*securityapi.SecurityContextConstraints)
-	outSCCExternal := &securityv1.SecurityContextConstraints{}
-	if err := a.scheme.Convert(internalSCC, outSCCExternal, nil); err != nil {
-		return apierrors.NewForbidden(attributes.GetResource().GroupResource(), attributes.GetName(), err)
-	}
-
+	outSCCExternal := uncastObj.(*securityv1.SecurityContextConstraints)
+	SetDefaults_SCC(outSCCExternal)
 	defaultedBytes, err := runtime.Encode(a.codecFactory.LegacyCodec(securityv1.GroupVersion), outSCCExternal)
-	if err := a.scheme.Convert(internalSCC, outSCCExternal, nil); err != nil {
-		return apierrors.NewForbidden(attributes.GetResource().GroupResource(), attributes.GetName(), err)
-	}
-
 	outUnstructured := &unstructured.Unstructured{}
 	if _, _, err := unstructured.UnstructuredJSONScheme.Decode(defaultedBytes, nil, outUnstructured); err != nil {
 		return err
 	}
+
 	unstructuredOrig.Object = outUnstructured.Object
 
 	return nil
