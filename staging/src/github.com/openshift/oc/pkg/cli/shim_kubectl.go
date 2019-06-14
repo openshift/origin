@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/library-go/pkg/legacyapi/legacygroupification"
 	"github.com/openshift/oc/pkg/helpers/clientcmd"
 	"github.com/openshift/oc/pkg/helpers/originpolymorphichelpers"
-	oversion "github.com/openshift/origin/pkg/version"
+	oversion "github.com/openshift/oc/pkg/version"
 )
 
 func shimKubectlForOc() {

@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/admin/prune/auth"
 	"github.com/openshift/oc/pkg/cli/admin/prune/builds"
 	"github.com/openshift/oc/pkg/cli/admin/prune/deployments"
-	"github.com/openshift/origin/pkg/oc/cli/admin/prune/images"
+	"github.com/openshift/oc/pkg/cli/admin/prune/images"
 )
 
 const (

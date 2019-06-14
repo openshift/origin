@@ -13,18 +13,18 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/version"
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	fakekubernetes "k8s.io/client-go/kubernetes/fake"
 	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	restfake "k8s.io/client-go/rest/fake"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api"
@@ -35,10 +35,6 @@ import (
 	fakeimageclient "github.com/openshift/client-go/image/clientset/versioned/fake"
 	fakeimagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1/fake"
 	imagetest "github.com/openshift/oc/pkg/helpers/image/test"
-	"github.com/openshift/origin/pkg/version"
-
-	// these are needed to make kapiref.GetReference work in the prune.go file
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 )
 
 var logLevel = flag.Int("loglevel", 0, "")
@@ -95,7 +91,7 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 	kFake := fakekubernetes.NewSimpleClientset(&podBad, &podGood, &dep)
 	imageFake := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset().Fake)}
 	fakeDiscovery := &fakeVersionDiscovery{
-		masterVersion: version.Get(),
+		masterVersion: version.Info{},
 	}
 
 	// we need to install OpenShift API types to kubectl's scheme for GetReference to work

@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/oc/pkg/cli/admin/buildchain"
 	"github.com/openshift/oc/pkg/cli/admin/cert"
+	"github.com/openshift/oc/pkg/cli/admin/createbootstrapprojecttemplate"
 	"github.com/openshift/oc/pkg/cli/admin/createerrortemplate"
 	"github.com/openshift/oc/pkg/cli/admin/createkubeconfig"
 	"github.com/openshift/oc/pkg/cli/admin/createlogintemplate"
@@ -26,10 +27,12 @@ import (
 	migratehpa "github.com/openshift/oc/pkg/cli/admin/migrate/legacyhpa"
 	migratestorage "github.com/openshift/oc/pkg/cli/admin/migrate/storage"
 	migratetemplateinstances "github.com/openshift/oc/pkg/cli/admin/migrate/templateinstances"
+	"github.com/openshift/oc/pkg/cli/admin/mustgather"
 	"github.com/openshift/oc/pkg/cli/admin/network"
 	"github.com/openshift/oc/pkg/cli/admin/node"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
 	"github.com/openshift/oc/pkg/cli/admin/project"
+	"github.com/openshift/oc/pkg/cli/admin/prune"
 	"github.com/openshift/oc/pkg/cli/admin/release"
 	"github.com/openshift/oc/pkg/cli/admin/top"
 	"github.com/openshift/oc/pkg/cli/admin/upgrade"
@@ -37,10 +40,6 @@ import (
 	"github.com/openshift/oc/pkg/cli/kubectlwrappers"
 	"github.com/openshift/oc/pkg/cli/options"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-
-	"github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate"
-	"github.com/openshift/origin/pkg/oc/cli/admin/mustgather"
-	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
 )
 
 var adminLong = ktemplates.LongDesc(`

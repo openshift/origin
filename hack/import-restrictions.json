@@ -16,12 +16,6 @@
     "checkedPackageRoots": [
       "github.com/openshift/origin/pkg"
     ],
-    "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/oc"
-    ],
-    "forbiddenImportPackageRoots": [
-      "github.com/openshift/origin/pkg/oc"
-    ],
     "allowedImportPackageRoots": [
       "vendor",
       ""
@@ -59,7 +53,6 @@
       "github.com/openshift/origin/pkg/security/apiserver",
       "github.com/openshift/origin/pkg/template/apiserver",
       "github.com/openshift/origin/pkg/user/apiserver",
-      "github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate",
       "github.com/openshift/origin/pkg/cmd/server",
       "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
@@ -120,7 +113,6 @@
       "github.com/openshift/origin/pkg/security/apiserver",
       "github.com/openshift/origin/pkg/template/apiserver",
       "github.com/openshift/origin/pkg/user/apiserver",
-      "github.com/openshift/origin/pkg/oc",
       "github.com/openshift/origin/pkg/cmd/server",
       "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
@@ -215,7 +207,6 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/oc",
       "github.com/openshift/origin/pkg/cmd/openshift",
       "github.com/openshift/origin/pkg/cmd/server/admin",
       "github.com/openshift/origin/pkg/cmd/templates"
@@ -420,40 +411,6 @@
       "vendor/k8s.io/apimachinery"
     ],
     "allowedImportPackages": []
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg/oc"
-    ],
-    "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/oc/cli/admin/groups/examples"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor/k8s.io/klog",
-      "vendor/github.com/gonum/graph",
-      "vendor/github.com/MakeNowJust/heredoc",
-      "vendor/github.com/openshift/api",
-      "vendor/github.com/openshift/client-go",
-      "vendor/github.com/openshift/library-go",
-      "vendor/github.com/spf13/cobra",
-      "vendor/k8s.io/api",
-      "vendor/k8s.io/apimachinery",
-      "vendor/k8s.io/client-go",
-      "vendor/k8s.io/cli-runtime",
-      "vendor/k8s.io/klog",
-      "vendor/k8s.io/kubernetes/pkg/kubectl",
-      "vendor/k8s.io/kubernetes/pkg/printers",
-
-      "vendor/github.com/openshift/library-go",
-
-      "vendor/github.com/openshift/oc"
-    ],
-    "allowedImportPackages": [
-      "github.com/openshift/origin/pkg/build/apis/build/install",
-      "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated",
-      "github.com/openshift/origin/pkg/version"
-    ]
   },
 
   {
