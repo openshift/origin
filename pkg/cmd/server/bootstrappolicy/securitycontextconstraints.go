@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityapiinstall "github.com/openshift/origin/pkg/security/apis/security/install"
 )
@@ -288,24 +289,13 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 	for i := range internalConstraints {
 		// round trip to external, apply defaults, to ensure we match what we compare against the server
 		v1constraint := &securityapiv1.SecurityContextConstraints{}
-		constraint := &securityapi.SecurityContextConstraints{}
-		if err := bootstrapSCCScheme.Convert(internalConstraints[i], v1constraint, nil); err != nil {
-			panic(err)
-		}
-		bootstrapSCCScheme.Default(v1constraint)
-		if err := bootstrapSCCScheme.Convert(v1constraint, constraint, nil); err != nil {
-			panic(err)
-		}
-		finalExternalConstraint := &securityapiv1.SecurityContextConstraints{}
-		if err := bootstrapSCCScheme.Convert(constraint, finalExternalConstraint, nil); err != nil {
-			panic(err)
-		}
-		constraints = append(constraints, finalExternalConstraint)
+		securitycontextconstraints.SetDefaults_SCC(v1constraint)
+		constraints = append(constraints, v1constraint)
 
-		if usersToAdd, ok := sccNameToAdditionalUsers[constraint.Name]; ok {
+		if usersToAdd, ok := sccNameToAdditionalUsers[v1constraint.Name]; ok {
 			constraints[i].Users = append(constraints[i].Users, usersToAdd...)
 		}
-		if groupsToAdd, ok := sccNameToAdditionalGroups[constraint.Name]; ok {
+		if groupsToAdd, ok := sccNameToAdditionalGroups[v1constraint.Name]; ok {
 			constraints[i].Groups = append(constraints[i].Groups, groupsToAdd...)
 		}
 	}
