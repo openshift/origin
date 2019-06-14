@@ -1,7 +1,6 @@
 package openshift_sdn
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -28,7 +27,6 @@ import (
 // OpenShiftSDN stores the variables needed to initialize the real networking
 // processess from the command line.
 type OpenShiftSDN struct {
-	ConfigFilePath            string
 	ProxyConfigFilePath       string
 	URLOnlyKubeConfigFilePath string
 
@@ -67,8 +65,8 @@ func NewOpenShiftSDNCommand(basename string, errout io.Writer) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&sdn.ConfigFilePath, "config", "", "Location of the node configuration file to run from")
 	flags.StringVar(&sdn.ProxyConfigFilePath, "proxy-config", "", "Location of the kube-proxy configuration file")
+	cmd.MarkFlagRequired("proxy-config")
 	flags.StringVar(&sdn.URLOnlyKubeConfigFilePath, "url-only-kubeconfig", "", "Path to a kubeconfig file to use, but only to determine the URL to the apiserver. The in-cluster credentials will be used.")
 
 	return cmd
@@ -98,15 +96,8 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 
 	// Set up a watch on our config file; if it changes, we should exit -
 	// (we don't have the ability to dynamically reload config changes).
-	if sdn.ConfigFilePath != "" {
-		if err := watchForChanges(sdn.ConfigFilePath, stopCh); err != nil {
-			klog.Fatalf("unable to setup configuration watch: %v", err)
-		}
-	}
-	if sdn.ProxyConfigFilePath != "" {
-		if err := watchForChanges(sdn.ProxyConfigFilePath, stopCh); err != nil {
-			klog.Fatalf("unable to setup configuration watch: %v", err)
-		}
+	if err := watchForChanges(sdn.ProxyConfigFilePath, stopCh); err != nil {
+		klog.Fatalf("unable to setup configuration watch: %v", err)
 	}
 
 	// Build underlying network objects
@@ -129,40 +120,13 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 func (sdn *OpenShiftSDN) ValidateAndParse() error {
 	sdn.nodeName = os.Getenv("K8S_NODE_NAME")
 
-	if len(sdn.ConfigFilePath) == 0 && len(sdn.ProxyConfigFilePath) == 0 {
-		return errors.New("Either --config or --proxy-config is required")
+	klog.V(2).Infof("Reading proxy configuration from %s", sdn.ProxyConfigFilePath)
+	var err error
+	sdn.ProxyConfig, err = readProxyConfig(sdn.ProxyConfigFilePath)
+	if err != nil {
+		return err
 	}
-
-	if sdn.ProxyConfigFilePath != "" {
-		klog.V(2).Infof("Reading proxy configuration from %s", sdn.ProxyConfigFilePath)
-		var err error
-		sdn.ProxyConfig, err = readProxyConfig(sdn.ProxyConfigFilePath)
-		if err != nil {
-			return err
-		}
-		sdn.ProxyConfig.HostnameOverride = sdn.nodeName
-	} else {
-		klog.V(2).Infof("Reading proxy configuration from %s", sdn.ConfigFilePath)
-		nodeConfig, err := readNodeConfig(sdn.ConfigFilePath)
-		if err != nil {
-			return err
-		}
-		sdn.ProxyConfig, err = ProxyConfigFromNodeConfig(
-			sdn.nodeName,
-			nodeConfig.ServingInfo.BindAddress,
-			nodeConfig.IPTablesSyncPeriod,
-			nodeConfig.ProxyArguments,
-		)
-		if err != nil {
-			return err
-		}
-		if *nodeConfig.EnableUnidling {
-			if sdn.ProxyConfig.Mode != kubeproxyconfig.ProxyModeIPTables {
-				return fmt.Errorf("unidling is only supported with the iptables proxier")
-			}
-			sdn.ProxyConfig.Mode = kubeproxyconfig.ProxyMode("unidling+iptables")
-		}
-	}
+	sdn.ProxyConfig.HostnameOverride = sdn.nodeName
 
 	return nil
 }
