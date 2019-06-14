@@ -39,18 +39,3 @@ func InstallInternalLegacyAll(scheme *runtime.Scheme) {
 	InstallInternalLegacyTemplate(scheme)
 	InstallInternalLegacyUser(scheme)
 }
-
-func InstallExternalLegacyAll(scheme *runtime.Scheme) {
-	InstallExternalLegacyApps(scheme)
-	InstallExternalLegacyAuthorization(scheme)
-	InstallExternalLegacyBuild(scheme)
-	InstallExternalLegacyImage(scheme)
-	InstallExternalLegacyNetwork(scheme)
-	InstallExternalLegacyOAuth(scheme)
-	InstallExternalLegacyProject(scheme)
-	InstallExternalLegacyQuota(scheme)
-	InstallExternalLegacyRoute(scheme)
-	InstallExternalLegacySecurity(scheme)
-	InstallExternalLegacyTemplate(scheme)
-	InstallExternalLegacyUser(scheme)
-}

@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/spf13/pflag"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -28,11 +30,7 @@ import (
 	"github.com/openshift/api/user"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/oc/pkg/cli"
-	"github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/version"
-	"github.com/spf13/pflag"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"github.com/openshift/oc/pkg/version"
 )
 
 func injectLoglevelFlag(flags *pflag.FlagSet) {
@@ -76,12 +74,7 @@ func main() {
 	utilruntime.Must(security.Install(scheme.Scheme))
 	utilruntime.Must(template.Install(scheme.Scheme))
 	utilruntime.Must(user.Install(scheme.Scheme))
-	legacy.InstallExternalLegacyAll(scheme.Scheme)
-
-	// the legacyscheme is used in kubectl and expects to have the internal types registered.  Explicitly wire our types here.
-	// this does
-	install.InstallInternalOpenShift(legacyscheme.Scheme)
-	legacy.InstallInternalLegacyAll(scheme.Scheme)
+	InstallExternalLegacyAll(scheme.Scheme)
 
 	basename := filepath.Base(os.Args[0])
 	command := cli.CommandFor(basename)
