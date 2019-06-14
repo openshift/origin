@@ -79,7 +79,10 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver",
+      "github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission",
+      "github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy",
+      "github.com/openshift/origin/pkg/cmd/server/admission"
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
