@@ -29,8 +29,8 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1
     github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route/apis/ingressadmission
     github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route/apis/ingressadmission/v1
+    github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1
 
-    github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints
