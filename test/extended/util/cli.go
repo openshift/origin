@@ -87,9 +87,6 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	client.kubeFramework.SkipNamespaceCreation = true
 	client.username = "admin"
 	client.execPath = "oc"
-	if len(adminConfigPath) == 0 {
-		FatalErr(fmt.Errorf("you must set the KUBECONFIG variable to admin kubeconfig"))
-	}
 	client.adminConfigPath = adminConfigPath
 
 	g.BeforeEach(client.SetupProject)
