@@ -1,9 +1,10 @@
-package internalimagereferencemutators
+package originimagereferencemutators
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -23,7 +24,7 @@ func Test_podSpecMutator_Mutate(t *testing.T) {
 		path    *field.Path
 	}
 	type args struct {
-		fn ImageReferenceMutateFunc
+		fn imagereferencemutators.ImageReferenceMutateFunc
 	}
 	tests := []struct {
 		name     string
@@ -139,11 +140,7 @@ func Test_podSpecMutator_Mutate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &podSpecMutator{
-				spec:    tt.fields.spec,
-				oldSpec: tt.fields.oldSpec,
-				path:    tt.fields.path,
-			}
+			m := imagereferencemutators.NewPodSpecMutator(tt.fields.spec, tt.fields.oldSpec, tt.fields.path)
 			if tt.wantSpec == nil {
 				tt.wantSpec = &kapi.PodSpec{}
 			}
@@ -164,7 +161,7 @@ func Test_podSpecV1Mutator_Mutate(t *testing.T) {
 		path    *field.Path
 	}
 	type args struct {
-		fn ImageReferenceMutateFunc
+		fn imagereferencemutators.ImageReferenceMutateFunc
 	}
 	tests := []struct {
 		name     string
@@ -280,11 +277,7 @@ func Test_podSpecV1Mutator_Mutate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &podSpecV1Mutator{
-				spec:    tt.fields.spec,
-				oldSpec: tt.fields.oldSpec,
-				path:    tt.fields.path,
-			}
+			m := imagereferencemutators.NewPodSpecV1Mutator(tt.fields.spec, tt.fields.oldSpec, tt.fields.path)
 			if tt.wantSpec == nil {
 				tt.wantSpec = &kapiv1.PodSpec{}
 			}

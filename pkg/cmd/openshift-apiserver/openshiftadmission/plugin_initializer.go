@@ -26,6 +26,7 @@ import (
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/image"
@@ -129,6 +130,7 @@ func NewPluginInitializer(
 		RegistryHostnameRetriever:    registryHostnameRetriever,
 		SecurityInformers:            informers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
 		UserInformers:                informers.GetOpenshiftUserInformers(),
+		ImageMutators:                originimagereferencemutators.OriginImageMutators{},
 	}
 
 	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
