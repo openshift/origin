@@ -1,9 +1,10 @@
-package internalimagereferencemutators
+package originimagereferencemutators
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -26,7 +27,7 @@ func Test_buildSpecMutator_Mutate(t *testing.T) {
 		output  bool
 	}
 	type args struct {
-		fn ImageReferenceMutateFunc
+		fn imagereferencemutators.ImageReferenceMutateFunc
 	}
 	tests := []struct {
 		name     string

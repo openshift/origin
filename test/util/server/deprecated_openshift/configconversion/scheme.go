@@ -21,7 +21,7 @@ import (
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 
-	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
+	imagepolicyapiv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	requestlimitv1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"

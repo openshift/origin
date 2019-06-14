@@ -1,11 +1,11 @@
-package internalimagereferencemutators
+package originimagereferencemutators
 
 import (
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 )
 
 type buildSpecMutator struct {
@@ -16,7 +16,7 @@ type buildSpecMutator struct {
 }
 
 // NewBuildMutator returns an ImageReferenceMutator that includes the output field.
-func NewBuildMutator(build *buildapi.Build) ImageReferenceMutator {
+func NewBuildMutator(build *buildapi.Build) imagereferencemutators.ImageReferenceMutator {
 	return &buildSpecMutator{
 		spec:   &build.Spec.CommonSpec,
 		path:   field.NewPath("spec"),
@@ -64,33 +64,33 @@ func hasIdenticalObjectReference(ref, oldRef *kapi.ObjectReference) bool {
 	return *ref == *oldRef
 }
 
-func (m *buildSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
+func (m *buildSpecMutator) Mutate(fn imagereferencemutators.ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
 	for i := range m.spec.Source.Images {
 		if hasIdenticalImageSourceObjectReference(m.oldSpec, m.spec.Source.Images[i].From) {
 			continue
 		}
 		if err := fn(&m.spec.Source.Images[i].From); err != nil {
-			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("source", "images").Index(i).Child("from", "name")))
+			errs = append(errs, imagereferencemutators.FieldErrorOrInternal(err, m.path.Child("source", "images").Index(i).Child("from", "name")))
 			continue
 		}
 	}
 	if !hasIdenticalStrategyFrom(m.spec, m.oldSpec) {
 		if s := m.spec.Strategy.CustomStrategy; s != nil {
 			if err := fn(&s.From); err != nil {
-				errs = append(errs, fieldErrorOrInternal(err, m.path.Child("strategy", "customStrategy", "from", "name")))
+				errs = append(errs, imagereferencemutators.FieldErrorOrInternal(err, m.path.Child("strategy", "customStrategy", "from", "name")))
 			}
 		}
 		if s := m.spec.Strategy.DockerStrategy; s != nil {
 			if s.From != nil {
 				if err := fn(s.From); err != nil {
-					errs = append(errs, fieldErrorOrInternal(err, m.path.Child("strategy", "dockerStrategy", "from", "name")))
+					errs = append(errs, imagereferencemutators.FieldErrorOrInternal(err, m.path.Child("strategy", "dockerStrategy", "from", "name")))
 				}
 			}
 		}
 		if s := m.spec.Strategy.SourceStrategy; s != nil {
 			if err := fn(&s.From); err != nil {
-				errs = append(errs, fieldErrorOrInternal(err, m.path.Child("strategy", "sourceStrategy", "from", "name")))
+				errs = append(errs, imagereferencemutators.FieldErrorOrInternal(err, m.path.Child("strategy", "sourceStrategy", "from", "name")))
 			}
 		}
 	}
@@ -98,23 +98,10 @@ func (m *buildSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if s := m.spec.Output.To; s != nil {
 			if m.oldSpec == nil || m.oldSpec.Output.To == nil || !hasIdenticalObjectReference(s, m.oldSpec.Output.To) {
 				if err := fn(s); err != nil {
-					errs = append(errs, fieldErrorOrInternal(err, m.path.Child("output", "to")))
+					errs = append(errs, imagereferencemutators.FieldErrorOrInternal(err, m.path.Child("output", "to")))
 				}
 			}
 		}
 	}
 	return errs
-}
-
-func fieldErrorOrInternal(err error, path *field.Path) *field.Error {
-	if ferr, ok := err.(*field.Error); ok {
-		if len(ferr.Field) == 0 {
-			ferr.Field = path.String()
-		}
-		return ferr
-	}
-	if errors.IsNotFound(err) {
-		return field.NotFound(path, err)
-	}
-	return field.InternalError(path, err)
 }
