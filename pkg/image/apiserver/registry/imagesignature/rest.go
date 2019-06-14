@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +17,6 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageconversions "github.com/openshift/origin/pkg/image/apis/image/v1"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // REST implements the RESTStorage interface for ImageSignature
@@ -55,7 +56,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		}
 	}
 
-	imageName, _, err := util.SplitImageSignatureName(signature.Name)
+	imageName, _, err := splitImageSignatureName(signature.Name)
 	if err != nil {
 		return nil, apierrors.NewBadRequest(err.Error())
 	}
@@ -91,7 +92,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 }
 
 func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
-	imageName, _, err := util.SplitImageSignatureName(name)
+	imageName, _, err := splitImageSignatureName(name)
 	if err != nil {
 		return nil, false, apierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}
@@ -137,4 +138,20 @@ func indexOfImageSignature(signatures []imagev1.ImageSignature, sType string, sC
 		}
 	}
 	return -1
+}
+
+// splitImageSignatureName splits given signature name into image name and signature name.
+func splitImageSignatureName(imageSignatureName string) (imageName, signatureName string, err error) {
+	segments := strings.Split(imageSignatureName, "@")
+	switch len(segments) {
+	case 2:
+		signatureName = segments[1]
+		imageName = segments[0]
+		if len(imageName) == 0 || len(signatureName) == 0 {
+			err = fmt.Errorf("image signature name %q must have an image name and signature name", imageSignatureName)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one @ in the image signature name %q", imageSignatureName)
+	}
+	return
 }
