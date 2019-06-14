@@ -457,11 +457,6 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 		}
 	}()
 
-	serverURL, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
-	if err := waitForServerHealthy(serverURL); err != nil {
-		return fmt.Errorf("Waiting for Kubernetes API /healthz failed with: %v", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
 	defer cancel()
 
@@ -473,6 +468,11 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 		Verbose: true,
 	}); err != nil {
 		return err
+	}
+
+	serverURL, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
+	if err := waitForServerHealthy(serverURL); err != nil {
+		return fmt.Errorf("Waiting for Kubernetes API /healthz failed with: %v", err)
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 
+	authorizationinformer "github.com/openshift/client-go/authorization/informers/externalversions/authorization/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
@@ -57,5 +58,10 @@ type WantsDefaultRegistryFunc interface {
 
 type WantsUserInformer interface {
 	SetUserInformer(userinformer.SharedInformerFactory)
+	admission.InitializationValidator
+}
+
+type WantsRoleBindingRestrictionInformer interface {
+	SetRoleBindingRestrictionInformer(authorizationinformer.RoleBindingRestrictionInformer)
 	admission.InitializationValidator
 }

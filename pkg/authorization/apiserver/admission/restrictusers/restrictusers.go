@@ -4,22 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/apiserver/pkg/admission/initializer"
-
-	"k8s.io/client-go/rest"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	userapi "github.com/openshift/api/user/v1"
-	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	authorizationv1informer "github.com/openshift/client-go/authorization/informers/externalversions/authorization/v1"
+	authorizationv1listers "github.com/openshift/client-go/authorization/listers/authorization/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -43,16 +43,22 @@ type GroupCache interface {
 type restrictUsersAdmission struct {
 	*admission.Handler
 
-	roleBindingRestrictionsGetter authorizationtypedclient.RoleBindingRestrictionsGetter
-	userClient                    userclient.Interface
-	kubeClient                    kubernetes.Interface
-	groupCache                    GroupCache
+	rbrLister  authorizationv1listers.RoleBindingRestrictionLister
+	rbrSynced  cache.InformerSynced
+	userClient userclient.Interface
+	kubeClient kubernetes.Interface
+	groupCache GroupCache
 }
 
 var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
+var _ = oadmission.WantsRoleBindingRestrictionInformer(&restrictUsersAdmission{})
 var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
 var _ = admission.ValidationInterface(&restrictUsersAdmission{})
+
+const (
+	timeToWaitForCacheSync = 10 * time.Second
+)
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.
@@ -69,22 +75,16 @@ func (q *restrictUsersAdmission) SetExternalKubeClientSet(c kubernetes.Interface
 func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
 	var err error
 
-	// RoleBindingRestriction is served using CRD resource any status update must use JSON
-	jsonClientConfig := rest.CopyConfig(&restClientConfig)
-	jsonClientConfig.ContentConfig.AcceptContentTypes = "application/json"
-	jsonClientConfig.ContentConfig.ContentType = "application/json"
-
-	q.roleBindingRestrictionsGetter, err = authorizationtypedclient.NewForConfig(jsonClientConfig)
-	if err != nil {
-		utilruntime.HandleError(err)
-		return
-	}
-
 	q.userClient, err = userclient.NewForConfig(&restClientConfig)
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
 	}
+}
+
+func (q *restrictUsersAdmission) SetRoleBindingRestrictionInformer(informers authorizationv1informer.RoleBindingRestrictionInformer) {
+	q.rbrLister = informers.Lister()
+	q.rbrSynced = informers.Informer().HasSynced
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
@@ -167,22 +167,24 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes, _ admission.Ob
 		return nil
 	}
 
-	// TODO: Cache rolebinding restrictions.
-	roleBindingRestrictionList, err := q.roleBindingRestrictionsGetter.RoleBindingRestrictions(ns).
-		List(metav1.ListOptions{})
-	if err != nil {
-		return admission.NewForbidden(a, err)
+	if !q.waitForSyncedStore(time.After(timeToWaitForCacheSync)) {
+		return admission.NewForbidden(a, errors.New("rbr cache not synchronized"))
 	}
-	if len(roleBindingRestrictionList.Items) == 0 {
+
+	roleBindingRestrictionList, err := q.rbrLister.List(labels.Everything())
+	if err != nil {
+		return admission.NewForbidden(a, fmt.Errorf("could not list rolebinding restrictions: %v", err))
+	}
+	if len(roleBindingRestrictionList) == 0 {
 		klog.V(4).Infof("No rolebinding restrictions specified; admitting")
 		return nil
 	}
 
 	checkers := []SubjectChecker{}
-	for _, rbr := range roleBindingRestrictionList.Items {
+	for _, rbr := range roleBindingRestrictionList {
 		checker, err := NewSubjectChecker(&rbr.Spec)
 		if err != nil {
-			return admission.NewForbidden(a, err)
+			return admission.NewForbidden(a, fmt.Errorf("could not create rolebinding restriction subject checker: %v", err))
 		}
 		checkers = append(checkers, checker)
 	}
@@ -190,7 +192,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes, _ admission.Ob
 	roleBindingRestrictionContext, err := newRoleBindingRestrictionContext(ns,
 		q.kubeClient, q.userClient.UserV1(), q.groupCache)
 	if err != nil {
-		return admission.NewForbidden(a, err)
+		return admission.NewForbidden(a, fmt.Errorf("could not create rolebinding restriction context: %v", err))
 	}
 
 	checker := NewUnionSubjectChecker(checkers)
@@ -220,8 +222,11 @@ func (q *restrictUsersAdmission) ValidateInitialization() error {
 	if q.kubeClient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires a Kubernetes client")
 	}
-	if q.roleBindingRestrictionsGetter == nil {
-		return errors.New("RestrictUsersAdmission plugin requires an OpenShift client")
+	if q.rbrLister == nil {
+		return errors.New("RestrictUsersAdmission requires a rbrLister")
+	}
+	if q.rbrSynced == nil {
+		return errors.New("RestrictUsersAdmission plugin requires a rbrlister synced")
 	}
 	if q.userClient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires an OpenShift user client")
@@ -231,4 +236,16 @@ func (q *restrictUsersAdmission) ValidateInitialization() error {
 	}
 
 	return nil
+}
+
+func (q *restrictUsersAdmission) waitForSyncedStore(timeout <-chan time.Time) bool {
+	for !q.rbrSynced() {
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case <-timeout:
+			return q.rbrSynced()
+		}
+	}
+
+	return true
 }
