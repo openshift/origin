@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"github.com/openshift/origin/pkg/admission/admissiontimeout"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/namespaceconditions"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -119,6 +120,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			SecurityInformers:              kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
 			UserInformers:                  kubeAPIServerInformers.GetOpenshiftUserInformers(),
 			RoleBindingRestrictionInformer: kubeAPIServerInformers.GetOpenshiftRoleBindingRestrictionInformer(),
+			ImageMutators:                  imagereferencemutators.KubeImageMutators{},
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
 

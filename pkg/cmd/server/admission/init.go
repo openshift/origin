@@ -10,6 +10,7 @@ import (
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/project/cache"
 )
@@ -25,6 +26,7 @@ type PluginInitializer struct {
 	SecurityInformers              securityv1informer.SecurityContextConstraintsInformer
 	UserInformers                  userinformer.SharedInformerFactory
 	RoleBindingRestrictionInformer authorizationinformer.RoleBindingRestrictionInformer
+	ImageMutators                  imagereferencemutators.ImageMutators
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -56,6 +58,9 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	}
 	if wantsRoleBindingRestrictionInformer, ok := plugin.(WantsRoleBindingRestrictionInformer); ok {
 		wantsRoleBindingRestrictionInformer.SetRoleBindingRestrictionInformer(i.RoleBindingRestrictionInformer)
+	}
+	if wantsImageMutators, ok := plugin.(WantsImageMutators); ok {
+		wantsImageMutators.SetImageMutators(i.ImageMutators)
 	}
 }
 

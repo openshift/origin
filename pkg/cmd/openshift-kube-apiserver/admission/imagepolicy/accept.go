@@ -13,9 +13,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/library-go/pkg/image/reference"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
+	imagepolicy "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/rules"
 )
 
 var errRejectByPolicy = fmt.Errorf("this image is prohibited by policy")
@@ -28,7 +28,7 @@ type policyDecision struct {
 	resolutionErr error
 }
 
-func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m internalimagereferencemutators.ImageReferenceMutator, annotations internalimagereferencemutators.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
+func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m imagereferencemutators.ImageReferenceMutator, annotations imagereferencemutators.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
 	decisions := policyDecisions{}
 
 	t := attr.GetResource().GroupResource()
