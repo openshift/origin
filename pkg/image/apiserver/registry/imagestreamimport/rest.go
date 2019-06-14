@@ -30,7 +30,8 @@ import (
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/image/registryclient"
-	"github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
+	"github.com/openshift/library-go/pkg/quota/quotautil"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
