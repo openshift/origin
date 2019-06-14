@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -26,6 +24,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

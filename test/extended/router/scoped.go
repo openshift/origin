@@ -18,6 +18,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

@@ -15,8 +15,7 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -73,7 +72,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			Rules: []authorizationv1.PolicyRule{
 				{
 					Verbs:     []string{"assign"},
-					APIGroups: []string{templateapi.GroupName},
+					APIGroups: []string{"template.openshift.io"},
 					Resources: []string{"templateinstances"},
 				},
 			},
@@ -90,11 +89,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 			},
 			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.UserKind,
+					Kind: authorizationv1.UserKind,
 					Name: impersonateuser.Name,
 				},
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: authorizationv1.GroupKind,
 					Name: impersonategroup.Name,
 				},
 			},

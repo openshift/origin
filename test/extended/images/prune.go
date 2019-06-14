@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/api/image/docker10"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -18,9 +16,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -254,6 +254,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(output).To(o.ContainSubstring(imgPruneName))
+	imageutil.ImageWithMetadataOrDie(imgPrune)
 	if schemaVersion == 1 {
 		o.Expect(output).NotTo(o.ContainSubstring(imgPrune.DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 	} else {
@@ -268,6 +269,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	}
 
 	o.Expect(output).NotTo(o.ContainSubstring(imgKeepName))
+	imageutil.ImageWithMetadataOrDie(imgKeep)
 	o.Expect(output).NotTo(o.ContainSubstring(imgKeep.DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 	for _, layer := range imgKeep.DockerImageLayers {
 		o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
@@ -284,6 +286,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(output).To(o.ContainSubstring(imgPruneName))
+	imageutil.ImageWithMetadataOrDie(imgPrune)
 	if schemaVersion == 1 {
 		o.Expect(output).NotTo(o.ContainSubstring(imgPrune.DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 	} else {

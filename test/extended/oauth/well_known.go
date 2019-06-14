@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

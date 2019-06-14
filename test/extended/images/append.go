@@ -3,9 +3,6 @@ package images
 import (
 	"strings"
 
-	"github.com/openshift/api/image/docker10"
-	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -13,7 +10,10 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -117,6 +117,9 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 		istag, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:scratch1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
+
+		imageutil.ImageWithMetadataOrDie(&istag.Image)
+
 		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(1))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).To(o.Equal(dockerlayer.GzippedEmptyLayerDigest))
 		err = imageutil.ImageWithMetadata(&istag.Image)
@@ -131,6 +134,7 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 		istag, err = oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:busybox1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
+		imageutil.ImageWithMetadataOrDie(&istag.Image)
 		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(1))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).NotTo(o.Equal(dockerlayer.GzippedEmptyLayerDigest))
 		err = imageutil.ImageWithMetadata(&istag.Image)
@@ -141,6 +145,7 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 		istag, err = oc.ImageClient().ImageV1().ImageStreamTags(ns).Get("test:busybox2", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
+		imageutil.ImageWithMetadataOrDie(&istag.Image)
 		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(2))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).To(o.Equal(busyboxLayer))
 		err = imageutil.ImageWithMetadata(&istag.Image)

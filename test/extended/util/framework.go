@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/library-go/pkg/image/imageutil"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	authorizationapi "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -30,9 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/authorization"
-	quota "k8s.io/kubernetes/pkg/quota/v1"
+	"k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -44,11 +42,10 @@ import (
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	"github.com/openshift/origin/test/extended/testdata"
 )
-
-const pvPrefix = "pv-"
-const nfsPrefix = "nfs-"
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
 func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
@@ -1158,9 +1155,6 @@ func GetDockerImageReference(c imagev1typedclient.ImageStreamInterface, name, ta
 	if !ok {
 		return "", fmt.Errorf("ImageStream %q does not have tag %q", name, tag)
 	}
-	if len(isTag.Items) == 0 {
-		return "", fmt.Errorf("ImageStreamTag %q is empty", tag)
-	}
 	return isTag.Items[0].DockerImageReference, nil
 }
 
@@ -1349,9 +1343,10 @@ func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) s
 // CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
 // the specified reason and message template.
 func CheckForBuildEvent(client corev1client.CoreV1Interface, build *buildv1.Build, reason, message string) {
+	scheme, _ := apitesting.SchemeForOrDie(buildv1.Install)
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
-		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)
+		events, err := client.Events(build.Namespace).Search(scheme, build)
 		if err != nil {
 			return false, err
 		}
@@ -1461,9 +1456,9 @@ func NewGitRepo(repoName string) (GitRepo, error) {
 // WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
 // and the provided user is authorized to perform the action on the resource.
 func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
-	sar := &authorization.SubjectAccessReview{
-		Spec: authorization.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorization.ResourceAttributes{
+	sar := &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Namespace: oc.Namespace(),
 				Verb:      verb,
 				Resource:  resource,
@@ -1472,7 +1467,7 @@ func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		resp, err := oc.InternalAdminKubeClient().Authorization().SubjectAccessReviews().Create(sar)
+		resp, err := oc.AdminKubeClient().AuthorizationV1().SubjectAccessReviews().Create(sar)
 		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil
 		}

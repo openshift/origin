@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -138,7 +138,7 @@ var _ = g.Describe("The default cluster RBAC policy", func() {
 	oc := exutil.NewCLI("default-rbac-policy", exutil.KubeConfigPath())
 
 	kubeInformers := informers.NewSharedInformerFactory(oc.AdminKubeClient(), 20*time.Minute)
-	ruleResolver := openshiftapiserver.NewRuleResolver(kubeInformers.Rbac().V1()) // signal what informers we want to use early
+	ruleResolver := exutil.NewRuleResolver(kubeInformers.Rbac().V1()) // signal what informers we want to use early
 
 	stopCh := make(chan struct{})
 	defer func() { close(stopCh) }()

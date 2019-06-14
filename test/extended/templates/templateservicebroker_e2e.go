@@ -20,7 +20,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -28,17 +27,12 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
-
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
-
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 
-	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
@@ -95,7 +89,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			},
 			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: authorizationv1.GroupKind,
 					Name: "system:unauthenticated",
 				},
 			},
@@ -244,7 +238,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("mysql", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceOwner]).To(o.Equal(string(templateInstance.UID)))
+		o.Expect(examplesecret.Labels[templatev1.TemplateInstanceOwner]).To(o.Equal(string(templateInstance.UID)))
 		o.Expect(examplesecret.Data["database-user"]).To(o.BeEquivalentTo("test"))
 		o.Expect(examplesecret.Data["database-password"]).To(o.MatchRegexp("^[a-zA-Z0-9]{16}$"))
 	}
@@ -304,12 +298,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				}
 
 				switch gvk.GroupKind() {
-				case kapi.Kind("Event"),
-					kapi.Kind("ServiceAccount"),
-					kapi.Kind("Secret"),
-					kapi.Kind("RoleBinding"),
+				case schema.GroupKind{Kind: "Event"},
+					schema.GroupKind{Kind: "ServiceAccount"},
+					schema.GroupKind{Kind: "Secret"},
+					schema.GroupKind{Kind: "RoleBinding"},
 					rbacapi.Kind("RoleBinding"),
-					legacy.Kind("RoleBinding"),
+					schema.GroupKind{Kind: "RoleBinding"},
 					authorization.Kind("RoleBinding"),
 					schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
 					continue

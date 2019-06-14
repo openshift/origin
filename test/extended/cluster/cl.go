@@ -15,16 +15,15 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	oapi "github.com/openshift/origin/pkg/api"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	metrics "github.com/openshift/origin/test/extended/cluster/metrics"
+	"github.com/openshift/api/annotations"
+	projectv1 "github.com/openshift/api/project/v1"
+
+	"github.com/openshift/origin/test/extended/cluster/metrics"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const checkDeleteProjectInterval = 10 * time.Second
 const checkDeleteProjectTimeout = 3 * time.Minute
-const deploymentRunTimeout = 5 * time.Minute
-const testResultFile = "/tmp/TestResult"
 
 var rootDir string
 
@@ -247,12 +246,12 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	})
 })
 
-func newProject(nsName string) *projectapi.Project {
-	return &projectapi.Project{
+func newProject(nsName string) *projectv1.Project {
+	return &projectv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nsName,
 			Annotations: map[string]string{
-				oapi.OpenShiftDisplayName: nsName,
+				annotations.OpenShiftDisplayName: nsName,
 				//"openshift.io/node-selector": "purpose=test",
 			},
 		},
