@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/image/internalimageutil"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 
 	"k8s.io/klog"
 

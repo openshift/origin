@@ -32,8 +32,8 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/registryclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/importer"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/apiserver/importer"
+	dockerregistry "github.com/openshift/origin/pkg/image/apiserver/importer/dockerv1client"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

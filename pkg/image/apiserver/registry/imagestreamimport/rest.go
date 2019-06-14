@@ -34,10 +34,10 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	"github.com/openshift/origin/pkg/image/apiserver/importer"
+	"github.com/openshift/origin/pkg/image/apiserver/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
-	"github.com/openshift/origin/pkg/image/importer"
-	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	"github.com/openshift/origin/pkg/image/internalimageutil"
 )
 
 // ImporterFunc returns an instance of the importer that should be used per invocation.

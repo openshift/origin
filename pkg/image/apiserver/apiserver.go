@@ -28,6 +28,9 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	"github.com/openshift/origin/pkg/image/apiserver/importer"
+	imageimporter "github.com/openshift/origin/pkg/image/apiserver/importer"
+	"github.com/openshift/origin/pkg/image/apiserver/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagesecret"
@@ -39,9 +42,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestreamtag"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	"github.com/openshift/origin/pkg/image/importer"
-	imageimporter "github.com/openshift/origin/pkg/image/importer"
-	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 type ExtraConfig struct {

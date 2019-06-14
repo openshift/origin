@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/api/image/dockerpre012"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	dockerregistry "github.com/openshift/origin/pkg/image/apiserver/importer/dockerv1client"
 )
 
 func schema1ToImage(manifest *schema1.SignedManifest, d godigest.Digest) (*imageapi.Image, error) {

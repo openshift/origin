@@ -19,10 +19,10 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	"github.com/openshift/origin/pkg/image/internalimageutil"
 )
 
 // maxRetriesOnConflict is the maximum retry count for Create calls which

@@ -29,8 +29,8 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	"github.com/openshift/origin/pkg/image/internalimageutil"
+	"github.com/openshift/origin/pkg/image/apiserver/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 )
 
 // Add a dockerregistry.Client to the passed context with this key to support v1 Docker registry importing
