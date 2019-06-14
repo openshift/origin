@@ -15,7 +15,6 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageconversions "github.com/openshift/origin/pkg/image/apis/image/v1"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // REST implements the RESTStorage interface for ImageSignature
@@ -55,7 +54,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		}
 	}
 
-	imageName, _, err := util.SplitImageSignatureName(signature.Name)
+	imageName, _, err := imageapi.SplitImageSignatureName(signature.Name)
 	if err != nil {
 		return nil, apierrors.NewBadRequest(err.Error())
 	}
@@ -91,7 +90,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 }
 
 func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
-	imageName, _, err := util.SplitImageSignatureName(name)
+	imageName, _, err := imageapi.SplitImageSignatureName(name)
 	if err != nil {
 		return nil, false, apierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}

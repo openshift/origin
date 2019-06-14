@@ -31,7 +31,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	oldimageutil "github.com/openshift/origin/pkg/image/util"
 )
 
 const conflictRetries = 3
@@ -690,7 +689,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx context.Context, from c
 			klog.V(2).Info(err)
 			return "", err
 		}
-		reference, ok := oldimageutil.DockerImageReferenceForImage(stream, id)
+		reference, ok := dockerImageReferenceForImage(stream, id)
 		if !ok {
 			err = resolveError(from.Kind, namespace, from.Name, fmt.Errorf("unable to find corresponding tag for image %q", id))
 			klog.V(2).Info(err)
@@ -1052,4 +1051,100 @@ func updateBuildEnv(build *buildv1.Build, env []corev1.EnvVar) {
 	newEnv = append(newEnv, env...)
 	// TODO moving to library-go
 	buildutil.SetBuildEnv(build, newEnv)
+}
+
+// dockerImageReferenceForImage returns the docker reference for specified image. Assuming
+// the image stream contains the image and the image has corresponding tag, this function
+// will try to find this tag and take the reference policy into the account.
+// If the image stream does not reference the image or the image does not have
+// corresponding tag event, this function will return false.
+func dockerImageReferenceForImage(stream *imagev1.ImageStream, imageID string) (string, bool) {
+	tag, event := latestImageTagEvent(stream, imageID)
+	if len(tag) == 0 {
+		return "", false
+	}
+	var ref *imagev1.TagReference
+	for _, t := range stream.Spec.Tags {
+		if t.Name == tag {
+			ref = &t
+			break
+		}
+	}
+	if ref == nil {
+		return event.DockerImageReference, true
+	}
+	switch ref.ReferencePolicy.Type {
+	case imagev1.LocalTagReferencePolicy:
+		ref, err := imageutil.ParseDockerImageReference(stream.Status.DockerImageRepository)
+		if err != nil {
+			return event.DockerImageReference, true
+		}
+		ref.Tag = ""
+		ref.ID = event.Image
+		return dockerImageReferenceExact(ref), true
+	default:
+		return event.DockerImageReference, true
+	}
+}
+
+// dockerImageReferenceNameString returns the name of the reference with its tag or ID.
+func dockerImageReferenceNameString(r imagev1.DockerImageReference) string {
+	switch {
+	case len(r.Name) == 0:
+		return ""
+	case len(r.Tag) > 0:
+		return r.Name + ":" + r.Tag
+	case len(r.ID) > 0:
+		var ref string
+		if _, err := imageutil.ParseDigest(r.ID); err == nil {
+			// if it parses as a digest, its v2 pull by id
+			ref = "@" + r.ID
+		} else {
+			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag
+			ref = ":" + r.ID
+		}
+		return r.Name + ref
+	default:
+		return r.Name
+	}
+}
+
+// dockerImageReferenceExact returns a string representation of the set fields on the DockerImageReference
+func dockerImageReferenceExact(r imagev1.DockerImageReference) string {
+	name := dockerImageReferenceNameString(r)
+	if len(name) == 0 {
+		return name
+	}
+	s := r.Registry
+	if len(s) > 0 {
+		s += "/"
+	}
+	if len(r.Namespace) != 0 {
+		s += r.Namespace + "/"
+	}
+	return s + name
+}
+
+// latestImageTagEvent returns the most recent TagEvent and the tag for the specified
+// image.
+// Copied from v3.7 github.com/openshift/origin/pkg/image/apis/image/v1/helpers.go
+func latestImageTagEvent(stream *imagev1.ImageStream, imageID string) (string, *imagev1.TagEvent) {
+	var (
+		latestTagEvent *imagev1.TagEvent
+		latestTag      string
+	)
+	for _, events := range stream.Status.Tags {
+		if len(events.Items) == 0 {
+			continue
+		}
+		tag := events.Tag
+		for i, event := range events.Items {
+			if imageutil.DigestOrImageMatch(event.Image, imageID) &&
+				(latestTagEvent == nil || latestTagEvent != nil && event.Created.After(latestTagEvent.Created.Time)) {
+				latestTagEvent = &events.Items[i]
+				latestTag = tag
+			}
+		}
+	}
+	return latestTag, latestTagEvent
 }
