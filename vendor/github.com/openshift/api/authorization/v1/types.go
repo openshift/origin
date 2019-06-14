@@ -16,6 +16,13 @@ import (
 // 4. all allow RoleBinding PolicyRules in the namespace - short circuit on match
 // 5. deny by default
 
+const (
+	// GroupKind is string representation of kind used in role binding subjects that represents the "group".
+	GroupKind = "Group"
+	// UserKind is string representation of kind used in role binding subjects that represents the "user".
+	UserKind = "User"
+)
+
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
