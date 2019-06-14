@@ -18,7 +18,7 @@
 #      $ docker run -d --privileged openshift/dind
 #
 
-FROM fedora:27
+FROM fedora:29
 
 # Fix 'WARNING: terminal is not fully functional' when TERM=dumb
 ENV TERM=xterm
