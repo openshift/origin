@@ -31,12 +31,12 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
+	imagepolicy "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/rules"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -62,28 +62,31 @@ func Register(plugins *admission.Plugins) {
 				return nil, errs.ToAggregate()
 			}
 			klog.V(5).Infof("%s admission controller loaded with config: %#v", imagepolicy.PluginName, config)
-			return newImagePolicyPlugin(config)
+			return NewImagePolicyPlugin(config)
 		})
 }
 
-type imagePolicyPlugin struct {
+type ImagePolicyPlugin struct {
 	*admission.Handler
 	config *imagepolicy.ImagePolicyConfig
-	client imagev1client.Interface
+	Client imagev1client.Interface
 
 	accepter rules.Accepter
 
 	integratedRegistryMatcher integratedRegistryMatcher
 
-	nsLister corev1listers.NamespaceLister
+	NsLister corev1listers.NamespaceLister
 	resolver imageResolver
+
+	imageMutators imagereferencemutators.ImageMutators
 }
 
-var _ = initializer.WantsExternalKubeInformerFactory(&imagePolicyPlugin{})
-var _ = oadmission.WantsRESTClientConfig(&imagePolicyPlugin{})
-var _ = oadmission.WantsDefaultRegistryFunc(&imagePolicyPlugin{})
-var _ = admission.ValidationInterface(&imagePolicyPlugin{})
-var _ = admission.MutationInterface(&imagePolicyPlugin{})
+var _ = initializer.WantsExternalKubeInformerFactory(&ImagePolicyPlugin{})
+var _ = oadmission.WantsRESTClientConfig(&ImagePolicyPlugin{})
+var _ = oadmission.WantsDefaultRegistryFunc(&ImagePolicyPlugin{})
+var _ = oadmission.WantsImageMutators(&ImagePolicyPlugin{})
+var _ = admission.ValidationInterface(&ImagePolicyPlugin{})
+var _ = admission.MutationInterface(&ImagePolicyPlugin{})
 
 type integratedRegistryMatcher struct {
 	rules.RegistryMatcher
@@ -104,9 +107,9 @@ type imageResolutionPolicy interface {
 	RewriteImagePullSpec(attr *rules.ImagePolicyAttributes, isUpdate bool, gr metav1.GroupResource) bool
 }
 
-// imagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
+// ImagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
 // cluster.
-func newImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*imagePolicyPlugin, error) {
+func NewImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*ImagePolicyPlugin, error) {
 	m := integratedRegistryMatcher{
 		RegistryMatcher: rules.NewRegistryMatcher(nil),
 	}
@@ -115,7 +118,7 @@ func newImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*imagePolicyPl
 		return nil, err
 	}
 
-	return &imagePolicyPlugin{
+	return &ImagePolicyPlugin{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
 		config:  parsed,
 
@@ -125,32 +128,39 @@ func newImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*imagePolicyPl
 	}, nil
 }
 
-func (a *imagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
+func (a *ImagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
 	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(fn)
 }
 
-func (a *imagePolicyPlugin) SetRESTClientConfig(restClientConfig rest.Config) {
+func (a *ImagePolicyPlugin) SetImageMutators(imageMutators imagereferencemutators.ImageMutators) {
+	a.imageMutators = imageMutators
+}
+
+func (a *ImagePolicyPlugin) SetRESTClientConfig(restClientConfig rest.Config) {
 	var err error
-	a.client, err = imagev1client.NewForConfig(&restClientConfig)
+	a.Client, err = imagev1client.NewForConfig(&restClientConfig)
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
 	}
 }
 
-func (a *imagePolicyPlugin) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
-	a.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
+func (a *ImagePolicyPlugin) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+	a.NsLister = kubeInformers.Core().V1().Namespaces().Lister()
 }
 
 // Validate ensures that all required interfaces have been provided, or returns an error.
-func (a *imagePolicyPlugin) ValidateInitialization() error {
-	if a.client == nil {
+func (a *ImagePolicyPlugin) ValidateInitialization() error {
+	if a.Client == nil {
 		return fmt.Errorf("%s needs an Openshift client", imagepolicy.PluginName)
 	}
-	if a.nsLister == nil {
+	if a.NsLister == nil {
 		return fmt.Errorf("%s needs a namespace lister", imagepolicy.PluginName)
 	}
-	imageResolver, err := newImageResolutionCache(a.client.ImageV1(), a.integratedRegistryMatcher)
+	if a.imageMutators == nil {
+		return fmt.Errorf("%s needs an image mutators", imagepolicy.PluginName)
+	}
+	imageResolver, err := newImageResolutionCache(a.Client.ImageV1(), a.integratedRegistryMatcher)
 	if err != nil {
 		return fmt.Errorf("unable to create image policy controller: %v", err)
 	}
@@ -159,16 +169,16 @@ func (a *imagePolicyPlugin) ValidateInitialization() error {
 }
 
 // Admit attempts to apply the image policy to the incoming resource.
-func (a *imagePolicyPlugin) Admit(attr admission.Attributes, _ admission.ObjectInterfaces) error {
+func (a *ImagePolicyPlugin) Admit(attr admission.Attributes, _ admission.ObjectInterfaces) error {
 	return a.admit(attr, true)
 }
 
 // Validate attempts to apply the image policy to the incoming resource.
-func (a *imagePolicyPlugin) Validate(attr admission.Attributes, _ admission.ObjectInterfaces) error {
+func (a *ImagePolicyPlugin) Validate(attr admission.Attributes, _ admission.ObjectInterfaces) error {
 	return a.admit(attr, false)
 }
 
-func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed bool) error {
+func (a *ImagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed bool) error {
 	switch attr.GetOperation() {
 	case admission.Create, admission.Update:
 		if len(attr.GetSubresource()) > 0 {
@@ -191,7 +201,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 	}
 
 	klog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
-	m, err := internalimagereferencemutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
+	m, err := a.imageMutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
 		return apierrs.NewForbidden(schemagr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}
@@ -200,12 +210,12 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		m = &mutationPreventer{m}
 	}
 
-	annotations, _ := internalimagereferencemutators.GetAnnotationAccessor(attr.GetObject())
+	annotations, _ := a.imageMutators.GetAnnotationAccessor(attr.GetObject())
 
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
 	if ns := attr.GetNamespace(); len(ns) > 0 {
-		if ns, err := a.nsLister.Get(ns); err == nil {
+		if ns, err := a.NsLister.Get(ns); err == nil {
 			if value := ns.Annotations[imagepolicy.IgnorePolicyRulesAnnotation]; len(value) > 0 {
 				excluded = sets.NewString(strings.Split(value, ",")...)
 			}
@@ -220,10 +230,10 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 }
 
 type mutationPreventer struct {
-	m internalimagereferencemutators.ImageReferenceMutator
+	m imagereferencemutators.ImageReferenceMutator
 }
 
-func (m *mutationPreventer) Mutate(fn internalimagereferencemutators.ImageReferenceMutateFunc) field.ErrorList {
+func (m *mutationPreventer) Mutate(fn imagereferencemutators.ImageReferenceMutateFunc) field.ErrorList {
 	return m.m.Mutate(func(ref *kapi.ObjectReference) error {
 		original := ref.DeepCopy()
 		if err := fn(ref); err != nil {
