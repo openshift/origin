@@ -32,3 +32,9 @@ rules:
       source:
         branch: master
         dir: staging/src/github.com/openshift/oauth-server
+- destination: sdn
+  branches:
+    - name: release-4.2
+      source:
+        branch: master
+        dir: staging/src/github.com/openshift/sdn
