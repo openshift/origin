@@ -5,6 +5,7 @@ reviewers:
   - stevekuznetsov
   - soltysh
   - tbielawa
+  - sjenning
 approvers:
   - smarterclayton
   - deads2k
@@ -15,3 +16,4 @@ approvers:
   - stevekuznetsov # for build and tooling changes
   - tbielawa # also for build and automated release tooling changes
   - knobunc # for backports
+  - sjenning
