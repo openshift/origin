@@ -484,6 +484,22 @@ func (c *CLI) Run(commands ...string) *CLI {
 	return nc.setOutput(c.stdout)
 }
 
+// Run command without extra args
+func (c *CLI) RunWithoutGlobalArgs(commands ...string) *CLI {
+	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
+	nc := &CLI{
+		execPath:        c.execPath,
+		verb:            commands[0],
+		kubeFramework:   c.KubeFramework(),
+		adminConfigPath: c.adminConfigPath,
+		configPath:      c.configPath,
+		username:        c.username,
+		globalArgs:      commands,
+	}
+	nc.stdin, nc.stdout, nc.stderr = in, out, errout
+	return nc.setOutput(c.stdout)
+}
+
 // Template sets a Go template for the OpenShift CLI command.
 // This is equivalent of running "oc get foo -o template --template='{{ .spec }}'"
 func (c *CLI) Template(t string) *CLI {
