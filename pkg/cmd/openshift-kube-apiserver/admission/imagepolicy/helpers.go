@@ -1,7 +1,7 @@
 package imagepolicy
 
 import (
-	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
+	imagepolicyapiv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 )
 
 // RequestsResolution returns true if you should attempt to resolve image pull specs

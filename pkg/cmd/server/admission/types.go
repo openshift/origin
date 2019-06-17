@@ -9,6 +9,7 @@ import (
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/project/cache"
 )
 
@@ -57,5 +58,10 @@ type WantsDefaultRegistryFunc interface {
 
 type WantsUserInformer interface {
 	SetUserInformer(userinformer.SharedInformerFactory)
+	admission.InitializationValidator
+}
+
+type WantsImageMutators interface {
+	SetImageMutators(imagereferencemutators.ImageMutators)
 	admission.InitializationValidator
 }

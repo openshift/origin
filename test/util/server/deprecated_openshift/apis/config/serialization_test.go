@@ -21,7 +21,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
+	imagepolicyapi "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 
