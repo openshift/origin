@@ -3,7 +3,7 @@ package imagestreamimage
 import (
 	"context"
 
-	"github.com/openshift/origin/pkg/image/internalimageutil"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

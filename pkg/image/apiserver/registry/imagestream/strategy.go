@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/image/internalimageutil"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 
 	authorizationapi "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"

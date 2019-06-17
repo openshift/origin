@@ -24,7 +24,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/image/registryclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	dockerregistry "github.com/openshift/origin/pkg/image/apiserver/importer/dockerv1client"
 )
 
 type mockRetriever struct {

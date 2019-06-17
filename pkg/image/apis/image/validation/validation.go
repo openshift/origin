@@ -23,7 +23,6 @@ import (
 	imageref "github.com/openshift/library-go/pkg/image/reference"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 // RepositoryNameComponentRegexp restricts registry path component names to
@@ -88,6 +87,22 @@ func ValidateImageSignature(signature *imageapi.ImageSignature) field.ErrorList 
 	return validateImageSignature(signature, nil)
 }
 
+// splitImageSignatureName splits given signature name into image name and signature name.
+func splitImageSignatureName(imageSignatureName string) (imageName, signatureName string, err error) {
+	segments := strings.Split(imageSignatureName, "@")
+	switch len(segments) {
+	case 2:
+		signatureName = segments[1]
+		imageName = segments[0]
+		if len(imageName) == 0 || len(signatureName) == 0 {
+			err = fmt.Errorf("image signature name %q must have an image name and signature name", imageSignatureName)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one @ in the image signature name %q", imageSignatureName)
+	}
+	return
+}
+
 func validateImageSignature(signature *imageapi.ImageSignature, fldPath *field.Path) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&signature.ObjectMeta, false, path.ValidatePathSegmentName, fldPath.Child("metadata"))
 	if len(signature.Labels) > 0 {
@@ -97,7 +112,7 @@ func validateImageSignature(signature *imageapi.ImageSignature, fldPath *field.P
 		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("annotations"), "signature annotations cannot be set"))
 	}
 
-	if _, _, err := util.SplitImageSignatureName(signature.Name); err != nil {
+	if _, _, err := splitImageSignatureName(signature.Name); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("metadata").Child("name"), signature.Name, "name must be of format <imageName>@<signatureName>"))
 	}
 	if len(signature.Type) == 0 {

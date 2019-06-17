@@ -31,12 +31,12 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
+	"github.com/openshift/origin/pkg/image/apiserver/internalimageutil"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/apiserver/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	"github.com/openshift/origin/pkg/image/internalimageutil"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
