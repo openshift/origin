@@ -34,8 +34,7 @@ type OpenShiftSDN struct {
 
 	nodeName string
 
-	ProxyConfig    *kubeproxyconfig.KubeProxyConfiguration
-	enableUnidling bool
+	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
 
 	informers   *informers
 	OsdnNode    *sdnnode.OsdnNode
@@ -142,8 +141,6 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 			return err
 		}
 		sdn.ProxyConfig.HostnameOverride = sdn.nodeName
-		// FIXME: make this configurable
-		sdn.enableUnidling = true
 	} else {
 		klog.V(2).Infof("Reading proxy configuration from %s", sdn.ConfigFilePath)
 		nodeConfig, err := readNodeConfig(sdn.ConfigFilePath)
@@ -159,7 +156,12 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 		if err != nil {
 			return err
 		}
-		sdn.enableUnidling = *nodeConfig.EnableUnidling
+		if *nodeConfig.EnableUnidling {
+			if sdn.ProxyConfig.Mode != kubeproxyconfig.ProxyModeIPTables {
+				return fmt.Errorf("unidling is only supported with the iptables proxier")
+			}
+			sdn.ProxyConfig.Mode = kubeproxyconfig.ProxyMode("unidling+iptables")
+		}
 	}
 
 	return nil

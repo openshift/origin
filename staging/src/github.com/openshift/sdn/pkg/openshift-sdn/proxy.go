@@ -160,8 +160,13 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		healthzServer = healthcheck.NewDefaultHealthzServer(sdn.ProxyConfig.HealthzBindAddress, 2*sdn.ProxyConfig.IPTables.SyncPeriod.Duration, recorder, nodeRef)
 	}
 
-	switch sdn.ProxyConfig.Mode {
-	case kubeproxyconfig.ProxyModeIPTables:
+	enableUnidling := false
+
+	switch string(sdn.ProxyConfig.Mode) {
+	case "unidling+iptables":
+		enableUnidling = true
+		fallthrough
+	case "iptables":
 		klog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
 			var err error
@@ -200,7 +205,7 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
 		klog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
-	case kubeproxyconfig.ProxyModeUserspace:
+	case "userspace":
 		klog.V(0).Info("Using userspace Proxier.")
 		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
 		// our config.EndpointsHandler.
@@ -241,7 +246,7 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
-	if sdn.enableUnidling {
+	if enableUnidling {
 		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
 		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, sdn.ProxyConfig.IPTables.SyncPeriod.Duration, sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration, sdn.ProxyConfig.UDPIdleTimeout.Duration, sdn.ProxyConfig.NodePortAddresses, signaler)

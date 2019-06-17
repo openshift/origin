@@ -136,7 +136,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		return nil, fmt.Errorf("Unknown plugin name %q", networkInfo.PluginName)
 	}
 
-	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
+	if useConnTrack && c.ProxyMode == kubeproxyconfig.ProxyModeUserspace {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", networkInfo.PluginName, c.ProxyMode)
 	}
 
