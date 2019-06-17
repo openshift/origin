@@ -5,7 +5,7 @@ things to get it going.
 
 ## Download and Run OpenShift Origin
 If you have not already, perform the following to (download and) run the Origin
-Docker container:
+container:
 
     $ docker run -d --name "openshift-origin" --net=host --privileged \
     -v /var/run/docker.sock:/var/run/docker.sock \
@@ -46,7 +46,7 @@ you know where you are:
     $ PS1="openshift-dock: [\u@\h \W]\$ "
 
 ## Get the Sample Application Code
-Inside the OpenShift Docker container, you'll need to fetch some of the code
+Inside the OpenShift container, you'll need to fetch some of the code
 bits that are used in the sample app.
 
     $ cd /var/lib/openshift

@@ -21281,7 +21281,7 @@ var _examplesSampleAppCleanupSh = []byte(`#!/bin/sh
 echo "Killing openshift all-in-one server ..."
 sudo pkill -x openshift
 
-echo "Stopping all k8s docker containers on host ..."
+echo "Stopping all k8s containers on host ..."
 sudo docker ps --format='{{.Names}}' | grep -E '^k8s_' | xargs -l -r sudo docker stop
 
 echo "Unmounting openshift local volumes ..."

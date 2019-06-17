@@ -720,7 +720,7 @@ type CustomBuildStrategy struct {
 	Env []kapi.EnvVar
 
 	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
-	// inside the Docker container.
+	// inside the container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool
 

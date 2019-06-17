@@ -27,7 +27,7 @@ var (
 		* Recreate - scales the old replication controller down to zero, then scales the new replication
 			controller up to full. Use when your application cannot tolerate two versions of code running
 			at the same time
-		* Custom - run your own deployment process inside a Docker container using your own scripts.`)
+		* Custom - run your own deployment process inside a container using your own scripts.`)
 )
 
 // NewCmdRollout facilitates kubectl rollout subcommands

@@ -200,7 +200,7 @@ costly setup those components should be tested in isolation.
 
 We break integration tests into two categories, those that use Docker and those
 that do not.  In general, high-level components that depend on the behavior of code
-running inside a Docker container should have at least one or two integration tests
+running inside a container should have at least one or two integration tests
 that test all the way down to Docker, but those should be part of their own
 test suite.  Testing the API and high-level API functions should generally
 not depend on calling into Docker. They are denoted by special test tags and

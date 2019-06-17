@@ -9,13 +9,13 @@ equivalent for your host platform/architecture), you have that and its
 symlink/copy `oc` in your `PATH` and root's, and Docker is installed and
 working. See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
-Alternatively, if you are using the openshift/origin Docker container, please
+Alternatively, if you are using the openshift/origin container, please
 make sure you follow these instructions first:
 https://github.com/openshift/origin/blob/master/examples/sample-app/container-setup.md
 
 Security Warning
 ----------------
-OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs Docker containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
+OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
 
 For more information, see these articles:
 
@@ -415,7 +415,7 @@ Another interesting example is deleting a pod.
 
         $ oc delete pod frontend-1-votq4
 
-  - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
+  - Verify that the pod has been removed by listing the available pods. This also stopped the associated container, you can check using the command:
 
         $ docker ps -a
         CONTAINER ID        IMAGE                                                COMMAND                CREATED              STATUS                          PORTS               NAMES
@@ -430,6 +430,6 @@ To clean up all of your environment, you can run the script:
 
         $ sudo ./cleanup.sh
 
-This will stop the `openshift` process, remove files created by OpenShift and kill all Docker containers created by Kubernetes in your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.
+This will stop the `openshift` process, remove files created by OpenShift and kill all containers created by Kubernetes in your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.
 
-**Use with caution!** Any Docker container prefixed with "k8s_" will be killed by this script.
+**Use with caution!** Any container prefixed with "k8s_" will be killed by this script.
