@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
+
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -115,6 +117,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			RegistryHostnameRetriever:    registryHostnameRetriever,
 			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
 			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
+			ImageMutators:                imagereferencemutators.KubeImageMutators{},
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
 

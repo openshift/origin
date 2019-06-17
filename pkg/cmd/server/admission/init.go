@@ -24,7 +24,7 @@ type PluginInitializer struct {
 	RegistryHostnameRetriever    registryhostname.RegistryHostnameRetriever
 	SecurityInformers            securityv1informer.SecurityContextConstraintsInformer
 	UserInformers                userinformer.SharedInformerFactory
-	ImageMutators                  imagereferencemutators.ImageMutators
+	ImageMutators                imagereferencemutators.ImageMutators
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin

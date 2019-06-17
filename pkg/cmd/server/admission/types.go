@@ -65,4 +65,3 @@ type WantsImageMutators interface {
 	SetImageMutators(imagereferencemutators.ImageMutators)
 	admission.InitializationValidator
 }
-
