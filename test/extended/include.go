@@ -24,6 +24,7 @@ import (
 
 	// _ "k8s.io/kubernetes/test/e2e/ui"
 
+	_ "github.com/openshift/origin/test/extended/authorization"
 	_ "github.com/openshift/origin/test/extended/authorization/rbac"
 	_ "github.com/openshift/origin/test/extended/bootstrap_user"
 	_ "github.com/openshift/origin/test/extended/builds"

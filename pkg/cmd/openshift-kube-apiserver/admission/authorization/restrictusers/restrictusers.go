@@ -164,11 +164,12 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes, _ admission.Ob
 		return nil
 	}
 
-	// TODO: Cache rolebinding restrictions.
+	// RoleBindingRestrictions admission plugin is DefaultAllow, hence RBRs can't use an informer,
+	// because it's impossible to know if cache is up-to-date
 	roleBindingRestrictionList, err := q.roleBindingRestrictionsGetter.RoleBindingRestrictions(ns).
 		List(metav1.ListOptions{})
 	if err != nil {
-		return admission.NewForbidden(a, err)
+		return admission.NewForbidden(a, fmt.Errorf("could not list rolebinding restrictions: %v", err))
 	}
 	if len(roleBindingRestrictionList.Items) == 0 {
 		klog.V(4).Infof("No rolebinding restrictions specified; admitting")
@@ -179,7 +180,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes, _ admission.Ob
 	for _, rbr := range roleBindingRestrictionList.Items {
 		checker, err := NewSubjectChecker(&rbr.Spec)
 		if err != nil {
-			return admission.NewForbidden(a, err)
+			return admission.NewForbidden(a, fmt.Errorf("could not create rolebinding restriction subject checker: %v", err))
 		}
 		checkers = append(checkers, checker)
 	}
@@ -187,7 +188,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes, _ admission.Ob
 	roleBindingRestrictionContext, err := newRoleBindingRestrictionContext(ns,
 		q.kubeClient, q.userClient.UserV1(), q.groupCache)
 	if err != nil {
-		return admission.NewForbidden(a, err)
+		return admission.NewForbidden(a, fmt.Errorf("could not create rolebinding restriction context: %v", err))
 	}
 
 	checker := NewUnionSubjectChecker(checkers)
