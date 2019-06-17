@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
-	quota "k8s.io/kubernetes/pkg/quota/v1"
+	"k8s.io/kubernetes/pkg/quota/v1"
 	"k8s.io/kubernetes/pkg/quota/v1/install"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
@@ -26,7 +26,7 @@ import (
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -59,7 +59,8 @@ type clusterQuotaAdmission struct {
 
 var _ initializer.WantsExternalKubeInformerFactory = &clusterQuotaAdmission{}
 var _ oadmission.WantsRESTClientConfig = &clusterQuotaAdmission{}
-var _ oadmission.WantsClusterQuota = &clusterQuotaAdmission{}
+var _ WantsClusterQuota = &clusterQuotaAdmission{}
+var _ WantsOriginQuotaRegistry = &clusterQuotaAdmission{}
 var _ admission.ValidationInterface = &clusterQuotaAdmission{}
 
 const (

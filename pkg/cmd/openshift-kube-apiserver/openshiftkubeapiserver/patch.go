@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
-
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -32,12 +30,18 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
+	"github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	"github.com/openshift/origin/pkg/admission/admissiontimeout"
+	"github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/namespaceconditions"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
+	"github.com/openshift/origin/pkg/scheduler/admission/nodeenv"
+	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -106,20 +110,18 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		if err != nil {
 			return nil, err
 		}
-		// TODO make a union registry
-		quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
-		openshiftPluginInitializer := &oadmission.PluginInitializer{
-			DefaultNodeSelector:          kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector,
-			OriginQuotaRegistry:          quotaRegistry,
-			RESTClientConfig:             *genericConfig.LoopbackClientConfig,
-			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
-			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
-			RegistryHostnameRetriever:    registryHostnameRetriever,
-			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
-			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
-			ImageMutators:                imagereferencemutators.KubeImageMutators{},
-		}
-		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
+		*pluginInitializers = append(*pluginInitializers,
+			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, registryHostnameRetriever.InternalRegistryHostname),
+			restrictusers.NewInitializer(kubeAPIServerInformers.GetOpenshiftUserInformers()),
+			sccadmission.NewInitializer(kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
+			clusterresourcequota.NewInitializer(
+				kubeAPIServerInformers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
+				clusterQuotaMappingController.GetClusterQuotaMapper(),
+				generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators()),
+			),
+			nodeenv.NewInitializer(kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector),
+			admissionrestconfig.NewInitializer(*rest.CopyConfig(genericConfig.LoopbackClientConfig)),
+		)
 
 		// set up the decorators we need.  This is done late and out of order because our decorators currently require informers which are not
 		// present until we start running

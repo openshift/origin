@@ -20,10 +20,10 @@ import (
 	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"k8s.io/apiserver/pkg/admission/initializer"
 )
