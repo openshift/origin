@@ -1,14 +1,12 @@
 reviewers:
-  - pravisankar
-  - dcbw
-  - smarterclayton
-  - rajatchopra
   - danwinship
+  - dcbw
+  - JacobTanenbaum
   - knobunc
+  - pecameron
   - squeed
 approvers:
-  - dcbw
-  - smarterclayton
   - danwinship
+  - dcbw
   - knobunc
   - squeed
