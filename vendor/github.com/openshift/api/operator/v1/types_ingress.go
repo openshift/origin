@@ -170,9 +170,42 @@ const (
 	PrivateStrategyType EndpointPublishingStrategyType = "Private"
 )
 
+// LoadBalancerScope is the scope at which a load balancer is exposed.
+type LoadBalancerScope string
+
+var (
+	// InternalLoadBalancer is a load balancer that is exposed only on the
+	// cluster's private network.
+	InternalLoadBalancer LoadBalancerScope = "Internal"
+
+	// ExternalLoadBalancer is a load balancer that is exposed on the
+	// cluster's public network (which is typically on the Internet).
+	ExternalLoadBalancer LoadBalancerScope = "External"
+)
+
+// LoadBalancerStrategy holds parameters for a load balancer.
+type LoadBalancerStrategy struct {
+	// scope indicates the scope at which the load balancer is exposed.
+	// Possible values are "External" and "Internal".  The default is
+	// "External".
+	// +optional
+	Scope LoadBalancerScope `json:"scope"`
+}
+
+// HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
+// strategy.
+type HostNetworkStrategy struct {
+}
+
+// PrivateStrategy holds parameters for the Private endpoint publishing
+// strategy.
+type PrivateStrategy struct {
+}
+
 // EndpointPublishingStrategy is a way to publish the endpoints of an
 // IngressController, and represents the type and any additional configuration
 // for a specific type.
+// +union
 type EndpointPublishingStrategy struct {
 	// type is the publishing strategy to use. Valid values are:
 	//
@@ -209,7 +242,27 @@ type EndpointPublishingStrategy struct {
 	// In this configuration, the ingress controller deployment uses container
 	// networking, and is not explicitly published. The user must manually publish
 	// the ingress controller.
+	// +unionDiscriminator
+	// +optional
 	Type EndpointPublishingStrategyType `json:"type"`
+
+	// loadBalancer holds parameters for the load balancer. Present only if
+	// type is LoadBalancerService.
+	// +optional
+	// +nullable
+	LoadBalancer *LoadBalancerStrategy `json:"loadBalancer,omitempty"`
+
+	// hostNetwork holds parameters for the HostNetwork endpoint publishing
+	// strategy. Present only if type is HostNetwork.
+	// +optional
+	// +nullable
+	HostNetwork *HostNetworkStrategy `json:"hostNetwork,omitempty"`
+
+	// private holds parameters for the Private endpoint publishing
+	// strategy. Present only if type is Private.
+	// +optional
+	// +nullable
+	Private *PrivateStrategy `json:"private,omitempty"`
 }
 
 var (

@@ -21,6 +21,8 @@ const (
 	GroupKind = "Group"
 	// UserKind is string representation of kind used in role binding subjects that represents the "user".
 	UserKind = "User"
+
+	ScopesKey = "scopes.authorization.openshift.io"
 )
 
 // PolicyRule holds information that describes a policy rule, but does not contain information
