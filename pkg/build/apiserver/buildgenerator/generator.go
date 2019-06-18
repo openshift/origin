@@ -793,7 +793,7 @@ func (g *BuildGenerator) resolveImageSecret(ctx context.Context, secrets []corev
 		klog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
 		return nil
 	}
-	s := findDockerSecretAsInternalReference(secrets, imageSpec)
+	s := findDockerSecretAsReference(secrets, imageSpec)
 	if s == nil {
 		klog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	}
@@ -803,14 +803,10 @@ func (g *BuildGenerator) resolveImageSecret(ctx context.Context, secrets []corev
 // findDockerSecretAsInternalReference looks through a set of k8s Secrets to find one that represents Docker credentials
 // and which contains credentials that are associated with the registry identified by the image.  It returns
 // a LocalObjectReference to the Secret, or nil if no match was found.
-func findDockerSecretAsInternalReference(secrets []corev1.Secret, image string) *corev1.LocalObjectReference {
+func findDockerSecretAsReference(secrets []corev1.Secret, image string) *corev1.LocalObjectReference {
 	emptyKeyring := credentialprovider.BasicDockerKeyring{}
 	for _, secret := range secrets {
-		externalSecret := corev1.Secret{}
-		if err := legacyscheme.Scheme.Convert(&secret, &externalSecret, nil); err != nil {
-			panic(err)
-		}
-		secretList := []corev1.Secret{externalSecret}
+		secretList := []corev1.Secret{*secret.DeepCopy()}
 		keyring, err := credentialprovidersecrets.MakeDockerKeyring(secretList, &emptyKeyring)
 		if err != nil {
 			klog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
