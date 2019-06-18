@@ -32,17 +32,17 @@ import (
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	"github.com/openshift/origin/pkg/admission/admissiontimeout"
-	"github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/namespaceconditions"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
-	"github.com/openshift/origin/pkg/scheduler/admission/nodeenv"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 type KubeAPIServerServerPatchContext struct {

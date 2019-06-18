@@ -14,15 +14,15 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/api/authorization/v1"
-	userapi "github.com/openshift/api/user/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
 
 func TestAdmission(t *testing.T) {
 	var (
-		userAlice = userapi.User{
+		userAlice = userv1.User{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "Alice",
 				Labels: map[string]string{"foo": "bar"},
@@ -33,7 +33,7 @@ func TestAdmission(t *testing.T) {
 			Name: "Alice",
 		}
 
-		userBob = userapi.User{
+		userBob = userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: "Bob"},
 			Groups:     []string{"group"},
 		}
@@ -42,7 +42,7 @@ func TestAdmission(t *testing.T) {
 			Name: "Bob",
 		}
 
-		group = userapi.Group{
+		group = userv1.Group{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "group",
 				Labels: map[string]string{"baz": "quux"},
@@ -212,13 +212,13 @@ func TestAdmission(t *testing.T) {
 				},
 			},
 			authorizationObjects: []runtime.Object{
-				&authorizationapi.RoleBindingRestriction{
+				&authorizationv1.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "bogus-matcher",
 						Namespace: "namespace",
 					},
-					Spec: authorizationapi.RoleBindingRestrictionSpec{
-						UserRestriction: &authorizationapi.UserRestriction{},
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationv1.UserRestriction{},
 					},
 				},
 			},
@@ -257,36 +257,36 @@ func TestAdmission(t *testing.T) {
 				},
 			},
 			authorizationObjects: []runtime.Object{
-				&authorizationapi.RoleBindingRestriction{
+				&authorizationv1.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-users",
 						Namespace: "namespace",
 					},
-					Spec: authorizationapi.RoleBindingRestrictionSpec{
-						UserRestriction: &authorizationapi.UserRestriction{
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationv1.UserRestriction{
 							Users: []string{userAlice.Name},
 						},
 					},
 				},
-				&authorizationapi.RoleBindingRestriction{
+				&authorizationv1.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-groups",
 						Namespace: "namespace",
 					},
-					Spec: authorizationapi.RoleBindingRestrictionSpec{
-						GroupRestriction: &authorizationapi.GroupRestriction{
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						GroupRestriction: &authorizationv1.GroupRestriction{
 							Groups: []string{group.Name},
 						},
 					},
 				},
-				&authorizationapi.RoleBindingRestriction{
+				&authorizationv1.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-serviceaccounts",
 						Namespace: "namespace",
 					},
-					Spec: authorizationapi.RoleBindingRestrictionSpec{
-						ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-							ServiceAccounts: []authorizationapi.ServiceAccountReference{
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+							ServiceAccounts: []authorizationv1.ServiceAccountReference{
 								{
 									Name:      serviceaccount.Name,
 									Namespace: serviceaccount.Namespace,
@@ -331,13 +331,13 @@ func TestAdmission(t *testing.T) {
 				},
 			},
 			authorizationObjects: []runtime.Object{
-				&authorizationapi.RoleBindingRestriction{
+				&authorizationv1.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-users-bob",
 						Namespace: "namespace",
 					},
-					Spec: authorizationapi.RoleBindingRestrictionSpec{
-						UserRestriction: &authorizationapi.UserRestriction{
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationv1.UserRestriction{
 							Users: []string{userBobSubj.Name},
 						},
 					},

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	pointerutil "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
 	crvalidation "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation"
-	userapivalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 const (
@@ -92,12 +92,24 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 	return errs
 }
 
+// if you change this, update the peer in user validation.  also, don't change this.
+func validateIdentityProviderName(name string) []string {
+	if reasons := path.ValidatePathSegmentName(name, false); len(reasons) != 0 {
+		return reasons
+	}
+
+	if strings.Contains(name, ":") {
+		return []string{`may not contain ":"`}
+	}
+	return nil
+}
+
 func ValidateIdentityProvider(identityProvider configv1.IdentityProvider, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(identityProvider.Name) == 0 {
 		errs = append(errs, field.Required(fldPath.Child("name"), ""))
-	} else if reasons := userapivalidation.ValidateIdentityProviderName(identityProvider.Name); len(reasons) != 0 {
+	} else if reasons := validateIdentityProviderName(identityProvider.Name); len(reasons) != 0 {
 		errs = append(errs, field.Invalid(fldPath.Child("name"), identityProvider.Name, strings.Join(reasons, ", ")))
 	}
 

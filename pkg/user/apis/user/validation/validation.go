@@ -57,6 +57,7 @@ func ValidateGroupName(name string, _ bool) []string {
 	return nil
 }
 
+// if you change this, update the peer in oauth admission validation.  also, don't change this.
 func ValidateIdentityProviderName(name string) []string {
 	if reasons := path.ValidatePathSegmentName(name, false); len(reasons) != 0 {
 		return reasons

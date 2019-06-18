@@ -15,12 +15,12 @@ import (
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	userapi "github.com/openshift/api/user/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
-	usercache "github.com/openshift/origin/pkg/user/cache"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -31,7 +31,7 @@ func Register(plugins *admission.Plugins) {
 }
 
 type GroupCache interface {
-	GroupsFor(string) ([]*userapi.Group, error)
+	GroupsFor(string) ([]*userv1.Group, error)
 }
 
 // restrictUsersAdmission implements admission.ValidateInterface and enforces

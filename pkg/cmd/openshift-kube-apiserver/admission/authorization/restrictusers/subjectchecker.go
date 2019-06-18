@@ -9,8 +9,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/api/authorization/v1"
-	userapi "github.com/openshift/api/user/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
@@ -99,9 +99,9 @@ func (ctx *RoleBindingRestrictionContext) labelSetForUser(subject rbac.Subject) 
 }
 
 // groupsForUser returns the groups for the given user subject.
-func (ctx *RoleBindingRestrictionContext) groupsForUser(subject rbac.Subject) ([]*userapi.Group, error) {
+func (ctx *RoleBindingRestrictionContext) groupsForUser(subject rbac.Subject) ([]*userv1.Group, error) {
 	if subject.Kind != rbac.UserKind {
-		return []*userapi.Group{}, fmt.Errorf("not a user: %q", subject.Name)
+		return []*userv1.Group{}, fmt.Errorf("not a user: %q", subject.Name)
 	}
 
 	return ctx.groupCache.GroupsFor(subject.Name)
@@ -131,11 +131,11 @@ func (ctx *RoleBindingRestrictionContext) labelSetForGroup(subject rbac.Subject)
 // UserSubjectChecker determines whether a user subject is allowed in
 // rolebindings in the project.
 type UserSubjectChecker struct {
-	userRestriction *authorizationapi.UserRestriction
+	userRestriction *authorizationv1.UserRestriction
 }
 
 // NewUserSubjectChecker returns a new UserSubjectChecker.
-func NewUserSubjectChecker(userRestriction *authorizationapi.UserRestriction) UserSubjectChecker {
+func NewUserSubjectChecker(userRestriction *authorizationv1.UserRestriction) UserSubjectChecker {
 	return UserSubjectChecker{userRestriction: userRestriction}
 }
 
@@ -191,11 +191,11 @@ func (checker UserSubjectChecker) Allowed(subject rbac.Subject, ctx *RoleBinding
 // GroupSubjectChecker determines whether a group subject is allowed in
 // rolebindings in the project.
 type GroupSubjectChecker struct {
-	groupRestriction *authorizationapi.GroupRestriction
+	groupRestriction *authorizationv1.GroupRestriction
 }
 
 // NewGroupSubjectChecker returns a new GroupSubjectChecker.
-func NewGroupSubjectChecker(groupRestriction *authorizationapi.GroupRestriction) GroupSubjectChecker {
+func NewGroupSubjectChecker(groupRestriction *authorizationv1.GroupRestriction) GroupSubjectChecker {
 	return GroupSubjectChecker{groupRestriction: groupRestriction}
 }
 
@@ -236,11 +236,11 @@ func (checker GroupSubjectChecker) Allowed(subject rbac.Subject, ctx *RoleBindin
 // ServiceAccountSubjectChecker determines whether a serviceaccount subject is
 // allowed in rolebindings in the project.
 type ServiceAccountSubjectChecker struct {
-	serviceAccountRestriction *authorizationapi.ServiceAccountRestriction
+	serviceAccountRestriction *authorizationv1.ServiceAccountRestriction
 }
 
 // NewServiceAccountSubjectChecker returns a new ServiceAccountSubjectChecker.
-func NewServiceAccountSubjectChecker(serviceAccountRestriction *authorizationapi.ServiceAccountRestriction) ServiceAccountSubjectChecker {
+func NewServiceAccountSubjectChecker(serviceAccountRestriction *authorizationv1.ServiceAccountRestriction) ServiceAccountSubjectChecker {
 	return ServiceAccountSubjectChecker{
 		serviceAccountRestriction: serviceAccountRestriction,
 	}
@@ -286,7 +286,7 @@ func (checker ServiceAccountSubjectChecker) Allowed(subject rbac.Subject, ctx *R
 }
 
 // NewSubjectChecker returns a new SubjectChecker.
-func NewSubjectChecker(spec *authorizationapi.RoleBindingRestrictionSpec) (SubjectChecker, error) {
+func NewSubjectChecker(spec *authorizationv1.RoleBindingRestrictionSpec) (SubjectChecker, error) {
 	switch {
 	case spec.UserRestriction != nil:
 		return NewUserSubjectChecker(spec.UserRestriction), nil

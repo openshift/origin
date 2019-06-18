@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
 )
 
 func TestPodNodeConstraints(t *testing.T) {
