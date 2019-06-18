@@ -52,7 +52,7 @@ type OsdnProxy struct {
 	kClient              kubernetes.Interface
 	networkClient        networkclient.Interface
 	networkInformers     networkinformers.SharedInformerFactory
-	networkInfo          *common.NetworkInfo
+	networkInfo          *common.ParsedClusterNetwork
 	egressDNS            *common.EgressDNS
 	baseEndpointsHandler pconfig.EndpointsHandler
 
@@ -65,7 +65,7 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func New(pluginName string, networkClient networkclient.Interface, kClient kubernetes.Interface,
+func New(networkClient networkclient.Interface, kClient kubernetes.Interface,
 	networkInformers networkinformers.SharedInformerFactory) (*OsdnProxy, error) {
 	return &OsdnProxy{
 		kClient:          kClient,
@@ -82,7 +82,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
 	klog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
-	proxy.networkInfo, err = common.GetNetworkInfo(proxy.networkClient)
+	proxy.networkInfo, err = common.GetParsedClusterNetwork(proxy.networkClient)
 	if err != nil {
 		return fmt.Errorf("could not get network info: %s", err)
 	}

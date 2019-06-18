@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -21,9 +19,7 @@ import (
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/sdn/pkg/network/networkconfig"
 	sdnnode "github.com/openshift/sdn/pkg/network/node"
 	sdnproxy "github.com/openshift/sdn/pkg/network/proxy"
 	"github.com/openshift/sdn/pkg/version"
@@ -33,10 +29,11 @@ import (
 // processess from the command line.
 type OpenShiftSDN struct {
 	ConfigFilePath            string
-	KubeConfigFilePath        string
+	ProxyConfigFilePath       string
 	URLOnlyKubeConfigFilePath string
 
-	NodeConfig  *legacyconfigv1.NodeConfig
+	nodeName string
+
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
 
 	informers   *informers
@@ -70,9 +67,9 @@ func NewOpenShiftSDNCommand(basename string, errout io.Writer) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&sdn.ConfigFilePath, "config", "", "Location of the node configuration file to run from (required)")
-	flags.StringVar(&sdn.KubeConfigFilePath, "kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API. Optional. When omitted, will use the in-cluster config")
-	flags.StringVar(&sdn.URLOnlyKubeConfigFilePath, "url-only-kubeconfig", "", "Path to a kubeconfig file to use, but only to determine the URL to the apiserver. The in-cluster credentials will be used. Cannot use with --kubeconfig.")
+	flags.StringVar(&sdn.ConfigFilePath, "config", "", "Location of the node configuration file to run from")
+	flags.StringVar(&sdn.ProxyConfigFilePath, "proxy-config", "", "Location of the kube-proxy configuration file")
+	flags.StringVar(&sdn.URLOnlyKubeConfigFilePath, "url-only-kubeconfig", "", "Path to a kubeconfig file to use, but only to determine the URL to the apiserver. The in-cluster credentials will be used.")
 
 	return cmd
 }
@@ -101,8 +98,15 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 
 	// Set up a watch on our config file; if it changes, we should exit -
 	// (we don't have the ability to dynamically reload config changes).
-	if err := watchForChanges(sdn.ConfigFilePath, stopCh); err != nil {
-		klog.Fatalf("unable to setup configuration watch: %v", err)
+	if sdn.ConfigFilePath != "" {
+		if err := watchForChanges(sdn.ConfigFilePath, stopCh); err != nil {
+			klog.Fatalf("unable to setup configuration watch: %v", err)
+		}
+	}
+	if sdn.ProxyConfigFilePath != "" {
+		if err := watchForChanges(sdn.ProxyConfigFilePath, stopCh); err != nil {
+			klog.Fatalf("unable to setup configuration watch: %v", err)
+		}
 	}
 
 	// Build underlying network objects
@@ -123,47 +127,41 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 // ValidateAndParse validates the command line options, parses the node
 // configuration, and builds the upstream proxy configuration.
 func (sdn *OpenShiftSDN) ValidateAndParse() error {
-	if len(sdn.ConfigFilePath) == 0 {
-		return errors.New("--config is required")
+	sdn.nodeName = os.Getenv("K8S_NODE_NAME")
+
+	if len(sdn.ConfigFilePath) == 0 && len(sdn.ProxyConfigFilePath) == 0 {
+		return errors.New("Either --config or --proxy-config is required")
 	}
 
-	if len(sdn.KubeConfigFilePath) > 0 && len(sdn.URLOnlyKubeConfigFilePath) > 0 {
-		return errors.New("cannot pass --kubeconfig and --url-only-kubeconfig")
-	}
-
-	klog.V(2).Infof("Reading node configuration from %s", sdn.ConfigFilePath)
-	var err error
-	sdn.NodeConfig, err = readAndResolveNodeConfig(sdn.ConfigFilePath)
-	if err != nil {
-		return err
-	}
-
-	if len(sdn.KubeConfigFilePath) > 0 {
-		sdn.NodeConfig.MasterKubeConfig = sdn.KubeConfigFilePath
-	}
-
-	// Get the nodename from the environment, if available
-	if len(sdn.NodeConfig.NodeName) == 0 {
-		sdn.NodeConfig.NodeName = os.Getenv("K8S_NODE_NAME")
-	}
-
-	// Validate the node config
-	validationResults := networkconfig.ValidateInClusterNetworkNodeConfig(sdn.NodeConfig, nil)
-
-	if len(validationResults.Warnings) != 0 {
-		for _, warning := range validationResults.Warnings {
-			klog.Warningf("Warning: %v, node start will continue.", warning)
+	if sdn.ProxyConfigFilePath != "" {
+		klog.V(2).Infof("Reading proxy configuration from %s", sdn.ProxyConfigFilePath)
+		var err error
+		sdn.ProxyConfig, err = readProxyConfig(sdn.ProxyConfigFilePath)
+		if err != nil {
+			return err
 		}
-	}
-	if len(validationResults.Errors) != 0 {
-		klog.V(4).Infof("Configuration is invalid: %#v", sdn.NodeConfig)
-		return kerrors.NewInvalid(schema.GroupKind{Group: "", Kind: "NodeConfig"}, sdn.ConfigFilePath, validationResults.Errors)
-	}
-
-	sdn.ProxyConfig, err = ProxyConfigFromNodeConfig(*sdn.NodeConfig)
-	if err != nil {
-		klog.V(4).Infof("Unable to build proxy config: %v", err)
-		return err
+		sdn.ProxyConfig.HostnameOverride = sdn.nodeName
+	} else {
+		klog.V(2).Infof("Reading proxy configuration from %s", sdn.ConfigFilePath)
+		nodeConfig, err := readNodeConfig(sdn.ConfigFilePath)
+		if err != nil {
+			return err
+		}
+		sdn.ProxyConfig, err = ProxyConfigFromNodeConfig(
+			sdn.nodeName,
+			nodeConfig.ServingInfo.BindAddress,
+			nodeConfig.IPTablesSyncPeriod,
+			nodeConfig.ProxyArguments,
+		)
+		if err != nil {
+			return err
+		}
+		if *nodeConfig.EnableUnidling {
+			if sdn.ProxyConfig.Mode != kubeproxyconfig.ProxyModeIPTables {
+				return fmt.Errorf("unidling is only supported with the iptables proxier")
+			}
+			sdn.ProxyConfig.Mode = kubeproxyconfig.ProxyMode("unidling+iptables")
+		}
 	}
 
 	return nil

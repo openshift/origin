@@ -17,14 +17,11 @@ const openshiftCNIFile string = "/etc/cni/net.d/80-openshift-network.conf"
 func (sdn *OpenShiftSDN) initSDN() error {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: sdn.informers.KubeClient.CoreV1().Events("")})
-	sdn.sdnRecorder = eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: sdn.NodeConfig.NodeName})
+	sdn.sdnRecorder = eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: sdn.nodeName})
 
 	var err error
 	sdn.OsdnNode, err = sdnnode.New(&sdnnode.OsdnNodeConfig{
-		PluginName:         sdn.NodeConfig.NetworkConfig.NetworkPluginName,
-		Hostname:           sdn.NodeConfig.NodeName,
-		SelfIP:             sdn.NodeConfig.NodeIP,
-		MTU:                sdn.NodeConfig.NetworkConfig.MTU,
+		Hostname:           sdn.nodeName,
 		NetworkClient:      sdn.informers.NetworkClient,
 		KClient:            sdn.informers.KubeClient,
 		KubeInformers:      sdn.informers.KubeInformers,
@@ -44,7 +41,7 @@ func (sdn *OpenShiftSDN) runSDN() error {
 
 func (sdn *OpenShiftSDN) writeConfigFile() error {
 	// Make an event that openshift-sdn started
-	sdn.sdnRecorder.Eventf(&kclientv1.ObjectReference{Kind: "Node", Name: sdn.NodeConfig.NodeName}, kclientv1.EventTypeNormal, "Starting", "openshift-sdn done initializing node networking.")
+	sdn.sdnRecorder.Eventf(&kclientv1.ObjectReference{Kind: "Node", Name: sdn.nodeName}, kclientv1.EventTypeNormal, "Starting", "openshift-sdn done initializing node networking.")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready

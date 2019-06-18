@@ -33,7 +33,6 @@ import (
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
 	utilexec "k8s.io/utils/exec"
 
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	sdnproxy "github.com/openshift/sdn/pkg/network/proxy"
 	"github.com/openshift/sdn/pkg/network/proxyimpl/hybrid"
 	"github.com/openshift/sdn/pkg/network/proxyimpl/unidler"
@@ -43,7 +42,7 @@ import (
 )
 
 // ProxyConfigFromNodeConfig builds the kube-proxy configuration from the already-parsed nodeconfig.
-func ProxyConfigFromNodeConfig(options legacyconfigv1.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguration, error) {
+func ProxyConfigFromNodeConfig(nodeName, bindAddress, iptablesSyncPeriod string, proxyArguments map[string][]string) (*kubeproxyconfig.KubeProxyConfiguration, error) {
 	proxyOptions := kubeproxyoptions.NewOptions()
 	// get default config
 	proxyconfig := proxyOptions.GetConfig()
@@ -53,40 +52,36 @@ func ProxyConfigFromNodeConfig(options legacyconfigv1.NodeConfig) (*kubeproxycon
 	}
 	*proxyconfig = *defaultedProxyConfig
 
-	proxyconfig.HostnameOverride = options.NodeName
+	proxyconfig.HostnameOverride = nodeName
 
 	// BindAddress - Override default bind address from our config
-	addr := options.ServingInfo.BindAddress
-	host, _, err := net.SplitHostPort(addr)
+	host, _, err := net.SplitHostPort(bindAddress)
 	if err != nil {
-		return nil, fmt.Errorf("The provided value to bind to must be an ip:port %q", addr)
+		return nil, fmt.Errorf("The provided value to bind to must be an ip:port %q", bindAddress)
 	}
 	ip := net.ParseIP(host)
 	if ip == nil {
-		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", addr)
+		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", bindAddress)
 	}
 	proxyconfig.BindAddress = ip.String()
 	proxyconfig.MetricsBindAddress = "0.0.0.0:10253"
-	if arg := options.ProxyArguments["metrics-bind-address"]; len(arg) > 0 {
+	if arg := proxyArguments["metrics-bind-address"]; len(arg) > 0 {
 		proxyconfig.MetricsBindAddress = arg[0]
 	}
-	delete(options.ProxyArguments, "metrics-bind-address")
+	delete(proxyArguments, "metrics-bind-address")
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
 	oomScoreAdj := int32(0)
 	proxyconfig.OOMScoreAdj = &oomScoreAdj
 	proxyconfig.ResourceContainer = ""
 
-	// use the same client as the node
-	proxyconfig.ClientConnection.Kubeconfig = options.MasterKubeConfig
-
 	// ProxyMode, set to iptables
 	proxyconfig.Mode = "iptables"
 
 	// IptablesSyncPeriod, set to our config value
-	syncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
+	syncPeriod, err := time.ParseDuration(iptablesSyncPeriod)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
+		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", iptablesSyncPeriod, err)
 	}
 	proxyconfig.IPTables.SyncPeriod = metav1.Duration{
 		Duration: syncPeriod,
@@ -106,7 +101,7 @@ func ProxyConfigFromNodeConfig(options legacyconfigv1.NodeConfig) (*kubeproxycon
 	// Resolve cmd flags to add any user overrides
 	fss := apiserverflag.NamedFlagSets{}
 	proxyOptions.AddFlags(fss.FlagSet("proxy"))
-	if err := cmdflags.Resolve(options.ProxyArguments, fss); len(err) > 0 {
+	if err := cmdflags.Resolve(proxyArguments, fss); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 
@@ -121,7 +116,6 @@ func ProxyConfigFromNodeConfig(options legacyconfigv1.NodeConfig) (*kubeproxycon
 func (sdn *OpenShiftSDN) initProxy() error {
 	var err error
 	sdn.OsdnProxy, err = sdnproxy.New(
-		sdn.NodeConfig.NetworkConfig.NetworkPluginName,
 		sdn.informers.NetworkClient,
 		sdn.informers.KubeClient,
 		sdn.informers.NetworkInformers)
@@ -166,8 +160,13 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		healthzServer = healthcheck.NewDefaultHealthzServer(sdn.ProxyConfig.HealthzBindAddress, 2*sdn.ProxyConfig.IPTables.SyncPeriod.Duration, recorder, nodeRef)
 	}
 
-	switch sdn.ProxyConfig.Mode {
-	case kubeproxyconfig.ProxyModeIPTables:
+	enableUnidling := false
+
+	switch string(sdn.ProxyConfig.Mode) {
+	case "unidling+iptables":
+		enableUnidling = true
+		fallthrough
+	case "iptables":
 		klog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
 			var err error
@@ -206,7 +205,7 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
 		klog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
-	case kubeproxyconfig.ProxyModeUserspace:
+	case "userspace":
 		klog.V(0).Info("Using userspace Proxier.")
 		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
 		// our config.EndpointsHandler.
@@ -247,8 +246,7 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
-	// nil means true today
-	if sdn.NodeConfig.EnableUnidling == nil || *sdn.NodeConfig.EnableUnidling {
+	if enableUnidling {
 		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
 		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, sdn.ProxyConfig.IPTables.SyncPeriod.Duration, sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration, sdn.ProxyConfig.UDPIdleTimeout.Duration, sdn.ProxyConfig.NodePortAddresses, signaler)

@@ -1,7 +1,6 @@
 package openshift_sdn
 
 import (
-	"io/ioutil"
 	"net"
 	"net/http"
 	"time"
@@ -9,9 +8,7 @@ import (
 	kinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
 )
@@ -31,7 +28,7 @@ type informers struct {
 
 // buildInformers creates all the informer factories.
 func (sdn *OpenShiftSDN) buildInformers() error {
-	kubeConfig, err := getKubeConfigOrInClusterConfig(sdn.NodeConfig.MasterKubeConfig, sdn.NodeConfig.MasterClientConnectionOverrides)
+	kubeConfig, err := getInClusterConfig()
 	if err != nil {
 		return err
 	}
@@ -63,37 +60,13 @@ func (i *informers) start(stopCh <-chan struct{}) {
 	i.NetworkInformers.Start(stopCh)
 }
 
-// getKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
-// then applies overrides.
-func getKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *legacyconfigv1.ClientConnectionOverrides) (*rest.Config, error) {
-	if len(kubeConfigFile) > 0 {
-		return getClientConfig(kubeConfigFile, overrides)
-	}
-
+// getInClusterConfig loads in-cluster config, then applies default overrides.
+func getInClusterConfig() (*rest.Config, error) {
 	clientConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
-	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = defaultClientTransport
-
-	return clientConfig, nil
-}
-
-func getClientConfig(kubeConfigFile string, overrides *legacyconfigv1.ClientConnectionOverrides) (*rest.Config, error) {
-	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
-	if err != nil {
-		return nil, err
-	}
-	clientConfig, err := kubeConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	applyClientConnectionOverrides(overrides, clientConfig)
+	applyClientConnectionOverrides(clientConfig)
 	clientConfig.WrapTransport = defaultClientTransport
 
 	return clientConfig, nil
@@ -119,13 +92,8 @@ func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	return transport
 }
 
-// applyClientConnectionOverrides updates a kubeConfig with the overrides from the config.
-func applyClientConnectionOverrides(overrides *legacyconfigv1.ClientConnectionOverrides, kubeConfig *rest.Config) {
-	if overrides == nil {
-		return
-	}
-	kubeConfig.QPS = overrides.QPS
-	kubeConfig.Burst = int(overrides.Burst)
-	kubeConfig.ContentConfig.AcceptContentTypes = overrides.AcceptContentTypes
-	kubeConfig.ContentConfig.ContentType = overrides.ContentType
+// applyClientConnectionOverrides updates a kubeConfig with default overrides
+func applyClientConnectionOverrides(kubeConfig *rest.Config) {
+	kubeConfig.QPS = 10.0
+	kubeConfig.Burst = 20
 }

@@ -13,7 +13,6 @@ import (
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -63,10 +62,8 @@ type osdnPolicy interface {
 }
 
 type OsdnNodeConfig struct {
-	PluginName string
-	Hostname   string
-	SelfIP     string
-	MTU        uint32
+	Hostname string
+	SelfIP   string
 
 	NetworkClient networkclient.Interface
 	KClient       kubernetes.Interface
@@ -86,14 +83,13 @@ type OsdnNode struct {
 	networkClient      networkclient.Interface
 	recorder           record.EventRecorder
 	oc                 *ovsController
-	networkInfo        *common.NetworkInfo
+	networkInfo        *common.ParsedClusterNetwork
 	podManager         *podManager
 	localSubnetCIDR    string
 	localIP            string
 	hostName           string
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
-	mtu                uint32
 
 	// Synchronizes operations on egressPolicies
 	egressPoliciesLock sync.Mutex
@@ -111,11 +107,20 @@ type OsdnNode struct {
 
 // Called by higher layers to create the plugin SDN node instance
 func New(c *OsdnNodeConfig) (*OsdnNode, error) {
+	networkInfo, err := common.GetParsedClusterNetwork(c.NetworkClient)
+	if err != nil {
+		return nil, fmt.Errorf("could not get ClusterNetwork resource: %v", err)
+	}
+
+	if err := c.setNodeIP(networkInfo); err != nil {
+		return nil, err
+	}
+
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
 	var useConnTrack bool
-	switch strings.ToLower(c.PluginName) {
+	switch strings.ToLower(networkInfo.PluginName) {
 	case networkutils.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
 		pluginId = 0
@@ -128,18 +133,14 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		minOvsVersion = "2.6.0"
 		useConnTrack = true
 	default:
-		// Not an OpenShift plugin
-		return nil, nil
-	}
-	klog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
-
-	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
-		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
+		return nil, fmt.Errorf("Unknown plugin name %q", networkInfo.PluginName)
 	}
 
-	if err := c.setNodeIP(); err != nil {
-		return nil, err
+	if useConnTrack && c.ProxyMode == kubeproxyconfig.ProxyModeUserspace {
+		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", networkInfo.PluginName, c.ProxyMode)
 	}
+
+	klog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q)", networkInfo.PluginName, c.Hostname, c.SelfIP)
 
 	ovsif, err := ovs.New(kexec.New(), Br0, minOvsVersion)
 	if err != nil {
@@ -153,12 +154,12 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		networkClient:      c.NetworkClient,
 		recorder:           c.Recorder,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, oc),
+		networkInfo:        networkInfo,
+		podManager:         newPodManager(c.KClient, policy, networkInfo.MTU, oc),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
 		iptablesSyncPeriod: c.IPTablesSyncPeriod,
-		mtu:                c.MTU,
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
 		kubeInformers:      c.KubeInformers,
@@ -172,28 +173,26 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 }
 
 // Set node IP if required
-func (c *OsdnNodeConfig) setNodeIP() error {
+func (c *OsdnNodeConfig) setNodeIP(networkInfo *common.ParsedClusterNetwork) error {
 	if len(c.Hostname) == 0 {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
 			return err
 		}
 		c.Hostname = strings.TrimSpace(string(output))
-		klog.Infof("Resolved hostname to %q", c.Hostname)
 	}
 
 	if len(c.SelfIP) == 0 {
 		var err error
 		c.SelfIP, err = GetNodeIP(c.Hostname)
 		if err != nil {
-			klog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
+			klog.Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
 			var defaultIP net.IP
 			defaultIP, err = kubeutilnet.ChooseHostInterface()
 			if err != nil {
 				return err
 			}
 			c.SelfIP = defaultIP.String()
-			klog.Infof("Resolved IP address to %q", c.SelfIP)
 		}
 	}
 
@@ -202,6 +201,15 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
 		}
 		utilruntime.HandleError(fmt.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err))
+	}
+
+	hostIPNets, _, err := common.GetHostIPNetworks([]string{Tun0})
+	if err != nil {
+		return fmt.Errorf("failed to get host network information: %v", err)
+	}
+	if err := networkInfo.CheckHostNetworks(hostIPNets); err != nil {
+		// checkHostNetworks() errors *should* be fatal, but we didn't used to check this, and we can't break (mostly-)working nodes on upgrade.
+		utilruntime.HandleError(fmt.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err))
 	}
 
 	return nil
@@ -268,25 +276,7 @@ func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
 func (node *OsdnNode) Start() error {
 	klog.V(2).Infof("Starting openshift-sdn network plugin")
 
-	if err := validateNetworkPluginName(node.networkClient, node.policy.Name()); err != nil {
-		return fmt.Errorf("failed to validate network configuration: %v", err)
-	}
-
 	var err error
-	node.networkInfo, err = common.GetNetworkInfo(node.networkClient)
-	if err != nil {
-		return fmt.Errorf("failed to get network information: %v", err)
-	}
-
-	hostIPNets, _, err := common.GetHostIPNetworks([]string{Tun0})
-	if err != nil {
-		return fmt.Errorf("failed to get host network information: %v", err)
-	}
-	if err := node.networkInfo.CheckHostNetworks(hostIPNets); err != nil {
-		// checkHostNetworks() errors *should* be fatal, but we didn't used to check this, and we can't break (mostly-)working nodes on upgrade.
-		utilruntime.HandleError(fmt.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err))
-	}
-
 	node.localSubnetCIDR, err = node.getLocalSubnet()
 	if err != nil {
 		return err
@@ -504,19 +494,4 @@ func (node *OsdnNode) handleDeleteService(obj interface{}) {
 
 	klog.V(5).Infof("Watch %s event for Service %q", watch.Deleted, serv.Name)
 	node.DeleteServiceRules(serv)
-}
-
-func validateNetworkPluginName(networkClient networkclient.Interface, pluginName string) error {
-	// Detect any plugin mismatches between node and master
-	clusterNetwork, err := networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
-	switch {
-	case errors.IsNotFound(err):
-		return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
-	case err != nil:
-		return fmt.Errorf("cannot fetch %q cluster network: %v", networkapi.ClusterNetworkDefault, err)
-	}
-	if clusterNetwork.PluginName != strings.ToLower(pluginName) {
-		return fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
-	}
-	return nil
 }
