@@ -210,12 +210,23 @@ func (EtcdList) SwaggerDoc() map[string]string {
 }
 
 var map_EndpointPublishingStrategy = map[string]string{
-	"":     "EndpointPublishingStrategy is a way to publish the endpoints of an IngressController, and represents the type and any additional configuration for a specific type.",
-	"type": "type is the publishing strategy to use. Valid values are:\n\n* LoadBalancerService\n\nPublishes the ingress controller using a Kubernetes LoadBalancer Service.\n\nIn this configuration, the ingress controller deployment uses container networking. A LoadBalancer Service is created to publish the deployment.\n\nSee: https://kubernetes.io/docs/concepts/services-networking/#loadbalancer\n\nIf domain is set, a wildcard DNS record will be managed to point at the LoadBalancer Service's external name. DNS records are managed only in DNS zones defined by dns.config.openshift.io/cluster .spec.publicZone and .spec.privateZone.\n\nWildcard DNS management is currently supported only on the AWS platform.\n\n* HostNetwork\n\nPublishes the ingress controller on node ports where the ingress controller is deployed.\n\nIn this configuration, the ingress controller deployment uses host networking, bound to node ports 80 and 443. The user is responsible for configuring an external load balancer to publish the ingress controller via the node ports.\n\n* Private\n\nDoes not publish the ingress controller.\n\nIn this configuration, the ingress controller deployment uses container networking, and is not explicitly published. The user must manually publish the ingress controller.",
+	"":             "EndpointPublishingStrategy is a way to publish the endpoints of an IngressController, and represents the type and any additional configuration for a specific type.",
+	"type":         "type is the publishing strategy to use. Valid values are:\n\n* LoadBalancerService\n\nPublishes the ingress controller using a Kubernetes LoadBalancer Service.\n\nIn this configuration, the ingress controller deployment uses container networking. A LoadBalancer Service is created to publish the deployment.\n\nSee: https://kubernetes.io/docs/concepts/services-networking/#loadbalancer\n\nIf domain is set, a wildcard DNS record will be managed to point at the LoadBalancer Service's external name. DNS records are managed only in DNS zones defined by dns.config.openshift.io/cluster .spec.publicZone and .spec.privateZone.\n\nWildcard DNS management is currently supported only on the AWS platform.\n\n* HostNetwork\n\nPublishes the ingress controller on node ports where the ingress controller is deployed.\n\nIn this configuration, the ingress controller deployment uses host networking, bound to node ports 80 and 443. The user is responsible for configuring an external load balancer to publish the ingress controller via the node ports.\n\n* Private\n\nDoes not publish the ingress controller.\n\nIn this configuration, the ingress controller deployment uses container networking, and is not explicitly published. The user must manually publish the ingress controller.",
+	"loadBalancer": "loadBalancer holds parameters for the load balancer. Present only if type is LoadBalancerService.",
+	"hostNetwork":  "hostNetwork holds parameters for the HostNetwork endpoint publishing strategy. Present only if type is HostNetwork.",
+	"private":      "private holds parameters for the Private endpoint publishing strategy. Present only if type is Private.",
 }
 
 func (EndpointPublishingStrategy) SwaggerDoc() map[string]string {
 	return map_EndpointPublishingStrategy
+}
+
+var map_HostNetworkStrategy = map[string]string{
+	"": "HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing strategy.",
+}
+
+func (HostNetworkStrategy) SwaggerDoc() map[string]string {
+	return map_HostNetworkStrategy
 }
 
 var map_IngressController = map[string]string{
@@ -264,6 +275,15 @@ func (IngressControllerStatus) SwaggerDoc() map[string]string {
 	return map_IngressControllerStatus
 }
 
+var map_LoadBalancerStrategy = map[string]string{
+	"":      "LoadBalancerStrategy holds parameters for a load balancer.",
+	"scope": "scope indicates the scope at which the load balancer is exposed. Possible values are \"External\" and \"Internal\".  The default is \"External\".",
+}
+
+func (LoadBalancerStrategy) SwaggerDoc() map[string]string {
+	return map_LoadBalancerStrategy
+}
+
 var map_NodePlacement = map[string]string{
 	"":             "NodePlacement describes node scheduling configuration for an ingress controller.",
 	"nodeSelector": "nodeSelector is the node selector applied to ingress controller deployments.\n\nIf unset, the default is:\n\n  beta.kubernetes.io/os: linux\n  node-role.kubernetes.io/worker: ''\n\nIf set, the specified selector is used and replaces the default.",
@@ -272,6 +292,14 @@ var map_NodePlacement = map[string]string{
 
 func (NodePlacement) SwaggerDoc() map[string]string {
 	return map_NodePlacement
+}
+
+var map_PrivateStrategy = map[string]string{
+	"": "PrivateStrategy holds parameters for the Private endpoint publishing strategy.",
+}
+
+func (PrivateStrategy) SwaggerDoc() map[string]string {
+	return map_PrivateStrategy
 }
 
 var map_KubeAPIServer = map[string]string{

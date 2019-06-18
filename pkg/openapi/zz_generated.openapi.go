@@ -455,6 +455,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.EtcdSpec":                                                               schema_openshift_api_operator_v1_EtcdSpec(ref),
 		"github.com/openshift/api/operator/v1.EtcdStatus":                                                             schema_openshift_api_operator_v1_EtcdStatus(ref),
 		"github.com/openshift/api/operator/v1.GenerationStatus":                                                       schema_openshift_api_operator_v1_GenerationStatus(ref),
+		"github.com/openshift/api/operator/v1.HostNetworkStrategy":                                                    schema_openshift_api_operator_v1_HostNetworkStrategy(ref),
 		"github.com/openshift/api/operator/v1.IngressController":                                                      schema_openshift_api_operator_v1_IngressController(ref),
 		"github.com/openshift/api/operator/v1.IngressControllerList":                                                  schema_openshift_api_operator_v1_IngressControllerList(ref),
 		"github.com/openshift/api/operator/v1.IngressControllerSpec":                                                  schema_openshift_api_operator_v1_IngressControllerSpec(ref),
@@ -472,6 +473,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.KubeSchedulerSpec":                                                      schema_openshift_api_operator_v1_KubeSchedulerSpec(ref),
 		"github.com/openshift/api/operator/v1.KubeSchedulerStatus":                                                    schema_openshift_api_operator_v1_KubeSchedulerStatus(ref),
 		"github.com/openshift/api/operator/v1.KuryrConfig":                                                            schema_openshift_api_operator_v1_KuryrConfig(ref),
+		"github.com/openshift/api/operator/v1.LoadBalancerStrategy":                                                   schema_openshift_api_operator_v1_LoadBalancerStrategy(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResource":                                                     schema_openshift_api_operator_v1_MyOperatorResource(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceSpec":                                                 schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceStatus":                                               schema_openshift_api_operator_v1_MyOperatorResourceStatus(ref),
@@ -494,6 +496,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.OperatorCondition":                                                      schema_openshift_api_operator_v1_OperatorCondition(ref),
 		"github.com/openshift/api/operator/v1.OperatorSpec":                                                           schema_openshift_api_operator_v1_OperatorSpec(ref),
 		"github.com/openshift/api/operator/v1.OperatorStatus":                                                         schema_openshift_api_operator_v1_OperatorStatus(ref),
+		"github.com/openshift/api/operator/v1.PrivateStrategy":                                                        schema_openshift_api_operator_v1_PrivateStrategy(ref),
 		"github.com/openshift/api/operator/v1.ProxyConfig":                                                            schema_openshift_api_operator_v1_ProxyConfig(ref),
 		"github.com/openshift/api/operator/v1.ServiceCA":                                                              schema_openshift_api_operator_v1_ServiceCA(ref),
 		"github.com/openshift/api/operator/v1.ServiceCAList":                                                          schema_openshift_api_operator_v1_ServiceCAList(ref),
@@ -22396,10 +22399,29 @@ func schema_openshift_api_operator_v1_EndpointPublishingStrategy(ref common.Refe
 							Format:      "",
 						},
 					},
+					"loadBalancer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "loadBalancer holds parameters for the load balancer. Present only if type is LoadBalancerService.",
+							Ref:         ref("github.com/openshift/api/operator/v1.LoadBalancerStrategy"),
+						},
+					},
+					"hostNetwork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "hostNetwork holds parameters for the HostNetwork endpoint publishing strategy. Present only if type is HostNetwork.",
+							Ref:         ref("github.com/openshift/api/operator/v1.HostNetworkStrategy"),
+						},
+					},
+					"private": {
+						SchemaProps: spec.SchemaProps{
+							Description: "private holds parameters for the Private endpoint publishing strategy. Present only if type is Private.",
+							Ref:         ref("github.com/openshift/api/operator/v1.PrivateStrategy"),
+						},
+					},
 				},
-				Required: []string{"type"},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.HostNetworkStrategy", "github.com/openshift/api/operator/v1.LoadBalancerStrategy", "github.com/openshift/api/operator/v1.PrivateStrategy"},
 	}
 }
 
@@ -22706,6 +22728,17 @@ func schema_openshift_api_operator_v1_GenerationStatus(ref common.ReferenceCallb
 					},
 				},
 				Required: []string{"group", "resource", "namespace", "name", "lastGeneration", "hash"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_operator_v1_HostNetworkStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing strategy.",
+				Type:        []string{"object"},
 			},
 		},
 	}
@@ -23694,6 +23727,26 @@ func schema_openshift_api_operator_v1_KuryrConfig(ref common.ReferenceCallback) 
 							Description: "The port kuryr-controller will listen for readiness and liveness requests.",
 							Type:        []string{"integer"},
 							Format:      "int64",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_operator_v1_LoadBalancerStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LoadBalancerStrategy holds parameters for a load balancer.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"scope": {
+						SchemaProps: spec.SchemaProps{
+							Description: "scope indicates the scope at which the load balancer is exposed. Possible values are \"External\" and \"Internal\".  The default is \"External\".",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -24754,6 +24807,17 @@ func schema_openshift_api_operator_v1_OperatorStatus(ref common.ReferenceCallbac
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
+func schema_openshift_api_operator_v1_PrivateStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PrivateStrategy holds parameters for the Private endpoint publishing strategy.",
+				Type:        []string{"object"},
+			},
+		},
 	}
 }
 

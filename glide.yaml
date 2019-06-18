@@ -102,11 +102,15 @@ import:
 - package: github.com/openshift/source-to-image
   version: master
 - package: github.com/openshift/oauth-server
-  version: release-4.2
+  version: master
+- package: github.com/openshift/oc
+  version: master
 - package: github.com/openshift/openshift-controller-manager
-  version: release-4.2
+  version: master
 - package: github.com/openshift/openshift-apiserver
   version: release-4.2
+- package: github.com/openshift/template-service-broker
+  version: master
 
 # forks third
 # master

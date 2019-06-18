@@ -23,6 +23,7 @@ type ProxiesGetter interface {
 type ProxyInterface interface {
 	Create(*v1.Proxy) (*v1.Proxy, error)
 	Update(*v1.Proxy) (*v1.Proxy, error)
+	UpdateStatus(*v1.Proxy) (*v1.Proxy, error)
 	Delete(name string, options *metav1.DeleteOptions) error
 	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
 	Get(name string, options metav1.GetOptions) (*v1.Proxy, error)
@@ -103,6 +104,21 @@ func (c *proxies) Update(proxy *v1.Proxy) (result *v1.Proxy, err error) {
 	err = c.client.Put().
 		Resource("proxies").
 		Name(proxy.Name).
+		Body(proxy).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+
+func (c *proxies) UpdateStatus(proxy *v1.Proxy) (result *v1.Proxy, err error) {
+	result = &v1.Proxy{}
+	err = c.client.Put().
+		Resource("proxies").
+		Name(proxy.Name).
+		SubResource("status").
 		Body(proxy).
 		Do().
 		Into(result)
