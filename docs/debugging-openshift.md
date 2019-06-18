@@ -47,7 +47,7 @@ and you can get the build id via:
 
 the build id is in the first column.
 
-If you're unable to retrieve the logs in this way, you can also get them directly from docker.  First you need to find the docker container that ran your build:
+If you're unable to retrieve the logs in this way, you can also get them directly from docker.  First you need to find the container that ran your build:
 
     $ docker ps -a | grep builder
 
@@ -119,7 +119,7 @@ Obviously this won't work if you don't have bash installed but you could always 
 Name Resolution Within Containers
 -------------------
 
-DNS related services like `dnsmasq` can interfere with naming resolution in the Docker containers launched by OpenShift, including binding on the same port (53) that OpenShift will attempt to use.  To circumvent this conflict, disable
+DNS related services like `dnsmasq` can interfere with naming resolution in the containers launched by OpenShift, including binding on the same port (53) that OpenShift will attempt to use.  To circumvent this conflict, disable
 these services.  Using the `dnsmasq` example on Fedora, run all three of the following before starting OpenShift to ensure `dnsmasq` is not running, does not launch later on, and hence does not interfere with OpenShift:
 
     $ sudo systemctl stop dnsmasq

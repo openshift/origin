@@ -268,7 +268,7 @@ At this point, all [environment assumptions](../../gluster-examples) are met, an
 *Notice we also see our helloworld.html file that we created within that directory*
 
 
-- Enter simple curl command from the docker container to serve the page
+- Enter simple curl command from the container to serve the page
 
         curl http://10.1.0.12/test/glusterfs-nginx-pvc/helloworld.html
 

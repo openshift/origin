@@ -2,7 +2,7 @@
 
 ## Problem/Rationale
 
-Kubernetes creates Docker containers from images that were built elsewhere and pushed to a Docker registry. Building Docker images is a foundational use-case in Docker-based workflows for application development and deployment. Without support for builds in Kubernetes, if a system administrator wanted a system that could build images, he or she would have to select a pre-existing build system or write a new one, and then figure out how to deploy and maintain it on or off Kubernetes. However, in most cases operators would wish to leverage the ability of Kubernetes to schedule task execution into a pool of available resources, and most build systems would want to take advantage of that mechanism.
+Kubernetes creates containers from images that were built elsewhere and pushed to a Docker registry. Building Docker images is a foundational use-case in Docker-based workflows for application development and deployment. Without support for builds in Kubernetes, if a system administrator wanted a system that could build images, he or she would have to select a pre-existing build system or write a new one, and then figure out how to deploy and maintain it on or off Kubernetes. However, in most cases operators would wish to leverage the ability of Kubernetes to schedule task execution into a pool of available resources, and most build systems would want to take advantage of that mechanism.
 
 Offering an API for builds makes OpenShift a viable back-end for arbitrary third-party Docker image build systems which require resource constraints and scheduling capabilities, and allows organizations to orchestrate Docker builds from their existing continuous integration processes. OpenShift enables CI/CD flows around Docker images.
 
@@ -57,7 +57,7 @@ There are viable paths to alleviate or resolve each of these disadvantages, and 
 
 ##### Why not Docker-in-Docker?
 
-It's theoretically possible to implement builds using a nested Docker daemon within a Docker container (Docker-in-Docker). On the surface, this approach offers some compelling advantages:
+It's theoretically possible to implement builds using a nested Docker daemon within a container (Docker-in-Docker). On the surface, this approach offers some compelling advantages:
 
 1.  Build process resources can be naturally constrained to the user’s acceptable limits (cgroups)
 2.  Containers created during the build have the build container as their parent process, making container cleanup simple

@@ -1069,11 +1069,11 @@ case "${1:-""}" in
 
 Commands:
 - start: Starts the containers in an openshift docker-in-docker environment
-- stop: Destroys the docker containers for the docker-in-docker environment
+- stop: Destroys the containers for the docker-in-docker environment
 - add-node: Adds a node to the cluster
 - delete-node <node-num>: Deletes the given node from the cluster
 - refresh: Refreshes the openshift binaries in the containers and reloads the processes
-- ps: List all of the docker containers that make up the cluster
+- ps: List all of the containers that make up the cluster
 - pause: Stops running containers, but leaves the state around
 - resume: Restarts paused containers
 - copy-image: Copies an image from the outer docker into all node dockers

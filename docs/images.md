@@ -1,6 +1,6 @@
 # OpenShift Images
 ## Problem/Rationale
-Kubernetes creates Docker containers from images stored in Docker registries. It does not currently track and store any information about images; it merely pulls and stores them locally on a minion as part of the pod creation process.
+Kubernetes creates containers from images stored in Docker registries. It does not currently track and store any information about images; it merely pulls and stores them locally on a minion as part of the pod creation process.
 
 Adding information related to images - image repositories, the images themselves, tags, and metadata - as resources in an image component will provide foundational support for several use cases, listed below.
 

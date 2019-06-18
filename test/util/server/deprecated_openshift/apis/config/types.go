@@ -285,7 +285,7 @@ type NodeAuthConfig struct {
 // DockerConfig holds Docker related configuration options.
 type DockerConfig struct {
 	// ExecHandlerName is the name of the handler to use for executing
-	// commands in Docker containers.
+	// commands in containers.
 	ExecHandlerName DockerExecHandlerType
 	// DockerShimSocket is the location of the dockershim socket the kubelet uses.
 	DockerShimSocket string
