@@ -10,31 +10,31 @@ rules:
         dir: staging/src/github.com/openshift/openshift-apiserver
 - destination: oc
   branches:
-    - name: release-4.2
+    - name: master
       source:
         branch: master
         dir: staging/src/github.com/openshift/oc
 - destination: template-service-broker
   branches:
-    - name: release-4.2
+    - name: master
       source:
         branch: master
         dir: staging/src/github.com/openshift/template-service-broker
 - destination: openshift-controller-manager
   branches:
-    - name: release-4.2
+    - name: master
       source:
         branch: master
         dir: staging/src/github.com/openshift/openshift-controller-manager
 - destination: oauth-server
   branches:
-    - name: release-4.2
+    - name: master
       source:
         branch: master
         dir: staging/src/github.com/openshift/oauth-server
 - destination: sdn
   branches:
-    - name: release-4.2
+    - name: master
       source:
         branch: master
         dir: staging/src/github.com/openshift/sdn
