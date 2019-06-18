@@ -273,7 +273,7 @@ OpenShift cluster.  From the root of an origin repo:
         $ pushd ..
         $ git clone http://github.com/kubernetes/kubernetes/
         $ pushd kubernetes/build
-        $ ./run hack/build-go.sh
+        $ ./run.sh hack/build-go.sh
         $ popd && popd
         $ export KUBE_ROOT=../kubernetes
         $ hack/test-kube-e2e.sh --ginkgo.focus="[regex]"
