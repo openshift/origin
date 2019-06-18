@@ -19,7 +19,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -32,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerConfig) (*OpenshiftAPIConfig, error) {
@@ -137,11 +135,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 
 	informers, err := NewInformers(kubeInformers, kubeClientConfig, genericConfig.LoopbackClientConfig)
 	if err != nil {
-		return nil, err
-	}
-	if err := informers.GetOpenshiftUserInformers().User().V1().Groups().Informer().AddIndexers(cache.Indexers{
-		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
-	}); err != nil {
 		return nil, err
 	}
 

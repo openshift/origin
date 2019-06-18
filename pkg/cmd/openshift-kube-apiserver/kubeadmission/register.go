@@ -5,7 +5,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
 
-	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
+	authorizationrestrictusers "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers"
 	quotaclusterresourceoverride "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/clusterresourceoverride"
 	quotarunonceduration "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/runonceduration"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
@@ -14,9 +14,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/externalipranger"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/restrictedendpoints"
 	ingressadmission "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route"
+	projectnodeenv "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
+	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
 	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
-	projectnodeenv "github.com/openshift/origin/pkg/scheduler/admission/nodeenv"
-	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
 

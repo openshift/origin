@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

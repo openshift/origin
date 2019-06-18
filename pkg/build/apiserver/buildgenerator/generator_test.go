@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -17,16 +19,24 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/kubernetes/fake"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/build/buildutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildconversionsv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	"github.com/openshift/origin/pkg/build/apiserver/apiserverbuildutil"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
+
+var (
+	scheme = runtime.NewScheme()
+)
+
+func init() {
+	scheme, _ = apitesting.SchemeForOrDie(buildconversionsv1.Install)
+}
 
 const (
 	originalImage = "originalimage"
@@ -992,7 +1002,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 
 	// TODO: We have to convert this to internal as the validation/apiserver is still using internal build...
 	internalBuild := &buildapi.Build{}
-	if err := legacyscheme.Scheme.Convert(build, internalBuild, nil); err != nil {
+	if err := scheme.Convert(build, internalBuild, nil); err != nil {
 		t.Fatalf("unable to convert to internal build: %v", err)
 	}
 	validateErrors := validation.ValidateBuild(internalBuild)

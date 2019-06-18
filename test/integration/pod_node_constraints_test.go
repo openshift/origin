@@ -12,7 +12,7 @@ import (
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
-	pluginapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
+	pluginapi "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"

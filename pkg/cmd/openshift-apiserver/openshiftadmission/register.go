@@ -12,7 +12,6 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	projectrequestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/requestlimit"
 	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
-	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 )
 
 // TODO register this per apiserver or at least per process
@@ -38,7 +37,6 @@ func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	buildstrategyrestrictions.Register(plugins)
 	imageadmission.Register(plugins)
 	imagepolicy.Register(plugins)
-	schedulerpodnodeconstraints.Register(plugins)
 	quotaclusterresourcequota.Register(plugins)
 }
 

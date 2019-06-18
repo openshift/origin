@@ -10,12 +10,12 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/api/authorization/v1"
-	userapi "github.com/openshift/api/user/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
 
-func mustNewSubjectChecker(t *testing.T, spec *authorizationapi.RoleBindingRestrictionSpec) SubjectChecker {
+func mustNewSubjectChecker(t *testing.T, spec *authorizationv1.RoleBindingRestrictionSpec) SubjectChecker {
 	checker, err := NewSubjectChecker(spec)
 	if err != nil {
 		t.Errorf("unexpected error from NewChecker: %v, spec: %#v", err, spec)
@@ -43,7 +43,7 @@ func TestSubjectCheckers(t *testing.T) {
 			Namespace: "namespace",
 			Name:      "serviceaccount",
 		}
-		group = userapi.Group{
+		group = userv1.Group{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "group",
 				Labels: map[string]string{"baz": "quux"},
@@ -51,13 +51,13 @@ func TestSubjectCheckers(t *testing.T) {
 			Users: []string{userBobRef.Name},
 		}
 		userObjects = []runtime.Object{
-			&userapi.User{
+			&userv1.User{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "Alice",
 					Labels: map[string]string{"foo": "bar"},
 				},
 			},
-			&userapi.User{
+			&userv1.User{
 				ObjectMeta: metav1.ObjectMeta{Name: "Bob"},
 				Groups:     []string{"group"},
 			},
@@ -83,8 +83,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow regular user by literal name match",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					UserRestriction: &authorizationapi.UserRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					UserRestriction: &authorizationv1.UserRestriction{
 						Users: []string{userAliceRef.Name},
 					},
 				}),
@@ -94,8 +94,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow regular user by group membership",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					UserRestriction: &authorizationapi.UserRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					UserRestriction: &authorizationv1.UserRestriction{
 						Groups: []string{groupRef.Name},
 					},
 				}),
@@ -105,8 +105,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "prohibit regular user when another user matches on group membership",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					UserRestriction: &authorizationapi.UserRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					UserRestriction: &authorizationv1.UserRestriction{
 						Groups: []string{groupRef.Name},
 					},
 				}),
@@ -116,8 +116,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow regular user by label selector match",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					UserRestriction: &authorizationapi.UserRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					UserRestriction: &authorizationv1.UserRestriction{
 						Selectors: []metav1.LabelSelector{
 							{MatchLabels: map[string]string{"foo": "bar"}},
 						},
@@ -129,8 +129,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "prohibit regular user when another user matches on label selector",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					UserRestriction: &authorizationapi.UserRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					UserRestriction: &authorizationv1.UserRestriction{
 						Selectors: []metav1.LabelSelector{
 							{MatchLabels: map[string]string{"foo": "bar"}},
 						},
@@ -142,8 +142,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow regular group by literal name match",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					GroupRestriction: &authorizationapi.GroupRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					GroupRestriction: &authorizationv1.GroupRestriction{
 						Groups: []string{groupRef.Name},
 					},
 				}),
@@ -153,8 +153,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow regular group by label selector match",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					GroupRestriction: &authorizationapi.GroupRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					GroupRestriction: &authorizationv1.GroupRestriction{
 						Selectors: []metav1.LabelSelector{
 							{MatchLabels: map[string]string{"baz": "quux"}},
 						},
@@ -166,9 +166,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow service account with explicit namespace by match on literal name and explicit namespace",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{
 								Name:      serviceaccountRef.Name,
 								Namespace: serviceaccountRef.Namespace,
@@ -182,9 +182,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow service account with explicit namespace by match on literal name and implicit namespace",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{Name: serviceaccountRef.Name},
 						},
 					},
@@ -195,9 +195,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "prohibit service account with explicit namespace where literal name matches but explicit namespace does not",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{
 								Namespace: serviceaccountRef.Namespace,
 								Name:      serviceaccountRef.Name,
@@ -215,9 +215,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "prohibit service account with explicit namespace where literal name matches but implicit namespace does not",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{Name: serviceaccountRef.Name},
 						},
 					},
@@ -232,9 +232,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow service account with implicit namespace by match on literal name and explicit namespace",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{
 								Name:      serviceaccountRef.Name,
 								Namespace: serviceaccountRef.Namespace,
@@ -251,9 +251,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow service account with implicit namespace by match on literal name and implicit namespace",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{Name: serviceaccountRef.Name},
 						},
 					},
@@ -267,9 +267,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "prohibit service account with implicit namespace where literal name matches but explicit namespace does not",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{
 								Namespace: "othernamespace",
 								Name:      serviceaccountRef.Name,
@@ -286,9 +286,9 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "prohibit service account with explicit namespace where explicit namespace matches but literal name does not",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
-						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationv1.ServiceAccountReference{
 							{
 								Namespace: serviceaccountRef.Namespace,
 								Name:      "othername",
@@ -302,8 +302,8 @@ func TestSubjectCheckers(t *testing.T) {
 		{
 			name: "allow service account by match on namespace",
 			checker: mustNewSubjectChecker(t,
-				&authorizationapi.RoleBindingRestrictionSpec{
-					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+				&authorizationv1.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationv1.ServiceAccountRestriction{
 						Namespaces: []string{serviceaccountRef.Namespace},
 					},
 				}),
@@ -317,7 +317,7 @@ func TestSubjectCheckers(t *testing.T) {
 
 	kclient := fake.NewSimpleClientset(kubeObjects...)
 	fakeUserClient := fakeuserclient.NewSimpleClientset(userObjects...)
-	groupCache := fakeGroupCache{groups: []userapi.Group{group}}
+	groupCache := fakeGroupCache{groups: []userv1.Group{group}}
 	// This is a terrible, horrible, no-good, very bad hack to avoid a race
 	// condition between the test "allow regular user by group membership"
 	// and the group cache's initialisation.

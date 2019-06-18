@@ -14,8 +14,8 @@ import (
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
 	"github.com/openshift/library-go/pkg/config/helpers"
-	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
-	v1 "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
+	v1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints/v1"
 )
 
 const PluginName = "scheduling.openshift.io/PodNodeConstraints"
