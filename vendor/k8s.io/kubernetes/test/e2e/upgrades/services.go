@@ -17,6 +17,8 @@ limitations under the License.
 package upgrades
 
 import (
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -66,7 +68,8 @@ func (t *ServiceUpgradeTest) Setup(f *framework.Framework) {
 
 	// Hit it once before considering ourselves ready
 	By("hitting the pod through the service's LoadBalancer")
-	jig.TestReachableHTTP(tcpIngressIP, svcPort, framework.LoadBalancerLagTimeoutDefault)
+	// Load balancers can take more than 2 minutes in heavily contended AWS accounts
+	jig.TestReachableHTTP(tcpIngressIP, svcPort, 3*time.Minute)
 
 	t.jig = jig
 	t.tcpService = tcpService
