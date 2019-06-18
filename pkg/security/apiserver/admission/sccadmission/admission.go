@@ -24,7 +24,6 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 )
 
@@ -47,7 +46,7 @@ type constraint struct {
 var (
 	_ = initializer.WantsAuthorizer(&constraint{})
 	_ = initializer.WantsExternalKubeClientSet(&constraint{})
-	_ = oadmission.WantsSecurityInformer(&constraint{})
+	_ = WantsSecurityInformer(&constraint{})
 	_ = admission.ValidationInterface(&constraint{})
 	_ = admission.MutationInterface(&constraint{})
 )

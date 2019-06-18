@@ -31,11 +31,11 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
+	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	imagepolicy "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/rules"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -83,8 +83,8 @@ type ImagePolicyPlugin struct {
 
 var _ = initializer.WantsExternalKubeInformerFactory(&ImagePolicyPlugin{})
 var _ = oadmission.WantsRESTClientConfig(&ImagePolicyPlugin{})
-var _ = oadmission.WantsDefaultRegistryFunc(&ImagePolicyPlugin{})
-var _ = oadmission.WantsImageMutators(&ImagePolicyPlugin{})
+var _ = WantsDefaultRegistryFunc(&ImagePolicyPlugin{})
+var _ = WantsImageMutators(&ImagePolicyPlugin{})
 var _ = admission.ValidationInterface(&ImagePolicyPlugin{})
 var _ = admission.MutationInterface(&ImagePolicyPlugin{})
 

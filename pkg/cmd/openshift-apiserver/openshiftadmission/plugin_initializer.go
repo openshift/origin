@@ -25,10 +25,11 @@ import (
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/admission/admissionrestconfig"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
 	"github.com/openshift/origin/pkg/quota/image"
 )
 
@@ -47,7 +48,6 @@ func NewPluginInitializer(
 	privilegedLoopbackConfig *rest.Config,
 	informers InformerAccess,
 	authorizer authorizer.Authorizer,
-	projectCache *projectcache.ProjectCache,
 	restMapper meta.RESTMapper,
 	clusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController,
 ) (admission.PluginInitializer, error) {
@@ -121,17 +121,16 @@ func NewPluginInitializer(
 		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetKubernetesInformers().Core().V1().Services().Lister()),
 	)
 
-	openshiftPluginInitializer := &oadmission.PluginInitializer{
-		ProjectCache:                 projectCache,
-		OriginQuotaRegistry:          quotaRegistry,
-		RESTClientConfig:             *privilegedLoopbackConfig,
-		ClusterResourceQuotaInformer: informers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
-		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
-		RegistryHostnameRetriever:    registryHostnameRetriever,
-		SecurityInformers:            informers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
-		UserInformers:                informers.GetOpenshiftUserInformers(),
-		ImageMutators:                originimagereferencemutators.OriginImageMutators{},
-	}
-
-	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer}, nil
+	return admission.PluginInitializers{
+		genericInitializer,
+		webhookInitializer,
+		kubePluginInitializer,
+		imagepolicy.NewInitializer(originimagereferencemutators.OriginImageMutators{}, registryHostnameRetriever.InternalRegistryHostname),
+		clusterresourcequota.NewInitializer(
+			informers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
+			clusterQuotaMappingController.GetClusterQuotaMapper(),
+			quotaRegistry,
+		),
+		admissionrestconfig.NewInitializer(*rest.CopyConfig(privilegedLoopbackConfig)),
+	}, nil
 }

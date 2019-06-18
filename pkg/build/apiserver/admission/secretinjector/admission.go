@@ -16,8 +16,8 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	authclient "github.com/openshift/openshift-apiserver/pkg/client/impersonatingclient"
+	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
 func Register(plugins *admission.Plugins) {

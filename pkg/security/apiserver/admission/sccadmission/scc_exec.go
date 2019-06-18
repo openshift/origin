@@ -13,7 +13,6 @@ import (
 	coreapiv1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	securityv1informers "github.com/openshift/client-go/security/informers/externalversions/security/v1"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
 func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
@@ -27,7 +26,7 @@ func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
 var (
 	_ = initializer.WantsAuthorizer(&sccExecRestrictions{})
 	_ = initializer.WantsExternalKubeClientSet(&sccExecRestrictions{})
-	_ = oadmission.WantsSecurityInformer(&sccExecRestrictions{})
+	_ = WantsSecurityInformer(&sccExecRestrictions{})
 	_ = admission.ValidationInterface(&sccExecRestrictions{})
 )
 

@@ -15,7 +15,6 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -41,7 +40,7 @@ type podNodeEnvironment struct {
 }
 
 var _ = initializer.WantsExternalKubeInformerFactory(&podNodeEnvironment{})
-var _ = oadmission.WantsDefaultNodeSelector(&podNodeEnvironment{})
+var _ = WantsDefaultNodeSelector(&podNodeEnvironment{})
 var _ = admission.ValidationInterface(&podNodeEnvironment{})
 var _ = admission.MutationInterface(&podNodeEnvironment{})
 

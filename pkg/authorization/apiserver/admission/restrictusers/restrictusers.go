@@ -5,16 +5,13 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/apiserver/pkg/admission/initializer"
-
-	"k8s.io/client-go/rest"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
@@ -22,7 +19,7 @@ import (
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -50,7 +47,7 @@ type restrictUsersAdmission struct {
 }
 
 var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
-var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
+var _ = WantsUserInformer(&restrictUsersAdmission{})
 var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
 var _ = admission.ValidationInterface(&restrictUsersAdmission{})
 
