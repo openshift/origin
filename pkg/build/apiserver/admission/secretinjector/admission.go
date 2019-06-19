@@ -6,17 +6,16 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	authclient "github.com/openshift/openshift-apiserver/pkg/client/impersonatingclient"
-	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
@@ -34,7 +33,7 @@ type secretInjector struct {
 	restClientConfig restclient.Config
 }
 
-var _ = oadmission.WantsRESTClientConfig(&secretInjector{})
+var _ = admissionrestconfig.WantsRESTClientConfig(&secretInjector{})
 var _ = admission.MutationInterface(&secretInjector{})
 var _ = admission.ValidationInterface(&secretInjector{})
 

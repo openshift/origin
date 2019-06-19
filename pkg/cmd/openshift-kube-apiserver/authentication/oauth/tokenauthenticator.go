@@ -8,9 +8,9 @@ import (
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 var errLookup = errors.New("token lookup failed")
@@ -61,7 +61,7 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 			UID:    string(user.UID),
 			Groups: groupNames,
 			Extra: map[string][]string{
-				authorizationapi.ScopesKey: token.Scopes,
+				authorizationv1.ScopesKey: token.Scopes,
 			},
 		},
 	}, true, nil

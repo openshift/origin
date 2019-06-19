@@ -10,8 +10,8 @@ import (
 
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/library-go/pkg/config/serving"
 	"github.com/openshift/oauth-server/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
@@ -40,7 +40,7 @@ func RunOsinServer(osinConfig *osinv1.OsinServerConfig, stopCh <-chan struct{}) 
 func newOAuthServerConfig(osinConfig *osinv1.OsinServerConfig) (*oauthserver.OAuthServerConfig, error) {
 	genericConfig := genericapiserver.NewRecommendedConfig(legacyscheme.Codecs)
 
-	servingOptions, err := configprocessing.ToServingOptions(osinConfig.ServingInfo)
+	servingOptions, err := serving.ToServingOptions(osinConfig.ServingInfo)
 	if err != nil {
 		return nil, err
 	}

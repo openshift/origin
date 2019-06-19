@@ -20,8 +20,8 @@ import (
 
 	"github.com/openshift/api/project"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/config/helpers"
-	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	"github.com/openshift/origin/pkg/api/legacy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
@@ -80,7 +80,7 @@ type projectRequestLimit struct {
 
 // ensure that the required Openshift admission interfaces are implemented
 var _ = initializer.WantsExternalKubeInformerFactory(&projectRequestLimit{})
-var _ = oadmission.WantsRESTClientConfig(&projectRequestLimit{})
+var _ = admissionrestconfig.WantsRESTClientConfig(&projectRequestLimit{})
 var _ = admission.ValidationInterface(&projectRequestLimit{})
 
 // Admit ensures that only a configured number of projects can be requested by a particular user.

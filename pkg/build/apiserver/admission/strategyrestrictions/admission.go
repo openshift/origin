@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/kubernetes"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/rest"
@@ -19,13 +20,12 @@ import (
 
 	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
-	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"k8s.io/apiserver/pkg/admission/initializer"
 )
 
 // provides a way to convert between internal and external.  Please don't used this to serialize and deserialize
@@ -51,7 +51,7 @@ type buildByStrategy struct {
 }
 
 var _ = initializer.WantsExternalKubeClientSet(&buildByStrategy{})
-var _ = oadmission.WantsRESTClientConfig(&buildByStrategy{})
+var _ = admissionrestconfig.WantsRESTClientConfig(&buildByStrategy{})
 var _ = admission.ValidationInterface(&buildByStrategy{})
 
 // NewBuildByStrategy returns an admission control for builds that checks

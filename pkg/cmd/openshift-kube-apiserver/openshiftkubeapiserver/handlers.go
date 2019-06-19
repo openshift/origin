@@ -21,8 +21,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 type userAgentFilter struct {
@@ -133,8 +133,8 @@ const legacyImpersonateUserScopeHeader = "Impersonate-User-Scope"
 func translateLegacyScopeImpersonation(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		for _, scope := range req.Header[legacyImpersonateUserScopeHeader] {
-			req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey] =
-				append(req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey], scope)
+			req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey] =
+				append(req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey], scope)
 		}
 
 		handler.ServeHTTP(w, req)

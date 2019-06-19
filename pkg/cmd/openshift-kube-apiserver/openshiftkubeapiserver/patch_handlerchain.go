@@ -10,9 +10,9 @@ import (
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/apiserver/httprequest"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 )
 
 const (
@@ -56,7 +56,7 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osin
 
 			// these handlers are all before the normal kube chain
 			handler = translateLegacyScopeImpersonation(handler)
-			handler = configprocessing.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
+			handler = apiserverconfig.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / and /console to consolePublicURL if you're using a browser
 			handler = withConsoleRedirect(handler, consolePublicURL)

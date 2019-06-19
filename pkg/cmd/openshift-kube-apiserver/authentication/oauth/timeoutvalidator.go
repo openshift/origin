@@ -15,7 +15,7 @@ import (
 	userv1 "github.com/openshift/api/user/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	oauthclientlister "github.com/openshift/client-go/oauth/listers/oauth/v1"
-	"github.com/openshift/origin/pkg/apiserver/authentication/oauth/rankedset"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authentication/oauth/rankedset"
 )
 
 var errTimedout = errors.New("token timed out")

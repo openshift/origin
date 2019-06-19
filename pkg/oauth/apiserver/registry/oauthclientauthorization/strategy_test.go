@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	oauth "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

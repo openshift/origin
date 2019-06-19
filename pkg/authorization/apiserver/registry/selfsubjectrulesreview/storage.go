@@ -14,6 +14,7 @@ import (
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	"github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectrulesreview"
@@ -67,7 +68,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		}
 
 	case len(rulesReview.Spec.Scopes) > 0:
-		userToCheck.Extra[authorizationapi.ScopesKey] = rulesReview.Spec.Scopes
+		userToCheck.Extra[authorizationv1.ScopesKey] = rulesReview.Spec.Scopes
 	}
 
 	rules, errors := subjectrulesreview.GetEffectivePolicyRules(apirequest.WithUser(ctx, userToCheck), r.ruleResolver, r.clusterRoleGetter)

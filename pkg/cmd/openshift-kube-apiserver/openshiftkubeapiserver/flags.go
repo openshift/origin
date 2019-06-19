@@ -9,7 +9,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
-	"github.com/openshift/origin/pkg/cmd/configflags"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configflags"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
