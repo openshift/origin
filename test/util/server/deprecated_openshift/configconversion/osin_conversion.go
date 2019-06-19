@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
+
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -62,6 +64,9 @@ func Convert_legacyconfigv1_OAuthConfig_to_osinv1_OAuthConfig(in *legacyconfigv1
 			return err
 		}
 		out.IdentityProviders[i].Provider.Object = idp
+
+		_, codecs := apitesting.SchemeForOrDie(osinv1.Install)
+		out.IdentityProviders[i].Provider.Raw = []byte(runtime.EncodeOrDie(codecs.LegacyCodec(osinv1.GroupVersion), idp))
 	}
 	return nil
 }

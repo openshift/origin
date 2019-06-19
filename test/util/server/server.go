@@ -16,6 +16,10 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/kubernetes/cmd/kube-apiserver/app"
+
+	"github.com/openshift/library-go/pkg/config/helpers"
+
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
 	"github.com/openshift/library-go/pkg/assets/create"
 	"k8s.io/klog"
@@ -46,7 +50,6 @@ import (
 	openshiftcontrollermanager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/api/legacy"
 	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
-	openshiftkubeapiserver "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/util"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -449,12 +452,24 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
+	json, err := helpers.WriteYAML(kubeAPIServerConfig, kubecontrolplanev1.Install)
+	if err != nil {
+		return err
+	}
+	configFile, err := ioutil.TempFile("", "kube-apiserver-config-*.yaml")
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(configFile.Name(), json, 0644); err != nil {
+		return err
+	}
+
+	command := app.NewAPIServerCommand(stopCh)
+	if err := command.ParseFlags([]string{"--openshift-config=" + configFile.Name()}); err != nil {
+		return err
+	}
 	go func() {
-		if err := openshiftkubeapiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh); err != nil {
-			klog.Errorf("openshift-kube-apiserver terminated: %v", err)
-		} else {
-			klog.Info("openshift-kube-apiserver terminated cleanly")
-		}
+		command.RunE(command, nil)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
