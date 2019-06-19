@@ -98,6 +98,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 		ignoresDeployersFixture         = exutil.FixturePath("testdata", "deployments", "deployment-ignores-deployer.yaml")
 		imageChangeTriggerFixture       = exutil.FixturePath("testdata", "deployments", "deployment-trigger.yaml")
+		recreateDeploymentFixture       = exutil.FixturePath("testdata", "deployments", "recreate-example.yaml")
 	)
 
 	g.Describe("when run iteratively [Conformance]", func() {
@@ -1552,6 +1553,46 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 			o.Expect(rcs.Items).To(o.HaveLen(1))
 			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())
+		})
+	})
+
+	g.Describe("with recreate deployments [Conformance]", func() {
+		dcName := "recreate-example"
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should scale down older deployment firstly and then scale up newer deployment", func() {
+			err := oc.Run("create").Args("-f", recreateDeploymentFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, "recreate-example", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			e2e.Logf("trigger new deploy")
+			_, err = oc.Run("tag").Args("recreate-example:v2", "recreate-example:latest").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			e2e.Logf("ensuring older pods removed then newer pods created")
+			firstDeploymentComplete := false
+			for firstDeploymentComplete != true {
+				//fmt.Println("firstDeploymentComplete:", firstDeploymentComplete)
+				oldrc, err := oc.Run("get").Args("rc/recreate-example-1", "--output=jsonpath=\"{.status.replicas}\"").Output()
+				oldrc = strings.Trim(oldrc, "\"")
+				//fmt.Println("oldrc:", oldrc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				newrc, err := oc.Run("get").Args("rc/recreate-example-2", "--output=jsonpath=\"{.status.replicas}\"").Output()
+				newrc = strings.Trim(newrc, "\"")
+				//fmt.Println("newrc:", newrc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if strings.Contains(oldrc, "0") {
+					//fmt.Println("set firstDeploymentComplete to ture")
+					firstDeploymentComplete = true
+				}
+				if strings.Contains(newrc, "1") && firstDeploymentComplete == false {
+					panic("Should not start new deploy when older not complete")
+				}
+			}
+			o.Expect(waitForLatestCondition(oc, "recreate-example", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 	})
 })

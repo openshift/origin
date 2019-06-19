@@ -116,6 +116,7 @@
 // test/extended/testdata/deployments/multi-ict-deployment.yaml
 // test/extended/testdata/deployments/paused-deployment.yaml
 // test/extended/testdata/deployments/readiness-test.yaml
+// test/extended/testdata/deployments/recreate-example.yaml
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
@@ -6270,6 +6271,82 @@ func testExtendedTestdataDeploymentsReadinessTestYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/deployments/readiness-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDeploymentsRecreateExampleYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: recreate-example
+  spec:
+    ports:
+    - port: 8080
+      targetPort: 8080
+    selector:
+      deploymentconfig: recreate-example
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: recreate-example
+  spec:
+    replicas: 2
+    selector:
+      deploymentconfig: recreate-example
+    strategy:
+      # We set the type of strategy to Recreate, which means that it will be scaled down prior to being scaled up
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          deploymentconfig: recreate-example
+      spec:
+        containers:
+        - image: openshift/deployment-example:v1
+          name: deployment-example
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - deployment-example
+        from:
+          kind: ImageStreamTag
+          name: recreate-example:latest
+      type: ImageChange
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: recreate-example
+  spec:
+    dockerImageRepository: openshift/deployment-example
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: recreate-example
+  spec:
+    to:
+      kind: Service
+      name: recreate-example
+`)
+
+func testExtendedTestdataDeploymentsRecreateExampleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsRecreateExampleYaml, nil
+}
+
+func testExtendedTestdataDeploymentsRecreateExampleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsRecreateExampleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/recreate-example.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32734,6 +32811,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/multi-ict-deployment.yaml": testExtendedTestdataDeploymentsMultiIctDeploymentYaml,
 	"test/extended/testdata/deployments/paused-deployment.yaml": testExtendedTestdataDeploymentsPausedDeploymentYaml,
 	"test/extended/testdata/deployments/readiness-test.yaml": testExtendedTestdataDeploymentsReadinessTestYaml,
+	"test/extended/testdata/deployments/recreate-example.yaml": testExtendedTestdataDeploymentsRecreateExampleYaml,
 	"test/extended/testdata/deployments/tag-images-deployment.yaml": testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml": testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml": testExtendedTestdataDeploymentsTestDeploymentTestYaml,
@@ -33178,6 +33256,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"multi-ict-deployment.yaml": &bintree{testExtendedTestdataDeploymentsMultiIctDeploymentYaml, map[string]*bintree{}},
 					"paused-deployment.yaml": &bintree{testExtendedTestdataDeploymentsPausedDeploymentYaml, map[string]*bintree{}},
 					"readiness-test.yaml": &bintree{testExtendedTestdataDeploymentsReadinessTestYaml, map[string]*bintree{}},
+					"recreate-example.yaml": &bintree{testExtendedTestdataDeploymentsRecreateExampleYaml, map[string]*bintree{}},
 					"tag-images-deployment.yaml": &bintree{testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
