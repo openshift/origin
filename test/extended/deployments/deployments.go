@@ -1573,25 +1573,29 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("ensuring older pods removed then newer pods created")
-			firstDeploymentComplete := false
-			for firstDeploymentComplete != true {
-				//fmt.Println("firstDeploymentComplete:", firstDeploymentComplete)
-				oldrc, err := oc.Run("get").Args("rc/recreate-example-1", "--output=jsonpath=\"{.status.replicas}\"").Output()
-				oldrc = strings.Trim(oldrc, "\"")
-				//fmt.Println("oldrc:", oldrc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				newrc, err := oc.Run("get").Args("rc/recreate-example-2", "--output=jsonpath=\"{.status.replicas}\"").Output()
-				newrc = strings.Trim(newrc, "\"")
-				//fmt.Println("newrc:", newrc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if strings.Contains(oldrc, "0") {
-					//fmt.Println("set firstDeploymentComplete to ture")
-					firstDeploymentComplete = true
+			err = wait.PollImmediate(500*time.Millisecond, time.Minute, func() (bool, error) {
+				firstDeploymentComplete := false
+				for firstDeploymentComplete != true {
+					oldrc, err := oc.Run("get").Args("rc/recreate-example-1", "--output=jsonpath=\"{.status.replicas}\"").Output()
+					if err != nil {
+						return false, nil
+					}
+					oldrc = strings.Trim(oldrc, "\"")
+					newrc, err := oc.Run("get").Args("rc/recreate-example-2", "--output=jsonpath=\"{.status.replicas}\"").Output()
+					if err != nil {
+						return false, nil
+					}
+					newrc = strings.Trim(newrc, "\"")
+					if strings.Contains(oldrc, "0") {
+						firstDeploymentComplete = true
+					}
+					if strings.Contains(newrc, "1") && firstDeploymentComplete == false {
+						return false, fmt.Errorf("Should not start new deploy when older not complete")
+					}
 				}
-				if strings.Contains(newrc, "1") && firstDeploymentComplete == false {
-					panic("Should not start new deploy when older not complete")
-				}
-			}
+				return true, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, "recreate-example", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 	})
