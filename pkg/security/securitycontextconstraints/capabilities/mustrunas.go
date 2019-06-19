@@ -3,25 +3,26 @@ package capabilities
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // defaultCapabilities implements the CapabilitiesSecurityContextConstraintsStrategy interface
 type defaultCapabilities struct {
-	defaultAddCapabilities   []api.Capability
-	requiredDropCapabilities []api.Capability
-	allowedCaps              []api.Capability
+	defaultAddCapabilities   []corev1.Capability
+	requiredDropCapabilities []corev1.Capability
+	allowedCaps              []corev1.Capability
 }
 
 var _ CapabilitiesSecurityContextConstraintsStrategy = &defaultCapabilities{}
 
 // NewDefaultCapabilities creates a new defaultCapabilities strategy that will provide defaults and validation
 // based on the configured initial caps and allowed caps.
-func NewDefaultCapabilities(defaultAddCapabilities, requiredDropCapabilities, allowedCaps []api.Capability) (CapabilitiesSecurityContextConstraintsStrategy, error) {
+func NewDefaultCapabilities(defaultAddCapabilities, requiredDropCapabilities, allowedCaps []corev1.Capability) (CapabilitiesSecurityContextConstraintsStrategy, error) {
 	return &defaultCapabilities{
 		defaultAddCapabilities:   defaultAddCapabilities,
 		requiredDropCapabilities: requiredDropCapabilities,
@@ -44,8 +45,8 @@ func (s *defaultCapabilities) Generate(pod *api.Pod, container *api.Container) (
 	var containerCapabilities *api.Capabilities
 	if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {
 		containerCapabilities = container.SecurityContext.Capabilities
-		containerAdd = makeCapSet(container.SecurityContext.Capabilities.Add)
-		containerDrop = makeCapSet(container.SecurityContext.Capabilities.Drop)
+		containerAdd = makeCapSetInternal(container.SecurityContext.Capabilities.Add)
+		containerDrop = makeCapSetInternal(container.SecurityContext.Capabilities.Drop)
 	}
 
 	// remove any default adds that the container is specifically dropping
@@ -85,7 +86,7 @@ func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container, c
 	}
 
 	allowedAdd := makeCapSet(s.allowedCaps)
-	allowAllCaps := allowedAdd.Has(string(securityapi.AllowAllCapabilities))
+	allowAllCaps := allowedAdd.Has(string(securityv1.AllowAllCapabilities))
 	if allowAllCaps {
 		// skip validation against allowed/defaultAdd/requiredDrop because all capabilities are allowed by a wildcard
 		return allErrs
@@ -102,7 +103,7 @@ func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container, c
 	}
 
 	// validate that anything that is required to be dropped is in the drop set
-	containerDrops := makeCapSet(capabilities.Drop)
+	containerDrops := makeCapSetInternal(capabilities.Drop)
 
 	for _, requiredDrop := range s.requiredDropCapabilities {
 		sDrop := string(requiredDrop)
@@ -129,7 +130,17 @@ func capabilityFromStringSlice(slice []string) []api.Capability {
 
 // makeCapSet makes a string set from capabilities and normalizes them to be all lower case to help
 // with comparisons.
-func makeCapSet(caps []api.Capability) sets.String {
+func makeCapSetInternal(caps []api.Capability) sets.String {
+	s := sets.NewString()
+	for _, c := range caps {
+		s.Insert(string(c))
+	}
+	return s
+}
+
+// makeCapSet makes a string set from capabilities and normalizes them to be all lower case to help
+// with comparisons.
+func makeCapSet(caps []corev1.Capability) sets.String {
 	s := sets.NewString()
 	for _, c := range caps {
 		s.Insert(string(c))

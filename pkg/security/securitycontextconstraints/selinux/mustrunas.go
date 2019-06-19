@@ -6,19 +6,19 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	api "k8s.io/kubernetes/pkg/apis/core"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 
 type mustRunAs struct {
-	opts *securityapi.SELinuxContextStrategyOptions
+	opts *securityv1.SELinuxContextStrategyOptions
 }
 
 var _ SELinuxSecurityContextConstraintsStrategy = &mustRunAs{}
 
-func NewMustRunAs(options *securityapi.SELinuxContextStrategyOptions) (SELinuxSecurityContextConstraintsStrategy, error) {
+func NewMustRunAs(options *securityv1.SELinuxContextStrategyOptions) (SELinuxSecurityContextConstraintsStrategy, error) {
 	if options == nil {
 		return nil, fmt.Errorf("MustRunAs requires SELinuxContextStrategyOptions")
 	}
@@ -31,12 +31,12 @@ func NewMustRunAs(options *securityapi.SELinuxContextStrategyOptions) (SELinuxSe
 }
 
 // Generate creates the SELinuxOptions based on constraint rules.
-func (s *mustRunAs) Generate(_ *api.Pod, _ *api.Container) (*api.SELinuxOptions, error) {
-	return s.opts.SELinuxOptions, nil
+func (s *mustRunAs) Generate(_ *coreapi.Pod, _ *coreapi.Container) (*coreapi.SELinuxOptions, error) {
+	return ToInternalSELinuxOptions(s.opts.SELinuxOptions)
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *mustRunAs) Validate(fldPath *field.Path, _ *api.Pod, _ *api.Container, seLinux *api.SELinuxOptions) field.ErrorList {
+func (s *mustRunAs) Validate(fldPath *field.Path, _ *coreapi.Pod, _ *coreapi.Container, seLinux *coreapi.SELinuxOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if seLinux == nil {

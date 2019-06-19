@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // runAsAny implements the interface RunAsUserSecurityContextConstraintsStrategy.
@@ -13,7 +13,7 @@ type runAsAny struct{}
 var _ RunAsUserSecurityContextConstraintsStrategy = &runAsAny{}
 
 // NewRunAsAny provides a strategy that will return nil.
-func NewRunAsAny(options *securityapi.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
+func NewRunAsAny(options *securityv1.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	return &runAsAny{}, nil
 }
 

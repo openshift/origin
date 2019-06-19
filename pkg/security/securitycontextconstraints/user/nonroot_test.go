@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestNonRootOptions(t *testing.T) {
@@ -12,14 +12,14 @@ func TestNonRootOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsNonRoot %v", err)
 	}
-	_, err = NewRunAsNonRoot(&securityapi.RunAsUserStrategyOptions{})
+	_, err = NewRunAsNonRoot(&securityv1.RunAsUserStrategyOptions{})
 	if err != nil {
 		t.Errorf("unexpected error initializing NewRunAsNonRoot %v", err)
 	}
 }
 
 func TestNonRootGenerate(t *testing.T) {
-	s, err := NewRunAsNonRoot(&securityapi.RunAsUserStrategyOptions{})
+	s, err := NewRunAsNonRoot(&securityv1.RunAsUserStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsNonRoot %v", err)
 	}
@@ -35,7 +35,7 @@ func TestNonRootGenerate(t *testing.T) {
 func TestNonRootValidate(t *testing.T) {
 	var uid int64 = 1
 	var badUID int64 = 0
-	s, err := NewRunAsNonRoot(&securityapi.RunAsUserStrategyOptions{})
+	s, err := NewRunAsNonRoot(&securityv1.RunAsUserStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsNonRoot %v", err)
 	}

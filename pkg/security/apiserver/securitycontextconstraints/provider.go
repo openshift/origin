@@ -3,19 +3,19 @@ package securitycontextconstraints
 import (
 	"fmt"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/capabilities"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/group"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/seccomp"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/selinux"
 	"github.com/openshift/origin/pkg/security/securitycontextconstraints/user"
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/sysctl"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/util/maps"
-
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // used to pass in the field being validated for reusable group strategies so they
@@ -27,7 +27,7 @@ const (
 
 // simpleProvider is the default implementation of SecurityContextConstraintsProvider
 type simpleProvider struct {
-	scc                       *securityapi.SecurityContextConstraints
+	scc                       *securityv1.SecurityContextConstraints
 	runAsUserStrategy         user.RunAsUserSecurityContextConstraintsStrategy
 	seLinuxStrategy           selinux.SELinuxSecurityContextConstraintsStrategy
 	fsGroupStrategy           group.GroupSecurityContextConstraintsStrategy
@@ -41,7 +41,7 @@ type simpleProvider struct {
 var _ SecurityContextConstraintsProvider = &simpleProvider{}
 
 // NewSimpleProvider creates a new SecurityContextConstraintsProvider instance.
-func NewSimpleProvider(scc *securityapi.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
+func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
 	if scc == nil {
 		return nil, fmt.Errorf("NewSimpleProvider requires a SecurityContextConstraints")
 	}
@@ -173,7 +173,7 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 	// if we're using the non-root strategy set the marker that this container should not be
 	// run as root which will signal to the kubelet to do a final check either on the runAsUser
 	// or, if runAsUser is not set, the image
-	if sc.RunAsNonRoot() == nil && sc.RunAsUser() == nil && s.scc.RunAsUser.Type == securityapi.RunAsUserStrategyMustRunAsNonRoot {
+	if sc.RunAsNonRoot() == nil && sc.RunAsUser() == nil && s.scc.RunAsUser.Type == securityv1.RunAsUserStrategyMustRunAsNonRoot {
 		nonRoot := true
 		sc.SetRunAsNonRoot(&nonRoot)
 	}
@@ -252,7 +252,7 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 		}
 	}
 
-	if len(pod.Spec.Volumes) > 0 && len(s.scc.AllowedFlexVolumes) > 0 && sccutil.SCCAllowsFSTypeInternal(s.scc, securityapi.FSTypeFlexVolume) {
+	if len(pod.Spec.Volumes) > 0 && len(s.scc.AllowedFlexVolumes) > 0 && sccutil.SCCAllowsFSTypeInternal(s.scc, securityv1.FSTypeFlexVolume) {
 		for i, v := range pod.Spec.Volumes {
 			if v.FlexVolume == nil {
 				continue
@@ -369,15 +369,15 @@ func (s *simpleProvider) GetSCCGroups() []string {
 }
 
 // createUserStrategy creates a new user strategy.
-func createUserStrategy(opts *securityapi.RunAsUserStrategyOptions) (user.RunAsUserSecurityContextConstraintsStrategy, error) {
+func createUserStrategy(opts *securityv1.RunAsUserStrategyOptions) (user.RunAsUserSecurityContextConstraintsStrategy, error) {
 	switch opts.Type {
-	case securityapi.RunAsUserStrategyMustRunAs:
+	case securityv1.RunAsUserStrategyMustRunAs:
 		return user.NewMustRunAs(opts)
-	case securityapi.RunAsUserStrategyMustRunAsRange:
+	case securityv1.RunAsUserStrategyMustRunAsRange:
 		return user.NewMustRunAsRange(opts)
-	case securityapi.RunAsUserStrategyMustRunAsNonRoot:
+	case securityv1.RunAsUserStrategyMustRunAsNonRoot:
 		return user.NewRunAsNonRoot(opts)
-	case securityapi.RunAsUserStrategyRunAsAny:
+	case securityv1.RunAsUserStrategyRunAsAny:
 		return user.NewRunAsAny(opts)
 	default:
 		return nil, fmt.Errorf("Unrecognized RunAsUser strategy type %s", opts.Type)
@@ -385,11 +385,11 @@ func createUserStrategy(opts *securityapi.RunAsUserStrategyOptions) (user.RunAsU
 }
 
 // createSELinuxStrategy creates a new selinux strategy.
-func createSELinuxStrategy(opts *securityapi.SELinuxContextStrategyOptions) (selinux.SELinuxSecurityContextConstraintsStrategy, error) {
+func createSELinuxStrategy(opts *securityv1.SELinuxContextStrategyOptions) (selinux.SELinuxSecurityContextConstraintsStrategy, error) {
 	switch opts.Type {
-	case securityapi.SELinuxStrategyMustRunAs:
+	case securityv1.SELinuxStrategyMustRunAs:
 		return selinux.NewMustRunAs(opts)
-	case securityapi.SELinuxStrategyRunAsAny:
+	case securityv1.SELinuxStrategyRunAsAny:
 		return selinux.NewRunAsAny(opts)
 	default:
 		return nil, fmt.Errorf("Unrecognized SELinuxContext strategy type %s", opts.Type)
@@ -397,11 +397,11 @@ func createSELinuxStrategy(opts *securityapi.SELinuxContextStrategyOptions) (sel
 }
 
 // createFSGroupStrategy creates a new fsgroup strategy
-func createFSGroupStrategy(opts *securityapi.FSGroupStrategyOptions) (group.GroupSecurityContextConstraintsStrategy, error) {
+func createFSGroupStrategy(opts *securityv1.FSGroupStrategyOptions) (group.GroupSecurityContextConstraintsStrategy, error) {
 	switch opts.Type {
-	case securityapi.FSGroupStrategyRunAsAny:
+	case securityv1.FSGroupStrategyRunAsAny:
 		return group.NewRunAsAny()
-	case securityapi.FSGroupStrategyMustRunAs:
+	case securityv1.FSGroupStrategyMustRunAs:
 		return group.NewMustRunAs(opts.Ranges, fsGroupField)
 	default:
 		return nil, fmt.Errorf("Unrecognized FSGroup strategy type %s", opts.Type)
@@ -409,11 +409,11 @@ func createFSGroupStrategy(opts *securityapi.FSGroupStrategyOptions) (group.Grou
 }
 
 // createSupplementalGroupStrategy creates a new supplemental group strategy
-func createSupplementalGroupStrategy(opts *securityapi.SupplementalGroupsStrategyOptions) (group.GroupSecurityContextConstraintsStrategy, error) {
+func createSupplementalGroupStrategy(opts *securityv1.SupplementalGroupsStrategyOptions) (group.GroupSecurityContextConstraintsStrategy, error) {
 	switch opts.Type {
-	case securityapi.SupplementalGroupsStrategyRunAsAny:
+	case securityv1.SupplementalGroupsStrategyRunAsAny:
 		return group.NewRunAsAny()
-	case securityapi.SupplementalGroupsStrategyMustRunAs:
+	case securityv1.SupplementalGroupsStrategyMustRunAs:
 		return group.NewMustRunAs(opts.Ranges, supplementalGroupsField)
 	default:
 		return nil, fmt.Errorf("Unrecognized SupplementalGroups strategy type %s", opts.Type)
@@ -421,7 +421,7 @@ func createSupplementalGroupStrategy(opts *securityapi.SupplementalGroupsStrateg
 }
 
 // createCapabilitiesStrategy creates a new capabilities strategy.
-func createCapabilitiesStrategy(defaultAddCaps, requiredDropCaps, allowedCaps []api.Capability) (capabilities.CapabilitiesSecurityContextConstraintsStrategy, error) {
+func createCapabilitiesStrategy(defaultAddCaps, requiredDropCaps, allowedCaps []corev1.Capability) (capabilities.CapabilitiesSecurityContextConstraintsStrategy, error) {
 	return capabilities.NewDefaultCapabilities(defaultAddCaps, requiredDropCaps, allowedCaps)
 }
 

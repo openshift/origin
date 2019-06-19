@@ -5,19 +5,19 @@ import (
 
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestMustRunAsOptions(t *testing.T) {
 	tests := map[string]struct {
-		ranges []securityapi.IDRange
+		ranges []securityv1.IDRange
 		pass   bool
 	}{
 		"empty": {
-			ranges: []securityapi.IDRange{},
+			ranges: []securityv1.IDRange{},
 		},
 		"ranges": {
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 1},
 			},
 			pass: true,
@@ -37,23 +37,23 @@ func TestMustRunAsOptions(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	tests := map[string]struct {
-		ranges   []securityapi.IDRange
+		ranges   []securityv1.IDRange
 		expected []int64
 	}{
 		"multi value": {
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 2},
 			},
 			expected: []int64{1},
 		},
 		"single value": {
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 1},
 			},
 			expected: []int64{1},
 		},
 		"multi range": {
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 1},
 				{Min: 2, Max: 500},
 			},
@@ -95,52 +95,52 @@ func TestGenerate(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	tests := map[string]struct {
-		ranges []securityapi.IDRange
+		ranges []securityv1.IDRange
 		pod    *api.Pod
 		groups []int64
 		pass   bool
 	}{
 		"nil security context": {
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 3},
 			},
 		},
 		"empty groups": {
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 3},
 			},
 		},
 		"not in range": {
 			groups: []int64{5},
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 3},
 				{Min: 4, Max: 4},
 			},
 		},
 		"in range 1": {
 			groups: []int64{2},
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 3},
 			},
 			pass: true,
 		},
 		"in range boundry min": {
 			groups: []int64{1},
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 3},
 			},
 			pass: true,
 		},
 		"in range boundry max": {
 			groups: []int64{3},
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 1, Max: 3},
 			},
 			pass: true,
 		},
 		"singular range": {
 			groups: []int64{4},
-			ranges: []securityapi.IDRange{
+			ranges: []securityv1.IDRange{
 				{Min: 4, Max: 4},
 			},
 			pass: true,

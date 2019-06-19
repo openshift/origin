@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -25,23 +26,23 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 	}
 
 	// Create an SCC with strategies that will populate a blank psc
-	createSCC := func() *securityapi.SecurityContextConstraints {
-		return &securityapi.SecurityContextConstraints{
+	createSCC := func() *securityv1.SecurityContextConstraints {
+		return &securityv1.SecurityContextConstraints{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "scc-sa",
 			},
 			SeccompProfiles: []string{"foo"},
-			RunAsUser: securityapi.RunAsUserStrategyOptions{
-				Type: securityapi.RunAsUserStrategyRunAsAny,
+			RunAsUser: securityv1.RunAsUserStrategyOptions{
+				Type: securityv1.RunAsUserStrategyRunAsAny,
 			},
-			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-				Type: securityapi.SELinuxStrategyRunAsAny,
+			SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+				Type: securityv1.SELinuxStrategyRunAsAny,
 			},
-			FSGroup: securityapi.FSGroupStrategyOptions{
-				Type: securityapi.FSGroupStrategyRunAsAny,
+			FSGroup: securityv1.FSGroupStrategyOptions{
+				Type: securityv1.FSGroupStrategyRunAsAny,
 			},
-			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+			SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+				Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 			},
 		}
 	}
@@ -82,22 +83,22 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 	}
 
 	// Create an SCC with strategies that will populate a blank security context
-	createSCC := func() *securityapi.SecurityContextConstraints {
-		return &securityapi.SecurityContextConstraints{
+	createSCC := func() *securityv1.SecurityContextConstraints {
+		return &securityv1.SecurityContextConstraints{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "scc-sa",
 			},
-			RunAsUser: securityapi.RunAsUserStrategyOptions{
-				Type: securityapi.RunAsUserStrategyRunAsAny,
+			RunAsUser: securityv1.RunAsUserStrategyOptions{
+				Type: securityv1.RunAsUserStrategyRunAsAny,
 			},
-			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-				Type: securityapi.SELinuxStrategyRunAsAny,
+			SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+				Type: securityv1.SELinuxStrategyRunAsAny,
 			},
-			FSGroup: securityapi.FSGroupStrategyOptions{
-				Type: securityapi.FSGroupStrategyRunAsAny,
+			FSGroup: securityv1.FSGroupStrategyOptions{
+				Type: securityv1.FSGroupStrategyRunAsAny,
 			},
-			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+			SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+				Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 			},
 		}
 	}
@@ -138,9 +139,9 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	failSupplementalGroupPod := defaultPod()
 	failSupplementalGroupPod.Spec.SecurityContext.SupplementalGroups = []int64{999}
 	failSupplementalGroupSCC := defaultSCC()
-	failSupplementalGroupSCC.SupplementalGroups = securityapi.SupplementalGroupsStrategyOptions{
-		Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-		Ranges: []securityapi.IDRange{
+	failSupplementalGroupSCC.SupplementalGroups = securityv1.SupplementalGroupsStrategyOptions{
+		Type: securityv1.SupplementalGroupsStrategyMustRunAs,
+		Ranges: []securityv1.IDRange{
 			{Min: 1, Max: 1},
 		},
 	}
@@ -149,17 +150,17 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	fsGroup := int64(999)
 	failFSGroupPod.Spec.SecurityContext.FSGroup = &fsGroup
 	failFSGroupSCC := defaultSCC()
-	failFSGroupSCC.FSGroup = securityapi.FSGroupStrategyOptions{
-		Type: securityapi.FSGroupStrategyMustRunAs,
-		Ranges: []securityapi.IDRange{
+	failFSGroupSCC.FSGroup = securityv1.FSGroupStrategyOptions{
+		Type: securityv1.FSGroupStrategyMustRunAs,
+		Ranges: []securityv1.IDRange{
 			{Min: 1, Max: 1},
 		},
 	}
 
 	failNilSELinuxPod := defaultPod()
 	failSELinuxSCC := defaultSCC()
-	failSELinuxSCC.SELinuxContext.Type = securityapi.SELinuxStrategyMustRunAs
-	failSELinuxSCC.SELinuxContext.SELinuxOptions = &api.SELinuxOptions{
+	failSELinuxSCC.SELinuxContext.Type = securityv1.SELinuxStrategyMustRunAs
+	failSELinuxSCC.SELinuxContext.SELinuxOptions = &corev1.SELinuxOptions{
 		Level: "foo",
 	}
 
@@ -226,7 +227,7 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 
 	errorCases := map[string]struct {
 		pod           *api.Pod
-		scc           *securityapi.SecurityContextConstraints
+		scc           *securityv1.SecurityContextConstraints
 		expectedError string
 	}{
 		"failHostNetworkSCC": {
@@ -336,8 +337,8 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 	failUserSCC := defaultSCC()
 	var uid int64 = 999
 	var badUID int64 = 1
-	failUserSCC.RunAsUser = securityapi.RunAsUserStrategyOptions{
-		Type: securityapi.RunAsUserStrategyMustRunAs,
+	failUserSCC.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type: securityv1.RunAsUserStrategyMustRunAs,
 		UID:  &uid,
 	}
 	failUserPod := defaultPod()
@@ -345,9 +346,9 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 
 	// fail selinux strat
 	failSELinuxSCC := defaultSCC()
-	failSELinuxSCC.SELinuxContext = securityapi.SELinuxContextStrategyOptions{
-		Type: securityapi.SELinuxStrategyMustRunAs,
-		SELinuxOptions: &api.SELinuxOptions{
+	failSELinuxSCC.SELinuxContext = securityv1.SELinuxContextStrategyOptions{
+		Type: securityv1.SELinuxStrategyMustRunAs,
+		SELinuxOptions: &corev1.SELinuxOptions{
 			Level: "foo",
 		},
 	}
@@ -387,7 +388,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 
 	errorCases := map[string]struct {
 		pod           *api.Pod
-		scc           *securityapi.SecurityContextConstraints
+		scc           *securityv1.SecurityContextConstraints
 		expectedError string
 	}{
 		"failUserSCC": {
@@ -470,9 +471,9 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 	hostIPCPod.Spec.SecurityContext.HostIPC = true
 
 	supGroupSCC := defaultSCC()
-	supGroupSCC.SupplementalGroups = securityapi.SupplementalGroupsStrategyOptions{
-		Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-		Ranges: []securityapi.IDRange{
+	supGroupSCC.SupplementalGroups = securityv1.SupplementalGroupsStrategyOptions{
+		Type: securityv1.SupplementalGroupsStrategyMustRunAs,
+		Ranges: []securityv1.IDRange{
 			{Min: 1, Max: 5},
 		},
 	}
@@ -480,9 +481,9 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 	supGroupPod.Spec.SecurityContext.SupplementalGroups = []int64{3}
 
 	fsGroupSCC := defaultSCC()
-	fsGroupSCC.FSGroup = securityapi.FSGroupStrategyOptions{
-		Type: securityapi.FSGroupStrategyMustRunAs,
-		Ranges: []securityapi.IDRange{
+	fsGroupSCC.FSGroup = securityv1.FSGroupStrategyOptions{
+		Type: securityv1.FSGroupStrategyMustRunAs,
+		Ranges: []securityv1.IDRange{
 			{Min: 1, Max: 5},
 		},
 	}
@@ -498,8 +499,8 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 		Level: "level",
 	}
 	seLinuxSCC := defaultSCC()
-	seLinuxSCC.SELinuxContext.Type = securityapi.SELinuxStrategyMustRunAs
-	seLinuxSCC.SELinuxContext.SELinuxOptions = &api.SELinuxOptions{
+	seLinuxSCC.SELinuxContext.Type = securityv1.SELinuxStrategyMustRunAs
+	seLinuxSCC.SELinuxContext.SELinuxOptions = &corev1.SELinuxOptions{
 		User:  "user",
 		Role:  "role",
 		Type:  "type",
@@ -556,7 +557,7 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 
 	successCases := map[string]struct {
 		pod *api.Pod
-		scc *securityapi.SecurityContextConstraints
+		scc *securityv1.SecurityContextConstraints
 	}{
 		"pass hostNetwork validating SCC": {
 			pod: hostNetworkPod,
@@ -641,8 +642,8 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	// fail user strat
 	userSCC := defaultSCC()
 	var uid int64 = 999
-	userSCC.RunAsUser = securityapi.RunAsUserStrategyOptions{
-		Type: securityapi.RunAsUserStrategyMustRunAs,
+	userSCC.RunAsUser = securityv1.RunAsUserStrategyOptions{
+		Type: securityv1.RunAsUserStrategyMustRunAs,
 		UID:  &uid,
 	}
 	userPod := defaultPod()
@@ -650,9 +651,9 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 
 	// fail selinux strat
 	seLinuxSCC := defaultSCC()
-	seLinuxSCC.SELinuxContext = securityapi.SELinuxContextStrategyOptions{
-		Type: securityapi.SELinuxStrategyMustRunAs,
-		SELinuxOptions: &api.SELinuxOptions{
+	seLinuxSCC.SELinuxContext = securityv1.SELinuxContextStrategyOptions{
+		Type: securityv1.SELinuxStrategyMustRunAs,
+		SELinuxOptions: &corev1.SELinuxOptions{
 			Level: "foo",
 		},
 	}
@@ -668,7 +669,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	privPod.Spec.Containers[0].SecurityContext.Privileged = &priv
 
 	capsSCC := defaultSCC()
-	capsSCC.AllowedCapabilities = []api.Capability{"foo"}
+	capsSCC.AllowedCapabilities = []corev1.Capability{"foo"}
 	capsPod := defaultPod()
 	capsPod.Spec.Containers[0].SecurityContext.Capabilities = &api.Capabilities{
 		Add: []api.Capability{"foo"},
@@ -676,14 +677,14 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 
 	// pod should be able to request caps that are in the required set even if not specified in the allowed set
 	requiredCapsSCC := defaultSCC()
-	requiredCapsSCC.DefaultAddCapabilities = []api.Capability{"foo"}
+	requiredCapsSCC.DefaultAddCapabilities = []corev1.Capability{"foo"}
 	requiredCapsPod := defaultPod()
 	requiredCapsPod.Spec.Containers[0].SecurityContext.Capabilities = &api.Capabilities{
 		Add: []api.Capability{"foo"},
 	}
 
 	hostDirSCC := defaultSCC()
-	hostDirSCC.Volumes = []securityapi.FSType{securityapi.FSTypeHostPath}
+	hostDirSCC.Volumes = []securityv1.FSType{securityv1.FSTypeHostPath}
 	hostDirPod := defaultPod()
 	hostDirPod.Spec.Volumes = []api.Volume{
 		{
@@ -725,7 +726,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 
 	successCases := map[string]struct {
 		pod *api.Pod
-		scc *securityapi.SecurityContextConstraints
+		scc *securityv1.SecurityContextConstraints
 	}{
 		"pass user must run as SCC": {
 			pod: userPod,
@@ -815,7 +816,7 @@ func TestGenerateContainerSecurityContextReadOnlyRootFS(t *testing.T) {
 
 	tests := map[string]struct {
 		pod      *api.Pod
-		scc      *securityapi.SecurityContextConstraints
+		scc      *securityv1.SecurityContextConstraints
 		expected *bool
 	}{
 		"false scc, nil sc": {
@@ -877,23 +878,23 @@ func TestGenerateContainerSecurityContextReadOnlyRootFS(t *testing.T) {
 	}
 }
 
-func defaultSCC() *securityapi.SecurityContextConstraints {
-	return &securityapi.SecurityContextConstraints{
+func defaultSCC() *securityv1.SecurityContextConstraints {
+	return &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "scc-sa",
 			Annotations: map[string]string{},
 		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyRunAsAny,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyRunAsAny,
 		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyRunAsAny,
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyRunAsAny,
 		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyRunAsAny,
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyRunAsAny,
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
 }
@@ -919,24 +920,24 @@ func defaultPod() *api.Pod {
 	}
 }
 
-func allowFlexVolumesSCC(allowAllFlexVolumes, allowAllVolumes bool) *securityapi.SecurityContextConstraints {
+func allowFlexVolumesSCC(allowAllFlexVolumes, allowAllVolumes bool) *securityv1.SecurityContextConstraints {
 	scc := defaultSCC()
 
-	allowedVolumes := []securityapi.AllowedFlexVolume{
+	allowedVolumes := []securityv1.AllowedFlexVolume{
 		{Driver: "example/foo"},
 		{Driver: "example/bar"},
 	}
 	if allowAllFlexVolumes {
-		allowedVolumes = []securityapi.AllowedFlexVolume{}
+		allowedVolumes = []securityv1.AllowedFlexVolume{}
 	}
 
-	allowedVolumeType := securityapi.FSTypeFlexVolume
+	allowedVolumeType := securityv1.FSTypeFlexVolume
 	if allowAllVolumes {
-		allowedVolumeType = securityapi.FSTypeAll
+		allowedVolumeType = securityv1.FSTypeAll
 	}
 
 	scc.AllowedFlexVolumes = allowedVolumes
-	scc.Volumes = []securityapi.FSType{allowedVolumeType}
+	scc.Volumes = []securityv1.FSType{allowedVolumeType}
 
 	return scc
 }
@@ -988,14 +989,14 @@ func TestValidateAllowedVolumes(t *testing.T) {
 		}
 
 		// now add the fstype directly to the scc and it should validate
-		scc.Volumes = []securityapi.FSType{fsType}
+		scc.Volumes = []securityv1.FSType{fsType}
 		errs = provider.ValidatePodSecurityContext(pod, field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("directly allowing volume expected no errors for %s but got %v", fieldVal.Name, errs)
 		}
 
 		// now change the scc to allow any volumes and the pod should still validate
-		scc.Volumes = []securityapi.FSType{securityapi.FSTypeAll}
+		scc.Volumes = []securityv1.FSType{securityv1.FSTypeAll}
 		errs = provider.ValidatePodSecurityContext(pod, field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("wildcard volume expected no errors for %s but got %v", fieldVal.Name, errs)

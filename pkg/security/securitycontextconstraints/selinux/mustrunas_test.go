@@ -5,22 +5,23 @@ import (
 	"strings"
 	"testing"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestMustRunAsOptions(t *testing.T) {
 	tests := map[string]struct {
-		opts *securityapi.SELinuxContextStrategyOptions
+		opts *securityv1.SELinuxContextStrategyOptions
 		pass bool
 	}{
 		"invalid opts": {
-			opts: &securityapi.SELinuxContextStrategyOptions{},
+			opts: &securityv1.SELinuxContextStrategyOptions{},
 			pass: false,
 		},
 		"valid opts": {
-			opts: &securityapi.SELinuxContextStrategyOptions{SELinuxOptions: &api.SELinuxOptions{}},
+			opts: &securityv1.SELinuxContextStrategyOptions{SELinuxOptions: &corev1.SELinuxOptions{}},
 			pass: true,
 		},
 	}
@@ -36,8 +37,8 @@ func TestMustRunAsOptions(t *testing.T) {
 }
 
 func TestMustRunAsGenerate(t *testing.T) {
-	opts := &securityapi.SELinuxContextStrategyOptions{
-		SELinuxOptions: &api.SELinuxOptions{
+	opts := &securityv1.SELinuxContextStrategyOptions{
+		SELinuxOptions: &corev1.SELinuxOptions{
 			User:  "user",
 			Role:  "role",
 			Type:  "type",
@@ -52,14 +53,14 @@ func TestMustRunAsGenerate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error generating selinux %v", err)
 	}
-	if !reflect.DeepEqual(generated, opts.SELinuxOptions) {
+	if !reflect.DeepEqual(generated, ToInternalSELinuxOptionsOrDie(opts.SELinuxOptions)) {
 		t.Errorf("generated selinux does not equal configured selinux")
 	}
 }
 
 func TestMustRunAsValidate(t *testing.T) {
-	newValidOpts := func() *api.SELinuxOptions {
-		return &api.SELinuxOptions{
+	newValidOpts := func() *corev1.SELinuxOptions {
+		return &corev1.SELinuxOptions{
 			User:  "user",
 			Role:  "role",
 			Level: "s0:c0,c6",
@@ -67,7 +68,7 @@ func TestMustRunAsValidate(t *testing.T) {
 		}
 	}
 
-	newValidOptsWithLevel := func(level string) *api.SELinuxOptions {
+	newValidOptsWithLevel := func(level string) *corev1.SELinuxOptions {
 		opts := newValidOpts()
 		opts.Level = level
 		return opts
@@ -85,49 +86,49 @@ func TestMustRunAsValidate(t *testing.T) {
 	validOpts := newValidOpts()
 
 	tests := map[string]struct {
-		podSeLinux  *api.SELinuxOptions
-		sccSeLinux  *api.SELinuxOptions
+		podSeLinux  *coreapi.SELinuxOptions
+		sccSeLinux  *corev1.SELinuxOptions
 		expectedMsg string
 	}{
 		"invalid role": {
-			podSeLinux:  role,
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(role),
 			sccSeLinux:  validOpts,
 			expectedMsg: "role: Invalid value",
 		},
 		"invalid user": {
-			podSeLinux:  user,
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(user),
 			sccSeLinux:  validOpts,
 			expectedMsg: "user: Invalid value",
 		},
 		"levels are not equal": {
-			podSeLinux:  newValidOptsWithLevel("s0"),
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(newValidOptsWithLevel("s0")),
 			sccSeLinux:  newValidOptsWithLevel("s0:c1,c2"),
 			expectedMsg: "level: Invalid value",
 		},
 		"levels differ by sensitivity": {
-			podSeLinux:  newValidOptsWithLevel("s0:c6"),
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(newValidOptsWithLevel("s0:c6")),
 			sccSeLinux:  newValidOptsWithLevel("s1:c6"),
 			expectedMsg: "level: Invalid value",
 		},
 		"levels differ by categories": {
-			podSeLinux:  newValidOptsWithLevel("s0:c0,c8"),
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(newValidOptsWithLevel("s0:c0,c8")),
 			sccSeLinux:  newValidOptsWithLevel("s0:c1,c7"),
 			expectedMsg: "level: Invalid value",
 		},
 		"valid": {
-			podSeLinux:  validOpts,
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(validOpts),
 			sccSeLinux:  validOpts,
 			expectedMsg: "",
 		},
 		"valid with different order of categories": {
-			podSeLinux:  newValidOptsWithLevel("s0:c6,c0"),
+			podSeLinux:  ToInternalSELinuxOptionsOrDie(newValidOptsWithLevel("s0:c6,c0")),
 			sccSeLinux:  validOpts,
 			expectedMsg: "",
 		},
 	}
 
 	for name, tc := range tests {
-		opts := &securityapi.SELinuxContextStrategyOptions{
+		opts := &securityv1.SELinuxContextStrategyOptions{
 			SELinuxOptions: tc.sccSeLinux,
 		}
 		mustRunAs, err := NewMustRunAs(opts)

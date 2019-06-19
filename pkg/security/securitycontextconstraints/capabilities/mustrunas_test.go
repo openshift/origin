@@ -4,15 +4,16 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestGenerateAdds(t *testing.T) {
 	tests := map[string]struct {
-		defaultAddCaps   []api.Capability
-		requiredDropCaps []api.Capability
+		defaultAddCaps   []corev1.Capability
+		requiredDropCaps []corev1.Capability
 		containerCaps    *api.Capabilities
 		expectedCaps     *api.Capabilities
 	}{
@@ -24,13 +25,13 @@ func TestGenerateAdds(t *testing.T) {
 			expectedCaps:  &api.Capabilities{},
 		},
 		"required, no container requests": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			expectedCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
 		},
 		"required, container requests add required": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
@@ -39,7 +40,7 @@ func TestGenerateAdds(t *testing.T) {
 			},
 		},
 		"multiple required, container requests add required": {
-			defaultAddCaps: []api.Capability{"foo", "bar", "baz"},
+			defaultAddCaps: []corev1.Capability{"foo", "bar", "baz"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
@@ -48,7 +49,7 @@ func TestGenerateAdds(t *testing.T) {
 			},
 		},
 		"required, container requests add non-required": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"bar"},
 			},
@@ -57,7 +58,7 @@ func TestGenerateAdds(t *testing.T) {
 			},
 		},
 		"generation does not mutate unnecessarily": {
-			defaultAddCaps: []api.Capability{"foo", "bar"},
+			defaultAddCaps: []corev1.Capability{"foo", "bar"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo", "foo", "bar", "baz"},
 			},
@@ -66,7 +67,7 @@ func TestGenerateAdds(t *testing.T) {
 			},
 		},
 		"generation dedupes": {
-			defaultAddCaps: []api.Capability{"foo", "bar"},
+			defaultAddCaps: []corev1.Capability{"foo", "bar"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo", "baz"},
 			},
@@ -75,7 +76,7 @@ func TestGenerateAdds(t *testing.T) {
 			},
 		},
 		"generation is case sensitive - will not dedupe": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"FOO"},
 			},
@@ -114,8 +115,8 @@ func TestGenerateAdds(t *testing.T) {
 
 func TestGenerateDrops(t *testing.T) {
 	tests := map[string]struct {
-		defaultAddCaps   []api.Capability
-		requiredDropCaps []api.Capability
+		defaultAddCaps   []corev1.Capability
+		requiredDropCaps []corev1.Capability
 		containerCaps    *api.Capabilities
 		expectedCaps     *api.Capabilities
 	}{
@@ -127,13 +128,13 @@ func TestGenerateDrops(t *testing.T) {
 			expectedCaps:  &api.Capabilities{},
 		},
 		"required drops are defaulted": {
-			requiredDropCaps: []api.Capability{"foo"},
+			requiredDropCaps: []corev1.Capability{"foo"},
 			expectedCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo"},
 			},
 		},
 		"required drops are defaulted when making container requests": {
-			requiredDropCaps: []api.Capability{"baz"},
+			requiredDropCaps: []corev1.Capability{"baz"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo", "bar"},
 			},
@@ -142,7 +143,7 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"required drops do not mutate unnecessarily": {
-			requiredDropCaps: []api.Capability{"baz"},
+			requiredDropCaps: []corev1.Capability{"baz"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo", "bar", "baz"},
 			},
@@ -151,7 +152,7 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"can drop a required add": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo"},
 			},
@@ -160,7 +161,7 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"can drop non-required add": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"bar"},
 			},
@@ -170,8 +171,8 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"defaulting adds and drops, dropping a required add": {
-			defaultAddCaps:   []api.Capability{"foo", "bar", "baz"},
-			requiredDropCaps: []api.Capability{"abc"},
+			defaultAddCaps:   []corev1.Capability{"foo", "bar", "baz"},
+			requiredDropCaps: []corev1.Capability{"abc"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo"},
 			},
@@ -181,7 +182,7 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"generation dedupes": {
-			requiredDropCaps: []api.Capability{"baz", "foo"},
+			requiredDropCaps: []corev1.Capability{"baz", "foo"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"bar", "foo"},
 			},
@@ -190,7 +191,7 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"generation is case sensitive - will not dedupe": {
-			requiredDropCaps: []api.Capability{"bar"},
+			requiredDropCaps: []corev1.Capability{"bar"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"BAR"},
 			},
@@ -228,9 +229,9 @@ func TestGenerateDrops(t *testing.T) {
 
 func TestValidateAdds(t *testing.T) {
 	tests := map[string]struct {
-		defaultAddCaps   []api.Capability
-		requiredDropCaps []api.Capability
-		allowedCaps      []api.Capability
+		defaultAddCaps   []corev1.Capability
+		requiredDropCaps []corev1.Capability
+		allowedCaps      []corev1.Capability
 		containerCaps    *api.Capabilities
 		shouldPass       bool
 	}{
@@ -239,24 +240,24 @@ func TestValidateAdds(t *testing.T) {
 			shouldPass: true,
 		},
 		"no required, allowed, no container requests": {
-			allowedCaps: []api.Capability{"foo"},
+			allowedCaps: []corev1.Capability{"foo"},
 			shouldPass:  true,
 		},
 		"required, no allowed, no container requests": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			shouldPass:     false,
 		},
 
 		// container requests match required
 		"required, no allowed, container requests valid": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
 			shouldPass: true,
 		},
 		"required, no allowed, container requests invalid": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"bar"},
 			},
@@ -265,21 +266,21 @@ func TestValidateAdds(t *testing.T) {
 
 		// container requests match allowed
 		"no required, allowed, container requests valid": {
-			allowedCaps: []api.Capability{"foo"},
+			allowedCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
 			shouldPass: true,
 		},
 		"no required, all allowed, container requests valid": {
-			allowedCaps: []api.Capability{securityapi.AllowAllCapabilities},
+			allowedCaps: []corev1.Capability{securityv1.AllowAllCapabilities},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
 			shouldPass: true,
 		},
 		"no required, allowed, container requests invalid": {
-			allowedCaps: []api.Capability{"foo"},
+			allowedCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"bar"},
 			},
@@ -288,31 +289,31 @@ func TestValidateAdds(t *testing.T) {
 
 		// required and allowed
 		"required, allowed, container requests valid required": {
-			defaultAddCaps: []api.Capability{"foo"},
-			allowedCaps:    []api.Capability{"bar"},
+			defaultAddCaps: []corev1.Capability{"foo"},
+			allowedCaps:    []corev1.Capability{"bar"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},
 			shouldPass: true,
 		},
 		"required, allowed, container requests valid allowed": {
-			defaultAddCaps: []api.Capability{"foo"},
-			allowedCaps:    []api.Capability{"bar"},
+			defaultAddCaps: []corev1.Capability{"foo"},
+			allowedCaps:    []corev1.Capability{"bar"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"bar"},
 			},
 			shouldPass: true,
 		},
 		"required, allowed, container requests invalid": {
-			defaultAddCaps: []api.Capability{"foo"},
-			allowedCaps:    []api.Capability{"bar"},
+			defaultAddCaps: []corev1.Capability{"foo"},
+			allowedCaps:    []corev1.Capability{"bar"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"baz"},
 			},
 			shouldPass: false,
 		},
 		"validation is case sensitive": {
-			defaultAddCaps: []api.Capability{"foo"},
+			defaultAddCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"FOO"},
 			},
@@ -339,8 +340,8 @@ func TestValidateAdds(t *testing.T) {
 
 func TestValidateDrops(t *testing.T) {
 	tests := map[string]struct {
-		defaultAddCaps   []api.Capability
-		requiredDropCaps []api.Capability
+		defaultAddCaps   []corev1.Capability
+		requiredDropCaps []corev1.Capability
 		containerCaps    *api.Capabilities
 		shouldPass       bool
 	}{
@@ -349,27 +350,27 @@ func TestValidateDrops(t *testing.T) {
 			shouldPass: true,
 		},
 		"required, no container requests": {
-			requiredDropCaps: []api.Capability{"foo"},
+			requiredDropCaps: []corev1.Capability{"foo"},
 			shouldPass:       false,
 		},
 
 		// container requests match required
 		"required, container requests valid": {
-			requiredDropCaps: []api.Capability{"foo"},
+			requiredDropCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo"},
 			},
 			shouldPass: true,
 		},
 		"required, container requests invalid": {
-			requiredDropCaps: []api.Capability{"foo"},
+			requiredDropCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"bar"},
 			},
 			shouldPass: false,
 		},
 		"validation is case sensitive": {
-			requiredDropCaps: []api.Capability{"foo"},
+			requiredDropCaps: []corev1.Capability{"foo"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"FOO"},
 			},

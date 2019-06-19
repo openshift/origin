@@ -5,21 +5,21 @@ import (
 	"strings"
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestMustRunAsOptions(t *testing.T) {
 	var uid int64 = 1
 	tests := map[string]struct {
-		opts *securityapi.RunAsUserStrategyOptions
+		opts *securityv1.RunAsUserStrategyOptions
 		pass bool
 	}{
 		"invalid opts": {
-			opts: &securityapi.RunAsUserStrategyOptions{},
+			opts: &securityv1.RunAsUserStrategyOptions{},
 			pass: false,
 		},
 		"valid opts": {
-			opts: &securityapi.RunAsUserStrategyOptions{UID: &uid},
+			opts: &securityv1.RunAsUserStrategyOptions{UID: &uid},
 			pass: true,
 		},
 	}
@@ -36,7 +36,7 @@ func TestMustRunAsOptions(t *testing.T) {
 
 func TestMustRunAsGenerate(t *testing.T) {
 	var uid int64 = 1
-	opts := &securityapi.RunAsUserStrategyOptions{UID: &uid}
+	opts := &securityv1.RunAsUserStrategyOptions{UID: &uid}
 	mustRunAs, err := NewMustRunAs(opts)
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
@@ -53,7 +53,7 @@ func TestMustRunAsGenerate(t *testing.T) {
 func TestMustRunAsValidate(t *testing.T) {
 	var uid int64 = 1
 	var badUID int64 = 2
-	opts := &securityapi.RunAsUserStrategyOptions{UID: &uid}
+	opts := &securityv1.RunAsUserStrategyOptions{UID: &uid}
 	mustRunAs, err := NewMustRunAs(opts)
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)

@@ -9,7 +9,6 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/library-go/pkg/security/uid"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestAssignSecurityContext(t *testing.T) {
@@ -17,27 +16,27 @@ func TestAssignSecurityContext(t *testing.T) {
 	// scc that will deny privileged container requests and has a default value for a field (uid)
 	var uid int64 = 9999
 	fsGroup := int64(1)
-	scc := &securityapi.SecurityContextConstraints{
+	scc := &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test scc",
 		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyRunAsAny,
+		SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyRunAsAny,
 		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAs,
+		RunAsUser: securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyMustRunAs,
 			UID:  &uid,
 		},
 
 		// require allocation for a field in the psc as well to test changes/no changes
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
+		FSGroup: securityv1.FSGroupStrategyOptions{
+			Type: securityv1.FSGroupStrategyMustRunAs,
+			Ranges: []securityv1.IDRange{
 				{Min: fsGroup, Max: fsGroup},
 			},
 		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+			Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
 	provider, err := NewSimpleProvider(scc)
@@ -109,42 +108,42 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 	var uid int64 = 1
 
 	testCases := map[string]struct {
-		scc      *securityapi.SecurityContextConstraints
+		scc      *securityv1.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &securityapi.SecurityContextConstraints{
-				RunAsUser: securityapi.RunAsUserStrategyOptions{
-					Type: securityapi.RunAsUserStrategyMustRunAs,
+			scc: &securityv1.SecurityContextConstraints{
+				RunAsUser: securityv1.RunAsUserStrategyOptions{
+					Type: securityv1.RunAsUserStrategyMustRunAs,
 				},
 			},
 		},
 		"run as any": {
-			scc: &securityapi.SecurityContextConstraints{
-				RunAsUser: securityapi.RunAsUserStrategyOptions{
-					Type: securityapi.RunAsUserStrategyRunAsAny,
+			scc: &securityv1.SecurityContextConstraints{
+				RunAsUser: securityv1.RunAsUserStrategyOptions{
+					Type: securityv1.RunAsUserStrategyRunAsAny,
 				},
 			},
 		},
 		"run as non-root": {
-			scc: &securityapi.SecurityContextConstraints{
-				RunAsUser: securityapi.RunAsUserStrategyOptions{
-					Type: securityapi.RunAsUserStrategyMustRunAsNonRoot,
+			scc: &securityv1.SecurityContextConstraints{
+				RunAsUser: securityv1.RunAsUserStrategyOptions{
+					Type: securityv1.RunAsUserStrategyMustRunAsNonRoot,
 				},
 			},
 		},
 		"run as range": {
-			scc: &securityapi.SecurityContextConstraints{
-				RunAsUser: securityapi.RunAsUserStrategyOptions{
-					Type: securityapi.RunAsUserStrategyMustRunAsRange,
+			scc: &securityv1.SecurityContextConstraints{
+				RunAsUser: securityv1.RunAsUserStrategyOptions{
+					Type: securityv1.RunAsUserStrategyMustRunAsRange,
 				},
 			},
 			requires: true,
 		},
 		"run as range with specified params": {
-			scc: &securityapi.SecurityContextConstraints{
-				RunAsUser: securityapi.RunAsUserStrategyOptions{
-					Type:        securityapi.RunAsUserStrategyMustRunAsRange,
+			scc: &securityv1.SecurityContextConstraints{
+				RunAsUser: securityv1.RunAsUserStrategyOptions{
+					Type:        securityv1.RunAsUserStrategyMustRunAsRange,
 					UIDRangeMin: &uid,
 					UIDRangeMax: &uid,
 				},
@@ -162,31 +161,31 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 
 func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *securityapi.SecurityContextConstraints
+		scc      *securityv1.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &securityapi.SecurityContextConstraints{
-				SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-					Type: securityapi.SELinuxStrategyMustRunAs,
+			scc: &securityv1.SecurityContextConstraints{
+				SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+					Type: securityv1.SELinuxStrategyMustRunAs,
 				},
 			},
 			requires: true,
 		},
 		"must with level specified": {
-			scc: &securityapi.SecurityContextConstraints{
-				SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-					Type: securityapi.SELinuxStrategyMustRunAs,
-					SELinuxOptions: &kapi.SELinuxOptions{
+			scc: &securityv1.SecurityContextConstraints{
+				SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+					Type: securityv1.SELinuxStrategyMustRunAs,
+					SELinuxOptions: &corev1.SELinuxOptions{
 						Level: "foo",
 					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &securityapi.SecurityContextConstraints{
-				SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-					Type: securityapi.SELinuxStrategyRunAsAny,
+			scc: &securityv1.SecurityContextConstraints{
+				SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+					Type: securityv1.SELinuxStrategyRunAsAny,
 				},
 			},
 		},
@@ -202,31 +201,31 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 
 func TestRequiresPreallocatedSupplementalGroups(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *securityapi.SecurityContextConstraints
+		scc      *securityv1.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &securityapi.SecurityContextConstraints{
-				SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-					Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+			scc: &securityv1.SecurityContextConstraints{
+				SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+					Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 				},
 			},
 			requires: true,
 		},
 		"must with range specified": {
-			scc: &securityapi.SecurityContextConstraints{
-				SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-					Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-					Ranges: []securityapi.IDRange{
+			scc: &securityv1.SecurityContextConstraints{
+				SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+					Type: securityv1.SupplementalGroupsStrategyMustRunAs,
+					Ranges: []securityv1.IDRange{
 						{Min: 1, Max: 1},
 					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &securityapi.SecurityContextConstraints{
-				SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-					Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+			scc: &securityv1.SecurityContextConstraints{
+				SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+					Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 				},
 			},
 		},
@@ -241,31 +240,31 @@ func TestRequiresPreallocatedSupplementalGroups(t *testing.T) {
 
 func TestRequiresPreallocatedFSGroup(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *securityapi.SecurityContextConstraints
+		scc      *securityv1.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &securityapi.SecurityContextConstraints{
-				FSGroup: securityapi.FSGroupStrategyOptions{
-					Type: securityapi.FSGroupStrategyMustRunAs,
+			scc: &securityv1.SecurityContextConstraints{
+				FSGroup: securityv1.FSGroupStrategyOptions{
+					Type: securityv1.FSGroupStrategyMustRunAs,
 				},
 			},
 			requires: true,
 		},
 		"must with range specified": {
-			scc: &securityapi.SecurityContextConstraints{
-				FSGroup: securityapi.FSGroupStrategyOptions{
-					Type: securityapi.FSGroupStrategyMustRunAs,
-					Ranges: []securityapi.IDRange{
+			scc: &securityv1.SecurityContextConstraints{
+				FSGroup: securityv1.FSGroupStrategyOptions{
+					Type: securityv1.FSGroupStrategyMustRunAs,
+					Ranges: []securityv1.IDRange{
 						{Min: 1, Max: 1},
 					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &securityapi.SecurityContextConstraints{
-				FSGroup: securityapi.FSGroupStrategyOptions{
-					Type: securityapi.FSGroupStrategyRunAsAny,
+			scc: &securityv1.SecurityContextConstraints{
+				FSGroup: securityv1.FSGroupStrategyOptions{
+					Type: securityv1.FSGroupStrategyRunAsAny,
 				},
 			},
 		},
@@ -374,12 +373,12 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 
 	tests := map[string]struct {
 		ns         *corev1.Namespace
-		expected   []securityapi.IDRange
+		expected   []securityv1.IDRange
 		shouldFail bool
 	}{
 		"fall back to uid if sup group doesn't exist": {
 			ns: fallbackNS,
-			expected: []securityapi.IDRange{
+			expected: []securityv1.IDRange{
 				{Min: 1, Max: 1},
 			},
 		},
@@ -397,7 +396,7 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 		},
 		"good sup group annotation": {
 			ns: goodNS,
-			expected: []securityapi.IDRange{
+			expected: []securityv1.IDRange{
 				{Min: 1, Max: 1},
 			},
 		},
@@ -450,12 +449,12 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 
 	tests := map[string]struct {
 		ns         *corev1.Namespace
-		expected   []securityapi.IDRange
+		expected   []securityv1.IDRange
 		shouldFail bool
 	}{
 		"fall back to uid if sup group doesn't exist": {
 			ns: fallbackNS,
-			expected: []securityapi.IDRange{
+			expected: []securityv1.IDRange{
 				{Min: 1, Max: 5},
 			},
 		},
@@ -473,7 +472,7 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 		},
 		"good sup group annotation": {
 			ns: goodNS,
-			expected: []securityapi.IDRange{
+			expected: []securityv1.IDRange{
 				{Min: 1, Max: 5},
 			},
 		},
@@ -503,7 +502,7 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 	}
 }
 
-func hasRange(rng securityapi.IDRange, ranges []securityapi.IDRange) bool {
+func hasRange(rng securityv1.IDRange, ranges []securityv1.IDRange) bool {
 	for _, r := range ranges {
 		if r.Min == rng.Min && r.Max == rng.Max {
 			return true

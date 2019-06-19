@@ -3,7 +3,7 @@ package user
 import (
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestRunAsAnyOptions(t *testing.T) {
@@ -11,14 +11,14 @@ func TestRunAsAnyOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
 	}
-	_, err = NewRunAsAny(&securityapi.RunAsUserStrategyOptions{})
+	_, err = NewRunAsAny(&securityv1.RunAsUserStrategyOptions{})
 	if err != nil {
 		t.Errorf("unexpected error initializing NewRunAsAny %v", err)
 	}
 }
 
 func TestRunAsAnyGenerate(t *testing.T) {
-	s, err := NewRunAsAny(&securityapi.RunAsUserStrategyOptions{})
+	s, err := NewRunAsAny(&securityv1.RunAsUserStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
 	}
@@ -32,7 +32,7 @@ func TestRunAsAnyGenerate(t *testing.T) {
 }
 
 func TestRunAsAnyValidate(t *testing.T) {
-	s, err := NewRunAsAny(&securityapi.RunAsUserStrategyOptions{})
+	s, err := NewRunAsAny(&securityv1.RunAsUserStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
 	}

@@ -505,72 +505,72 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 	testCases := map[string]struct {
 		// use a generating function so we can test for non-mutation
-		scc         func() *securityapi.SecurityContextConstraints
+		scc         func() *securityv1.SecurityContextConstraints
 		namespace   *corev1.Namespace
 		expectedErr string
 	}{
 		"valid non-preallocated scc": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "valid non-preallocated scc",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyRunAsAny,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyRunAsAny,
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyRunAsAny,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyRunAsAny,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyRunAsAny,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyRunAsAny,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 					},
 				}
 			},
 			namespace: namespaceValid,
 		},
 		"valid pre-allocated scc": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "valid pre-allocated scc",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type:           securityapi.SELinuxStrategyMustRunAs,
-						SELinuxOptions: &coreapi.SELinuxOptions{User: "myuser"},
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type:           securityv1.SELinuxStrategyMustRunAs,
+						SELinuxOptions: &corev1.SELinuxOptions{User: "myuser"},
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAsRange,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAsRange,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
 				}
 			},
 			namespace: namespaceValid,
 		},
 		"pre-allocated no uid annotation": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "pre-allocated no uid annotation",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyMustRunAs,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyMustRunAs,
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAsRange,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAsRange,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyRunAsAny,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyRunAsAny,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 					},
 				}
 			},
@@ -578,22 +578,22 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated uid annotation",
 		},
 		"pre-allocated no mcs annotation": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "pre-allocated no mcs annotation",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyMustRunAs,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyMustRunAs,
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAsRange,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAsRange,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyRunAsAny,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyRunAsAny,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 					},
 				}
 			},
@@ -601,44 +601,44 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated mcs annotation",
 		},
 		"pre-allocated group falls back to UID annotation": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "pre-allocated no sup group annotation",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyRunAsAny,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyRunAsAny,
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyRunAsAny,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyRunAsAny,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
 				}
 			},
 			namespace: namespaceNoSupplementalGroupsFallbackToUID,
 		},
 		"pre-allocated group bad value fails": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "pre-allocated no sup group annotation",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyRunAsAny,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyRunAsAny,
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyRunAsAny,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyRunAsAny,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyMustRunAs,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyMustRunAs,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
 				}
 			},
@@ -646,22 +646,22 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated group annotation",
 		},
 		"bad scc strategy options": {
-			scc: func() *securityapi.SecurityContextConstraints {
-				return &securityapi.SecurityContextConstraints{
+			scc: func() *securityv1.SecurityContextConstraints {
+				return &securityv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "bad scc user options",
 					},
-					SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-						Type: securityapi.SELinuxStrategyRunAsAny,
+					SELinuxContext: securityv1.SELinuxContextStrategyOptions{
+						Type: securityv1.SELinuxStrategyRunAsAny,
 					},
-					RunAsUser: securityapi.RunAsUserStrategyOptions{
-						Type: securityapi.RunAsUserStrategyMustRunAs,
+					RunAsUser: securityv1.RunAsUserStrategyOptions{
+						Type: securityv1.RunAsUserStrategyMustRunAs,
 					},
-					FSGroup: securityapi.FSGroupStrategyOptions{
-						Type: securityapi.FSGroupStrategyRunAsAny,
+					FSGroup: securityv1.FSGroupStrategyOptions{
+						Type: securityv1.FSGroupStrategyRunAsAny,
 					},
-					SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-						Type: securityapi.SupplementalGroupsStrategyRunAsAny,
+					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
+						Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 					},
 				}
 			},
@@ -677,7 +677,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 		// create the providers, this method only needs the namespace
 		attributes := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
-		_, errs := oscc.CreateProvidersFromConstraints(attributes.GetNamespace(), []*securityapi.SecurityContextConstraints{scc}, tc)
+		_, errs := oscc.CreateProvidersFromConstraints(attributes.GetNamespace(), []*securityv1.SecurityContextConstraints{scc}, tc)
 
 		if !reflect.DeepEqual(scc, v.scc()) {
 			diff := diff.ObjectDiff(scc, v.scc())

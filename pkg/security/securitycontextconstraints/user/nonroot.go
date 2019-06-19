@@ -4,14 +4,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 type nonRoot struct{}
 
 var _ RunAsUserSecurityContextConstraintsStrategy = &nonRoot{}
 
-func NewRunAsNonRoot(options *securityapi.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
+func NewRunAsNonRoot(options *securityv1.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	return &nonRoot{}, nil
 }
 

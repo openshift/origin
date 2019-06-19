@@ -7,7 +7,6 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func GetAllFSTypesExcept(exceptions ...string) sets.String {
@@ -21,104 +20,104 @@ func GetAllFSTypesExcept(exceptions ...string) sets.String {
 func GetAllFSTypesAsSet() sets.String {
 	fstypes := sets.NewString()
 	fstypes.Insert(
-		string(securityapi.FSTypeHostPath),
-		string(securityapi.FSTypeAzureFile),
-		string(securityapi.FSTypeFlocker),
-		string(securityapi.FSTypeFlexVolume),
-		string(securityapi.FSTypeEmptyDir),
-		string(securityapi.FSTypeGCEPersistentDisk),
-		string(securityapi.FSTypeAWSElasticBlockStore),
-		string(securityapi.FSTypeGitRepo),
-		string(securityapi.FSTypeSecret),
-		string(securityapi.FSTypeNFS),
-		string(securityapi.FSTypeISCSI),
-		string(securityapi.FSTypeGlusterfs),
-		string(securityapi.FSTypePersistentVolumeClaim),
-		string(securityapi.FSTypeRBD),
-		string(securityapi.FSTypeCinder),
-		string(securityapi.FSTypeCephFS),
-		string(securityapi.FSTypeDownwardAPI),
-		string(securityapi.FSTypeFC),
-		string(securityapi.FSTypeConfigMap),
-		string(securityapi.FSTypeVsphereVolume),
-		string(securityapi.FSTypeQuobyte),
-		string(securityapi.FSTypeAzureDisk),
-		string(securityapi.FSTypePhotonPersistentDisk),
-		string(securityapi.FSProjected),
-		string(securityapi.FSPortworxVolume),
-		string(securityapi.FSScaleIO),
-		string(securityapi.FSStorageOS),
-		string(securityapi.FSTypeCSI),
+		string(securityv1.FSTypeHostPath),
+		string(securityv1.FSTypeAzureFile),
+		string(securityv1.FSTypeFlocker),
+		string(securityv1.FSTypeFlexVolume),
+		string(securityv1.FSTypeEmptyDir),
+		string(securityv1.FSTypeGCEPersistentDisk),
+		string(securityv1.FSTypeAWSElasticBlockStore),
+		string(securityv1.FSTypeGitRepo),
+		string(securityv1.FSTypeSecret),
+		string(securityv1.FSTypeNFS),
+		string(securityv1.FSTypeISCSI),
+		string(securityv1.FSTypeGlusterfs),
+		string(securityv1.FSTypePersistentVolumeClaim),
+		string(securityv1.FSTypeRBD),
+		string(securityv1.FSTypeCinder),
+		string(securityv1.FSTypeCephFS),
+		string(securityv1.FSTypeDownwardAPI),
+		string(securityv1.FSTypeFC),
+		string(securityv1.FSTypeConfigMap),
+		string(securityv1.FSTypeVsphereVolume),
+		string(securityv1.FSTypeQuobyte),
+		string(securityv1.FSTypeAzureDisk),
+		string(securityv1.FSTypePhotonPersistentDisk),
+		string(securityv1.FSProjected),
+		string(securityv1.FSPortworxVolume),
+		string(securityv1.FSScaleIO),
+		string(securityv1.FSStorageOS),
+		string(securityv1.FSTypeCSI),
 	)
 	return fstypes
 }
 
 // getVolumeFSType gets the FSType for a volume.
-func GetVolumeFSType(v api.Volume) (securityapi.FSType, error) {
+func GetVolumeFSType(v api.Volume) (securityv1.FSType, error) {
 	switch {
 	case v.HostPath != nil:
-		return securityapi.FSTypeHostPath, nil
+		return securityv1.FSTypeHostPath, nil
 	case v.EmptyDir != nil:
-		return securityapi.FSTypeEmptyDir, nil
+		return securityv1.FSTypeEmptyDir, nil
 	case v.GCEPersistentDisk != nil:
-		return securityapi.FSTypeGCEPersistentDisk, nil
+		return securityv1.FSTypeGCEPersistentDisk, nil
 	case v.AWSElasticBlockStore != nil:
-		return securityapi.FSTypeAWSElasticBlockStore, nil
+		return securityv1.FSTypeAWSElasticBlockStore, nil
 	case v.GitRepo != nil:
-		return securityapi.FSTypeGitRepo, nil
+		return securityv1.FSTypeGitRepo, nil
 	case v.Secret != nil:
-		return securityapi.FSTypeSecret, nil
+		return securityv1.FSTypeSecret, nil
 	case v.NFS != nil:
-		return securityapi.FSTypeNFS, nil
+		return securityv1.FSTypeNFS, nil
 	case v.ISCSI != nil:
-		return securityapi.FSTypeISCSI, nil
+		return securityv1.FSTypeISCSI, nil
 	case v.Glusterfs != nil:
-		return securityapi.FSTypeGlusterfs, nil
+		return securityv1.FSTypeGlusterfs, nil
 	case v.PersistentVolumeClaim != nil:
-		return securityapi.FSTypePersistentVolumeClaim, nil
+		return securityv1.FSTypePersistentVolumeClaim, nil
 	case v.RBD != nil:
-		return securityapi.FSTypeRBD, nil
+		return securityv1.FSTypeRBD, nil
 	case v.FlexVolume != nil:
-		return securityapi.FSTypeFlexVolume, nil
+		return securityv1.FSTypeFlexVolume, nil
 	case v.Cinder != nil:
-		return securityapi.FSTypeCinder, nil
+		return securityv1.FSTypeCinder, nil
 	case v.CephFS != nil:
-		return securityapi.FSTypeCephFS, nil
+		return securityv1.FSTypeCephFS, nil
 	case v.Flocker != nil:
-		return securityapi.FSTypeFlocker, nil
+		return securityv1.FSTypeFlocker, nil
 	case v.DownwardAPI != nil:
-		return securityapi.FSTypeDownwardAPI, nil
+		return securityv1.FSTypeDownwardAPI, nil
 	case v.FC != nil:
-		return securityapi.FSTypeFC, nil
+		return securityv1.FSTypeFC, nil
 	case v.AzureFile != nil:
-		return securityapi.FSTypeAzureFile, nil
+		return securityv1.FSTypeAzureFile, nil
 	case v.ConfigMap != nil:
-		return securityapi.FSTypeConfigMap, nil
+		return securityv1.FSTypeConfigMap, nil
 	case v.VsphereVolume != nil:
-		return securityapi.FSTypeVsphereVolume, nil
+		return securityv1.FSTypeVsphereVolume, nil
 	case v.Quobyte != nil:
-		return securityapi.FSTypeQuobyte, nil
+		return securityv1.FSTypeQuobyte, nil
 	case v.AzureDisk != nil:
-		return securityapi.FSTypeAzureDisk, nil
+		return securityv1.FSTypeAzureDisk, nil
 	case v.PhotonPersistentDisk != nil:
-		return securityapi.FSTypePhotonPersistentDisk, nil
+		return securityv1.FSTypePhotonPersistentDisk, nil
 	case v.Projected != nil:
-		return securityapi.FSProjected, nil
+		return securityv1.FSProjected, nil
 	case v.PortworxVolume != nil:
-		return securityapi.FSPortworxVolume, nil
+		return securityv1.FSPortworxVolume, nil
 	case v.ScaleIO != nil:
-		return securityapi.FSScaleIO, nil
+		return securityv1.FSScaleIO, nil
 	case v.StorageOS != nil:
-		return securityapi.FSStorageOS, nil
+		return securityv1.FSStorageOS, nil
 	case v.CSI != nil:
-		return securityapi.FSTypeCSI, nil
+		return securityv1.FSTypeCSI, nil
 	}
 
 	return "", fmt.Errorf("unknown volume type for volume: %#v", v)
 }
 
 // fsTypeToStringSet converts an FSType slice to a string set.
-func FSTypeToStringSetInternal(fsTypes []securityapi.FSType) sets.String {
+func FSTypeToStringSetInternal(fsTypes []securityv1.FSType) sets.String {
 	set := sets.NewString()
 	for _, v := range fsTypes {
 		set.Insert(string(v))
@@ -127,19 +126,19 @@ func FSTypeToStringSetInternal(fsTypes []securityapi.FSType) sets.String {
 }
 
 // SCCAllowsAllVolumes checks for FSTypeAll in the scc's allowed volumes.
-func SCCAllowsAllVolumes(scc *securityapi.SecurityContextConstraints) bool {
-	return SCCAllowsFSTypeInternal(scc, securityapi.FSTypeAll)
+func SCCAllowsAllVolumes(scc *securityv1.SecurityContextConstraints) bool {
+	return SCCAllowsFSTypeInternal(scc, securityv1.FSTypeAll)
 }
 
 // SCCAllowsFSTypeInternal is a utility for checking if an SCC allows a particular FSType.
 // If all volumes are allowed then this will return true for any FSType passed.
-func SCCAllowsFSTypeInternal(scc *securityapi.SecurityContextConstraints, fsType securityapi.FSType) bool {
+func SCCAllowsFSTypeInternal(scc *securityv1.SecurityContextConstraints, fsType securityv1.FSType) bool {
 	if scc == nil {
 		return false
 	}
 
 	for _, v := range scc.Volumes {
-		if v == fsType || v == securityapi.FSTypeAll {
+		if v == fsType || v == securityv1.FSTypeAll {
 			return true
 		}
 	}

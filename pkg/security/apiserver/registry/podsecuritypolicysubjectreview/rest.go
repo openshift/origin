@@ -20,6 +20,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
@@ -107,10 +108,11 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(securityapi.Install(scheme))
+	utilruntime.Must(securityv1.Install(scheme))
 }
 
 // FillPodSecurityPolicySubjectReviewStatus fills PodSecurityPolicySubjectReviewStatus assigning SecurityContectConstraint to the PodSpec
-func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec coreapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
+func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec coreapi.PodSpec, constraint *securityv1.SecurityContextConstraints) (bool, error) {
 	pod := &coreapi.Pod{
 		Spec: spec,
 	}

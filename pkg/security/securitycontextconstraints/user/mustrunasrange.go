@@ -6,18 +6,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // mustRunAsRange implements the RunAsUserSecurityContextConstraintsStrategy interface
 type mustRunAsRange struct {
-	opts *securityapi.RunAsUserStrategyOptions
+	opts *securityv1.RunAsUserStrategyOptions
 }
 
 var _ RunAsUserSecurityContextConstraintsStrategy = &mustRunAsRange{}
 
 // NewMustRunAsRange provides a strategy that requires the container to run as a specific UID in a range.
-func NewMustRunAsRange(options *securityapi.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
+func NewMustRunAsRange(options *securityv1.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	if options == nil {
 		return nil, fmt.Errorf("MustRunAsRange requires run as user options")
 	}

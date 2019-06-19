@@ -3,9 +3,8 @@ package selinux
 import (
 	"testing"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
-
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestRunAsAnyOptions(t *testing.T) {
@@ -13,14 +12,14 @@ func TestRunAsAnyOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
 	}
-	_, err = NewRunAsAny(&securityapi.SELinuxContextStrategyOptions{})
+	_, err = NewRunAsAny(&securityv1.SELinuxContextStrategyOptions{})
 	if err != nil {
 		t.Errorf("unexpected error initializing NewRunAsAny %v", err)
 	}
 }
 
 func TestRunAsAnyGenerate(t *testing.T) {
-	s, err := NewRunAsAny(&securityapi.SELinuxContextStrategyOptions{})
+	s, err := NewRunAsAny(&securityv1.SELinuxContextStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
 	}
@@ -34,8 +33,8 @@ func TestRunAsAnyGenerate(t *testing.T) {
 }
 
 func TestRunAsAnyValidate(t *testing.T) {
-	s, err := NewRunAsAny(&securityapi.SELinuxContextStrategyOptions{
-		SELinuxOptions: &api.SELinuxOptions{
+	s, err := NewRunAsAny(&securityv1.SELinuxContextStrategyOptions{
+		SELinuxOptions: &corev1.SELinuxOptions{
 			Level: "foo",
 		},
 	},
@@ -47,7 +46,7 @@ func TestRunAsAnyValidate(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("unexpected errors validating with ")
 	}
-	s, err = NewRunAsAny(&securityapi.SELinuxContextStrategyOptions{})
+	s, err = NewRunAsAny(&securityv1.SELinuxContextStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
 	}

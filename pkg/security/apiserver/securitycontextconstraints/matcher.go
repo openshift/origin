@@ -20,13 +20,11 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	"github.com/openshift/library-go/pkg/security/uid"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
 )
 
 type SCCMatcher interface {
-	FindApplicableSCCs(namespace string, user ...user.Info) ([]*securityapi.SecurityContextConstraints, error)
+	FindApplicableSCCs(namespace string, user ...user.Info) ([]*securityv1.SecurityContextConstraints, error)
 }
 
 type defaultSCCMatcher struct {
@@ -41,7 +39,7 @@ func NewDefaultSCCMatcher(c securityv1listers.SecurityContextConstraintsLister, 
 // FindApplicableSCCs implements SCCMatcher interface
 // It finds all SCCs that the subjects in the `users` argument may use.
 // The returned SCCs are sorted by priority.
-func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.Info) ([]*securityapi.SecurityContextConstraints, error) {
+func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.Info) ([]*securityv1.SecurityContextConstraints, error) {
 	var matchedConstraints []*securityv1.SecurityContextConstraints
 	constraints, err := d.cache.List(labels.Everything())
 	if err != nil {
@@ -64,16 +62,7 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.I
 
 	sort.Sort(sccsort.ByPriority(matchedConstraints))
 
-	internalMatchedConstraints := []*securityapi.SecurityContextConstraints{}
-	for _, externalConstraint := range matchedConstraints {
-		internalConstraint := &securityapi.SecurityContextConstraints{}
-		if err := securityapiv1.Convert_v1_SecurityContextConstraints_To_security_SecurityContextConstraints(externalConstraint, internalConstraint, nil); err != nil {
-			return nil, err
-		}
-		internalMatchedConstraints = append(internalMatchedConstraints, internalConstraint)
-	}
-
-	return internalMatchedConstraints, nil
+	return matchedConstraints, nil
 }
 
 // authorizedForSCC returns true if info is authorized to perform the "use" verb on the SCC resource.
@@ -178,7 +167,7 @@ func getNamespaceByName(name string, ns *corev1.Namespace, client kubernetes.Int
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
-func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityContextConstraints, client kubernetes.Interface) ([]SecurityContextConstraintsProvider, []error) {
+func CreateProvidersFromConstraints(ns string, sccs []*securityv1.SecurityContextConstraints, client kubernetes.Interface) ([]SecurityContextConstraintsProvider, []error) {
 	var (
 		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
 		namespace *corev1.Namespace
@@ -205,7 +194,7 @@ func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityConte
 }
 
 // CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
-func CreateProviderFromConstraint(ns string, namespace *corev1.Namespace, constraint *securityapi.SecurityContextConstraints, client kubernetes.Interface) (SecurityContextConstraintsProvider, *corev1.Namespace, error) {
+func CreateProviderFromConstraint(ns string, namespace *corev1.Namespace, constraint *securityv1.SecurityContextConstraints, client kubernetes.Interface) (SecurityContextConstraintsProvider, *corev1.Namespace, error) {
 	var err error
 	resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
 	resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
@@ -222,8 +211,7 @@ func CreateProviderFromConstraint(ns string, namespace *corev1.Namespace, constr
 	}
 
 	// Make a copy of the constraint so we don't mutate the store's cache
-	var constraintCopy securityapi.SecurityContextConstraints = *constraint
-	constraint = &constraintCopy
+	constraint = constraint.DeepCopy()
 
 	// Resolve the values from the namespace
 	if resolveUIDRange {
@@ -238,13 +226,8 @@ func CreateProviderFromConstraint(ns string, namespace *corev1.Namespace, constr
 			return nil, namespace, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
 		}
 
-		// SELinuxOptions is a pointer, if we are resolving and it is already initialized
-		// we need to make a copy of it so we don't manipulate the store's cache.
-		if constraint.SELinuxContext.SELinuxOptions != nil {
-			var seLinuxOptionsCopy kapi.SELinuxOptions = *constraint.SELinuxContext.SELinuxOptions
-			constraint.SELinuxContext.SELinuxOptions = &seLinuxOptionsCopy
-		} else {
-			constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
+		if constraint.SELinuxContext.SELinuxOptions == nil {
+			constraint.SELinuxContext.SELinuxOptions = &corev1.SELinuxOptions{}
 		}
 		constraint.SELinuxContext.SELinuxOptions.Level = level
 	}
@@ -326,7 +309,7 @@ func getSupplementalGroupsAnnotation(ns *corev1.Namespace) (string, error) {
 }
 
 // getPreallocatedFSGroup gets the annotated value from the namespace.
-func getPreallocatedFSGroup(ns *corev1.Namespace) ([]securityapi.IDRange, error) {
+func getPreallocatedFSGroup(ns *corev1.Namespace) ([]securityv1.IDRange, error) {
 	groups, err := getSupplementalGroupsAnnotation(ns)
 	if err != nil {
 		return nil, err
@@ -337,7 +320,7 @@ func getPreallocatedFSGroup(ns *corev1.Namespace) ([]securityapi.IDRange, error)
 	if err != nil {
 		return nil, err
 	}
-	return []securityapi.IDRange{
+	return []securityv1.IDRange{
 		{
 			Min: int64(blocks[0].Start),
 			Max: int64(blocks[0].Start),
@@ -346,7 +329,7 @@ func getPreallocatedFSGroup(ns *corev1.Namespace) ([]securityapi.IDRange, error)
 }
 
 // getPreallocatedSupplementalGroups gets the annotated value from the namespace.
-func getPreallocatedSupplementalGroups(ns *corev1.Namespace) ([]securityapi.IDRange, error) {
+func getPreallocatedSupplementalGroups(ns *corev1.Namespace) ([]securityv1.IDRange, error) {
 	groups, err := getSupplementalGroupsAnnotation(ns)
 	if err != nil {
 		return nil, err
@@ -358,9 +341,9 @@ func getPreallocatedSupplementalGroups(ns *corev1.Namespace) ([]securityapi.IDRa
 		return nil, err
 	}
 
-	idRanges := []securityapi.IDRange{}
+	idRanges := []securityv1.IDRange{}
 	for _, block := range blocks {
-		rng := securityapi.IDRange{
+		rng := securityv1.IDRange{
 			Min: int64(block.Start),
 			Max: int64(block.End),
 		}
@@ -388,16 +371,16 @@ func parseSupplementalGroupAnnotation(groups string) ([]uid.Block, error) {
 
 // requiresPreAllocatedUIDRange returns true if the strategy is must run in range and the min or max
 // is not set.
-func requiresPreAllocatedUIDRange(constraint *securityapi.SecurityContextConstraints) bool {
-	if constraint.RunAsUser.Type != securityapi.RunAsUserStrategyMustRunAsRange {
+func requiresPreAllocatedUIDRange(constraint *securityv1.SecurityContextConstraints) bool {
+	if constraint.RunAsUser.Type != securityv1.RunAsUserStrategyMustRunAsRange {
 		return false
 	}
 	return constraint.RunAsUser.UIDRangeMin == nil && constraint.RunAsUser.UIDRangeMax == nil
 }
 
 // requiresPreAllocatedSELinuxLevel returns true if the strategy is must run as and the level is not set.
-func requiresPreAllocatedSELinuxLevel(constraint *securityapi.SecurityContextConstraints) bool {
-	if constraint.SELinuxContext.Type != securityapi.SELinuxStrategyMustRunAs {
+func requiresPreAllocatedSELinuxLevel(constraint *securityv1.SecurityContextConstraints) bool {
+	if constraint.SELinuxContext.Type != securityv1.SELinuxStrategyMustRunAs {
 		return false
 	}
 	if constraint.SELinuxContext.SELinuxOptions == nil {
@@ -408,8 +391,8 @@ func requiresPreAllocatedSELinuxLevel(constraint *securityapi.SecurityContextCon
 
 // requiresPreAllocatedSELinuxLevel returns true if the strategy is must run as and there is no
 // range specified.
-func requiresPreallocatedSupplementalGroups(constraint *securityapi.SecurityContextConstraints) bool {
-	if constraint.SupplementalGroups.Type != securityapi.SupplementalGroupsStrategyMustRunAs {
+func requiresPreallocatedSupplementalGroups(constraint *securityv1.SecurityContextConstraints) bool {
+	if constraint.SupplementalGroups.Type != securityv1.SupplementalGroupsStrategyMustRunAs {
 		return false
 	}
 	return len(constraint.SupplementalGroups.Ranges) == 0
@@ -417,8 +400,8 @@ func requiresPreallocatedSupplementalGroups(constraint *securityapi.SecurityCont
 
 // requiresPreallocatedFSGroup returns true if the strategy is must run as and there is no
 // range specified.
-func requiresPreallocatedFSGroup(constraint *securityapi.SecurityContextConstraints) bool {
-	if constraint.FSGroup.Type != securityapi.FSGroupStrategyMustRunAs {
+func requiresPreallocatedFSGroup(constraint *securityv1.SecurityContextConstraints) bool {
+	if constraint.FSGroup.Type != securityv1.FSGroupStrategyMustRunAs {
 		return false
 	}
 	return len(constraint.FSGroup.Ranges) == 0

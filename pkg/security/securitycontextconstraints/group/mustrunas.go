@@ -6,19 +6,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // mustRunAs implements the GroupSecurityContextConstraintsStrategy interface
 type mustRunAs struct {
-	ranges []securityapi.IDRange
+	ranges []securityv1.IDRange
 	field  string
 }
 
 var _ GroupSecurityContextConstraintsStrategy = &mustRunAs{}
 
 // NewMustRunAs provides a new MustRunAs strategy based on ranges.
-func NewMustRunAs(ranges []securityapi.IDRange, field string) (GroupSecurityContextConstraintsStrategy, error) {
+func NewMustRunAs(ranges []securityv1.IDRange, field string) (GroupSecurityContextConstraintsStrategy, error) {
 	if len(ranges) == 0 {
 		return nil, fmt.Errorf("ranges must be supplied for MustRunAs")
 	}
@@ -71,6 +71,6 @@ func (s *mustRunAs) isGroupValid(group int64) bool {
 	return false
 }
 
-func fallsInRange(group int64, rng securityapi.IDRange) bool {
+func fallsInRange(group int64, rng securityv1.IDRange) bool {
 	return group >= rng.Min && group <= rng.Max
 }

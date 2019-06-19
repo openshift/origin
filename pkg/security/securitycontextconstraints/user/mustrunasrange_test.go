@@ -5,29 +5,29 @@ import (
 	"strings"
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 func TestMustRunAsRangeOptions(t *testing.T) {
 	var uid int64 = 1
 	tests := map[string]struct {
-		opts *securityapi.RunAsUserStrategyOptions
+		opts *securityv1.RunAsUserStrategyOptions
 		pass bool
 	}{
 		"invalid opts, required min and max": {
-			opts: &securityapi.RunAsUserStrategyOptions{},
+			opts: &securityv1.RunAsUserStrategyOptions{},
 			pass: false,
 		},
 		"invalid opts, required max": {
-			opts: &securityapi.RunAsUserStrategyOptions{UIDRangeMin: &uid},
+			opts: &securityv1.RunAsUserStrategyOptions{UIDRangeMin: &uid},
 			pass: false,
 		},
 		"invalid opts, required min": {
-			opts: &securityapi.RunAsUserStrategyOptions{UIDRangeMax: &uid},
+			opts: &securityv1.RunAsUserStrategyOptions{UIDRangeMax: &uid},
 			pass: false,
 		},
 		"valid opts": {
-			opts: &securityapi.RunAsUserStrategyOptions{UIDRangeMin: &uid, UIDRangeMax: &uid},
+			opts: &securityv1.RunAsUserStrategyOptions{UIDRangeMin: &uid, UIDRangeMax: &uid},
 			pass: true,
 		},
 	}
@@ -45,7 +45,7 @@ func TestMustRunAsRangeOptions(t *testing.T) {
 func TestMustRunAsRangeGenerate(t *testing.T) {
 	var uidMin int64 = 1
 	var uidMax int64 = 10
-	opts := &securityapi.RunAsUserStrategyOptions{UIDRangeMin: &uidMin, UIDRangeMax: &uidMax}
+	opts := &securityv1.RunAsUserStrategyOptions{UIDRangeMin: &uidMin, UIDRangeMax: &uidMax}
 	mustRunAsRange, err := NewMustRunAsRange(opts)
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewMustRunAsRange %v", err)
@@ -62,7 +62,7 @@ func TestMustRunAsRangeGenerate(t *testing.T) {
 func TestMustRunAsRangeValidate(t *testing.T) {
 	var uidMin int64 = 1
 	var uidMax int64 = 10
-	opts := &securityapi.RunAsUserStrategyOptions{UIDRangeMin: &uidMin, UIDRangeMax: &uidMax}
+	opts := &securityv1.RunAsUserStrategyOptions{UIDRangeMin: &uidMin, UIDRangeMax: &uidMax}
 	mustRunAsRange, err := NewMustRunAsRange(opts)
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewMustRunAsRange %v", err)
