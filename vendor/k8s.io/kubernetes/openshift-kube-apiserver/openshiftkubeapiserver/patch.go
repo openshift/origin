@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/quota/v1/generic"
@@ -51,7 +50,9 @@ type KubeAPIServerServerPatchContext struct {
 	informerStartFuncs []func(stopCh <-chan struct{})
 }
 
-func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) (app.KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
+type KubeAPIServerConfigFunc func(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) (genericapiserver.DelegationTarget, error)
+
+func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) (KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
 	patchContext := &KubeAPIServerServerPatchContext{
 		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 	}
