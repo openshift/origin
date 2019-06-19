@@ -36,7 +36,6 @@ var _ = g.Describe("[Feature:Platform] ClusterOperators", func() {
 		"machine-config",
 		"marketplace",
 		"network",
-		"node-tuning",
 		"operator-lifecycle-manager",
 		"operator-lifecycle-manager-catalog",
 		"storage",
