@@ -1119,7 +1119,7 @@ var map_ProxySpec = map[string]string{
 	"":           "ProxySpec contains cluster proxy creation configuration.",
 	"httpProxy":  "httpProxy is the URL of the proxy for HTTP requests.  Empty means unset and will not result in an env var.",
 	"httpsProxy": "httpsProxy is the URL of the proxy for HTTPS requests.  Empty means unset and will not result in an env var.",
-	"noProxy":    "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Each name is matched as either a domain which contains the host name as a suffix, or the host name itself. For instance, example.com would match example.com, example.com:80, and www.example.com. Wildcard(*) characters are not accepted, except a single * character which matches all hosts and effectively disables the proxy. Empty means unset and will not result in an env var.",
+	"noProxy":    "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Empty means unset and will not result in an env var.",
 }
 
 func (ProxySpec) SwaggerDoc() map[string]string {
