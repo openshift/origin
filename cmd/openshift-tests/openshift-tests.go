@@ -6,6 +6,7 @@ import (
 	goflag "flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
+	exutilazure "github.com/openshift/origin/test/extended/util/azure"
 )
 
 func main() {
@@ -295,6 +297,23 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 			}
 		}
 		// TODO: detect which provider the cluster is running and use that as a default.
+	case "azure":
+		tmpFile, err := ioutil.TempFile("", "e2e-*")
+		if err != nil {
+			return err
+		}
+		data, err := exutilazure.LoadConfigFile()
+		if err != nil {
+			return err
+		}
+		if _, err := tmpFile.Write(data); err != nil {
+			return err
+		}
+		if err := tmpFile.Close(); err != nil {
+			return err
+		}
+		testContext.Provider = "azure"
+		testContext.CloudConfig = e2e.CloudConfig{ConfigFile: tmpFile.Name()}
 	default:
 		var providerInfo struct{ Type string }
 		if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
