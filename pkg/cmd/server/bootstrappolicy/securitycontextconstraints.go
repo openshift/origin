@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints"
 )
 
 const (

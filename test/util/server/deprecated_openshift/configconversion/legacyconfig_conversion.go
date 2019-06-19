@@ -12,8 +12,8 @@ import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
-	externaliprangerv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/externalipranger/v1"
-	restrictedendpointsv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1"
+	externaliprangerv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger/v1"
+	restrictedendpointsv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1"
 )
 
 func convertNetworkConfigToAdmissionConfig(masterConfig *legacyconfigv1.MasterConfig) error {

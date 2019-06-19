@@ -13,9 +13,9 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
+	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
+	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
 	// for metrics
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"

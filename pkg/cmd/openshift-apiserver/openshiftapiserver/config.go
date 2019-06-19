@@ -31,8 +31,8 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/version"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configflags"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	"k8s.io/kubernetes/openshift-kube-apiserver/configflags"
 )
 
 func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerConfig) (*OpenshiftAPIConfig, error) {

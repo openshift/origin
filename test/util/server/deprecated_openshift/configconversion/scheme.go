@@ -1,16 +1,6 @@
 package configconversion
 
 import (
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride"
-	clusterresourceoverridev1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration"
-	runoncedurationv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/externalipranger"
-	externaliprangerv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/externalipranger/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/restrictedendpoints"
-	restrictedendpointsv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route/apis/ingressadmission"
-	ingressadmissionv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route/apis/ingressadmission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -20,14 +10,24 @@ import (
 	"k8s.io/apiserver/pkg/apis/audit"
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride"
+	clusterresourceoverridev1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration"
+	runoncedurationv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger"
+	externaliprangerv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints"
+	restrictedendpointsv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/ingressadmission"
+	ingressadmissionv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/ingressadmission/v1"
 
-	imagepolicyapiv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
-	podnodeconstraintsv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints/v1"
 	"github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	requestlimitv1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	configapiv1 "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1"
+	imagepolicyapiv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
+	podnodeconstraintsv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints/v1"
 )
 
 var Scheme = runtime.NewScheme()

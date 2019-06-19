@@ -10,7 +10,7 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
+	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
 )
 
 func ToHTTPServingInfo(in *legacyconfigv1.HTTPServingInfo) (out configv1.HTTPServingInfo, err error) {
