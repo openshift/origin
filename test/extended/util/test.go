@@ -396,10 +396,6 @@ var (
 			`\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
 
 			`Probing container should \*not\* be restarted with a non-local redirect http liveness probe`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711687
-
-			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
-			"when the NodeLease feature is enabled",
-			"RuntimeClass should reject",
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
