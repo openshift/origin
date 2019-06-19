@@ -82,7 +82,7 @@ type ImagePolicyPlugin struct {
 
 var _ = initializer.WantsExternalKubeInformerFactory(&ImagePolicyPlugin{})
 var _ = admissionrestconfig.WantsRESTClientConfig(&ImagePolicyPlugin{})
-var _ = WantsDefaultRegistryFunc(&ImagePolicyPlugin{})
+var _ = WantsInternalImageRegistry(&ImagePolicyPlugin{})
 var _ = WantsImageMutators(&ImagePolicyPlugin{})
 var _ = admission.ValidationInterface(&ImagePolicyPlugin{})
 var _ = admission.MutationInterface(&ImagePolicyPlugin{})
@@ -127,8 +127,8 @@ func NewImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*ImagePolicyPl
 	}, nil
 }
 
-func (a *ImagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
-	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(fn)
+func (a *ImagePolicyPlugin) SetInternalImageRegistry(internalImageRegistryName string) {
+	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(internalImageRegistryName)
 }
 
 func (a *ImagePolicyPlugin) SetImageMutators(imageMutators imagereferencemutators.ImageMutators) {

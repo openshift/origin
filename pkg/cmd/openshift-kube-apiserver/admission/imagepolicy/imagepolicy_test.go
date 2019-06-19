@@ -136,9 +136,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 	store := setDefaultCache(plugin)
 	plugin.Client = client
-	plugin.SetDefaultRegistryFunc(func() (string, bool) {
-		return "integrated.registry", true
-	})
+	plugin.SetInternalImageRegistry("integrated.registry")
 	plugin.SetImageMutators(imagereferencemutators.KubeImageMutators{})
 	if err := plugin.ValidateInitialization(); err != nil {
 		t.Fatal(err)
@@ -858,9 +856,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 			setDefaultCache(p)
 			p.Client = test.client
-			p.SetDefaultRegistryFunc(func() (string, bool) {
-				return "integrated.registry", true
-			})
+			p.SetInternalImageRegistry("integrated.registry")
 			p.SetImageMutators(imagereferencemutators.KubeImageMutators{})
 			if err := p.ValidateInitialization(); err != nil {
 				t.Fatal(err)

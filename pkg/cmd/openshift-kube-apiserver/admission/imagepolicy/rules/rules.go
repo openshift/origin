@@ -26,14 +26,13 @@ type RegistryMatcher interface {
 	Matches(name string) bool
 }
 
-type RegistryNameMatcher func() (string, bool)
+type RegistryNameMatcher string
 
 func (m RegistryNameMatcher) Matches(name string) bool {
-	current, ok := m()
-	if !ok {
+	if len(m) == 0 {
 		return false
 	}
-	return current == name
+	return string(m) == name
 }
 
 type nameSet []string

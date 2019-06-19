@@ -41,7 +41,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
 
@@ -102,16 +101,8 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			return nil, err
 		}
 
-		var externalRegistryHostname string
-		if len(kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
-			externalRegistryHostname = kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostnames[0]
-		}
-		registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(genericConfig.LoopbackClientConfig, externalRegistryHostname, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname)
-		if err != nil {
-			return nil, err
-		}
 		*pluginInitializers = append(*pluginInitializers,
-			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, registryHostnameRetriever.InternalRegistryHostname),
+			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname),
 			restrictusers.NewInitializer(kubeAPIServerInformers.GetOpenshiftUserInformers()),
 			sccadmission.NewInitializer(kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
 			clusterresourcequota.NewInitializer(

@@ -6,10 +6,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 )
 
-func NewInitializer(imageMutators imagereferencemutators.ImageMutators, defaultRegistryFn func() (string, bool)) admission.PluginInitializer {
+func NewInitializer(imageMutators imagereferencemutators.ImageMutators, internalImageRegistry string) admission.PluginInitializer {
 	return &localInitializer{
-		imageMutators:     imageMutators,
-		defaultRegistryFn: defaultRegistryFn,
+		imageMutators:         imageMutators,
+		internalImageRegistry: internalImageRegistry,
 	}
 }
 
@@ -18,14 +18,14 @@ type WantsImageMutators interface {
 	admission.InitializationValidator
 }
 
-type WantsDefaultRegistryFunc interface {
-	SetDefaultRegistryFunc(func() (string, bool))
+type WantsInternalImageRegistry interface {
+	SetInternalImageRegistry(string)
 	admission.InitializationValidator
 }
 
 type localInitializer struct {
-	imageMutators     imagereferencemutators.ImageMutators
-	defaultRegistryFn func() (string, bool)
+	imageMutators         imagereferencemutators.ImageMutators
+	internalImageRegistry string
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -34,7 +34,7 @@ func (i *localInitializer) Initialize(plugin admission.Interface) {
 	if wants, ok := plugin.(WantsImageMutators); ok {
 		wants.SetImageMutators(i.imageMutators)
 	}
-	if wants, ok := plugin.(WantsDefaultRegistryFunc); ok {
-		wants.SetDefaultRegistryFunc(i.defaultRegistryFn)
+	if wants, ok := plugin.(WantsInternalImageRegistry); ok {
+		wants.SetInternalImageRegistry(i.internalImageRegistry)
 	}
 }

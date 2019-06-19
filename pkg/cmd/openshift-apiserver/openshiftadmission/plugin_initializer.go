@@ -29,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/quota/image"
 )
 
@@ -42,7 +41,6 @@ type InformerAccess interface {
 }
 
 func NewPluginInitializer(
-	externalImageRegistryHostnames []string,
 	internalImageRegistryHostname string,
 	cloudConfigFile string,
 	privilegedLoopbackConfig *rest.Config,
@@ -69,15 +67,6 @@ func NewPluginInitializer(
 	)
 	for i := range imageEvaluators {
 		quotaRegistry.Add(imageEvaluators[i])
-	}
-
-	var externalImageRegistryHostname string
-	if len(externalImageRegistryHostnames) > 0 {
-		externalImageRegistryHostname = externalImageRegistryHostnames[0]
-	}
-	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, externalImageRegistryHostname, internalImageRegistryHostname)
-	if err != nil {
-		return nil, err
 	}
 
 	var cloudConfig []byte
@@ -125,7 +114,7 @@ func NewPluginInitializer(
 		genericInitializer,
 		webhookInitializer,
 		kubePluginInitializer,
-		imagepolicy.NewInitializer(originimagereferencemutators.OriginImageMutators{}, registryHostnameRetriever.InternalRegistryHostname),
+		imagepolicy.NewInitializer(originimagereferencemutators.OriginImageMutators{}, internalImageRegistryHostname),
 		clusterresourcequota.NewInitializer(
 			informers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 			clusterQuotaMappingController.GetClusterQuotaMapper(),
