@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"io/ioutil"
 
-	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
-
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 )
@@ -38,19 +36,4 @@ func setDefaults_NodeConfig(obj *legacyconfigv1.NodeConfig) {
 		v := true
 		obj.EnableUnidling = &v
 	}
-}
-
-func readProxyConfig(filename string) (*kubeproxyconfig.KubeProxyConfiguration, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	uncast, err := helpers.ReadYAML(bytes.NewBuffer(data), kubeproxyconfig.AddToScheme)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := uncast.(*kubeproxyconfig.KubeProxyConfiguration)
-	return ret, nil
 }

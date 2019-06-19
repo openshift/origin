@@ -41,6 +41,16 @@ import (
 	"k8s.io/klog"
 )
 
+// readProxyConfig reads the proxy config from a file
+func readProxyConfig(filename string) (*kubeproxyconfig.KubeProxyConfiguration, error) {
+	o := kubeproxyoptions.NewOptions()
+	o.ConfigFile = filename
+	if err := o.Complete(); err != nil {
+		return nil, err
+	}
+	return o.GetConfig(), nil
+}
+
 // ProxyConfigFromNodeConfig builds the kube-proxy configuration from the already-parsed nodeconfig.
 func ProxyConfigFromNodeConfig(nodeName, bindAddress, iptablesSyncPeriod string, proxyArguments map[string][]string) (*kubeproxyconfig.KubeProxyConfiguration, error) {
 	proxyOptions := kubeproxyoptions.NewOptions()
