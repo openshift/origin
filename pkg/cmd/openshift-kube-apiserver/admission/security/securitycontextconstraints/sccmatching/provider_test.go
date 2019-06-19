@@ -1,4 +1,4 @@
-package securitycontextconstraints
+package sccmatching
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	sccutil "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"

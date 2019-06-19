@@ -1,4 +1,4 @@
-package securitycontextconstraints
+package sccmatching
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	"github.com/openshift/library-go/pkg/security/uid"
-	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
+	sccsort "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/util/sort"
 )
 
 type SCCMatcher interface {

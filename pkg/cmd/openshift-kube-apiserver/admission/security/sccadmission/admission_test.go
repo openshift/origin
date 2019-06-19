@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -19,9 +21,7 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
+	sccsort "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/util/sort"
 )
 
 // createSAForTest Build and Initializes a ServiceAccount for tests
@@ -677,7 +677,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 		// create the providers, this method only needs the namespace
 		attributes := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), v.namespace.Name, "", coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
-		_, errs := oscc.CreateProvidersFromConstraints(attributes.GetNamespace(), []*securityv1.SecurityContextConstraints{scc}, tc)
+		_, errs := sccmatching.CreateProvidersFromConstraints(attributes.GetNamespace(), []*securityv1.SecurityContextConstraints{scc}, tc)
 
 		if !reflect.DeepEqual(scc, v.scc()) {
 			diff := diff.ObjectDiff(scc, v.scc())
@@ -778,7 +778,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		sccMatcher := oscc.NewDefaultSCCMatcher(lister, v.authorizer)
+		sccMatcher := sccmatching.NewDefaultSCCMatcher(lister, v.authorizer)
 		sccs, err := sccMatcher.FindApplicableSCCs(v.namespace, v.userInfo)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
@@ -807,7 +807,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	}
 	testAuthorizer := &sccTestAuthorizer{t: t}
 	namespace := "does-not-matter"
-	sccMatcher := oscc.NewDefaultSCCMatcher(lister, testAuthorizer)
+	sccMatcher := sccmatching.NewDefaultSCCMatcher(lister, testAuthorizer)
 	sccs2, err := sccMatcher.FindApplicableSCCs(namespace, userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)

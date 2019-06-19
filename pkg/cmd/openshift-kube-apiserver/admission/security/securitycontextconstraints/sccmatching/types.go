@@ -1,4 +1,4 @@
-package securitycontextconstraints
+package sccmatching
 
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"

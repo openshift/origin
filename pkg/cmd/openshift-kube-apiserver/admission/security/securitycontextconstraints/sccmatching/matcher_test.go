@@ -1,4 +1,4 @@
-package securitycontextconstraints
+package sccmatching
 
 import (
 	"testing"

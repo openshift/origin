@@ -1,6 +1,7 @@
 package kubeadmission
 
 import (
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/sccadmission"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
@@ -17,7 +18,6 @@ import (
 	ingressadmission "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route"
 	projectnodeenv "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
-	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
 
 func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
@@ -29,8 +29,8 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	quotaclusterresourcequota.Register(plugins)
 	quotarunonceduration.Register(plugins)
 	schedulerpodnodeconstraints.Register(plugins)
-	securityadmission.Register(plugins)
-	securityadmission.RegisterSCCExecRestrictions(plugins)
+	sccadmission.Register(plugins)
+	sccadmission.RegisterSCCExecRestrictions(plugins)
 	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
 }

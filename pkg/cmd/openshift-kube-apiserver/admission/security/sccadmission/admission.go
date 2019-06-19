@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/klog"
-
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -16,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
@@ -24,7 +23,7 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 )
 
 const PluginName = "security.openshift.io/SecurityContextConstraint"
@@ -129,7 +128,7 @@ func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi
 	// get all constraints that are usable by the user
 	klog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
-	constraints, err := scc.NewDefaultSCCMatcher(c.sccLister, nil).FindApplicableSCCs(a.GetNamespace())
+	constraints, err := sccmatching.NewDefaultSCCMatcher(c.sccLister, nil).FindApplicableSCCs(a.GetNamespace())
 	if err != nil {
 		return nil, "", nil, admission.NewForbidden(a, err)
 	}
@@ -158,7 +157,7 @@ func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi
 		return i < j
 	})
 
-	providers, errs := scc.CreateProvidersFromConstraints(a.GetNamespace(), constraints, c.client)
+	providers, errs := sccmatching.CreateProvidersFromConstraints(a.GetNamespace(), constraints, c.client)
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
@@ -168,7 +167,7 @@ func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi
 	// all containers in a single pod must validate under a single provider or we will reject the request
 	var (
 		allowedPod       *coreapi.Pod
-		allowingProvider scc.SecurityContextConstraintsProvider
+		allowingProvider sccmatching.SecurityContextConstraintsProvider
 		validationErrs   field.ErrorList
 		saUserInfo       user.Info
 	)
@@ -186,13 +185,13 @@ loop:
 		sccGroups := provider.GetSCCGroups()
 
 		// continue to the next provider if the current SCC one does not apply to either the user or the serviceaccount
-		if !scc.ConstraintAppliesTo(sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) &&
-			!(saUserInfo != nil && scc.ConstraintAppliesTo(sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer)) {
+		if !sccmatching.ConstraintAppliesTo(sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) &&
+			!(saUserInfo != nil && sccmatching.ConstraintAppliesTo(sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer)) {
 			continue
 		}
 
 		podCopy := pod.DeepCopy()
-		if errs := scc.AssignSecurityContext(provider, podCopy, field.NewPath(fmt.Sprintf("provider %s: ", sccName))); len(errs) > 0 {
+		if errs := sccmatching.AssignSecurityContext(provider, podCopy, field.NewPath(fmt.Sprintf("provider %s: ", sccName))); len(errs) > 0 {
 			validationErrs = append(validationErrs, errs...)
 			continue
 		}
@@ -279,7 +278,7 @@ func (c *constraint) ValidateInitialization() error {
 
 // logProviders logs what providers were found for the pod as well as any errors that were encountered
 // while creating providers.
-func logProviders(pod *coreapi.Pod, providers []scc.SecurityContextConstraintsProvider, providerCreationErrs []error) {
+func logProviders(pod *coreapi.Pod, providers []sccmatching.SecurityContextConstraintsProvider, providerCreationErrs []error) {
 	names := make([]string, len(providers))
 	for i, p := range providers {
 		names[i] = p.GetSCCName()

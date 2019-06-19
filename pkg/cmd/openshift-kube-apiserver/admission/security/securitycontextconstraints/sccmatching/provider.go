@@ -1,15 +1,15 @@
-package securitycontextconstraints
+package sccmatching
 
 import (
 	"fmt"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/capabilities"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/group"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/seccomp"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/selinux"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/user"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/capabilities"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/group"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/seccomp"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/selinux"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/user"
+	sccutil "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,18 +13,19 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	sccMatcher scc.SCCMatcher
+	sccMatcher sccmatching.SCCMatcher
 	saCache    corev1listers.ServiceAccountLister
 	client     kubernetes.Interface
 }
@@ -35,7 +34,7 @@ var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
-func NewREST(m scc.SCCMatcher, saCache corev1listers.ServiceAccountLister, c kubernetes.Interface) *REST {
+func NewREST(m sccmatching.SCCMatcher, saCache corev1listers.ServiceAccountLister, c kubernetes.Interface) *REST {
 	return &REST{sccMatcher: m, saCache: saCache, client: c}
 }
 
@@ -83,11 +82,11 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		var namespace *corev1.Namespace
 		for _, constraint := range saConstraints {
 			var (
-				provider scc.SecurityContextConstraintsProvider
+				provider sccmatching.SecurityContextConstraintsProvider
 				err      error
 			)
 			pspsrs := securityapi.PodSecurityPolicySubjectReviewStatus{}
-			if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
+			if provider, namespace, err = sccmatching.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
 				errs = append(errs, fmt.Errorf("unable to create provider for service account %s: %v", sa.Name, err))
 				continue
 			}

@@ -9,7 +9,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/util"
 )
 
 type mustRunAs struct {

@@ -40,8 +40,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/namespaceconditions"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/sccadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
-	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
 
 type KubeAPIServerServerPatchContext struct {
