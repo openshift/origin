@@ -16,19 +16,11 @@ import (
 )
 
 func TestRestrictUsers(t *testing.T) {
-	masterConfig, err := testserver.DefaultMasterOptions()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"] = append(
-		masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"],
-		"authorization.openshift.io/RestrictSubjectBindings")
-	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
