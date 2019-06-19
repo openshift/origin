@@ -29,19 +29,18 @@ import (
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout"
+	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	"github.com/openshift/origin/pkg/admission/admissionrestconfig"
-	"github.com/openshift/origin/pkg/admission/admissiontimeout"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/namespaceconditions"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	"github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
 
@@ -82,14 +81,14 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// END AUTHENTICATOR
 
 		// AUTHORIZER
-		genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
+		genericConfig.RequestInfoResolver = apiserverconfig.OpenshiftRequestInfoResolver()
 		authorizer := NewAuthorizer(kubeInformers)
 		genericConfig.Authorization.Authorizer = authorizer
 		// END AUTHORIZER
 
 		// Inject OpenShift API long running endpoints (like for binary builds).
 		// TODO: We should disable the timeout code for aggregated endpoints as this can cause problems when upstream add additional endpoints.
-		genericConfig.LongRunningFunc = configprocessing.IsLongRunningRequest
+		genericConfig.LongRunningFunc = apiserverconfig.IsLongRunningRequest
 
 		// ADMISSION
 		clusterQuotaMappingController := newClusterQuotaMappingController(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), kubeAPIServerInformers.OpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
@@ -102,16 +101,8 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			return nil, err
 		}
 
-		var externalRegistryHostname string
-		if len(kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
-			externalRegistryHostname = kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostnames[0]
-		}
-		registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(genericConfig.LoopbackClientConfig, externalRegistryHostname, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname)
-		if err != nil {
-			return nil, err
-		}
 		*pluginInitializers = append(*pluginInitializers,
-			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, registryHostnameRetriever.InternalRegistryHostname),
+			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname),
 			restrictusers.NewInitializer(kubeAPIServerInformers.GetOpenshiftUserInformers()),
 			sccadmission.NewInitializer(kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
 			clusterresourcequota.NewInitializer(

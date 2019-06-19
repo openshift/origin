@@ -25,8 +25,8 @@ import (
 	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -58,7 +58,7 @@ type clusterQuotaAdmission struct {
 }
 
 var _ initializer.WantsExternalKubeInformerFactory = &clusterQuotaAdmission{}
-var _ oadmission.WantsRESTClientConfig = &clusterQuotaAdmission{}
+var _ admissionrestconfig.WantsRESTClientConfig = &clusterQuotaAdmission{}
 var _ WantsClusterQuota = &clusterQuotaAdmission{}
 var _ WantsOriginQuotaRegistry = &clusterQuotaAdmission{}
 var _ admission.ValidationInterface = &clusterQuotaAdmission{}

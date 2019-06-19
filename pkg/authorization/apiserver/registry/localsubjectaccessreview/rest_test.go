@@ -13,6 +13,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/apiserver/registry/util"
@@ -188,12 +189,12 @@ func TestRegularWithScopes(t *testing.T) {
 		expectedUserInfo: &user.DefaultInfo{
 			Name:   "",
 			Groups: []string{"not-master"},
-			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-01"}},
+			Extra:  map[string][]string{authorizationv1.ScopesKey: {"scope-01"}},
 		},
 		requestingUser: &user.DefaultInfo{
 			Name:   "",
 			Groups: []string{"different"},
-			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+			Extra:  map[string][]string{authorizationv1.ScopesKey: {"scope-02"}},
 		},
 	}
 
@@ -215,12 +216,12 @@ func TestSelfWithDefaultScopes(t *testing.T) {
 		expectedUserInfo: &user.DefaultInfo{
 			Name:   "me",
 			Groups: []string{"group"},
-			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+			Extra:  map[string][]string{authorizationv1.ScopesKey: {"scope-02"}},
 		},
 		requestingUser: &user.DefaultInfo{
 			Name:   "me",
 			Groups: []string{"group"},
-			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+			Extra:  map[string][]string{authorizationv1.ScopesKey: {"scope-02"}},
 		},
 	}
 
@@ -249,7 +250,7 @@ func TestSelfWithClearedScopes(t *testing.T) {
 		requestingUser: &user.DefaultInfo{
 			Name:   "me",
 			Groups: []string{"group"},
-			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+			Extra:  map[string][]string{authorizationv1.ScopesKey: {"scope-02"}},
 		},
 	}
 

@@ -1,11 +1,11 @@
-package authorizer
+package apiserverconfig
 
 import (
 	"net/http"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/project/apis/project"
+	projectv1 "github.com/openshift/api/project/v1"
 )
 
 type projectRequestInfoResolver struct {
@@ -13,7 +13,7 @@ type projectRequestInfoResolver struct {
 	infoFactory apirequest.RequestInfoResolver
 }
 
-func NewProjectRequestInfoResolver(infoFactory apirequest.RequestInfoResolver) apirequest.RequestInfoResolver {
+func newProjectRequestInfoResolver(infoFactory apirequest.RequestInfoResolver) apirequest.RequestInfoResolver {
 	return &projectRequestInfoResolver{
 		infoFactory: infoFactory,
 	}
@@ -26,7 +26,7 @@ func (a *projectRequestInfoResolver) NewRequestInfo(req *http.Request) (*apirequ
 	}
 
 	// if the resource is projects, we need to set the namespace to the value of the name.
-	if (len(requestInfo.APIGroup) == 0 || requestInfo.APIGroup == project.GroupName) && requestInfo.Resource == "projects" && len(requestInfo.Name) > 0 {
+	if (len(requestInfo.APIGroup) == 0 || requestInfo.APIGroup == projectv1.GroupName) && requestInfo.Resource == "projects" && len(requestInfo.Name) > 0 {
 		requestInfo.Namespace = requestInfo.Name
 	}
 

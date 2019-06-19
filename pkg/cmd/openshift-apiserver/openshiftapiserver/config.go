@@ -24,12 +24,14 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout"
+	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/library-go/pkg/config/serving"
 	"github.com/openshift/openshift-apiserver/pkg/version"
-	"github.com/openshift/origin/pkg/admission/admissiontimeout"
-	"github.com/openshift/origin/pkg/cmd/configflags"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configflags"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
@@ -93,7 +95,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	genericConfig.Version = &openshiftVersion
 	genericConfig.ExternalAddress = "apiserver.openshift-apiserver.svc"
 	genericConfig.BuildHandlerChainFunc = OpenshiftHandlerChain
-	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
+	genericConfig.RequestInfoResolver = apiserverconfig.OpenshiftRequestInfoResolver()
 	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig()
 	genericConfig.RESTOptionsGetter = restOptsGetter
 	// previously overwritten.  I don't know why
@@ -101,12 +103,12 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	genericConfig.MinRequestTimeout = int(config.ServingInfo.RequestTimeoutSeconds)
 	genericConfig.MaxRequestsInFlight = int(config.ServingInfo.MaxRequestsInFlight)
 	genericConfig.MaxMutatingRequestsInFlight = int(config.ServingInfo.MaxRequestsInFlight / 2)
-	genericConfig.LongRunningFunc = configprocessing.IsLongRunningRequest
+	genericConfig.LongRunningFunc = apiserverconfig.IsLongRunningRequest
 
 	// I'm just hoping this works.  I don't think we use it.
 	//MergedResourceConfig *serverstore.ResourceConfig
 
-	servingOptions, err := configprocessing.ToServingOptions(config.ServingInfo)
+	servingOptions, err := serving.ToServingOptions(config.ServingInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +172,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	clusterQuotaMappingController := NewClusterQuotaMappingController(informers.kubernetesInformers.Core().V1().Namespaces(), informers.quotaInformers.Quota().V1().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	admissionInitializer, err := openshiftadmission.NewPluginInitializer(config.ImagePolicyConfig.ExternalRegistryHostnames, config.ImagePolicyConfig.InternalRegistryHostname, config.CloudProviderFile, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, restMapper, clusterQuotaMappingController)
+	admissionInitializer, err := openshiftadmission.NewPluginInitializer(config.ImagePolicyConfig.InternalRegistryHostname, config.CloudProviderFile, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +260,7 @@ func OpenshiftHandlerChain(apiHandler http.Handler, genericConfig *genericapiser
 	// this is the normal kube handler chain
 	handler := genericapiserver.DefaultBuildHandlerChain(apiHandler, genericConfig)
 
-	handler = configprocessing.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
+	handler = apiserverconfig.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 	return handler
 }

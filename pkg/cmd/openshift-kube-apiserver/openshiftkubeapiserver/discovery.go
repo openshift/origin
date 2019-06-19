@@ -10,7 +10,7 @@ import (
 
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 )
 
 // PKCE [RFC7636] code challenge methods supported

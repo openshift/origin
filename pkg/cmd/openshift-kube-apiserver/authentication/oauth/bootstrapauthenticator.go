@@ -8,12 +8,13 @@ import (
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
-	userapi "github.com/openshift/api/user/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
+
+const ClusterAdminGroup = "system:cluster-admins"
 
 type bootstrapAuthenticator struct {
 	tokens    oauthclient.OAuthAccessTokenInterface
@@ -47,7 +48,7 @@ func (a *bootstrapAuthenticator) AuthenticateToken(ctx context.Context, name str
 	// this allows us to reuse existing validators
 	// since the uid is based on the secret, if the secret changes, all
 	// tokens issued for the bootstrap user before that change stop working
-	fakeUser := &userapi.User{
+	fakeUser := &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{
 			UID: types.UID(data.UID),
 		},
@@ -75,10 +76,10 @@ func (a *bootstrapAuthenticator) AuthenticateToken(ctx context.Context, name str
 			// allow remote authorizers in OpenShift, the BootstrapUserDataGetter logic would have to be shared between the
 			// the kube api server and osin instead of being an implementation detail hidden inside of osin.  currently the
 			// only shared code is the value of the BootstrapUser constant (since it is special cased in validation).
-			Groups: []string{bootstrappolicy.ClusterAdminGroup},
+			Groups: []string{ClusterAdminGroup},
 			Extra: map[string][]string{
 				// this user still needs scopes because it can be used in OAuth flows (unlike cert based users)
-				authorizationapi.ScopesKey: token.Scopes,
+				authorizationv1.ScopesKey: token.Scopes,
 			},
 		},
 	}, true, nil

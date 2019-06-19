@@ -13,10 +13,10 @@ import (
 	imagepolicyapiv1 "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/externalipranger"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/network/restrictedendpoints"
+	quotaclusterresourcequota "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	ingressadmission "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/route"
 	projectnodeenv "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
-	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
 	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
 

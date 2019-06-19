@@ -29,14 +29,13 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/library-go/pkg/image/reference"
-	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
 	imagepolicy "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/rules"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -82,8 +81,8 @@ type ImagePolicyPlugin struct {
 }
 
 var _ = initializer.WantsExternalKubeInformerFactory(&ImagePolicyPlugin{})
-var _ = oadmission.WantsRESTClientConfig(&ImagePolicyPlugin{})
-var _ = WantsDefaultRegistryFunc(&ImagePolicyPlugin{})
+var _ = admissionrestconfig.WantsRESTClientConfig(&ImagePolicyPlugin{})
+var _ = WantsInternalImageRegistry(&ImagePolicyPlugin{})
 var _ = WantsImageMutators(&ImagePolicyPlugin{})
 var _ = admission.ValidationInterface(&ImagePolicyPlugin{})
 var _ = admission.MutationInterface(&ImagePolicyPlugin{})
@@ -128,8 +127,8 @@ func NewImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*ImagePolicyPl
 	}, nil
 }
 
-func (a *ImagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
-	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(fn)
+func (a *ImagePolicyPlugin) SetInternalImageRegistry(internalImageRegistryName string) {
+	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(internalImageRegistryName)
 }
 
 func (a *ImagePolicyPlugin) SetImageMutators(imageMutators imagereferencemutators.ImageMutators) {
@@ -316,7 +315,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 
 // Resolve converts an image reference into a resolved image or returns an error. Only images located in the internal
 // registry or those with a digest can be resolved - all other scenarios will return an error.
-func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageReference, defaultNamespace string, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
+func (c *imageResolutionCache) resolveImageReference(ref reference.DockerImageReference, defaultNamespace string, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	// images by ID can be checked for policy
 	if len(ref.ID) > 0 {
 		now := now()

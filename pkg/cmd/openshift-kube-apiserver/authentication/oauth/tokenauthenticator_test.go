@@ -14,7 +14,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	userapi "github.com/openshift/api/user/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	userfake "github.com/openshift/client-go/user/clientset/versioned/fake"
@@ -29,7 +29,7 @@ func TestAuthenticateTokenInvalidUID(t *testing.T) {
 			UserUID:    string("bar1"),
 		},
 	)
-	fakeUserClient := userfake.NewSimpleClientset(&userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar2"}})
+	fakeUserClient := userfake.NewSimpleClientset(&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar2"}})
 
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewUIDValidator())
 
@@ -136,7 +136,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		InactivityTimeoutSeconds: 5, // super short timeout
 	}
 	fakeOAuthClient := oauthfake.NewSimpleClientset(&testToken, &quickToken, &slowToken, &emergToken, &testClient, &quickClient, &slowClient)
-	fakeUserClient := userfake.NewSimpleClientset(&userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
+	fakeUserClient := userfake.NewSimpleClientset(&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
 	accessTokenGetter := fakeOAuthClient.OauthV1().OAuthAccessTokens()
 	oauthClients := fakeOAuthClient.OauthV1().OAuthClients()
 	lister := &fakeOAuthClientLister{

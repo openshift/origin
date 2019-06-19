@@ -7,7 +7,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 
-	"github.com/openshift/origin/pkg/admission/admissionregistrationtesting"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionregistrationtesting"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
 )
 

@@ -31,8 +31,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

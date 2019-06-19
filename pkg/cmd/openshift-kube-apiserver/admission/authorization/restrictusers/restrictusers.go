@@ -19,7 +19,7 @@ import (
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	oadmission "github.com/openshift/origin/pkg/admission/admissionrestconfig"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 )
 
@@ -46,7 +46,7 @@ type restrictUsersAdmission struct {
 	groupCache                    GroupCache
 }
 
-var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
+var _ = admissionrestconfig.WantsRESTClientConfig(&restrictUsersAdmission{})
 var _ = WantsUserInformer(&restrictUsersAdmission{})
 var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
 var _ = admission.ValidationInterface(&restrictUsersAdmission{})

@@ -1,4 +1,4 @@
-package authorizer
+package apiserverconfig
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ type personalSARRequestInfoResolver struct {
 	infoFactory apirequest.RequestInfoResolver
 }
 
-func NewPersonalSARRequestInfoResolver(infoFactory apirequest.RequestInfoResolver) apirequest.RequestInfoResolver {
+func newPersonalSARRequestInfoResolver(infoFactory apirequest.RequestInfoResolver) apirequest.RequestInfoResolver {
 	return &personalSARRequestInfoResolver{
 		infoFactory: infoFactory,
 	}

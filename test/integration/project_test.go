@@ -21,7 +21,7 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

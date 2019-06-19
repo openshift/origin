@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 )
 
 // Lister enforces ability to enumerate a resource based on role

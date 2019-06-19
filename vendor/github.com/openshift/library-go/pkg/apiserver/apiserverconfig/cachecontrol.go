@@ -1,4 +1,4 @@
-package configprocessing
+package apiserverconfig
 
 import (
 	"net/http"

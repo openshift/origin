@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	userapi "github.com/openshift/api/user/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	userfake "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
@@ -28,7 +28,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 			UserName:   "foo",
 		},
 	)
-	fakeUserClient := userfake.NewSimpleClientset(&userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
+	fakeUserClient := userfake.NewSimpleClientset(&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
 
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewExpirationValidator())
 
@@ -55,7 +55,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 			UserUID:    string("bar"),
 		},
 	)
-	fakeUserClient := userfake.NewSimpleClientset(&userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
+	fakeUserClient := userfake.NewSimpleClientset(&userv1.User{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "bar"}})
 
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewExpirationValidator(), NewUIDValidator())
 

@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
 )
 
@@ -28,7 +28,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		kind             schema.GroupKind
 		groupresource    schema.GroupResource
 		userinfo         user.Info
-		reviewResponse   *authorizationapi.SubjectAccessReviewResponse
+		reviewResponse   *authorizationv1.SubjectAccessReviewResponse
 		expectedResource string
 		expectedErrorMsg string
 	}{
@@ -257,8 +257,8 @@ func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (author
 	return authorizer.DecisionNoOpinion, "", nil
 }
 
-func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessReviewResponse {
-	return &authorizationapi.SubjectAccessReviewResponse{
+func reviewResponse(allowed bool, msg string) *authorizationv1.SubjectAccessReviewResponse {
+	return &authorizationv1.SubjectAccessReviewResponse{
 		Allowed: allowed,
 		Reason:  msg,
 	}

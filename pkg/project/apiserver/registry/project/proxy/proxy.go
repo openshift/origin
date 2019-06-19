@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/api/project"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectregistry "github.com/openshift/origin/pkg/project/apiserver/registry/project"

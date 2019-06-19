@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/admission/admissionregistrationtesting"
+	"github.com/openshift/library-go/pkg/apiserver/admission/admissionregistrationtesting"
 )
 
 func TestAdmissionRegistration(t *testing.T) {

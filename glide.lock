@@ -1,5 +1,5 @@
 hash: 6d1e82ea5ef2b16480b6b638c04b970014a559545fa1002899254783bd412d6d
-updated: 2019-06-18T11:08:35.706405428-04:00
+updated: 2019-06-19T07:56:21.928553003-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 37678ff76af25c454dce37f78973d47d6ec23125
+  version: a77179bc5896d5391a200f8a4578f092f8828178
   subpackages:
   - annotations
   - apps
@@ -1104,7 +1104,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: e617f832835dbbef6cdab6f18930d051f91947da
+  version: 6b58b672ee58bbbbeb9a18535292dba22c54b6c9
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization

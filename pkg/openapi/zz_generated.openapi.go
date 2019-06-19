@@ -11313,7 +11313,7 @@ func schema_openshift_api_config_v1_ProxySpec(ref common.ReferenceCallback) comm
 					},
 					"noProxy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Each name is matched as either a domain which contains the host name as a suffix, or the host name itself. For instance, example.com would match example.com, example.com:80, and www.example.com. Wildcard(*) characters are not accepted, except a single * character which matches all hosts and effectively disables the proxy. Empty means unset and will not result in an env var.",
+							Description: "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Empty means unset and will not result in an env var.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
