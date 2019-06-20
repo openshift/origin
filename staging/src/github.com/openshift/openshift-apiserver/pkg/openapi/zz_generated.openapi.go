@@ -9450,7 +9450,7 @@ func schema_openshift_api_config_v1_IdentityProvider(ref common.ReferenceCallbac
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "name is used to qualify the identities returned by this provider. - It MUST be unique and not shared by any other identity provider used - It MUST be a valid path segment: name cannot equal \".\" or \"..\" or contain \"/\" or \"%\" or \":\"\n  Ref: https://godoc.org/github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation#ValidateIdentityProviderName",
+							Description: "name is used to qualify the identities returned by this provider. - It MUST be unique and not shared by any other identity provider used - It MUST be a valid path segment: name cannot equal \".\" or \"..\" or contain \"/\" or \"%\" or \":\"\n  Ref: https://godoc.org/github.com/openshift/origin/pkg/user/apis/user/validation#ValidateIdentityProviderName",
 							Type:        []string{"string"},
 							Format:      "",
 						},
