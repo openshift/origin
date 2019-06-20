@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
+
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -20,14 +22,14 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	sccMatcher scc.SCCMatcher
+	sccMatcher sccmatching.SCCMatcher
 	client     kubernetes.Interface
 }
 
@@ -35,7 +37,7 @@ var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
-func NewREST(m scc.SCCMatcher, c kubernetes.Interface) *REST {
+func NewREST(m sccmatching.SCCMatcher, c kubernetes.Interface) *REST {
 	return &REST{sccMatcher: m, client: c}
 }
 
@@ -84,10 +86,10 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	var namespace *corev1.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
-			provider scc.SecurityContextConstraintsProvider
+			provider sccmatching.SecurityContextConstraintsProvider
 			err      error
 		)
-		if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
+		if provider, namespace, err = sccmatching.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
 			klog.Errorf("Unable to create provider for constraint: %v", err)
 			continue
 		}
@@ -107,14 +109,15 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(securityapi.Install(scheme))
+	utilruntime.Must(securityv1.Install(scheme))
 }
 
 // FillPodSecurityPolicySubjectReviewStatus fills PodSecurityPolicySubjectReviewStatus assigning SecurityContectConstraint to the PodSpec
-func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec coreapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
+func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider sccmatching.SecurityContextConstraintsProvider, spec coreapi.PodSpec, constraint *securityv1.SecurityContextConstraints) (bool, error) {
 	pod := &coreapi.Pod{
 		Spec: spec,
 	}
-	if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+	if errs := sccmatching.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
 		klog.Errorf("unable to assign SecurityContextConstraints provider: %v", errs)
 		s.Reason = "CantAssignSecurityContextConstraintProvider"
 		return false, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())

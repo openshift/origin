@@ -89,7 +89,8 @@
       "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclientauthorization",
       "github.com/openshift/origin/pkg/project/apiserver/registry/project/proxy",
       "github.com/openshift/origin/pkg/project/auth",
-      "github.com/openshift/origin/pkg/security/apis/security/v1"
+      "github.com/openshift/origin/pkg/security/apis/security/v1",
+      "github.com/openshift/origin/pkg/security/apiserver"
     ],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"

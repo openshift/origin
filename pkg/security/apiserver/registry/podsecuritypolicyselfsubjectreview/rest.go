@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,13 +20,12 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	"k8s.io/klog"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	sccMatcher scc.SCCMatcher
+	sccMatcher sccmatching.SCCMatcher
 	client     kubernetes.Interface
 }
 
@@ -32,7 +33,7 @@ var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
-func NewREST(m scc.SCCMatcher, c kubernetes.Interface) *REST {
+func NewREST(m sccmatching.SCCMatcher, c kubernetes.Interface) *REST {
 	return &REST{sccMatcher: m, client: c}
 }
 
@@ -77,10 +78,10 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	var namespace *corev1.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
-			provider scc.SecurityContextConstraintsProvider
+			provider sccmatching.SecurityContextConstraintsProvider
 			err      error
 		)
-		if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
+		if provider, namespace, err = sccmatching.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
 			klog.Errorf("Unable to create provider for constraint: %v", err)
 			continue
 		}

@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	sccutil "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/util"
 )
 
 // Default SCCs for new fields.  FSGroup and SupplementalGroups are

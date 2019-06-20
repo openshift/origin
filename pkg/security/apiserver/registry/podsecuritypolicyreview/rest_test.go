@@ -16,9 +16,9 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	admissionttesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 )
 
 func TestNoErrors(t *testing.T) {
@@ -150,7 +150,7 @@ func TestNoErrors(t *testing.T) {
 		serviceAccount.Namespace = namespace.Name
 		saIndexer.Add(serviceAccount)
 		csf := fake.NewSimpleClientset(namespace)
-		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
+		storage := REST{sccmatching.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		obj, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		if err != nil {
@@ -247,7 +247,7 @@ func TestErrors(t *testing.T) {
 		}
 		csf := fake.NewSimpleClientset(namespace)
 
-		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
+		storage := REST{sccmatching.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		if err == nil {
@@ -404,7 +404,7 @@ func TestSpecificSAs(t *testing.T) {
 			saIndexer.Add(testcase.serviceAccounts[i])
 		}
 		csf := fake.NewSimpleClientset(namespace)
-		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
+		storage := REST{sccmatching.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		switch {
