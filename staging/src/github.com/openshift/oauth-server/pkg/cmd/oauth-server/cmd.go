@@ -1,4 +1,4 @@
-package openshift_integrated_oauth_server
+package oauth_server
 
 import (
 	"errors"
@@ -14,13 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 type OsinServer struct {
@@ -34,8 +32,6 @@ func NewOsinServer(out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command
 		Use:   "osinserver",
 		Short: "Launch OpenShift osin server",
 		Run: func(c *cobra.Command, args []string) {
-			legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
-
 			kcmdutil.CheckErr(options.Validate())
 
 			serviceability.StartProfiler()
