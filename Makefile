@@ -44,7 +44,7 @@ all build:
 # Example:
 #   make build-all
 build-all:
-	hack/build-go.sh cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube cmd/oc cmd/openshift-sdn cmd/openshift-tests
+	hack/build-go.sh cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube cmd/oc vendor/github.com/openshift/sdn/cmd/openshift-sdn cmd/openshift-tests
 .PHONY: build-all
 
 # Build the test binaries.
@@ -55,7 +55,7 @@ build-tests: build-extended-test build-integration-test
 .PHONY: build-tests
 
 build-network:
-	hack/build-go.sh cmd/openshift-sdn cmd/sdn-cni-plugin vendor/github.com/containernetworking/plugins/plugins/ipam/host-local vendor/github.com/containernetworking/plugins/plugins/main/loopback
+	hack/build-go.sh vendor/github.com/openshift/sdn/cmd/openshift-sdn vendor/github.com/openshift/sdn/cmd/sdn-cni-plugin vendor/github.com/containernetworking/plugins/plugins/ipam/host-local vendor/github.com/containernetworking/plugins/plugins/main/loopback
 .PHONY: build-network
 
 build-extended-test:
