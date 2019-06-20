@@ -5,16 +5,12 @@ import (
 	"time"
 
 	"k8s.io/apiserver/pkg/admission"
-	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoinformers "k8s.io/client-go/informers"
 	kexternalinformers "k8s.io/client-go/informers"
 	corev1informers "k8s.io/client-go/informers/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/cmd/kube-apiserver/app"
-	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/quota/v1/generic"
 	"k8s.io/kubernetes/pkg/quota/v1/install"
@@ -30,18 +26,15 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
-	"github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout"
 	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/namespaceconditions"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/sccadmission"
-	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
 )
 
 type KubeAPIServerServerPatchContext struct {
@@ -51,7 +44,9 @@ type KubeAPIServerServerPatchContext struct {
 	informerStartFuncs []func(stopCh <-chan struct{})
 }
 
-func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) (app.KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
+type KubeAPIServerConfigFunc func(config *genericapiserver.Config, versionedInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) (genericapiserver.DelegationTarget, error)
+
+func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.DelegationTarget, kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) (KubeAPIServerConfigFunc, *KubeAPIServerServerPatchContext) {
 	patchContext := &KubeAPIServerServerPatchContext{
 		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 	}
@@ -96,10 +91,6 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			go clusterQuotaMappingController.Run(5, context.StopCh)
 			return nil
 		}
-		kubeClient, err := kubernetes.NewForConfig(genericConfig.LoopbackClientConfig)
-		if err != nil {
-			return nil, err
-		}
 
 		*pluginInitializers = append(*pluginInitializers,
 			imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname),
@@ -113,21 +104,6 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			nodeenv.NewInitializer(kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector),
 			admissionrestconfig.NewInitializer(*rest.CopyConfig(genericConfig.LoopbackClientConfig)),
 		)
-
-		// set up the decorators we need.  This is done late and out of order because our decorators currently require informers which are not
-		// present until we start running
-		namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
-			NamespaceClient: kubeClient.CoreV1(),
-			NamespaceLister: kubeInformers.Core().V1().Namespaces().Lister(),
-
-			SkipLevelZeroNames: kubeadmission.SkipRunLevelZeroPlugins,
-			SkipLevelOneNames:  kubeadmission.SkipRunLevelOnePlugins,
-		}
-		options.Decorators = admission.Decorators{
-			admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
-			admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
-			admission.DecoratorFunc(admissiontimeout.AdmissionTimeout{Timeout: 13 * time.Second}.WithTimeout),
-		}
 		// END ADMISSION
 
 		// HANDLER CHAIN (with oauth server and web console)

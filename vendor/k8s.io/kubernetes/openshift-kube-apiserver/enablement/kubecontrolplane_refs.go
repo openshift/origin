@@ -1,4 +1,4 @@
-package openshift_kube_apiserver
+package enablement
 
 import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
