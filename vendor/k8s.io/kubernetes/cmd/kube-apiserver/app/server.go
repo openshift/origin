@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
@@ -130,8 +131,9 @@ cluster's shared state through which all other components interact.`,
 				if err := cmd.ParseFlags(args); err != nil {
 					return err
 				}
+
+				enablement.ForceGlobalInitializationForOpenShift(s)
 			}
-			enablement.ForceGlobalInitializationForOpenShift()
 
 			// set default options
 			completedOptions, err := Complete(s)
@@ -531,6 +533,9 @@ func buildGenericConfig(
 		return
 	}
 
+	if enablement.IsOpenShift() {
+		configdefault.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
+	}
 	err = s.Admission.ApplyTo(
 		genericConfig,
 		versionedInformers,

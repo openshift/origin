@@ -8,14 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/tools/clientcmd/api"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
-	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
 	"k8s.io/kubernetes/pkg/capabilities"
-	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
@@ -58,11 +55,7 @@ func GetOpenshiftConfig(openshiftConfigFile string) (*kubecontrolplanev1.KubeAPI
 	return config, nil
 }
 
-func ForceGlobalInitializationForOpenShift() {
-	if !IsOpenShift() {
-		return
-	}
-
+func ForceGlobalInitializationForOpenShift(o *options.ServerRunOptions) {
 	// This allows to move crqs, sccs, and rbrs to CRD
 	aggregatorapiserver.AddAlwaysLocalDelegateForPrefix("/apis/quota.openshift.io/v1/clusterresourcequotas")
 	aggregatorapiserver.AddAlwaysLocalDelegateForPrefix("/apis/security.openshift.io/v1/securitycontextconstraints")
@@ -86,15 +79,4 @@ func ForceGlobalInitializationForOpenShift() {
 	// TODO, we should scrub these out
 	bootstrappolicy.ClusterRoles = bootstrappolicy.OpenshiftClusterRoles
 	bootstrappolicy.ClusterRoleBindings = bootstrappolicy.OpenshiftClusterRoleBindings
-
-	// update admission defaults
-	options.AllOrderedPlugins = kubeadmission.NewOrderedKubeAdmissionPlugins(options.AllOrderedPlugins)
-	kubeRegisterAdmission := options.RegisterAllAdmissionPlugins
-	options.RegisterAllAdmissionPlugins = func(plugins *admission.Plugins) {
-		kubeRegisterAdmission(plugins)
-		kubeadmission.RegisterOpenshiftKubeAdmissionPlugins(plugins)
-		customresourcevalidationregistration.RegisterCustomResourceValidation(plugins)
-	}
-	options.DefaultOffAdmissionPlugins = kubeadmission.NewDefaultOffPluginsFunc(options.DefaultOffAdmissionPlugins())
-
 }
