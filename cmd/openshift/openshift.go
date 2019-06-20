@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/spf13/pflag"
@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"

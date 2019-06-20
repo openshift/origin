@@ -21,8 +21,8 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/ingressadmission"
 	ingressadmissionv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/ingressadmission/v1"
 
-	"github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
-	requestlimitv1 "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1"
+	"github.com/openshift/openshift-apiserver/pkg/project/apiserver/admission/apis/requestlimit"
+	requestlimitv1 "github.com/openshift/openshift-apiserver/pkg/project/apiserver/admission/apis/requestlimit/v1"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	configapiv1 "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1"
 	imagepolicyapiv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"

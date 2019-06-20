@@ -25,7 +25,7 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
 )
 
 const RecommendedStartAPIServerName = "openshift-apiserver"

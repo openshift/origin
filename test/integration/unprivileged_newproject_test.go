@@ -18,7 +18,7 @@ import (
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/oc/pkg/cli/requestproject"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

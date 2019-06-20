@@ -5,7 +5,7 @@
 package config
 
 import (
-	build "github.com/openshift/origin/pkg/build/apis/build"
+	build "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )

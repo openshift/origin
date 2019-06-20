@@ -9,7 +9,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	v1 "github.com/openshift/api/legacyconfig/v1"
-	build "github.com/openshift/origin/pkg/build/apis/build"
+	build "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	config "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	apicorev1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"

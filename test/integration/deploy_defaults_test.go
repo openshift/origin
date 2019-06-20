@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/install"
 )
 
 var (

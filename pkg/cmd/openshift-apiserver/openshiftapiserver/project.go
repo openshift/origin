@@ -9,8 +9,8 @@ import (
 
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	projectauth "github.com/openshift/origin/pkg/project/auth"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
+	projectauth "github.com/openshift/openshift-apiserver/pkg/project/auth"
+	projectcache "github.com/openshift/openshift-apiserver/pkg/project/cache"
 )
 
 func NewClusterQuotaMappingController(nsInternalInformer corev1informers.NamespaceInformer, clusterQuotaInformer quotainformer.ClusterResourceQuotaInformer) *clusterquotamapping.ClusterQuotaMappingController {

@@ -23,7 +23,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"

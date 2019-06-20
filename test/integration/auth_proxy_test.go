@@ -12,7 +12,7 @@ import (
 
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
