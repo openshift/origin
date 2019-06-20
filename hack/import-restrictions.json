@@ -172,7 +172,6 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server",
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
     ],
     "forbiddenImportPackageRoots": [

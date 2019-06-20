@@ -16,8 +16,8 @@ import (
 	"k8s.io/component-base/logs"
 
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server"
-	"github.com/openshift/origin/pkg/version"
+	openshift_integrated_oauth_server "github.com/openshift/oauth-server/pkg/cmd/oauth-server"
+	"github.com/openshift/oauth-server/pkg/version"
 )
 
 func main() {

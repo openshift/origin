@@ -1,4 +1,4 @@
-package openshift_integrated_oauth_server
+package oauth_server
 
 import (
 	"errors"
