@@ -209,7 +209,7 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 				for {
 					event := <-buildWatch.ResultChan()
 					build := event.Object.(*buildv1.Build)
-					if build.Status.Phase == buildv1.BuildPhasePending {
+					if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseRunning {
 						if build.Name == "sample-serial-build-1" {
 							err := oc.Run("cancel-build").Args("sample-serial-build-1").Execute()
 							o.Expect(err).ToNot(o.HaveOccurred())
@@ -333,7 +333,7 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 					select {
 					case event := <-buildWatch.ResultChan():
 						build := event.Object.(*buildv1.Build)
-						if build.Status.Phase == buildv1.BuildPhasePending {
+						if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseRunning {
 							if build.Name == "sample-serial-build-1" {
 								err := oc.Run("delete").Args("build", "sample-serial-build-1", "--ignore-not-found").Execute()
 								o.Expect(err).ToNot(o.HaveOccurred())
