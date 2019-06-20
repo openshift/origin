@@ -2,6 +2,7 @@ package operators
 
 import (
 	"reflect"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -35,6 +36,32 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 			// Verify resource items list has at least one item
 			o.Expect(isResourceItemsEmpty(resourceList)).To(o.BeFalse(), olmResources[i]+" list should have at least one item")
 			e2e.Logf("Successfully list %s", olmResources[i])
+		})
+	}
+
+	// OCP-24074 Check OLM resources API Version
+	// Author: jiazha@redhat.com
+	versionMap := map[string]string{
+		"operatorgroups":         "v1",
+		"packagemanifests":       "v1",
+		"catalogsources":         "v1alpha1",
+		"subscriptions":          "v1alpha1",
+		"installplans":           "v1alpha1",
+		"clusterserviceversions": "v1alpha1",
+	}
+
+	for k, v := range versionMap {
+		g.It("check API version: "+k, func() {
+			output, err := oc.AsAdmin().Run("get").Args(k, "-n", "openshift-operator-lifecycle-manager", "-o=jsonpath={.items[0].apiVersion}").Output()
+			if err != nil {
+				e2e.Failf("Unable to check %s API, errors:%v", k, err)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if strings.HasSuffix(output, v) {
+				e2e.Logf("%s apiVersion is correct.", k)
+			} else {
+				e2e.Failf("%s apiVersion is incorrect!", k)
+			}
 		})
 	}
 })
