@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	_ "github.com/openshift/origin/pkg/api/install"

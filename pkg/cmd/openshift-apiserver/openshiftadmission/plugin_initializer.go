@@ -26,10 +26,10 @@ import (
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators"
 	"github.com/openshift/origin/pkg/quota/image"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 )
 
 type InformerAccess interface {

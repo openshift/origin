@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
+	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
 )
 
 const RecommendedStartAPIServerName = "openshift-kube-apiserver"

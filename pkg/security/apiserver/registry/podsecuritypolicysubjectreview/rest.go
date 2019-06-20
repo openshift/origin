@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 
 	"k8s.io/klog"
 

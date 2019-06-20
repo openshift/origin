@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

@@ -12,10 +12,10 @@ import (
 
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
-	pluginapi "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	pluginapi "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints"
 )
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeNameClusterAdmin(t *testing.T) {

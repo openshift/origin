@@ -8,10 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	overrideapi "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	overrideapi "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride"
 )
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {

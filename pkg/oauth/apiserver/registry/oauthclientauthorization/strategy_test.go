@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	oauth "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/authorization/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"
 )
 
 // TestValidateScopeUpdate asserts that a live client lookup only occurs when new scopes are added during an update

@@ -24,11 +24,11 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1fakeclient "github.com/openshift/client-go/image/clientset/versioned/fake"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
-	imagepolicyapi "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy/rules"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
+	imagepolicyapi "k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/rules"
 )
 
 const (
@@ -57,7 +57,7 @@ func setDefaultCache(p *imagepolicy.ImagePolicyPlugin) kcache.Indexer {
 }
 
 func TestDefaultPolicy(t *testing.T) {
-	input, err := os.Open("../../../../cmd/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1/default-policy.yaml")
+	input, err := os.Open("../../../../../vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1/default-policy.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

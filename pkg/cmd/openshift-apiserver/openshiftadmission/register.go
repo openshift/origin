@@ -8,10 +8,10 @@ import (
 
 	buildsecretinjector "github.com/openshift/origin/pkg/build/apiserver/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/apiserver/admission/strategyrestrictions"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/imagepolicy"
-	quotaclusterresourcequota "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	projectrequestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/requestlimit"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
+	quotaclusterresourcequota "k8s.io/kubernetes/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 )
 
 // TODO register this per apiserver or at least per process

@@ -15,12 +15,12 @@ import (
 
 	securityapiv1 "github.com/openshift/api/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicyreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/rangeallocations"
 	sccstorage "github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 )
 
 type ExtraConfig struct {

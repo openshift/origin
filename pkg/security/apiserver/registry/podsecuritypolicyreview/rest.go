@@ -17,10 +17,10 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	"github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
