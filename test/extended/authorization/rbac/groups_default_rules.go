@@ -25,6 +25,7 @@ import (
 
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
+	"github.com/openshift/api/console"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
@@ -51,6 +52,7 @@ const (
 	projectGroup  = project.GroupName
 	templateGroup = template.GroupName
 	userGroup     = user.GroupName
+	consoleGroup  = console.GroupName
 
 	legacyGroup         = ""
 	legacyAuthzGroup    = ""
@@ -111,6 +113,10 @@ var (
 			rbacv1helpers.NewRule(read...).Groups(rbacGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
+
+			// These custom resources are used to extend console functionality
+			// The console team is working on eliminating this exception in the near future
+			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consolenotifications").RuleOrDie(),
 		},
 		allUnauthenticatedRules...,
 	)
@@ -197,7 +203,7 @@ func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, na
 	}
 
 	// force test data to be cleaned up every so often but allow extra rules to not deadlock new changes
-	if cover, missing := validation.Covers(actualRules, expectedRules); !cover && len(missing) > 5 {
+	if cover, missing := validation.Covers(actualRules, expectedRules); !cover && len(missing) > 12 {
 		e2e.Failf("test data for %s has too many unnecessary permissions:\n%s", group, rulesToString(missing))
 	}
 }
