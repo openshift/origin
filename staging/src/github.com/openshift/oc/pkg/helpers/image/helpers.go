@@ -119,7 +119,7 @@ func DockerImageReferenceExact(r imagev1.DockerImageReference) string {
 }
 
 // DockerImageReferenceString converts a DockerImageReference to a Docker pull spec
-// (which implies a default namespace according to V1 Docker registry rules).
+// (which implies a default namespace according to V1 container image registry rules).
 // Use DockerImageReferenceExact() if you want no defaulting.
 func DockerImageReferenceString(r imagev1.DockerImageReference) string {
 	if len(r.Namespace) == 0 && reference.IsRegistryDockerHub(r.Registry) {

@@ -42,7 +42,7 @@ function wait_for_app() {
 function remove_docker_images() {
     local name="$1"
     local tag="${2:-\S\+}"
-    local imageids=$(docker images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
+    local imageids=$(container images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
     os::cmd::expect_success_and_text "echo '${imageids}' | wc -w" '^[1-9][0-9]*$'
     os::cmd::expect_success "docker rmi -f ${imageids}"
 }
@@ -82,7 +82,7 @@ os::log::info "Pulled ruby-22-centos7"
 os::cmd::expect_success "oc adm policy add-scc-to-user privileged -z ipfailover"
 os::cmd::expect_success "oc adm ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
-os::log::info "Waiting for Docker registry pod to start"
+os::log::info "Waiting for container image registry pod to start"
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 
 os::log::info "Waiting for IP failover to deploy"
@@ -95,7 +95,7 @@ os::cmd::expect_success "oc logs rc/docker-registry-1 > /dev/null"
 os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "5000"
 os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
 
-# services can end up on any IP.  Make sure we get the IP we need for the docker registry
+# services can end up on any IP.  Make sure we get the IP we need for the container image registry
 DOCKER_REGISTRY=$(oc get --template="{{ .spec.clusterIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
 os::cmd::expect_success_and_text "dig @${DNS_SERVICE_IP} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
@@ -180,7 +180,7 @@ os::cmd::expect_success "curl -H 'Authorization: bearer $(oc whoami -t)' 'http:/
 # verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
 os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default '${registry_pod}' -- du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
 
-os::log::info "Docker registry refuses manifest with missing dependencies"
+os::log::info "container image registry refuses manifest with missing dependencies"
 os::cmd::expect_success 'oc new-project verify-manifest'
 os::cmd::expect_success "curl \
     --location                                                                      \
@@ -199,16 +199,16 @@ os::cmd::expect_success "curl --head                                            
 os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '400 Bad Request'
 os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '"errors":.*MANIFEST_BLOB_UNKNOWN'
 os::cmd::expect_success_and_text "cat '${ARTIFACT_DIR}/curl-ruby-manifest-put.txt'" '"errors":.*blob unknown to registry'
-os::log::info "Docker registry successfuly refused manifest with missing dependencies"
+os::log::info "container image registry successfuly refused manifest with missing dependencies"
 
 os::cmd::expect_success 'oc project cache'
 
 IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
-os::log::info "Docker registry start with GCS"
+os::log::info "container image registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e OPENSHIFT_DEFAULT_REGISTRY=localhost:5000 -e REGISTRY_STORAGE=\"gcs: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No bucket parameter provided"
 
-os::log::info "Docker registry start with OSS"
+os::log::info "container image registry start with OSS"
 os::cmd::expect_failure_and_text "docker run -e OPENSHIFT_DEFAULT_REGISTRY=localhost:5000 -e REGISTRY_STORAGE=\"oss: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No accesskeyid parameter provided"
 
 os::log::info "Docker pull from istag"

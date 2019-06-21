@@ -72,7 +72,7 @@ type CommonSpec struct {
 	// Strategy defines how to perform a build.
 	Strategy BuildStrategy
 
-	// Output describes the Docker image the Strategy should produce.
+	// Output describes the container image the Strategy should produce.
 	Output BuildOutput
 
 	// Resources computes resource requirements to execute the build.
@@ -219,7 +219,7 @@ type BuildStatus struct {
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration
 
-	// OutputDockerImageReference contains a reference to the Docker image that
+	// OutputDockerImageReference contains a reference to the container image that
 	// will be built by this build. It's value is computed from
 	// Build.Spec.Output.To, and should include the registry address, so that
 	// it can be used to push and pull the image.
@@ -228,7 +228,7 @@ type BuildStatus struct {
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference
 
-	// Output describes the Docker image the build has produced.
+	// Output describes the container image the build has produced.
 	Output BuildStatusOutput
 
 	// Stages contains details about each stage that occurs during the build
@@ -316,7 +316,7 @@ const (
 	// StepPushImage pushed the image to the registry.
 	StepPushImage StepName = "PushImage"
 
-	// StepPushDockerImage pushes the docker image to the registry.
+	// StepPushDockerImage pushes the container image to the registry.
 	StepPushDockerImage StepName = "PushDockerImage"
 
 	//StepDockerBuild performs the docker build
@@ -484,7 +484,7 @@ type BuildStatusOutput struct {
 // BuildStatusOutputTo describes the status of the built image with regards to
 // image registry to which it was supposed to be pushed.
 type BuildStatusOutputTo struct {
-	// ImageDigest is the digest of the built Docker image. The digest uniquely
+	// ImageDigest is the digest of the built container image. The digest uniquely
 	// identifies the image in the registry to which it was pushed.
 	//
 	// Please note that this field may not always be set even if the push
@@ -553,7 +553,7 @@ type ImageSource struct {
 	// copy source from.
 	From kapi.ObjectReference
 
-	// A list of image names that this source will be used in place of during a multi-stage Docker image
+	// A list of image names that this source will be used in place of during a multi-stage container image
 	// build. For instance, a Dockerfile that uses "COPY --from=nginx:latest" will first check for an image
 	// source that has "nginx:latest" in this field before attempting to pull directly. If the Dockerfile
 	// does not reference an image source it is ignored. This field and paths may both be set, in which case
@@ -708,18 +708,18 @@ type BuildStrategyType string
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
 	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// the container image should be pulled
 	From kapi.ObjectReference
 
 	// PullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
+	// the authentication for pulling the container images from the private Docker
 	// registries
 	PullSecret *kapi.LocalObjectReference
 
 	// Env contains additional environment variables you want to pass into a builder container.
 	Env []kapi.EnvVar
 
-	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
+	// ExposeDockerSocket will allow running Docker commands (and build container images) from
 	// inside the container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool
@@ -739,7 +739,7 @@ type CustomBuildStrategy struct {
 type ImageOptimizationPolicy string
 
 const (
-	// ImageOptimizationNone will generate a canonical Docker image as produced by the
+	// ImageOptimizationNone will generate a canonical container image as produced by the
 	// `docker build` command.
 	ImageOptimizationNone ImageOptimizationPolicy = "None"
 
@@ -759,12 +759,12 @@ const (
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
 	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// the container image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference
 
 	// PullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
+	// the authentication for pulling the container images from the private Docker
 	// registries
 	PullSecret *kapi.LocalObjectReference
 
@@ -782,7 +782,7 @@ type DockerBuildStrategy struct {
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
 
-	// DockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
+	// DockerfilePath is the path of the Dockerfile that will be used to build the container image,
 	// relative to the root of the context (contextDir).
 	DockerfilePath string
 
@@ -799,11 +799,11 @@ type DockerBuildStrategy struct {
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
 	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// the container image should be pulled
 	From kapi.ObjectReference
 
 	// PullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
+	// the authentication for pulling the container images from the private Docker
 	// registries
 	PullSecret *kapi.LocalObjectReference
 
@@ -906,7 +906,7 @@ type BuildPostCommitSpec struct {
 	// more convenient.
 	Command []string
 	// Args is a list of arguments that are provided to either Command,
-	// Script or the Docker image's default entrypoint. The arguments are
+	// Script or the container image's default entrypoint. The arguments are
 	// placed immediately after the command to be run.
 	Args []string
 	// Script is a shell script to be run with `/bin/sh -ic`. It may not be
@@ -922,12 +922,12 @@ type BuildPostCommitSpec struct {
 	Script string
 }
 
-// BuildOutput is input to a build strategy and describes the Docker image that the strategy
+// BuildOutput is input to a build strategy and describes the container image that the strategy
 // should produce.
 type BuildOutput struct {
 	// To defines an optional location to push the output of this build to.
 	// Kind must be one of 'ImageStreamTag' or 'DockerImage'.
-	// This value will be used to look up a Docker image repository to push to.
+	// This value will be used to look up a container image repository to push to.
 	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
 	// the build unless Namespace is specified.
 	To *kapi.ObjectReference

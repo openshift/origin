@@ -25,14 +25,14 @@ import (
 //
 // The reference can either be:
 //
-//  1. a docker image reference (e.g. 172.30.12.34:5000/test/is2:tag)
+//  1. a container image reference (e.g. 172.30.12.34:5000/test/is2:tag)
 //  2. an image stream tag (e.g. project/isname:latest)
 //  3. an image ID (e.g. sha256:2643199e5ed5047eeed22da854748ed88b3a63ba0497601ba75852f7b92d4640)
 //
 // The first two a can be obtained only from IS spec. Processing of IS status can generate only the 3rd
 // option.
 //
-// The docker image reference will always be normalized such that registry url is always specified while a
+// The container image reference will always be normalized such that registry url is always specified while a
 // default docker namespace and tag are stripped.
 type InternalImageReferenceHandler func(imageReference string, inSpec, inStatus bool)
 
@@ -130,7 +130,7 @@ func gatherImagesFromImageStreamSpec(is *imageapi.ImageStream) sets.String {
 }
 
 // getImageReferenceForObjectReference returns corresponding image reference for the given object
-// reference representing either an image stream image or image stream tag or docker image.
+// reference representing either an image stream image or image stream tag or container image.
 func getImageReferenceForObjectReference(namespace string, objRef *kapi.ObjectReference) (string, error) {
 	switch objRef.Kind {
 	case "ImageStreamImage", "DockerImage":
@@ -155,7 +155,7 @@ func getImageReferenceForObjectReference(namespace string, objRef *kapi.ObjectRe
 			res = res.DockerClientDefaults()
 		}
 
-		// docker image reference
+		// container image reference
 		return res.DaemonMinimal().Exact(), nil
 
 	case "ImageStreamTag":

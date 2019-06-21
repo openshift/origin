@@ -1152,7 +1152,7 @@ func TestImagePruning(t *testing.T) {
 		{
 			name:                "build with bad image reference",
 			builds:              imagetest.BuildList(imagetest.Build("foo", "build1", "source", "DockerImage", "foo", registryHost+"/foo/bar@invalid-digest")),
-			expectedErrorString: fmt.Sprintf(`Build[foo/build1]: invalid docker image reference "%s/foo/bar@invalid-digest": invalid reference format`, registryHost),
+			expectedErrorString: fmt.Sprintf(`Build[foo/build1]: invalid container image reference "%s/foo/bar@invalid-digest": invalid reference format`, registryHost),
 		},
 
 		{
@@ -1169,7 +1169,7 @@ func TestImagePruning(t *testing.T) {
 			rss:         imagetest.RSList(imagetest.RS("nm", "rs1", "I am certainly a valid reference")),
 			expectedErrorString: `[BuildConfig[foo/bc1]: invalid ImageStreamImage reference "bad:isi":` +
 				` expected exactly one @ in the isimage name "bad:isi",` +
-				` ReplicaSet[nm/rs1]: invalid docker image reference "I am certainly a valid reference":` +
+				` ReplicaSet[nm/rs1]: invalid container image reference "I am certainly a valid reference":` +
 				` invalid reference format]`,
 		},
 	}

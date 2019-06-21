@@ -8,7 +8,7 @@ system with Docker, which will create a build environment image and then
 execute a cross-platform Go build within it. The build output will be copied
 to `_output/releases` as a set of tars containing each version. It will also
 build the `openshift/origin-base` image which is the common parent image for all
-OpenShift Docker images.
+OpenShift container images.
 
     $ make release
 

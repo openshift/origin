@@ -1283,11 +1283,11 @@ func TestTagsChanged(t *testing.T) {
 			}
 			for i, expectedTagEvent := range expectedTagHistory.Items {
 				if e, a := expectedTagEvent.Image, updatedTagHistory.Items[i].Image; e != a {
-					t.Errorf("%s: tag %q: docker image id: expected %q, got %q", testName, expectedTag, e, a)
+					t.Errorf("%s: tag %q: container image id: expected %q, got %q", testName, expectedTag, e, a)
 					continue
 				}
 				if e, a := expectedTagEvent.DockerImageReference, updatedTagHistory.Items[i].DockerImageReference; e != a {
-					t.Errorf("%s: tag %q: docker image reference: expected %q, got %q", testName, expectedTag, e, a)
+					t.Errorf("%s: tag %q: container image reference: expected %q, got %q", testName, expectedTag, e, a)
 				}
 			}
 		}

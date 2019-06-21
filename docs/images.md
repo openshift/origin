@@ -1,6 +1,6 @@
 # OpenShift Images
 ## Problem/Rationale
-Kubernetes creates containers from images stored in Docker registries. It does not currently track and store any information about images; it merely pulls and stores them locally on a minion as part of the pod creation process.
+Kubernetes creates containers from images stored in container image registries. It does not currently track and store any information about images; it merely pulls and stores them locally on a minion as part of the pod creation process.
 
 Adding information related to images - image repositories, the images themselves, tags, and metadata - as resources in an image component will provide foundational support for several use cases, listed below.
 
@@ -16,7 +16,7 @@ Adding information related to images - image repositories, the images themselves
 - Metadata provides value as an input to pod template generation; we therefore need to be able to store and access this metadata
 - Add ability to combine an image and its default metadata with your overrides
 
-**Example**: I find a great MySQL image that some else has created, but I want to tweak some of the values for the image’s environment variables. I don’t want to build my own copy of the Docker image with my settings applied because I want to subscribe to the “upstream” image and redeploy my containers when new images arrive.
+**Example**: I find a great MySQL image that some else has created, but I want to tweak some of the values for the image’s environment variables. I don’t want to build my own copy of the container image with my settings applied because I want to subscribe to the “upstream” image and redeploy my containers when new images arrive.
 
 **Questions**:
 
@@ -37,9 +37,9 @@ Adding information related to images - image repositories, the images themselves
 - A configuration generation system can use metadata about the most recent version of an image to generate a pod template
 
 ### Use case: unified view of image repositories and images across multiple registries
-- Provide a unified virtual view of disparate Docker registries, image repositories and images
+- Provide a unified virtual view of disparate container image registries, image repositories and images
 
-**Example**: A PaaS operator pre-configures a set of image repositories from various Docker registries that can be shared by all of the PaaS’s users. Users go to one place to select images instead of searching on the Internet for a registry + image repository.
+**Example**: A PaaS operator pre-configures a set of image repositories from various container image registries that can be shared by all of the PaaS’s users. Users go to one place to select images instead of searching on the Internet for a registry + image repository.
 
 ### Use case: track referenced and “in-use” images and remove unused images
 - Images will accumulate over time, and many of them will no longer be referenced/used by any active or recent deployments
@@ -57,7 +57,7 @@ Adding information related to images - image repositories, the images themselves
   - Deployments support rollbacks
   - If the system can track which images haven’t been in use recently, it can purge old ones
 - Or should part of this be implemented in a registry?
-  - e.g. keep tag history per docker image repository
+  - e.g. keep tag history per container image repository
   - Limit # of tags per repo
   - Auto prune any image that was previously tagged but is now <= n (current) - j (however many old versions to keep)
 
@@ -72,15 +72,15 @@ Adding information related to images - image repositories, the images themselves
 - May require changes to the registry spec
 - May not work with all registries
 
-## Docker registry - ImageRepository synchronization
+## container image registry - ImageRepository synchronization
 ### Option 1 - registry hook (preferred)
-For registries that support executing hooks when an image/tag is pushed, a user configures the registry to invoke an image component webhook whenever a new image/tag is added to their Docker image repository.
+For registries that support executing hooks when an image/tag is pushed, a user configures the registry to invoke an image component webhook whenever a new image/tag is added to their container image repository.
 
-When a user pushes an image/tag to a Docker registry, the registry posts a json payload to the image component and provides the registry URL, image repository name, image ID, image metadata, and the new tag. Upon receiving the payload, the ImageRepository’s metadata overrides are applied to the image’s metadata (not yet implemented) and a new Image is created. The ImageRepository’s map of tags is updated as well.
+When a user pushes an image/tag to a container image registry, the registry posts a json payload to the image component and provides the registry URL, image repository name, image ID, image metadata, and the new tag. Upon receiving the payload, the ImageRepository’s metadata overrides are applied to the image’s metadata (not yet implemented) and a new Image is created. The ImageRepository’s map of tags is updated as well.
 
 **Notes**:
 
 - the Docker Hub’s webhook payload provides the image repository name, but it only supplies image IDs if new layers were pushed, and it never supplies image metadata or tag information. A specialized Docker Hub webhook handler is likely required, at least in the short term. When the image component's Hub webhook is invoked, it would pull the latest information from the Hub and then update the Image and ImageRepository information accordingly.
 
 ### Option 2 - polling of registry
-For registries that don’t support image/tag push hooks, a DockerRegistryImageRepositoryWatcher can be configured to poll for changes to an image repository in a Docker registry. It would query the registry at a configurable interval, updating the list of tags and image metadata for any images not currently present in the image component.
+For registries that don’t support image/tag push hooks, a DockerRegistryImageRepositoryWatcher can be configured to poll for changes to an image repository in a container image registry. It would query the registry at a configurable interval, updating the list of tags and image metadata for any images not currently present in the image component.

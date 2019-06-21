@@ -24,14 +24,14 @@ var (
 	createDockercfgLong = templates.LongDesc(`
     Create a new dockercfg secret
 
-    Dockercfg secrets are used to authenticate against Docker registries.
+    Dockercfg secrets are used to authenticate against container image registries.
 
     When using the Docker command line to push images, you can authenticate to a given registry by running
     'docker login DOCKER_REGISTRY_SERVER --username=DOCKER_USER --password=DOCKER_PASSWORD --email=DOCKER_EMAIL'.
     That produces a ~/.dockercfg file that is used by subsequent 'docker push' and 'docker pull' commands to
     authenticate to the registry.
 
-    When creating applications, you may have a Docker registry that requires authentication.  In order for the
+    When creating applications, you may have a container image registry that requires authentication.  In order for the
     nodes to pull images on your behalf, they have to have the credentials.  You can provide this information
     by creating a dockercfg secret and attaching it to your service account.`)
 
@@ -91,10 +91,10 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, s
 		},
 	}
 
-	cmd.Flags().StringVar(&o.Username, "docker-username", "", "Username for Docker registry authentication")
-	cmd.Flags().StringVar(&o.Password, "docker-password", "", "Password for Docker registry authentication")
-	cmd.Flags().StringVar(&o.EmailAddress, "docker-email", "", "Email for Docker registry")
-	cmd.Flags().StringVar(&o.RegistryLocation, "docker-server", "https://index.docker.io/v1/", "Server location for Docker registry")
+	cmd.Flags().StringVar(&o.Username, "docker-username", "", "Username for container image registry authentication")
+	cmd.Flags().StringVar(&o.Password, "docker-password", "", "Password for container image registry authentication")
+	cmd.Flags().StringVar(&o.EmailAddress, "docker-email", "", "Email for container image registry")
+	cmd.Flags().StringVar(&o.RegistryLocation, "docker-server", "https://index.docker.io/v1/", "Server location for container image registry")
 
 	o.PrintFlags.AddFlags(cmd)
 	return cmd

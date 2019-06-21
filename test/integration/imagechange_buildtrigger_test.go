@@ -329,7 +329,7 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 		t.Fatalf("expected watch event type %s, got %s: %#v", e, a, event.Object)
 	}
 	newBuild = event.Object.(*buildv1.Build)
-	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
+	// Make sure the resolution of the build's container image pushspec didn't mutate the persisted API object
 	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
 	}
@@ -411,7 +411,7 @@ func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Confi
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
+	// Make sure the resolution of the build's container image pushspec didn't mutate the persisted API object
 	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
 	}
@@ -590,7 +590,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		if e, a := watchapi.Modified, event.Type; e != a {
 			t.Fatalf("expected watch event type %s, got %s", e, a)
 		}
-		// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
+		// Make sure the resolution of the build's container image pushspec didn't mutate the persisted API object
 		if newBuild.Spec.Output.To.Name != "image1:outputtag" {
 			t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
 		}

@@ -362,7 +362,7 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imagev1.Imag
 
 		imageData := imageStream.Image
 		if err := imageutil.ImageWithMetadata(&imageData); err != nil {
-			klog.V(5).Infof("error obtaining docker image metadata: %v", err)
+			klog.V(5).Infof("error obtaining container image metadata: %v", err)
 			return nil
 		}
 

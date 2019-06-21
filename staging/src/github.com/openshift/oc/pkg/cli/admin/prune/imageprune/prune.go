@@ -107,14 +107,14 @@ type ImageStreamDeleter interface {
 	NotifyImageStreamPrune(stream *imagev1.ImageStream, updatedTags []string, deletedTags []string)
 }
 
-// BlobDeleter knows how to delete a blob from the Docker registry.
+// BlobDeleter knows how to delete a blob from the container image registry.
 type BlobDeleter interface {
 	// DeleteBlob uses registryClient to ask the registry at registryURL
 	// to remove the blob.
 	DeleteBlob(registryClient *http.Client, registryURL *url.URL, blob string) error
 }
 
-// LayerLinkDeleter knows how to delete a repository layer link from the Docker registry.
+// LayerLinkDeleter knows how to delete a repository layer link from the container image registry.
 type LayerLinkDeleter interface {
 	// DeleteLayerLink uses registryClient to ask the registry at registryURL to
 	// delete the repository layer link.
@@ -122,7 +122,7 @@ type LayerLinkDeleter interface {
 }
 
 // ManifestDeleter knows how to delete image manifest data for a repository from
-// the Docker registry.
+// the container image registry.
 type ManifestDeleter interface {
 	// DeleteManifest uses registryClient to ask the registry at registryURL to
 	// delete the repository's image manifest data.
@@ -183,7 +183,7 @@ type PrunerOptions struct {
 	DryRun bool
 	// RegistryClient is the http.Client to use when contacting the registry.
 	RegistryClientFactory RegistryClientFactoryFunc
-	// RegistryURL is the URL of the integrated Docker registry.
+	// RegistryURL is the URL of the integrated container image registry.
 	RegistryURL *url.URL
 	// IgnoreInvalidRefs indicates that all invalid references should be ignored.
 	IgnoreInvalidRefs bool

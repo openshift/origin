@@ -33,7 +33,7 @@ func ListImages() ([]string, error) {
 	return returnIds, nil
 }
 
-//BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal docker registry
+//BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal container image registry
 func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfiguration, error) {
 	authCfg := &dockerClient.AuthConfiguration{}
 	secretList, err := oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).List(metav1.ListOptions{})

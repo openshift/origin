@@ -542,7 +542,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			expectedRef: "test/imagename:v2",
 		},
 		{
-			name: "docker image",
+			name: "container image",
 			match: &ComponentMatch{
 				DockerImage: &dockerv10.DockerImage{},
 				Value:       "test/dockerimage",
@@ -550,7 +550,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			expectedRef: "test/dockerimage",
 		},
 		{
-			name: "docker image with tag",
+			name: "container image with tag",
 			match: &ComponentMatch{
 				DockerImage: &dockerv10.DockerImage{},
 				Value:       "test/dockerimage:tag",

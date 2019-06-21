@@ -26,7 +26,7 @@ OKD: The Origin Community Distribution of Kubernetes
 * Multi-tenancy support, including team and user isolation of containers, builds, and network communication.
   * Allow developers to run containers securely with fine-grained controls in production.
   * Limit, track, and manage the developers and teams on the platform.
-* Integrated Docker registry, automatic edge load balancing, cluster logging, and integrated metrics.
+* Integrated container image registry, automatic edge load balancing, cluster logging, and integrated metrics.
 
 **Learn More:**
 
@@ -50,7 +50,7 @@ The latest OKD Origin images are published to the Docker Hub under the `openshif
 
 ### Concepts
 
-OKD builds a developer-centric workflow around containers and Kubernetes runtime concepts.  An **Image Stream** lets you easily tag, import, and publish Docker images from the integrated registry.  A **Build Config** allows you to launch Docker builds, build directly from source code, or trigger Jenkins Pipeline jobs whenever an image stream tag is updated.  A **Deployment Config** allows you to use custom deployment logic to rollout your application, and Kubernetes workflow objects like **DaemonSets**, **Deployments**, or **StatefulSets** are upgraded to automatically trigger when new images are available.  **Routes** make it trivial to expose your Kubernetes services via a public DNS name. As an administrator, you can enable your developers to request new **Projects** which come with predefined roles, quotas, and security controls to fairly divide access.
+OKD builds a developer-centric workflow around containers and Kubernetes runtime concepts.  An **Image Stream** lets you easily tag, import, and publish container images from the integrated registry.  A **Build Config** allows you to launch Docker builds, build directly from source code, or trigger Jenkins Pipeline jobs whenever an image stream tag is updated.  A **Deployment Config** allows you to use custom deployment logic to rollout your application, and Kubernetes workflow objects like **DaemonSets**, **Deployments**, or **StatefulSets** are upgraded to automatically trigger when new images are available.  **Routes** make it trivial to expose your Kubernetes services via a public DNS name. As an administrator, you can enable your developers to request new **Projects** which come with predefined roles, quotas, and security controls to fairly divide access.
 
 For more on the underlying concepts of OKD, please see the [documentation site](https://docs.okd.io/latest/welcome/index.html).
 
@@ -71,9 +71,9 @@ If you're looking for more information about using Kubernetes or the lower level
 
 ### What can I run on OKD?
 
-OKD is designed to run any existing Docker images.  Additionally, you can define builds that will produce new Docker images using a `Dockerfile`.
+OKD is designed to run any existing container images.  Additionally, you can define builds that will produce new container images using a `Dockerfile`.
 
-For an easier experience running your source code, [Source-to-Image (S2I)](https://github.com/openshift/source-to-image) allows developers to simply provide an application source repository containing code to build and run.  It works by combining an existing S2I-enabled Docker image with application source to produce a new runnable image for your application.
+For an easier experience running your source code, [Source-to-Image (S2I)](https://github.com/openshift/source-to-image) allows developers to simply provide an application source repository containing code to build and run.  It works by combining an existing S2I-enabled container image with application source to produce a new runnable image for your application.
 
 You can see the [full list of Source-to-Image builder images](https://docs.okd.io/latest/using_images/s2i_images/overview.html) and it's straightforward to [create your own](https://blog.openshift.com/create-s2i-builder-image/).  Some of our available images include:
 
@@ -206,7 +206,7 @@ You'll need [etcd](https://github.com/coreos/etcd) installed and on your path fo
 $ hack/install-etcd.sh
 ```
 
-Some of the components of Origin run as Docker images, including the builders and deployment tools in `images/builder/docker/*` and `images/deploy/*`.  To build them locally run
+Some of the components of Origin run as container images, including the builders and deployment tools in `images/builder/docker/*` and `images/deploy/*`.  To build them locally run
 
 ```
 $ hack/build-images.sh

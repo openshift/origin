@@ -56,7 +56,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 				br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", path)
 				br.AssertSuccess()
 
-				g.By("getting the Docker image reference from ImageStream")
+				g.By("getting the container image reference from ImageStream")
 				imageName, err := exutil.GetDockerImageReference(oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()), "test", "latest")
 				o.Expect(err).NotTo(o.HaveOccurred())
 

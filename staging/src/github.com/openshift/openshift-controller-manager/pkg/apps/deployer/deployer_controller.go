@@ -86,7 +86,7 @@ type DeploymentController struct {
 	// podListerSynced makes sure the pod store is synced before reconcling any deployment.
 	podListerSynced cache.InformerSynced
 
-	// deployerImage specifies which Docker image can support the default strategies.
+	// deployerImage specifies which container image can support the default strategies.
 	deployerImage string
 	// serviceAccount to create deployment pods with.
 	serviceAccount string

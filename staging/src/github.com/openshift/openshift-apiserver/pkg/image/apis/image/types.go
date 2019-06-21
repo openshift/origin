@@ -39,7 +39,7 @@ const (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Image is an immutable representation of a Docker image and metadata at a point in time.
+// Image is an immutable representation of a container image and metadata at a point in time.
 type Image struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
@@ -189,7 +189,7 @@ type ImageStreamList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
-// when images are tagged in a stream, and an optional reference to a Docker image
+// when images are tagged in a stream, and an optional reference to a container image
 // repository on a registry.
 type ImageStream struct {
 	metav1.TypeMeta
@@ -279,7 +279,7 @@ type TagReferencePolicy struct {
 	// Type determines how the image pull spec should be transformed when the image stream tag is used in
 	// deployment config triggers or new builds. The default value is `Source`, indicating the original
 	// location of the image should be used (if imported). The user may also specify `Local`, indicating
-	// that the pull spec should point to the integrated Docker registry and leverage the registry's
+	// that the pull spec should point to the integrated container image registry and leverage the registry's
 	// ability to proxy the pull to an upstream registry. `Local` allows the credentials used to pull this
 	// image to be managed from the image stream's namespace, so others on the platform can access a remote
 	// image but have no access to the remote secret. It also allows the image layers to be mirrored into
@@ -352,17 +352,17 @@ type TagEventCondition struct {
 // +genclient:method=Create,verb=create,result=k8s.io/apimachinery/pkg/apis/meta/v1.Status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ImageStreamMapping represents a mapping from a single tag to a Docker image as
-// well as the reference to the Docker image repository the image came from.
+// ImageStreamMapping represents a mapping from a single tag to a container image as
+// well as the reference to the container image repository the image came from.
 type ImageStreamMapping struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	// The Docker image repository the specified image is located in
+	// The container image repository the specified image is located in
 	// DEPRECATED: remove once v1beta1 support is dropped
 	// +k8s:conversion-gen=false
 	DockerImageRepository string
-	// A Docker image.
+	// A container image.
 	Image Image
 	// A string value this image can be located with inside the repository.
 	Tag string
@@ -421,7 +421,7 @@ type ImageStreamImage struct {
 	Image Image
 }
 
-// DockerImageReference points to a Docker image.
+// DockerImageReference points to a container image.
 type DockerImageReference = reference.DockerImageReference
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -490,7 +490,7 @@ type ImageStreamImportSpec struct {
 	// Import indicates whether to perform an import - if so, the specified tags are set on the spec
 	// and status of the image stream defined by the type meta.
 	Import bool
-	// Repository is an optional import of an entire Docker image repository. A maximum limit on the
+	// Repository is an optional import of an entire container image repository. A maximum limit on the
 	// number of tags imported this way is imposed by the server.
 	Repository *RepositoryImportSpec
 	// Images are a list of individual images to import.
@@ -507,7 +507,7 @@ type ImageStreamImportStatus struct {
 	Images []ImageImportStatus
 }
 
-// RepositoryImportSpec indicates to load a set of tags from a given Docker image repository
+// RepositoryImportSpec indicates to load a set of tags from a given container image repository
 type RepositoryImportSpec struct {
 	// The source of the import, only kind DockerImage is supported
 	From core.ObjectReference

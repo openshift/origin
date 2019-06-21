@@ -8,7 +8,7 @@ import (
 	"k8s.io/klog"
 )
 
-// ImageTemplate is a class to assist in expanding parameterized Docker image references
+// ImageTemplate is a class to assist in expanding parameterized container image references
 // from configuration or a file
 type ImageTemplate struct {
 	// Format is required, set to the image template to pull

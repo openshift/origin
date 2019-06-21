@@ -98,7 +98,7 @@ func NewRegistryLoginOptions(streams genericclioptions.IOStreams) *LoginOptions 
 	}
 }
 
-// New logs you in to a docker registry locally.
+// New logs you in to a container image registry locally.
 func NewRegistryLoginCmd(name string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRegistryLoginOptions(streams)
 

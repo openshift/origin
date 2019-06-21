@@ -55,7 +55,7 @@ type PipelineBuilder interface {
 // actual name of a pipeline (Pipeline.Name) might differ from the base name.
 // The pipelines created with a PipelineBuilder will have access to the given
 // environment. The boolean outputDocker controls whether builds will output to
-// an image stream tag or docker image reference.
+// an image stream tag or container image reference.
 func NewPipelineBuilder(name string, environment Environment, dockerStrategyOptions *buildv1.DockerStrategyOptions, outputDocker bool) PipelineBuilder {
 	return &pipelineBuilder{
 		nameGenerator:         NewUniqueNameGenerator(name),

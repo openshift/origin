@@ -210,7 +210,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	}
 
 	// check imported images status. If we get authentication error (401), try import same image without authentication.
-	// Docker registry gives 401 on public images if you have wrong secret in your secret list.
+	// container image registry gives 401 on public images if you have wrong secret in your secret list.
 	// this block was introduced by PR #18012
 	// TODO: remove this blocks when smarter auth client gets done with retries
 	var imageStatus []metav1.Status
@@ -549,7 +549,7 @@ func (r *REST) importSuccessful(
 	return nil, false
 }
 
-// mostAccuratePullSpec returns a docker image reference that uses the current ID if possible, the current tag otherwise, and
+// mostAccuratePullSpec returns a container image reference that uses the current ID if possible, the current tag otherwise, and
 // returns false if the reference if the spec could not be parsed. The returned spec has all client defaults applied.
 func mostAccuratePullSpec(pullSpec string, id, tag string) (string, bool) {
 	ref, err := reference.Parse(pullSpec)

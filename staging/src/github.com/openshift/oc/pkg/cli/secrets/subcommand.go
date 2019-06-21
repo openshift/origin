@@ -29,7 +29,7 @@ var (
 
     Secrets are used to store confidential information that should not be contained inside of an image.
     They are commonly used to hold things like keys for authentication to other internal systems like
-    Docker registries.`)
+    container image registries.`)
 )
 
 func NewCmdSecrets(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {

@@ -3068,7 +3068,7 @@ func TestValidateBuildImageRefs(t *testing.T) {
 			expectedError: "",
 		},
 		{
-			name: "invalid docker image ref",
+			name: "invalid container image ref",
 			build: buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
 				Spec: buildapi.BuildSpec{
@@ -3247,7 +3247,7 @@ func TestValidateBuildUpdateImageReferences(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name: "invalid docker image reference is ignored if it doesn't change",
+			name: "invalid container image reference is ignored if it doesn't change",
 			build: buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default", ResourceVersion: "10"},
 				Spec: buildapi.BuildSpec{
@@ -3287,7 +3287,7 @@ func TestValidateBuildUpdateImageReferences(t *testing.T) {
 			expectedError: "",
 		},
 		{
-			name: "docker image reference is immutable",
+			name: "container image reference is immutable",
 			build: buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default", ResourceVersion: "10"},
 				Spec: buildapi.BuildSpec{

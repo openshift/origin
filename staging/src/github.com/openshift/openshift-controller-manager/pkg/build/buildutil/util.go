@@ -187,7 +187,7 @@ func FindDockerSecretAsReference(secrets []corev1.Secret, image string) *corev1.
 }
 
 // FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
-// images from private Docker registries.
+// images from private container image registries.
 func FetchServiceAccountSecrets(secretStore v1lister.SecretLister, serviceAccountStore v1lister.ServiceAccountLister, namespace, serviceAccount string) ([]corev1.Secret, error) {
 	var result []corev1.Secret
 	sa, err := serviceAccountStore.ServiceAccounts(namespace).Get(serviceAccount)

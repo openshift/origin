@@ -74,7 +74,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		if !image.Created.IsZero() {
 			shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 		}
-		return fmt.Sprintf("Found Docker image %s from %s for %q", shortID, match.Meta["registry"], refInput)
+		return fmt.Sprintf("Found container image %s from %s for %q", shortID, match.Meta["registry"], refInput)
 	default:
 		return ""
 	}

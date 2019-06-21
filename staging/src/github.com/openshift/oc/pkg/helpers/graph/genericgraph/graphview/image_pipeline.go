@@ -34,7 +34,7 @@ type ImagePipeline struct {
 }
 
 // ImageTagLocation identifies the source or destination of an image. Represents
-// both a tag in a Docker image repository, as well as a tag in an OpenShift image stream.
+// both a tag in a container image repository, as well as a tag in an OpenShift image stream.
 type ImageTagLocation interface {
 	ID() int
 	ImageSpec() string

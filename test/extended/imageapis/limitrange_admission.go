@@ -105,7 +105,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It(fmt.Sprintf("should deny a docker image reference exceeding limit on %s resource", imagev1.ResourceImageStreamTags), func() {
+	g.It(fmt.Sprintf("should deny a container image reference exceeding limit on %s resource", imagev1.ResourceImageStreamTags), func() {
 		tag2Image, err := buildAndPushTestImagesTo(oc, "src", "tag", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -113,7 +113,7 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		_, err = createLimitRangeOfType(oc, imagev1.LimitTypeImageStream, limit)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
+		g.By(fmt.Sprintf("trying to tag a container image exceeding limit %v", limit))
 		out, err := oc.Run("import-image").Args("stream:dockerimage", "--confirm", "--insecure", "--from", tag2Image["tag1"].DockerImageReference).Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).Should(o.ContainSubstring("exceeds the maximum limit"))
@@ -122,13 +122,13 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 		limit, err = bumpLimit(oc, imagev1.ResourceImageStreamTags, "1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to tag a docker image below limit %v", limit))
+		g.By(fmt.Sprintf("trying to tag a container image below limit %v", limit))
 		err = oc.Run("import-image").Args("stream:dockerimage", "--confirm", "--insecure", "--from", tag2Image["tag1"].DockerImageReference).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "stream", "dockerimage")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
+		g.By(fmt.Sprintf("trying to tag a container image exceeding limit %v", limit))
 		is, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		upsertSpecTag(&is.Spec.Tags, imagev1.TagReference{

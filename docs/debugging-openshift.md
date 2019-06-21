@@ -55,7 +55,7 @@ The most recent container in that list should be the one that ran your build.  T
 
     $ docker logs [container id]
 
-Hopefully the logs will provide some indication of what it failed (e.g. failure to find the source repository, an actual build issue, failure to push the resulting image to the docker registry, etc).
+Hopefully the logs will provide some indication of what it failed (e.g. failure to find the source repository, an actual build issue, failure to push the resulting image to the container image registry, etc).
 
 One issue seen sometimes is not being able to resolve any hostname (for example github.com) from within running containers:
 
@@ -69,13 +69,13 @@ If this shows up in your build logs, restart docker and then resubmit a build:
 Docker Registry
 ---------------
 
-Most of the v3 flows today assume you are running a docker registry pod.  You should ensure that this local registry is running:
+Most of the v3 flows today assume you are running a container image registry pod.  You should ensure that this local registry is running:
 
     $ oc adm registry --dry-run
 
 If it's running, you should see this:
 
-    Docker registry "docker-registry" service exists
+    container image registry "docker-registry" service exists
 
 If it's not running, you will instead see:
 

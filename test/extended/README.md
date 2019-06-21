@@ -76,7 +76,7 @@ The structure of this directory is following:
 * [**`test/extended/util`**](util) provides useful helpers and utilities to use in your extended test. It provides a easy-to-use interface to OpenShift CLI and also
 access to the Kubernetes [E2E framework](https://github.com/openshift/origin/tree/master/vendor/k8s.io/kubernetes/test/e2e) helpers. It also contains OpenShift helpers that are shared across multiple test cases, to make the test cases more DRY.
 * [**`test/extended/fixtures`**](fixtures) contains the JSON and YAML fixtures that are meant to be used by the extended tests.
-* [**`test/extended/[images,builds,...]`**](builds) each of these Go packages contains extended tests that are related to each other. For example, the `images` directory should contain test cases that are exercising usage of various Docker images in OpenShift.
+* [**`test/extended/[images,builds,...]`**](builds) each of these Go packages contains extended tests that are related to each other. For example, the `images` directory should contain test cases that are exercising usage of various container images in OpenShift.
 
 Groups vs. packages
 -------------------
@@ -126,7 +126,7 @@ Common functions for extended tests are located in `./hack/util.sh`. Environment
 * `os::start::configure_server()` generates all configuration files for OpenShift server.
 * `os::start::server()` starts the OpenShift master and node.
 * `os::start::router()` installs the OpenShift router service.
-* `os::start::registry()` installs the OpenShift Docker registry service.
+* `os::start::registry()` installs the OpenShift container image registry service.
 * `create_image_streams_extended()` creates ImageStream(s) for all OpenShift images.
 
 CLI interface

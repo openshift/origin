@@ -82,7 +82,7 @@ Note that we use double-quotes around the option arguments.
 
 This creates a new application in OpenShift with the specified source code, templates, and images.
 It builds up the components of an application using images, templates, or code that has a public repository.
-It looks up images on the local Docker installation (if available), a Docker registry, or an OpenShift image stream.
+It looks up images on the local Docker installation (if available), a container image registry, or an OpenShift image stream.
 If you specify a source code URL, it sets up a build that takes the source code and converts it into an image that can run in a pod.
 Local source must be in a git repository that has a remote repository that the OpenShift instance can see.
 The images will be deployed via a deployment configuration, and a service will be connected to the first public port of the app.
@@ -103,12 +103,12 @@ The options are:
 |:-----------------------------|:---------------------------------------------------|
 |`--code` *dir*                | Use source code in *dir*                           |
 |`--context-dir` *dir*         | Use *dir* as context dir in the build              |
-|`--docker-image` *image*      | Include Docker image *image* in the app            |
+|`--docker-image` *image*      | Include container image *image* in the app            |
 |`--env` (`-e`) *k=v*          | Set env var *k* to value *v*                       |
 |`--file` *filename*           | Use template in *filename*                         |
 |`--group` *comp1*`+`*comp2*   | Group together components *comp1* and *comp2*      |
 |`--image-stream` (`-i`) *is*  | Use imagestream *is* in the app                    |
-|`--insecure-registry`         | Bypass cert checks for referenced Docker images    |
+|`--insecure-registry`         | Bypass cert checks for referenced container images    |
 |`--labels` (`-l`) *k1=v1,...* | Label all resources with *k1=v1,...*               |
 |`--name` *name*               | Give *name* to all generated app artifacts         |
 |`--no-headers`                | For default output, don't print headers            |
@@ -235,7 +235,7 @@ See also [`oc replace`](#oc-replace).
 
 This creates a new build with the specified source code.
 It creates a build configuration for your application using images and code that has a public repository.
-It looks up the images on the local Docker installation (if available), a Docker registry, or an OpenShift image stream.
+It looks up the images on the local Docker installation (if available), a container image registry, or an OpenShift image stream.
 If you specify a source code URL, it sets up a build that takes the source code and converts it into an image that can run inside a pod.
 Local source must be in a git repository that has a remote repository that the OpenShift instance can see.
 
@@ -302,7 +302,7 @@ See also [`oc new-build`](#oc-new-build).
 
 ### oc import-image
 
-This imports tag and image information from an external Docker image registry.
+This imports tag and image information from an external container image registry.
 For example, the following command imports from the `mystream` registry.
 
 ```bash

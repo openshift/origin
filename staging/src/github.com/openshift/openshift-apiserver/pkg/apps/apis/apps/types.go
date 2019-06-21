@@ -126,7 +126,7 @@ const (
 
 // CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParams struct {
-	// Image specifies a Docker image which can carry out a deployment.
+	// Image specifies a container image which can carry out a deployment.
 	Image string
 	// Environment holds the environment which will be given to the container for Image.
 	Environment []kapi.EnvVar
@@ -231,7 +231,7 @@ type ExecNewPodHook struct {
 	// Env is a set of environment variables to supply to the hook pod's container.
 	Env []kapi.EnvVar
 	// ContainerName is the name of a container in the deployment pod template
-	// whose Docker image will be used for the hook pod's container.
+	// whose container image will be used for the hook pod's container.
 	ContainerName string
 	// Volumes is a list of named volumes from the pod template which should be
 	// copied to the hook pod. Volumes names not found in pod spec are ignored.
@@ -263,7 +263,7 @@ const (
 	// DeploymentTriggerManual is a placeholder implementation which does nothing.
 	DeploymentTriggerManual DeploymentTriggerType = "Manual"
 	// DeploymentTriggerOnImageChange will create new deployments in response to updated tags from
-	// a Docker image repository.
+	// a container image repository.
 	DeploymentTriggerOnImageChange DeploymentTriggerType = "ImageChange"
 	// DeploymentTriggerOnConfigChange will create new deployments in response to changes to
 	// the ControllerTemplate of a DeploymentConfig.

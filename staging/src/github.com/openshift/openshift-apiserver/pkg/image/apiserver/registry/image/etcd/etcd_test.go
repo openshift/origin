@@ -301,7 +301,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					return false
 				}
 				if image.DockerImageMetadata.ID != "foo" {
-					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
+					t.Errorf("unexpected container image: %#v", image.DockerImageMetadata)
 					return false
 				}
 				if image.DockerImageReference == "openshift/ruby-19-centos-2" {
@@ -338,7 +338,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					return false
 				}
 				if image.DockerImageMetadata.ID != "fe50ac14986497fa6b5d2cc24feb4a561d01767bc64413752c0988cb70b0b8b9" {
-					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
+					t.Errorf("unexpected container image: %#v", image.DockerImageMetadata)
 					return false
 				}
 				if image.DockerImageReference != "openshift/ruby-19-centos" {
@@ -375,7 +375,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					return false
 				}
 				if image.DockerImageMetadata.ID != "fe50ac14986497fa6b5d2cc24feb4a561d01767bc64413752c0988cb70b0b8b9" {
-					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
+					t.Errorf("unexpected container image: %#v", image.DockerImageMetadata)
 					return false
 				}
 				if image.DockerImageReference != "openshift/ruby-19-centos" {

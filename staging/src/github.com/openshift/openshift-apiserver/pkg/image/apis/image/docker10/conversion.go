@@ -1,6 +1,6 @@
 package docker10
 
-// Convert_DockerV1CompatibilityImage_to_DockerImageConfig takes a Docker registry digest
+// Convert_DockerV1CompatibilityImage_to_DockerImageConfig takes a container image registry digest
 // (schema 2.1) and converts it to the external API version of Image.
 func Convert_DockerV1CompatibilityImage_to_DockerImageConfig(in *DockerV1CompatibilityImage, out *DockerImageConfig) error {
 	*out = DockerImageConfig{

@@ -81,7 +81,7 @@ func InternalImageWithMetadata(image *imageapi.Image) error {
 		image.DockerImageMetadata.ID = manifest.Config.Digest
 
 	default:
-		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
+		return fmt.Errorf("unrecognized container image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
 	}
 
 	layerSet := sets.NewString()
@@ -143,7 +143,7 @@ func fillImageLayers(image *imageapi.Image, manifest dockerapi10.DockerImageMani
 			image.DockerImageLayers[i].MediaType = layer.MediaType
 		}
 	default:
-		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
+		return fmt.Errorf("unrecognized container image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
 	}
 
 	if image.Annotations == nil {
@@ -295,7 +295,7 @@ func ResolveReferenceForTagEvent(stream *imageapi.ImageStream, tag string, lates
 	case imageapi.LocalTagReferencePolicy:
 		local := stream.Status.DockerImageRepository
 		if len(local) == 0 || len(latest.Image) == 0 {
-			// fallback to the originating reference if no local docker registry defined or we
+			// fallback to the originating reference if no local container image registry defined or we
 			// lack an image ID
 			return latest.DockerImageReference
 		}

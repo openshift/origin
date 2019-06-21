@@ -70,7 +70,7 @@ type registryWhitelister struct {
 var _ RegistryWhitelister = &registryWhitelister{}
 
 // NewRegistryWhitelister creates a whitelister that admits registry domains and pull specs based on the given
-// list of allowed registries and the current domain name of the integrated Docker registry.
+// list of allowed registries and the current domain name of the integrated container image registry.
 func NewRegistryWhitelister(
 	whitelist openshiftcontrolplanev1.AllowedRegistries,
 	registryHostRetriever RegistryHostnameRetriever,
