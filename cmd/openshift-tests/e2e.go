@@ -102,7 +102,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Tests that exercise the OpenShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "openshift pipeline")
+			return strings.Contains(name, "[Feature:Jenkins]")
 		},
 		Parallelism: 3,
 		TestTimeout: 20 * time.Minute,
