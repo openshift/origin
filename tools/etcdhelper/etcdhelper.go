@@ -17,8 +17,8 @@ import (
 	"github.com/coreos/etcd/pkg/transport"
 
 	// install all APIs
-	install "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/api/legacy"
+	install "github.com/openshift/openshift-apiserver/pkg/api/install"
+	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
 )
 
 func init() {

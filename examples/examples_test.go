@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/api/legacy"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,12 +17,13 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
 
-	"github.com/openshift/origin/pkg/api/validation"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
+	"github.com/openshift/openshift-apiserver/pkg/api/validation"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
+	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 
 	// install all APIs
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
