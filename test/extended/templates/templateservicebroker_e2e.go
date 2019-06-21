@@ -28,8 +28,8 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
+	"github.com/openshift/origin/test/extended/templates/openservicebroker/api"
+	"github.com/openshift/origin/test/extended/templates/openservicebroker/client"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
