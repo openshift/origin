@@ -202,10 +202,10 @@ function localup::start_kubeapiserver() {
     fi
 
     KUBE_APISERVER_LOG=${LOG_DIR}/kube-apiserver.log
-    hypershift openshift-kube-apiserver \
+    hyperkube kube-apiserver \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
-      --config=${LOCALUP_CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
+      --openshift-config=${LOCALUP_CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
     KUBE_APISERVER_PID=$!
 
     # Wait for kube-apiserver to come up before launching the rest of the components.
