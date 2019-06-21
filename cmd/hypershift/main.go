@@ -19,7 +19,6 @@ import (
 	openshift_integrated_oauth_server "github.com/openshift/oauth-server/pkg/cmd/oauth-server"
 	"github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/openshift/sdn/pkg/openshift-network-controller"
 )
@@ -60,9 +59,6 @@ func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 
 	startOpenShiftAPIServer := openshift_apiserver.NewOpenShiftAPIServerCommand(openshift_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr, stopCh)
 	cmd.AddCommand(startOpenShiftAPIServer)
-
-	startOpenShiftKubeAPIServer := openshift_kube_apiserver.NewOpenShiftKubeAPIServerServerCommand(openshift_kube_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr, stopCh)
-	cmd.AddCommand(startOpenShiftKubeAPIServer)
 
 	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftControllerManager)
