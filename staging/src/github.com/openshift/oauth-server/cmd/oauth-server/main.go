@@ -46,7 +46,7 @@ func main() {
 
 func NewOpenshiftIntegratedOAuthServerCommand(stopCh <-chan struct{}) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "openshift-integrated-oauth-server",
+		Use:   "oauth-server",
 		Short: "Command for the OpenShift integrated OAuth server",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
