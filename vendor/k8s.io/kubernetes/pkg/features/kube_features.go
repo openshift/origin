@@ -433,6 +433,12 @@ const (
 	//
 	// Enables the OpenStack Cinder in-tree driver to OpenStack Cinder CSI Driver migration feature.
 	CSIMigrationOpenStack utilfeature.Feature = "CSIMigrationOpenStack"
+
+	// owner: @j-griffith
+	// alpha: v1.15
+	//
+	// Enable support for specifying an existing PVC as a DataSource
+	VolumePVCDataSource utilfeature.Feature = "VolumePVCDataSource"
 )
 
 func init() {
@@ -507,6 +513,7 @@ var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureS
 	TTLAfterFinished:                            {Default: false, PreRelease: utilfeature.Alpha},
 	KubeletPodResources:                         {Default: false, PreRelease: utilfeature.Alpha},
 	WindowsGMSA:                                 {Default: false, PreRelease: utilfeature.Alpha},
+	VolumePVCDataSource:                         {Default: false, PreRelease: utilfeature.Alpha},
 
 	// inherited features from generic apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:
