@@ -11,6 +11,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
+	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -26,7 +27,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Mirror cluster", func() 
 	g.BeforeEach(func() {
 		var err error
 		c = oc.AdminKubeClient()
-		viperConfig := e2e.TestContext.Viper
+		viperConfig := reale2e.GetViperConfig()
 		if viperConfig == "e2e" {
 			e2e.Logf("Undefined config file")
 		} else if viperConfig == "mirror" {
