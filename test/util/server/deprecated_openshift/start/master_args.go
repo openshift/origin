@@ -17,7 +17,7 @@ import (
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/oc/pkg/helpers/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/openshift-apiserver/pkg/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"

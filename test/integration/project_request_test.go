@@ -15,7 +15,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
-	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
+	"github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/projectrequest/delegated"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/apimachinery/pkg/runtime/serializer"

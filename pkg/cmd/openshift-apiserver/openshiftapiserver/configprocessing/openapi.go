@@ -13,8 +13,8 @@ import (
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	openapigenerated "github.com/openshift/openshift-apiserver/pkg/openapi"
 	"github.com/openshift/openshift-apiserver/pkg/version"
-	openapigenerated "github.com/openshift/origin/pkg/openapi"
 )
 
 func DefaultOpenAPIConfig() *openapicommon.Config {

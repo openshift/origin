@@ -20,7 +20,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
-	oapi "github.com/openshift/origin/pkg/api"
+	oapi "github.com/openshift/openshift-apiserver/pkg/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"

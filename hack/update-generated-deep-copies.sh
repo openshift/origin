@@ -33,19 +33,19 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints/v1
 
-    github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
-    github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1
-    github.com/openshift/origin/pkg/apps/apis/apps
-    github.com/openshift/origin/pkg/authorization/apis/authorization
-    github.com/openshift/origin/pkg/build/apis/build
-    github.com/openshift/origin/pkg/image/apis/image
-    github.com/openshift/origin/pkg/oauth/apis/oauth
-    github.com/openshift/origin/pkg/project/apis/project
-    github.com/openshift/origin/pkg/quota/apis/quota
-    github.com/openshift/origin/pkg/route/apis/route
-    github.com/openshift/origin/pkg/security/apis/security
-    github.com/openshift/origin/pkg/template/apis/template
-    github.com/openshift/origin/pkg/user/apis/user
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apiserver/admission/apis/requestlimit
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apiserver/admission/apis/requestlimit/v1
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/apps/apis/apps
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/build/apis/build
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/image/apis/image
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apis/project
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/quota/apis/quota
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/route/apis/route
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/security/apis/security
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/template/apis/template
+    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/user/apis/user
 )
 
 echo "Generating deepcopy funcs"

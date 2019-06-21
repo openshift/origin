@@ -52,9 +52,9 @@ import (
 	"github.com/openshift/oc/pkg/helpers/newapp/dockerfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/jenkinsfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/source"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/api/install"
 	"github.com/openshift/origin/test/util"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"

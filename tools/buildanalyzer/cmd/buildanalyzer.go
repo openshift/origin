@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildinternalapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 
 type BuildAnalyzerOptions struct {

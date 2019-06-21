@@ -47,8 +47,8 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 
 	newproject "github.com/openshift/oc/pkg/cli/admin/project"
+	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
 	openshiftcontrollermanager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/origin/pkg/api/legacy"
 	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/util"
@@ -65,7 +65,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/api/install"
 )
 
 var (

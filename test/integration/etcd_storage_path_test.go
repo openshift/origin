@@ -35,12 +35,12 @@ import (
 
 	// install all APIs
 	etcdv3 "github.com/coreos/etcd/clientv3"
-	"github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/openshift-apiserver/pkg/api/install"
 )
 
 // Etcd data for all persisted OpenShift objects.
 var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
-	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1
+	// github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/v1
 	gvr("authorization.openshift.io", "v1", "roles"): {
 		Stub:             `{"metadata": {"name": "r1b1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		ExpectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1o2",
@@ -63,7 +63,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/build/apis/build/v1
+	// github.com/openshift/openshift-apiserver/pkg/build/apis/build/v1
 	gvr("build.openshift.io", "v1", "builds"): {
 		Stub:             `{"metadata": {"name": "build1g"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		ExpectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1g",
@@ -74,14 +74,14 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/apps/apis/apps/v1
+	// github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/v1
 	gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
 		Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
 		ExpectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1g",
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/image/apis/image/v1
+	// github.com/openshift/openshift-apiserver/pkg/image/apis/image/v1
 	gvr("image.openshift.io", "v1", "imagestreams"): {
 		Stub:             `{"metadata": {"name": "is1g"}, "spec": {"dockerImageRepository": "docker"}}`,
 		ExpectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1g",
@@ -92,7 +92,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/oauth/apis/oauth/v1
+	// github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/v1
 	gvr("oauth.openshift.io", "v1", "oauthclientauthorizations"): {
 		Stub:             `{"clientName": "system:serviceaccount:etcdstoragepathtestnamespace:clientg", "metadata": {"name": "user:system:serviceaccount:etcdstoragepathtestnamespace:clientg"}, "scopes": ["user:info"], "userName": "user", "userUID": "cannot be empty"}`,
 		ExpectedEtcdPath: "openshift.io/oauth/clientauthorizations/user:system:serviceaccount:etcdstoragepathtestnamespace:clientg",
@@ -133,7 +133,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/project/apis/project/v1
+	// github.com/openshift/openshift-apiserver/pkg/project/apis/project/v1
 	gvr("project.openshift.io", "v1", "projects"): {
 		Stub:             `{"metadata": {"name": "namespace2g"}, "spec": {"finalizers": ["kubernetes", "openshift.io/origin"]}}`,
 		ExpectedEtcdPath: "kubernetes.io/namespaces/namespace2g",
@@ -141,21 +141,21 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/route/apis/route/v1
+	// github.com/openshift/openshift-apiserver/pkg/route/apis/route/v1
 	gvr("route.openshift.io", "v1", "routes"): {
 		Stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
 		ExpectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1g",
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/security/apis/security/v1
+	// github.com/openshift/openshift-apiserver/pkg/security/apis/security/v1
 	gvr("security.openshift.io", "v1", "rangeallocations"): {
 		Stub:             `{"metadata": {"name": "scc2"}}`,
 		ExpectedEtcdPath: "openshift.io/rangeallocations/scc2",
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/template/apis/template/v1
+	// github.com/openshift/openshift-apiserver/pkg/template/apis/template/v1
 	gvr("template.openshift.io", "v1", "templates"): {
 		Stub:             `{"message": "Jenkins template", "metadata": {"name": "template1g"}}`,
 		ExpectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1g",
@@ -170,7 +170,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/user/apis/user/v1
+	// github.com/openshift/openshift-apiserver/pkg/user/apis/user/v1
 	gvr("user.openshift.io", "v1", "groups"): {
 		Stub:             `{"metadata": {"name": "groupg"}, "users": ["user1", "user2"]}`,
 		ExpectedEtcdPath: "openshift.io/groups/groupg",

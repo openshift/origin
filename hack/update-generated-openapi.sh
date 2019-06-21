@@ -47,7 +47,7 @@ ${GOPATH}/bin/openapi-gen \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
   --output-base="${GOPATH}/src" \
   --input-dirs $(join , "${KUBE_INPUT_DIRS[@]}" "${ORIGIN_INPUT_DIRS[@]}") \
-  --output-package "${ORIGIN_PREFIX}pkg/openapi" \
+  --output-package "${ORIGIN_PREFIX}/vendor/github.com/openshift/openshift-apiserver/pkg/openapi" \
   --report-filename "${SCRIPT_ROOT}/hack/openapi-violation.list" \
   "$@"
 

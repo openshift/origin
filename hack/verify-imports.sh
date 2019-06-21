@@ -19,6 +19,11 @@ os::cmd::expect_success "import-verifier ${OS_ROOT}/hack/import-restrictions.jso
 
 # quick and dirty check that nothing under vendored kubernetes imports something from origin
 os::cmd::expect_failure "egrep -r '\"github.com/openshift/origin/[^\"]+\"$' vendor/k8s.io/kubernetes"
+os::cmd::expect_failure "egrep -r '\"github.com/openshift/openshift-apiserver/[^\"]+\"$' vendor/k8s.io/kubernetes"
+os::cmd::expect_failure "egrep -r '\"github.com/openshift/openshift-controller-manager/[^\"]+\"$' vendor/k8s.io/kubernetes"
+os::cmd::expect_failure "egrep -r '\"github.com/openshift/oc/[^\"]+\"$' vendor/k8s.io/kubernetes"
+os::cmd::expect_failure "egrep -r '\"github.com/openshift/sdn/[^\"]+\"$' vendor/k8s.io/kubernetes"
+os::cmd::expect_failure "egrep -r '\"github.com/openshift/template-service-broker/[^\"]+\"$' vendor/k8s.io/kubernetes"
 
 # quick and dirty check that nothing under origin staging imports from openshift/origin
 os::cmd::expect_failure "go list -deps -test ./staging/src/github.com/openshift/... | grep 'openshift/origin/pkg'"
@@ -80,7 +85,12 @@ print_forbidden_imports oauth-server \
   k8s.io/kubernetes/pkg/client/metrics/prometheus  \
   k8s.io/kubernetes/pkg/kubectl/cmd/util || RC=1
 print_forbidden_imports oc github.com/openshift/source-to-image k8s.io/kubernetes/pkg || RC=1
-print_forbidden_imports openshift-apiserver k8s.io/kubernetes/pkg/apis || RC=1
+print_forbidden_imports openshift-apiserver \
+  k8s.io/kubernetes/cmd \
+  k8s.io/kubernetes/pkg \
+  k8s.io/kubernetes/plugin \
+  github.com/openshift/source-to-image/pkg/scm/git \
+  k8s.io/kubernetes/openshift-kube-apiserver || RC=1
 print_forbidden_imports openshift-controller-manager k8s.io/kubernetes/cmd/controller-manager/app \
   k8s.io/kubernetes/pkg/api/legacyscheme \
   k8s.io/kubernetes/pkg/api/testing \

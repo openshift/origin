@@ -1,8 +1,8 @@
 package configprocessing
 
 import (
-	"github.com/openshift/origin/pkg/route/apiserver/routeallocationcontroller"
-	routeplugin "github.com/openshift/origin/pkg/route/apiserver/simplerouteallocation"
+	"github.com/openshift/openshift-apiserver/pkg/route/apiserver/routeallocationcontroller"
+	routeplugin "github.com/openshift/openshift-apiserver/pkg/route/apiserver/simplerouteallocation"
 )
 
 func RouteAllocator(routingSubdomain string) (*routeallocationcontroller.RouteAllocationController, error) {
