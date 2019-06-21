@@ -9,7 +9,7 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
+	"github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
 )
 

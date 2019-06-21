@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 )
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.

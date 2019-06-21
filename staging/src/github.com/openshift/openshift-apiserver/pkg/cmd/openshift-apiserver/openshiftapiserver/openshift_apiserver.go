@@ -37,6 +37,7 @@ import (
 	authorizationapiserver "github.com/openshift/openshift-apiserver/pkg/authorization/apiserver"
 	"github.com/openshift/openshift-apiserver/pkg/bootstrappolicy"
 	buildapiserver "github.com/openshift/openshift-apiserver/pkg/build/apiserver"
+	"github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	imageapiserver "github.com/openshift/openshift-apiserver/pkg/image/apiserver"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 	oauthapiserver "github.com/openshift/openshift-apiserver/pkg/oauth/apiserver"
@@ -50,7 +51,6 @@ import (
 	templateapiserver "github.com/openshift/openshift-apiserver/pkg/template/apiserver"
 	userapiserver "github.com/openshift/openshift-apiserver/pkg/user/apiserver"
 	"github.com/openshift/openshift-apiserver/pkg/version"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 
 	// register api groups
 	_ "github.com/openshift/openshift-apiserver/pkg/api/install"

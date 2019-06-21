@@ -17,10 +17,10 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/oc/pkg/helpers/tokencmd"
 
-	"github.com/openshift/origin/pkg/cmd/util"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/iputil"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
@@ -127,7 +127,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	t.Logf("cert dir is %s\n", certDir)
 	certNames[basicAuthRemoteCACert] = caCert
 	// setup server certs
-	ip, err := util.DefaultLocalIP4()
+	ip, err := iputil.DefaultLocalIP4()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,7 +8,7 @@ import (
 	apiserverflag "k8s.io/component-base/cli/flag"
 
 	configv1 "github.com/openshift/api/config/v1"
-	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	cmdflags "github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing/flags"
 )
 
 // GetEtcdOptions takes configuration information and flag overrides to produce the upstream etcdoptions.

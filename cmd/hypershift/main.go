@@ -17,8 +17,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	openshift_integrated_oauth_server "github.com/openshift/oauth-server/pkg/cmd/oauth-server"
+	"github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/openshift/sdn/pkg/openshift-network-controller"
 )
