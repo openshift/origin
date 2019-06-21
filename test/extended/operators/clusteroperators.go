@@ -26,7 +26,6 @@ var _ = g.Describe("[Feature:Platform] ClusterOperators", func() {
 		"network",
 		"operator-lifecycle-manager",
 		"operator-lifecycle-manager-catalog",
-		"storage",
 		"support",
 	)
 	whitelistNoOperatorConfig := sets.NewString(
@@ -38,7 +37,6 @@ var _ = g.Describe("[Feature:Platform] ClusterOperators", func() {
 		"network",
 		"operator-lifecycle-manager",
 		"operator-lifecycle-manager-catalog",
-		"storage",
 		"support",
 	)
 
