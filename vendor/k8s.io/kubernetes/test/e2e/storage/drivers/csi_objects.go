@@ -20,13 +20,14 @@ limitations under the License.
 package drivers
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -35,18 +36,22 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-var csiImageVersions = map[string]string{
-	"hostpathplugin":   "v0.4.0",
-	"csi-attacher":     "v0.4.0",
-	"csi-provisioner":  "v0.4.0",
-	"driver-registrar": "v0.4.0",
-}
+var (
+	csiImageVersion  = flag.String("storage.csi.image.version", "", "overrides the default tag used for hostpathplugin/csi-attacher/csi-provisioner/driver-registrar images")
+	csiImageRegistry = flag.String("storage.csi.image.registry", "quay.io/k8scsi", "overrides the default repository used for hostpathplugin/csi-attacher/csi-provisioner/driver-registrar images")
+	csiImageVersions = map[string]string{
+		"hostpathplugin":   "v0.4.0",
+		"csi-attacher":     "v0.4.0",
+		"csi-provisioner":  "v0.4.0",
+		"driver-registrar": "v0.4.0",
+	}
+)
 
 func csiContainerImage(image string) string {
 	var fullName string
-	fullName += framework.TestContext.CSIImageRegistry + "/" + image + ":"
-	if framework.TestContext.CSIImageVersion != "" {
-		fullName += framework.TestContext.CSIImageVersion
+	fullName += *csiImageRegistry + "/" + image + ":"
+	if *csiImageVersion != "" {
+		fullName += *csiImageVersion
 	} else {
 		fullName += csiImageVersions[image]
 	}
