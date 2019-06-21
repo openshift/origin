@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/url"
 	"reflect"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -68,6 +67,10 @@ type Reflector struct {
 	lastSyncResourceVersion string
 	// lastSyncResourceVersionMutex guards read/write access to lastSyncResourceVersion
 	lastSyncResourceVersionMutex sync.RWMutex
+
+	// consistentErrorsCh channel on which we send List&Watch related errors
+	// it is meant to represent a gauge, that is a number that can go up and down
+	consistentErrorsCh chan error
 }
 
 var (
@@ -79,7 +82,7 @@ var (
 // NewNamespaceKeyedIndexerAndReflector creates an Indexer and a Reflector
 // The indexer is configured to key on namespace
 func NewNamespaceKeyedIndexerAndReflector(lw ListerWatcher, expectedType interface{}, resyncPeriod time.Duration) (indexer Indexer, reflector *Reflector) {
-	indexer = NewIndexer(MetaNamespaceKeyFunc, Indexers{"namespace": MetaNamespaceIndexFunc})
+	indexer = NewIndexer(MetaNamespaceKeyFunc, Indexers{NamespaceIndex: MetaNamespaceIndexFunc})
 	reflector = NewReflector(lw, expectedType, indexer, resyncPeriod)
 	return indexer, reflector
 }
@@ -97,20 +100,16 @@ func NewReflector(lw ListerWatcher, expectedType interface{}, store Store, resyn
 // NewNamedReflector same as NewReflector, but with a specified name for logging
 func NewNamedReflector(name string, lw ListerWatcher, expectedType interface{}, store Store, resyncPeriod time.Duration) *Reflector {
 	r := &Reflector{
-		name:          name,
-		listerWatcher: lw,
-		store:         store,
-		expectedType:  reflect.TypeOf(expectedType),
-		period:        time.Second,
-		resyncPeriod:  resyncPeriod,
-		clock:         &clock.RealClock{},
+		name:               name,
+		listerWatcher:      lw,
+		store:              store,
+		expectedType:       reflect.TypeOf(expectedType),
+		period:             time.Second,
+		resyncPeriod:       resyncPeriod,
+		clock:              &clock.RealClock{},
+		consistentErrorsCh: make(chan error, 20),
 	}
 	return r
-}
-
-func makeValidPrometheusMetricLabel(in string) string {
-	// this isn't perfect, but it removes our common characters
-	return strings.NewReplacer("/", "_", ".", "_", "-", "_", ":", "_").Replace(in)
 }
 
 // internalPackages are packages that ignored when creating a default reflector name. These packages are in the common
@@ -261,6 +260,7 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 
 		w, err := r.listerWatcher.Watch(options)
 		if err != nil {
+			r.incrementAndUpdateConsistentErrors(stopCh, err)
 			switch err {
 			case io.EOF:
 				// watch closed normally
@@ -283,10 +283,17 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 			}
 			return nil
 		}
-
+		if err == nil {
+			r.resetAndUpdateConsistentErrors(stopCh)
+		}
 		if err := r.watchHandler(w, &resourceVersion, resyncerrc, stopCh); err != nil {
 			if err != errorStopRequested {
-				klog.Warningf("%s: watch of %v ended with: %v", r.name, r.expectedType, err)
+				switch {
+				case apierrs.IsResourceExpired(err):
+					klog.V(4).Infof("%s: watch of %v ended with: %v", r.name, r.expectedType, err)
+				default:
+					klog.Warningf("%s: watch of %v ended with: %v", r.name, r.expectedType, err)
+				}
 			}
 			return nil
 		}
@@ -363,7 +370,7 @@ loop:
 		}
 	}
 
-	watchDuration := r.clock.Now().Sub(start)
+	watchDuration := r.clock.Since(start)
 	if watchDuration < 1*time.Second && eventCount == 0 {
 		return fmt.Errorf("very short watch: %s: Unexpected watch close - watch lasted less than a second and no items received", r.name)
 	}
@@ -383,4 +390,23 @@ func (r *Reflector) setLastSyncResourceVersion(v string) {
 	r.lastSyncResourceVersionMutex.Lock()
 	defer r.lastSyncResourceVersionMutex.Unlock()
 	r.lastSyncResourceVersion = v
+}
+
+func (r *Reflector) incrementAndUpdateConsistentErrors(stopCh <-chan struct{}, err error) {
+	r.updateConsistentErrors(stopCh, err)
+}
+
+func (r *Reflector) resetAndUpdateConsistentErrors(stopCh <-chan struct{}) {
+	// sending a nil error sets the counter to zero
+	r.updateConsistentErrors(stopCh, nil)
+}
+
+func (r *Reflector) updateConsistentErrors(stopCh <-chan struct{}, err error) {
+	select {
+	case <-stopCh:
+		return
+	case r.consistentErrorsCh <- err:
+	default:
+		klog.Warningf("unable to report health status for %s, is the receiving end dead ? the error will be ignored.", r.name)
+	}
 }
