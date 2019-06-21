@@ -382,7 +382,6 @@ var (
 			`\[Driver: rbd\]`,        // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
 			`\[Driver: csi-hostpath`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
 			`should answer endpoint and wildcard queries for the cluster`,                // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
-			`should propagate mounts to the host`,                                        // requires SSH, https://bugzilla.redhat.com/show_bug.cgi?id=1711600
 			`should allow ingress access on one named port`,                              // https://bugzilla.redhat.com/show_bug.cgi?id=1711602
 			`ClusterDns \[Feature:Example\] should create pod that uses dns`,             // https://bugzilla.redhat.com/show_bug.cgi?id=1711601
 			`should be rejected when no endpoints exist`,                                 // https://bugzilla.redhat.com/show_bug.cgi?id=1711605
