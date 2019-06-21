@@ -1,6 +1,8 @@
 package bootstrap_user
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"strings"
 	"time"
 
@@ -16,7 +18,6 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/oauth-server/pkg/server/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -86,7 +87,8 @@ var _ = g.Describe("The bootstrap user", func() {
 })
 
 func generatePassword() (string, []byte, error) {
-	password := crypto.Random256BitsString()
+	// these are all copied, but we could hardcode a single one if we liked.
+	password := random256BitsString()
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", nil, err
@@ -104,4 +106,32 @@ func generateSecret(data []byte) *v1.Secret {
 			"kubeadmin": data,
 		},
 	}
+}
+
+// RandomBits returns a random byte slice with at least the requested bits of entropy.
+// Callers should avoid using a value less than 256 unless they have a very good reason.
+func randomBits(bits int) []byte {
+	size := bits / 8
+	if bits%8 != 0 {
+		size++
+	}
+	b := make([]byte, size)
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // rand should never fail
+	}
+	return b
+}
+
+// RandomBitsString returns a random string with at least the requested bits of entropy.
+// It uses RawURLEncoding to ensure we do not get / characters or trailing ='s.
+func randomBitsString(bits int) string {
+	return base64.RawURLEncoding.EncodeToString(randomBits(bits))
+}
+
+// Random256BitsString is a convenience function for calling RandomBitsString(256).
+// Callers that need a random string should use this function unless they have a
+// very good reason to need a different amount of entropy.
+func random256BitsString() string {
+	// 32 bytes (256 bits) = 43 base64-encoded characters
+	return randomBitsString(256)
 }

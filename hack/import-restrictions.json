@@ -23,8 +23,7 @@
     ],
     "ignoredSubTrees": [
       "github.com/openshift/origin/cmd/hypershift",
-      "github.com/openshift/origin/test/integration",
-      "github.com/openshift/origin/test/extended/bootstrap_user"
+      "github.com/openshift/origin/test/integration"
     ],
     "forbiddenImportPackageRoots": [
       "vendor/github.com/openshift/oauth-server"
