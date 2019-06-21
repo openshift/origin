@@ -35,6 +35,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildv1informer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
@@ -153,6 +154,7 @@ type BuildController struct {
 	podClient                   ktypedclient.PodsGetter
 	configMapClient             ktypedclient.ConfigMapsGetter
 	kubeClient                  kubernetes.Interface
+	proxyCfgLister              configv1lister.ProxyLister
 
 	buildQueue            workqueue.RateLimitingInterface
 	imageStreamQueue      *resourceTriggerQueue
@@ -167,8 +169,9 @@ type BuildController struct {
 	openShiftConfigConfigMapStore   v1lister.ConfigMapLister
 	controllerManagerConfigMapStore v1lister.ConfigMapLister
 
-	podInformer   cache.SharedIndexInformer
-	buildInformer cache.SharedIndexInformer
+	podInformer      cache.SharedIndexInformer
+	buildInformer    cache.SharedIndexInformer
+	proxyCfgInformer cache.SharedIndexInformer
 
 	buildStoreSynced                      cache.InformerSynced
 	buildControllerConfigStoreSynced      cache.InformerSynced
@@ -179,6 +182,7 @@ type BuildController struct {
 	imageStreamStoreSynced                cache.InformerSynced
 	openshiftConfigConfigMapStoreSynced   cache.InformerSynced
 	controllerManagerConfigMapStoreSynced cache.InformerSynced
+	proxyCfgStoreSynced                   cache.InformerSynced
 
 	runPolicies              []policy.RunPolicy
 	createStrategy           buildPodCreationStrategy
@@ -206,6 +210,7 @@ type BuildControllerParams struct {
 	ServiceAccountInformer             kubeinformers.ServiceAccountInformer
 	OpenshiftConfigConfigMapInformer   kubeinformers.ConfigMapInformer
 	ControllerManagerConfigMapInformer kubeinformers.ConfigMapInformer
+	ProxyConfigInformer                configv1informer.ProxyInformer
 	KubeClient                         kubernetes.Interface
 	BuildClient                        buildv1client.Interface
 	DockerBuildStrategy                *strategy.DockerBuildStrategy
@@ -229,6 +234,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildConfigLister:               buildConfigGetter,
 		buildDeleter:                    params.BuildClient.BuildV1(),
 		buildControllerConfigLister:     params.BuildControllerConfigInformer.Lister(),
+		proxyCfgLister:                  params.ProxyConfigInformer.Lister(),
 		imageConfigLister:               params.ImageConfigInformer.Lister(),
 		secretStore:                     params.SecretInformer.Lister(),
 		serviceAccountStore:             params.ServiceAccountInformer.Lister(),
@@ -241,6 +247,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		podStore:                        params.PodInformer.Lister(),
 		buildInformer:                   params.BuildInformer.Informer(),
 		buildStore:                      params.BuildInformer.Lister(),
+		proxyCfgInformer:                params.ProxyConfigInformer.Informer(),
 		imageStreamStore:                params.ImageStreamInformer.Lister(),
 		createStrategy: &typeBasedFactoryStrategy{
 			dockerBuildStrategy: params.DockerBuildStrategy,
@@ -269,6 +276,11 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		UpdateFunc: c.buildUpdated,
 		DeleteFunc: c.buildDeleted,
 	})
+	c.proxyCfgInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.buildControllerConfigAdded,
+		UpdateFunc: c.buildControllerConfigUpdated,
+		DeleteFunc: c.buildControllerConfigDeleted,
+	})
 	params.ImageStreamInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.imageStreamAdded,
 		UpdateFunc: c.imageStreamUpdated,
@@ -291,6 +303,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 
 	c.buildStoreSynced = c.buildInformer.HasSynced
 	c.podStoreSynced = c.podInformer.HasSynced
+	c.proxyCfgStoreSynced = c.proxyCfgInformer.HasSynced
 	c.secretStoreSynced = params.SecretInformer.Informer().HasSynced
 	c.serviceAccountStoreSynced = params.ServiceAccountInformer.Informer().HasSynced
 	c.imageStreamStoreSynced = params.ImageStreamInformer.Informer().HasSynced
@@ -360,10 +373,58 @@ func (bc *BuildController) defaults() builddefaults.BuildDefaults {
 	return copy
 }
 
-func (bc *BuildController) setBuildDefaultProxy(spec *configv1.ProxySpec) {
+func (bc *BuildController) setBuildProxy(buildCfg *configv1.Build, globalProxy *configv1.Proxy) {
 	bc.configLock.Lock()
 	defer bc.configLock.Unlock()
-	bc.buildDefaults.DefaultProxy = spec
+
+	cfg := bc.buildDefaults.Config
+	if cfg == nil {
+		// we want the empty obj regardless; it includes the default environment variables, node selectors, etc.
+		cfg = &openshiftcontrolplanev1.BuildDefaultsConfig{}
+		bc.buildDefaults.Config = cfg
+	}
+	if buildCfg == nil && globalProxy == nil {
+		// clear out the default proxy if it was previously set
+		bc.buildDefaults.DefaultProxy = nil
+		return
+	}
+
+	defaultProxy := bc.buildDefaults.DefaultProxy
+	if defaultProxy == nil {
+		defaultProxy = &configv1.ProxySpec{}
+		bc.buildDefaults.DefaultProxy = defaultProxy
+	}
+
+	// first apply the global proxy settings
+	if globalProxy != nil {
+		bc.setBuildDefaultProxy(globalProxy.Status.HTTPProxy, globalProxy.Status.HTTPSProxy, globalProxy.Status.NoProxy)
+		bc.setBuildGitProxy(globalProxy.Status.HTTPProxy, globalProxy.Status.HTTPSProxy, globalProxy.Status.NoProxy)
+	}
+
+	// then build config takes precedence
+	if buildCfg != nil {
+		// if default set, set both default/build and git proxy
+		if buildCfg.Spec.BuildDefaults.DefaultProxy != nil {
+			bc.setBuildDefaultProxy(buildCfg.Spec.BuildDefaults.DefaultProxy.HTTPProxy, buildCfg.Spec.BuildDefaults.DefaultProxy.HTTPSProxy, buildCfg.Spec.BuildDefaults.DefaultProxy.NoProxy)
+			bc.setBuildGitProxy(buildCfg.Spec.BuildDefaults.DefaultProxy.HTTPProxy, buildCfg.Spec.BuildDefaults.DefaultProxy.HTTPSProxy, buildCfg.Spec.BuildDefaults.DefaultProxy.NoProxy)
+		}
+		// but if git proxy specifically set, override any settings of git proxy from default proxy
+		if buildCfg.Spec.BuildDefaults.GitProxy != nil {
+			bc.setBuildGitProxy(buildCfg.Spec.BuildDefaults.GitProxy.HTTPProxy, buildCfg.Spec.BuildDefaults.GitProxy.HTTPSProxy, buildCfg.Spec.BuildDefaults.GitProxy.NoProxy)
+		}
+	}
+}
+
+func (bc *BuildController) setBuildDefaultProxy(httpProxy, httpsProxy, noProxy string) {
+	bc.buildDefaults.DefaultProxy.HTTPProxy = httpProxy
+	bc.buildDefaults.DefaultProxy.HTTPSProxy = httpsProxy
+	bc.buildDefaults.DefaultProxy.NoProxy = noProxy
+}
+
+func (bc *BuildController) setBuildGitProxy(httpProxy, httpsProxy, noProxy string) {
+	bc.buildDefaults.Config.GitHTTPProxy = httpProxy
+	bc.buildDefaults.Config.GitHTTPSProxy = httpsProxy
+	bc.buildDefaults.Config.GitNoProxy = noProxy
 }
 
 // Run begins watching and syncing.
@@ -390,7 +451,8 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	if os.Getenv("OS_INTEGRATION_TEST") != "true" {
 		if !cache.WaitForCacheSync(stopCh,
 			bc.buildControllerConfigStoreSynced,
-			bc.imageConfigStoreSynced) {
+			bc.imageConfigStoreSynced,
+			bc.proxyCfgStoreSynced) {
 			utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 			return
 		}
@@ -1772,32 +1834,51 @@ func (bc *BuildController) controllerConfigWork() bool {
 // `*.config.openshift.io` instances and any referenced data in the `openshift-config` namespace.
 func (bc *BuildController) handleControllerConfig() []error {
 	configErrs := bc.readClusterImageConfig()
-	err := bc.readClusterBuildControllerConfig()
+	err := bc.readAllProxyConfigs()
 	if err != nil {
 		configErrs = append(configErrs, err)
 	}
 	return configErrs
 }
 
-// readClusterBuildControllerConfig synchronizes the build controller config
-// in `builds.config.openshift.io/cluster`
-func (bc *BuildController) readClusterBuildControllerConfig() error {
+// readAllProxyConfigs synchronizes the build controller config
+// in `builds.config.openshift.io/cluster` and global proxy config in
+// in `proxies.config.openshift.io/cluster`
+func (bc *BuildController) readAllProxyConfigs() error {
 	buildConfig, err := bc.buildControllerConfigLister.Get("cluster")
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	} else if buildConfig == nil {
-		bc.setBuildDefaultProxy(nil)
-		return nil
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		// getters can return empty structs vs. nil on not founds
+		buildConfig = nil
+	}
+	globalProxy, err := bc.proxyCfgLister.Get("cluster")
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		// getters can return empty structs vs. nil on not founds
+		globalProxy = nil
 	}
 
 	if klog.V(5) {
-		configJSON, _ := json.Marshal(buildConfig)
-		if configJSON != nil {
-			klog.Infof("build controller config: %s", string(configJSON))
+		var configJSON []byte
+		if buildConfig != nil {
+			configJSON, _ = json.Marshal(buildConfig)
+			if configJSON != nil {
+				klog.Infof("build controller config: %s", string(configJSON))
+			}
+		}
+		if globalProxy != nil {
+			configJSON, _ = json.Marshal(globalProxy)
+			if configJSON != nil {
+				klog.Infof("global proxy config: %s", string(configJSON))
+			}
 		}
 	}
-	bc.setBuildDefaultProxy(buildConfig.Spec.BuildDefaults.DefaultProxy)
 
+	bc.setBuildProxy(buildConfig, globalProxy)
 	return nil
 }
 

@@ -1247,6 +1247,7 @@ func TestHandleControllerConfig(t *testing.T) {
 		// Conditions
 		build         *configv1.Build
 		image         *configv1.Image
+		proxy         *configv1.Proxy
 		casMap        *corev1.ConfigMap
 		errorGetBuild bool
 		errorGetImage bool
@@ -1403,6 +1404,19 @@ func TestHandleControllerConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "default proxy via global proxy config",
+			proxy: &configv1.Proxy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Status: configv1.ProxyStatus{
+					HTTPProxy:  "http://my-proxy.org",
+					HTTPSProxy: "https://my-proxy.org",
+					NoProxy:    "mydomain",
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1414,6 +1428,9 @@ func TestHandleControllerConfig(t *testing.T) {
 			}
 			if tc.image != nil {
 				objs = append(objs, tc.image)
+			}
+			if tc.proxy != nil {
+				objs = append(objs, tc.proxy)
 			}
 			configClient = fakeConfigClient(objs...)
 			var kubeClient kubernetes.Interface
@@ -1457,14 +1474,25 @@ func TestHandleControllerConfig(t *testing.T) {
 			}
 
 			defaults := bc.defaults()
-			if tc.build == nil {
+			if tc.build == nil && tc.proxy == nil {
 				if defaults.DefaultProxy != nil {
 					t.Errorf("expected no default proxy, got %v", defaults.DefaultProxy)
 				}
-			} else {
+			}
+			if tc.build != nil {
 				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, defaults.DefaultProxy) {
 					t.Errorf("expected default proxy %v, got %v",
 						tc.build.Spec.BuildDefaults.DefaultProxy,
+						defaults.DefaultProxy)
+				}
+			}
+			if tc.proxy != nil {
+				// cannot use dep equals since we have Proxy.Status vs. ProxySpec
+				if tc.proxy.Status.HTTPProxy != defaults.DefaultProxy.HTTPProxy ||
+					tc.proxy.Status.HTTPSProxy != defaults.DefaultProxy.HTTPSProxy ||
+					tc.proxy.Status.NoProxy != defaults.DefaultProxy.NoProxy {
+					t.Errorf("expected default proxy via proxy global config status %v, got %v",
+						tc.proxy.Status,
 						defaults.DefaultProxy)
 				}
 			}
@@ -1778,7 +1806,8 @@ func (c *fakeBuildController) start() {
 		c.buildControllerConfigStoreSynced,
 		c.imageConfigStoreSynced,
 		c.openshiftConfigConfigMapStoreSynced,
-		c.controllerManagerConfigMapStoreSynced) {
+		c.controllerManagerConfigMapStoreSynced,
+		c.proxyCfgStoreSynced) {
 		panic("cannot sync cache")
 	}
 }
@@ -1814,6 +1843,7 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 		BuildInformer:                      buildInformers.Build().V1().Builds(),
 		BuildConfigInformer:                buildInformers.Build().V1().BuildConfigs(),
 		ImageStreamInformer:                imageInformers.Image().V1().ImageStreams(),
+		ProxyConfigInformer:                configInformers.Config().V1().Proxies(),
 		PodInformer:                        kubeExternalInformers.Core().V1().Pods(),
 		SecretInformer:                     kubeExternalInformers.Core().V1().Secrets(),
 		ServiceAccountInformer:             kubeExternalInformers.Core().V1().ServiceAccounts(),
