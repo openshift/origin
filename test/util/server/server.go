@@ -48,9 +48,8 @@ import (
 
 	newproject "github.com/openshift/oc/pkg/cli/admin/project"
 	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
+	openshiftapiserver "github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver"
 	openshiftcontrollermanager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
-	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/util"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
@@ -58,6 +57,7 @@ import (
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd/etcdserver"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/iputil"
 	openshift_controller_manager "github.com/openshift/origin/test/util/server/deprecated_openshift/openshift-controller-manager"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/start"
 
@@ -113,7 +113,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	if highPort < lowPort {
 		return "", errors.New("lowPort must be <= highPort")
 	}
-	ip, err := cmdutil.DefaultLocalIP4()
+	ip, err := iputil.DefaultLocalIP4()
 	if err != nil {
 		return "", err
 	}

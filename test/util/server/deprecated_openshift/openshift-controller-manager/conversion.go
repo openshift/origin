@@ -16,7 +16,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
-	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	cmdflags "github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing/flags"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
 )
 

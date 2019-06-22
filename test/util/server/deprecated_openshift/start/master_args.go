@@ -18,9 +18,9 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	"github.com/openshift/oc/pkg/helpers/flagtypes"
 	"github.com/openshift/openshift-apiserver/pkg/bootstrappolicy"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/iputil"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/start/options"
 )
 
@@ -485,7 +485,7 @@ func (args MasterArgs) GetServerCertHostnames() (sets.String, error) {
 	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
 	// add the IPs that might be used based on the ListenAddr.
 	if listenIP != nil && listenIP.IsUnspecified() {
-		allAddresses, _ := cmdutil.AllLocalIP4()
+		allAddresses, _ := iputil.AllLocalIP4()
 		for _, ip := range allAddresses {
 			allHostnames.Insert(ip.String())
 		}
@@ -522,9 +522,9 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 	scheme := args.ListenArg.ListenAddr.URL.Scheme
 
 	addr := ""
-	if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
+	if ip, err := iputil.DefaultLocalIP4(); err == nil {
 		addr = ip.String()
-	} else if err == cmdutil.ErrorNoDefaultIP {
+	} else if err == iputil.ErrorNoDefaultIP {
 		addr = "127.0.0.1"
 	} else if err != nil {
 		return nil, fmt.Errorf("Unable to find a public IP address: %v", err)
