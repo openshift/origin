@@ -34,7 +34,6 @@ import (
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
-	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -128,20 +127,20 @@ func TestClusterReaderCoverage(t *testing.T) {
 	}
 
 	escalatingResources := map[schema.GroupResource]bool{
-		oauth.Resource("oauthauthorizetokens"):  true,
-		oauth.Resource("oauthaccesstokens"):     true,
-		oauth.Resource("oauthclients"):          true,
-		image.Resource("imagestreams/secrets"):  true,
-		corev1.Resource("secrets"):              true,
-		corev1.Resource("pods/exec"):            true,
-		corev1.Resource("pods/proxy"):           true,
-		corev1.Resource("pods/portforward"):     true,
-		corev1.Resource("nodes/proxy"):          true,
-		corev1.Resource("services/proxy"):       true,
-		legacy.Resource("oauthauthorizetokens"): true,
-		legacy.Resource("oauthaccesstokens"):    true,
-		legacy.Resource("oauthclients"):         true,
-		legacy.Resource("imagestreams/secrets"): true,
+		oauth.Resource("oauthauthorizetokens"): true,
+		oauth.Resource("oauthaccesstokens"):    true,
+		oauth.Resource("oauthclients"):         true,
+		image.Resource("imagestreams/secrets"): true,
+		corev1.Resource("secrets"):             true,
+		corev1.Resource("pods/exec"):           true,
+		corev1.Resource("pods/proxy"):          true,
+		corev1.Resource("pods/portforward"):    true,
+		corev1.Resource("nodes/proxy"):         true,
+		corev1.Resource("services/proxy"):      true,
+		{Resource: "oauthauthorizetokens"}:     true,
+		{Resource: "oauthaccesstokens"}:        true,
+		{Resource: "oauthclients"}:             true,
+		{Resource: "imagestreams/secrets"}:     true,
 	}
 
 	readerRole, err := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get("cluster-reader", metav1.GetOptions{})

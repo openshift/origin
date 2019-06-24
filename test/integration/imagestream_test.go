@@ -20,7 +20,6 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	stratsupport "github.com/openshift/oc/pkg/cli/deployer/strategy/support"
-	imagetest "github.com/openshift/openshift-apiserver/pkg/image/apiserver/testutil"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -258,7 +257,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 
 	image := imagev1.Image{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: imagetest.BaseImageWith1LayerDigest,
+			Name: BaseImageWith1LayerDigest,
 		},
 		DockerImageMetadata: runtime.RawExtension{
 			Object: &docker10.DockerImage{
@@ -306,7 +305,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		t.Errorf("image has a not empty config: %#v", ist)
 	}
 
-	isi, err := clusterAdminImageClient.ImageStreamImages(testutil.Namespace()).Get(imageutil.JoinImageStreamImage(stream.Name, imagetest.BaseImageWith1LayerDigest), metav1.GetOptions{})
+	isi, err := clusterAdminImageClient.ImageStreamImages(testutil.Namespace()).Get(imageutil.JoinImageStreamImage(stream.Name, BaseImageWith1LayerDigest), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

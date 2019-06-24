@@ -122,7 +122,7 @@ func TestScopedImpersonation(t *testing.T) {
 
 	err = clusterAdminBuildClient.BuildV1().RESTClient().Get().
 		SetHeader(authenticationv1.ImpersonateUserHeader, "harold").
-		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey, "user:info").
+		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey, "user:info").
 		Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildapi.Build{})
 	if !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
@@ -131,7 +131,7 @@ func TestScopedImpersonation(t *testing.T) {
 	user := &userv1.User{}
 	err = userv1client.NewForConfigOrDie(clusterAdminClientConfig).RESTClient().Get().
 		SetHeader(authenticationv1.ImpersonateUserHeader, "harold").
-		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey, "user:info").
+		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey, "user:info").
 		Resource("users").Name("~").Do().Into(user)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -466,7 +466,7 @@ func TestUnknownScopes(t *testing.T) {
 	userInfo := apiserveruser.DefaultInfo{
 		Name: userName,
 		Extra: map[string][]string{
-			authorizationapi.ScopesKey: {"user:list-projects", "bad"}}}
+			authorizationv1.ScopesKey: {"user:list-projects", "bad"}}}
 	impersonatingConfig := impersonatingclient.NewImpersonatingConfig(&userInfo, *clusterAdminClientConfig)
 	projectClient := projectv1client.NewForConfigOrDie(&impersonatingConfig)
 
@@ -495,7 +495,7 @@ func TestUnknownScopes(t *testing.T) {
 	badScopesUserInfo := apiserveruser.DefaultInfo{
 		Name: userName,
 		Extra: map[string][]string{
-			authorizationapi.ScopesKey: {"bad"}}}
+			authorizationv1.ScopesKey: {"bad"}}}
 	badScopesImpersonatingConfig := impersonatingclient.NewImpersonatingConfig(
 		&badScopesUserInfo, *clusterAdminClientConfig)
 	badScopesProjectClient := projectv1client.NewForConfigOrDie(&badScopesImpersonatingConfig)

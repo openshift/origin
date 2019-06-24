@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildinternalapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 
 type BuildAnalyzerOptions struct {
@@ -164,7 +163,7 @@ func (o *BuildAnalyzerOptions) Run() error {
 						failcnt += 1
 						failedReasons[string(build.Status.Reason)+":"+string(build.Status.Message)] += 1
 						if o.TestClone {
-							if string(build.Status.Reason) == string(buildinternalapi.StatusReasonFetchSourceFailed) {
+							if string(build.Status.Reason) == string(buildv1.StatusReasonFetchSourceFailed) {
 								//fmt.Printf("Attempting to clone %s\n", build.Spec.Source.Git.URI)
 								err := exec.Command("/bin/sh", "-c", "GIT_TERMINAL_PROMPT=0 git clone -q "+build.Spec.Source.Git.URI).Run()
 								if err == nil {

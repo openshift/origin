@@ -4,35 +4,20 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
-	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
-	"k8s.io/kubernetes/pkg/capabilities"
+	"k8s.io/klog"
 
-	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
-	"github.com/openshift/openshift-apiserver/pkg/api/validation"
-	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
-	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
-	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
-
-	// install all APIs
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 )
-
-func init() {
-	legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
-}
 
 func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error {
 	err := filepath.Walk(inDir, func(path string, info os.FileInfo, err error) error {
@@ -50,7 +35,7 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 		if !(ext == ".json" || ext == ".yaml") {
 			return nil
 		}
-		glog.Infof("testing %s", path)
+		klog.Infof("testing %s", path)
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err
@@ -68,64 +53,76 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 }
 
 func TestExampleObjectSchemas(t *testing.T) {
-	// Allow privileged containers
-	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	capabilities.Setup(true, capabilities.PrivilegedSources{}, 0)
 	cases := map[string]map[string]runtime.Object{
 		"../examples/sample-app": {
 			"github-webhook-example":             nil, // Skip.
-			"application-template-stibuild":      &templateapi.Template{},
-			"application-template-dockerbuild":   &templateapi.Template{},
-			"application-template-pullspecbuild": &templateapi.Template{},
+			"application-template-stibuild":      &templatev1.Template{},
+			"application-template-dockerbuild":   &templatev1.Template{},
+			"application-template-pullspecbuild": &templatev1.Template{},
 		},
 		"../examples/jenkins": {
-			"jenkins-ephemeral-template":  &templateapi.Template{},
-			"jenkins-persistent-template": &templateapi.Template{},
-			"application-template":        &templateapi.Template{},
+			"jenkins-ephemeral-template":  &templatev1.Template{},
+			"jenkins-persistent-template": &templatev1.Template{},
+			"application-template":        &templatev1.Template{},
 		},
 		"../examples/image-streams": {
-			"image-streams-centos7": &imageapi.ImageStreamList{},
-			"image-streams-rhel7":   &imageapi.ImageStreamList{},
+			"image-streams-centos7": &imagev1.ImageStreamList{},
+			"image-streams-rhel7":   &imagev1.ImageStreamList{},
 		},
 		"../examples/db-templates": {
-			"mysql-persistent-template":      &templateapi.Template{},
-			"postgresql-persistent-template": &templateapi.Template{},
-			"mongodb-persistent-template":    &templateapi.Template{},
-			"mariadb-persistent-template":    &templateapi.Template{},
-			"redis-persistent-template":      &templateapi.Template{},
-			"mysql-ephemeral-template":       &templateapi.Template{},
-			"postgresql-ephemeral-template":  &templateapi.Template{},
-			"mongodb-ephemeral-template":     &templateapi.Template{},
-			"mariadb-ephemeral-template":     &templateapi.Template{},
-			"redis-ephemeral-template":       &templateapi.Template{},
+			"mysql-persistent-template":      &templatev1.Template{},
+			"postgresql-persistent-template": &templatev1.Template{},
+			"mongodb-persistent-template":    &templatev1.Template{},
+			"mariadb-persistent-template":    &templatev1.Template{},
+			"redis-persistent-template":      &templatev1.Template{},
+			"mysql-ephemeral-template":       &templatev1.Template{},
+			"postgresql-ephemeral-template":  &templatev1.Template{},
+			"mongodb-ephemeral-template":     &templatev1.Template{},
+			"mariadb-ephemeral-template":     &templatev1.Template{},
+			"redis-ephemeral-template":       &templatev1.Template{},
 		},
 		"../test/extended/testdata/ldap": {
-			"ldapserver-buildconfig":         &buildapi.BuildConfig{},
-			"ldapserver-deploymentconfig":    &appsapi.DeploymentConfig{},
-			"ldapserver-imagestream":         &imageapi.ImageStream{},
-			"ldapserver-imagestream-testenv": &imageapi.ImageStream{},
-			"ldapserver-service":             &kapi.Service{},
+			"ldapserver-buildconfig":         &buildv1.BuildConfig{},
+			"ldapserver-deploymentconfig":    &appsv1.DeploymentConfig{},
+			"ldapserver-imagestream":         &imagev1.ImageStream{},
+			"ldapserver-imagestream-testenv": &imagev1.ImageStream{},
+			"ldapserver-service":             &corev1.Service{},
 		},
 		"../test/integration/testdata": {
 			// TODO fix this test to  handle json and yaml
 			"project-request-template-with-quota": nil, // skip a yaml file
 			"test-replication-controller":         nil, // skip &api.ReplicationController
-			"test-deployment-config":              &appsapi.DeploymentConfig{},
-			"test-image":                          &imageapi.Image{},
-			"test-image-stream":                   &imageapi.ImageStream{},
-			"test-image-stream-mapping":           nil, // skip &imageapi.ImageStreamMapping{},
-			"test-route":                          &routeapi.Route{},
-			"test-service":                        &kapi.Service{},
-			"test-service-with-finalizer":         &kapi.Service{},
-			"test-buildcli":                       &kapi.List{},
-			"test-buildcli-beta2":                 &kapi.List{},
+			"test-deployment-config":              &appsv1.DeploymentConfig{},
+			"test-image":                          &imagev1.Image{},
+			"test-image-stream":                   &imagev1.ImageStream{},
+			"test-image-stream-mapping":           nil, // skip &imagev1.ImageStreamMapping{},
+			"test-route":                          &routev1.Route{},
+			"test-service":                        &corev1.Service{},
+			"test-service-with-finalizer":         &corev1.Service{},
+			"test-buildcli":                       &corev1.List{},
+			"test-buildcli-beta2":                 &corev1.List{},
 		},
 		"../test/templates/testdata": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
-			"guestbook_list":  &templateapi.Template{},
-			"guestbook":       &templateapi.Template{},
+			"guestbook_list":  &templatev1.Template{},
+			"guestbook":       &templatev1.Template{},
 		},
 	}
+
+	_, codecs := apitesting.SchemeForOrDie(
+		appsv1.Install,
+		buildv1.Install,
+		imagev1.Install,
+		routev1.Install,
+		templatev1.Install,
+		corev1.AddToScheme,
+
+		appsv1.DeprecatedInstallWithoutGroup,
+		buildv1.DeprecatedInstallWithoutGroup,
+		imagev1.DeprecatedInstallWithoutGroup,
+		routev1.DeprecatedInstallWithoutGroup,
+		templatev1.DeprecatedInstallWithoutGroup,
+	)
 
 	for path, expected := range cases {
 		tested := 0
@@ -140,13 +137,10 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Logf("%q is skipped", path)
 				return
 			}
-			if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), data, expectedType); err != nil {
+			if err := runtime.DecodeInto(codecs.UniversalDecoder(), data, expectedType); err != nil {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
-
-			validateObject(path, expectedType, t)
-
 		})
 		if err != nil {
 			t.Errorf("Expected no error, Got %v", err)
@@ -155,59 +149,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 			t.Errorf("Expected %d examples, Got %d", len(expected), tested)
 		}
 	}
-}
-
-func validateObject(path string, obj runtime.Object, t *testing.T) {
-	switch typedObj := obj.(type) {
-	case *kapi.Pod:
-		typedObj.Namespace = "default"
-		if errors := kvalidation.ValidatePod(typedObj); len(errors) > 0 {
-			t.Errorf("%s did not validate correctly: %v", path, errors)
-		}
-
-	case *kapi.Service:
-		typedObj.Namespace = "default"
-		if errors := kvalidation.ValidateService(typedObj); len(errors) > 0 {
-			t.Errorf("%s did not validate correctly: %v", path, errors)
-		}
-
-	case *kapi.List, *imageapi.ImageStreamList:
-		if list, err := meta.ExtractList(typedObj); err == nil {
-			runtime.DecodeList(list, legacyscheme.Codecs.UniversalDecoder())
-			for i := range list {
-				validateObject(path, list[i], t)
-			}
-
-		} else {
-			t.Errorf("Expected no error, Got %v", err)
-
-		}
-
-	default:
-		// if an object requires a namespace server side, be sure that it is filled in for validation
-		if validation.HasObjectMeta(obj) {
-			namespaceRequired, err := validation.Validator.GetRequiresNamespace(obj)
-			if err != nil {
-				t.Errorf("Expected no error, Got %v", err)
-				return
-			}
-
-			if namespaceRequired {
-				objectMeta, objectMetaErr := meta.Accessor(obj)
-				if objectMetaErr != nil {
-					t.Errorf("Expected no error, Got %v", objectMetaErr)
-					return
-				}
-
-				objectMeta.SetNamespace(metav1.NamespaceDefault)
-			}
-		}
-
-		if errors := validation.Validator.Validate(obj); len(errors) > 0 {
-			t.Errorf("%s with %v did not validate correctly: %v", path, reflect.TypeOf(obj), errors)
-		}
-	}
-
 }
 
 func TestReadme(t *testing.T) {

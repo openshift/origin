@@ -52,9 +52,7 @@ import (
 	"github.com/openshift/oc/pkg/helpers/newapp/dockerfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/jenkinsfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/source"
-	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 
-	_ "github.com/openshift/openshift-apiserver/pkg/api/install"
 	"github.com/openshift/origin/test/util"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -2249,32 +2247,6 @@ func fakeImageStreamSearcher() app.Searcher {
 	return app.ImageStreamSearcher{
 		Client:     client.ImageV1(),
 		Namespaces: []string{"default"},
-	}
-}
-
-func fakeTemplateSearcher() app.Searcher {
-	client := faketemplatev1client.NewSimpleClientset()
-	client.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, templateList(), nil
-	})
-
-	return app.TemplateSearcher{
-		Client:     client.TemplateV1(),
-		Namespaces: []string{"default"},
-	}
-}
-
-func templateList() *templateapi.TemplateList {
-	return &templateapi.TemplateList{
-		Items: []templateapi.Template{
-			{
-				Objects: []runtime.Object{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "first-stored-template",
-					Namespace: "default",
-				},
-			},
-		},
 	}
 }
 

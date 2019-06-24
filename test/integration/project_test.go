@@ -15,12 +15,12 @@ import (
 	"k8s.io/cli-runtime/pkg/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
+	"github.com/openshift/api/annotations"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
-	oapi "github.com/openshift/openshift-apiserver/pkg/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"
@@ -67,8 +67,8 @@ func TestProjectIsNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "new-project",
 			Annotations: map[string]string{
-				oapi.OpenShiftDisplayName:    "Hello World",
-				"openshift.io/node-selector": "env=test",
+				annotations.OpenShiftDisplayName: "Hello World",
+				"openshift.io/node-selector":     "env=test",
 			},
 		},
 	}
@@ -85,8 +85,8 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Name != namespace.Name {
 		t.Fatalf("Project name did not match namespace name, project %v, namespace %v", project.Name, namespace.Name)
 	}
-	if project.Annotations[oapi.OpenShiftDisplayName] != namespace.Annotations[oapi.OpenShiftDisplayName] {
-		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[oapi.OpenShiftDisplayName], namespace.Annotations[oapi.OpenShiftDisplayName])
+	if project.Annotations[annotations.OpenShiftDisplayName] != namespace.Annotations[annotations.OpenShiftDisplayName] {
+		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[annotations.OpenShiftDisplayName], namespace.Annotations[annotations.OpenShiftDisplayName])
 	}
 	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
 		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
