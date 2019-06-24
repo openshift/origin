@@ -200,6 +200,10 @@ func AnnotateTestSuite() {
 				break
 			}
 		}
+		if e2e.TestContext.Provider != "" {
+			excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, e2e.TestContext.Provider))
+		}
+		excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
 		if !excludedTestsFilter.MatchString(name) {
 			isSerial := strings.Contains(name, "[Serial]")
 			isConformance := strings.Contains(name, "[Conformance]")
@@ -446,7 +450,6 @@ var (
 		`\[local\]`,
 		`\[Local\]`,
 	}
-	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
 )
 
 // checkSyntheticInput selects tests based on synthetic skips or focuses
