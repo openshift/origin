@@ -1,155 +1,123 @@
 [
   {
     "checkedPackageRoots": [
+      "github.com/openshift/origin/cmd",
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/server/start"
+      "github.com/openshift/origin/cmd/openshift-tests"
     ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
-    "ignoredSubTrees": [],
     "forbiddenImportPackageRoots": [
       "github.com/openshift/origin/test"
     ],
     "allowedImportPackageRoots": [
-      "vendor",
-      ""
+      "vendor"
     ]
   },
 
   {
     "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
+      "github.com/openshift/origin/cmd",
+      "github.com/openshift/origin/pkg",
+      "github.com/openshift/origin/test"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
-    ],
-    "forbiddenImportPackageRoots": [
-      "github.com/openshift/openshift-apiserver"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
-    "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectrulesreview",
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver",
-      "github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission",
-      "github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver",
-      "github.com/openshift/origin/pkg/cmd/server/admission",
-      "github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy",
-      "github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclientauthorization",
-      "github.com/openshift/origin/pkg/project/apiserver/registry/project/proxy",
-      "github.com/openshift/origin/pkg/project/auth",
-      "github.com/openshift/origin/pkg/security/apis/security/v1",
-      "github.com/openshift/origin/pkg/security/apiserver"
-    ],
-    "forbiddenImportPackageRoots": [
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
-    "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
+      "github.com/openshift/origin/cmd/hypershift",
+      "github.com/openshift/origin/test/integration"
     ],
     "forbiddenImportPackageRoots": [
       "vendor/github.com/openshift/oauth-server"
     ],
     "allowedImportPackageRoots": [
-      "vendor",
-      ""
+      "vendor"
     ]
   },
 
   {
     "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
-    "ignoredSubTrees": [],
-    "forbiddenImportPackageRoots": [
-      "vendor/github.com/openshift/openshift-controller-manager"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-  {
-    "checkedPackageRoots": [
+      "github.com/openshift/origin/cmd",
       "github.com/openshift/origin/pkg",
       "github.com/openshift/origin/test"
     ],
-    "ignoredSubTrees": [],
-    "forbiddenImportPackageRoots": [
-      "vendor/github.com/openshift/sdn"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor",
-      ""
-    ]
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg"
-    ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/cmd/openshift",
-      "github.com/openshift/origin/pkg/cmd/server/admin",
-      "github.com/openshift/origin/pkg/cmd/templates"
+      "github.com/openshift/origin/cmd/oc",
+      "github.com/openshift/origin/cmd/openshift-tests",
+      "github.com/openshift/origin/test/common/build",
+      "github.com/openshift/origin/test/extended",
+      "github.com/openshift/origin/test/integration",
+      "github.com/openshift/origin/test/util"
     ],
     "forbiddenImportPackageRoots": [
       "vendor/github.com/openshift/oc"
     ],
     "allowedImportPackageRoots": [
-      "vendor",
-      ""
+      "vendor"
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/cmd",
+      "github.com/openshift/origin/pkg",
+      "github.com/openshift/origin/test"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/cmd/hypershift"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/openshift-apiserver"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor"
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/cmd",
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/cmd/hypershift",
+      "github.com/openshift/origin/cmd/openshift-tests"
+    ],
+    "forbiddenImportPackageRoots": [
+      "vendor/github.com/openshift/openshift-controller-manager"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor"
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/cmd",
+      "github.com/openshift/origin/pkg",
+      "github.com/openshift/origin/test"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/cmd/hypershift"
+    ],
+    "forbiddenImportPackageRoots": [
+      "vendor/github.com/openshift/sdn"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor"
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/cmd",
+      "github.com/openshift/origin/pkg",
+      "github.com/openshift/origin/test"
+    ],
+    "ignoredSubTrees": [],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/template-service-broker"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor"
     ]
   },
 

@@ -19,8 +19,8 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
-	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
+	"github.com/openshift/origin/test/extended/templates/openservicebroker/api"
+	"github.com/openshift/origin/test/extended/templates/openservicebroker/client"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
