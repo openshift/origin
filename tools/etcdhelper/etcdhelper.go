@@ -16,15 +16,12 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 
-	// install all APIs
-	install "github.com/openshift/openshift-apiserver/pkg/api/install"
-	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
+	"github.com/openshift/api"
 )
 
 func init() {
-	install.InstallInternalOpenShift(scheme.Scheme)
-	install.InstallInternalKube(scheme.Scheme)
-	legacy.InstallInternalLegacyAll(scheme.Scheme)
+	api.Install(scheme.Scheme)
+	api.InstallKube(scheme.Scheme)
 }
 
 func main() {

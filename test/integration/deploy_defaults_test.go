@@ -13,8 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	_ "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/install"
 )
 
 var (

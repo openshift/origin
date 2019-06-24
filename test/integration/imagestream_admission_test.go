@@ -19,7 +19,6 @@ import (
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/quota/quotautil"
 
-	imagetest "github.com/openshift/openshift-apiserver/pkg/image/apiserver/testutil"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -38,7 +37,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 	kClient, client, fn := setupImageStreamAdmissionTest(t)
 	defer fn()
 
-	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest, imagetest.MiscImageDigest} {
+	for i, name := range []string{BaseImageWith1LayerDigest, BaseImageWith2LayersDigest, MiscImageDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
 		image := &imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
@@ -73,7 +72,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 			Name: "1",
 			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: "src@" + imagetest.BaseImageWith1LayerDigest,
+				Name: "src@" + BaseImageWith1LayerDigest,
 			},
 		},
 	}
@@ -96,7 +95,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 			Name: "1",
 			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: "src@" + imagetest.BaseImageWith1LayerDigest,
+				Name: "src@" + BaseImageWith1LayerDigest,
 			},
 		},
 	}
@@ -121,7 +120,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 			Name: "2",
 			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: "src@" + imagetest.BaseImageWith2LayersDigest,
+				Name: "src@" + BaseImageWith2LayersDigest,
 			},
 		},
 	}
@@ -142,7 +141,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 			Name: "tag1again",
 			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: "src@" + imagetest.BaseImageWith1LayerDigest,
+				Name: "src@" + BaseImageWith1LayerDigest,
 			},
 		},
 	}
@@ -160,7 +159,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 			Name: "misc",
 			From: &corev1.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: "src@" + imagetest.MiscImageDigest,
+				Name: "src@" + MiscImageDigest,
 			},
 		},
 	}
@@ -240,7 +239,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	kClient, client, fn := setupImageStreamAdmissionTest(t)
 	defer fn()
 
-	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
+	for i, name := range []string{BaseImageWith1LayerDigest, BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
 		image := &imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{
@@ -377,7 +376,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	defer fn()
 	images := []*imagev1.Image{}
 
-	for _, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
+	for _, name := range []string{BaseImageWith1LayerDigest, BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
 		image := &imagev1.Image{
 			ObjectMeta: metav1.ObjectMeta{

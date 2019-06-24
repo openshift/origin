@@ -23,7 +23,6 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -117,7 +116,7 @@ func TestFrontProxy(t *testing.T) {
 			&authorizationv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: username + "-clusterrolebinding"},
 				Subjects: []corev1.ObjectReference{
-					{Kind: authorizationapi.UserKind, Name: username},
+					{Kind: authorizationv1.UserKind, Name: username},
 				},
 				RoleRef: corev1.ObjectReference{Name: listProjectsRoleName},
 			},

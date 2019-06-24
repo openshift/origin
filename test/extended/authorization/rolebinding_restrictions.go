@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
-	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -150,7 +149,7 @@ func generateRolebinding(ns, user, rb string) *authorizationv1.RoleBinding {
 		},
 		Subjects: []corev1.ObjectReference{
 			{
-				Kind:      authorizationapi.UserKind,
+				Kind:      authorizationv1.UserKind,
 				Namespace: ns,
 				Name:      user,
 			},

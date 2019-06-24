@@ -20,10 +20,10 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	oauthv1typedclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/oc/pkg/cli/whoami"
-	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
@@ -61,7 +61,7 @@ func TestWebhookTokenAuthn(t *testing.T) {
 				UID:      authTestUID,
 				Groups:   authTestGroups,
 				Extra: map[string]kauthn.ExtraValue{
-					authorizationapi.ScopesKey: []string{
+					authorizationv1.ScopesKey: []string{
 						"user:info",
 					},
 				},
