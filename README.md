@@ -89,6 +89,7 @@ Your application image can be easily extended with a database service with our [
   * [MySQL](https://github.com/sclorg/mysql-container)
   * [MongoDB](https://github.com/sclorg/mongodb-container)
   * [PostgreSQL](https://github.com/sclorg/postgresql-container)
+  * [MariaDB](https://github.com/sclorg/mariadb-container)
 
 ### What sorts of security controls does OpenShift provide for containers?
 
