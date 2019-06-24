@@ -17,6 +17,11 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+const (
+	// From https://github.com/eparis/ssh-bastion/blob/master/deploy/namespace.yaml
+	sshBastionNamespace = "openshift-ssh-bastion"
+)
+
 var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
@@ -81,10 +86,17 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
+		ignoredNamespaces := sets.NewString()
+		if bastion := os.Getenv("KUBE_SSH_BASTION"); bastion != "" {
+			ignoredNamespaces.Insert(sshBastionNamespace)
+		}
 		for i := range pods.Items {
 			pod := pods.Items[i]
 			for _, prefix := range namespacePrefixes.List() {
 				if !strings.HasPrefix(pod.Namespace, prefix) {
+					continue
+				}
+				if ignoredNamespaces.Has(pod.Namespace) {
 					continue
 				}
 				containersToInspect := []v1.Container{}
