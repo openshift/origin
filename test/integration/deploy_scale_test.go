@@ -18,7 +18,6 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/origin/test/common/appstest"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -45,7 +44,7 @@ func TestDeployScale(t *testing.T) {
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
 
-	config := appstest.OkDeploymentConfig(0)
+	config := OkDeploymentConfig(0)
 	config.Namespace = namespace
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{}
 	config.Spec.Replicas = 1
