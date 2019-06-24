@@ -21,7 +21,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/generate"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -179,7 +178,7 @@ func (p *processPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
 
 		s, err := (&describe.TemplateDescriber{
 			MetadataAccessor: meta.NewAccessor(),
-			ObjectTyper:      legacyscheme.Scheme,
+			ObjectTyper:      scheme.Scheme,
 			ObjectDescriber:  nil,
 		}).DescribeTemplate(templateObj)
 
@@ -423,7 +422,7 @@ func (o *ProcessOptions) RunProcess() error {
 
 	// attempt to convert our resulting object to external
 	var externalResultObj templatev1.Template
-	if err := legacyscheme.Scheme.Convert(resultObj, &externalResultObj, nil); err != nil {
+	if err := scheme.Scheme.Convert(resultObj, &externalResultObj, nil); err != nil {
 		return fmt.Errorf("unable to convert template to external template object: %v", err)
 	}
 

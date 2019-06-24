@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -530,7 +529,7 @@ func setIdleAnnotations(annotations map[string]string, scaleRefs []unidlingapi.R
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
 func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, clientForMapping resource.RESTClient) (runtime.Object, error) {
-	versionedObj, err := legacyscheme.Scheme.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
+	versionedObj, err := scheme.Scheme.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
 	if err != nil {
 		return nil, err
 	}

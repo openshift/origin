@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
+	"github.com/openshift/api"
 )
 
 type bulkTester struct {
@@ -38,9 +39,10 @@ func TestBulk(t *testing.T) {
 	bt := &bulkTester{
 		mapping: &meta.RESTMapping{},
 	}
-	b := Bulk{Scheme: legacyscheme.Scheme, Op: bt.Record}
+	scheme, _ := apitesting.SchemeForOrDie(api.InstallKube)
+	b := Bulk{Scheme: scheme, Op: bt.Record}
 
-	in := &kapi.Pod{}
+	in := &corev1.Pod{}
 	if errs := b.Run(&kapi.List{Items: []runtime.Object{in}}, "test_namespace"); len(errs) > 0 {
 		t.Fatal(errs)
 	}
@@ -54,9 +56,10 @@ func TestBulkOpError(t *testing.T) {
 		mapping: &meta.RESTMapping{},
 		opErr:   fmt.Errorf("error1"),
 	}
-	b := Bulk{Scheme: legacyscheme.Scheme, Op: bt.Record}
+	scheme, _ := apitesting.SchemeForOrDie(api.InstallKube)
+	b := Bulk{Scheme: scheme, Op: bt.Record}
 
-	in := &kapi.Pod{}
+	in := &corev1.Pod{}
 	if errs := b.Run(&kapi.List{Items: []runtime.Object{in}}, "test_namespace"); len(errs) != 1 || errs[0] != bt.opErr {
 		t.Fatal(errs)
 	}
@@ -71,12 +74,12 @@ func TestBulkAction(t *testing.T) {
 	}
 
 	ioStreams, _, out, err := genericclioptions.NewTestIOStreams()
-
-	bulk := Bulk{Scheme: legacyscheme.Scheme, Op: bt.Record}
+	scheme, _ := apitesting.SchemeForOrDie(api.InstallKube)
+	bulk := Bulk{Scheme: scheme, Op: bt.Record}
 	b := &BulkAction{Bulk: bulk, Output: "", IOStreams: ioStreams}
 	b2 := b.WithMessage("test1", "test2")
 
-	in := &kapi.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
+	in := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
 	if errs := b2.Run(&kapi.List{Items: []runtime.Object{in}}, "test_namespace"); len(errs) != 0 {
 		t.Fatal(errs)
 	}
@@ -100,13 +103,13 @@ func TestBulkActionCompact(t *testing.T) {
 	}
 
 	ioStreams, _, out, err := genericclioptions.NewTestIOStreams()
-
-	bulk := Bulk{Scheme: legacyscheme.Scheme, Op: bt.Record}
+	scheme, _ := apitesting.SchemeForOrDie(api.InstallKube)
+	bulk := Bulk{Scheme: scheme, Op: bt.Record}
 	b := &BulkAction{Bulk: bulk, Output: "", IOStreams: ioStreams}
 	b.Compact()
 	b2 := b.WithMessage("test1", "test2")
 
-	in := &kapi.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
+	in := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "obj1"}}
 	if errs := b2.Run(&kapi.List{Items: []runtime.Object{in}}, "test_namespace"); len(errs) != 0 {
 		t.Fatal(errs)
 	}

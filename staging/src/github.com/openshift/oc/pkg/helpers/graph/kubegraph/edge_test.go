@@ -9,14 +9,13 @@ import (
 	kappsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	appsapi "github.com/openshift/api/apps"
+	"github.com/openshift/api"
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsgraph "github.com/openshift/oc/pkg/helpers/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/oc/pkg/helpers/graph/genericgraph"
@@ -165,7 +164,8 @@ func TestHPARCEdges(t *testing.T) {
 	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
 	rcNode := kubegraph.EnsureReplicationControllerNode(g, rc)
 
-	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
+	scheme, _ := apitesting.SchemeForOrDie(api.InstallKube)
+	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(scheme))
 
 	if edge := g.Edge(hpaNode, rcNode); edge == nil {
 		t.Fatalf("edge between HPA and RC missing")
@@ -196,11 +196,8 @@ func TestHPADCEdges(t *testing.T) {
 	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
 	dcNode := appsgraph.EnsureDeploymentConfigNode(g, dc)
 
-	// TODO get rid of legacyscheme in favor of tailred one
-	utilruntime.Must(appsapi.Install(legacyscheme.Scheme))
-	utilruntime.Must(corev1.AddToScheme(legacyscheme.Scheme))
-
-	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme))
+	scheme, _ := apitesting.SchemeForOrDie(api.Install, api.InstallKube)
+	AddHPAScaleRefEdges(g, testrestmapper.TestOnlyStaticRESTMapper(scheme))
 
 	if edge := g.Edge(hpaNode, dcNode); edge == nil {
 		t.Fatalf("edge between HPA and DC missing")

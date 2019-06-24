@@ -31,11 +31,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1typedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/generate"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -205,7 +205,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 		return err
 	}
 
-	o.Action.Bulk.Scheme = legacyscheme.Scheme
+	o.Action.Bulk.Scheme = scheme.Scheme
 	o.Action.Bulk.Op = bulk.Creator{Client: dynamicClient, RESTMapper: mapper}.Create
 	// Retry is used to support previous versions of the API server that will
 	// consider the presence of an unknown trigger type to be an error.
@@ -432,7 +432,7 @@ func (o *AppOptions) RunNewApp() error {
 			continue
 		}
 
-		obj, err := legacyscheme.Scheme.New(unstructuredObj.GroupVersionKind())
+		obj, err := scheme.Scheme.New(unstructuredObj.GroupVersionKind())
 		if err != nil {
 			return err
 		}
@@ -519,7 +519,7 @@ func getServices(items []runtime.Object) []*corev1.Service {
 	var svc []*corev1.Service
 	for _, i := range items {
 		unstructuredObj := i.(*unstructured.Unstructured)
-		obj, err := legacyscheme.Scheme.New(unstructuredObj.GroupVersionKind())
+		obj, err := scheme.Scheme.New(unstructuredObj.GroupVersionKind())
 		if err != nil {
 			klog.V(1).Info(err)
 			continue
@@ -663,7 +663,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f kcmdutil.Factory, c *cobra.Co
 		config.Mapper = mapper
 	}
 	if config.Typer == nil {
-		config.Typer = legacyscheme.Scheme
+		config.Typer = scheme.Scheme
 	}
 
 	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()

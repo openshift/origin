@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 )
@@ -254,12 +254,12 @@ func RemoveTriggerTypes(config *appsv1.DeploymentConfig, triggerTypes ...appsv1.
 }
 
 func RoundTripConfig(t *testing.T, config *appsv1.DeploymentConfig) *appsv1.DeploymentConfig {
-	versioned, err := legacyscheme.Scheme.ConvertToVersion(config, appsv1.SchemeGroupVersion)
+	versioned, err := scheme.Scheme.ConvertToVersion(config, appsv1.SchemeGroupVersion)
 	if err != nil {
 		t.Errorf("unexpected conversion error: %v", err)
 		return nil
 	}
-	defaulted, err := legacyscheme.Scheme.ConvertToVersion(versioned, appsv1.SchemeGroupVersion)
+	defaulted, err := scheme.Scheme.ConvertToVersion(versioned, appsv1.SchemeGroupVersion)
 	if err != nil {
 		t.Errorf("unexpected conversion error: %v", err)
 		return nil

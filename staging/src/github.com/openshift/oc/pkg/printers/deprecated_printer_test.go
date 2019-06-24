@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapi "github.com/openshift/api/apps/v1"
@@ -72,7 +72,7 @@ func TestPrinterCoverage(t *testing.T) {
 	AddHandlers(printer)
 
 main:
-	for gvk, apiType := range legacyscheme.Scheme.AllKnownTypes() {
+	for gvk, apiType := range scheme.Scheme.AllKnownTypes() {
 		if gvk.Version != runtime.APIVersionInternal {
 			continue
 		}

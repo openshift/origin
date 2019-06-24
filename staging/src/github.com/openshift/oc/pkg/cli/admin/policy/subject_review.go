@@ -16,7 +16,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -176,7 +175,7 @@ func (o *SCCSubjectReviewOptions) Run(args []string) error {
 				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 			}
 			versionedObj := &securityv1.PodSecurityPolicySubjectReview{}
-			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+			if err := scheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
 				return err
 			}
 			response = versionedObj
@@ -186,7 +185,7 @@ func (o *SCCSubjectReviewOptions) Run(args []string) error {
 				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 			}
 			versionedObj := &securityv1.PodSecurityPolicySelfSubjectReview{}
-			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+			if err := scheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
 				return err
 			}
 			response = versionedObj

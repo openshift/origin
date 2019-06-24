@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/api"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 )
@@ -180,7 +181,8 @@ func TestCancelBuildRun(t *testing.T) {
 			test.opts.HasError = true
 			t.Logf("got error: %v", err)
 		}
-		test.opts.Mapper = testrestmapper.TestOnlyStaticRESTMapper(legacyscheme.Scheme)
+		scheme, _ := apitesting.SchemeForOrDie(api.Install)
+		test.opts.Mapper = testrestmapper.TestOnlyStaticRESTMapper(scheme)
 		test.opts.BuildNames = []string{"ruby-ex"}
 		test.opts.States = []string{"new", "pending", "running"}
 
