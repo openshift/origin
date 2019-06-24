@@ -1,9 +1,10 @@
-package integration
+package authorization
 
 import (
 	"fmt"
 	"strings"
-	"testing"
+
+	"k8s.io/client-go/kubernetes"
 
 	kauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,14 +17,50 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
+	g "github.com/onsi/ginkgo"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
-	testserver "github.com/openshift/origin/test/util/server"
 )
+
+var _ = g.Describe("[Feature:OpenShiftAuthorization] RBAC proxy for openshift authz", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("rbac-proxy", exutil.KubeConfigPath())
+	g.Context("", func() {
+		g.Describe("RunLegacyLocalRoleBindingEndpoint", func() {
+			g.It(fmt.Sprintf("should succeed"), func() {
+				RunLegacyLocalRoleBindingEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
+			})
+		})
+
+		g.Describe("RunLegacyEndpointConfirmNoEscalation", func() {
+			g.It(fmt.Sprintf("should succeed"), func() {
+				RunLegacyEndpointConfirmNoEscalation(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Username(), oc.Namespace())
+			})
+		})
+
+		g.Describe("RunLegacyClusterRoleBindingEndpoint", func() {
+			g.It(fmt.Sprintf("should succeed"), func() {
+				RunLegacyClusterRoleBindingEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
+			})
+		})
+
+		g.Describe("RunLegacyClusterRoleEndpoint", func() {
+			g.It(fmt.Sprintf("should succeed"), func() {
+				RunLegacyClusterRoleEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
+			})
+		})
+
+		g.Describe("RunLegacyLocalRoleEndpoint", func() {
+			g.It(fmt.Sprintf("should succeed"), func() {
+				RunLegacyLocalRoleEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
+			})
+		})
+	})
+})
 
 var authorizationV1Encoder runtime.Encoder
 
@@ -34,29 +71,12 @@ func init() {
 	authorizationV1Encoder = authorizationV1Codecs.LegacyCodec(authorizationv1.GroupVersion)
 }
 
-// TestLegacyLocalRoleBindingEndpoint exercises the legacy rolebinding endpoint that is proxied to rbac
-func TestLegacyLocalRoleBindingEndpoint(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	namespace := "testproject"
+// RunLegacyLocalRoleBindingEndpoint exercises the legacy rolebinding endpoint that is proxied to rbac
+func RunLegacyLocalRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient authorizationv1client.AuthorizationV1Interface, kubeClient kubernetes.Interface, namespace string) {
 	testBindingName := "testrole"
 
-	clusterAdminRoleBindingsClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).RoleBindings(namespace)
-	clusterAdminRBACRoleBindingsClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).RoleBindings(namespace)
-
-	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, namespace, "testuser")
-	if err != nil {
-		t.Fatal(err)
-	}
+	clusterAdminRoleBindingsClient := authorizationClient.RoleBindings(namespace)
+	clusterAdminRBACRoleBindingsClient := kubeClient.RbacV1().RoleBindings(namespace)
 
 	// create rolebinding
 	roleBindingToCreate := &authorizationv1.RoleBinding{
@@ -210,23 +230,12 @@ func TestLegacyLocalRoleBindingEndpoint(t *testing.T) {
 	}
 }
 
-// TestLegacyClusterRoleBindingEndpoint exercises the legacy clusterrolebinding endpoint that is proxied to rbac
-func TestLegacyClusterRoleBindingEndpoint(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
+// RunLegacyClusterRoleBindingEndpoint exercises the legacy clusterrolebinding endpoint that is proxied to rbac
+func RunLegacyClusterRoleBindingEndpoint(t g.GinkgoTInterface, authorizationClient authorizationv1client.AuthorizationV1Interface, kubeClient kubernetes.Interface, namespace string) {
+	testBindingName := "testbinding-" + namespace
 
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testBindingName := "testbinding"
-
-	clusterAdminClusterRoleBindingsClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoleBindings()
-	clusterAdminRBACClusterRoleBindingsClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoleBindings()
+	clusterAdminClusterRoleBindingsClient := authorizationClient.ClusterRoleBindings()
+	clusterAdminRBACClusterRoleBindingsClient := kubeClient.RbacV1().ClusterRoleBindings()
 
 	// list clusterrole bindings
 	clusterRoleBindingList, err := clusterAdminClusterRoleBindingsClient.List(metav1.ListOptions{})
@@ -265,6 +274,9 @@ func TestLegacyClusterRoleBindingEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		clusterAdminClusterRoleBindingsClient.Delete(testBindingName, nil)
+	}()
 
 	if clusterRoleBindingCreated.Name != clusterRoleBindingToCreate.Name {
 		t.Fatalf("expected clusterrolebinding %s, got %s", clusterRoleBindingToCreate.Name, clusterRoleBindingCreated.Name)
@@ -351,23 +363,12 @@ func TestLegacyClusterRoleBindingEndpoint(t *testing.T) {
 	}
 }
 
-// TestLegacyClusterRoleEndpoint exercises the legacy clusterrole endpoint that is proxied to rbac
-func TestLegacyClusterRoleEndpoint(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
+// RunLegacyClusterRoleEndpoint exercises the legacy clusterrole endpoint that is proxied to rbac
+func RunLegacyClusterRoleEndpoint(t g.GinkgoTInterface, authorizationClient authorizationv1client.AuthorizationV1Interface, kubeClient kubernetes.Interface, namespace string) {
+	testRole := "testrole-" + namespace
 
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testRole := "testrole"
-
-	clusterAdminClusterRoleClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles()
-	clusterAdminRBACClusterRoleClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles()
+	clusterAdminClusterRoleClient := authorizationClient.ClusterRoles()
+	clusterAdminRBACClusterRoleClient := kubeClient.RbacV1().ClusterRoles()
 
 	// list clusterroles
 	clusterRoleList, err := clusterAdminClusterRoleClient.List(metav1.ListOptions{})
@@ -400,6 +401,9 @@ func TestLegacyClusterRoleEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		clusterAdminClusterRoleClient.Delete(testRole, nil)
+	}()
 
 	if createdClusterRole.Name != clusterRoleToCreate.Name {
 		t.Fatalf("expected to create %v, got %v", clusterRoleToCreate.Name, createdClusterRole.Name)
@@ -478,29 +482,12 @@ func TestLegacyClusterRoleEndpoint(t *testing.T) {
 	}
 }
 
-// TestLegacyLocalRoleEndpoint exercises the legacy role endpoint that is proxied to rbac
-func TestLegacyLocalRoleEndpoint(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	namespace := "testproject"
+// RunLegacyLocalRoleEndpoint exercises the legacy role endpoint that is proxied to rbac
+func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient authorizationv1client.AuthorizationV1Interface, kubeClient kubernetes.Interface, namespace string) {
 	testRole := "testrole"
 
-	clusterAdminRoleClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig).Roles(namespace)
-	clusterAdminRBACRoleClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).Roles(namespace)
-
-	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, namespace, "testuser")
-	if err != nil {
-		t.Fatal(err)
-	}
+	clusterAdminRoleClient := authorizationClient.Roles(namespace)
+	clusterAdminRBACRoleClient := kubeClient.RbacV1().Roles(namespace)
 
 	// create role
 	roleToCreate := &authorizationv1.Role{
@@ -617,23 +604,10 @@ func TestLegacyLocalRoleEndpoint(t *testing.T) {
 	}
 }
 
-// TestLegacyEndpointConfirmNoEscalation tests that the authorization proxy endpoints cannot be used to bypass
+// RunLegacyEndpointConfirmNoEscalation tests that the authorization proxy endpoints cannot be used to bypass
 // the RBAC escalation checks.  It also makes sure that the GR in the returned error matches authorization v1.
-func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	namespace := "test-project-no-escalation"
+func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuthorizationClient, userAuthorizationClient authorizationv1client.AuthorizationV1Interface, kubeClient kubernetes.Interface, userName, namespace string) {
 	resourceName := "test-resource-no-escalation"
-	userName := "test-user"
 	userSubjects := []corev1.ObjectReference{
 		{
 			Kind: rbacv1.UserKind,
@@ -656,14 +630,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 		},
 	}
 
-	userInternalClient, userConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, namespace, userName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	userAuthorizationClient := authorizationv1client.NewForConfigOrDie(userConfig)
-	clusterAdminAuthorizationClient := authorizationv1client.NewForConfigOrDie(clusterAdminClientConfig)
-
-	clusterRoleName := "test-cluster-role"
+	clusterRoleName := "test-cluster-role-" + userName
 	clusterRoleObj, err := clusterAdminAuthorizationClient.ClusterRoles().Create(&authorizationv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName},
 		Rules: []authorizationv1.PolicyRule{
@@ -677,6 +644,10 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		clusterAdminAuthorizationClient.ClusterRoles().Delete(clusterRoleObj.Name, nil)
+	}()
+
 	if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName},
 		Subjects:   userSubjects,
@@ -686,13 +657,16 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		clusterAdminAuthorizationClient.ClusterRoleBindings().Delete(clusterRoleName, nil)
+	}()
 
 	for _, rule := range clusterRoleObj.Rules {
 		for _, verb := range rule.Verbs {
 			for _, group := range rule.APIGroups {
 				for _, resource := range rule.Resources {
 					if err := testutil.WaitForClusterPolicyUpdate(
-						userInternalClient.AuthorizationV1(),
+						kubeClient.AuthorizationV1(),
 						verb,
 						schema.GroupResource{Group: group, Resource: resource},
 						true,
@@ -847,7 +821,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		g.By(tt.name, func() {
 			err := tt.run()
 
 			if err == nil {
