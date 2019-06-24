@@ -51,12 +51,12 @@ func (d *sccExecRestrictions) Validate(a admission.Attributes, o admission.Objec
 
 	pod, err := d.client.CoreV1().Pods(a.GetNamespace()).Get(a.GetName(), metav1.GetOptions{})
 	if err != nil {
-		return admission.NewForbidden(a, err)
+		return err
 	}
 	// we have to convert to the internal pod because admission uses internal types for now
 	internalPod := &coreapi.Pod{}
 	if err := coreapiv1conversions.Convert_v1_Pod_To_core_Pod(pod, internalPod, nil); err != nil {
-		return admission.NewForbidden(a, err)
+		return err
 	}
 
 	// TODO, if we want to actually limit who can use which service account, then we'll need to add logic here to make sure that
