@@ -3,14 +3,13 @@ package builds
 import (
 	g "github.com/onsi/ginkgo"
 
-	"github.com/openshift/origin/test/common/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
+var _ = g.Describe("[Feature:Builds][Slow] build controller", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("compat-build-controllers", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("build-controllers", exutil.KubeConfigPath())
 	)
 
 	g.Context("", func() {
@@ -26,34 +25,20 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 			}
 		})
 
-		g.Describe("RunBuildControllerTest", func() {
+		g.Describe("RunBuildCompletePodDeleteTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildControllerTest(g.GinkgoT(), oc.BuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
-			})
-		})
-		g.Describe("RunBuildControllerPodSyncTest", func() {
-			g.It("should succeed", func() {
-				build.RunBuildControllerPodSyncTest(g.GinkgoT(), oc.BuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
-			})
-		})
-		g.Describe("RunImageChangeTriggerTest [SkipPrevControllers]", func() {
-			g.It("should succeed", func() {
-				build.RunImageChangeTriggerTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminImageClient().ImageV1(), oc.Namespace())
+				RunBuildCompletePodDeleteTest(g.GinkgoT(), oc.BuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 		g.Describe("RunBuildDeleteTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
+				RunBuildDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 		g.Describe("RunBuildRunningPodDeleteTest", func() {
+			g.Skip("skipping until devex team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=164118")
 			g.It("should succeed", func() {
-				build.RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
-			})
-		})
-		g.Describe("RunBuildConfigChangeControllerTest", func() {
-			g.It("should succeed", func() {
-				build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.Namespace())
+				RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 	})

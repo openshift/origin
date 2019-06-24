@@ -1,27 +1,25 @@
-package build
+package builds
 
 import (
 	"fmt"
-	"sync/atomic"
 	"time"
 
-	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
+	testutil "github.com/openshift/origin/test/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/util/retry"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
-	testutil "github.com/openshift/origin/test/util"
+	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 )
 
 var (
@@ -40,7 +38,14 @@ var (
 	// The value is 6 minutes to allow for a resync to occur, which allows for necessarily
 	// reconciliation to occur in tests where events occur in a non-deterministic order.
 	BuildControllersWatchTimeout = 360 * time.Second
+
+	buildScheme = runtime.NewScheme()
+	buildCodecs = serializer.CodecFactory{}
 )
+
+func init() {
+	buildScheme, buildCodecs = apitesting.SchemeForOrDie(buildv1.Install)
+}
 
 type testingT interface {
 	Fail()
@@ -92,72 +97,6 @@ func mockBuild() *buildv1.Build {
 	}
 }
 
-func RunBuildControllerTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClientset kubernetes.Interface, ns string) {
-	// Setup an error channel
-	errChan := make(chan error) // go routines will send a message on this channel if an error occurs. Once this happens the test is over
-
-	// Create a build
-	b, err := buildClient.Builds(ns).Create(mockBuild())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Start watching builds for New -> Pending transition
-	buildWatch, err := buildClient.Builds(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", b.Name).String(), ResourceVersion: b.ResourceVersion})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer buildWatch.Stop()
-	buildModifiedCount := int32(0)
-	go func() {
-		for e := range buildWatch.ResultChan() {
-			if e.Type != watchapi.Modified {
-				errChan <- fmt.Errorf("received an unexpected event of type: %s with object: %#v", e.Type, e.Object)
-			}
-			build, ok := e.Object.(*buildv1.Build)
-			if !ok {
-				errChan <- fmt.Errorf("received something other than build: %#v", e.Object)
-				break
-			}
-			// If unexpected status, throw error
-			if build.Status.Phase != buildv1.BuildPhasePending && build.Status.Phase != buildv1.BuildPhaseNew {
-				errChan <- fmt.Errorf("received unexpected build status: %s", build.Status.Phase)
-				break
-			}
-			atomic.AddInt32(&buildModifiedCount, 1)
-		}
-	}()
-
-	// Watch build pods as they are created
-	podWatch, err := kClientset.CoreV1().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
-		buildutil.GetBuildPodName(b)).String()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer podWatch.Stop()
-	podAddedCount := int32(0)
-	go func() {
-		for e := range podWatch.ResultChan() {
-			// Look for creation events
-			if e.Type == watchapi.Added {
-				atomic.AddInt32(&podAddedCount, 1)
-			}
-		}
-	}()
-
-	select {
-	case err := <-errChan:
-		t.Errorf("Error: %v", err)
-	case <-time.After(BuildControllerTestWait):
-		if atomic.LoadInt32(&buildModifiedCount) < 1 {
-			t.Errorf("The build was modified an unexpected number of times. Got: %d, Expected: >= 1", buildModifiedCount)
-		}
-		if atomic.LoadInt32(&podAddedCount) != 1 {
-			t.Errorf("The build pod was created an unexpected number of times. Got: %d, Expected: 1", podAddedCount)
-		}
-	}
-}
-
 type buildControllerPodState struct {
 	PodPhase   corev1.PodPhase
 	BuildPhase buildv1.BuildPhase
@@ -166,183 +105,6 @@ type buildControllerPodState struct {
 type buildControllerPodTest struct {
 	Name   string
 	States []buildControllerPodState
-}
-
-func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClient kubernetes.Interface, ns string) {
-	tests := []buildControllerPodTest{
-		{
-			Name: "running state test",
-			States: []buildControllerPodState{
-				{
-					PodPhase:   corev1.PodRunning,
-					BuildPhase: buildv1.BuildPhaseRunning,
-				},
-			},
-		},
-		{
-			Name: "build succeeded",
-			States: []buildControllerPodState{
-				{
-					PodPhase:   corev1.PodRunning,
-					BuildPhase: buildv1.BuildPhaseRunning,
-				},
-				{
-					PodPhase:   corev1.PodSucceeded,
-					BuildPhase: buildv1.BuildPhaseComplete,
-				},
-			},
-		},
-		{
-			Name: "build failed",
-			States: []buildControllerPodState{
-				{
-					PodPhase:   corev1.PodRunning,
-					BuildPhase: buildv1.BuildPhaseRunning,
-				},
-				{
-					PodPhase:   corev1.PodFailed,
-					BuildPhase: buildv1.BuildPhaseFailed,
-				},
-			},
-		},
-	}
-	for _, test := range tests {
-		// Setup communications channels
-		podReadyChan := make(chan *corev1.Pod) // Will receive a value when a build pod is ready
-		errChan := make(chan error)            // Will receive a value when an error occurs
-
-		// Create a build
-		b, err := buildClient.Builds(ns).Create(mockBuild())
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// Watch build pod for transition to pending
-		podWatch, err := kClient.CoreV1().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name",
-			buildutil.GetBuildPodName(b)).String()})
-		if err != nil {
-			t.Fatal(err)
-		}
-		go func() {
-			for e := range podWatch.ResultChan() {
-				pod, ok := e.Object.(*corev1.Pod)
-				if !ok {
-					t.Fatalf("%s: unexpected object received: %#v\n", test.Name, e.Object)
-				}
-				klog.Infof("pod watch event received for pod %s/%s: %v, pod phase: %v", pod.Namespace, pod.Name, e.Type, pod.Status.Phase)
-				if pod.Status.Phase == corev1.PodPending {
-					podReadyChan <- pod
-					break
-				}
-			}
-		}()
-
-		var pod *corev1.Pod
-		select {
-		case pod = <-podReadyChan:
-			if pod.Status.Phase != corev1.PodPending {
-				t.Errorf("Got wrong pod phase: %s", pod.Status.Phase)
-				podWatch.Stop()
-				continue
-			}
-
-		case <-time.After(BuildControllersWatchTimeout):
-			t.Errorf("Timed out waiting for build pod to be ready")
-			podWatch.Stop()
-			continue
-		}
-		podWatch.Stop()
-
-		for _, state := range test.States {
-			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				// Update pod state and verify that corresponding build state happens accordingly
-				pod, err := kClient.CoreV1().Pods(ns).Get(pod.Name, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				if pod.Status.Phase == state.PodPhase {
-					return fmt.Errorf("another client altered the pod phase to %s: %#v", state.PodPhase, pod)
-				}
-				pod.Status.Phase = state.PodPhase
-				if pod.Status.Phase == corev1.PodSucceeded {
-					pod.Status.ContainerStatuses = []corev1.ContainerStatus{
-						{
-							Name: "container",
-							State: corev1.ContainerState{
-								Terminated: &corev1.ContainerStateTerminated{
-									ExitCode: 0,
-								},
-							},
-						},
-					}
-				}
-				_, err = kClient.CoreV1().Pods(ns).UpdateStatus(pod)
-				return err
-			}); err != nil {
-				t.Fatal(err)
-			}
-
-			shouldContinue := func() bool {
-				buildWatch, err := buildClient.Builds(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", b.Name).String(), ResourceVersion: b.ResourceVersion})
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer buildWatch.Stop()
-
-				stateReached := make(chan struct{})
-				go func() {
-					done := false
-					for e := range buildWatch.ResultChan() {
-						var ok bool
-						b, ok = e.Object.(*buildv1.Build)
-						if !ok {
-							errChan <- fmt.Errorf("unexpected object received: %#v", e.Object)
-							return
-						}
-						klog.Infof("build watch event received for build %s/%s: %v, build phase: %v", b.Namespace, b.Name, e.Type, b.Status.Phase)
-						if e.Type != watchapi.Modified {
-							errChan <- fmt.Errorf("unexpected event received: %s, object: %#v", e.Type, e.Object)
-							return
-						}
-						if done && b.Status.Phase != state.BuildPhase {
-							errChan <- fmt.Errorf("build %s/%s transitioned to new state (%s) after reaching desired state", b.Namespace, b.Name, b.Status.Phase)
-							return
-						}
-						if b.Status.Phase == state.BuildPhase {
-							done = true
-							stateReached <- struct{}{}
-						}
-					}
-				}()
-
-				select {
-				case err := <-errChan:
-					t.Errorf("%s: Error %v", test.Name, err)
-					return false
-				case <-time.After(BuildControllerTestTransitionTimeout):
-					t.Errorf("%s: Timed out waiting for build %s/%s to reach state %s. Current state: %s", test.Name, b.Namespace, b.Name, state.BuildPhase, b.Status.Phase)
-					return false
-				case <-stateReached:
-					klog.Infof("%s: build %s/%s reached desired state of %s", test.Name, b.Namespace, b.Name, state.BuildPhase)
-				}
-
-				// After state is reached, continue waiting some time to check for unexpected transitions
-				select {
-				case err := <-errChan:
-					t.Errorf("%s: Error %v", test.Name, err)
-					return false
-
-				case <-time.After(BuildControllerTestWait):
-					// After waiting for a set time, if no other state is reached, continue to wait for next state transition
-					return true
-				}
-			}()
-
-			if !shouldContinue {
-				break
-			}
-		}
-	}
 }
 
 func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event {
@@ -572,7 +334,9 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.Builds
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 
-	clusterAdminClient.Builds(ns).Delete(newBuild.Name, nil)
+	if err := clusterAdminClient.Builds(ns).Delete(newBuild.Name, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	event = waitForWatchType(t, "pod deleted due to build deleted", podWatch, watchapi.Deleted)
 	if e, a := watchapi.Deleted, event.Type; e != a {
@@ -585,10 +349,10 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.Builds
 
 }
 
-// waitForWatchType tolerates receiving 3 events before failing while watching for a particular event
+// waitForWatchType tolerates receiving 10 events before failing while watching for a particular event
 // type.
 func waitForWatchType(t testingT, name string, w watchapi.Interface, expect watchapi.EventType) *watchapi.Event {
-	tries := 3
+	tries := 10
 	for i := 0; i < tries; i++ {
 		select {
 		case e := <-w.ResultChan():
@@ -674,7 +438,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clientty
 	foundFailed := false
 
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		events, err := clusterAdminKubeClientset.CoreV1().Events(ns).Search(legacyscheme.Scheme, newBuild)
+		events, err := clusterAdminKubeClientset.CoreV1().Events(ns).Search(buildScheme, newBuild)
 		if err != nil {
 			t.Fatalf("error getting build events: %v", err)
 			return false, fmt.Errorf("error getting build events: %v", err)
