@@ -90,7 +90,7 @@ import:
 - package: github.com/coreos/bbolt
   version: v1.3.1-coreos.6
 - package: github.com/google/cadvisor
-  version: v0.32.0
+  version: v0.33.1
 
 # openshift second
 - package: github.com/openshift/api
@@ -170,12 +170,9 @@ import:
 # pinned to a level that kubernetes uses.
 - package: github.com/evanphx/json-patch
   version: 5858425f75500d40c52783dce87d085a483ce135
-# pinned to a level that kubernetes 1.12 use
-- package: github.com/gorilla/mux
-  version: 08e7f807d38d6a870193019bb439056118661505
-# pinned to a level that kubernetes 1.12 use
+# pinned to a level that kubernetes 1.14 use
 - package: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  version: c7ce16629ff4cd059ed96ed06419dd3856fd3577
 
 # mine: specific to openshift
 # networking
@@ -187,9 +184,6 @@ import:
 # auth (for testing)
 - package: github.com/vjeantet/ldapserver
   version: v1.0
-# master
-- package: github.com/getsentry/raven-go
-  version: 32a13797442ccb601b11761d74232773c1402d14
 # auth (for sally)
 - package: github.com/RangelReale/osin
   repo:    https://github.com/openshift/osin.git
@@ -264,3 +258,9 @@ import:
 - package: gonum.org/v1/gonum
   repo: https://github.com/gonum/gonum.git
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
+
+# this fails being downloaded unless explictly set the vcs
+- package: bitbucket.org/ww/goautoneg
+  repo:    https://bitbucket.org/ww/goautoneg
+  vcs:     hg
+  version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
