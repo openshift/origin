@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,30 +17,37 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 
-	authorizationapiv1 "k8s.io/api/authorization/v1"
-	kapiv1 "k8s.io/api/core/v1"
+	kubeauthorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/discovery/cached"
-	kclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
+	"k8s.io/client-go/util/flowcontrol"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
@@ -163,7 +171,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 
 // SetNamespace sets a new namespace
 func (c *CLI) SetNamespace(ns string) *CLI {
-	c.kubeFramework.Namespace = &kapiv1.Namespace{
+	c.kubeFramework.Namespace = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
 		},
@@ -194,8 +202,8 @@ func (c *CLI) SetupProject() {
 	c.namespacesToDelete = append(c.namespacesToDelete, newNamespace)
 
 	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
-	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), authorizationapiv1.SelfSubjectAccessReviewSpec{
-		ResourceAttributes: &authorizationapiv1.ResourceAttributes{
+	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 			Namespace: newNamespace,
 			Verb:      "create",
 			Group:     "",
@@ -262,6 +270,7 @@ func (c *CLI) SetupProject() {
 
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
+// TODO this should be removed.  It's only used by image tests.
 func (c *CLI) CreateProject() string {
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	e2e.Logf("Creating project %q", newNamespace)
@@ -274,8 +283,8 @@ func (c *CLI) CreateProject() string {
 	c.namespacesToDelete = append(c.namespacesToDelete, newNamespace)
 
 	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
-	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), authorizationapiv1.SelfSubjectAccessReviewSpec{
-		ResourceAttributes: &authorizationapiv1.ResourceAttributes{
+	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 			Namespace: newNamespace,
 			Verb:      "create",
 			Group:     "",
@@ -415,6 +424,14 @@ func (c *CLI) AdminImageClient() imagev1client.Interface {
 	return client
 }
 
+func (c *CLI) AdminOauthClient() oauthv1client.Interface {
+	client, err := oauthv1client.NewForConfig(c.AdminConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
 func (c *CLI) AdminOperatorClient() operatorv1client.Interface {
 	client, err := operatorv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
@@ -464,16 +481,16 @@ func (c *CLI) AdminTemplateClient() templatev1client.Interface {
 }
 
 // KubeClient provides a Kubernetes client for the current namespace
-func (c *CLI) KubeClient() kclientset.Interface {
-	return kclientset.NewForConfigOrDie(c.UserConfig())
+func (c *CLI) KubeClient() kubernetes.Interface {
+	return kubernetes.NewForConfigOrDie(c.UserConfig())
 }
 
 // AdminKubeClient provides a Kubernetes client for the cluster admin user.
-func (c *CLI) AdminKubeClient() kclientset.Interface {
-	return kclientset.NewForConfigOrDie(c.AdminConfig())
+func (c *CLI) AdminKubeClient() kubernetes.Interface {
+	return kubernetes.NewForConfigOrDie(c.AdminConfig())
 }
 
-func (c *CLI) UserConfig() *restclient.Config {
+func (c *CLI) UserConfig() *rest.Config {
 	clientConfig, err := deprecatedclient.GetClientConfig(c.configPath, nil)
 	if err != nil {
 		FatalErr(err)
@@ -481,7 +498,7 @@ func (c *CLI) UserConfig() *restclient.Config {
 	return clientConfig
 }
 
-func (c *CLI) AdminConfig() *restclient.Config {
+func (c *CLI) AdminConfig() *rest.Config {
 	clientConfig, err := deprecatedclient.GetClientConfig(c.adminConfigPath, nil)
 	if err != nil {
 		FatalErr(err)
@@ -686,4 +703,104 @@ func FatalErr(msg interface{}) {
 	// the path that leads to this being called isn't always clear...
 	fmt.Fprintln(g.GinkgoWriter, string(debug.Stack()))
 	e2e.Failf("%v", msg)
+}
+
+func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
+	userClient := c.AdminUserClient()
+
+	user, err := userClient.UserV1().Users().Get(username, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		FatalErr(err)
+	}
+	if err != nil {
+		user = &userv1.User{
+			ObjectMeta: metav1.ObjectMeta{Name: username},
+		}
+		user, err = userClient.UserV1().Users().Create(user)
+		if err != nil {
+			FatalErr(err)
+		}
+	}
+
+	oauthClient := c.AdminOauthClient()
+
+	oauthClientObj := &oauthv1.OAuthClient{
+		ObjectMeta:  metav1.ObjectMeta{Name: "test-integration-client"},
+		GrantMethod: oauthv1.GrantHandlerAuto,
+	}
+	if _, err := oauthClient.OauthV1().OAuthClients().Create(oauthClientObj); err != nil && !apierrors.IsAlreadyExists(err) {
+		FatalErr(err)
+	}
+
+	randomToken := uuid.NewRandom()
+	accesstoken := base64.RawURLEncoding.EncodeToString([]byte(randomToken))
+	// make sure the token is long enough to pass validation
+	for i := len(accesstoken); i < 32; i++ {
+		accesstoken += "A"
+	}
+	token := &oauthv1.OAuthAccessToken{
+		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
+		ClientName:  oauthClientObj.Name,
+		UserName:    username,
+		UserUID:     string(user.UID),
+		Scopes:      []string{"user:full"},
+		RedirectURI: "https://localhost:8443/oauth/token/implicit",
+	}
+	if _, err := oauthClient.OauthV1().OAuthAccessTokens().Create(token); err != nil {
+		FatalErr(err)
+	}
+
+	userClientConfig := rest.AnonymousClientConfig(turnOffRateLimiting(rest.CopyConfig(c.AdminConfig())))
+	userClientConfig.BearerToken = token.Name
+
+	return userClientConfig
+}
+
+// turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
+func turnOffRateLimiting(config *rest.Config) *rest.Config {
+	configCopy := *config
+	configCopy.QPS = 10000
+	configCopy.Burst = 10000
+	configCopy.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
+	// We do not set a timeout because that will cause watches to fail
+	// Integration tests are already limited to 5 minutes
+	// configCopy.Timeout = time.Minute
+	return &configCopy
+}
+
+func (c *CLI) WaitForAccessAllowed(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
+	if user == "system:anonymous" {
+		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
+	if err != nil {
+		FatalErr(err)
+	}
+	return waitForAccess(kubeClient, true, review)
+}
+
+func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
+	if user == "system:anonymous" {
+		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
+	if err != nil {
+		FatalErr(err)
+	}
+	return waitForAccess(kubeClient, false, review)
+}
+
+func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
+	policyCachePollInterval := 100 * time.Millisecond
+	policyCachePollTimeout := 10 * time.Second
+	err := wait.Poll(policyCachePollInterval, policyCachePollTimeout, func() (bool, error) {
+		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(review)
+		if err != nil {
+			return false, err
+		}
+		return response.Status.Allowed == allowed, nil
+	})
+	return err
 }

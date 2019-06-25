@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -226,4 +227,22 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	if (err != nil) && (err.Error() != expectedError) {
 		t.Fatalf("expected\n\t%v\ngot\n\t%v", expectedError, err.Error())
 	}
+}
+
+// waitForProject will execute a client list of projects looking for the project with specified name
+// if not found, it will retry up to numRetries at the specified delayInterval
+func waitForProject(t *testing.T, client projectv1client.ProjectV1Interface, projectName string, delayInterval time.Duration, numRetries int) {
+	for i := 0; i <= numRetries; i++ {
+		projects, err := client.Projects().List(metav1.ListOptions{})
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if (len(projects.Items) == 1) && (projects.Items[0].Name == projectName) {
+			fmt.Printf("Waited %v times with interval %v\n", i, delayInterval)
+			return
+		} else {
+			time.Sleep(delayInterval)
+		}
+	}
+	t.Errorf("expected project %v not found", projectName)
 }
