@@ -36,8 +36,8 @@ var _ = g.Describe("[Feature:Builds][Slow] build controller", func() {
 			})
 		})
 		g.Describe("RunBuildRunningPodDeleteTest", func() {
-			g.Skip("skipping until devex team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=164118")
 			g.It("should succeed", func() {
+				g.Skip("skipping until devex team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=164118")
 				RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
