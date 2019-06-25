@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec chroot /host /usr/sbin/iptables-save "$@"

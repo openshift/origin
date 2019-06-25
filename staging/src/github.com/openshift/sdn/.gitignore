@@ -1,0 +1,5 @@
+openshift-sdn
+sdn-cni-plugin
+host-local
+loopback
+!vendor/
