@@ -352,6 +352,8 @@ var (
 			`\[Feature:ImageQuota\]`,                    // Quota isn't turned on by default, we should do that and then reenable these tests
 			`\[Feature:Audit\]`,                         // Needs special configuration
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
+			`\[sig-cluster-lifecycle\]`,                 // cluster lifecycle test require a different kind of upgrade hook.
+			`\[Feature:StatefulUpgrade\]`,               // related to cluster lifecycle (in e2e/lifecycle package) and requires an upgrade hook we don't use
 
 			`kube-dns-autoscaler`, // Don't run kube-dns
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
