@@ -4,7 +4,7 @@ skip-tags: true
 rules:
 - destination: openshift-apiserver
   branches:
-    - name: release-4.2
+    - name: master
       source:
         branch: master
         dir: staging/src/github.com/openshift/openshift-apiserver
