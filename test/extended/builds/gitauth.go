@@ -2,7 +2,6 @@ package builds
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -12,12 +11,6 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
-
-// hostname returns the hostname from a hostport specification
-func hostname(hostport string) (string, error) {
-	host, _, err := net.SplitHostPort(hostport)
-	return host, err
-}
 
 var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build input", func() {
 	defer g.GinkgoRecover()
