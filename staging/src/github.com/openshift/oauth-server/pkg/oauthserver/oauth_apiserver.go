@@ -316,6 +316,11 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 // TODO TODO, this actually looks a lot like a controller or an add-on manager style thing.  Seems like we'd want to do this outside
 // EnsureBootstrapOAuthClients creates or updates the bootstrap oauth clients that openshift relies upon.
 func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiserver.PostStartHookContext) error {
+	// if we are running an external OAuth server, let the operator manage these OAuth clients
+	if len(c.ExtraOAuthConfig.Options.LoginURL) != 0 {
+		return nil
+	}
+
 	// the TODO above still applies, but this makes it possible for this poststarthook to do its job with a split kubeapiserver and not run forever
 	go func() {
 		// error is guaranteed to be nil
