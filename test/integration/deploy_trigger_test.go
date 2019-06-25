@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
-	"github.com/openshift/origin/test/common/appstest"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -47,7 +46,7 @@ func TestTriggers_manual(t *testing.T) {
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 
-	config := appstest.OkDeploymentConfig(0)
+	config := OkDeploymentConfig(0)
 	config.Namespace = namespace
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{{Type: "Manual"}}
 
@@ -123,11 +122,11 @@ func TestTriggers_imageChange(t *testing.T) {
 	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).AppsV1()
 	projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
 
-	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
+	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 
-	config := appstest.OkDeploymentConfig(0)
+	config := OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkImageChangeTrigger()}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{OkImageChangeTrigger()}
 
 	configWatch, err := projectAdminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
@@ -145,8 +144,8 @@ func TestTriggers_imageChange(t *testing.T) {
 	}
 	defer imageWatch.Stop()
 
-	updatedImage := fmt.Sprintf("sha256:%s", appstest.ImageID)
-	updatedPullSpec := fmt.Sprintf("%s/%s/%s@%s", registryHostname, testutil.Namespace(), appstest.ImageStreamName, updatedImage)
+	updatedImage := fmt.Sprintf("sha256:%s", ImageID)
+	updatedPullSpec := fmt.Sprintf("%s/%s/%s@%s", registryHostname, testutil.Namespace(), ImageStreamName, updatedImage)
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	createTagEvent := func() {
@@ -228,7 +227,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
 
-	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
+	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 
 	if imageStream, err = adminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream: %v", err)
@@ -240,8 +239,8 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	}
 	defer imageWatch.Stop()
 
-	image := fmt.Sprintf("sha256:%s", appstest.ImageID)
-	pullSpec := fmt.Sprintf("registry:5000/%s/%s@%s", testutil.Namespace(), appstest.ImageStreamName, image)
+	image := fmt.Sprintf("sha256:%s", ImageID)
+	pullSpec := fmt.Sprintf("registry:5000/%s/%s@%s", testutil.Namespace(), ImageStreamName, image)
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
 	mapping := &imagev1.ImageStreamMapping{
@@ -289,9 +288,9 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	}
 	defer configWatch.Stop()
 
-	config := appstest.OkDeploymentConfig(0)
+	config := OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkImageChangeTrigger()}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{OkImageChangeTrigger()}
 	config.Spec.Triggers[0].ImageChangeParams.Automatic = false
 	if config, err = adminAppsClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create deploymentconfig: %v", err)
@@ -330,7 +329,7 @@ out:
 
 	// Subsequent updates to the image shouldn't update the pod template image
 	mapping.Image.Name = "sha256:0000000000000000000000000000000000000000000000000000000000000321"
-	mapping.Image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", registryHostname, testutil.Namespace(), appstest.ImageStreamName, mapping.Image.Name)
+	mapping.Image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", registryHostname, testutil.Namespace(), ImageStreamName, mapping.Image.Name)
 	createTagEvent(mapping)
 
 	timeout = time.After(20 * time.Second)
@@ -407,13 +406,13 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 	adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
 
-	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
+	imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 	secondImageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
 
-	config := appstest.OkDeploymentConfig(0)
+	config := OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
-	firstTrigger := appstest.OkImageChangeTrigger()
-	secondTrigger := appstest.OkImageChangeTrigger()
+	firstTrigger := OkImageChangeTrigger()
+	secondTrigger := OkImageChangeTrigger()
 	secondTrigger.ImageChangeParams.ContainerNames = []string{"container2"}
 	secondTrigger.ImageChangeParams.From.Name = imageutil.JoinImageStreamTag("sample", imagev1.DefaultImageTag)
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
@@ -437,8 +436,8 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	}
 	defer imageWatch.Stop()
 
-	updatedImage := fmt.Sprintf("sha256:%s", appstest.ImageID)
-	updatedPullSpec := fmt.Sprintf("%s/%s/%s@%s", registryHostname, testutil.Namespace(), appstest.ImageStreamName, updatedImage)
+	updatedImage := fmt.Sprintf("sha256:%s", ImageID)
+	updatedPullSpec := fmt.Sprintf("%s/%s/%s@%s", registryHostname, testutil.Namespace(), ImageStreamName, updatedImage)
 
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
@@ -572,9 +571,9 @@ func TestTriggers_configChange(t *testing.T) {
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 
-	config := appstest.OkDeploymentConfig(0)
+	config := OkDeploymentConfig(0)
 	config.Namespace = namespace
-	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkConfigChangeTrigger()}
+	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{{Type: appsv1.DeploymentTriggerOnConfigChange}}
 
 	rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(metav1.ListOptions{})
 	if err != nil {
