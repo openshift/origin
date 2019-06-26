@@ -1,7 +1,6 @@
 package mustgather
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"path"
@@ -220,7 +219,7 @@ func (o *MustGatherOptions) Run(rsyncCmd *cobra.Command) error {
 
 	// stream gather container logs
 	if err := o.getInitContainerLogs(pod); err != nil {
-		fmt.Fprintf(o.Out, "container logs unavailable: %v", err)
+		fmt.Fprintf(o.Out, "container logs unavailable: %v\n", err)
 	}
 
 	// wait for pod to be running (gather has completed)
@@ -279,22 +278,25 @@ func (o *MustGatherOptions) waitForPodRunning(pod *corev1.Pod) error {
 		return err
 	}
 	if phase != corev1.PodRunning {
-		return fmt.Errorf("pod is not running: %v", phase)
+		return fmt.Errorf("pod is not running: %v\n", phase)
 	}
 	return nil
 }
 
 func (o *MustGatherOptions) waitForGatherContainerRunning(pod *corev1.Pod) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	return retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
+	return wait.PollImmediate(time.Second, 10*time.Minute, func() (bool, error) {
 		var err error
-		if pod, err := o.Client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{}); err == nil {
+		if pod, err = o.Client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{}); err == nil {
 			if len(pod.Status.InitContainerStatuses) == 0 {
 				return false, nil
 			}
 			state := pod.Status.InitContainerStatuses[0].State
-			return (state.Running != nil) || (state.Terminated != nil), nil
+			running := state.Running != nil
+			terminated := state.Terminated != nil
+			return running || terminated, nil
+		}
+		if retry.IsHTTPClientError(err) {
+			return false, nil
 		}
 		return false, err
 	})
