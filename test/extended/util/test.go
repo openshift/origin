@@ -27,9 +27,13 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
+	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/generated"
+
+	// this appears to inexplicably auto-register global flags.
+	_ "k8s.io/kubernetes/test/e2e/storage/drivers"
 
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
@@ -52,14 +56,17 @@ var TestContext *e2e.TestContextType = &e2e.TestContext
 // TEST_REPORT_FILE_NAME - If set, will determine the name of the file that JUnit output is written to
 func Init() {
 	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
-	e2e.ViperizeFlags()
+	reale2e.ViperizeFlags(reale2e.GetViperConfig())
+	e2e.HandleFlags()
 	InitTest()
 }
 
 func InitStandardFlags() {
 	e2e.RegisterCommonFlags()
 	e2e.RegisterClusterFlags()
-	e2e.RegisterStorageFlags()
+
+	// replaced by a bare import above.
+	//e2e.RegisterStorageFlags()
 }
 
 func InitTest() {
@@ -345,6 +352,8 @@ var (
 			`\[Feature:ImageQuota\]`,                    // Quota isn't turned on by default, we should do that and then reenable these tests
 			`\[Feature:Audit\]`,                         // Needs special configuration
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
+			`\[sig-cluster-lifecycle\]`,                 // cluster lifecycle test require a different kind of upgrade hook.
+			`\[Feature:StatefulUpgrade\]`,               // related to cluster lifecycle (in e2e/lifecycle package) and requires an upgrade hook we don't use
 
 			`kube-dns-autoscaler`, // Don't run kube-dns
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns

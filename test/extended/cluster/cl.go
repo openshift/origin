@@ -13,11 +13,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
+	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/api/annotations"
 	projectv1 "github.com/openshift/api/project/v1"
-
 	"github.com/openshift/origin/test/extended/cluster/metrics"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -43,7 +43,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	g.BeforeEach(func() {
 		var err error
 		c = oc.AdminKubeClient()
-		viperConfig := e2e.TestContext.Viper
+		viperConfig := reale2e.GetViperConfig()
 		if viperConfig == "e2e" {
 			e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
 			path := strings.Split(masterVertFixture, "/")
@@ -136,7 +136,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 				// Create templates as defined
 				for _, template := range p.Templates {
-					err := CreateTemplates(oc, c, nsName, e2e.TestContext.Viper, template, tuning)
+					err := CreateTemplates(oc, c, nsName, reale2e.GetViperConfig(), template, tuning)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
@@ -146,7 +146,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					var err error
 					if pod.File != "" {
 						// Parse Pod file into struct
-						path, err = mkPath(pod.File, e2e.TestContext.Viper)
+						path, err = mkPath(pod.File, reale2e.GetViperConfig())
 						o.Expect(err).NotTo(o.HaveOccurred())
 					}
 

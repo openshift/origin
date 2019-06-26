@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
+	"k8s.io/kubernetes/test/e2e/lifecycle"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/utils/junit"
@@ -126,8 +127,8 @@ var _ = g.Describe("[Disruptive]", func() {
 			client := configv1client.NewForConfigOrDie(config)
 			dynamicClient := dynamic.NewForConfigOrDie(config)
 
-			upgCtx, err := getUpgradeContext(client, framework.TestContext.UpgradeTarget, framework.TestContext.UpgradeImage)
-			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", framework.TestContext.UpgradeTarget, framework.TestContext.UpgradeImage)
+			upgCtx, err := getUpgradeContext(client, lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
+			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
 
 			testSuite := &junit.TestSuite{Name: "Cluster upgrade"}
 			clusterUpgradeTest := &junit.TestCase{Name: "cluster-upgrade", Classname: "upgrade_tests"}

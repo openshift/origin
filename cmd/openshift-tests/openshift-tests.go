@@ -11,9 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/gomega"
-
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -21,6 +20,7 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/serviceability"
@@ -28,6 +28,10 @@ import (
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	exutilazure "github.com/openshift/origin/test/extended/util/azure"
+
+	// these are loading important global flags that we need to get and set
+	_ "k8s.io/kubernetes/test/e2e"
+	_ "k8s.io/kubernetes/test/e2e/lifecycle"
 )
 
 func main() {
@@ -274,11 +278,12 @@ func initProvider(provider string) error {
 	}
 	exutil.TestContext.AllowedNotReadyNodes = 100
 	exutil.TestContext.MaxNodesToGather = 0
-	exutil.TestContext.Viper = os.Getenv("VIPERCONFIG")
+	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
 
 	// set defaults so these tests don't log
-	exutil.TestContext.LoggingSoak.Scale = 1
-	exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
+	// these appear to be defaults now
+	//exutil.TestContext.LoggingSoak.Scale = 1
+	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
 
 	exutil.AnnotateTestSuite()
 	exutil.InitTest()

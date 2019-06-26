@@ -25,11 +25,18 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/config"
 	instrumentation "k8s.io/kubernetes/test/e2e/instrumentation/common"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
+
+var loggingSoak struct {
+	Scale            int           `default:"1" usage:"number of waves of pods"`
+	TimeBetweenWaves time.Duration `default:"5000ms" usage:"time to wait before dumping the next wave of pods"`
+}
+var _ = config.AddOptions(&loggingSoak, "instrumentation.logging.soak")
 
 var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disruptive]", func() {
 
@@ -45,11 +52,11 @@ var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disrupti
 	// scenarios.  TODO jayunit100 add this to the kube CI in a follow on infra patch.
 
 	ginkgo.It(fmt.Sprintf("should survive logging 1KB every %v seconds, for a duration of %v", kbRateInSeconds, totalLogTime), func() {
-		ginkgo.By(fmt.Sprintf("scaling up to %v pods per node", framework.TestContext.LoggingSoak.Scale))
+		ginkgo.By(fmt.Sprintf("scaling up to %v pods per node", loggingSoak.Scale))
 		defer ginkgo.GinkgoRecover()
 		var wg sync.WaitGroup
-		wg.Add(framework.TestContext.LoggingSoak.Scale)
-		for i := 0; i < framework.TestContext.LoggingSoak.Scale; i++ {
+		wg.Add(loggingSoak.Scale)
+		for i := 0; i < loggingSoak.Scale; i++ {
 			go func() {
 				defer wg.Done()
 				defer ginkgo.GinkgoRecover()
@@ -59,9 +66,9 @@ var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disrupti
 				framework.Logf("Completed logging soak, wave %v", i)
 			}()
 			// Niceness.
-			time.Sleep(time.Duration(framework.TestContext.LoggingSoak.MilliSecondsBetweenWaves))
+			time.Sleep(loggingSoak.TimeBetweenWaves)
 		}
-		framework.Logf("Waiting on all %v logging soak waves to complete", framework.TestContext.LoggingSoak.Scale)
+		framework.Logf("Waiting on all %v logging soak waves to complete", loggingSoak.Scale)
 		wg.Wait()
 	})
 })
