@@ -11,14 +11,12 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
-	apiserverflag "k8s.io/component-base/cli/flag"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	proxy "k8s.io/kubernetes/pkg/proxy"
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
@@ -36,7 +34,6 @@ import (
 	sdnproxy "github.com/openshift/sdn/pkg/network/proxy"
 	"github.com/openshift/sdn/pkg/network/proxyimpl/hybrid"
 	"github.com/openshift/sdn/pkg/network/proxyimpl/unidler"
-	cmdflags "github.com/openshift/sdn/pkg/openshift-sdn/flags"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
 )
@@ -49,77 +46,6 @@ func readProxyConfig(filename string) (*kubeproxyconfig.KubeProxyConfiguration, 
 		return nil, err
 	}
 	return o.GetConfig(), nil
-}
-
-// ProxyConfigFromNodeConfig builds the kube-proxy configuration from the already-parsed nodeconfig.
-func ProxyConfigFromNodeConfig(nodeName, bindAddress, iptablesSyncPeriod string, proxyArguments map[string][]string) (*kubeproxyconfig.KubeProxyConfiguration, error) {
-	proxyOptions := kubeproxyoptions.NewOptions()
-	// get default config
-	proxyconfig := proxyOptions.GetConfig()
-	defaultedProxyConfig, err := proxyOptions.ApplyDefaults(proxyconfig)
-	if err != nil {
-		return nil, err
-	}
-	*proxyconfig = *defaultedProxyConfig
-
-	proxyconfig.HostnameOverride = nodeName
-
-	// BindAddress - Override default bind address from our config
-	host, _, err := net.SplitHostPort(bindAddress)
-	if err != nil {
-		return nil, fmt.Errorf("The provided value to bind to must be an ip:port %q", bindAddress)
-	}
-	ip := net.ParseIP(host)
-	if ip == nil {
-		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", bindAddress)
-	}
-	proxyconfig.BindAddress = ip.String()
-	proxyconfig.MetricsBindAddress = "0.0.0.0:10253"
-	if arg := proxyArguments["metrics-bind-address"]; len(arg) > 0 {
-		proxyconfig.MetricsBindAddress = arg[0]
-	}
-	delete(proxyArguments, "metrics-bind-address")
-
-	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
-	oomScoreAdj := int32(0)
-	proxyconfig.OOMScoreAdj = &oomScoreAdj
-	proxyconfig.ResourceContainer = ""
-
-	// ProxyMode, set to iptables
-	proxyconfig.Mode = "iptables"
-
-	// IptablesSyncPeriod, set to our config value
-	syncPeriod, err := time.ParseDuration(iptablesSyncPeriod)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", iptablesSyncPeriod, err)
-	}
-	proxyconfig.IPTables.SyncPeriod = metav1.Duration{
-		Duration: syncPeriod,
-	}
-	masqueradeBit := int32(0)
-	proxyconfig.IPTables.MasqueradeBit = &masqueradeBit
-
-	// PortRange, use default
-	// HostnameOverride, use default
-	// ConfigSyncPeriod, use default
-	// MasqueradeAll, use default
-	// CleanupAndExit, use default
-	// KubeAPIQPS, use default, doesn't apply until we build a separate client
-	// KubeAPIBurst, use default, doesn't apply until we build a separate client
-	// UDPIdleTimeout, use default
-
-	// Resolve cmd flags to add any user overrides
-	fss := apiserverflag.NamedFlagSets{}
-	proxyOptions.AddFlags(fss.FlagSet("proxy"))
-	if err := cmdflags.Resolve(proxyArguments, fss); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-
-	if err := proxyOptions.Complete(); err != nil {
-		return nil, err
-	}
-
-	return proxyconfig, nil
 }
 
 // initProxy sets up the proxy process.
