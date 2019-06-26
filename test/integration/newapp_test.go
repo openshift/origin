@@ -23,6 +23,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,8 +33,8 @@ import (
 	kwatch "k8s.io/apimachinery/pkg/watch"
 	krest "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/api"
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	dockerv10 "github.com/openshift/api/image/docker10"
@@ -339,6 +340,7 @@ func TestNewAppRunAll(t *testing.T) {
 	okTemplateClient := faketemplatev1client.NewSimpleClientset()
 	okImageClient := fakeimagev1client.NewSimpleClientset()
 	okRouteClient := fakeroutev1client.NewSimpleClientset()
+	customScheme, _ := apitesting.SchemeForOrDie(api.Install, api.InstallKube)
 	tests := []struct {
 		name            string
 		config          *cmd.AppConfig
@@ -376,7 +378,7 @@ func TestNewAppRunAll(t *testing.T) {
 				GenerationInputs: cmd.GenerationInputs{
 					Strategy: newapp.StrategySource,
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -421,7 +423,7 @@ func TestNewAppRunAll(t *testing.T) {
 					Strategy: newapp.StrategySource,
 					Labels:   map[string]string{"label1": "value1", "label2": "value2"},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -464,7 +466,7 @@ func TestNewAppRunAll(t *testing.T) {
 				GenerationInputs: cmd.GenerationInputs{
 					Strategy: newapp.StrategyDocker,
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -505,7 +507,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -546,7 +548,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -600,7 +602,7 @@ func TestNewAppRunAll(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -641,7 +643,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -691,7 +693,7 @@ func TestNewAppRunAll(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -736,7 +738,7 @@ func TestNewAppRunAll(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -783,7 +785,7 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces: []string{"openshift", "default"},
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -819,7 +821,7 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces: []string{"openshift", "default"},
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -1741,6 +1743,7 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 	okTemplateClient := faketemplatev1client.NewSimpleClientset()
 	okImageClient := fakeimagev1client.NewSimpleClientset()
 	okRouteClient := fakeroutev1client.NewSimpleClientset()
+	customScheme, _ := apitesting.SchemeForOrDie(api.Install, api.InstallKube)
 
 	tests := []struct {
 		name        string
@@ -1768,7 +1771,7 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -1814,6 +1817,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	okTemplateClient := faketemplatev1client.NewSimpleClientset()
 	okImageClient := fakeimagev1client.NewSimpleClientset()
 	okRouteClient := fakeroutev1client.NewSimpleClientset()
+	customScheme, _ := apitesting.SchemeForOrDie(api.Install, api.InstallKube)
 
 	tests := []struct {
 		name               string
@@ -1845,7 +1849,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           legacyscheme.Scheme,
+				Typer:           customScheme,
 				ImageClient:     okImageClient.ImageV1(),
 				TemplateClient:  okTemplateClient.TemplateV1(),
 				RouteClient:     okRouteClient.RouteV1(),
@@ -2326,7 +2330,9 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 		Client:     okTemplateClient.TemplateV1(),
 		Namespaces: []string{"openshift", "default"},
 	}
-	config.Typer = legacyscheme.Scheme
+
+	customScheme, _ := apitesting.SchemeForOrDie(api.Install, api.InstallKube)
+	config.Typer = customScheme
 	return
 }
 
