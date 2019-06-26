@@ -117,7 +117,16 @@ func (AuthenticationList) SwaggerDoc() map[string]string {
 	return map_AuthenticationList
 }
 
+var map_Console = map[string]string{
+	"": "Console provides a means to configure an operator to manage the console.",
+}
+
+func (Console) SwaggerDoc() map[string]string {
+	return map_Console
+}
+
 var map_ConsoleCustomization = map[string]string{
+	"":                     "ConsoleCustomization defines a list of optional configuration for the console UI.",
 	"brand":                "brand is the default branding of the web console which can be overridden by providing the brand field.  There is a limited set of specific brand options. This field controls elements of the console such as the logo. Invalid value will prevent a console rollout.",
 	"documentationBaseURL": "documentationBaseURL links to external documentation are shown in various sections of the web console.  Providing documentationBaseURL will override the default documentation URL. Invalid value will prevent a console rollout.",
 	"customProductName":    "customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog instead of the normal OpenShift product name.",
@@ -129,6 +138,7 @@ func (ConsoleCustomization) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleProviders = map[string]string{
+	"":           "ConsoleProviders defines a list of optional additional providers of functionality to the console.",
 	"statuspage": "statuspage contains ID for statuspage.io page that provides status info about.",
 }
 
@@ -137,12 +147,21 @@ func (ConsoleProviders) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleSpec = map[string]string{
+	"":              "ConsoleSpec is the specification of the desired behavior of the Console.",
 	"customization": "customization is used to optionally provide a small set of customization options to the web console.",
 	"providers":     "providers contains configuration for using specific service providers.",
 }
 
 func (ConsoleSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleSpec
+}
+
+var map_ConsoleStatus = map[string]string{
+	"": "ConsoleStatus defines the observed status of the Console.",
+}
+
+func (ConsoleStatus) SwaggerDoc() map[string]string {
+	return map_ConsoleStatus
 }
 
 var map_StatuspageProvider = map[string]string{

@@ -1,5 +1,5 @@
-hash: 6d1e82ea5ef2b16480b6b638c04b970014a559545fa1002899254783bd412d6d
-updated: 2019-06-19T07:56:21.928553003-04:00
+hash: 6ac9405b255415ef35dd7b6f27dec6c29bded8f5eadec61513a01951bb03717e
+updated: 2019-06-26T10:20:32.992441982-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -927,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: a77179bc5896d5391a200f8a4578f092f8828178
+  version: 64d243ed05c5e2e1c779db0810323571d5674ccc
   subpackages:
   - annotations
   - apps
@@ -938,6 +938,8 @@ imports:
   - build/v1
   - config
   - config/v1
+  - console
+  - console/v1
   - image
   - image/docker10
   - image/dockerpre012
@@ -1104,8 +1106,12 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 6b58b672ee58bbbbeb9a18535292dba22c54b6c9
+  version: 16a370625b52c7958783b8f74de58317236da6b4
   subpackages:
+  - pkg/apiserver/admission/admissionregistrationtesting
+  - pkg/apiserver/admission/admissionrestconfig
+  - pkg/apiserver/admission/admissiontimeout
+  - pkg/apiserver/apiserverconfig
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
   - pkg/apps/appsutil
@@ -1122,6 +1128,7 @@ imports:
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/leaderelection
+  - pkg/config/serving
   - pkg/config/validation
   - pkg/crypto
   - pkg/git
@@ -1155,7 +1162,7 @@ imports:
   - pkg/template/templateprocessingclient
   - pkg/unidling/unidlingclient
 - name: github.com/openshift/oauth-server
-  version: dcbeb48c9cedcf0827629556f1e6cdb8538d4ebe
+  version: 4e2c7e8021eb4d897db02b0fce34cdb3402c5483
   subpackages:
   - pkg
   - pkg/api
@@ -1173,6 +1180,7 @@ imports:
   - pkg/authenticator/request/basicauthrequest
   - pkg/authenticator/request/headerrequest
   - pkg/authenticator/tokens
+  - pkg/cmd/oauth-server
   - pkg/config
   - pkg/oauth/external
   - pkg/oauth/external/github
@@ -1200,6 +1208,7 @@ imports:
   - pkg/server/session
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
+  - pkg/version
 - name: github.com/openshift/oc
   version: eb81f141d29f07073dcc8cbe9be77e3703f3e451
   subpackages:
@@ -1364,14 +1373,189 @@ imports:
   - pkg/helpers/tokencmd
   - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: 3d9a974b605cd66688c3c8a4a51a9ff2ad8a91ab
+  version: a48daecd8d8f22de33be3c7ea8127672f84d46e0
   subpackages:
+  - pkg/api
+  - pkg/api/apihelpers
+  - pkg/api/apihelpers/apitesting
+  - pkg/api/install
+  - pkg/api/legacy
   - pkg/apiserver/labelselector
   - pkg/apiserver/rest
+  - pkg/apps/apis/apps
+  - pkg/apps/apis/apps/install
+  - pkg/apps/apis/apps/internaltest
+  - pkg/apps/apis/apps/v1
+  - pkg/apps/apis/apps/validation
+  - pkg/apps/apiserver
+  - pkg/apps/apiserver/registry/appstest
+  - pkg/apps/apiserver/registry/deployconfig
+  - pkg/apps/apiserver/registry/deployconfig/etcd
+  - pkg/apps/apiserver/registry/deploylog
+  - pkg/apps/apiserver/registry/instantiate
+  - pkg/apps/apiserver/registry/rollback
+  - pkg/authorization/apis/authorization
+  - pkg/authorization/apis/authorization/install
+  - pkg/authorization/apis/authorization/rbacconversion
+  - pkg/authorization/apis/authorization/v1
+  - pkg/authorization/apis/authorization/validation
+  - pkg/authorization/apiserver
+  - pkg/authorization/apiserver/registry/clusterrole
+  - pkg/authorization/apiserver/registry/clusterrolebinding
+  - pkg/authorization/apiserver/registry/localresourceaccessreview
+  - pkg/authorization/apiserver/registry/localsubjectaccessreview
+  - pkg/authorization/apiserver/registry/registry
+  - pkg/authorization/apiserver/registry/resourceaccessreview
+  - pkg/authorization/apiserver/registry/role
+  - pkg/authorization/apiserver/registry/rolebinding
+  - pkg/authorization/apiserver/registry/rolebindingrestriction/etcd
+  - pkg/authorization/apiserver/registry/selfsubjectrulesreview
+  - pkg/authorization/apiserver/registry/subjectaccessreview
+  - pkg/authorization/apiserver/registry/subjectrulesreview
+  - pkg/authorization/apiserver/registry/util
+  - pkg/bootstrappolicy
+  - pkg/build/apis/build
+  - pkg/build/apis/build/install
+  - pkg/build/apis/build/internal_helpers
+  - pkg/build/apis/build/v1
+  - pkg/build/apis/build/validation
+  - pkg/build/apiserver
+  - pkg/build/apiserver/admission/secretinjector
+  - pkg/build/apiserver/admission/strategyrestrictions
+  - pkg/build/apiserver/apiserverbuildutil
+  - pkg/build/apiserver/buildgenerator
+  - pkg/build/apiserver/registry/build
+  - pkg/build/apiserver/registry/build/etcd
+  - pkg/build/apiserver/registry/buildclone
+  - pkg/build/apiserver/registry/buildconfig
+  - pkg/build/apiserver/registry/buildconfig/etcd
+  - pkg/build/apiserver/registry/buildconfiginstantiate
+  - pkg/build/apiserver/registry/buildlog
+  - pkg/build/apiserver/registry/wait
+  - pkg/build/apiserver/webhook
+  - pkg/build/apiserver/webhook/bitbucket
+  - pkg/build/apiserver/webhook/generic
+  - pkg/build/apiserver/webhook/github
+  - pkg/build/apiserver/webhook/gitlab
   - pkg/client/impersonatingclient
+  - pkg/cmd/openshift-apiserver
+  - pkg/cmd/openshift-apiserver/openshiftadmission
+  - pkg/cmd/openshift-apiserver/openshiftapiserver
+  - pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing
+  - pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing/flags
+  - pkg/image/apis/image
+  - pkg/image/apis/image/docker10
+  - pkg/image/apis/image/install
+  - pkg/image/apis/image/v1
+  - pkg/image/apis/image/validation
+  - pkg/image/apis/image/validation/fake
+  - pkg/image/apis/image/validation/whitelist
+  - pkg/image/apiserver
+  - pkg/image/apiserver/admission/fake
+  - pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators
+  - pkg/image/apiserver/admission/limitrange
+  - pkg/image/apiserver/importer
+  - pkg/image/apiserver/importer/dockerv1client
+  - pkg/image/apiserver/internalimageutil
+  - pkg/image/apiserver/registry/image
+  - pkg/image/apiserver/registry/image/etcd
+  - pkg/image/apiserver/registry/imagesecret
+  - pkg/image/apiserver/registry/imagesignature
+  - pkg/image/apiserver/registry/imagestream
+  - pkg/image/apiserver/registry/imagestream/etcd
+  - pkg/image/apiserver/registry/imagestreamimage
+  - pkg/image/apiserver/registry/imagestreamimport
+  - pkg/image/apiserver/registry/imagestreammapping
+  - pkg/image/apiserver/registry/imagestreamtag
+  - pkg/image/apiserver/registryhostname
+  - pkg/image/apiserver/testutil
+  - pkg/oauth/apis/oauth
+  - pkg/oauth/apis/oauth/install
+  - pkg/oauth/apis/oauth/v1
+  - pkg/oauth/apis/oauth/validation
+  - pkg/oauth/apiserver
+  - pkg/oauth/apiserver/registry/oauthaccesstoken
+  - pkg/oauth/apiserver/registry/oauthaccesstoken/etcd
+  - pkg/oauth/apiserver/registry/oauthauthorizetoken
+  - pkg/oauth/apiserver/registry/oauthauthorizetoken/etcd
+  - pkg/oauth/apiserver/registry/oauthclient
+  - pkg/oauth/apiserver/registry/oauthclient/etcd
+  - pkg/oauth/apiserver/registry/oauthclientauthorization
+  - pkg/oauth/apiserver/registry/oauthclientauthorization/etcd
+  - pkg/openapi
+  - pkg/printers/internalversion
+  - pkg/project/apis/project
+  - pkg/project/apis/project/install
+  - pkg/project/apis/project/v1
+  - pkg/project/apis/project/validation
+  - pkg/project/apiserver
+  - pkg/project/apiserver/admission/apis/requestlimit
+  - pkg/project/apiserver/admission/apis/requestlimit/v1
+  - pkg/project/apiserver/admission/apis/requestlimit/validation
+  - pkg/project/apiserver/admission/requestlimit
+  - pkg/project/apiserver/registry/project
+  - pkg/project/apiserver/registry/project/proxy
+  - pkg/project/apiserver/registry/projectrequest
+  - pkg/project/apiserver/registry/projectrequest/delegated
+  - pkg/project/auth
+  - pkg/project/cache
+  - pkg/project/util
+  - pkg/quota/apis/quota
+  - pkg/quota/apis/quota/install
+  - pkg/quota/apis/quota/v1
+  - pkg/quota/apis/quota/validation
+  - pkg/quota/apiserver
+  - pkg/quota/apiserver/registry/appliedclusterresourcequota
+  - pkg/quota/apiserver/registry/clusterresourcequota/etcd
+  - pkg/quota/image
+  - pkg/quota/quotaimageexternal
+  - pkg/route/apis/route
+  - pkg/route/apis/route/install
+  - pkg/route/apis/route/v1
+  - pkg/route/apis/route/validation
+  - pkg/route/apiserver
+  - pkg/route/apiserver/registry/route
+  - pkg/route/apiserver/registry/route/etcd
+  - pkg/route/apiserver/routeallocationcontroller
+  - pkg/route/apiserver/routeinterfaces
+  - pkg/route/apiserver/simplerouteallocation
+  - pkg/security/apis/security
+  - pkg/security/apis/security/install
+  - pkg/security/apis/security/v1
+  - pkg/security/apis/security/validation
+  - pkg/security/apiserver
+  - pkg/security/apiserver/admission/testing
+  - pkg/security/apiserver/registry/podsecuritypolicyreview
+  - pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview
+  - pkg/security/apiserver/registry/podsecuritypolicysubjectreview
+  - pkg/security/apiserver/registry/rangeallocations
+  - pkg/security/apiserver/registry/securitycontextconstraints/etcd
+  - pkg/template/apis/template
+  - pkg/template/apis/template/install
+  - pkg/template/apis/template/v1
+  - pkg/template/apis/template/validation
+  - pkg/template/apiserver
+  - pkg/template/apiserver/registry/brokertemplateinstance
+  - pkg/template/apiserver/registry/brokertemplateinstance/etcd
+  - pkg/template/apiserver/registry/template
+  - pkg/template/apiserver/registry/template/etcd
+  - pkg/template/apiserver/registry/templateinstance
+  - pkg/template/apiserver/registry/templateinstance/etcd
+  - pkg/user/apis/user
+  - pkg/user/apis/user/install
+  - pkg/user/apis/user/v1
+  - pkg/user/apis/user/validation
+  - pkg/user/apiserver
+  - pkg/user/apiserver/registry/group
+  - pkg/user/apiserver/registry/group/etcd
+  - pkg/user/apiserver/registry/identity
+  - pkg/user/apiserver/registry/identity/etcd
+  - pkg/user/apiserver/registry/user
+  - pkg/user/apiserver/registry/user/etcd
+  - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: bf63394ad3ad412202d00792612e9b5fbfd4dd27
+  version: 2e855b437b1d4fcbbd5fee46a64fe31d0f9128af
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1415,7 +1599,7 @@ imports:
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/sdn
-  version: 895d0a2dcb8c74a6fc00381fc55ec1e50967c58a
+  version: 509cf483f8cf2359e7b83b6da989c758b11152ff
   subpackages:
   - pkg/network
   - pkg/network/common
@@ -1929,7 +2113,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: d4b26e32461e939592c021a8a75d9f1b2c809d08
+  version: ee330a2a5c6d54e58af0defc868f1258a5c47422
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -2038,7 +2222,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: a93f9e7440297895d7482102382b5d9a4b58f52b
+  version: 609697ced6c17aa748be8e7af619bfd99aa2e952
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2508,7 +2692,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 6e5f1ac8b3017d155add822287a4310a3ba8619f
+  version: 3a0658d1a4c171ade6984b845232cdb10a23e168
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -2529,6 +2713,73 @@ imports:
   - cmd/kubeadm/app/util/pkiutil
   - cmd/kubelet/app
   - cmd/kubelet/app/options
+  - openshift-kube-apiserver/admission/authorization/restrictusers
+  - openshift-kube-apiserver/admission/authorization/restrictusers/usercache
+  - openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride
+  - openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1
+  - openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/validation
+  - openshift-kube-apiserver/admission/autoscaling/apis/runonceduration
+  - openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1
+  - openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/validation
+  - openshift-kube-apiserver/admission/autoscaling/clusterresourceoverride
+  - openshift-kube-apiserver/admission/autoscaling/runonceduration
+  - openshift-kube-apiserver/admission/customresourcevalidation
+  - openshift-kube-apiserver/admission/customresourcevalidation/authentication
+  - openshift-kube-apiserver/admission/customresourcevalidation/clusterresourcequota
+  - openshift-kube-apiserver/admission/customresourcevalidation/clusterresourcequota/validation
+  - openshift-kube-apiserver/admission/customresourcevalidation/config
+  - openshift-kube-apiserver/admission/customresourcevalidation/console
+  - openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration
+  - openshift-kube-apiserver/admission/customresourcevalidation/features
+  - openshift-kube-apiserver/admission/customresourcevalidation/image
+  - openshift-kube-apiserver/admission/customresourcevalidation/oauth
+  - openshift-kube-apiserver/admission/customresourcevalidation/project
+  - openshift-kube-apiserver/admission/customresourcevalidation/rolebindingrestriction
+  - openshift-kube-apiserver/admission/customresourcevalidation/rolebindingrestriction/validation
+  - openshift-kube-apiserver/admission/customresourcevalidation/scheduler
+  - openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints
+  - openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints/validation
+  - openshift-kube-apiserver/admission/imagepolicy
+  - openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1
+  - openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation
+  - openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators
+  - openshift-kube-apiserver/admission/imagepolicy/rules
+  - openshift-kube-apiserver/admission/namespaceconditions
+  - openshift-kube-apiserver/admission/network/apis/externalipranger
+  - openshift-kube-apiserver/admission/network/apis/externalipranger/v1
+  - openshift-kube-apiserver/admission/network/apis/restrictedendpoints
+  - openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1
+  - openshift-kube-apiserver/admission/network/externalipranger
+  - openshift-kube-apiserver/admission/network/restrictedendpoints
+  - openshift-kube-apiserver/admission/quota/clusterresourcequota
+  - openshift-kube-apiserver/admission/route
+  - openshift-kube-apiserver/admission/route/apis/ingressadmission
+  - openshift-kube-apiserver/admission/route/apis/ingressadmission/v1
+  - openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints
+  - openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints/v1
+  - openshift-kube-apiserver/admission/scheduler/nodeenv
+  - openshift-kube-apiserver/admission/scheduler/nodeenv/labelselector
+  - openshift-kube-apiserver/admission/scheduler/podnodeconstraints
+  - openshift-kube-apiserver/admission/security/sccadmission
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/capabilities
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/group
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/seccomp
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/selinux
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/user
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/util
+  - openshift-kube-apiserver/admission/security/securitycontextconstraints/util/sort
+  - openshift-kube-apiserver/authentication/oauth
+  - openshift-kube-apiserver/authentication/oauth/rankedset
+  - openshift-kube-apiserver/authorization/browsersafe
+  - openshift-kube-apiserver/authorization/scope
+  - openshift-kube-apiserver/authorization/scopeauthorizer
+  - openshift-kube-apiserver/configdefault
+  - openshift-kube-apiserver/configflags
+  - openshift-kube-apiserver/enablement
+  - openshift-kube-apiserver/kubeadmission
+  - openshift-kube-apiserver/openshiftkubeapiserver
+  - openshift-kube-apiserver/openshiftkubeapiserver/paramtoken
   - pkg/api/endpoints
   - pkg/api/legacyscheme
   - pkg/api/persistentvolume
@@ -3282,8 +3533,6 @@ imports:
   - plugin/pkg/auth/authorizer/rbac
   - plugin/pkg/auth/authorizer/rbac/bootstrappolicy
   - staging/src/k8s.io/apimachinery/pkg/api/apitesting
-  - staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
-  - staging/src/k8s.io/apimachinery/pkg/labels
   - test/e2e
   - test/e2e/apimachinery
   - test/e2e/apps
@@ -3426,7 +3675,7 @@ imports:
   - typed
   - value
 - name: sigs.k8s.io/yaml
-  version: a1a83904bd1b57efc5fc911d4351fc788db1df52
+  version: 4e761d0940e599a9569b441f02025fc5981ec2a5
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:

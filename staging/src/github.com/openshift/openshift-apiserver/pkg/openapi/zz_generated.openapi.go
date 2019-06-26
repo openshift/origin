@@ -174,6 +174,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.DelegatedAuthorization":                                                   schema_openshift_api_config_v1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/config/v1.EtcdConnectionInfo":                                                       schema_openshift_api_config_v1_EtcdConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.EtcdStorageConfig":                                                        schema_openshift_api_config_v1_EtcdStorageConfig(ref),
+		"github.com/openshift/api/config/v1.ExternalIPConfig":                                                         schema_openshift_api_config_v1_ExternalIPConfig(ref),
+		"github.com/openshift/api/config/v1.ExternalIPPolicy":                                                         schema_openshift_api_config_v1_ExternalIPPolicy(ref),
 		"github.com/openshift/api/config/v1.FeatureGate":                                                              schema_openshift_api_config_v1_FeatureGate(ref),
 		"github.com/openshift/api/config/v1.FeatureGateEnabledDisabled":                                               schema_openshift_api_config_v1_FeatureGateEnabledDisabled(ref),
 		"github.com/openshift/api/config/v1.FeatureGateList":                                                          schema_openshift_api_config_v1_FeatureGateList(ref),
@@ -8443,7 +8445,7 @@ func schema_openshift_api_config_v1_Console(ref common.ReferenceCallback) common
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Console holds cluster-wide information about Console.  The canonical name is `cluster`",
+				Description: "Console holds cluster-wide information about Console.  The canonical name is `cluster`.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -8491,7 +8493,8 @@ func schema_openshift_api_config_v1_ConsoleAuthentication(ref common.ReferenceCa
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleAuthentication defines a list of optional configuration for console authentication.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"logoutRedirect": {
 						SchemaProps: spec.SchemaProps{
@@ -8557,7 +8560,8 @@ func schema_openshift_api_config_v1_ConsoleSpec(ref common.ReferenceCallback) co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleSpec is the specification of the desired behavior of the Console.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"authentication": {
 						SchemaProps: spec.SchemaProps{
@@ -8576,7 +8580,8 @@ func schema_openshift_api_config_v1_ConsoleStatus(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleStatus defines the observed status of the Console.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"consoleURL": {
 						SchemaProps: spec.SchemaProps{
@@ -8905,6 +8910,82 @@ func schema_openshift_api_config_v1_EtcdStorageConfig(ref common.ReferenceCallba
 					},
 				},
 				Required: []string{"ca", "certFile", "keyFile", "storagePrefix"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_ExternalIPConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ExternalIPConfig specifies some IP blocks relevant for the ExternalIP field of a Service resource.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"policy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "policy is a set of restrictions applied to the ExternalIP field. If nil, any value is allowed for an ExternalIP. If the empty/zero policy is supplied, then ExternalIP is not allowed to be set.",
+							Ref:         ref("github.com/openshift/api/config/v1.ExternalIPPolicy"),
+						},
+					},
+					"autoAssignCIDRs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "autoAssignCIDRs is a list of CIDRs from which to automatically assign Service.ExternalIP. These are assigned when the service is of type LoadBalancer. In general, this is only useful for bare-metal clusters. In Openshift 3.x, this was misleadingly called \"IngressIPs\". Automatically assigned External IPs are not affected by any ExternalIPPolicy rules. Currently, only one entry may be provided.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ExternalIPPolicy"},
+	}
+}
+
+func schema_openshift_api_config_v1_ExternalIPPolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ExternalIPPolicy configures exactly which IPs are allowed for the ExternalIP field in a Service. If the zero struct is supplied, then none are permitted. The policy controller always allows automatically assigned external IPs.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"allowedCIDRs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "allowedCIDRs is the list of allowed CIDRs.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"rejectedCIDRs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rejectedCIDRs is the list of disallowed CIDRs. These take precedence over allowedCIDRs.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -10513,7 +10594,7 @@ func schema_openshift_api_config_v1_NetworkSpec(ref common.ReferenceCallback) co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "NetworkSpec is the desired network configuration. As a general rule, this SHOULD NOT be read directly. Instead, you should consume the NetworkStatus, as it indicates the currently deployed configuration. Currently, none of these fields may be changed after installation.",
+				Description: "NetworkSpec is the desired network configuration. As a general rule, this SHOULD NOT be read directly. Instead, you should consume the NetworkStatus, as it indicates the currently deployed configuration. Currently, changing ClusterNetwork, ServiceNetwork, or NetworkType after installation is not supported.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"clusterNetwork": {
@@ -10550,12 +10631,18 @@ func schema_openshift_api_config_v1_NetworkSpec(ref common.ReferenceCallback) co
 							Format:      "",
 						},
 					},
+					"externalIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "externalIP defines configuration for controllers that affect Service.ExternalIP",
+							Ref:         ref("github.com/openshift/api/config/v1.ExternalIPConfig"),
+						},
+					},
 				},
 				Required: []string{"clusterNetwork", "serviceNetwork", "networkType"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ClusterNetworkEntry"},
+			"github.com/openshift/api/config/v1.ClusterNetworkEntry", "github.com/openshift/api/config/v1.ExternalIPConfig"},
 	}
 }
 
@@ -21923,7 +22010,8 @@ func schema_openshift_api_operator_v1_Console(ref common.ReferenceCallback) comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "Console provides a means to configure an operator to manage the console.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -21966,7 +22054,8 @@ func schema_openshift_api_operator_v1_ConsoleCustomization(ref common.ReferenceC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleCustomization defines a list of optional configuration for the console UI.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"brand": {
 						SchemaProps: spec.SchemaProps{
@@ -22053,7 +22142,8 @@ func schema_openshift_api_operator_v1_ConsoleProviders(ref common.ReferenceCallb
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleProviders defines a list of optional additional providers of functionality to the console.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"statuspage": {
 						SchemaProps: spec.SchemaProps{
@@ -22073,7 +22163,8 @@ func schema_openshift_api_operator_v1_ConsoleSpec(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleSpec is the specification of the desired behavior of the Console.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"managementState": {
 						SchemaProps: spec.SchemaProps{
@@ -22133,7 +22224,8 @@ func schema_openshift_api_operator_v1_ConsoleStatus(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ConsoleStatus defines the observed status of the Console.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"observedGeneration": {
 						SchemaProps: spec.SchemaProps{
