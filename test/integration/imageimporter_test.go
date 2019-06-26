@@ -38,6 +38,77 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
+const (
+	pulpRegistryName = "registry.access.redhat.com"
+	quayRegistryName = "quay.io"
+
+	maxRetryCount = 4
+	retryAfter    = time.Millisecond * 500
+)
+
+var (
+	// Below are lists of error patterns for use with `retryOnErrors` utility.
+
+	// unreachableErrorPatterns will match following error examples:
+	//   Get https://registry.com/v2/: dial tcp registry.com:443: i/o timeout
+	//   Get https://registry.com/v2/: dial tcp: lookup registry.com: no such host
+	//   Get https://registry.com/v2/: dial tcp registry.com:443: getsockopt: connection refused
+	//   Get https://registry.com/v2/: read tcp 127.0.0.1:39849->registry.com:443: read: connection reset by peer
+	//   Get https://registry.com/v2/: net/http: request cancelled while waiting for connection
+	//   Get https://registry.com/v2/: net/http: TLS handshake timeout
+	//   the registry "https://registry.com/v2/" could not be reached
+	unreachableErrorPatterns = []string{
+		"dial tcp",
+		"read tcp",
+		"net/http",
+		"could not be reached",
+	}
+
+	// imageNotFoundErrorPatterns will match following error examples:
+	//   the image "..." in repository "..." was not found and may have been deleted
+	//   tag "..." has not been set on repository "..."
+	// use only with non-internal registry
+	imageNotFoundErrorPatterns = []string{
+		"was not found and may have been deleted",
+		"has not been set on repository",
+	}
+)
+
+// retryOnErrors invokes given function several times until it succeeds,
+// returns unexpected error or a maximum number of attempts is reached. It
+// should be used to wrap calls to remote registry to prevent test failures
+// because of short-term outages or image updates.
+func retryOnErrors(t *testing.T, errorPatterns []string, f func() error) error {
+	timeout := retryAfter
+	attempt := 0
+	for err := f(); err != nil; err = f() {
+		match := false
+		for _, pattern := range errorPatterns {
+			if strings.Contains(err.Error(), pattern) {
+				match = true
+				break
+			}
+		}
+
+		if !match || attempt >= maxRetryCount {
+			return err
+		}
+
+		t.Logf("caught error \"%v\", retrying in %s", err, timeout.String())
+		time.Sleep(timeout)
+		timeout = timeout * 2
+		attempt += 1
+	}
+	return nil
+}
+
+// retryWhenUnreachable is a convenient wrapper for retryOnErrors that makes it
+// retry when the registry is not reachable. Additional error patterns may
+// follow.
+func retryWhenUnreachable(t *testing.T, f func() error, errorPatterns ...string) error {
+	return retryOnErrors(t, append(errorPatterns, unreachableErrorPatterns...), f)
+}
+
 func TestImageStreamImport(t *testing.T) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
