@@ -33,7 +33,7 @@ JUNIT_REPORT ?= true
 # Example:
 #   make
 #   make all
-#   make all WHAT=cmd/oc GOFLAGS=-v
+#   make all WHAT=cmd/openshift-tests GOFLAGS=-v
 #   make all GOGCFLAGS="-N -l"
 all build:
 	hack/build-go.sh $(WHAT) $(GOFLAGS)
@@ -44,7 +44,7 @@ all build:
 # Example:
 #   make build-all
 build-all:
-	hack/build-go.sh cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube cmd/oc vendor/github.com/openshift/sdn/cmd/openshift-sdn vendor/github.com/openshift/oauth-server/cmd/oauth-server cmd/openshift-tests
+	hack/build-go.sh cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube vendor/github.com/openshift/oc/cmd/oc vendor/github.com/openshift/sdn/cmd/openshift-sdn vendor/github.com/openshift/oauth-server/cmd/oauth-server cmd/openshift-tests
 .PHONY: build-all
 
 # Build the test binaries.

@@ -36,7 +36,7 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
 readonly OS_CROSS_COMPILE_TARGETS=(
-  cmd/oc
+  vendor/github.com/openshift/oc/cmd/oc
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -314,14 +314,14 @@ function os::build::generate_windows_versioninfo() {
        }
 }
 EOF
-  goversioninfo -o ${OS_ROOT}/cmd/oc/oc.syso ${windows_versioninfo_file}
+  goversioninfo -o ${OS_ROOT}/vendor/github.com/openshift/oc/cmd/oc/oc.syso ${windows_versioninfo_file}
 }
 readonly -f os::build::generate_windows_versioninfo
 
 # Removes the .syso file used to add compile-time VERSIONINFO metadata to the
 # Windows binary.
 function os::build::clean_windows_versioninfo() {
-  rm ${OS_ROOT}/cmd/oc/oc.syso
+  rm ${OS_ROOT}/vendor/github.com/openshift/oc/cmd/oc/oc.syso
 }
 readonly -f os::build::clean_windows_versioninfo
 

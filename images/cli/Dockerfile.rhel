@@ -1,7 +1,7 @@
 FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.12 AS builder
 WORKDIR /go/src/github.com/openshift/origin
 COPY . .
-RUN make build WHAT=cmd/oc; \
+RUN make build WHAT=vendor/github.com/openshift/oc/cmd/oc; \
     mkdir -p /tmp/build; \
     cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/oc /tmp/build/oc
 
