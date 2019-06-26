@@ -48,9 +48,8 @@ import (
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
-
 	"github.com/openshift/oc/pkg/helpers/bulk"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	imagehelpers "github.com/openshift/oc/pkg/helpers/image"
 	"github.com/openshift/oc/pkg/helpers/newapp"
 	newappapp "github.com/openshift/oc/pkg/helpers/newapp/app"
@@ -205,7 +204,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f kcmdut
 		return err
 	}
 
-	o.Action.Bulk.Scheme = scheme.Scheme
+	o.Action.Bulk.Scheme = newAppScheme
 	o.Action.Bulk.Op = bulk.Creator{Client: dynamicClient, RESTMapper: mapper}.Create
 	// Retry is used to support previous versions of the API server that will
 	// consider the presence of an unknown trigger type to be an error.
