@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/reference"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/library-go/pkg/apps/appsserialization"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
@@ -29,7 +29,7 @@ func RecordConfigEvent(client corev1client.EventsGetter, deployment *corev1.Repl
 	} else {
 		klog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
-	ref, err := reference.GetReference(legacyscheme.Scheme, obj)
+	ref, err := reference.GetReference(scheme.Scheme, obj)
 	if err != nil {
 		klog.Errorf("Unable to get reference for %#v: %v", obj, err)
 		return
@@ -61,7 +61,7 @@ func RecordConfigWarnings(client corev1client.EventsGetter, rc *corev1.Replicati
 	if rc == nil {
 		return
 	}
-	events, err := client.Events(rc.Namespace).Search(legacyscheme.Scheme, rc)
+	events, err := client.Events(rc.Namespace).Search(scheme.Scheme, rc)
 	if err != nil {
 		fmt.Fprintf(out, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
 		return

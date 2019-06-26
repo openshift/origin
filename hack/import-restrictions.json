@@ -40,7 +40,6 @@
       "github.com/openshift/origin/test"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/cmd/oc",
       "github.com/openshift/origin/cmd/openshift-tests",
       "github.com/openshift/origin/test/common/build",
       "github.com/openshift/origin/test/extended",

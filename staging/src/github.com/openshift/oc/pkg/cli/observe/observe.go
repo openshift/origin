@@ -20,7 +20,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,9 +35,10 @@ import (
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/jsonpath"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/klog"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/oc/pkg/helpers/proc"
@@ -349,7 +349,7 @@ func (o *ObserveOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 	default:
 		return fmt.Errorf("template type %q not recognized - valid values are jsonpath and gotemplate", o.templateType)
 	}
-	o.printer = NewVersionedColumnPrinter(o.printer, legacyscheme.Scheme, version.GroupVersion())
+	o.printer = NewVersionedColumnPrinter(o.printer, scheme.Scheme, version.GroupVersion())
 	if o.noHeaders {
 		o.debugOut = ioutil.Discard
 	} else {

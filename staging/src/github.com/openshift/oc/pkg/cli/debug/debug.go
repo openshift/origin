@@ -21,7 +21,6 @@ import (
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -29,8 +28,6 @@ import (
 	"k8s.io/cli-runtime/pkg/resource"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/attach"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
@@ -345,7 +342,7 @@ func (o *DebugOptions) RunDebug() error {
 		klog.V(4).Infof("Unable to get exact template, but continuing with fallback: %v", err)
 	}
 	template := &corev1.PodTemplateSpec{}
-	if err := legacyscheme.Scheme.Convert(templateV1, template, nil); err != nil {
+	if err := scheme.Scheme.Convert(templateV1, template, nil); err != nil {
 		return err
 	}
 	pod := &corev1.Pod{
@@ -463,7 +460,7 @@ func (o *DebugOptions) RunDebug() error {
 		default:
 			// TODO this doesn't do us much good for remote debugging sessions, but until we get a local port
 			// set up to proxy, this is what we've got.
-			if podWithStatus, ok := containerRunningEvent.Object.(*kapi.Pod); ok {
+			if podWithStatus, ok := containerRunningEvent.Object.(*corev1.Pod); ok {
 				fmt.Fprintf(o.Attach.ErrOut, "Pod IP: %s\n", podWithStatus.Status.PodIP)
 			}
 
@@ -686,7 +683,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*cor
 	pod.SelfLink = ""
 
 	// clear pod ownerRefs
-	pod.ObjectMeta.OwnerReferences = []v1.OwnerReference{}
+	pod.ObjectMeta.OwnerReferences = []metav1.OwnerReference{}
 
 	return pod, originalCommand
 }

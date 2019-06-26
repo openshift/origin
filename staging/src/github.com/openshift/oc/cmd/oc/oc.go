@@ -8,10 +8,13 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/spf13/pflag"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/apps"
@@ -28,11 +31,8 @@ import (
 	"github.com/openshift/api/user"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/oc/pkg/cli"
-	"github.com/openshift/openshift-apiserver/pkg/api/install"
-	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/version"
-	"github.com/spf13/pflag"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"github.com/openshift/oc/pkg/helpers/legacy"
+	"github.com/openshift/oc/pkg/version"
 )
 
 func injectLoglevelFlag(flags *pflag.FlagSet) {
@@ -78,10 +78,21 @@ func main() {
 	utilruntime.Must(user.Install(scheme.Scheme))
 	legacy.InstallExternalLegacyAll(scheme.Scheme)
 
-	// the legacyscheme is used in kubectl and expects to have the internal types registered.  Explicitly wire our types here.
-	// this does
-	install.InstallInternalOpenShift(legacyscheme.Scheme)
-	legacy.InstallInternalLegacyAll(scheme.Scheme)
+	// the legacyscheme is used in kubectl convert and get, so we need to
+	// explicitly install all types there too
+	utilruntime.Must(apps.Install(legacyscheme.Scheme))
+	utilruntime.Must(authorization.Install(legacyscheme.Scheme))
+	utilruntime.Must(build.Install(legacyscheme.Scheme))
+	utilruntime.Must(image.Install(legacyscheme.Scheme))
+	utilruntime.Must(network.Install(legacyscheme.Scheme))
+	utilruntime.Must(oauth.Install(legacyscheme.Scheme))
+	utilruntime.Must(project.Install(legacyscheme.Scheme))
+	utilruntime.Must(quota.Install(legacyscheme.Scheme))
+	utilruntime.Must(route.Install(legacyscheme.Scheme))
+	utilruntime.Must(security.Install(legacyscheme.Scheme))
+	utilruntime.Must(template.Install(legacyscheme.Scheme))
+	utilruntime.Must(user.Install(legacyscheme.Scheme))
+	legacy.InstallExternalLegacyAll(legacyscheme.Scheme)
 
 	basename := filepath.Base(os.Args[0])
 	command := cli.CommandFor(basename)

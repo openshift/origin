@@ -22,9 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/describe"
 	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/annotations"
 	oapps "github.com/openshift/api/apps"
@@ -135,7 +135,7 @@ func describerMap(clientConfig *rest.Config, kclient kubernetes.Interface, host 
 		image.Kind("ImageStreamImage"):               &ImageStreamImageDescriber{imageClient},
 		route.Kind("Route"):                          &RouteDescriber{routeClient, kclient},
 		project.Kind("Project"):                      &ProjectDescriber{projectClient, kclient},
-		template.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), legacyscheme.Scheme, nil},
+		template.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), scheme.Scheme, nil},
 		template.Kind("TemplateInstance"):            &TemplateInstanceDescriber{kclient, templateClient, nil},
 		authorization.Kind("RoleBinding"):            &RoleBindingDescriber{oauthorizationClient},
 		authorization.Kind("Role"):                   &RoleDescriber{oauthorizationClient},
@@ -190,13 +190,13 @@ func (d *BuildDescriber) Describe(namespace, name string, settings describe.Desc
 	if err != nil {
 		return "", err
 	}
-	events, _ := d.kubeClient.CoreV1().Events(namespace).Search(legacyscheme.Scheme, buildObj)
+	events, _ := d.kubeClient.CoreV1().Events(namespace).Search(scheme.Scheme, buildObj)
 	if events == nil {
 		events = &corev1.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
 	if pod, err := d.kubeClient.CoreV1().Pods(namespace).Get(getBuildPodName(buildObj), metav1.GetOptions{}); err == nil {
-		if podEvents, _ := d.kubeClient.CoreV1().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
+		if podEvents, _ := d.kubeClient.CoreV1().Events(namespace).Search(scheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
 	}
@@ -594,7 +594,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings describ
 		}
 
 		if settings.ShowEvents {
-			events, _ := d.kubeClient.CoreV1().Events(namespace).Search(legacyscheme.Scheme, buildConfig)
+			events, _ := d.kubeClient.CoreV1().Events(namespace).Search(scheme.Scheme, buildConfig)
 			if events != nil {
 				fmt.Fprint(out, "\n")
 				versioned.DescribeEvents(events, versioned.NewPrefixWriter(out))

@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -140,7 +139,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				continue
 			}
 			dockerImage := &dockerv10.DockerImage{}
-			if err := legacyscheme.Scheme.Convert(image, dockerImage, nil); err != nil {
+			if err := dockerregistry.ImageScheme.Convert(image, dockerImage, nil); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -347,7 +346,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		klog.V(4).Infof("found image: %#v", image)
 
 		dockerImage := &dockerv10.DockerImage{}
-		if err = legacyscheme.Scheme.Convert(&image.Image, dockerImage, nil); err != nil {
+		if err = dockerregistry.ImageScheme.Convert(&image.Image, dockerImage, nil); err != nil {
 			errs = append(errs, err)
 			continue
 		}

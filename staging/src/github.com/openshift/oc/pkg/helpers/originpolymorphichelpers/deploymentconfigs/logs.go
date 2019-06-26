@@ -2,7 +2,7 @@ package deploymentconfigs
 
 import (
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 )
@@ -27,5 +27,5 @@ func (c *rolloutLogs) Logs(name string, options appsv1.DeploymentLogOptions) *re
 		Resource("deploymentConfigs").
 		Name(name).
 		SubResource("log").
-		VersionedParams(&options, legacyscheme.ParameterCodec)
+		VersionedParams(&options, scheme.ParameterCodec)
 }

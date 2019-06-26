@@ -8,8 +8,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
-
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,9 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/kubectl/describe"
+	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -150,7 +149,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings de
 
 		if settings.ShowEvents {
 			// Events
-			if events, err := d.kubeClient.CoreV1().Events(deploymentConfig.Namespace).Search(legacyscheme.Scheme, deploymentConfig); err == nil && events != nil {
+			if events, err := d.kubeClient.CoreV1().Events(deploymentConfig.Namespace).Search(scheme.Scheme, deploymentConfig); err == nil && events != nil {
 				latestDeploymentEvents := &corev1.EventList{Items: []corev1.Event{}}
 				for i := len(events.Items); i != 0 && i > len(events.Items)-maxDisplayDeploymentsEvents; i-- {
 					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])
@@ -343,7 +342,7 @@ func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kc
 		fmt.Fprintf(w, "Autoscaling:\tbetween %d and %d replicas", *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
 		// TODO: Replace this with external HPA
 		legacyHpa := &autoscaling.HorizontalPodAutoscaler{}
-		if err := legacyscheme.Scheme.Convert(&hpa, legacyHpa, nil); err != nil {
+		if err := scheme.Scheme.Convert(&hpa, legacyHpa, nil); err != nil {
 			panic(err)
 		}
 		targetDescriptions := formatHPATargets(legacyHpa)
