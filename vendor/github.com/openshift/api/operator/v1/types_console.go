@@ -10,6 +10,7 @@ import (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// Console provides a means to configure an operator to manage the console.
 type Console struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -20,6 +21,7 @@ type Console struct {
 	Status ConsoleStatus `json:"status,omitempty"`
 }
 
+// ConsoleSpec is the specification of the desired behavior of the Console.
 type ConsoleSpec struct {
 	OperatorSpec `json:",inline"`
 	// customization is used to optionally provide a small set of
@@ -30,10 +32,13 @@ type ConsoleSpec struct {
 	Providers ConsoleProviders `json:"providers"`
 }
 
+// ConsoleStatus defines the observed status of the Console.
 type ConsoleStatus struct {
 	OperatorStatus `json:",inline"`
 }
 
+// ConsoleProviders defines a list of optional additional providers of
+// functionality to the console.
 type ConsoleProviders struct {
 	// statuspage contains ID for statuspage.io page that provides status info about.
 	// +optional
@@ -46,6 +51,7 @@ type StatuspageProvider struct {
 	PageID string `json:"pageID"`
 }
 
+// ConsoleCustomization defines a list of optional configuration for the console UI.
 type ConsoleCustomization struct {
 	// brand is the default branding of the web console which can be overridden by
 	// providing the brand field.  There is a limited set of specific brand options.
@@ -74,7 +80,7 @@ type ConsoleCustomization struct {
 	CustomLogoFile v1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
 }
 
-// Brand is a specific supported brand within the console
+// Brand is a specific supported brand within the console.
 type Brand string
 
 const (

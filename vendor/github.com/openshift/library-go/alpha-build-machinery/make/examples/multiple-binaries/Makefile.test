@@ -1,7 +1,20 @@
+SHELL :=/bin/bash -euo pipefail
+
 all:
 	$(MAKE) -C . build
 	[[ -f ./openshift ]]
 	[[ -f ./oc ]]
+
+	# test version is set correctly when linking
+	#   majorFromGit, minorFromGit are deprecated upstream and set to empty value
+	#   we avoid comparing time to avoid flakes
+	diff <( ./oc | sed '$$d' ) <( \
+		echo ""; \
+		echo ""; \
+		git rev-parse --short "HEAD^{commit}" 2>/dev/null; \
+		git describe --long --tags --abbrev=7 --match 'v[0-9]*' || echo 'v0.0.0-unknown'; \
+		git diff --quiet && echo 'clean' || echo 'dirty'; \
+	)
 
 	$(MAKE) -C . clean
 	[[ ! -f ./openshift ]]

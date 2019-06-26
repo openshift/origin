@@ -55,8 +55,10 @@ func internalUnionCondition(conditionType string, defaultConditionStatus operato
 		return OperatorConditionToClusterOperatorCondition(unionedCondition)
 	}
 
-	oneMinuteAgo := time.Now().Add(-1 * time.Minute)
-	earliestBadConditionNotOldEnough := earliestTransitionTime(badConditions).Time.After(oneMinuteAgo)
+	// This timeout needs to be longer than the delay in kube-apiserver after setting not ready and before we stop serving.
+	// That delay use to be 30 seconds, but we switched it to 70 seconds to reflect the reality on AWS.
+	twoMinutesAgo := time.Now().Add(-2 * time.Minute)
+	earliestBadConditionNotOldEnough := earliestTransitionTime(badConditions).Time.After(twoMinutesAgo)
 	if len(badConditions) == 0 || (hasInertia && earliestBadConditionNotOldEnough) {
 		unionedCondition.Status = defaultConditionStatus
 		unionedCondition.Message = unionMessage(interestingConditions)

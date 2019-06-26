@@ -1,7 +1,7 @@
 self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 
 define build-package
-	$(GO) build $(GO_BUILD_FLAGS) $(1)
+	$(strip $(GO) build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) $(1))
 
 endef
 
