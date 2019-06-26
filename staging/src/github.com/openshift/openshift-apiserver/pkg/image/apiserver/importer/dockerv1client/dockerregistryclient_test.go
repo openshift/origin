@@ -1,4 +1,4 @@
-package integration
+package dockerv1client_test
 
 import (
 	"reflect"
@@ -13,7 +13,6 @@ const (
 	pulpRegistryName        = "registry.access.redhat.com"
 	dockerHubV2RegistryName = "index.docker.io"
 	dockerHubV1RegistryName = "registry.hub.docker.com"
-	quayRegistryName        = "quay.io"
 
 	maxRetryCount = 4
 	retryAfter    = time.Millisecond * 500
