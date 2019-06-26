@@ -38,3 +38,11 @@ rules:
       source:
         branch: master
         dir: staging/src/github.com/openshift/sdn
+  smoke-test: |
+    # Use this oportunity to restore vendor folder which shall not exist inside staging directly
+    glide install --strip-vendor
+    git add -f vendor/
+    git diff HEAD --exit-code &>/dev/null || git commit -m "Restore vendor"
+    # Actual some tests
+    make build --warn-undefined-variables
+    make test --warn-undefined-variables
