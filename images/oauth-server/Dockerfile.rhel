@@ -1,0 +1,13 @@
+FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.12 AS builder
+WORKDIR /go/src/github.com/openshift/origin
+COPY . .
+RUN make build WHAT=vendor/github.com/openshift/oauth-server/cmd/oauth-server; \
+    mkdir -p /tmp/build; \
+    cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/oauth-server /tmp/build/oauth-server
+
+FROM registry.svc.ci.openshift.org/ocp/4.2:base
+COPY --from=builder /tmp/build/oauth-server /usr/bin/
+LABEL io.k8s.display-name="OpenShift OAuth Server" \
+      io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
+      io.openshift.tags="openshift"
+CMD [ "/usr/bin/oauth-server" ]

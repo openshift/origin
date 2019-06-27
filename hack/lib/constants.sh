@@ -336,6 +336,7 @@ readonly OS_ALL_IMAGES=(
   origin-recycler
   origin-template-service-broker
   origin-tests
+  origin-oauth-server
 )
 
 # os::build::check_binaries ensures that binary sizes do not grow without approval.
@@ -396,6 +397,7 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
   ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
   ( os::build::image "${tag_prefix}-sdn"                     images/sdn ) &
+  ( os::build::image "${tag_prefix}-oauth-server"            images/oauth-server ) &
 
   for i in `jobs -p`; do wait $i; done
 
