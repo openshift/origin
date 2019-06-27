@@ -550,7 +550,7 @@ func (c *completedConfig) startProjectCache(context genericapiserver.PostStartHo
 
 func (c *completedConfig) startProjectAuthorizationCache(context genericapiserver.PostStartHookContext) error {
 	period := 1 * time.Second
-	c.ExtraConfig.ProjectAuthorizationCache.Run(period)
+	c.ExtraConfig.ProjectAuthorizationCache.Run(context.StopCh, period)
 	return nil
 }
 

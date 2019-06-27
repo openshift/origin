@@ -195,6 +195,10 @@ type AuthorizationCache struct {
 
 	syncHandler func(request *reviewRequest, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) error
 
+	informerCachesToSync     []cache.InformerSynced
+	informerCachesSynced     bool
+	informerCachesSyncedLock sync.RWMutex
+
 	watchers    []CacheWatcher
 	watcherLock sync.Mutex
 }
@@ -203,6 +207,7 @@ type AuthorizationCache struct {
 func NewAuthorizationCache(
 	namespaceLister corev1listers.NamespaceLister,
 	namespaceLastSyncResourceVersioner LastSyncResourceVersioner,
+	namespaceHasSynced cache.InformerSynced,
 	reviewer Reviewer,
 	informers rbacv1informers.Interface,
 ) *AuthorizationCache {
@@ -246,14 +251,38 @@ func NewAuthorizationCache(
 	}
 	ac.lastSyncResourceVersioner = namespaceLastSyncResourceVersioner
 	ac.syncHandler = ac.syncRequest
+
+	ac.informerCachesToSync = []cache.InformerSynced{
+		informers.RoleBindings().Informer().HasSynced,
+		informers.Roles().Informer().HasSynced,
+		informers.ClusterRoleBindings().Informer().HasSynced,
+		informers.ClusterRoles().Informer().HasSynced,
+		namespaceHasSynced,
+	}
+
 	return ac
 }
 
 // Run begins watching and synchronizing the cache
-func (ac *AuthorizationCache) Run(period time.Duration) {
+func (ac *AuthorizationCache) Run(stopCh <-chan struct{}, period time.Duration) {
 	ac.skip = &statelessSkipSynchronizer{}
 
+	if !cache.WaitForCacheSync(stopCh, ac.informerCachesToSync...) {
+		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+		return
+	}
+
+	ac.informerCachesSyncedLock.Lock()
+	ac.informerCachesSynced = true
+	ac.informerCachesSyncedLock.Unlock()
+
 	go utilwait.Forever(func() { ac.synchronize() }, period)
+}
+
+func (ac *AuthorizationCache) hasCachesSynced() bool {
+	ac.informerCachesSyncedLock.RLock()
+	defer ac.informerCachesSyncedLock.Unlock()
+	return ac.informerCachesSynced
 }
 
 func (ac *AuthorizationCache) AddWatcher(watcher CacheWatcher) {
@@ -476,6 +505,9 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 
 // List returns the set of namespace names the user has access to view
 func (ac *AuthorizationCache) List(userInfo user.Info, selector labels.Selector) (*corev1.NamespaceList, error) {
+	if !ac.hasCachesSynced() {
+		return &corev1.NamespaceList{}, apierrors.NewServiceUnavailable("authorization cache has not synced yet")
+	}
 	keys := sets.String{}
 	user := userInfo.GetName()
 	groups := userInfo.GetGroups()

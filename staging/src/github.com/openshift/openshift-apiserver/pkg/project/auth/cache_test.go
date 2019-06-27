@@ -130,9 +130,14 @@ func TestSyncNamespace(t *testing.T) {
 	authorizationCache := NewAuthorizationCache(
 		nsLister,
 		informers.Core().V1().Namespaces().Informer(),
+		informers.Core().V1().Namespaces().Informer().HasSynced,
 		reviewer,
 		informers.Rbac().V1(),
 	)
+	authorizationCache.informerCachesSyncedLock.Lock()
+	authorizationCache.informerCachesSynced = true
+	authorizationCache.informerCachesSyncedLock.Unlock()
+
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {
 		nsIndexer.Add(&namespaceList.Items[i])

@@ -33,6 +33,7 @@ func NewProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, 
 	return projectauth.NewAuthorizationCache(
 		namespaces.Lister(),
 		namespaces.Informer(),
+		namespaces.Informer().HasSynced,
 		projectauth.NewAuthorizerReviewer(subjectLocator),
 		rbacInformers,
 	)
