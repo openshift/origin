@@ -63,7 +63,9 @@ func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 	startOpenShiftAPIServer.Hidden = true
 	cmd.AddCommand(startOpenShiftAPIServer)
 
-	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, "hypershift", os.Stdout, os.Stderr)
+	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, os.Stdout, os.Stderr)
+	startOpenShiftControllerManager.Deprecated = "will be removed in 4.2"
+	startOpenShiftControllerManager.Hidden = true
 	cmd.AddCommand(startOpenShiftControllerManager)
 
 	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
