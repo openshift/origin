@@ -37,7 +37,7 @@ type OpenShiftControllerManager struct {
 var longDescription = templates.LongDesc(`
 	Start the OpenShift controllers`)
 
-func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.Writer) *cobra.Command {
+func NewOpenShiftControllerManagerCommand(name string, out, errout io.Writer) *cobra.Command {
 	options := &OpenShiftControllerManager{Output: out}
 
 	cmd := &cobra.Command{
