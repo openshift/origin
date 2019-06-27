@@ -38,7 +38,7 @@ type OpenShiftAPIServer struct {
 var longDescription = templates.LongDesc(`
 	Start an apiserver that contains the OpenShift resources`)
 
-func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command {
+func NewOpenShiftAPIServerCommand(name string, out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command {
 	options := &OpenShiftAPIServer{Output: out}
 
 	cmd := &cobra.Command{
