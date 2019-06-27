@@ -43,6 +43,10 @@ import (
 	imagemanifest "github.com/openshift/oc/pkg/cli/image/manifest"
 )
 
+const (
+	revertText = `<span style="color:red">REVERT</span>`
+)
+
 func NewInfoOptions(streams genericclioptions.IOStreams) *InfoOptions {
 	return &InfoOptions{
 		IOStreams:       streams,
@@ -1217,32 +1221,34 @@ func describeChangelog(out, errOut io.Writer, diff *ReleaseDiff, dir string) err
 				fmt.Fprintf(out, "### %s\n\n", strings.Join(change.ImagesAffected, ", "))
 			}
 			for _, commit := range commits {
+				line := "*"
+				if commit.Revert {
+					line = fmt.Sprintf("%s %s", line, revertText)
+				}
+				if commit.Bug > 0 {
+					bugText := fmt.Sprintf("[Bug %d](https://bugzilla.redhat.com/show_bug.cgi?id=%d):", commit.Bug, commit.Bug)
+					line = fmt.Sprintf("%s %s", line, bugText)
+				}
+
+				line = fmt.Sprintf("%s %s", line, commit.Subject)
+
 				var suffix string
 				switch {
 				case commit.PullRequest > 0:
 					suffix = fmt.Sprintf("[#%d](%s)", commit.PullRequest, fmt.Sprintf("https://%s%s/pull/%d", u.Host, u.Path, commit.PullRequest))
 				case u.Host == "github.com":
-					commit := commit.Commit[:8]
-					suffix = fmt.Sprintf("[%s](%s)", commit, fmt.Sprintf("https://%s%s/commit/%s", u.Host, u.Path, commit))
+					commitSha := commit.Commit[:8]
+					suffix = fmt.Sprintf("[%s](%s)", commitSha, fmt.Sprintf("https://%s%s/commit/%s", u.Host, u.Path, commitSha))
 				default:
 					suffix = commit.Commit[:8]
 				}
-				switch {
-				case commit.Bug > 0:
-					fmt.Fprintf(out,
-						"* [Bug %d](%s): %s %s\n",
-						commit.Bug,
-						fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?id=%d", commit.Bug),
-						commit.Subject,
-						suffix,
-					)
-				default:
-					fmt.Fprintf(out,
-						"* %s %s\n",
-						commit.Subject,
-						suffix,
-					)
+				line = fmt.Sprintf("%s %s", line, suffix)
+
+				if commit.Revert {
+					line = fmt.Sprintf("%s %s", line, revertText)
 				}
+
+				fmt.Fprintf(out, "%s\n", line)
 			}
 			if u.Host == "github.com" {
 				fmt.Fprintf(out, "* [Full changelog](%s)\n\n", fmt.Sprintf("https://%s%s/compare/%s...%s", u.Host, u.Path, change.From, change.To))

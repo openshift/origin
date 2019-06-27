@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net/url"
 	"os"
@@ -28,6 +29,11 @@ type git struct {
 }
 
 var noSuchRepo = errors.New("location is not a git repo")
+var reMatch = regexp.MustCompile(`^([a-zA-Z0-9\-\_]+)@([^:]+):(.+)$`)
+var rePR = regexp.MustCompile(`^Merge pull request #(\d+) from`)
+var reBranchBrackets = regexp.MustCompile(`\[(release|openshift|enterprise)-\d+\.\d+\]\s*`)
+var reBug = regexp.MustCompile(`[bB]ug (\d+)\s*:\s*`)
+var reRevert = regexp.MustCompile(`^Revert "(.*)"$`)
 
 func (g *git) exec(command ...string) (string, error) {
 	buf := &bytes.Buffer{}
@@ -97,8 +103,6 @@ func (g *git) CheckoutCommit(repo, commit string) error {
 	return fmt.Errorf("could not locate commit %s", commit)
 }
 
-var reMatch = regexp.MustCompile(`^([a-zA-Z0-9\-\_]+)@([^:]+):(.+)$`)
-
 func sourceLocationAsURL(location string) (*url.URL, error) {
 	if matches := reMatch.FindStringSubmatch(location); matches != nil {
 		return &url.URL{Scheme: "git", User: url.UserPassword(matches[1], ""), Host: matches[2], Path: matches[3]}, nil
@@ -128,6 +132,7 @@ type MergeCommit struct {
 
 	PullRequest int
 	Bug         int
+	Revert      bool
 
 	Subject string
 }
@@ -146,15 +151,6 @@ func gitOutputToError(err error, out string) error {
 func mergeLogForRepo(g *git, repo string, from, to string) ([]MergeCommit, error) {
 	if from == to {
 		return nil, nil
-	}
-
-	rePR, err := regexp.Compile(`^Merge pull request #(\d+) from`)
-	if err != nil {
-		return nil, err
-	}
-	reBug, err := regexp.Compile(`^Bug (\d+)\s*(-|:)\s*`)
-	if err != nil {
-		return nil, err
 	}
 
 	args := []string{"log", "--merges", "--topo-order", "-z", "--pretty=format:%H %P%x1E%ct%x1E%s%x1E%b", fmt.Sprintf("%s..%s", from, to)}
@@ -205,17 +201,37 @@ func mergeLogForRepo(g *git, repo string, from, to string) ([]MergeCommit, error
 		}
 
 		msg := records[3]
-		if m := reBug.FindStringSubmatch(msg); m != nil {
-			mergeCommit.Subject = msg[len(m[0]):]
-			mergeCommit.Bug, err = strconv.Atoi(m[1])
-			if err != nil {
+
+		// If it contains `[release-X.Y]` (or similar) anywhere, just throw that away
+		if index := reBranchBrackets.FindStringIndex(msg); index != nil {
+			msg = msg[:index[0]] + msg[index[1]:]
+		}
+
+		// If it contains `Bug 12345:` grab the bug number and remove the rest from msg
+		if index := reBug.FindStringSubmatchIndex(msg); index != nil && len(index) >= 4 {
+			bugNum := msg[index[2]:index[3]]
+			if mergeCommit.Bug, err = strconv.Atoi(bugNum); err != nil {
 				return nil, fmt.Errorf("could not extract bug number from %q: %v", msg, err)
 			}
-		} else {
-			mergeCommit.Subject = msg
+			msg = msg[:index[0]] + msg[index[1]:]
 		}
-		mergeCommit.Subject = strings.TrimSpace(mergeCommit.Subject)
-		mergeCommit.Subject = strings.SplitN(mergeCommit.Subject, "\n", 2)[0]
+
+		// Github created reverts are of the form `Revert "blah blah blah"`
+		if index := reRevert.FindStringSubmatchIndex(msg); index != nil && len(index) >= 4 {
+			msg = msg[index[2]:index[3]]
+			mergeCommit.Revert = true
+		}
+
+		msg = strings.TrimSpace(msg)
+		msg = strings.SplitN(msg, "\n", 2)[0]
+
+		// Clean up the string so titles don't get formatted
+		// escape backticks in the markdown
+		msg = strings.Replace(msg, "`", "\\`", -1)
+		// escape all html sequences
+		msg = html.EscapeString(msg)
+
+		mergeCommit.Subject = msg
 
 		mergeMsg := records[2]
 		if m := rePR.FindStringSubmatch(mergeMsg); m != nil {
