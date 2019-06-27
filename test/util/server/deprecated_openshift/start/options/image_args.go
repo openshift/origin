@@ -6,7 +6,7 @@ import (
 
 // ImageFormatArgs is a struct that the command stores flag values into.
 type ImageFormatArgs struct {
-	// ImageTemplate is used in expanding parameterized Docker image references
+	// ImageTemplate is used in expanding parameterized container image references
 	// from configuration or a file
 	ImageTemplate imageformat.ImageTemplate
 }

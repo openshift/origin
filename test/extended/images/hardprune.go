@@ -379,7 +379,7 @@ const (
 	defaultAcceptSchema2 = true
 )
 
-// GetDockerRegistryURL returns a cluster URL of internal docker registry if available.
+// GetDockerRegistryURL returns a cluster URL of internal container image registry if available.
 func GetDockerRegistryURL(oc *exutil.CLI) (string, error) {
 	return oc.Run("registry").Args("info").Output()
 }

@@ -9,7 +9,7 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DockerImage is the type representing a docker image and its various properties when
+// DockerImage is the type representing a container image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage = docker10.DockerImage
 
@@ -42,7 +42,7 @@ func Convert_public_to_api_DockerImage(in *public.DockerImage, out *docker10.Doc
 	return nil
 }
 
-// Convert_imageconfig_to_api_DockerImage takes a Docker registry digest (schema 2.1) and converts it
+// Convert_imageconfig_to_api_DockerImage takes a container image registry digest (schema 2.1) and converts it
 // to the external API version of Image.
 func Convert_compatibility_to_api_DockerImage(in *public.DockerV1CompatibilityImage, out *docker10.DockerImage) error {
 	*out = docker10.DockerImage{
@@ -68,7 +68,7 @@ func Convert_compatibility_to_api_DockerImage(in *public.DockerV1CompatibilityIm
 	return nil
 }
 
-// Convert_imageconfig_to_api_DockerImage takes a Docker registry digest (schema 2.2) and converts it
+// Convert_imageconfig_to_api_DockerImage takes a container image registry digest (schema 2.2) and converts it
 // to the external API version of Image.
 func Convert_imageconfig_to_api_DockerImage(in *public.DockerImageConfig, out *docker10.DockerImage) error {
 	*out = docker10.DockerImage{

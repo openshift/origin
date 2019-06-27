@@ -129,7 +129,7 @@ func PodList(pods ...corev1.Pod) corev1.PodList {
 	}
 }
 
-// Pod creates and returns a pod having the given docker image references.
+// Pod creates and returns a pod having the given container image references.
 func Pod(namespace, name string, phase corev1.PodPhase, containerImages ...string) corev1.Pod {
 	return AgedPod(namespace, name, phase, -1, containerImages...)
 }
@@ -155,7 +155,7 @@ func AgedPod(namespace, name string, phase corev1.PodPhase, ageInMinutes int64, 
 	return pod
 }
 
-// PodSpecInternal creates a pod specification having the given docker image references.
+// PodSpecInternal creates a pod specification having the given container image references.
 func PodSpecInternal(containerImages ...string) corev1.PodSpec {
 	spec := corev1.PodSpec{
 		Containers: []corev1.Container{},
@@ -169,7 +169,7 @@ func PodSpecInternal(containerImages ...string) corev1.PodSpec {
 	return spec
 }
 
-// PodSpec creates a pod specification having the given docker image references.
+// PodSpec creates a pod specification having the given container image references.
 func PodSpec(containerImages ...string) corev1.PodSpec {
 	spec := corev1.PodSpec{
 		Containers: []corev1.Container{},

@@ -85,9 +85,9 @@ type Image struct {
 	PullByID bool
 }
 
-// Client includes methods for accessing a Docker registry by name.
+// Client includes methods for accessing a container image registry by name.
 type Client interface {
-	// Connect to a Docker registry by name. Pass "" for the Docker Hub
+	// Connect to a container image registry by name. Pass "" for the Docker Hub
 	Connect(registry string, allowInsecure bool) (Connection, error)
 }
 
@@ -116,7 +116,7 @@ type client struct {
 }
 
 // NewClient returns a client object which allows public access to
-// a Docker registry. enableV2 allows a client to prefer V1 registry
+// a container image registry. enableV2 allows a client to prefer V1 registry
 // API connections.
 // TODO: accept a docker auth config
 func NewClient(dialTimeout time.Duration, allowV2 bool) Client {
@@ -255,7 +255,7 @@ func newConnection(url url.URL, dialTimeout time.Duration, allowInsecure, enable
 	}
 }
 
-// ImageTags returns the tags for the named Docker image repository.
+// ImageTags returns the tags for the named container image repository.
 func (c *connection) ImageTags(namespace, name string) (map[string]string, error) {
 	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
 		namespace = "library"
@@ -272,7 +272,7 @@ func (c *connection) ImageTags(namespace, name string) (map[string]string, error
 	return repo.getTags(c)
 }
 
-// ImageByID returns the specified image within the named Docker image repository
+// ImageByID returns the specified image within the named container image repository
 func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) {
 	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
 		namespace = "library"
@@ -290,7 +290,7 @@ func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) 
 	return image, err
 }
 
-// ImageByTag returns the specified image within the named Docker image repository
+// ImageByTag returns the specified image within the named container image repository
 func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
 	if len(namespace) == 0 && reference.IsRegistryDockerHub(c.url.Host) {
 		namespace = "library"
@@ -312,7 +312,7 @@ func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
 	return image, err
 }
 
-// ImageManifest returns raw manifest of the specified image within the named Docker image repository
+// ImageManifest returns raw manifest of the specified image within the named container image repository
 func (c *connection) ImageManifest(namespace, name, tag string) (string, []byte, error) {
 	if len(name) == 0 {
 		return "", nil, fmt.Errorf("image name must be specified")
@@ -409,7 +409,7 @@ func (c *connection) checkV2() (bool, error) {
 }
 
 // parseAuthChallenge splits a header of the form 'type[ <key>="<value>"[,...]]' returned
-// by the docker registry
+// by the container image registry
 func parseAuthChallenge(header string) (string, map[string]string) {
 	sections := strings.SplitN(header, " ", 2)
 	if len(sections) == 1 {
@@ -765,7 +765,7 @@ func (repo *v2repository) unmarshalImageManifest(c *connection, body []byte) (*d
 		}
 		return unmarshalDockerImage(config)
 	}
-	return nil, fmt.Errorf("unrecognized Docker image manifest schema %d", manifest.SchemaVersion)
+	return nil, fmt.Errorf("unrecognized container image manifest schema %d", manifest.SchemaVersion)
 }
 
 // v1repository exposes methods for accessing a named Docker V1 repository on a server.
@@ -911,7 +911,7 @@ func (e errTagNotFound) Error() string {
 }
 
 // errRepositoryNotFound indicates the repository is not found - but is only guaranteed to be returned
-// for v1 docker registries.
+// for v1 container image registries.
 type errRepositoryNotFound struct {
 	repository string
 }

@@ -82,7 +82,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 
 		termMatches := ScoredComponentMatches{}
 
-		// first look for the image in the remote docker registry
+		// first look for the image in the remote container image registry
 		if r.RegistrySearcher != nil {
 			klog.V(4).Infof("checking remote registry for %q", ref.String())
 			matches, err := r.RegistrySearcher.Search(precise, term)
@@ -166,13 +166,13 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 
 // MissingImageSearcher always returns an exact match for the item being searched for.
 // It should be used with very high weight(weak priority) as a result of last resort when the
-// user has indicated they want to allow missing images(not found in the docker registry
+// user has indicated they want to allow missing images(not found in the container image registry
 // or locally) to be used anyway.
 type MissingImageSearcher struct {
 }
 
 func (r MissingImageSearcher) Type() string {
-	return "images not found in docker registry nor locally"
+	return "images not found in container image registry nor locally"
 }
 
 // Search always returns an exact match for the search terms.
@@ -199,7 +199,7 @@ func (s ImageImportSearcher) Type() string {
 	return "images via the image stream import API"
 }
 
-// Search invokes the new ImageStreamImport API to have the server look up Docker images for the user,
+// Search invokes the new ImageStreamImport API to have the server look up container images for the user,
 // using secrets stored on the server.
 func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	var errs []error
@@ -233,14 +233,14 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 				// try to find the cause of the internal error
 				if image.Status.Details != nil && len(image.Status.Details.Causes) > 0 {
 					for _, c := range image.Status.Details.Causes {
-						klog.Warningf("Docker registry lookup failed: %s", c.Message)
+						klog.Warningf("container image registry lookup failed: %s", c.Message)
 					}
 				} else {
-					klog.Warningf("Docker registry lookup failed: %s", image.Status.Message)
+					klog.Warningf("container image registry lookup failed: %s", image.Status.Message)
 				}
 			case metav1.StatusReasonInvalid, metav1.StatusReasonUnauthorized, metav1.StatusReasonNotFound:
 			default:
-				errs = append(errs, fmt.Errorf("can't look up Docker image %q: %s", term, image.Status.Message))
+				errs = append(errs, fmt.Errorf("can't look up container image %q: %s", term, image.Status.Message))
 			}
 			continue
 		}
@@ -283,7 +283,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 	return componentMatches, errs
 }
 
-// DockerRegistrySearcher searches for images in a given docker registry.
+// DockerRegistrySearcher searches for images in a given container image registry.
 // Notice that it only matches exact searches - so a search for "rub" will
 // not return images with the name "ruby".
 // TODO: replace ImageByTag to allow partial matches
@@ -293,10 +293,10 @@ type DockerRegistrySearcher struct {
 }
 
 func (r DockerRegistrySearcher) Type() string {
-	return "images in the docker registry"
+	return "images in the container image registry"
 }
 
-// Search searches in the Docker registry for images that match terms
+// Search searches in the container image registry for images that match terms
 func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	componentMatches := ComponentMatches{}
 	var errs []error
@@ -314,7 +314,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 			ref = reference.DockerImageReference{Name: term}
 		}
 
-		klog.V(4).Infof("checking Docker registry for %q, allow-insecure=%v", ref.String(), r.AllowInsecure)
+		klog.V(4).Infof("checking container image registry for %q, allow-insecure=%v", ref.String(), r.AllowInsecure)
 		connection, err := r.Client.Connect(ref.Registry, r.AllowInsecure)
 		if err != nil {
 			if dockerregistry.IsRegistryNotFound(err) {
@@ -378,7 +378,7 @@ func descriptionFor(image *dockerv10.DockerImage, value, from string, tag string
 	if len(tag) > 0 {
 		tagPart = fmt.Sprintf(" (tag %q)", tag)
 	}
-	parts := []string{fmt.Sprintf("Docker image %q%v", value, tagPart), shortID, fmt.Sprintf("from %s", from)}
+	parts := []string{fmt.Sprintf("container image %q%v", value, tagPart), shortID, fmt.Sprintf("from %s", from)}
 	if image.Size > 0 {
 		mb := float64(image.Size) / float64(1024*1024)
 		parts = append(parts, fmt.Sprintf("%.3fmb", mb))

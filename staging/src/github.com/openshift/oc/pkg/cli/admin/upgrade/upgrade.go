@@ -99,7 +99,7 @@ func (o *Options) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string
 			return fmt.Errorf("--to must be a semantic version (e.g. 4.0.1 or 4.1.0-nightly-20181104): %v", err)
 		}
 	}
-	// defend against simple mistakes (4.0.1 is a valid docker image)
+	// defend against simple mistakes (4.0.1 is a valid container image)
 	if len(o.ToImage) > 0 {
 		ref, err := imagereference.Parse(o.ToImage)
 		if err != nil {

@@ -196,7 +196,7 @@ func TestCreateImageImport(t *testing.T) {
 		"import all from .spec.tags no DockerImage tags": {
 			name: "testis",
 			all:  true,
-			err:  "does not have tags pointing to external docker images",
+			err:  "does not have tags pointing to external container images",
 			stream: &imagev1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imagev1.ImageStreamSpec{

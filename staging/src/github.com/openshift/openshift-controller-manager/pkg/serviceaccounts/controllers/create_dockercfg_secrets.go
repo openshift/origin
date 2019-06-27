@@ -60,7 +60,7 @@ type DockercfgControllerOptions struct {
 
 	// DockerURLsInitialized is used to send a signal to this controller that it has the correct set of docker urls
 	// This is normally signaled from the DockerRegistryServiceController which watches for updates to the internal
-	// docker registry service.
+	// container image registry service.
 	DockerURLsInitialized chan struct{}
 }
 

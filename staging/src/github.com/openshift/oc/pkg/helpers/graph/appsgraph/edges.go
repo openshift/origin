@@ -27,7 +27,7 @@ const (
 	ManagedByControllerEdgeKind = "ManagedByController"
 )
 
-// AddTriggerDeploymentConfigsEdges creates edges that point to named Docker image repositories for each image used in the deployment.
+// AddTriggerDeploymentConfigsEdges creates edges that point to named container image repositories for each image used in the deployment.
 func AddTriggerDeploymentConfigsEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
 	podTemplate := node.DeploymentConfig.Spec.Template
 	if podTemplate == nil {

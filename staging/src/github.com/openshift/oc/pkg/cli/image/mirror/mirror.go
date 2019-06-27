@@ -42,8 +42,8 @@ var (
 		but listing manifests and tags will not be possible. You may also specify one or more
 		--s3-source-bucket parameters (as <bucket>/<path>) to designate buckets to look in to find
 		blobs (instead of uploading). The source bucket also supports the suffix "/[store]", which
-		will transform blob identifiers into the form the Docker registry uses on disk, allowing
-		you to mirror directly from an existing S3-backed Docker registry. Credentials for S3
+		will transform blob identifiers into the form the container image registry uses on disk, allowing
+		you to mirror directly from an existing S3-backed container image registry. Credentials for S3
 		may be stored in your docker credential file and looked up by host, or loaded via the normal
 		AWS client locations for ENV or file.
 
@@ -133,7 +133,7 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 	flag.BoolVar(&o.SkipMultipleScopes, "skip-multiple-scopes", o.SkipMultipleScopes, "Some registries do not support multiple scopes passed to the registry login.")
 	flag.BoolVar(&o.Force, "force", o.Force, "Attempt to write all layers and manifests even if they exist in the remote repository.")
 	flag.IntVar(&o.MaxRegistry, "max-registry", o.MaxRegistry, "Number of concurrent registries to connect to at any one time.")
-	flag.StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the Docker registry path convention.")
+	flag.StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the container image registry path convention.")
 	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "One or more files to read SRC=DST or SRC DST [DST ...] mappings from.")
 
 	return cmd

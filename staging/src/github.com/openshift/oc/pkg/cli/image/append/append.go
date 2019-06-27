@@ -38,7 +38,7 @@ import (
 
 var (
 	desc = templates.LongDesc(`
-		Add layers to Docker images
+		Add layers to container images
 
 		Modifies an existing image by adding layers or changing configuration and then pushes that
 		image to a remote registry. Any inherited layers are streamed from registry to registry 

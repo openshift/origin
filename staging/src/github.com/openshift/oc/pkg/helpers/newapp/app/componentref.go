@@ -11,7 +11,7 @@ import (
 )
 
 // IsComponentReference returns an error if the provided string does not appear to be a reference to a source repository
-// on disk, at a URL, a docker image name (which might be on a Docker registry or an OpenShift image stream),
+// on disk, at a URL, a container image name (which might be on a container image registry or an OpenShift image stream),
 // or a template.
 func IsComponentReference(s string) error {
 	if len(s) == 0 {

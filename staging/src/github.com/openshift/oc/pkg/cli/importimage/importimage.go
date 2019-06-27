@@ -25,7 +25,7 @@ import (
 
 var (
 	importImageLong = templates.LongDesc(`
-		Import the latest image information from a tag in a Docker registry
+		Import the latest image information from a tag in a container image registry
 
 		Image streams allow you to control which images are rolled out to your builds
 		and applications. This command fetches the latest version of an image from a
@@ -86,7 +86,7 @@ func NewCmdImportImage(fullName string, f kcmdutil.Factory, streams genericcliop
 
 	cmd := &cobra.Command{
 		Use:     "import-image IMAGESTREAM[:TAG]",
-		Short:   "Imports images from a Docker registry",
+		Short:   "Imports images from a container image registry",
 		Long:    importImageLong,
 		Example: fmt.Sprintf(importImageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -323,7 +323,7 @@ func (o *ImportImageOptions) importAll(stream *imagev1.ImageStream) (*imagev1.Im
 				}
 			}
 			if len(tags) == 0 {
-				return nil, fmt.Errorf("image stream does not have tags pointing to external docker images")
+				return nil, fmt.Errorf("image stream does not have tags pointing to external container images")
 			}
 			return o.newImageStreamImportTags(stream, tags), nil
 		}

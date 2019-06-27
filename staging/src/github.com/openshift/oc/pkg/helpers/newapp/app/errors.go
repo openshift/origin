@@ -25,7 +25,7 @@ func (e ErrNoMatch) Error() string {
 
 // Suggestion is the usage error message returned when no match is found.
 func (e ErrNoMatch) Suggestion(commandName string) string {
-	return fmt.Sprintf("%[3]s - does a Docker image with that name exist?", e.Value, commandName, e.Error())
+	return fmt.Sprintf("%[3]s - does a container image with that name exist?", e.Value, commandName, e.Error())
 }
 
 // ErrPartialMatch is the error returned to new-app users when the
@@ -48,7 +48,7 @@ func (e ErrPartialMatch) Suggestion(commandName string) string {
 	fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", e.Match.Argument)
 
 	return fmt.Sprintf(`%[3]s
-The argument %[1]q only partially matched the following Docker image or OpenShift image stream:
+The argument %[1]q only partially matched the following container image or OpenShift image stream:
 
 %[2]s
 `, e.Value, buf.String(), cmdutil.MultipleErrors("error: ", e.Errs))

@@ -247,10 +247,10 @@ func (c *AppConfig) SetOpenShiftClient(imageClient imagev1typedclient.ImageV1Int
 		Namespace: OriginNamespace,
 	}
 	// the hierarchy of docker searching is:
-	// 1) if we have an openshift client - query docker registries via openshift,
-	// if we're unable to query via openshift, query the docker registries directly(fallback),
+	// 1) if we have an openshift client - query container image registries via openshift,
+	// if we're unable to query via openshift, query the container image registries directly(fallback),
 	// if we don't find a match there and a local docker daemon exists, look in the local registry.
-	// 2) if we don't have an openshift client - query the docker registries directly,
+	// 2) if we don't have an openshift client - query the container image registries directly,
 	// if we don't find a match there and a local docker daemon exists, look in the local registry.
 	c.DockerSearcher = app.DockerClientSearcher{
 		Client:             dockerclient,
@@ -1115,7 +1115,7 @@ func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *im
 }
 
 // followRefToDockerImage follows a buildconfig...To/From reference until it
-// terminates in docker image information. This can include dereferencing chains
+// terminates in container image information. This can include dereferencing chains
 // of ImageStreamTag references that already exist or which are being created.
 // ref is the reference to To/From to follow. If ref is an ImageStreamTag
 // that is following another ImageStreamTag, isContext should be set to the
@@ -1305,7 +1305,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 			klog.V(5).Infof("Post follow:\n%#v\n", dockerOutput)
 
 			// with reuse of existing image streams, some scenarios have arisen where
-			// comparisons of input/output prior to following the ref to the docker image
+			// comparisons of input/output prior to following the ref to the container image
 			// are necessary;
 			// we still cite errors with circular IST chains;
 			// however, if the output IST points to the same
@@ -1314,7 +1314,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 			// thus, invocations like `oc new-build --binary php`,
 			// where "php" is a image stream with such a structure, do not require
 			// the `--to` option
-			// otherwise, we are deferring to the docker image resolution path
+			// otherwise, we are deferring to the container image resolution path
 			if output.Kind == "ImageStreamTag" && input.Kind == "ImageStreamTag" {
 				iname, itag, iok := imageutil.SplitImageStreamTag(input.Name)
 				oname, otag, ook := imageutil.SplitImageStreamTag(output.Name)

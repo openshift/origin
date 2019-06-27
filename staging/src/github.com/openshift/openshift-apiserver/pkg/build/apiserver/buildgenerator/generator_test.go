@@ -457,7 +457,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 				}
 				continue
 			}
-			// Ensure that other triggers are updated with the latest docker imagev1 ref
+			// Ensure that other triggers are updated with the latest container imagev1 ref
 			if bc.Spec.Triggers[i].Type == buildv1.ImageChangeBuildTriggerType {
 				from := bc.Spec.Triggers[i].ImageChange.From
 				if from == nil {

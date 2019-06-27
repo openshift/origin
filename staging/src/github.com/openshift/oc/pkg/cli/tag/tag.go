@@ -50,7 +50,7 @@ var (
 		Tag existing images into image streams
 
 		The tag command allows you to take an existing tag or image from an image
-		stream, or a Docker image pull spec, and set it as the most recent image for a
+		stream, or a container image pull spec, and set it as the most recent image for a
 		tag in 1 or more other image streams. It is similar to the 'docker tag'
 		command, but it operates on image streams instead.
 
@@ -58,7 +58,7 @@ var (
 		certificate, or is only served over HTTP. Pass --scheduled to have the server
 		regularly check the tag for updates and import the latest version (which can
 		then trigger builds and deployments). Note that --scheduled is only allowed for
-		Docker images.`)
+		container images.`)
 
 	tagExample = templates.Examples(`
 		# Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
@@ -67,10 +67,10 @@ var (
 	  # Tag a specific image.
 	  %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
-	  # Tag an external Docker image.
+	  # Tag an external container image.
 	  %[1]s tag --source=docker openshift/origin-control-plane:latest yourproject/ruby:tip
 
-	  # Tag an external Docker image and request pullthrough for it.
+	  # Tag an external container image and request pullthrough for it.
 	  %[1]s tag --source=docker openshift/origin-control-plane:latest yourproject/ruby:tip --reference-policy=local
 
 	  # Remove the specified spec tag from an image stream.
@@ -107,8 +107,8 @@ func NewCmdTag(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 	cmd.Flags().BoolVarP(&o.deleteTag, "delete", "d", o.deleteTag, "Delete the provided spec tags.")
 	cmd.Flags().BoolVar(&o.aliasTag, "alias", o.aliasTag, "Should the destination tag be updated whenever the source tag changes. Applies only to a single image stream. Defaults to false.")
 	cmd.Flags().BoolVar(&o.referenceTag, "reference", o.referenceTag, "Should the destination tag continue to pull from the source namespace. Defaults to false.")
-	cmd.Flags().BoolVar(&o.scheduleTag, "scheduled", o.scheduleTag, "Set a Docker image to be periodically imported from a remote repository. Defaults to false.")
-	cmd.Flags().BoolVar(&o.insecureTag, "insecure", o.insecureTag, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate. Defaults to false.")
+	cmd.Flags().BoolVar(&o.scheduleTag, "scheduled", o.scheduleTag, "Set a container image to be periodically imported from a remote repository. Defaults to false.")
+	cmd.Flags().BoolVar(&o.insecureTag, "insecure", o.insecureTag, "Set to true if importing the specified container image requires HTTP or has a self-signed certificate. Defaults to false.")
 	cmd.Flags().StringVar(&o.referencePolicy, "reference-policy", SourceReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
 
 	return cmd
@@ -203,7 +203,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 		switch sourceKind {
 		case "ImageStreamTag", "ImageStreamImage":
 			if len(ref.Registry) > 0 {
-				return fmt.Errorf("server in SOURCE is only allowed when providing a Docker image")
+				return fmt.Errorf("server in SOURCE is only allowed when providing a container image")
 			}
 			if ref.Namespace == imagehelpers.DockerDefaultNamespace {
 				ref.Namespace = o.namespace
@@ -338,11 +338,11 @@ func (o TagOptions) Validate() error {
 		return errors.New("destination namespaces don't match with destination tags")
 	}
 	if o.sourceKind != "DockerImage" && (o.scheduleTag || o.insecureTag) {
-		return errors.New("only Docker images can have importing flags set")
+		return errors.New("only container images can have importing flags set")
 	}
 	if o.aliasTag {
 		if o.scheduleTag || o.insecureTag {
-			return errors.New("cannot set a Docker image tag as an alias and also set import flags")
+			return errors.New("cannot set a container image tag as an alias and also set import flags")
 		}
 		cross, err := isCrossImageStream(o.namespace, o.ref, o.destNamespace, o.destNameAndTag)
 		if err != nil {

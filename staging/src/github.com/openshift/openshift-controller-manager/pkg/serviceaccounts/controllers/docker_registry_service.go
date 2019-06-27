@@ -166,7 +166,7 @@ func (e *DockerRegistryServiceController) enqueueRegistryLocationQueue() {
 	e.registryLocationQueue.Add("check")
 }
 
-// waitForDockerURLs waits until all information required for fully determining the set of the internal docker registry
+// waitForDockerURLs waits until all information required for fully determining the set of the internal container image registry
 // hostnames and IPs are complete before continuing
 // Once that work is done, the dockerconfig controller will be released to do work.
 func (e *DockerRegistryServiceController) waitForDockerURLs(ready chan<- struct{}, stopCh <-chan struct{}) {
@@ -237,7 +237,7 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 	for _, location := range serviceLocations {
 		ret = append(ret, getDockerRegistryLocations(e.serviceLister, location, e.clusterDNSSuffix)...)
 	}
-	klog.V(4).Infof("found docker registry urls: %v", ret)
+	klog.V(4).Infof("found container image registry urls: %v", ret)
 	return ret
 }
 
@@ -288,7 +288,7 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 	e.setRegistryURLs(newDockerRegistryLocations.List()...)
 	e.initialSecretsCheckDone = true
 
-	// we've changed the docker registry URL.  Add items to the work queue for all known secrets
+	// we've changed the container image registry URL.  Add items to the work queue for all known secrets
 	// new secrets will already get the updated value.
 	for _, obj := range e.secretCache.List() {
 		switch t := obj.(type) {
@@ -320,7 +320,7 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 }
 
 // watchForDockercfgSecretUpdates watches the work queue for entries that indicate that it should modify dockercfg secrets with new
-// docker registry URLs
+// container image registry URLs
 func (e *DockerRegistryServiceController) watchForDockercfgSecretUpdates() {
 	workFn := func() bool {
 		key, quit := e.secretsToUpdate.Get()

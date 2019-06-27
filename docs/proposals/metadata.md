@@ -2,7 +2,7 @@
 
 ## Abstract
 
-A proposal for the additional metadata for Docker images which will provide more
+A proposal for the additional metadata for container images which will provide more
 context about the content of the image and define relations between Docker
 images.
 
@@ -21,7 +21,7 @@ Additional metadata and/or use cases may be added in the future.
 The metadata should be set using the [LABEL](https://docs.docker.com/reference/builder/#label)
 Docker instruction.
 
-Once the Docker image is built the metadata can be obtained by running the
+Once the container image is built the metadata can be obtained by running the
 `docker inspect` command. The metadata should be available in the `Labels`
 section.
 
@@ -33,22 +33,22 @@ https://docs.docker.com/userguide/labels-custom-metadata
 
 ## Use cases
 
-1. As an author of Docker image that is going to be consumed by the OpenShift
-   platform, I want to express what categories/tags my Docker image will belong
+1. As an author of container image that is going to be consumed by the OpenShift
+   platform, I want to express what categories/tags my container image will belong
    to, so the platform then can then consume the tags to improve the generation
    workflow based on them.
 
 2. As an user of OpenShift I want to get reliable suggestions about services
-   that the Docker image I'm going to use might require to operate properly. As
-   an author of the Docker image, I need to have a way to record what services my
-   Docker image want to consume.
+   that the container image I'm going to use might require to operate properly. As
+   an author of the container image, I need to have a way to record what services my
+   container image want to consume.
 
-3. As an author of the Docker image, I need to have a way to indicate whether
-   the container started from my Docker image does not support scaling.
+3. As an author of the container image, I need to have a way to indicate whether
+   the container started from my container image does not support scaling.
    The UI should then communicate this information with the end consumers.
 
-4. As an author of the Docker image, I need to have a way to indicate what
-   additional service(s) my Docker image might need to work properly, so the UI
+4. As an author of the container image, I need to have a way to indicate what
+   additional service(s) my container image might need to work properly, so the UI
    or generation tools can suggest them to end users.
 
 ## Namespaces
@@ -77,7 +77,7 @@ Name                                  | Type     | Target Namespace |
 ### `tags`
 
 This label contains a list of tags represented as list of comma separated string
-values. The tags are the way to categorize the Docker images into broad areas of
+values. The tags are the way to categorize the container images into broad areas of
 functionality. Tags help UI and generation tools to suggest relevant Docker
 images during the application creation process.
 
@@ -90,10 +90,10 @@ LABEL openshift.io/tags   mongodb,mongodb24,nosql
 ### `wants`
 
 Specifies a list of tags that the generation tools and the UI might use to
-provide relevant suggestions if you don't have the Docker images with given tags
+provide relevant suggestions if you don't have the container images with given tags
 already.
-For example, if the Docker image wants 'mysql' and 'redis' and you don't have
-the Docker image with 'redis' tag, then UI might suggest you to add this image
+For example, if the container image wants 'mysql' and 'redis' and you don't have
+the container image with 'redis' tag, then UI might suggest you to add this image
 into your deployment.
 
 *Example:*
@@ -104,9 +104,9 @@ LABEL openshift.io/wants   mongodb,redis
 
 ### `display-name`
 
-This label provides a human readable name of the Docker image. The Docker image
+This label provides a human readable name of the container image. The container image
 name might be complex and might be hard to display on the UI pages. This label
-should contain short, human readable version of the Docker image name.
+should contain short, human readable version of the container image name.
 
 *Example:*
 
@@ -116,9 +116,9 @@ LABEL k8s.io/display-name MySQL 5.5 Server
 
 ### `description`
 
-This label can be used to give the Docker image consumers more detailed
+This label can be used to give the container image consumers more detailed
 information about the service or functionality this image provides.  The UI can
-then use this description together with the Docker image name to provide more
+then use this description together with the container image name to provide more
 human friendly information to end users.
 
 *Example:*
@@ -157,8 +157,8 @@ LABEL openshift.io/non-scalable     true
 
 ### `min-cpu` and `min-memory` (post-3.0)
 
-This label suggests how much resources the Docker image might need in order
-to work properly. The UI might warn the user that deploying this Docker image
+This label suggests how much resources the container image might need in order
+to work properly. The UI might warn the user that deploying this container image
 may exceed their user quota.
 
 The values must be compatible with [Kubernetes

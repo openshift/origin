@@ -30,7 +30,7 @@ var (
 
 		This command will try to create a build configuration for your application using images and
 		code that has a public repository. It will lookup the images on the local Docker installation
-		(if available), a Docker registry, or an image stream.
+		(if available), a container image registry, or an image stream.
 
 		If you specify a source code URL, it will set up a build that takes your source code and converts
 		it into an image that can run inside of a pod. Local source must be in a git repository that has a
@@ -77,7 +77,7 @@ the source code location:
 
 If you only specify the source repository location (local or remote), the command will look at
 the repo to determine the type, and then look for a matching image on your server or on the
-default Docker registry.
+default container image registry.
 
   %[1]s %[2]s https://github.com/sclorg/nodejs-ex.git
 

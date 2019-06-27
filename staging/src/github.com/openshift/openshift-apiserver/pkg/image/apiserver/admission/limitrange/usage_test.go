@@ -150,7 +150,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		},
 
 		{
-			name: "dockerimage referencing docker image",
+			name: "dockerimage referencing container image",
 			objRef: coreapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: "index.docker.io/repo@" + imagetest.BaseImageWith1LayerDigest,

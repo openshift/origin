@@ -75,7 +75,7 @@ var (
 
 		This command will try to build up the components of an application using images, templates,
 		or code that has a public repository. It will lookup the images on the local Docker installation
-		(if available), a Docker registry, an integrated image stream, or stored templates.
+		(if available), a container image registry, an integrated image stream, or stored templates.
 
 		If you specify a source code URL, it will set up a build that takes your source code and converts
 		it into an image that can run inside of a pod. Local source must be in a git repository that has a
@@ -464,7 +464,7 @@ func (o *AppOptions) RunNewApp() error {
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprintf(out, "%sWARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n", indent)
+				fmt.Fprintf(out, "%sWARNING: No container image registry has been configured with the server. Automatic builds and deployments may not function.\n", indent)
 			}
 		case *routev1.Route:
 			containsRoute = true

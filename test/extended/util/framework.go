@@ -148,7 +148,7 @@ func DumpImageStreams(oc *CLI) {
 	}
 	ids, err := ListImages()
 	if err != nil {
-		e2e.Logf("\n  got error on docker images %+v\n", err)
+		e2e.Logf("\n  got error on container images %+v\n", err)
 	} else {
 		for _, id := range ids {
 			e2e.Logf(" found local image %s\n", id)

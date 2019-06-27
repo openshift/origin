@@ -128,7 +128,7 @@ type tomlConfig struct {
 
 // BuildController watches builds and synchronizes them with their
 // corresponding build pods. It is also responsible for resolving image
-// stream references in the Build to docker images prior to invoking the pod.
+// stream references in the Build to container images prior to invoking the pod.
 // The build controller late binds image stream references so that users can
 // create a build config before they create the image stream (or before
 // an image is pushed to a tag) which allows actions to converge. It also
@@ -744,7 +744,7 @@ func (bc *BuildController) createPodSpec(build *buildv1.Build, caData map[string
 // be able to push/pull at the image location.
 // Note that we are using controller level permissions to resolve the secret,
 // meaning users could theoretically define a build that references an imagestream they cannot
-// see, and 1) get the docker image reference of that imagestream and 2) a reference to a secret
+// see, and 1) get the container image reference of that imagestream and 2) a reference to a secret
 // associated with a service account that can push to that location.  However they still cannot view the secret,
 // and ability to use a service account implies access to its secrets, so this is considered safe.
 // Furthermore it's necessary to enable triggered builds since a triggered build is not "requested"
@@ -964,7 +964,7 @@ func resolveImageStreamTag(ref *corev1.ObjectReference, lister imagev1lister.Ima
 	return nil, fmt.Errorf("the referenced image stream tag %s/%s does not exist", namespace, ref.Name)
 }
 
-// resolveOutputDockerImageReference updates the output spec to a docker image reference.
+// resolveOutputDockerImageReference updates the output spec to a container image reference.
 func (bc *BuildController) resolveOutputDockerImageReference(build *buildv1.Build) error {
 	ref := build.Spec.Output.To
 	if ref == nil || ref.Name == "" {
@@ -1012,7 +1012,7 @@ func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *
 		update.setReason(buildv1.StatusReasonInvalidOutputReference)
 		update.setMessage("Output image could not be resolved.")
 		if err == errNoIntegratedRegistry {
-			e := fmt.Errorf("an image stream cannot be used as build output because the integrated Docker registry is not configured")
+			e := fmt.Errorf("an image stream cannot be used as build output because the integrated container image registry is not configured")
 			bc.recorder.Eventf(build, corev1.EventTypeWarning, "InvalidOutput", "Error starting build: %v", e)
 		}
 		return err

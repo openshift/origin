@@ -135,7 +135,7 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-// dockerImageRepository determines the docker image stream for stream.
+// dockerImageRepository determines the container image stream for stream.
 // If stream.DockerImageRepository is set, that value is returned. Otherwise,
 // if a default registry exists, the value returned is of the form
 // <default registry>/<namespace>/<stream name>.
@@ -158,7 +158,7 @@ func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream, allowNames
 
 // publicDockerImageRepository determines the public location of given image
 // stream. If the ExternalRegistryHostname is set in the master config, the
-// value of this property is used as a hostname part for the docker image
+// value of this property is used as a hostname part for the container image
 // reference.
 func (s Strategy) publicDockerImageRepository(stream *imageapi.ImageStream) string {
 	externalHostname, ok := s.registryHostnameRetriever.ExternalRegistryHostname()

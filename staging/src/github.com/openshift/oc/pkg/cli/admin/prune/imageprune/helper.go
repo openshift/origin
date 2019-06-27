@@ -263,7 +263,7 @@ func (e *ErrBadReference) String() string {
 	if len(e.namespace) > 0 {
 		name = e.namespace + "/" + name
 	}
-	targetKind := "docker image"
+	targetKind := "container image"
 	if len(e.targetKind) > 0 {
 		targetKind = e.targetKind
 	}

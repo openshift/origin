@@ -249,10 +249,10 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 	}
 }
 
-// InternalRegistryURL is an url of internal docker registry for testing purposes.
+// InternalRegistryURL is an url of internal container image registry for testing purposes.
 const InternalRegistryURL = "172.30.12.34:5000"
 
-// MakeDockerImageReference makes a docker image reference string referencing testing internal docker
+// MakeDockerImageReference makes a container image reference string referencing testing internal docker
 // registry.
 func MakeDockerImageReference(ns, isName, imageID string) string {
 	return fmt.Sprintf("%s/%s/%s@%s", InternalRegistryURL, ns, isName, imageID)

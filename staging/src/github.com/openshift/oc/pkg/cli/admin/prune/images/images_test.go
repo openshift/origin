@@ -126,9 +126,9 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 			}
 		}
 		expBadRefErrors := sets.NewString(
-			`Pod[foo/pod1]: invalid docker image reference "invalid image reference": invalid reference format`,
+			`Pod[foo/pod1]: invalid container image reference "invalid image reference": invalid reference format`,
 			`BuildConfig[foo/bc1]: invalid ImageStreamImage reference "bar:invalid-digest": expected exactly one @ in the isimage name "bar:invalid-digest"`,
-			`Deployment[foo/dep1]: invalid docker image reference "do not blame me": invalid reference format`)
+			`Deployment[foo/dep1]: invalid container image reference "do not blame me": invalid reference format`)
 
 		if a, e := badRefErrors, expBadRefErrors; !a.Equal(e) {
 			t.Fatalf("got unexpected invalid reference errors: %s", diff.ObjectDiff(a, e))

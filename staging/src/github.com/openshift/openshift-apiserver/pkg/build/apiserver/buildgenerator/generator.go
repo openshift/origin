@@ -108,7 +108,7 @@ func (c Client) GetImageStreamTag(ctx context.Context, name string, options *met
 }
 
 // fetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
-// images from private Docker registries.
+// images from private container image registries.
 func fetchServiceAccountSecrets(secrets corev1client.SecretsGetter, serviceAccounts corev1client.ServiceAccountsGetter, namespace, serviceAccount string) ([]corev1.Secret, error) {
 	var result []corev1.Secret
 	sa, err := serviceAccounts.ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
@@ -756,7 +756,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx context.Context,
 		}
 		image, err := dockerImageReferenceForStream(is)
 		if err != nil {
-			klog.V(2).Infof("Error resolving Docker image reference for %s/%s: %v", namespace, name, err)
+			klog.V(2).Infof("Error resolving container image reference for %s/%s: %v", namespace, name, err)
 			return "", err
 		}
 		klog.V(4).Infof("Resolved ImageStreamTag %s/%s to repository %s", namespace, from.Name, image)

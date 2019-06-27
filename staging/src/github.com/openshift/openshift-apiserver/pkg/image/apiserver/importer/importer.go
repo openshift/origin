@@ -33,7 +33,7 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/internalimageutil"
 )
 
-// Add a dockerregistry.Client to the passed context with this key to support v1 Docker registry importing
+// Add a dockerregistry.Client to the passed context with this key to support v1 container image registry importing
 const ContextKeyV1RegistryClient = "v1-registry-client"
 
 // Interface loads images into an image stream import request.
@@ -48,7 +48,7 @@ type RepositoryRetriever interface {
 	Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error)
 }
 
-// ImageStreamImport implements an import strategy for Docker images. It keeps a cache of images
+// ImageStreamImport implements an import strategy for container images. It keeps a cache of images
 // per distinct auth context to reduce duplicate loads. This type is not thread safe.
 type ImageStreamImporter struct {
 	maximumTagsPerRepo int
@@ -62,7 +62,7 @@ type ImageStreamImporter struct {
 	digestToLayerSizeCache *ImageStreamLayerCache
 }
 
-// NewImageStreamImport creates an importer that will load images from a remote Docker registry into an
+// NewImageStreamImport creates an importer that will load images from a remote container image registry into an
 // ImageStreamImport object. Limiter may be nil.
 func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo int, limiter flowcontrol.RateLimiter, cache *ImageStreamLayerCache) *ImageStreamImporter {
 	if limiter == nil {
@@ -341,9 +341,9 @@ func formatRepositoryError(ref imageapi.DockerImageReference, err error) error {
 	case isDockerError(err, v2.ErrorCodeManifestUnknown):
 		err = kapierrors.NewNotFound(image.Resource("dockerimage"), ref.Exact())
 	case isDockerError(err, errcode.ErrorCodeUnauthorized):
-		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
+		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q", ref.Exact()))
 	case strings.HasSuffix(err.Error(), "no basic auth credentials"):
-		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
+		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q", ref.Exact()))
 	case strings.HasSuffix(err.Error(), "incorrect username or password"):
 		err = kapierrors.NewUnauthorized(fmt.Sprintf("incorrect username or password for image %q", ref.Exact()))
 	}
@@ -472,11 +472,11 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
 			err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):
-			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
+			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q", repository.Ref.Exact()))
 		case strings.Contains(err.Error(), "tls: oversized record received with length") && !repository.Insecure:
 			err = kapierrors.NewBadRequest("this repository is HTTP only and requires the insecure flag to import")
 		case strings.HasSuffix(err.Error(), "no basic auth credentials"):
-			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q and did not have credentials to the repository", repository.Ref.Exact()))
+			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q and did not have credentials to the repository", repository.Ref.Exact()))
 		case strings.HasSuffix(err.Error(), "does not support v2 API"):
 			importRepositoryFromDockerV1(ctx, repository, limiter)
 			return
@@ -493,9 +493,9 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
 			err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
 		case isDockerError(err, errcode.ErrorCodeUnauthorized):
-			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
+			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q", repository.Ref.Exact()))
 		case strings.HasSuffix(err.Error(), "no basic auth credentials"):
-			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q and did not have credentials to the repository", repository.Ref.Exact()))
+			err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q and did not have credentials to the repository", repository.Ref.Exact()))
 		}
 		applyErrorToRepository(repository, err)
 		return
@@ -513,7 +513,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			case isDockerError(err, v2.ErrorCodeNameUnknown):
 				err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
 			case isDockerError(err, errcode.ErrorCodeUnauthorized):
-				err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
+				err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the container image %q", repository.Ref.Exact()))
 			}
 			repository.Err = err
 			return
@@ -719,7 +719,7 @@ type repositoryKey struct {
 	name string
 }
 
-// manifestKey is a key for a map between a Docker image tag or image ID and a retrieved imageapi.Image, used
+// manifestKey is a key for a map between a container image tag or image ID and a retrieved imageapi.Image, used
 // to ensure we don't fetch the same image multiple times.
 type manifestKey struct {
 	repositoryKey

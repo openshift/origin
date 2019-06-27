@@ -186,7 +186,7 @@ func ValidateImageStreamWithWhitelister(
 ) field.ErrorList {
 	result := validation.ValidateObjectMeta(&stream.ObjectMeta, true, ValidateImageStreamName, field.NewPath("metadata"))
 
-	// Ensure we can generate a valid docker image repository from namespace/name
+	// Ensure we can generate a valid container image repository from namespace/name
 	if len(stream.Namespace+"/"+stream.Name) > reference.NameTotalLengthMax {
 		result = append(result, field.Invalid(field.NewPath("metadata", "name"), stream.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", reference.NameTotalLengthMax)))
 	}
@@ -557,7 +557,7 @@ func ValidateImageStreamImport(isi *imageapi.ImageStreamImport) field.ErrorList 
 		switch from.Kind {
 		case "DockerImage":
 			if len(spec.From.Name) == 0 {
-				errs = append(errs, field.Required(repoPath.Child("from", "name"), "Docker image references require a name"))
+				errs = append(errs, field.Required(repoPath.Child("from", "name"), "container image references require a name"))
 			} else {
 				if ref, err := imageref.Parse(from.Name); err != nil {
 					errs = append(errs, field.Invalid(repoPath.Child("from", "name"), from.Name, err.Error()))
