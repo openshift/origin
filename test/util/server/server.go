@@ -22,6 +22,7 @@ import (
 
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
 	"github.com/openshift/library-go/pkg/assets/create"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +43,9 @@ import (
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	oauthclientv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 
@@ -625,17 +628,34 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return fmt.Errorf("Waiting for OpenShift API /healthz failed with: %v", err)
 	}
 
-	err = wait.Poll(time.Second, 3*time.Minute, func() (bool, error) {
-		discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
-		if err != nil {
-			return false, err
-		}
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
 		// wait for openshift APIs
 		for _, gv := range openshiftGVs {
 			if _, err := discoveryClient.RESTClient().Get().AbsPath("/apis/" + gv.Group).DoRaw(); err != nil {
 				return false, nil
 			}
 		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("Waiting for OpenShift APIs failed with: %v", err)
+	}
+
+	err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
+		if err := createOAuthClients(clientConfig, fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress)); err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to create the OAuthClient objects: %v", err)
+	}
+
+	err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
 		// and /oauth/token/request
 		if masterConfig.OAuthConfig != nil {
 			if _, err := discoveryClient.RESTClient().Get().AbsPath("/oauth/token/request").DoRaw(); err != nil {
@@ -645,7 +665,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return true, nil
 	})
 	if err != nil {
-		return fmt.Errorf("Waiting for OpenShift APIs failed with: %v", err)
+		return fmt.Errorf("Waiting for OAuth endpoint failed with: %v", err)
 	}
 
 	return nil
@@ -936,4 +956,50 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 
 	kubeClient, config, err := util.GetClientForUser(clientConfig, adminUser)
 	return kubeClient, config, err
+}
+
+func createOAuthClients(config *restclient.Config, masterURL string) error {
+	const browserSecretBitLen = 256
+	oauthClient, err := oauthclientv1.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	oauthClientsClient := oauthClient.OAuthClients()
+	// create the browser client
+	_, err = oauthClientsClient.Create(&oauthv1.OAuthClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-browser-client",
+		},
+		GrantMethod:  oauthv1.GrantHandlerAuto,
+		Secret:       string(randomBits(browserSecretBitLen)),
+		RedirectURIs: []string{oauthdiscovery.OpenShiftOAuthTokenDisplayURL(masterURL)},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create the browser oauthclient: %v", err)
+	}
+
+	_, err = oauthClientsClient.Create(&oauthv1.OAuthClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-challenging-client",
+		},
+		RespondWithChallenges: true,
+		RedirectURIs:          []string{oauthdiscovery.OpenShiftOAuthTokenImplicitURL(masterURL)},
+		GrantMethod:           oauthv1.GrantHandlerAuto,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create the challenging oauthclient: %v", err)
+	}
+
+	return nil
+}
+
+// RandomBits returns a random byte slice with at least the requested bits of entropy.
+// Callers should avoid using a value less than 256 unless they have a very good reason.
+func randomBits(bits int) []byte {
+	size := (bits + 7) / 8
+	b := make([]byte, size)
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // rand should never fail
+	}
+	return b
 }
