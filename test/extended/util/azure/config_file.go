@@ -25,16 +25,12 @@ func LoadConfigFile() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	settings, err := getAuthFile()
 	if err != nil {
 		return nil, err
 	}
 	config.AADClientID = settings.ClientID
 	config.AADClientSecret = settings.ClientSecret
-	config.UseManagedIdentityExtension = false
-	config.UseInstanceMetadata = false
-
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		return nil, err
