@@ -29,8 +29,7 @@ function ovn-kubernetes-master() {
 	--cluster-subnet "${cluster_cidr}" \
 	--nb-address "tcp://${ovn_master_ip}:6641" \
 	--sb-address "tcp://${ovn_master_ip}:6642" \
-	--init-master `hostname` \
-	--net-controller
+	--init-master `hostname`
 }
 
 if [[ -n "${OPENSHIFT_OVN_KUBERNETES}" ]]; then
