@@ -1,8 +1,10 @@
-hash: 6ac9405b255415ef35dd7b6f27dec6c29bded8f5eadec61513a01951bb03717e
-updated: 2019-06-26T10:20:32.992441982-04:00
+hash: 274917bc93b16586bcc3412c936f885329eccdd378d50116fc1064881240e1f4
+updated: 2019-06-28T14:36:02.899903132+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
+  repo: https://bitbucket.org/ww/goautoneg
+  vcs: hg
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
   subpackages:
@@ -456,9 +458,9 @@ imports:
 - name: github.com/fsouza/go-dockerclient
   version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
-  version: 32a13797442ccb601b11761d74232773c1402d14
+  version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  version: c7ce16629ff4cd059ed96ed06419dd3856fd3577
 - name: github.com/globalsign/mgo
   version: eeefdecb41b842af6dc652aaea4026e8403e62df
   subpackages:
@@ -568,7 +570,7 @@ imports:
 - name: github.com/google/btree
   version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
-  version: 8949c822ea91fa6b4996614a5ad6ade840be24ee
+  version: 7e9ea00b05397d43b6539d22ea6ea51bf70fea83
   subpackages:
   - accelerators
   - cache/memory
@@ -668,11 +670,11 @@ imports:
   - pagination
   - testhelper
 - name: github.com/gorilla/context
-  version: 51ce91d2eaddeca0ef29a71d766bb3634dadf729
+  version: 8559d4a6b87e4f517ec1846eb90a192b8748cc89
 - name: github.com/gorilla/mux
-  version: 08e7f807d38d6a870193019bb439056118661505
+  version: 212aa90d7cec051ab29930d5c56f758f6f69a789
 - name: github.com/gorilla/securecookie
-  version: e65cf8c5df817c89aeb47ecb46064e802e2de943
+  version: 629b6af17341019b261eab06da74c418942918d9
 - name: github.com/gorilla/sessions
   version: a3acf13e802c358d65f249324d14ed24aac11370
 - name: github.com/gorilla/websocket
@@ -825,7 +827,7 @@ imports:
 - name: github.com/mistifyio/go-zfs
   version: 1b4ae6fb4e77b095934d4430860ff202060169f8
 - name: github.com/mitchellh/go-wordwrap
-  version: 9e67c67572bc5dd02aef930e2b0ae3c02a4b5a5c
+  version: ad45545899c7b13c020ea92b2072220eefad42b8
 - name: github.com/mitchellh/mapstructure
   version: 53818660ed4955e899c0bcafa97299a388bd7c8e
 - name: github.com/moby/buildkit
@@ -927,7 +929,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 64d243ed05c5e2e1c779db0810323571d5674ccc
+  version: de5ca909c7322bb8d06fa5a9e5604491b373da52
   subpackages:
   - annotations
   - apps
@@ -977,7 +979,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 8892c0adc000741c33af70e05f4ede47725d0773
+  version: c44a8b61b9f46cd9e802384dfeda0bc9942db68a
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -1050,6 +1052,7 @@ imports:
   - operator/clientset/versioned
   - operator/clientset/versioned/scheme
   - operator/clientset/versioned/typed/operator/v1
+  - operator/clientset/versioned/typed/operator/v1alpha1
   - project/clientset/versioned
   - project/clientset/versioned/fake
   - project/clientset/versioned/scheme
@@ -1210,7 +1213,7 @@ imports:
   - pkg/userregistry/identitymapper
   - pkg/version
 - name: github.com/openshift/oc
-  version: eb81f141d29f07073dcc8cbe9be77e3703f3e451
+  version: 3b476e3d5a3ca778f0021ce7b4d36b66199ea362
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1373,7 +1376,7 @@ imports:
   - pkg/helpers/tokencmd
   - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: a48daecd8d8f22de33be3c7ea8127672f84d46e0
+  version: 0dc06f303d4c897df389a7ed73dc391ea5ba6feb
   subpackages:
   - pkg/api
   - pkg/api/apihelpers
@@ -1555,7 +1558,7 @@ imports:
   - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: 2e855b437b1d4fcbbd5fee46a64fe31d0f9128af
+  version: 30c45bc4557c6c0aa812cb1e663f944a71035fd3
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1937,7 +1940,7 @@ imports:
   - unicode/norm
   - width
 - name: golang.org/x/time
-  version: 9d24e82272b4f38b78bc8cff74fa936d31ccd8ef
+  version: f51c12702a4d776e4c1fa9b0fabab841babae631
   subpackages:
   - rate
 - name: golang.org/x/tools
@@ -2692,7 +2695,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 3a0658d1a4c171ade6984b845232cdb10a23e168
+  version: ab10f62a81a59f9534c64a43cac48a25854cf530
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -3541,6 +3544,7 @@ imports:
   - test/e2e/chaosmonkey
   - test/e2e/common
   - test/e2e/framework
+  - test/e2e/framework/config
   - test/e2e/framework/ginkgowrapper
   - test/e2e/framework/ingress
   - test/e2e/framework/metrics
@@ -3553,6 +3557,7 @@ imports:
   - test/e2e/framework/providers/vsphere
   - test/e2e/framework/testfiles
   - test/e2e/framework/timer
+  - test/e2e/framework/viperconfig
   - test/e2e/generated
   - test/e2e/instrumentation
   - test/e2e/instrumentation/common
@@ -3562,6 +3567,7 @@ imports:
   - test/e2e/instrumentation/logging/utils
   - test/e2e/instrumentation/monitoring
   - test/e2e/kubectl
+  - test/e2e/lifecycle
   - test/e2e/manifest
   - test/e2e/network
   - test/e2e/network/scale
@@ -3578,6 +3584,7 @@ imports:
   - test/e2e/storage/vsphere
   - test/e2e/upgrades
   - test/e2e/upgrades/apps
+  - test/e2e/upgrades/storage
   - test/images/net/common
   - test/images/net/nat
   - test/integration
@@ -3675,7 +3682,7 @@ imports:
   - typed
   - value
 - name: sigs.k8s.io/yaml
-  version: 4e761d0940e599a9569b441f02025fc5981ec2a5
+  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:

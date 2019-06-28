@@ -2,6 +2,7 @@
 
 [![GoDoc](https://godoc.org/github.com/gorilla/mux?status.svg)](https://godoc.org/github.com/gorilla/mux)
 [![Build Status](https://travis-ci.org/gorilla/mux.svg?branch=master)](https://travis-ci.org/gorilla/mux)
+[![CircleCI](https://circleci.com/gh/gorilla/mux.svg?style=svg)](https://circleci.com/gh/gorilla/mux)
 [![Sourcegraph](https://sourcegraph.com/github.com/gorilla/mux/-/badge.svg)](https://sourcegraph.com/github.com/gorilla/mux?badge)
 
 ![Gorilla Logo](http://www.gorillatoolkit.org/static/images/gorilla-icon-64.png)
@@ -503,8 +504,8 @@ package main
 
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
     // A very simple health check.
-    w.WriteHeader(http.StatusOK)
     w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
 
     // In the future we could report back on the status of our DB, or our cache
     // (e.g. Redis) by performing a simple PING, and include them in the response.

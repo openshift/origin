@@ -1,5 +1,6 @@
 package raven
 
+// Writer holds all the information about the message that will be reported to Sentry
 type Writer struct {
 	Client *Client
 	Level  Severity
