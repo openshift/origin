@@ -473,28 +473,12 @@ func (c *CLI) Run(commands ...string) *CLI {
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
-		globalArgs: append(commands, []string{
+		globalArgs: append([]string{
 			fmt.Sprintf("--config=%s", c.configPath),
-		}...),
+		}, commands...),
 	}
 	if !c.withoutNamespace {
-		nc.globalArgs = append(nc.globalArgs, fmt.Sprintf("--namespace=%s", c.Namespace()))
-	}
-	nc.stdin, nc.stdout, nc.stderr = in, out, errout
-	return nc.setOutput(c.stdout)
-}
-
-// Run command without extra args
-func (c *CLI) RunWithoutGlobalArgs(commands ...string) *CLI {
-	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
-	nc := &CLI{
-		execPath:        c.execPath,
-		verb:            commands[0],
-		kubeFramework:   c.KubeFramework(),
-		adminConfigPath: c.adminConfigPath,
-		configPath:      c.configPath,
-		username:        c.username,
-		globalArgs:      commands,
+		nc.globalArgs = append([]string{fmt.Sprintf("--namespace=%s", c.Namespace())}, nc.globalArgs...)
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)

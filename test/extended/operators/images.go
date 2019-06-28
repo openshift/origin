@@ -109,8 +109,6 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 					containerName := pod.Spec.Containers[j].Name
 					commands := []string{
 						"exec",
-						"-n",
-						pod.Namespace,
 						pod.Name,
 						"-c",
 						containerName,
@@ -118,7 +116,8 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 						"cat",
 						"/etc/redhat-release",
 					}
-					result, err := oc.AsAdmin().RunWithoutGlobalArgs(commands...).Args().Output()
+					oc.SetNamespace(pod.Namespace)
+					result, err := oc.AsAdmin().Run(commands...).Args().Output()
 					if err != nil {
 						e2e.Logf("unable to run command:%v with error: %v", commands, err)
 						continue
