@@ -171,6 +171,11 @@ func AnnotateTestSuite() {
 	}
 	sort.Strings(allLabels)
 
+	if e2e.TestContext.Provider != "" {
+		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, e2e.TestContext.Provider))
+	}
+	excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
+
 	ginkgo.WalkTests(func(name string, node types.TestNode) {
 		labels := ""
 		for {
@@ -207,10 +212,6 @@ func AnnotateTestSuite() {
 				break
 			}
 		}
-		if e2e.TestContext.Provider != "" {
-			excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, e2e.TestContext.Provider))
-		}
-		excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
 		if !excludedTestsFilter.MatchString(name) {
 			isSerial := strings.Contains(name, "[Serial]")
 			isConformance := strings.Contains(name, "[Conformance]")
