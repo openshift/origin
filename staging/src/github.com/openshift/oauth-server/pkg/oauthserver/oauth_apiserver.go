@@ -10,24 +10,20 @@ import (
 	"net/url"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kclientset "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
-	oauthv1 "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
-	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/oauth-server/pkg/config"
 	"github.com/openshift/oauth-server/pkg/server/crypto"
 	"github.com/openshift/oauth-server/pkg/server/headers"
@@ -310,48 +306,4 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 	handler = headers.WithStandardHeaders(handler)
 
 	return handler
-}
-
-// TODO, this moves to the `apiserver.go` when we have it for this group
-// TODO TODO, this actually looks a lot like a controller or an add-on manager style thing.  Seems like we'd want to do this outside
-// EnsureBootstrapOAuthClients creates or updates the bootstrap oauth clients that openshift relies upon.
-func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiserver.PostStartHookContext) error {
-	// if we are running an external OAuth server, let the operator manage these OAuth clients
-	if len(c.ExtraOAuthConfig.Options.LoginURL) != 0 {
-		return nil
-	}
-
-	// the TODO above still applies, but this makes it possible for this poststarthook to do its job with a split kubeapiserver and not run forever
-	go func() {
-		// error is guaranteed to be nil
-		_ = wait.PollUntil(1*time.Second, func() (done bool, err error) {
-			browserClient := oauthv1.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: openShiftBrowserClientID},
-				Secret:                crypto.Random256BitsString(),
-				RespondWithChallenges: false,
-				RedirectURIs:          []string{oauthdiscovery.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
-				GrantMethod:           oauthv1.GrantHandlerAuto,
-			}
-			if err := ensureOAuthClient(browserClient, c.ExtraOAuthConfig.OAuthClientClient, true, true); err != nil {
-				utilruntime.HandleError(err)
-				return false, nil
-			}
-
-			cliClient := oauthv1.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: openShiftCLIClientID},
-				Secret:                "",
-				RespondWithChallenges: true,
-				RedirectURIs:          []string{oauthdiscovery.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
-				GrantMethod:           oauthv1.GrantHandlerAuto,
-			}
-			if err := ensureOAuthClient(cliClient, c.ExtraOAuthConfig.OAuthClientClient, false, false); err != nil {
-				utilruntime.HandleError(err)
-				return false, nil
-			}
-
-			return true, nil
-		}, context.StopCh)
-	}()
-
-	return nil
 }

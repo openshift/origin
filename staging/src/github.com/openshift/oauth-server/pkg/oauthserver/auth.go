@@ -14,7 +14,6 @@ import (
 	"github.com/RangelReale/osincli"
 	"k8s.io/klog"
 
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -24,7 +23,6 @@ import (
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	ktransport "k8s.io/client-go/transport"
 	"k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/retry"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
@@ -34,7 +32,7 @@ import (
 	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
-	"github.com/openshift/oauth-server/pkg"
+	oauthserver "github.com/openshift/oauth-server/pkg"
 	"github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/oauth-server/pkg/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/oauth-server/pkg/authenticator/challenger/placeholderchallenger"
@@ -213,51 +211,6 @@ func newOpenShiftOAuthClientConfig(clientId, clientSecret, masterPublicURL, mast
 		Scope:                    "",
 	}
 	return config
-}
-
-func ensureOAuthClient(client oauthapi.OAuthClient, oauthClients oauthclient.OAuthClientInterface, preserveExistingRedirects, preserveExistingSecret bool) error {
-	_, err := oauthClients.Create(&client)
-	if err == nil || !kerrs.IsAlreadyExists(err) {
-		return err
-	}
-
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		existing, err := oauthClients.Get(client.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		// Ensure the correct challenge setting
-		existing.RespondWithChallenges = client.RespondWithChallenges
-		// Preserve an existing client secret
-		if !preserveExistingSecret || len(existing.Secret) == 0 {
-			existing.Secret = client.Secret
-		}
-
-		// Preserve redirects for clients other than the CLI client
-		// The CLI client doesn't care about the redirect URL, just the token or error fragment
-		if preserveExistingRedirects {
-			// Add in any redirects from the existing one
-			// This preserves any additional customized redirects in the default clients
-			redirects := sets.NewString(client.RedirectURIs...)
-			for _, redirect := range existing.RedirectURIs {
-				if !redirects.Has(redirect) {
-					client.RedirectURIs = append(client.RedirectURIs, redirect)
-					redirects.Insert(redirect)
-				}
-			}
-		}
-		existing.RedirectURIs = client.RedirectURIs
-
-		// If the GrantMethod is present, keep it for compatibility
-		// If it is empty, assign the requested strategy.
-		if len(existing.GrantMethod) == 0 {
-			existing.GrantMethod = client.GrantMethod
-		}
-
-		_, err = oauthClients.Update(existing)
-		return err
-	})
 }
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
