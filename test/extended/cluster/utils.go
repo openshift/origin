@@ -161,9 +161,9 @@ func (p *ClusterLoaderObjectType) CreatePods(c kclientset.Interface, ns string, 
 				framework.Logf("Waiting for pods created this step to be running")
 				pods, err := exutil.WaitForPods(c.CoreV1().Pods(ns), exutil.ParseLabelsOrDie(mapToString(labels)), exutil.CheckPodIsRunning, i+1, tuning.Pods.Stepping.Timeout*time.Second)
 				if err != nil {
-					framework.Failf("Error in wait... %v", err)
+					framework.Failf("Error in pod wait... %v", err)
 				} else if len(pods) < i+1 {
-					framework.Failf("Only got %v out of %v", len(pods), i+1)
+					framework.Failf("Only got %v out of %v pods", len(pods), i+1)
 				}
 
 				framework.Logf("We have created %d pods and are now sleeping for %d seconds", i+1, tuning.Pods.Stepping.Pause)
