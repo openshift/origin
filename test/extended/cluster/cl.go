@@ -44,13 +44,16 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		var err error
 		c = oc.AdminKubeClient()
 		viperConfig := reale2e.GetViperConfig()
-		if viperConfig == "e2e" {
+		if viperConfig == "" {
 			e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
 			path := strings.Split(masterVertFixture, "/")
 			rootDir = strings.Join(path[:len(path)-5], "/")
 			err = ParseConfig(masterVertFixture, true)
 		} else {
-			e2e.Logf("Using config %v\n", viperConfig)
+			if _, err := os.Stat(viperConfig); os.IsNotExist(err) {
+				e2e.Failf("Config file not found: \"%v\"\n", err)
+			}
+			e2e.Logf("Using config \"%v\"\n", viperConfig)
 			err = ParseConfig(viperConfig, false)
 		}
 		if err != nil {
