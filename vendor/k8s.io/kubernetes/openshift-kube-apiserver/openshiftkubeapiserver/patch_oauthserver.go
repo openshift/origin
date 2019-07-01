@@ -24,22 +24,18 @@ func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config
 	return oauthServerConfig, nil
 }
 
-func NewOAuthServerHandler(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig) (http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+func NewOAuthServerHandler(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig) (http.Handler, error) {
 	if oauthConfig == nil {
-		return http.NotFoundHandler(), nil, nil
+		return http.NotFoundHandler(), nil
 	}
 
 	config, err := NewOAuthServerConfigFromMasterConfig(genericConfig, oauthConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	oauthServer, err := config.Complete().New(genericapiserver.NewEmptyDelegate())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain,
-		map[string]genericapiserver.PostStartHookFunc{
-			"oauth.openshift.io-startoauthclientsbootstrapping": config.StartOAuthClientsBootstrapping,
-		},
-		nil
+	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
 }
