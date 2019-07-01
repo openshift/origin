@@ -586,15 +586,6 @@ func (o *NewOptions) Run() error {
 			}
 		}
 		fmt.Fprintf(o.ErrOut, "info: Found %d operator manifest directories on disk\n", len(ordered))
-
-	default:
-		for _, m := range o.Mappings {
-			if exclude.Has(m.Source) {
-				klog.V(2).Infof("Excluded mapping %s", m.Source)
-				continue
-			}
-			ordered = append(ordered, m.Source)
-		}
 	}
 
 	name := o.Name
@@ -648,6 +639,7 @@ func (o *NewOptions) Run() error {
 			klog.V(2).Infof("Excluded mapping %s", m.Source)
 			continue
 		}
+		ordered = append(ordered, m.Source)
 		tag := hasTag(is.Spec.Tags, m.Source)
 		if tag == nil {
 			is.Spec.Tags = append(is.Spec.Tags, imageapi.TagReference{
