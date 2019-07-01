@@ -24,6 +24,7 @@ import (
 
 	// _ "k8s.io/kubernetes/test/e2e/ui"
 
+	_ "github.com/openshift/origin/test/extended/apiserver"
 	_ "github.com/openshift/origin/test/extended/authorization"
 	_ "github.com/openshift/origin/test/extended/authorization/rbac"
 	_ "github.com/openshift/origin/test/extended/bootstrap_user"
@@ -48,4 +49,5 @@ import (
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/templates"
+	_ "github.com/openshift/origin/test/extended/user"
 )
