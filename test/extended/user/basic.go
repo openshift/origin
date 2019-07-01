@@ -26,9 +26,11 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 
 		clusterAdminUserClient := oc.AdminUserClient().UserV1()
 
+		valerieName := oc.CreateUser("valerie-").Name
+
 		g.By("make sure we don't get back system groups", func() {
 			// make sure we don't get back system groups
-			userValerie, err := clusterAdminUserClient.Users().Get("valerie", metav1.GetOptions{})
+			userValerie, err := clusterAdminUserClient.Users().Get(valerieName, metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -51,19 +53,17 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 
 		theGroup := &userv1.Group{}
 		theGroup.Name = "theGroup-" + oc.Namespace()
-		theGroup.Users = append(theGroup.Users, "valerie")
+		theGroup.Users = append(theGroup.Users, valerieName)
 		_, err := clusterAdminUserClient.Groups().Create(theGroup)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
-		defer func() {
-			clusterAdminUserClient.Groups().Delete(theGroup.Name, nil)
-		}()
+		oc.AddResourceToDelete(userv1.GroupVersion.WithResource("groups"), theGroup)
 
 		g.By("make sure that user/~ returns system groups for backed users when it merges", func() {
 			// make sure that user/~ returns system groups for backed users when it merges
 			expectedValerieGroups := []string{"system:authenticated", "system:authenticated:oauth"}
-			valerieConfig := oc.GetClientConfigForUser("valerie")
+			valerieConfig := oc.GetClientConfigForUser(valerieName)
 			secondValerie, err := userv1typedclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -75,7 +75,7 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 
 		g.By("confirm no access to the project", func() {
 			// separate client here to avoid bad caching
-			valerieConfig := oc.GetClientConfigForUser("valerie")
+			valerieConfig := oc.GetClientConfigForUser(valerieName)
 			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
 			if err == nil {
 				t.Fatalf("expected error")
@@ -102,13 +102,13 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 						Resource:  "pods",
 					},
 				},
-			}, "valerie")
+			}, valerieName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.By("make sure that user groups are respected for policy", func() {
 			// make sure that user groups are respected for policy
-			valerieConfig := oc.GetClientConfigForUser("valerie")
+			valerieConfig := oc.GetClientConfigForUser(valerieName)
 			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -120,23 +120,23 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 		t := g.GinkgoT()
 		clusterAdminUserClient := oc.AdminUserClient().UserV1()
 
-		valerieConfig := oc.GetClientConfigForUser("valerie")
+		victorName := oc.CreateUser("victor-").Name
+		valerieName := oc.CreateUser("valerie-").Name
+		valerieConfig := oc.GetClientConfigForUser(valerieName)
 
 		g.By("creating the group")
 		theGroup := &userv1.Group{}
 		theGroup.Name = "thegroup-" + oc.Namespace()
-		theGroup.Users = append(theGroup.Users, "valerie", "victor")
+		theGroup.Users = append(theGroup.Users, valerieName, victorName)
 		_, err := clusterAdminUserClient.Groups().Create(theGroup)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
-		defer func() {
-			clusterAdminUserClient.Groups().Delete(theGroup.Name, nil)
-		}()
+		oc.AddResourceToDelete(userv1.GroupVersion.WithResource("groups"), theGroup)
 
 		g.By("confirm no access to the project", func() {
 			// separate client here to avoid bad caching
-			valerieConfig := oc.GetClientConfigForUser("valerie")
+			valerieConfig := oc.GetClientConfigForUser(valerieName)
 			_, err = projectv1typedclient.NewForConfigOrDie(valerieConfig).Projects().Get(oc.Namespace(), metav1.GetOptions{})
 			if err == nil {
 				t.Fatalf("expected error")
@@ -163,7 +163,7 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 						Resource:  "pods",
 					},
 				},
-			}, "valerie")
+			}, valerieName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -174,7 +174,7 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			victorConfig := oc.GetClientConfigForUser("victor")
+			victorConfig := oc.GetClientConfigForUser(victorName)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

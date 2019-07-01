@@ -382,19 +382,21 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
 				hammerProjectName := oc.CreateProject()
-				haroldName := "harold-" + oc.Namespace()
+				haroldName := oc.CreateUser("harold-").Name
 				haroldConfig := oc.GetClientConfigForUser(haroldName)
 				haroldAuthorizationClient := authorizationv1client.NewForConfigOrDie(haroldConfig).AuthorizationV1()
 				addUserAdminToProject(oc, hammerProjectName, haroldName)
 
 				malletProjectName := oc.CreateProject()
-				markName := "mark-" + oc.Namespace()
+				markName := oc.CreateUser("mark-").Name
 				markConfig := oc.GetClientConfigForUser(markName)
 				markAuthorizationClient := authorizationv1client.NewForConfigOrDie(markConfig).AuthorizationV1()
 				addUserAdminToProject(oc, malletProjectName, markName)
 
-				addUserViewToProject(oc, hammerProjectName, "valerie")
-				addUserEditToProject(oc, malletProjectName, "edgar")
+				valerieName := oc.CreateUser("valerie-").Name
+				addUserViewToProject(oc, hammerProjectName, valerieName)
+				edgarName := oc.CreateUser("edgar-").Name
+				addUserEditToProject(oc, malletProjectName, edgarName)
 
 				requestWhoCanViewDeploymentConfigs := &authorizationv1.ResourceAccessReview{
 					Action: authorizationv1.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
@@ -410,7 +412,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 						clientInterface: haroldAuthorizationClient.LocalResourceAccessReviews(hammerProjectName),
 						review:          localRequestWhoCanViewDeploymentConfigs,
 						response: authorizationv1.ResourceAccessReviewResponse{
-							UsersSlice:  []string{oc.Username(), haroldName, "valerie"},
+							UsersSlice:  []string{oc.Username(), haroldName, valerieName},
 							GroupsSlice: []string{},
 							Namespace:   hammerProjectName,
 						},
@@ -426,7 +428,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 						clientInterface: markAuthorizationClient.LocalResourceAccessReviews(malletProjectName),
 						review:          localRequestWhoCanViewDeploymentConfigs,
 						response: authorizationv1.ResourceAccessReviewResponse{
-							UsersSlice:  []string{oc.Username(), markName, "edgar"},
+							UsersSlice:  []string{oc.Username(), markName, edgarName},
 							GroupsSlice: []string{},
 							Namespace:   malletProjectName,
 						},
@@ -485,17 +487,19 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 				hammerProjectName := oc.CreateProject()
 				malletProjectName := oc.CreateProject()
 
-				haroldName := "harold-" + oc.Namespace()
-				markName := "mark-" + oc.Namespace()
-				dannyName := "danny-" + oc.Namespace()
+				haroldName := oc.CreateUser("harold-").Name
+				markName := oc.CreateUser("mark-").Name
+				dannyName := oc.CreateUser("danny-").Name
+				edgarName := oc.CreateUser("edgar-").Name
+				valerieName := oc.CreateUser("valerie-").Name
 
 				g.By("adding user permissions")
 				haroldAdminRoleBindingName := addUserAdminToProject(oc, hammerProjectName, haroldName)
 				// TODO should be done by harold
-				valerieViewRoleBindingName := addUserViewToProject(oc, hammerProjectName, "valerie")
+				valerieViewRoleBindingName := addUserViewToProject(oc, hammerProjectName, valerieName)
 				addUserAdminToProject(oc, malletProjectName, markName)
 				// TODO should be done by mark
-				edgarEditRoleBindingName := addUserEditToProject(oc, malletProjectName, "edgar")
+				edgarEditRoleBindingName := addUserEditToProject(oc, malletProjectName, edgarName)
 				anonEditRoleBindingName := addUserEditToProject(oc, hammerProjectName, "system:anonymous")
 				dannyViewRoleBindingName := addUserViewToProject(oc, "default", dannyName)
 
@@ -564,7 +568,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 				}.run(t)
 
 				askCanValerieGetProject := &authorizationv1.LocalSubjectAccessReview{
-					User:   "valerie",
+					User:   valerieName,
 					Action: authorizationv1.Action{Verb: "get", Resource: "projects"},
 				}
 				subjectAccessReviewTest{
@@ -574,7 +578,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 					kubeAuthInterface: haroldSARGetter,
 					response: authorizationv1.SubjectAccessReviewResponse{
 						Allowed:   true,
-						Reason:    `RBAC: allowed by RoleBinding "` + valerieViewRoleBindingName + `/` + hammerProjectName + `" of ClusterRole "view" to User "valerie"`,
+						Reason:    `RBAC: allowed by RoleBinding "` + valerieViewRoleBindingName + `/` + hammerProjectName + `" of ClusterRole "view" to User "` + valerieName + `"`,
 						Namespace: hammerProjectName,
 					},
 				}.run(t)
@@ -591,7 +595,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 				}.run(t)
 
 				askCanEdgarDeletePods := &authorizationv1.LocalSubjectAccessReview{
-					User:   "edgar",
+					User:   edgarName,
 					Action: authorizationv1.Action{Verb: "delete", Resource: "pods"},
 				}
 				subjectAccessReviewTest{
@@ -601,7 +605,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 					kubeAuthInterface: markSARGetter,
 					response: authorizationv1.SubjectAccessReviewResponse{
 						Allowed:   true,
-						Reason:    `RBAC: allowed by RoleBinding "` + edgarEditRoleBindingName + `/` + malletProjectName + `" of ClusterRole "edit" to User "edgar"`,
+						Reason:    `RBAC: allowed by RoleBinding "` + edgarEditRoleBindingName + `/` + malletProjectName + `" of ClusterRole "edit" to User "` + edgarName + `"`,
 						Namespace: malletProjectName,
 					},
 				}.run(t)
@@ -1168,7 +1172,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 				t := g.GinkgoT()
 
 				// this client has an API token so it is safe
-				username := "user-" + oc.Namespace()
+				username := oc.CreateUser("someuser-").Name
 				userClient := kubernetes.NewForConfigOrDie(oc.GetClientConfigForUser(username))
 
 				// this client has no API token so it is unsafe (like a browser)

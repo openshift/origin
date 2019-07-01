@@ -20,7 +20,8 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] self-SAR compatibility", fu
 			g.It(fmt.Sprintf("should succeed"), func() {
 				t := g.GinkgoT()
 
-				valerieClientConfig := oc.GetClientConfigForUser("valerie")
+				valerieName := oc.CreateUser("valerie-").Name
+				valerieClientConfig := oc.GetClientConfigForUser(valerieName)
 
 				askCanICreatePolicyBindings := &authorizationv1.LocalSubjectAccessReview{
 					Action: authorizationv1.Action{Verb: "create", Resource: "policybindings"},
@@ -47,8 +48,8 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] self-SAR compatibility", fu
 					localReview:       askCanClusterAdminsCreateProject,
 					kubeAuthInterface: kubernetes.NewForConfigOrDie(valerieClientConfig).AuthorizationV1(),
 					kubeNamespace:     "openshift",
-					err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "valerie" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "openshift"`,
-					kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "valerie" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "openshift"`,
+					err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "` + valerieName + `" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "openshift"`,
+					kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "` + valerieName + `" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "openshift"`,
 				}.run(t)
 
 			})
@@ -58,7 +59,8 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] self-SAR compatibility", fu
 			g.It(fmt.Sprintf("should succeed"), func() {
 				t := g.GinkgoT()
 
-				valerieClientConfig := oc.GetClientConfigForUser("valerie")
+				valerieName := oc.CreateUser("valerie-").Name
+				valerieClientConfig := oc.GetClientConfigForUser(valerieName)
 
 				// ensure that a SAR for a non-exisitng namespace gives a SAR response and not a
 				// namespace doesn't exist response from admisison.

@@ -15,6 +15,9 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -80,6 +83,14 @@ type CLI struct {
 	verbose            bool
 	withoutNamespace   bool
 	kubeFramework      *e2e.Framework
+
+	resourcesToDelete []resourceRef
+}
+
+type resourceRef struct {
+	Resource  schema.GroupVersionResource
+	Namespace string
+	Name      string
 }
 
 // NewCLI initialize the upstream E2E framework and set the namespace to match
@@ -279,8 +290,9 @@ func (c *CLI) CreateProject() string {
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	// TODO: remove when https://github.com/kubernetes/kubernetes/pull/62606 merges and is in origin
-	c.namespacesToDelete = append(c.namespacesToDelete, newNamespace)
+	actualNs, err := c.AdminKubeClient().CoreV1().Namespaces().Get(newNamespace, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	c.kubeFramework.AddNamespacesToDelete(actualNs)
 
 	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
 	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
@@ -304,13 +316,11 @@ func (c *CLI) TeardownProject() {
 	if len(c.configPath) > 0 {
 		os.Remove(c.configPath)
 	}
-	if e2e.TestContext.DeleteNamespace && len(c.namespacesToDelete) > 0 {
-		timeout := e2e.DefaultNamespaceDeletionTimeout
-		if c.kubeFramework.NamespaceDeletionTimeout != 0 {
-			timeout = c.kubeFramework.NamespaceDeletionTimeout
-		}
-		e2e.DeleteNamespaces(c.kubeFramework.ClientSet, c.namespacesToDelete, nil)
-		e2e.WaitForNamespacesDeleted(c.kubeFramework.ClientSet, c.namespacesToDelete, timeout)
+
+	dynamicClient := c.AdminDynamicClient()
+	for _, resource := range c.resourcesToDelete {
+		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(resource.Name, nil)
+		e2e.Logf("Deleted %v, err: %v", resource, err)
 	}
 }
 
@@ -327,157 +337,79 @@ func (c *CLI) RESTMapper() meta.RESTMapper {
 }
 
 func (c *CLI) AppsClient() appsv1client.Interface {
-	client, err := appsv1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return appsv1client.NewForConfigOrDie(c.UserConfig())
 }
 
 func (c *CLI) AuthorizationClient() authorizationv1client.Interface {
-	client, err := authorizationv1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return authorizationv1client.NewForConfigOrDie(c.UserConfig())
 }
 
 func (c *CLI) BuildClient() buildv1client.Interface {
-	client, err := buildv1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return buildv1client.NewForConfigOrDie(c.UserConfig())
 }
 
 func (c *CLI) ImageClient() imagev1client.Interface {
-	client, err := imagev1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return imagev1client.NewForConfigOrDie(c.UserConfig())
 }
 
 func (c *CLI) ProjectClient() projectv1client.Interface {
-	client, err := projectv1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return projectv1client.NewForConfigOrDie(c.UserConfig())
 }
 
 func (c *CLI) RouteClient() routev1client.Interface {
-	client, err := routev1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return routev1client.NewForConfigOrDie(c.UserConfig())
 }
 
-// Client provides an OpenShift client for the current user. If the user is not
-// set, then it provides client for the cluster admin user
 func (c *CLI) TemplateClient() templatev1client.Interface {
-	client, err := templatev1client.NewForConfig(c.UserConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return templatev1client.NewForConfigOrDie(c.UserConfig())
 }
 
 func (c *CLI) AdminAppsClient() appsv1client.Interface {
-	client, err := appsv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return appsv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminAuthorizationClient() authorizationv1client.Interface {
-	client, err := authorizationv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return authorizationv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminBuildClient() buildv1client.Interface {
-	client, err := buildv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return buildv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminConfigClient() configv1client.Interface {
-	client, err := configv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return configv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {
-	client, err := imagev1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return imagev1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminOauthClient() oauthv1client.Interface {
-	client, err := oauthv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return oauthv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminOperatorClient() operatorv1client.Interface {
-	client, err := operatorv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return operatorv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminProjectClient() projectv1client.Interface {
-	client, err := projectv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return projectv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminRouteClient() routev1client.Interface {
-	client, err := routev1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return routev1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminUserClient() userv1client.Interface {
-	client, err := userv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return userv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminSecurityClient() securityv1client.Interface {
-	client, err := securityv1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return securityv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminTemplateClient() templatev1client.Interface {
-	client, err := templatev1client.NewForConfig(c.AdminConfig())
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
+	return templatev1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 // KubeClient provides a Kubernetes client for the current namespace
@@ -485,9 +417,17 @@ func (c *CLI) KubeClient() kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(c.UserConfig())
 }
 
+func (c *CLI) DynamicClient() dynamic.Interface {
+	return dynamic.NewForConfigOrDie(c.UserConfig())
+}
+
 // AdminKubeClient provides a Kubernetes client for the cluster admin user.
 func (c *CLI) AdminKubeClient() kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) AdminDynamicClient() dynamic.Interface {
+	return dynamic.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) UserConfig() *rest.Config {
@@ -705,6 +645,26 @@ func FatalErr(msg interface{}) {
 	e2e.Failf("%v", msg)
 }
 
+func (c *CLI) AddExplicitResourceToDelete(resource schema.GroupVersionResource, namespace, name string) {
+	c.resourcesToDelete = append(c.resourcesToDelete, resourceRef{Resource: resource, Namespace: namespace, Name: name})
+}
+
+func (c *CLI) AddResourceToDelete(resource schema.GroupVersionResource, metadata metav1.Object) {
+	c.resourcesToDelete = append(c.resourcesToDelete, resourceRef{Resource: resource, Namespace: metadata.GetNamespace(), Name: metadata.GetName()})
+}
+
+func (c *CLI) CreateUser(prefix string) *userv1.User {
+	user, err := c.AdminUserClient().UserV1().Users().Create(&userv1.User{
+		ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
+	})
+	if err != nil {
+		FatalErr(err)
+	}
+	c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
+
+	return user
+}
+
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	userClient := c.AdminUserClient()
 
@@ -713,23 +673,26 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		FatalErr(err)
 	}
 	if err != nil {
-		user = &userv1.User{
+		user, err = userClient.UserV1().Users().Create(&userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
-		}
-		user, err = userClient.UserV1().Users().Create(user)
+		})
 		if err != nil {
 			FatalErr(err)
 		}
+		c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 	}
 
 	oauthClient := c.AdminOauthClient()
-
-	oauthClientObj := &oauthv1.OAuthClient{
-		ObjectMeta:  metav1.ObjectMeta{Name: "test-integration-client"},
+	oauthClientName := "e2e-client-" + c.Namespace()
+	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(&oauthv1.OAuthClient{
+		ObjectMeta:  metav1.ObjectMeta{Name: oauthClientName},
 		GrantMethod: oauthv1.GrantHandlerAuto,
-	}
-	if _, err := oauthClient.OauthV1().OAuthClients().Create(oauthClientObj); err != nil && !apierrors.IsAlreadyExists(err) {
+	})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		FatalErr(err)
+	}
+	if oauthClientObj != nil {
+		c.AddExplicitResourceToDelete(oauthv1.GroupVersion.WithResource("oauthclients"), "", oauthClientName)
 	}
 
 	randomToken := uuid.NewRandom()
@@ -738,17 +701,18 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	for i := len(accesstoken); i < 32; i++ {
 		accesstoken += "A"
 	}
-	token := &oauthv1.OAuthAccessToken{
+	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(&oauthv1.OAuthAccessToken{
 		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
-		ClientName:  oauthClientObj.Name,
+		ClientName:  oauthClientName,
 		UserName:    username,
 		UserUID:     string(user.UID),
 		Scopes:      []string{"user:full"},
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
-	}
-	if _, err := oauthClient.OauthV1().OAuthAccessTokens().Create(token); err != nil {
+	})
+	if err != nil {
 		FatalErr(err)
 	}
+	c.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
 
 	userClientConfig := rest.AnonymousClientConfig(turnOffRateLimiting(rest.CopyConfig(c.AdminConfig())))
 	userClientConfig.BearerToken = token.Name
