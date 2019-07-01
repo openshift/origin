@@ -20,6 +20,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
 	"github.com/openshift/origin/test/util/server/deprecated_openshift/iputil"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -287,4 +288,86 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 
 	}
 
+}
+
+func createClientCert(commonName, certDir, caPrefix string) (*tls.Certificate, error) {
+	signerCertOptions := &deprecatedcerts.SignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
+	}
+	clientCertOptions := &deprecatedcerts.CreateClientCertOptions{
+		SignerCertOptions: signerCertOptions,
+		CertFile:          deprecatedcerts.DefaultCertFilename(certDir, commonName),
+		KeyFile:           deprecatedcerts.DefaultKeyFilename(certDir, commonName),
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+		User:              commonName,
+		Overwrite:         true,
+	}
+	if err := clientCertOptions.Validate(nil); err != nil {
+		return nil, err
+	}
+	certConfig, err := clientCertOptions.CreateClientCert()
+	if err != nil {
+		return nil, err
+	}
+	certBytes, keyBytes, err := certConfig.GetPEMBytes()
+	if err != nil {
+		return nil, err
+	}
+	cert, err := tls.X509KeyPair(certBytes, keyBytes)
+	if err != nil {
+		return nil, err
+	}
+	return &cert, nil
+}
+
+func createCA(certDir, caPrefix string) (string, error) {
+	createSignerCertOptions := deprecatedcerts.CreateSignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
+		ExpireDays: crypto.DefaultCACertificateLifetimeInDays,
+		Name:       caPrefix,
+		Overwrite:  true,
+	}
+	if err := createSignerCertOptions.Validate(nil); err != nil {
+		return "", err
+	}
+	if _, err := createSignerCertOptions.CreateSignerCert(); err != nil {
+		return "", err
+	}
+	return createSignerCertOptions.CertFile, nil
+}
+
+func createServerCert(hostnames []string, commonName, certDir, caPrefix string) (*tls.Certificate, error) {
+	signerCertOptions := &deprecatedcerts.SignerCertOptions{
+		CertFile:   deprecatedcerts.DefaultCertFilename(certDir, caPrefix),
+		KeyFile:    deprecatedcerts.DefaultKeyFilename(certDir, caPrefix),
+		SerialFile: deprecatedcerts.DefaultSerialFilename(certDir, caPrefix),
+	}
+	serverCertOptions := &deprecatedcerts.CreateServerCertOptions{
+		SignerCertOptions: signerCertOptions,
+		CertFile:          deprecatedcerts.DefaultCertFilename(certDir, commonName),
+		KeyFile:           deprecatedcerts.DefaultKeyFilename(certDir, commonName),
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+		Hostnames:         hostnames,
+		Overwrite:         true,
+	}
+	if err := serverCertOptions.Validate(nil); err != nil {
+		return nil, err
+	}
+	certConfig, err := serverCertOptions.CreateServerCert()
+	if err != nil {
+		return nil, err
+	}
+	certBytes, keyBytes, err := certConfig.GetPEMBytes()
+	if err != nil {
+		return nil, err
+	}
+	cert, err := tls.X509KeyPair(certBytes, keyBytes)
+	if err != nil {
+		return nil, err
+	}
+	return &cert, nil
 }

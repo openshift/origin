@@ -385,18 +385,18 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 				haroldName := oc.CreateUser("harold-").Name
 				haroldConfig := oc.GetClientConfigForUser(haroldName)
 				haroldAuthorizationClient := authorizationv1client.NewForConfigOrDie(haroldConfig).AuthorizationV1()
-				addUserAdminToProject(oc, hammerProjectName, haroldName)
+				AddUserAdminToProject(oc, hammerProjectName, haroldName)
 
 				malletProjectName := oc.CreateProject()
 				markName := oc.CreateUser("mark-").Name
 				markConfig := oc.GetClientConfigForUser(markName)
 				markAuthorizationClient := authorizationv1client.NewForConfigOrDie(markConfig).AuthorizationV1()
-				addUserAdminToProject(oc, malletProjectName, markName)
+				AddUserAdminToProject(oc, malletProjectName, markName)
 
 				valerieName := oc.CreateUser("valerie-").Name
-				addUserViewToProject(oc, hammerProjectName, valerieName)
+				AddUserViewToProject(oc, hammerProjectName, valerieName)
 				edgarName := oc.CreateUser("edgar-").Name
-				addUserEditToProject(oc, malletProjectName, edgarName)
+				AddUserEditToProject(oc, malletProjectName, edgarName)
 
 				requestWhoCanViewDeploymentConfigs := &authorizationv1.ResourceAccessReview{
 					Action: authorizationv1.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
@@ -494,14 +494,14 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 				valerieName := oc.CreateUser("valerie-").Name
 
 				g.By("adding user permissions")
-				haroldAdminRoleBindingName := addUserAdminToProject(oc, hammerProjectName, haroldName)
+				haroldAdminRoleBindingName := AddUserAdminToProject(oc, hammerProjectName, haroldName)
 				// TODO should be done by harold
-				valerieViewRoleBindingName := addUserViewToProject(oc, hammerProjectName, valerieName)
-				addUserAdminToProject(oc, malletProjectName, markName)
+				valerieViewRoleBindingName := AddUserViewToProject(oc, hammerProjectName, valerieName)
+				AddUserAdminToProject(oc, malletProjectName, markName)
 				// TODO should be done by mark
-				edgarEditRoleBindingName := addUserEditToProject(oc, malletProjectName, edgarName)
-				anonEditRoleBindingName := addUserEditToProject(oc, hammerProjectName, "system:anonymous")
-				dannyViewRoleBindingName := addUserViewToProject(oc, "default", dannyName)
+				edgarEditRoleBindingName := AddUserEditToProject(oc, malletProjectName, edgarName)
+				anonEditRoleBindingName := AddUserEditToProject(oc, hammerProjectName, "system:anonymous")
+				dannyViewRoleBindingName := AddUserViewToProject(oc, "default", dannyName)
 
 				g.By("creating clients")
 				haroldConfig := oc.GetClientConfigForUser(haroldName)
@@ -989,7 +989,7 @@ func toKubeClusterSAR(sar *authorizationv1.SubjectAccessReview) *kubeauthorizati
 	}
 }
 
-func addUserToRoleInProject(oc *exutil.CLI, clusterrolebinding, namespace, user string) string {
+func AddUserToRoleInProject(oc *exutil.CLI, clusterrolebinding, namespace, user string) string {
 	roleBinding := &authorizationv1.RoleBinding{}
 	roleBinding.GenerateName = clusterrolebinding
 	roleBinding.RoleRef.Name = clusterrolebinding
@@ -1014,16 +1014,16 @@ func addUserToRoleInProject(oc *exutil.CLI, clusterrolebinding, namespace, user 
 	return actual.Name
 }
 
-func addUserAdminToProject(oc *exutil.CLI, namespace, user string) string {
-	return addUserToRoleInProject(oc, "admin", namespace, user)
+func AddUserAdminToProject(oc *exutil.CLI, namespace, user string) string {
+	return AddUserToRoleInProject(oc, "admin", namespace, user)
 }
 
-func addUserEditToProject(oc *exutil.CLI, namespace, user string) string {
-	return addUserToRoleInProject(oc, "edit", namespace, user)
+func AddUserEditToProject(oc *exutil.CLI, namespace, user string) string {
+	return AddUserToRoleInProject(oc, "edit", namespace, user)
 }
 
-func addUserViewToProject(oc *exutil.CLI, namespace, user string) string {
-	return addUserToRoleInProject(oc, "view", namespace, user)
+func AddUserViewToProject(oc *exutil.CLI, namespace, user string) string {
+	return AddUserToRoleInProject(oc, "view", namespace, user)
 }
 
 var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
@@ -1044,7 +1044,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] authorization", func() {
 				haroldName := "harold-" + oc.Namespace()
 
 				g.By("adding user permissions")
-				haroldAdminRoleBindingName := addUserAdminToProject(oc, hammerProjectName, haroldName)
+				haroldAdminRoleBindingName := AddUserAdminToProject(oc, hammerProjectName, haroldName)
 
 				// SAR honors API Group
 				subjectAccessReviewTest{
