@@ -698,8 +698,6 @@ func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 		case 0:
 			// legacy case, server does not know individual layers
 			formatString(out, "Layer Size", units.HumanSize(float64(dockerImage.Size)))
-		case 1:
-			formatString(out, "Image Size", units.HumanSize(float64(dockerImage.Size)))
 		default:
 			formatString(out, "Image Size", fmt.Sprintf("%s in %d layers", units.HumanSize(float64(dockerImage.Size)), len(image.DockerImageLayers)))
 			var layers []string
