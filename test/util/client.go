@@ -3,7 +3,6 @@ package util
 import (
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -134,38 +133,6 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 	}
 
 	return kubeClientset, userClientConfig, nil
-}
-
-func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, username string, scopes []string) (kubernetes.Interface, *restclient.Config, error) {
-	// make sure the user exists
-	if _, _, err := GetClientForUser(clusterAdminClientConfig, username); err != nil {
-		return nil, nil, err
-	}
-	user, err := userv1client.NewForConfigOrDie(clusterAdminClientConfig).UserV1().Users().Get(username, metav1.GetOptions{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	token := &oauthv1.OAuthAccessToken{
-		ObjectMeta:  metav1.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
-		ClientName:  "openshift-challenging-client",
-		ExpiresIn:   86400,
-		Scopes:      scopes,
-		RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
-		UserName:    user.Name,
-		UserUID:     string(user.UID),
-	}
-	if _, err := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig).OauthV1().OAuthAccessTokens().Create(token); err != nil {
-		return nil, nil, err
-	}
-
-	scopedConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(clusterAdminClientConfig))
-	scopedConfig.BearerToken = token.Name
-	kubeClient, err := kubernetes.NewForConfig(scopedConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-	return kubeClient, scopedConfig, nil
 }
 
 func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig restclient.Config, namespace, name string) (*kubernetes.Clientset, *restclient.Config, error) {

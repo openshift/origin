@@ -1,14 +1,13 @@
-package integration
+package controller_manager
 
 import (
 	"reflect"
-	"testing"
 	"time"
 
+	g "github.com/onsi/ginkgo"
+
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	testutil "github.com/openshift/origin/test/util"
-	testserver "github.com/openshift/origin/test/util/server"
+	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -93,70 +92,58 @@ func clearTransient(dc *appsv1.DeploymentConfig) {
 	dc.ObjectMeta.CreationTimestamp.Time = time.Time{}
 }
 
-func TestDeploymentConfigDefaults(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("Failed to start master: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
+var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("deployment-defaults", exutil.KubeConfigPath())
 
-	namespace := "default"
+	g.It("TestDeploymentConfigDefaults", func() {
+		t := g.GinkgoT()
 
-	adminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("Failed to get cluster admin client config: %v", err)
-	}
+		namespace := oc.Namespace()
+		appsClient := oc.AdminAppsClient()
 
-	appsClient, err := appsclient.NewForConfig(adminClientConfig)
-	if err != nil {
-		t.Fatalf("Failed to create appsClient: %v", err)
-	}
-
-	ttApps := []struct {
-		obj  *appsv1.DeploymentConfig
-		apps *appsv1.DeploymentConfig
-	}{
-		{
-			obj: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-apps-01", 0)
-				dc.Spec.RevisionHistoryLimit = nil
-				return dc
-			}(),
-			apps: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-apps-01", 1)
-				setEssentialDefaults(dc)
-				// Group API should default RevisionHistoryLimit
-				dc.Spec.RevisionHistoryLimit = int32ptr(10)
-				return dc
-			}(),
-		},
-		{
-			obj: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-apps-02", 0)
-				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
-				return dc
-			}(),
-			apps: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-apps-02", 1)
-				setEssentialDefaults(dc)
-				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
-				return dc
-			}(),
-		},
-	}
-	t.Run("apps.openshift.io", func(t *testing.T) {
+		ttApps := []struct {
+			obj  *appsv1.DeploymentConfig
+			apps *appsv1.DeploymentConfig
+		}{
+			{
+				obj: func() *appsv1.DeploymentConfig {
+					dc := minimalDC("test-apps-01", 0)
+					dc.Spec.RevisionHistoryLimit = nil
+					return dc
+				}(),
+				apps: func() *appsv1.DeploymentConfig {
+					dc := minimalDC("test-apps-01", 1)
+					setEssentialDefaults(dc)
+					// Group API should default RevisionHistoryLimit
+					dc.Spec.RevisionHistoryLimit = int32ptr(10)
+					return dc
+				}(),
+			},
+			{
+				obj: func() *appsv1.DeploymentConfig {
+					dc := minimalDC("test-apps-02", 0)
+					dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
+					return dc
+				}(),
+				apps: func() *appsv1.DeploymentConfig {
+					dc := minimalDC("test-apps-02", 1)
+					setEssentialDefaults(dc)
+					dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
+					return dc
+				}(),
+			},
+		}
 		for _, tc := range ttApps {
-			t.Run("", func(t *testing.T) {
-				appsDC, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(tc.obj)
-				if err != nil {
-					t.Fatalf("Failed to create DC: %v", err)
-				}
+			appsDC, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(tc.obj)
+			if err != nil {
+				t.Fatalf("Failed to create DC: %v", err)
+			}
 
-				clearTransient(appsDC)
-				if !reflect.DeepEqual(appsDC, tc.apps) {
-					t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(appsDC, tc.apps))
-				}
-			})
+			clearTransient(appsDC)
+			if !reflect.DeepEqual(appsDC, tc.apps) {
+				t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(appsDC, tc.apps))
+			}
 		}
 	})
-}
+})

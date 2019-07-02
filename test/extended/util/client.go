@@ -53,6 +53,7 @@ import (
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
+	quotav1client "github.com/openshift/client-go/quota/clientset/versioned"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
@@ -356,6 +357,10 @@ func (c *CLI) ProjectClient() projectv1client.Interface {
 	return projectv1client.NewForConfigOrDie(c.UserConfig())
 }
 
+func (c *CLI) QuotaClient() quotav1client.Interface {
+	return quotav1client.NewForConfigOrDie(c.UserConfig())
+}
+
 func (c *CLI) RouteClient() routev1client.Interface {
 	return routev1client.NewForConfigOrDie(c.UserConfig())
 }
@@ -394,6 +399,10 @@ func (c *CLI) AdminOperatorClient() operatorv1client.Interface {
 
 func (c *CLI) AdminProjectClient() projectv1client.Interface {
 	return projectv1client.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) AdminQuotaClient() quotav1client.Interface {
+	return quotav1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminRouteClient() routev1client.Interface {
