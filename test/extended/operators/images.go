@@ -19,8 +19,7 @@ import (
 
 var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
-
-	It("should ensure pods use images from our release image with proper ImagePullPolicy", func() {
+	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy", func() {
 		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to get pull secret for cluster: %v", err)
@@ -78,6 +77,7 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 		// list of pods that use images not in the release payload
 		invalidPodContainerImages := sets.NewString()
 		invalidPodContainerImagePullPolicy := sets.NewString()
+		invalidPodContainerDownstreamImages := sets.NewString()
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
@@ -99,8 +99,32 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 					if !validImages.Has(container.Image) {
 						invalidPodContainerImages.Insert(fmt.Sprintf("%s/%s/%s image=%s", pod.Namespace, pod.Name, container.Name, container.Image))
 					}
+
 					if container.ImagePullPolicy != v1.PullIfNotPresent {
 						invalidPodContainerImagePullPolicy.Insert(fmt.Sprintf("%s/%s/%s imagePullPolicy=%s", pod.Namespace, pod.Name, container.Name, container.ImagePullPolicy))
+					}
+				}
+				// check if the container's image from the downstream.
+				for j := range pod.Spec.Containers {
+					containerName := pod.Spec.Containers[j].Name
+					commands := []string{
+						"exec",
+						pod.Name,
+						"-c",
+						containerName,
+						"--",
+						"cat",
+						"/etc/redhat-release",
+					}
+					oc.SetNamespace(pod.Namespace)
+					result, err := oc.AsAdmin().Run(commands...).Args().Output()
+					if err != nil {
+						e2e.Logf("unable to run command:%v with error: %v", commands, err)
+						continue
+					}
+					e2e.Logf("Image relase info:%s", result)
+					if !strings.Contains(result, "Red Hat Enterprise Linux Server") {
+						invalidPodContainerDownstreamImages.Insert(fmt.Sprintf("%s/%s invalid downstream image!", pod.Name, containerName))
 					}
 				}
 			}
@@ -108,11 +132,15 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 		// log for debugging output before we ultimately fail
 		e2e.Logf("Pods found with invalid container images not present in release payload: %s", strings.Join(invalidPodContainerImages.List(), "\n"))
 		e2e.Logf("Pods found with invalid container image pull policy not equal to IfNotPresent: %s", strings.Join(invalidPodContainerImagePullPolicy.List(), "\n"))
+		e2e.Logf("Pods with invalid dowstream images: %s", strings.Join(invalidPodContainerDownstreamImages.List(), "\n"))
 		if len(invalidPodContainerImages) > 0 {
 			e2e.Failf("Pods found with invalid container images not present in release payload: %s", strings.Join(invalidPodContainerImages.List(), "\n"))
 		}
 		if len(invalidPodContainerImagePullPolicy) > 0 {
 			e2e.Failf("Pods found with invalid container image pull policy not equal to IfNotPresent: %s", strings.Join(invalidPodContainerImagePullPolicy.List(), "\n"))
+		}
+		if len(invalidPodContainerDownstreamImages) > 0 {
+			e2e.Failf("Pods with invalid dowstream images: %s", strings.Join(invalidPodContainerDownstreamImages.List(), "\n"))
 		}
 	})
 })

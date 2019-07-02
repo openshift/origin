@@ -473,12 +473,12 @@ func (c *CLI) Run(commands ...string) *CLI {
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
-		globalArgs: append(commands, []string{
+		globalArgs: append([]string{
 			fmt.Sprintf("--config=%s", c.configPath),
-		}...),
+		}, commands...),
 	}
 	if !c.withoutNamespace {
-		nc.globalArgs = append(nc.globalArgs, fmt.Sprintf("--namespace=%s", c.Namespace()))
+		nc.globalArgs = append([]string{fmt.Sprintf("--namespace=%s", c.Namespace())}, nc.globalArgs...)
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
