@@ -3,6 +3,7 @@ package customresourcevalidationregistration
 import (
 	"k8s.io/apiserver/pkg/admission"
 
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/apiserver"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/authentication"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/clusterresourcequota"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/config"
@@ -18,6 +19,7 @@ import (
 
 // AllCustomResourceValidators are the names of all custom resource validators that should be registered
 var AllCustomResourceValidators = []string{
+	apiserver.PluginName,
 	authentication.PluginName,
 	features.PluginName,
 	console.PluginName,
@@ -35,6 +37,7 @@ var AllCustomResourceValidators = []string{
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
+	apiserver.Register(plugins)
 	authentication.Register(plugins)
 	features.Register(plugins)
 	console.Register(plugins)
