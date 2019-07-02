@@ -211,6 +211,9 @@
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
+// test/extended/testdata/templates/crunchydata-pod.json
+// test/extended/testdata/templates/guestbook.json
+// test/extended/testdata/templates/guestbook_list.json
 // test/extended/testdata/templates/templateinstance_badobject.yaml
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
 // test/extended/testdata/templates/templateinstance_readiness.yaml
@@ -12235,6 +12238,747 @@ func testExtendedTestdataSignerBuildconfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/signer-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesCrunchydataPodJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "node-example",
+    "creationTimestamp": null
+  },
+  "objects": [
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "pg-standalone-1",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "crunchy-node"
+        }
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "pgdata",
+            "hostPath": {
+              "path": "/var/lib/pgsql/exampleuser"
+            },
+            "rbd": null
+          }
+        ],
+        "containers": [
+          {
+            "name": "master",
+            "image": "registry:5000/crunchy-node",
+            "ports": [
+              {
+                "hostPort": 9000,
+                "containerPort": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "PG_USERNAME",
+                "value": "exampleuser"
+              },
+              {
+                "name": "PG_PASSWORD",
+                "value": "example"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "pgdata",
+                "mountPath": "/pgdata"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataTemplatesCrunchydataPodJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesCrunchydataPodJson, nil
+}
+
+func testExtendedTestdataTemplatesCrunchydataPodJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesCrunchydataPodJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/crunchydata-pod.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesGuestbookJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "guestbook-example",
+    "creationTimestamp": null,
+    "annotations": {
+      "openshift.io/display-name": "Guestbook Example",
+      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+    }
+  },
+  "message": "Your admin credentials are ${ADMIN_USERNAME}:${ADMIN_PASSWORD}",
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-route",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "host": "guestbook.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend-service"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-service",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 5432,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend-service"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10000,
+            "targetPort": 10000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "redis-master"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10001,
+            "targetPort": 10001,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "redis-master"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "master",
+            "image": "dockerfile/redis",
+            "ports": [
+              {
+                "containerPort": 6379,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "REDIS_PASSWORD",
+                "value": "${REDIS_PASSWORD}"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "guestbook",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "frontend-service"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend-service"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend-service"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "php-redis",
+                "image": "brendanburns/php-redis",
+                "ports": [
+                  {
+                    "hostPort": 8000,
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        }
+      },
+      "spec": {
+        "replicas": 2,
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${SLAVE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "slave",
+                "image": "brendanburns/${SLAVE_SERVICE_NAME}",
+                "ports": [
+                  {
+                    "hostPort": 6380,
+                    "containerPort": 6379,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "Guestbook administrator username",
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "Guestbook administrator password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "REDIS_PASSWORD",
+      "description": "Redis password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "SLAVE_SERVICE_NAME",
+      "description": "Slave Service name",
+      "value": "redis-slave"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataTemplatesGuestbookJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesGuestbookJson, nil
+}
+
+func testExtendedTestdataTemplatesGuestbookJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesGuestbookJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/guestbook.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesGuestbook_listJson = []byte(`{
+    "kind": "Template",
+    "apiVersion": "template.openshift.io/v1",
+    "metadata": {
+        "name": "guestbook-example",
+        "creationTimestamp": null,
+        "annotations": {
+            "openshift.io/display-name": "Guestbook Example",
+            "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+        }
+    },
+    "message": "Your admin credentials are adminQ3H:dwNJiJwW",
+    "objects": [
+        {
+            "apiVersion": "route.openshift.io/v1",
+            "kind": "Route",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "frontend-route"
+            },
+            "spec": {
+                "host": "guestbook.example.com",
+                "to": {
+                    "kind": "Service",
+                    "name": "frontend-service"
+                }
+            },
+            "status": {}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "frontend-service"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 5432,
+                        "protocol": "TCP",
+                        "targetPort": 5432
+                    }
+                ],
+                "selector": {
+                    "name": "frontend-service"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "redis-master"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 10000,
+                        "protocol": "TCP",
+                        "targetPort": 10000
+                    }
+                ],
+                "selector": {
+                    "name": "redis-master"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "redis-slave"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 10001,
+                        "protocol": "TCP",
+                        "targetPort": 10001
+                    }
+                ],
+                "selector": {
+                    "name": "redis-slave"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "redis-master"
+                },
+                "name": "redis-master"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "capabilities": {},
+                        "env": [
+                            {
+                                "name": "REDIS_PASSWORD",
+                                "value": "P8vxbV4C"
+                            }
+                        ],
+                        "image": "dockerfile/redis",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "master",
+                        "ports": [
+                            {
+                                "containerPort": 6379,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {},
+                        "securityContext": {
+                            "capabilities": {},
+                            "privileged": false
+                        },
+                        "terminationMessagePath": "/dev/termination-log"
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "serviceAccount": ""
+            },
+            "status": {}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "frontend-service"
+                },
+                "name": "guestbook"
+            },
+            "spec": {
+                "replicas": 3,
+                "selector": {
+                    "name": "frontend-service"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "name": "frontend-service"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "ADMIN_USERNAME",
+                                        "value": "adminQ3H"
+                                    },
+                                    {
+                                        "name": "ADMIN_PASSWORD",
+                                        "value": "dwNJiJwW"
+                                    },
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "value": "P8vxbV4C"
+                                    }
+                                ],
+                                "image": "brendanburns/php-redis",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "php-redis",
+                                "ports": [
+                                    {
+                                        "containerPort": 80,
+                                        "hostPort": 8000,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccount": ""
+                    }
+                }
+            },
+            "status": {
+                "replicas": 0
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "redis-slave"
+                },
+                "name": "redis-slave"
+            },
+            "spec": {
+                "replicas": 2,
+                "selector": {
+                    "name": "redis-slave"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "name": "redis-slave"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "value": "P8vxbV4C"
+                                    }
+                                ],
+                                "image": "brendanburns/redis-slave",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "slave",
+                                "ports": [
+                                    {
+                                        "containerPort": 6379,
+                                        "hostPort": 6380,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccount": ""
+                    }
+                }
+            },
+            "status": {
+                "replicas": 0
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "name": "ADMIN_USERNAME",
+            "description": "Guestbook administrator username",
+            "value": "adminQ3H",
+            "generate": "expression",
+            "from": "admin[A-Z0-9]{3}"
+        },
+        {
+            "name": "ADMIN_PASSWORD",
+            "description": "Guestbook administrator password",
+            "value": "dwNJiJwW",
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
+        },
+        {
+            "name": "REDIS_PASSWORD",
+            "description": "Redis password",
+            "value": "P8vxbV4C",
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
+        },
+        {
+            "name": "SLAVE_SERVICE_NAME",
+            "description": "Slave Service name",
+            "value": "redis-slave"
+        },
+        {
+            "name": "CUSTOM_PARAM1",
+            "value": "1"
+        }
+    ]
+}
+`)
+
+func testExtendedTestdataTemplatesGuestbook_listJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesGuestbook_listJson, nil
+}
+
+func testExtendedTestdataTemplatesGuestbook_listJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesGuestbook_listJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/guestbook_list.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32829,6 +33573,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
+	"test/extended/testdata/templates/crunchydata-pod.json": testExtendedTestdataTemplatesCrunchydataPodJson,
+	"test/extended/testdata/templates/guestbook.json": testExtendedTestdataTemplatesGuestbookJson,
+	"test/extended/testdata/templates/guestbook_list.json": testExtendedTestdataTemplatesGuestbook_listJson,
 	"test/extended/testdata/templates/templateinstance_badobject.yaml": testExtendedTestdataTemplatesTemplateinstance_badobjectYaml,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
 	"test/extended/testdata/templates/templateinstance_readiness.yaml": testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
@@ -33341,6 +34088,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"templates": &bintree{nil, map[string]*bintree{
+					"crunchydata-pod.json": &bintree{testExtendedTestdataTemplatesCrunchydataPodJson, map[string]*bintree{}},
+					"guestbook.json": &bintree{testExtendedTestdataTemplatesGuestbookJson, map[string]*bintree{}},
+					"guestbook_list.json": &bintree{testExtendedTestdataTemplatesGuestbook_listJson, map[string]*bintree{}},
 					"templateinstance_badobject.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_badobjectYaml, map[string]*bintree{}},
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
 					"templateinstance_readiness.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_readinessYaml, map[string]*bintree{}},
