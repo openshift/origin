@@ -81,13 +81,13 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: master
+  version: release-4.1
 - package: github.com/openshift/client-go
-  version: master
+  version: release-4.1
 - package: github.com/openshift/library-go
-  version: master
+  version: release-4.1
 - package: github.com/openshift/source-to-image
-  version: master
+  version: release-4.1
 
 # forks third
 # master
