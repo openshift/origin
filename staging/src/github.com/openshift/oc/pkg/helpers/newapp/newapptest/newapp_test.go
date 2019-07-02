@@ -54,8 +54,6 @@ import (
 	"github.com/openshift/oc/pkg/helpers/newapp/jenkinsfile"
 	"github.com/openshift/oc/pkg/helpers/newapp/source"
 
-	"github.com/openshift/origin/test/util"
-
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
@@ -1448,60 +1446,58 @@ func TestNewAppRunBuilds(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		stdout, stderr := PrepareAppConfig(test.config)
-		test.config.ImageClient = &NewAppFakeImageClient{
-			proxy: test.config.ImageClient,
-		}
-
-		res, err := test.config.Run()
-		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
-			t.Errorf("%s: unexpected error: %v", test.name, err)
-			continue
-		}
-		if err != nil {
-			continue
-		}
-		if test.checkOutput != nil {
-			if err := test.checkOutput(stdout, stderr); err != nil {
-				t.Error(err)
-				continue
-			}
-		}
-		got := map[string][]string{}
-		for _, obj := range res.List.Items {
-			switch tp := obj.(type) {
-			case *buildv1.BuildConfig:
-				got["buildConfig"] = append(got["buildConfig"], tp.Name)
-			case *imagev1.ImageStream:
-				got["imageStream"] = append(got["imageStream"], tp.Name)
-			}
-		}
-
-		if len(test.expected) != len(got) {
-			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
-			continue
-		}
-
-		for k, exp := range test.expected {
-			g, ok := got[k]
-			if !ok {
-				t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+		t.Run(test.name, func(t *testing.T) {
+			stdout, stderr := PrepareAppConfig(test.config)
+			test.config.ImageClient = &NewAppFakeImageClient{
+				proxy: test.config.ImageClient,
 			}
 
-			sort.Strings(g)
-			sort.Strings(exp)
-
-			if !reflect.DeepEqual(g, exp) {
-				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
-				continue
+			res, err := test.config.Run()
+			if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
+				t.Fatalf("%s: unexpected error: %v", test.name, err)
 			}
-		}
-
-		if test.checkResult != nil {
-			if err := test.checkResult(res); err != nil {
-				t.Errorf("%s: unexpected result: %v", test.name, err)
+			if err != nil {
+				return
 			}
-		}
+			if test.checkOutput != nil {
+				if err := test.checkOutput(stdout, stderr); err != nil {
+					t.Fatal(err)
+				}
+			}
+			got := map[string][]string{}
+			for _, obj := range res.List.Items {
+				switch tp := obj.(type) {
+				case *buildv1.BuildConfig:
+					got["buildConfig"] = append(got["buildConfig"], tp.Name)
+				case *imagev1.ImageStream:
+					got["imageStream"] = append(got["imageStream"], tp.Name)
+				}
+			}
+
+			if len(test.expected) != len(got) {
+				t.Fatalf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+			}
+
+			for k, exp := range test.expected {
+				g, ok := got[k]
+				if !ok {
+					t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+				}
+
+				sort.Strings(g)
+				sort.Strings(exp)
+
+				if !reflect.DeepEqual(g, exp) {
+					t.Fatalf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
+				}
+			}
+
+			if test.checkResult != nil {
+				if err := test.checkResult(res); err != nil {
+					t.Errorf("%s: unexpected result: %v", test.name, err)
+				}
+			}
+		})
 	}
 }
 
@@ -1682,54 +1678,52 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		stdout, stderr := PrepareAppConfig(test.config)
-		test.config.ImageClient = &NewAppFakeImageClient{
-			proxy: test.config.ImageClient,
-		}
-
-		res, err := test.config.Run()
-		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
-			t.Errorf("%s: unexpected error: %v", test.name, err)
-			continue
-		}
-		if err != nil {
-			continue
-		}
-		if test.checkOutput != nil {
-			if err := test.checkOutput(stdout, stderr); err != nil {
-				t.Errorf("Error during test %q: %v", test.name, err)
-				continue
-			}
-		}
-		got := map[string][]string{}
-		for _, obj := range res.List.Items {
-			switch tp := obj.(type) {
-			case *buildv1.BuildConfig:
-				got["buildConfig"] = append(got["buildConfig"], tp.Name)
-			case *imagev1.ImageStream:
-				got["imageStream"] = append(got["imageStream"], tp.Name)
-			}
-		}
-
-		if len(test.expected) != len(got) {
-			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
-			continue
-		}
-
-		for k, exp := range test.expected {
-			g, ok := got[k]
-			if !ok {
-				t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+		t.Run(test.name, func(t *testing.T) {
+			stdout, stderr := PrepareAppConfig(test.config)
+			test.config.ImageClient = &NewAppFakeImageClient{
+				proxy: test.config.ImageClient,
 			}
 
-			sort.Strings(g)
-			sort.Strings(exp)
-
-			if !reflect.DeepEqual(g, exp) {
-				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
-				continue
+			res, err := test.config.Run()
+			if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
+				t.Fatalf("%s: unexpected error: %v", test.name, err)
 			}
-		}
+			if err != nil {
+				return
+			}
+			if test.checkOutput != nil {
+				if err := test.checkOutput(stdout, stderr); err != nil {
+					t.Fatalf("Error during test %q: %v", test.name, err)
+				}
+			}
+			got := map[string][]string{}
+			for _, obj := range res.List.Items {
+				switch tp := obj.(type) {
+				case *buildv1.BuildConfig:
+					got["buildConfig"] = append(got["buildConfig"], tp.Name)
+				case *imagev1.ImageStream:
+					got["imageStream"] = append(got["imageStream"], tp.Name)
+				}
+			}
+
+			if len(test.expected) != len(got) {
+				t.Fatalf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+			}
+
+			for k, exp := range test.expected {
+				g, ok := got[k]
+				if !ok {
+					t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+				}
+
+				sort.Strings(g)
+				sort.Strings(exp)
+
+				if !reflect.DeepEqual(g, exp) {
+					t.Fatalf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
+				}
+			}
+		})
 	}
 
 }
@@ -1786,26 +1780,26 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
-		test.config.ExpectToBuild = true
-		res, err := test.config.Run()
-		if err != test.expectedErr {
-			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
-			continue
-		}
-		got := []corev1.EnvVar{}
-		for _, obj := range res.List.Items {
-			switch tp := obj.(type) {
-			case *buildv1.BuildConfig:
-				got = tp.Spec.Strategy.SourceStrategy.Env
-				break
+		t.Run(test.name, func(t *testing.T) {
+			test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+			test.config.ExpectToBuild = true
+			res, err := test.config.Run()
+			if err != test.expectedErr {
+				t.Fatalf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			}
-		}
+			got := []corev1.EnvVar{}
+			for _, obj := range res.List.Items {
+				switch tp := obj.(type) {
+				case *buildv1.BuildConfig:
+					got = tp.Spec.Strategy.SourceStrategy.Env
+					break
+				}
+			}
 
-		if !reflect.DeepEqual(test.expected, got) {
-			t.Errorf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, got)
-			continue
-		}
+			if !reflect.DeepEqual(test.expected, got) {
+				t.Fatalf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, got)
+			}
+		})
 	}
 }
 
@@ -2033,7 +2027,7 @@ func TestNewAppListAndSearch(t *testing.T) {
 
 func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) (string, string) {
 	// Create test directories
-	testDir, err := ioutil.TempDir(util.GetBaseDir(), "gitauth")
+	testDir, err := ioutil.TempDir("", "gitauth")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
