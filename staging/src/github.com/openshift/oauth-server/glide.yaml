@@ -1,31 +1,40 @@
 package: github.com/openshift/oauth-server
 import:
-# kube first
 - package: k8s.io/api
-  version: kubernetes-1.14.0
+  repo:    https://github.com/openshift/kubernetes-api.git
+  version: origin-4.2-kubernetes-1.14.0
 - package: k8s.io/apiextensions-apiserver
   repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   version: origin-4.2-kubernetes-1.14.0
 - package: k8s.io/apimachinery
-  version: kubernetes-1.14.0
+  repo:    https://github.com/openshift/kubernetes-apimachinery.git
+  version: origin-4.2-kubernetes-1.14.0
 - package: k8s.io/apiserver
-  version: kubernetes-1.14.0
+  repo:    https://github.com/openshift/kubernetes-apiserver.git
+  version: origin-4.2-kubernetes-1.14.0
 - package: k8s.io/client-go
-  version: kubernetes-1.14.0
+  repo:    https://github.com/openshift/kubernetes-client-go.git
+  version: origin-4.2-kubernetes-1.14.0
+- package: k8s.io/cli-runtime
+  repo:    https://github.com/openshift/kubernetes-cli-runtime.git
+  version: origin-4.2-kubernetes-1.14.0
 - package: k8s.io/component-base
-  version: kubernetes-1.14.0
+  repo:    https://github.com/openshift/kubernetes-component-base.git
+  version: origin-4.2-kubernetes-1.14.0
 - package: k8s.io/kubernetes
-  version: release-1.14
-# openshift second
+  repo:    https://github.com/openshift/kubernetes.git
+  version: origin-4.2-kubernetes-1.14.0
+
 - package: github.com/openshift/api
   version: master
 - package: github.com/openshift/client-go
   version: master
 - package: github.com/openshift/library-go
   version: master
-# forks third
-- package: github.com/vjeantet/ldapserver
-  version: v1.0
+- package: github.com/jteeuwen/go-bindata
+  version: a0ff2567cfb70903282db057e799fd826784d41d
+- package: github.com/evanphx/json-patch
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - package: github.com/RangelReale/osin
   repo:    https://github.com/openshift/osin.git
   version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
@@ -38,3 +47,5 @@ import:
   version: release-2.6.3
 - package: github.com/alexbrainman/sspi
   version: e580b900e9f5657daa5473021296289be6da2661
+- package: bitbucket.org/ww/goautoneg
+  vcs: hg
