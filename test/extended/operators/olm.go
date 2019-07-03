@@ -1,13 +1,13 @@
 package operators
 
 import (
-	"reflect"
-	"strings"
-
+	"fmt"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	yaml "gopkg.in/yaml.v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"reflect"
+	"strings"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -61,6 +61,26 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 				e2e.Logf("%s apiVersion is correct.", k)
 			} else {
 				e2e.Failf("%s apiVersion is incorrect!", k)
+			}
+		})
+		g.It("check OLM's CRDs' version: "+k, func() {
+			var output string
+			var err error
+
+			if k == "packagemanifests" {
+				// packagemanifests is a resource created by Aggregation layer, not CRD.
+				output, err = oc.AsAdmin().Run("get").Args("apiservice", "v1.packages.operators.coreos.com", "-o=jsonpath={.spec.version}").Output()
+			} else {
+				output, err = oc.AsAdmin().Run("get").Args("crd", fmt.Sprintf("%s.operators.coreos.com", k), "-o=jsonpath={.spec.version}").Output()
+			}
+			if err != nil {
+				e2e.Failf("Unable to check %s CRD version, errors:%v", k, err)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if strings.HasSuffix(output, v) {
+				e2e.Logf("%s CRD version is correct.", k)
+			} else {
+				e2e.Failf("%s CRD version is incorrect!", k)
 			}
 		})
 	}
