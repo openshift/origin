@@ -208,10 +208,13 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		var restMapping *meta.RESTMapping
 		var mappingErr error
 		for i := 0; i < 3; i++ {
-			restMapping, mappingErr = r.restMapper.RESTMapping(toCreate.GroupVersionKind().GroupKind(), toCreate.GroupVersionKind().Version)
-			if mappingErr == nil {
+			restMapping, err = r.restMapper.RESTMapping(toCreate.GroupVersionKind().GroupKind(), toCreate.GroupVersionKind().Version)
+			if err == nil {
+				mappingErr = nil
 				break
 			}
+			mappingErr = fmt.Errorf("mapping %s failed: %v", toCreate.GroupVersionKind(), err)
+
 			// the refresh is every 10 seconds
 			time.Sleep(11 * time.Second)
 		}
