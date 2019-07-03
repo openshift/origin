@@ -719,7 +719,12 @@ func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 		formatString(out, "Image Created", fmt.Sprintf("%s ago", formatRelativeTime(dockerImage.Created.Time)))
 		formatString(out, "Author", dockerImage.Author)
 		formatString(out, "Arch", dockerImage.Architecture)
-		describeDockerImage(out, &dockerImage.ContainerConfig)
+
+		if dockerImage.Config != nil {
+			// Config is the configuration of the container received from the client.
+			// In most cases this field is always set for images.
+			describeDockerImage(out, dockerImage.Config)
+		}
 		return nil
 	})
 }
