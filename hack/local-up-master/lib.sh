@@ -280,6 +280,7 @@ function localup::start_openshiftapiserver() {
     kube::util::wait_for_url "https://${API_HOST_IP}:8444/healthz" "openshift-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check kube-apiserver logs: ${OPENSHIFT_APISERVER_LOG}" ; exit 1 ; }
 
+    localup::create_oauthclients
 }
 
 function localup::start_openshiftcontrollermanager() {
@@ -297,6 +298,40 @@ function localup::start_openshiftcontrollermanager() {
     os::log::debug "Waiting for openshift-controller-manager to come up"
     kube::util::wait_for_url "https://localhost:8445/healthz" "openshift-controller-manager: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check openshift-controller-manager logs: ${OPENSHIFT_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
+}
+
+function localup::create_oauthclients {
+    local RANDOMBYTES=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -1)
+
+    oc create --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" -f - <<EOF
+{
+  "apiVersion": "oauth.openshift.io/v1",
+  "kind": "OAuthClient",
+  "metadata": {
+    "name": "openshift-browser-client"
+  },
+  "grantMethod":  "auto",
+  "secret":      "${RANDOMBYTES}",
+  "redirectURIs": ["https://${API_HOST_IP}:${API_SECURE_PORT}/oauth/token/display"]
+}
+EOF
+
+    test "$?" -eq 0 || { os::log::error "unable to create the browser oauthclient" ; exit 1 ; }
+
+    oc create --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" -f - <<EOF
+{
+  "apiVersion": "oauth.openshift.io/v1",
+  "kind": "OAuthClient",
+  "metadata": {
+    "name": "openshift-challenging-client"
+  },
+  "grantMethod":  "auto",
+  "redirectURIs": ["https://${API_HOST_IP}:${API_SECURE_PORT}/oauth/token/implicit"],
+  "respondWithChallenges": true
+}
+EOF
+
+    test "$?" -eq 0 || { os::log::error "unable to create the challenging oauthclient" ; exit 1 ; }
 }
 
 function localup::init_master() {

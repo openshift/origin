@@ -32,8 +32,6 @@ func RunOsinServer(osinConfig *osinv1.OsinServerConfig, stopCh <-chan struct{}) 
 		return err
 	}
 
-	oauthServer.GenericAPIServer.AddPostStartHookOrDie("oauth.openshift.io-startoauthclientsbootstrapping", oauthServerConfig.StartOAuthClientsBootstrapping)
-
 	return oauthServer.GenericAPIServer.PrepareRun().Run(stopCh)
 }
 
