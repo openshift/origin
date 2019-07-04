@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -115,18 +116,14 @@ func (apiserverV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj r
 }
 
 func validateAPIServerSpecCreate(spec configv1.APIServerSpec) field.ErrorList {
-	errs := field.ErrorList{}
 
-	//TODO: Add validation code, if needed
-
+	errs := validateAdditionalCORSAllowedOrigins(field.NewPath("spec").Child("additionalCORSAllowedOrigins"), spec.AdditionalCORSAllowedOrigins)
 	return errs
 }
 
 func validateAPIServerSpecUpdate(newSpec, oldSpec configv1.APIServerSpec) field.ErrorList {
-	errs := field.ErrorList{}
 
-	// TODO: Add validation code, if needed
-
+	errs := validateAdditionalCORSAllowedOrigins(field.NewPath("spec").Child("additionalCORSAllowedOrigins"), newSpec.AdditionalCORSAllowedOrigins)
 	return errs
 }
 
@@ -134,6 +131,18 @@ func validateAPIServerStatus(status configv1.APIServerStatus) field.ErrorList {
 	errs := field.ErrorList{}
 
 	// TODO
+
+	return errs
+}
+
+func validateAdditionalCORSAllowedOrigins(fieldPath *field.Path, cors []string) field.ErrorList {
+	errs := field.ErrorList{}
+
+	for i, re := range cors {
+		if _, err := regexp.Compile(re); err != nil {
+			errs = append(errs, field.Invalid(fieldPath.Index(i), re, fmt.Sprintf("not a valid regular expression: %v", err)))
+		}
+	}
 
 	return errs
 }
