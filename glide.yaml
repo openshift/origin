@@ -260,6 +260,10 @@ import:
 - package: github.com/google/uuid
   version: master
 
+- package: sigs.k8s.io/yaml
+  repo: https://github.com/kubernetes-sigs/yaml.git
+  version: 4e761d0940e599a9569b441f02025fc5981ec2a5
+
 # yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
