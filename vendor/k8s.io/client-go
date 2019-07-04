@@ -1,1 +1,1 @@
-kubernetes/staging/src/k8s.io/client-go
+../../staging-kube/src/k8s.io/client-go

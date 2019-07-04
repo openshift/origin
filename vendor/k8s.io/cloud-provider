@@ -1,1 +1,1 @@
-kubernetes/staging/src/k8s.io/cloud-provider
+../../staging-kube/src/k8s.io/cloud-provider

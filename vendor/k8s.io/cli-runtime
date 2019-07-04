@@ -1,1 +1,1 @@
-kubernetes/staging/src/k8s.io/cli-runtime
+../../staging-kube/src/k8s.io/cli-runtime

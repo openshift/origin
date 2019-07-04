@@ -1,8 +1,0 @@
-{
-  "type": "object",
-  "properties": {
-    "payload": {
-      "type": "integer"
-    }
-  }
-}

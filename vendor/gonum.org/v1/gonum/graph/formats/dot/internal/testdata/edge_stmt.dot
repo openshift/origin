@@ -1,4 +1,0 @@
-digraph {
-	A -> B -> C
-	D -> E [color=red minlen=2]
-}

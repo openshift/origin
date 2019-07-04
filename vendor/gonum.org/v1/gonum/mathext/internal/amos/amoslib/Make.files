@@ -1,5 +1,0 @@
-$(CUR_SRCS) +=  d1mach.f zabs.f   zasyi.f  zbesk.f  zbknu.f  zexp.f   zmlt.f   zshch.f  zuni1.f  zunk2.f \
-	dgamln.f zacai.f  zbesh.f  zbesy.f  zbuni.f  zkscl.f  zrati.f  zsqrt.f  zuni2.f  zuoik.f \
-	i1mach.f zacon.f  zbesi.f  zbinu.f  zbunk.f  zlog.f   zs1s2.f  zuchk.f  zunik.f  zwrsk.f \
-	xerror.f zairy.f  zbesj.f  zbiry.f  zdiv.f   zmlri.f  zseri.f  zunhj.f  zunk1.f
-

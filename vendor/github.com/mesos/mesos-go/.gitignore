@@ -1,7 +1,0 @@
-/example-scheduler
-/example-executor
-bin/
-*.bak
-*.swp
-_output/
-**/vendor/*/

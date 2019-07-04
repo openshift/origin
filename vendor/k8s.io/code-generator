@@ -1,1 +1,1 @@
-kubernetes/staging/src/k8s.io/code-generator
+../../staging-kube/src/k8s.io/code-generator

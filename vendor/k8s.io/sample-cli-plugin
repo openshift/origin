@@ -1,1 +1,1 @@
-kubernetes/staging/src/k8s.io/sample-cli-plugin
+../../staging-kube/src/k8s.io/sample-cli-plugin

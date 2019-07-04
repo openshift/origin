@@ -23,7 +23,7 @@ const (
 )
 
 // TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
-func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, userAgentMatchingConfig kubecontrolplanev1.UserAgentMatchingConfig, consolePublicURL string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, userAgentMatchingConfig kubecontrolplanev1.UserAgentMatchingConfig, consolePublicURL string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
 	// ignore oauthConfig if we have a valid OAuth metadata file
 	// this prevents us from running the internal OAuth server when we are honoring an external one
 	if oauthMetadataFile := authConfig.OAuthMetadataFile; len(oauthMetadataFile) > 0 {
@@ -32,18 +32,12 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osin
 		}
 	}
 
-	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
-
 	var oauthServerHandler http.Handler
 	if oauthConfig != nil {
-		var newPostStartHooks map[string]genericapiserver.PostStartHookFunc
 		var err error
-		oauthServerHandler, newPostStartHooks, err = NewOAuthServerHandler(genericConfig, oauthConfig)
+		oauthServerHandler, err = NewOAuthServerHandler(genericConfig, oauthConfig)
 		if err != nil {
-			return nil, nil, err
-		}
-		for name, fn := range newPostStartHooks {
-			extraPostStartHooks[name] = fn
+			return nil, err
 		}
 	}
 
@@ -69,7 +63,6 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osin
 
 			return handler
 		},
-		extraPostStartHooks,
 		nil
 }
 

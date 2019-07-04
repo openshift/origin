@@ -39,13 +39,13 @@ kube::version::get_version_vars() {
 
   # If the kubernetes source was exported through git archive, then
   # we likely don't have a git tree, but these magic values may be filled in.
-  if [[ '$Format:%%$' == "%" ]]; then
-    KUBE_GIT_COMMIT='$Format:%H$'
+  if [[ '%' == "%" ]]; then
+    KUBE_GIT_COMMIT='4aa0d2902ed2c342734fb94f6a124c6b558d8fae'
     KUBE_GIT_TREE_STATE="archive"
-    # When a 'git archive' is exported, the '$Format:%D$' below will look
+    # When a 'git archive' is exported, the '' below will look
     # something like 'HEAD -> release-1.8, tag: v1.8.3' where then 'tag: '
     # can be extracted from it.
-    if [[ '$Format:%D$' =~ tag:\ (v[^ ,]+) ]]; then
+    if [[ '' =~ tag:\ (v[^ ,]+) ]]; then
      KUBE_GIT_VERSION="${BASH_REMATCH[1]}"
     fi
   fi

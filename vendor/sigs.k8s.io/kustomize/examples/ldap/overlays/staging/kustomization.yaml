@@ -1,9 +1,0 @@
-bases:
-  - ../../base
-patchesStrategicMerge:
-  - deployment.yaml
-nameprefix: staging-
-configMapGenerator:
-  - name: env-config
-    files:
-      - config.env

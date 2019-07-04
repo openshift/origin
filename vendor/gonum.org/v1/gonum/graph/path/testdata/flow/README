@@ -1,5 +1,0 @@
-DOT files placed in this directory will be used to run benchmarks on the
-path.Dominators function. The DOT files included should contain one node
-that has the label "entry" or "root". This node will be used as the control
-flow entry point to the graph.
-

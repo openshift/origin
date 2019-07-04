@@ -1,6 +1,0 @@
-digraph {
-	graph [bgcolor=transparent]
-	node [style=filled fillcolor=white]
-	edge [minlen=2]
-	A -> B
-}

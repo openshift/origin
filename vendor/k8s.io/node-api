@@ -1,1 +1,1 @@
-kubernetes/staging/src/k8s.io/node-api
+../../staging-kube/src/k8s.io/node-api

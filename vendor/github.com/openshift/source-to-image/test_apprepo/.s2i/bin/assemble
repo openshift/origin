@@ -1,4 +1,0 @@
-#!/bin/sh
-
-echo "Running custom assemble"
-
