@@ -1,5 +1,5 @@
-hash: 079b9f1fdc9ed811bab54c891e0d0b03b68e23f6428be046b0f7d87148a908be
-updated: 2019-03-25T15:56:19.152737147-04:00
+hash: 38c293cd395b48a47f66c9434e2e7b1b19aa388c37259a06d772e6ceaca4c1cc
+updated: 2019-03-07T14:08:52.092350929+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -400,7 +400,7 @@ imports:
   subpackages:
   - kmsgparser
 - name: github.com/evanphx/json-patch
-  version: 94e38aa1586e8a6c8a75770bddf5ff84c48a106b
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - name: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - name: github.com/fatih/camelcase
