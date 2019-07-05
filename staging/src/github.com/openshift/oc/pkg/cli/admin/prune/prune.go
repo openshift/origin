@@ -38,6 +38,6 @@ func NewCommandPrune(name, fullName string, f kcmdutil.Factory, streams genericc
 	cmds.AddCommand(deployments.NewCmdPruneDeployments(f, fullName, deployments.PruneDeploymentsRecommendedName, streams))
 	cmds.AddCommand(images.NewCmdPruneImages(f, fullName, images.PruneImagesRecommendedName, streams))
 	cmds.AddCommand(groups.NewCmdPrune(PruneGroupsRecommendedName, fullName+" "+PruneGroupsRecommendedName, f, streams))
-	cmds.AddCommand(auth.NewCmdPruneAuth(f, "auth", streams))
+	cmds.AddCommand(auth.NewCmdPruneAuth(f, fullName, "auth", streams))
 	return cmds
 }

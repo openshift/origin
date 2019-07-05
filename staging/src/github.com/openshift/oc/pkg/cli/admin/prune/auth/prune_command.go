@@ -1,11 +1,15 @@
 package auth
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -33,6 +37,15 @@ type PruneAuthOptions struct {
 	genericclioptions.IOStreams
 }
 
+var (
+	pruneServiceaccountExample = templates.Examples(`
+    # Prune the service account serviceaccount1 in current namespace
+    %[1]s %[2]s sa serviceaccount1
+
+    # Prune the service account serviceaccount1 in namespace namespace1
+    %[1]s %[2]s sa serviceaccount1 -n namespace1`)
+)
+
 func NewPruneAuthOptions(streams genericclioptions.IOStreams) *PruneAuthOptions {
 	return &PruneAuthOptions{
 		IOStreams: streams,
@@ -40,12 +53,14 @@ func NewPruneAuthOptions(streams genericclioptions.IOStreams) *PruneAuthOptions 
 }
 
 // NewCmdPruneRoles implements the OpenShift cli prune roles command.
-func NewCmdPruneAuth(f kcmdutil.Factory, name string, streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdPruneAuth(f kcmdutil.Factory, parentName, name string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewPruneAuthOptions(streams)
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Removes references to the specified roles, clusterroles, users, and groups.",
-		Long:  "Removes references to the specified roles, clusterroles, users, and groups.  Other types are ignored",
+		Short: "Removes references to the specified roles, clusterroles, users, groups and serviceaccounts.",
+		Long:  "Removes references to the specified roles, clusterroles, users, groups and serviceaccounts.  Other types are ignored",
+
+		Example: fmt.Sprintf(pruneServiceaccountExample, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -135,6 +150,9 @@ func (o *PruneAuthOptions) RunPrune() error {
 		case isUser(info.Mapping):
 			reapForUser(o.UserClient, o.AuthorizationClient, o.OAuthClient, o.SecurityClient.SecurityContextConstraints(), info.Name, o.Out)
 
+		case isServiceAccount(info.Mapping):
+			reapForServiceAccount(o.AuthorizationClient, o.SecurityClient.SecurityContextConstraints(), info.Namespace, info.Name, o.Out)
+
 		case isGroup(info.Mapping):
 			reapForGroup(o.AuthorizationClient, o.SecurityClient.SecurityContextConstraints(), info.Name, o.Out)
 		}
@@ -167,6 +185,13 @@ func isClusterRole(mapping *meta.RESTMapping) bool {
 
 func isUser(mapping *meta.RESTMapping) bool {
 	if mapping.Resource.Group == "user.openshift.io" && mapping.Resource.Resource == "users" {
+		return true
+	}
+	return false
+}
+
+func isServiceAccount(mapping *meta.RESTMapping) bool {
+	if mapping.Resource.Resource == "serviceaccounts" {
 		return true
 	}
 	return false
