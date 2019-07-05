@@ -10,7 +10,7 @@ readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
 readonly OS_GLIDE_MINOR_VERSION="13"
 readonly OS_REQUIRED_GLIDE_VERSION="0.$OS_GLIDE_MINOR_VERSION"
 
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp no_openssl"
+readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
 readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_S390X="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_ARM64="gssapi"
