@@ -264,3 +264,9 @@ import:
 - package: gonum.org/v1/gonum
   repo: https://github.com/gonum/gonum.git
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
+
+# set alias location for this package due to
+# https://github.com/Masterminds/glide/issues/1057; upstream did this in
+# https://github.com/kubernetes/kubernetes/pull/72138
+- package: bitbucket.org/ww/goautoneg
+  repo: https://github.com/munnerz/goautoneg.git
