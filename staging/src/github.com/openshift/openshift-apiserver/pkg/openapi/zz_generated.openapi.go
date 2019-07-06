@@ -139,6 +139,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.AuthenticationList":                                                       schema_openshift_api_config_v1_AuthenticationList(ref),
 		"github.com/openshift/api/config/v1.AuthenticationSpec":                                                       schema_openshift_api_config_v1_AuthenticationSpec(ref),
 		"github.com/openshift/api/config/v1.AuthenticationStatus":                                                     schema_openshift_api_config_v1_AuthenticationStatus(ref),
+		"github.com/openshift/api/config/v1.AzurePlatformStatus":                                                      schema_openshift_api_config_v1_AzurePlatformStatus(ref),
 		"github.com/openshift/api/config/v1.BasicAuthIdentityProvider":                                                schema_openshift_api_config_v1_BasicAuthIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.Build":                                                                    schema_openshift_api_config_v1_Build(ref),
 		"github.com/openshift/api/config/v1.BuildDefaults":                                                            schema_openshift_api_config_v1_BuildDefaults(ref),
@@ -181,6 +182,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.FeatureGateList":                                                          schema_openshift_api_config_v1_FeatureGateList(ref),
 		"github.com/openshift/api/config/v1.FeatureGateSpec":                                                          schema_openshift_api_config_v1_FeatureGateSpec(ref),
 		"github.com/openshift/api/config/v1.FeatureGateStatus":                                                        schema_openshift_api_config_v1_FeatureGateStatus(ref),
+		"github.com/openshift/api/config/v1.GCPPlatformStatus":                                                        schema_openshift_api_config_v1_GCPPlatformStatus(ref),
 		"github.com/openshift/api/config/v1.GenericAPIServerConfig":                                                   schema_openshift_api_config_v1_GenericAPIServerConfig(ref),
 		"github.com/openshift/api/config/v1.GenericControllerConfig":                                                  schema_openshift_api_config_v1_GenericControllerConfig(ref),
 		"github.com/openshift/api/config/v1.GitHubIdentityProvider":                                                   schema_openshift_api_config_v1_GitHubIdentityProvider(ref),
@@ -519,11 +521,15 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                                           schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                                schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenericOperatorConfig":                                            schema_openshift_api_operator_v1alpha1_GenericOperatorConfig(ref),
+		"github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicy":                                         schema_openshift_api_operator_v1alpha1_ImageContentSourcePolicy(ref),
+		"github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicyList":                                     schema_openshift_api_operator_v1alpha1_ImageContentSourcePolicyList(ref),
+		"github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicySpec":                                     schema_openshift_api_operator_v1alpha1_ImageContentSourcePolicySpec(ref),
 		"github.com/openshift/api/operator/v1alpha1.LoggingConfig":                                                    schema_openshift_api_operator_v1alpha1_LoggingConfig(ref),
 		"github.com/openshift/api/operator/v1alpha1.NodeStatus":                                                       schema_openshift_api_operator_v1alpha1_NodeStatus(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorCondition":                                                schema_openshift_api_operator_v1alpha1_OperatorCondition(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorSpec":                                                     schema_openshift_api_operator_v1alpha1_OperatorSpec(ref),
 		"github.com/openshift/api/operator/v1alpha1.OperatorStatus":                                                   schema_openshift_api_operator_v1alpha1_OperatorStatus(ref),
+		"github.com/openshift/api/operator/v1alpha1.RepositoryDigestMirrors":                                          schema_openshift_api_operator_v1alpha1_RepositoryDigestMirrors(ref),
 		"github.com/openshift/api/operator/v1alpha1.StaticPodOperatorStatus":                                          schema_openshift_api_operator_v1alpha1_StaticPodOperatorStatus(ref),
 		"github.com/openshift/api/operator/v1alpha1.VersionAvailability":                                              schema_openshift_api_operator_v1alpha1_VersionAvailability(ref),
 		"github.com/openshift/api/osin/v1.AllowAllPasswordIdentityProvider":                                           schema_openshift_api_osin_v1_AllowAllPasswordIdentityProvider(ref),
@@ -7162,6 +7168,20 @@ func schema_openshift_api_config_v1_APIServerSpec(ref common.ReferenceCallback) 
 							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
+					"additionalCORSAllowedOrigins": {
+						SchemaProps: spec.SchemaProps{
+							Description: "additionalCORSAllowedOrigins lists additional, user-defined regular expressions describing hosts for which the API server allows access using the CORS headers. This may be needed to access the API and the integrated OAuth server from JavaScript applications. The values are regular expressions that correspond to the Golang regular expression language.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -7524,6 +7544,27 @@ func schema_openshift_api_config_v1_AuthenticationStatus(ref common.ReferenceCal
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/config/v1.ConfigMapNameReference"},
+	}
+}
+
+func schema_openshift_api_config_v1_AzurePlatformStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AzurePlatformStatus holds the current status of the Azure infrastructure provider.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"resourceGroupName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resourceGroupName is the Resource Group for new Azure resources created for the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"resourceGroupName"},
+			},
+		},
 	}
 }
 
@@ -9149,6 +9190,34 @@ func schema_openshift_api_config_v1_FeatureGateStatus(ref common.ReferenceCallba
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_GCPPlatformStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "GCPPlatformStatus holds the current status of the Google Cloud Platform infrastructure provider.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"projectID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resourceGroupName is the Project ID for new GCP resources created for the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"region": {
+						SchemaProps: spec.SchemaProps{
+							Description: "region holds the region for new GCP resources created for the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"projectID", "region"},
 			},
 		},
 	}
@@ -11129,7 +11198,7 @@ func schema_openshift_api_config_v1_PlatformStatus(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+							Description: "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -11140,12 +11209,24 @@ func schema_openshift_api_config_v1_PlatformStatus(ref common.ReferenceCallback)
 							Ref:         ref("github.com/openshift/api/config/v1.AWSPlatformStatus"),
 						},
 					},
+					"azure": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Azure contains settings specific to the Azure infrastructure provider.",
+							Ref:         ref("github.com/openshift/api/config/v1.AzurePlatformStatus"),
+						},
+					},
+					"gcp": {
+						SchemaProps: spec.SchemaProps{
+							Description: "GCP contains settings specific to the Google Cloud Platform infrastructure provider.",
+							Ref:         ref("github.com/openshift/api/config/v1.GCPPlatformStatus"),
+						},
+					},
 				},
 				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AWSPlatformStatus"},
+			"github.com/openshift/api/config/v1.AWSPlatformStatus", "github.com/openshift/api/config/v1.AzurePlatformStatus", "github.com/openshift/api/config/v1.GCPPlatformStatus"},
 	}
 }
 
@@ -25899,6 +25980,124 @@ func schema_openshift_api_operator_v1alpha1_GenericOperatorConfig(ref common.Ref
 	}
 }
 
+func schema_openshift_api_operator_v1alpha1_ImageContentSourcePolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules. When multple policies are defined, the outcome of the behavior is defined on each field.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec holds user settable values for configuration",
+							Ref:         ref("github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicySpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_ImageContentSourcePolicyList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageContentSourcePolicyList lists the items in the ImageContentSourcePolicy CRD.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicy"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"metadata", "items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.ImageContentSourcePolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_ImageContentSourcePolicySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ImageContentSourcePolicySpec is the specification of the ImageContentSourcePolicy CRD.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"repositoryDigestMirrors": {
+						SchemaProps: spec.SchemaProps{
+							Description: "repositoryDigestMirrors allows images referenced by image digests in pods to be pulled from alternative mirrored repository locations. The image pull specification provided to the pod will be compared to the source locations described in RepositoryDigestMirrors and the image may be pulled down from any of the repositories in the list instead of the specified repository allowing administrators to choose a potentially faster mirror. Only image pull specifications that have an image disgest will have this behavior applied to them - tags will continue to be pulled from the specified repository in the pull spec. When multiple policies are defined, any overlaps found will be merged together when the mirror rules are written to `/etc/containers/registries.conf`. For example, if policy A has sources `a, b, c` and policy B has sources `c, d, e`. Then the mirror rule written to `registries.conf` will be `a, b, c, d, e` where the duplicate `c` is removed.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1alpha1.RepositoryDigestMirrors"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1alpha1.RepositoryDigestMirrors"},
+	}
+}
+
 func schema_openshift_api_operator_v1alpha1_LoggingConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -26136,6 +26335,33 @@ func schema_openshift_api_operator_v1alpha1_OperatorStatus(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/operator/v1alpha1.OperatorCondition", "github.com/openshift/api/operator/v1alpha1.VersionAvailability"},
+	}
+}
+
+func schema_openshift_api_operator_v1alpha1_RepositoryDigestMirrors(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config. Note: the mirrors only work when pulling the images that are reference by their digests.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"sources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "sources are repositories that are mirrors of each other.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
