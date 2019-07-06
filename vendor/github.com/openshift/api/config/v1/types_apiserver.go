@@ -30,6 +30,12 @@ type APIServerSpec struct {
 	// - ConfigMap.Data["ca-bundle.crt"] - CA bundle.
 	// +optional
 	ClientCA ConfigMapNameReference `json:"clientCA"`
+	// additionalCORSAllowedOrigins lists additional, user-defined regular expressions describing hosts for which the
+	// API server allows access using the CORS headers. This may be needed to access the API and the integrated OAuth
+	// server from JavaScript applications.
+	// The values are regular expressions that correspond to the Golang regular expression language.
+	// +optional
+	AdditionalCORSAllowedOrigins []string `json:"additionalCORSAllowedOrigins,omitempty"`
 }
 
 type APIServerServingCerts struct {
