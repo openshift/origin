@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/api/annotations"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -93,59 +94,51 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 
 	g.Describe("TestProjectWatch", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
-			t := g.GinkgoT()
-
 			bobName := oc.CreateUser("bob-").Name
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
 			w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns01Name := oc.CreateProject()
 			authorization.AddUserAdminToProject(oc, ns01Name, bobName)
-			waitForAdd(ns01Name, w, t)
+			waitForAdd(ns01Name, w)
 
 			// TEST FOR ADD/REMOVE ACCESS
 			joeName := oc.CreateUser("joe-").Name
 			ns02Name := oc.CreateProject()
 			authorization.AddUserAdminToProject(oc, ns02Name, joeName)
 			bobEditName := authorization.AddUserEditToProject(oc, ns02Name, bobName)
-			waitForAdd(ns02Name, w, t)
+			waitForAdd(ns02Name, w)
 
-			if err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns02Name).Delete(bobEditName, nil); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			waitForDelete(ns02Name, w, t)
+			err = oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(ns02Name).Delete(bobEditName, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			waitForDelete(ns02Name, w)
 
 			// TEST FOR DELETE PROJECT
 			ns03Name := oc.CreateProject()
 			authorization.AddUserAdminToProject(oc, ns03Name, bobName)
-			waitForAdd(ns03Name, w, t)
+			waitForAdd(ns03Name, w)
 
-			if err := bobProjectClient.Projects().Delete(ns03Name, nil); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			bobProjectClient.Projects().Delete(ns03Name, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// wait for the delete
-			waitForDelete(ns03Name, w, t)
+			waitForDelete(ns03Name, w)
 
 			// test the "start from beginning watch"
 			beginningWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{ResourceVersion: "0"})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			waitForAdd(ns01Name, beginningWatch, t)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			waitForAdd(ns01Name, beginningWatch)
 
 			fromNowWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 			select {
 			case event := <-fromNowWatch.ResultChan():
-				t.Fatalf("unexpected event %s %#v", event.Type, event.Object)
+				g.Fail(fmt.Sprintf("unexpected event %s %#v", event.Type, event.Object))
 
-			case <-time.After(3 * time.Second):
+			case <-time.After(2 * time.Second):
 			}
 		})
 	})
@@ -157,8 +150,6 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 
 	g.Describe("TestProjectWatchWithSelectionPredicate", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
-			t := g.GinkgoT()
-
 			bobName := oc.CreateUser("bob-").Name
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
@@ -167,165 +158,161 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 			w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
 			})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			authorization.AddUserAdminToProject(oc, ns01Name, bobName)
 			// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
-			waitForAdd(ns01Name, w, t)
+			waitForAdd(ns01Name, w)
 
 			ns03Name := oc.CreateProject()
 			authorization.AddUserAdminToProject(oc, ns03Name, bobName)
 			// we are only watching ns-01, we should not receive events for other projects
-			waitForNoEvent(w, ns01Name, t)
+			waitForNoEvent(w, ns01Name)
 
-			if err := bobProjectClient.Projects().Delete(ns03Name, nil); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			bobProjectClient.Projects().Delete(ns03Name, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// we are only watching ns-01, we should not receive events for other projects
-			waitForNoEvent(w, ns01Name, t)
+			waitForNoEvent(w, ns01Name)
 
 			// test the "start from beginning watch"
 			beginningWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
 				ResourceVersion: "0",
 				FieldSelector:   "metadata.name=" + ns01Name,
 			})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 			// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
-			waitForAdd(ns01Name, beginningWatch, t)
+			waitForAdd(ns01Name, beginningWatch)
 
 			fromNowWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
 			})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// since we are only watching for events from "ns-01", and no projects are being modified, we should not receive any events here
-			waitForNoEvent(fromNowWatch, ns01Name, t)
+			waitForNoEvent(fromNowWatch, ns01Name)
 		})
 	})
 })
 
 // waitForNoEvent ensures no stray events come in.  skipProject allows modify events only for the named project
-func waitForNoEvent(w watch.Interface, skipProject string, t g.GinkgoTInterface) {
-	g.By("waitForNoEvent skipping " + skipProject)
-	for {
-		select {
-		case event := <-w.ResultChan():
-			if event.Type != watch.Modified {
-				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
-			}
-			project, ok := event.Object.(*projectv1.Project)
-			if !ok {
-				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
-			}
-			t.Logf("got %#v %#v", event, project)
-			if project.Name != skipProject {
-				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
-			}
+func waitForNoEvent(w watch.Interface, skipProject string) {
+	g.By("waitForNoEvent skipping "+skipProject, func() {
+		for {
+			select {
+			case event := <-w.ResultChan():
+				o.Expect(event.Type).To(o.Equal(watch.Modified))
+				project, ok := event.Object.(*projectv1.Project)
+				o.Expect(ok).To(o.BeTrue())
+				framework.Logf("got %#v %#v", event, project)
+				o.Expect(ok).To(o.Equal(skipProject))
 
-			continue
-		case <-time.After(3 * time.Second):
-			return
-		}
-	}
-}
-
-func waitForDelete(projectName string, w watch.Interface, t g.GinkgoTInterface) {
-	g.By("waitForDelete " + projectName)
-	for {
-		select {
-		case event := <-w.ResultChan():
-			project := event.Object.(*projectv1.Project)
-			t.Logf("got %#v %#v", event, project)
-			if event.Type == watch.Deleted && project.Name == projectName {
-				return
-			}
-
-		case <-time.After(30 * time.Second):
-			t.Fatalf("timeout: %v", projectName)
-		}
-	}
-}
-func waitForAdd(projectName string, w watch.Interface, t g.GinkgoTInterface) {
-	g.By("waitForAdd " + projectName)
-	for {
-		select {
-		case event := <-w.ResultChan():
-			project := event.Object.(*projectv1.Project)
-			t.Logf("got %#v %#v", event, project)
-			if event.Type == watch.Added && project.Name == projectName {
-				return
-			}
-
-		case <-time.After(30 * time.Second):
-			t.Fatalf("timeout: %v", projectName)
-		}
-	}
-}
-
-func waitForOnlyAdd(projectName string, w watch.Interface, t g.GinkgoTInterface) {
-	g.By("waitForOnlyAdd " + projectName)
-	for {
-		select {
-		case event := <-w.ResultChan():
-			project := event.Object.(*projectv1.Project)
-			t.Logf("got %#v %#v", event, project)
-			if project.Name == projectName {
-				// the first event we see for the expected project must be an ADD
-				if event.Type == watch.Added {
-					return
-				}
-				t.Fatalf("got unexpected project ADD waiting for %s: %v", project.Name, event)
-			}
-			if event.Type == watch.Modified {
-				// ignore modifications from other projects
 				continue
+			case <-time.After(2 * time.Second):
+				return
 			}
-			t.Fatalf("got unexpected project %v", project.Name)
-
-		case <-time.After(30 * time.Second):
-			t.Fatalf("timeout: %v", projectName)
 		}
-	}
+	})
 }
-func waitForOnlyDelete(projectName string, w watch.Interface, t g.GinkgoTInterface) {
-	g.By("waitForOnlyDelete " + projectName)
-	hasTerminated := sets.NewString()
-	for {
-		select {
-		case event := <-w.ResultChan():
-			project := event.Object.(*projectv1.Project)
-			t.Logf("got %#v %#v", event, project)
-			if project.Name == projectName {
-				if event.Type == watch.Deleted {
+
+func waitForDelete(projectName string, w watch.Interface) {
+	g.By("waitForDelete "+projectName, func() {
+		for {
+			select {
+			case event := <-w.ResultChan():
+				project := event.Object.(*projectv1.Project)
+				framework.Logf("got %#v %#v", event, project)
+				if event.Type == watch.Deleted && project.Name == projectName {
 					return
 				}
-				// if its an event indicating Terminated status, don't fail, but keep waiting
+
+			case <-time.After(30 * time.Second):
+				g.Fail(fmt.Sprintf("timeout: %v", projectName))
+			}
+		}
+	})
+
+}
+func waitForAdd(projectName string, w watch.Interface) {
+	g.By("waitForAdd "+projectName, func() {
+		for {
+			select {
+			case event := <-w.ResultChan():
+				project := event.Object.(*projectv1.Project)
+				framework.Logf("got %#v %#v", event, project)
+				if event.Type == watch.Added && project.Name == projectName {
+					return
+				}
+
+			case <-time.After(30 * time.Second):
+				g.Fail(fmt.Sprintf("timeout: %v", projectName))
+			}
+		}
+	})
+
+}
+
+func waitForOnlyAdd(projectName string, w watch.Interface) {
+	g.By("waitForOnlyAdd "+projectName, func() {
+		for {
+			select {
+			case event := <-w.ResultChan():
+				project := event.Object.(*projectv1.Project)
+				framework.Logf("got %#v %#v", event, project)
+				if project.Name == projectName {
+					// the first event we see for the expected project must be an ADD
+					if event.Type == watch.Added {
+						return
+					}
+					g.Fail(fmt.Sprintf("got unexpected project ADD waiting for %s: %v", project.Name, event))
+				}
 				if event.Type == watch.Modified {
-					terminating := project.Status.Phase == corev1.NamespaceTerminating
-					if !terminating && hasTerminated.Has(project.Name) {
-						t.Fatalf("project %s was terminating, but then got an event where it was not terminating: %#v", project.Name, project)
-					}
-					if terminating {
-						hasTerminated.Insert(project.Name)
-					}
+					// ignore modifications from other projects
 					continue
 				}
-			}
-			if event.Type == watch.Modified {
-				// ignore modifications for other projects
-				continue
-			}
-			t.Fatalf("got unexpected project %v", project.Name)
+				g.Fail(fmt.Sprintf("got unexpected project %v", project.Name))
 
-		case <-time.After(30 * time.Second):
-			t.Fatalf("timeout: %v", projectName)
+			case <-time.After(30 * time.Second):
+				g.Fail(fmt.Sprintf("timeout: %v", projectName))
+			}
 		}
-	}
+	})
+}
+func waitForOnlyDelete(projectName string, w watch.Interface) {
+	g.By("waitForOnlyDelete "+projectName, func() {
+		hasTerminated := sets.NewString()
+		for {
+			select {
+			case event := <-w.ResultChan():
+				project := event.Object.(*projectv1.Project)
+				framework.Logf("got %#v %#v", event, project)
+				if project.Name == projectName {
+					if event.Type == watch.Deleted {
+						return
+					}
+					// if its an event indicating Terminated status, don't fail, but keep waiting
+					if event.Type == watch.Modified {
+						terminating := project.Status.Phase == corev1.NamespaceTerminating
+						if !terminating && hasTerminated.Has(project.Name) {
+							g.Fail(fmt.Sprintf("project %s was terminating, but then got an event where it was not terminating: %#v", project.Name, project))
+						}
+						if terminating {
+							hasTerminated.Insert(project.Name)
+						}
+						continue
+					}
+				}
+				if event.Type == watch.Modified {
+					// ignore modifications for other projects
+					continue
+				}
+				g.Fail(fmt.Sprintf("got unexpected project %v", project.Name))
+
+			case <-time.After(30 * time.Second):
+				g.Fail(fmt.Sprintf("timeout: %v", projectName))
+			}
+		}
+	})
 }
 
 var _ = g.Describe("[Feature:ProjectAPI] ", func() {
@@ -386,22 +373,22 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 
 			authorization.AddUserAdminToProject(oc, oneName, bobName)
 			t.Logf("test 1")
-			waitForOnlyAdd(oneName, allWatch, t)
-			waitForOnlyAdd(oneName, oneTwoWatch, t)
+			waitForOnlyAdd(oneName, allWatch)
+			waitForOnlyAdd(oneName, oneTwoWatch)
 
 			authorization.AddUserAdminToProject(oc, twoName, bobName)
 			t.Logf("test 2")
-			waitForOnlyAdd(twoName, allWatch, t)
-			waitForOnlyAdd(twoName, oneTwoWatch, t)
-			waitForOnlyAdd(twoName, twoThreeWatch, t)
+			waitForOnlyAdd(twoName, allWatch)
+			waitForOnlyAdd(twoName, oneTwoWatch)
+			waitForOnlyAdd(twoName, twoThreeWatch)
 
 			authorization.AddUserAdminToProject(oc, threeName, bobName)
 			t.Logf("test 3")
-			waitForOnlyAdd(threeName, allWatch, t)
-			waitForOnlyAdd(threeName, twoThreeWatch, t)
+			waitForOnlyAdd(threeName, allWatch)
+			waitForOnlyAdd(threeName, twoThreeWatch)
 
 			authorization.AddUserAdminToProject(oc, fourName, bobName)
-			waitForOnlyAdd(fourName, allWatch, t)
+			waitForOnlyAdd(fourName, allWatch)
 
 			if err := hasExactlyTheseProjects(oneTwoBobClient.Projects(), sets.NewString(oneName, twoName)); err != nil {
 				t.Error(err)
@@ -418,26 +405,26 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 			if err := fullBobClient.Projects().Delete(fourName, nil); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			waitForOnlyDelete(fourName, allWatch, t)
+			waitForOnlyDelete(fourName, allWatch)
 
 			if err := fullBobClient.Projects().Delete(threeName, nil); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			waitForOnlyDelete(threeName, allWatch, t)
-			waitForOnlyDelete(threeName, twoThreeWatch, t)
+			waitForOnlyDelete(threeName, allWatch)
+			waitForOnlyDelete(threeName, twoThreeWatch)
 
 			if err := fullBobClient.Projects().Delete(twoName, nil); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			waitForOnlyDelete(twoName, allWatch, t)
-			waitForOnlyDelete(twoName, oneTwoWatch, t)
-			waitForOnlyDelete(twoName, twoThreeWatch, t)
+			waitForOnlyDelete(twoName, allWatch)
+			waitForOnlyDelete(twoName, oneTwoWatch)
+			waitForOnlyDelete(twoName, twoThreeWatch)
 
 			if err := fullBobClient.Projects().Delete(oneName, nil); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			waitForOnlyDelete(oneName, allWatch, t)
-			waitForOnlyDelete(oneName, oneTwoWatch, t)
+			waitForOnlyDelete(oneName, allWatch)
+			waitForOnlyDelete(oneName, oneTwoWatch)
 		})
 	})
 })
@@ -448,8 +435,6 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 
 	g.Describe("TestInvalidRoleRefs", func() {
 		g.It(fmt.Sprintf("should succeed"), func() {
-			t := g.GinkgoT()
-
 			clusterAdminRbacClient := oc.AdminKubeClient().RbacV1()
 			clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
@@ -485,7 +470,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 			oc.AddResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), actual)
 
 			// wait for evaluation errors to show up in both namespaces and at cluster scope
-			if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 				review := &authorizationv1.ResourceAccessReview{Action: authorizationv1.Action{Verb: "get", Resource: "pods"}}
 				review.Action.Namespace = fooName
 				if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
@@ -500,29 +485,28 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 					return false, err
 				}
 				return true, nil
-			}); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Make sure bob still sees his project (and only his project)
-			if hasErr := hasExactlyTheseProjects(projectv1client.NewForConfigOrDie(bobConfig).Projects(), sets.NewString(fooName)); hasErr != nil {
-				t.Error(hasErr)
-			}
+			err = hasExactlyTheseProjects(projectv1client.NewForConfigOrDie(bobConfig).Projects(), sets.NewString(fooName))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// Make sure alice still sees her project (and only her project)
-			if hasErr := hasExactlyTheseProjects(projectv1client.NewForConfigOrDie(aliceConfig).Projects(), sets.NewString(barName)); hasErr != nil {
-				t.Error(hasErr)
+			err = hasExactlyTheseProjects(projectv1client.NewForConfigOrDie(aliceConfig).Projects(), sets.NewString(barName))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Make sure cluster admin still sees all projects, we sometimes appear to race, so wait for a second for caches
+			time.Sleep(1 * time.Second)
+			projects, err := oc.AdminProjectClient().ProjectV1().Projects().List(metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			projectNames := sets.NewString()
+			for _, project := range projects.Items {
+				projectNames.Insert(project.Name)
 			}
-			// Make sure cluster admin still sees all projects
-			if projects, err := oc.AdminProjectClient().ProjectV1().Projects().List(metav1.ListOptions{}); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			} else {
-				projectNames := sets.NewString()
-				for _, project := range projects.Items {
-					projectNames.Insert(project.Name)
-				}
-				if !projectNames.HasAll(fooName, barName, "openshift-infra", "openshift", "default") {
-					t.Errorf("Expected projects foo and bar, got %v", projectNames.List())
-				}
+			if !projectNames.HasAll(fooName, barName, "openshift-infra", "openshift", "default") {
+				g.Fail(fmt.Sprintf("Expected projects %q and %q, got %v", fooName, barName, projectNames.List()))
 			}
 		})
 	})
