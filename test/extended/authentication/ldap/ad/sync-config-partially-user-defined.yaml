@@ -1,7 +1,8 @@
 kind: LDAPSyncConfig
 apiVersion: v1
 url: ldap://LDAP_SERVICE_IP:389
-insecure: true
+insecure: false
+ca: LDAP_CA
 groupUIDNameMapping:
   group1: firstgroup
   group3: thirdgroup
