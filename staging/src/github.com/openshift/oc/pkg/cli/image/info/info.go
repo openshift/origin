@@ -212,8 +212,6 @@ func describeImage(out io.Writer, image *Image) error {
 	case 0:
 		// legacy case, server does not know individual layers
 		fmt.Fprintf(w, "Layer Size:\t%s\n", units.HumanSize(float64(image.Config.Size)))
-	case 1:
-		fmt.Fprintf(w, "Image Size:\t%s\n", units.HumanSize(float64(image.Layers[0].Size)))
 	default:
 		imageSize := fmt.Sprintf("%s in %d layers", units.HumanSize(float64(image.Config.Size)), len(image.Layers))
 		if image.Config.Size == 0 {
