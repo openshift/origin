@@ -1,7 +1,8 @@
 kind: LDAPSyncConfig
 apiVersion: v1
 url: ldap://LDAP_SERVICE_IP:389
-insecure: true
+insecure: false
+ca: LDAP_CA
 augmentedActiveDirectory:
     usersQuery:
         baseDN: "ou=people,ou=adextended,dc=example,dc=com"

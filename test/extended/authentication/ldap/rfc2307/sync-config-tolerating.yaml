@@ -1,7 +1,8 @@
 kind: LDAPSyncConfig
 apiVersion: v1
 url: ldap://LDAP_SERVICE_IP:389
-insecure: true
+insecure: false
+ca: LDAP_CA
 rfc2307:
     groupsQuery:
         baseDN: "ou=groups,ou=incomplete-rfc2307,dc=example,dc=com"
