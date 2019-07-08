@@ -183,11 +183,14 @@ func (c *CLI) ChangeUser(name string) *CLI {
 
 // SetNamespace sets a new namespace
 func (c *CLI) SetNamespace(ns string) *CLI {
-	c.kubeFramework.Namespace = &corev1.Namespace{
+	// This copy is to fix SetNamespace() when used multithreaded
+	newKubeFramework := *c.kubeFramework
+	newKubeFramework.Namespace = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
 		},
 	}
+	c.kubeFramework = &newKubeFramework
 	return c
 }
 
