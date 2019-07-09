@@ -42,6 +42,7 @@ EOF
   local node_config="${config_dir}/node-config.yaml"
   local master_config="${master_dir}/master-config.yaml"
   cluster_cidr=$(python -c "import yaml; stream = file('${master_config}', 'r'); y = yaml.load(stream); print y['networkConfig']['clusterNetworks'][0]['cidr']")
+  service_cidr=$(python -c "import yaml; stream = file('${master_config}', 'r'); y = yaml.load(stream); print y['networkConfig']['serviceNetworkCIDR']")
   apiserver=$(awk '/server:/ { print $2; exit }' ${kube_config})
   ovn_master_ip=$(echo -n ${apiserver} | cut -d "/" -f 3 | cut -d ":" -f 1)
 
@@ -56,6 +57,7 @@ EOF
 	--k8s-cacert "${config_dir}/ca.crt" \
 	--k8s-token "${token}" \
 	--cluster-subnet "${cluster_cidr}" \
+	--k8s-service-cidr "${service_cidr}" \
 	--nb-address "tcp://${ovn_master_ip}:6641" \
 	--sb-address "tcp://${ovn_master_ip}:6642" \
 	--init-node ${host} \
