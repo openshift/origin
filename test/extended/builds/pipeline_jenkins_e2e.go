@@ -195,7 +195,6 @@ var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slo
 	g.Context("Sync plugin tests", func() {
 
 		g.It("using the persistent template", func() {
-			g.Skip("BUG 1726326 - temporarily skip while issue is investigated")
 			defer cleanup(jenkinsPersistentTemplatePath)
 			setupJenkins(jenkinsPersistentTemplatePath)
 			// additionally ensure that the build works in a memory constrained
@@ -318,7 +317,6 @@ var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slo
 		})
 
 		g.It("using the ephemeral template", func() {
-			g.Skip("BUG 1726326 - temporarily skip while issue is investigated")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
