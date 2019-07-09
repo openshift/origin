@@ -32,11 +32,11 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	var (
 		oc                = exutil.NewCLIWithoutNamespace("cl")
 		masterVertFixture = exutil.FixturePath("testdata", "cluster", "master-vert.yaml")
-		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "cakephp-mysql.json")
-		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "dancer-mysql.json")
-		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "django-postgresql.json")
-		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "nodejs-mongodb.json")
-		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "rails-postgresql.json")
+		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "cakephp-mysql.json")
+		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "dancer-mysql.json")
+		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "django-postgresql.json")
+		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "nodejs-mongodb.json")
+		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "rails-postgresql.json")
 	)
 
 	var c kclientset.Interface
