@@ -251,6 +251,11 @@ func TestAdmit(t *testing.T) {
 			user:   "user1",
 		},
 		{
+			// system:admin should always be allowed
+			config: singleDefaultConfig(),
+			user:   "system:admin",
+		},
+		{
 			config: nil,
 			user:   "user3",
 		},
@@ -262,6 +267,8 @@ func TestAdmit(t *testing.T) {
 			"user2": {2, 2},
 			"user3": {5, 3},
 			"user4": {1, 0},
+
+			"system:admin": {5, 0},
 		})
 
 		client := fakeuserclient.NewSimpleClientset()
