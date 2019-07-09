@@ -205,98 +205,12 @@ func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 			},
 		},
 	}
-	output, err := RunOneShotCommandPod(oc, openldapTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts,
-		volumes, 5*time.Minute)
-	if err != nil {
-		return "", err
+	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", openldapTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts,
+		volumes, nil, 5*time.Minute)
+	if len(errs) != 0 {
+		return output, fmt.Errorf("errours encountered trying to run ldapsearch pod: %v", errs)
 	}
 	return output, nil
-}
-
-func podHasCompleted(pod *corev1.Pod) bool {
-	return len(pod.Status.ContainerStatuses) > 0 &&
-		pod.Status.ContainerStatuses[0].State.Terminated != nil &&
-		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Completed"
-}
-
-// RunOneShotCommandPod uns the given command in a pod and waits for completion and log output for the given timeout
-// duration, returning the command output or an error.
-func RunOneShotCommandPod(oc *CLI, image, command string, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume,
-	timeout time.Duration) (string, error) {
-	cmd := strings.Split(command, " ")
-	args := cmd[1:]
-	var output string
-
-	pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Create(newCommandPod(cmd[0], image, cmd[0], args,
-		volumeMounts, volumes))
-	if err != nil {
-		return "", err
-	}
-
-	// Wait for command completion.
-	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
-		cmdPod, getErr := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, v1.GetOptions{})
-		if err != nil {
-			return false, getErr
-		}
-		return podHasCompleted(cmdPod), nil
-	})
-	if err != nil {
-		return "", fmt.Errorf("command pod %s did not complete: %v", pod.Name, err)
-	}
-
-	// Gather pod log output
-	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
-		logs, logErr := getPodLogs(oc, pod)
-		if logErr != nil {
-			return false, logErr
-		}
-		if len(logs) == 0 {
-			return false, nil
-		}
-		output = logs
-		return true, nil
-	})
-	if err != nil {
-		return "", fmt.Errorf("unable to gather %s logs: %v", pod.Name, err)
-	}
-
-	return output, nil
-}
-
-func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
-	reader, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream()
-	if err != nil {
-		return "", err
-	}
-	logs, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return "", err
-	}
-	return string(logs), nil
-}
-
-func newCommandPod(name, image, command string, args []string, volumeMounts []corev1.VolumeMount,
-	volumes []corev1.Volume) *corev1.Pod {
-	return &corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Name: name,
-		},
-		Spec: corev1.PodSpec{
-			Volumes:       volumes,
-			RestartPolicy: corev1.RestartPolicyNever,
-			Containers: []corev1.Container{
-				{
-					Name:            name,
-					Image:           image,
-					Command:         []string{command},
-					Args:            args,
-					VolumeMounts:    volumeMounts,
-					ImagePullPolicy: "Always",
-				},
-			},
-		},
-	}
 }
 
 func readLDAPServerTestData() (*app.Deployment, *corev1.Service, *corev1.ConfigMap, *corev1.ConfigMap) {

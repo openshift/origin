@@ -22,7 +22,7 @@ function find_tests() {
     local full_test_list=()
     local selected_tests=()
 
-    full_test_list=( $(find "${OS_ROOT}/test/cmd" -name '*.sh') )
+    full_test_list=( $(find -L "${OS_ROOT}/test/cmd" -name '*.sh') )
     for test in "${full_test_list[@]}"; do
         if grep -q -E "${test_regex}" <<< "${test}"; then
             selected_tests+=( "${test}" )
