@@ -1212,7 +1212,7 @@ func describeChangelog(out, errOut io.Writer, diff *ReleaseDiff, dir string) err
 		}
 		if len(commits) > 0 {
 			if u.Host == "github.com" {
-				fmt.Fprintf(out, "### [%s](https://github.com%s)\n\n", strings.Join(change.ImagesAffected, ", "), u.Path)
+				fmt.Fprintf(out, "### [%s](https://github.com%s/tree/%s)\n\n", strings.Join(change.ImagesAffected, ", "), u.Path, change.To)
 			} else {
 				fmt.Fprintf(out, "### %s\n\n", strings.Join(change.ImagesAffected, ", "))
 			}
