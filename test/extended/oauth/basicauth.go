@@ -12,16 +12,15 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	exutil "github.com/openshift/origin/test/extended/util"
 	utiloauth "github.com/openshift/origin/test/extended/util/oauthserver"
+	"github.com/openshift/origin/test/extended/util/oauthserver/tokencmd"
 )
 
 const (
@@ -114,17 +113,36 @@ var failTestcases = []BasicAuthTestCase{
 }
 
 var _ = g.Describe("[Suite:openshift/oauth/basicauthidp] BasicAuth Identity Provider:", func() {
+	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("cluster-basic-auth", exutil.KubeConfigPath())
 
-		oauthConfigBackup *configv1.OAuth
-		identitiesBackup  = sets.NewString()
-		usersBackup       = sets.NewString()
+		identitiesBackup = sets.NewString()
+		usersBackup      = sets.NewString()
+
+		privilegedSCCClusterRoleName string
 	)
 
 	g.BeforeEach(func() {
-		var err error
-		oauthConfigBackup, err = configclient.NewForConfigOrDie(oc.AdminConfig()).ConfigV1().OAuths().Get("cluster", metav1.GetOptions{})
+		privilegedSCCClusterRoleName = fmt.Sprintf("scc-privileged-user-%s", oc.Namespace())
+		_, err := oc.AdminKubeClient().RbacV1().ClusterRoles().Create(
+			&rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: privilegedSCCClusterRoleName,
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						APIGroups:     []string{"security.openshift.io"},
+						Resources:     []string{"securitycontextconstraints"},
+						ResourceNames: []string{"privileged"},
+						Verbs:         []string{"use"},
+					},
+				},
+			})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// allow the service acccount running deployments to use the privileged scc
+		err = oc.AsAdmin().Run("adm").Args("policy", "add-role-to-user", privilegedSCCClusterRoleName, "-z", "default", "-n", oc.Namespace()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		usersClient := oc.AdminUserClient().UserV1()
@@ -143,11 +161,10 @@ var _ = g.Describe("[Suite:openshift/oauth/basicauthidp] BasicAuth Identity Prov
 	})
 
 	g.AfterEach(func() {
-		_, err := configclient.NewForConfigOrDie(oc.AdminConfig()).ConfigV1().OAuths().Update(oauthConfigBackup)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		usersClient := oc.AdminUserClient().UserV1()
 		users, err := usersClient.Users().List(metav1.ListOptions{})
+
+		oc.AdminKubeClient().RbacV1().ClusterRoles().Delete(privilegedSCCClusterRoleName, &metav1.DeleteOptions{})
 
 		identities, err := usersClient.Identities().List(metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -188,6 +205,24 @@ http {
 			return testLoginWorks(oc, tokenOpts)
 		})
 		o.Expect(errs).To(o.HaveLen(0))
+		cleanAllOfOAuthServer(oc)
+	})
+
+	g.It("run negative login tests", func() {
+		nginxConfigFmt := `
+		server {
+			listen 8080;
+			%s
+		}`
+
+		for _, tc := range failTestcases {
+			config := fmt.Sprintf(nginxConfigFmt, tc.ResponseConfig)
+			errs := runWithBasicAuthIDP(oc, config, func(tokenOpts *tokencmd.RequestTokenOptions) []error {
+				return runFailCase(oc, tokenOpts, tc)
+			})
+			o.Expect(errs).To(o.HaveLen(1), fmt.Sprintf("test case: %s", tc.TestName))
+			cleanAllOfOAuthServer(oc)
+		}
 	})
 })
 
@@ -200,16 +235,11 @@ func testLoginWorks(oc *exutil.CLI, tokenOpts *tokencmd.RequestTokenOptions) []e
 	// Test that login works
 	e2e.Logf("trying to login with wrong credentials")
 	_, err := utiloauth.RequestTokenForUser(tokenOpts, incorrectLogin, correctPassword)
-	if err == nil {
-		errs = append(errs, fmt.Errorf("expected error while using wrong credentials"))
-	} else if !strings.Contains(err.Error(), "401") {
-		errs = append(errs, fmt.Errorf("expected error status '401' to appear in error message, got '%v'", err))
-	}
+	o.Expect(err).To(o.HaveOccurred(), "expected error while using wrong credentials")
+	o.Expect(err.Error()).To(o.ContainSubstring("challenger chose not to retry the request"))
 
 	token, err := utiloauth.RequestTokenForUser(tokenOpts, correctLogin, correctPassword)
-	if err != nil {
-		return append(errs, fmt.Errorf("error getting the token with correct credentials: %v", err))
-	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "expected to retrieve a token with correct credentials")
 
 	// Check that the logged user is who we think it is
 	user, err := utiloauth.GetUserForToken(oc.AdminConfig(), token, correctLogin)
@@ -221,32 +251,21 @@ func testLoginWorks(oc *exutil.CLI, tokenOpts *tokencmd.RequestTokenOptions) []e
 	return errs
 }
 
-func runTests(oc *exutil.CLI, tokenOpts *tokencmd.RequestTokenOptions, failureTestcases []BasicAuthTestCase) []error {
+func runFailCase(oc *exutil.CLI, tokenOpts *tokencmd.RequestTokenOptions, testCase BasicAuthTestCase) []error {
 	errs := []error{}
 
 	origUser := oc.Username()
 	defer oc.ChangeUser(origUser)
 
-	// template to make all the redirects possible
-	// serverConfFmt := `
-	// server {
-	// 	listen 8080;
-	// 	return %s;
-	// }`
+	e2e.Logf("running test '%s'", testCase.TestName)
 
-	for k, tc := range failureTestcases {
-		e2e.Logf("running test '%s'", k)
-
-		err := updateRoutePort(oc, tc.TestName)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		_, err = utiloauth.RequestTokenForUser(tokenOpts, tc.Login, tc.Password)
-		if err == nil {
-			errs = append(errs, fmt.Errorf("%s: Expected error", tc.TestName))
-		} else if !strings.Contains(err.Error(), strconv.Itoa(tc.ExpectErrStatus)) {
-			errs = append(errs, fmt.Errorf("%s: Expected error status '%d' to appear in error message, got '%v'", tc.TestName, tc.ExpectErrStatus, err))
-		}
+	_, err := utiloauth.RequestTokenForUser(tokenOpts, testCase.Login, testCase.Password)
+	if err == nil {
+		errs = append(errs, fmt.Errorf("%s: Expected error", testCase.TestName))
+	} else if !strings.Contains(err.Error(), strconv.Itoa(testCase.ExpectErrStatus)) {
+		errs = append(errs, fmt.Errorf("%s: Expected error status '%d' to appear in error message, got '%v'", testCase.TestName, testCase.ExpectErrStatus, err))
 	}
+
 	return errs
 }
 
@@ -268,11 +287,7 @@ func runNginxDeployment(oc *exutil.CLI, config string) string {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// we have config, create the depoyment that takes it
-	err = oc.AsAdmin().Run("create").Args("-f", exutil.FixturePath("testdata", "oauth_idp", "basic-auth-server.yaml")).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// allow the service acccount running the deployment to use the privileged scc
-	err = oc.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "scc-privileged-user", "-z", "default").Execute()
+	err = oc.Run("create").Args("-f", exutil.FixturePath("testdata", "oauth_idp", "basic-auth-server.yaml")).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// TODO: wait for the route to have successfully admitted the host for the server
@@ -285,11 +300,11 @@ func runNginxDeployment(oc *exutil.CLI, config string) string {
 
 func runWithBasicAuthIDP(oc *exutil.CLI, nginxConfig string, testFunc func(*tokencmd.RequestTokenOptions) []error) []error {
 	defer func() {
-		oc.AdminAuthorizationClient().AuthorizationV1().ClusterRoles().Delete("scc-privileged-user", &metav1.DeleteOptions{})
 		oc.AsAdmin().Run("delete").Args("-f", exutil.FixturePath("testdata", "oauth_idp", "basic-auth-server.yaml")).Execute()
 	}()
 
 	nginxHostname := runNginxDeployment(oc, nginxConfig)
+	defer oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Delete("config", &metav1.DeleteOptions{})
 
 	// grab the router CA
 	routerCACM, err := oc.AdminKubeClient().CoreV1().ConfigMaps(managedConfigNamespace).Get("router-ca", metav1.GetOptions{})
@@ -321,23 +336,15 @@ func runWithBasicAuthIDP(oc *exutil.CLI, nginxConfig string, testFunc func(*toke
 		oc, []osinv1.IdentityProvider{basicAuthConfig}, nil, []corev1.Secret{routerCASecret},
 	)
 	defer oauthCleanup()
+	defer oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).Delete(routerCACM.Name, &metav1.DeleteOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return testFunc(tokenOpts)
 }
 
-func updateRoutePort(oc *exutil.CLI, newport string) error {
-	routeClient := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace())
-	route, err := routeClient.Get(testRouteName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	route.Spec.Port.TargetPort = intstr.FromString(newport)
-	_, err = routeClient.Update(route)
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(10 * time.Second) // FIXME: add reasonable wait here
-	return nil
+func cleanAllOfOAuthServer(oc *exutil.CLI) {
+	oc.AsAdmin().Run("delete").Args("all", "--selector", "app=test-oauth-server").Execute()
+	oc.AsAdmin().Run("delete").Args("cm", "--selector", "app=test-oauth-server").Execute()
+	oc.AsAdmin().Run("delete").Args("secret", "--selector", "app=test-oauth-server").Execute()
+	oc.AsAdmin().Run("delete").Args("sa", "--selector", "app=test-oauth-server").Execute()
 }

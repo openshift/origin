@@ -51793,21 +51793,6 @@ data:
   401.json: |
     {"error": "bad-user"}
 
----
-
-apiVersion: v1
-kind: ClusterRole
-metadata:
-  name: scc-privileged-user
-rules:
-- apiGroups:
-  - security.openshift.io
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
-  resourceNames:
-  - privileged
 `)
 
 func testExtendedTestdataOauth_idpBasicAuthServerYamlBytes() ([]byte, error) {
