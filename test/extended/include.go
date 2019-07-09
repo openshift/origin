@@ -33,6 +33,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/cli"
 	_ "github.com/openshift/origin/test/extended/cluster"
 	_ "github.com/openshift/origin/test/extended/controller_manager"
+	_ "github.com/openshift/origin/test/extended/crdvalidation"
 	_ "github.com/openshift/origin/test/extended/csrapprover"
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
