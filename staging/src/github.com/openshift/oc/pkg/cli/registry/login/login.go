@@ -191,7 +191,11 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 			return err
 		}
 
-		if registry, internal := findPublicHostname(client, ns, "openshift"); len(registry) > 0 {
+		registry, internal, err := findPublicHostname(client, ns, "openshift")
+		if err != nil {
+			return err
+		}
+		if len(registry) > 0 {
 			if ref, err := reference.Parse(registry); err == nil {
 				o.HostPort = ref.Registry
 				if internal {
@@ -212,19 +216,22 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 	return nil
 }
 
-func findPublicHostname(client *imageclient.Clientset, namespaces ...string) (name string, internal bool) {
+func findPublicHostname(client *imageclient.Clientset, namespaces ...string) (name string, internal bool, err error) {
 	for _, ns := range namespaces {
 		imageStreams, err := client.ImageV1().ImageStreams(ns).List(metav1.ListOptions{})
+		if kerrors.IsUnauthorized(err) {
+			return "", false, err
+		}
 		if err != nil || len(imageStreams.Items) == 0 {
 			continue
 		}
 		is := imageStreams.Items[0]
 		if len(is.Status.PublicDockerImageRepository) > 0 {
-			return is.Status.PublicDockerImageRepository, false
+			return is.Status.PublicDockerImageRepository, false, nil
 		}
-		return is.Status.DockerImageRepository, true
+		return is.Status.DockerImageRepository, true, nil
 	}
-	return "", false
+	return "", false, nil
 }
 
 func (o *LoginOptions) Validate() error {
