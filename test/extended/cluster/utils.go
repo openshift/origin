@@ -58,6 +58,24 @@ func ParsePods(file string) (kapiv1.Pod, error) {
 	return configStruct, nil
 }
 
+func WaitForRCReady(oc *exutil.CLI, ns, name string, timeout time.Duration) error {
+	err := wait.Poll(2*time.Second, timeout,
+		func() (bool, error) {
+			rc, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).Get(name, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Failed getting RCs: %v", err)
+				return false, nil // Ignore this error (nil) and try again in "Poll" time
+			}
+
+			if rc.Status.Replicas == rc.Status.AvailableReplicas &&
+				rc.Status.Replicas == rc.Status.ReadyReplicas {
+				return true, nil
+			}
+			return false, nil
+		})
+	return err
+}
+
 // SyncPods waits for pods to enter a state
 func SyncPods(c kclientset.Interface, ns string, selectors map[string]string, timeout time.Duration, state kapiv1.PodPhase) (err error) {
 	label := labels.SelectorFromSet(selectors)
