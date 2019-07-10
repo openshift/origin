@@ -116,6 +116,7 @@
 // test/extended/testdata/deployments/deployment-simple.yaml
 // test/extended/testdata/deployments/deployment-trigger.yaml
 // test/extended/testdata/deployments/deployment-with-ref-env.yaml
+// test/extended/testdata/deployments/deployment-withouttrigger.yaml
 // test/extended/testdata/deployments/failing-pre-hook.yaml
 // test/extended/testdata/deployments/generation-test.yaml
 // test/extended/testdata/deployments/multi-ict-deployment.yaml
@@ -8600,6 +8601,51 @@ func testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-with-ref-env.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDeploymentsDeploymentWithouttriggerYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-withouttrigger
+spec:
+  replicas: 1
+  selector:
+    name: deployment-withouttrigger
+  strategy:
+    type: Rolling
+    rollingParams:
+  template:
+    metadata:
+      labels:
+        name: deployment-withouttrigger
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+        name: myapp
+        readinessProbe:
+          exec:
+            command:
+            - uptime
+  triggers: []
+`)
+
+func testExtendedTestdataDeploymentsDeploymentWithouttriggerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsDeploymentWithouttriggerYaml, nil
+}
+
+func testExtendedTestdataDeploymentsDeploymentWithouttriggerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsDeploymentWithouttriggerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-withouttrigger.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -36429,6 +36475,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/deployment-simple.yaml": testExtendedTestdataDeploymentsDeploymentSimpleYaml,
 	"test/extended/testdata/deployments/deployment-trigger.yaml": testExtendedTestdataDeploymentsDeploymentTriggerYaml,
 	"test/extended/testdata/deployments/deployment-with-ref-env.yaml": testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
+	"test/extended/testdata/deployments/deployment-withouttrigger.yaml": testExtendedTestdataDeploymentsDeploymentWithouttriggerYaml,
 	"test/extended/testdata/deployments/failing-pre-hook.yaml": testExtendedTestdataDeploymentsFailingPreHookYaml,
 	"test/extended/testdata/deployments/generation-test.yaml": testExtendedTestdataDeploymentsGenerationTestYaml,
 	"test/extended/testdata/deployments/multi-ict-deployment.yaml": testExtendedTestdataDeploymentsMultiIctDeploymentYaml,
@@ -36883,6 +36930,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"deployment-simple.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
 					"deployment-trigger.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentTriggerYaml, map[string]*bintree{}},
 					"deployment-with-ref-env.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml, map[string]*bintree{}},
+					"deployment-withouttrigger.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentWithouttriggerYaml, map[string]*bintree{}},
 					"failing-pre-hook.yaml": &bintree{testExtendedTestdataDeploymentsFailingPreHookYaml, map[string]*bintree{}},
 					"generation-test.yaml": &bintree{testExtendedTestdataDeploymentsGenerationTestYaml, map[string]*bintree{}},
 					"multi-ict-deployment.yaml": &bintree{testExtendedTestdataDeploymentsMultiIctDeploymentYaml, map[string]*bintree{}},

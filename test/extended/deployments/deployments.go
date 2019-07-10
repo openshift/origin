@@ -98,6 +98,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 		ignoresDeployersFixture         = exutil.FixturePath("testdata", "deployments", "deployment-ignores-deployer.yaml")
 		imageChangeTriggerFixture       = exutil.FixturePath("testdata", "deployments", "deployment-trigger.yaml")
+		noDefinedTriggerFixture         = exutil.FixturePath("testdata", "deployments", "deployment-withouttrigger.yaml")
 	)
 
 	g.Describe("when run iteratively [Conformance]", func() {
@@ -1552,6 +1553,36 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 			o.Expect(rcs.Items).To(o.HaveLen(1))
 			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())
+		})
+	})
+
+	g.Describe("when no triggers are defined [Conformance]", func() {
+		dcName := "deployment-withouttrigger"
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should manually make deployment", func() {
+			dc, err := createDeploymentConfig(oc, noDefinedTriggerFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			g.By("check the DC did not have any rollout")
+			out, err := oc.Run("rollout").Args("history", "dc/"+dcName).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("No rollout history found"))
+
+			g.By("manually make rollout")
+			_, err = oc.Run("rollout").Args("latest", "dc/"+dcName).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deploy to complete")
+			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("check the DC now have manually rollout")
+			out, err = oc.Run("rollout").Args("history", "dc/"+dcName).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("manual change"))
 		})
 	})
 })
