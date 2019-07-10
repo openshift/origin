@@ -210,31 +210,6 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
 	"system:serviceaccount:kube-system:clusterrole-aggregation-controller",
-	"system:serviceaccount:openshift-infra:image-trigger-controller",
-	"system:serviceaccount:openshift-infra:deploymentconfig-controller",
-	"system:serviceaccount:openshift-infra:template-instance-controller",
-	"system:serviceaccount:openshift-infra:template-instance-finalizer-controller",
-	"system:serviceaccount:openshift-infra:unidling-controller",
-	"system:serviceaccount:openshift-apiserver-operator:openshift-apiserver-operator",
-	"system:serviceaccount:openshift-apiserver:openshift-apiserver-sa",
-	"system:serviceaccount:openshift-authentication-operator:authentication-operator",
-	"system:serviceaccount:openshift-authentication:oauth-openshift",
-	"system:serviceaccount:openshift-cluster-version:default",
-	"system:serviceaccount:openshift-controller-manager-operator:openshift-controller-manager-operator",
-	"system:serviceaccount:openshift-controller-manager:openshift-controller-manager-sa",
-	"system:serviceaccount:openshift-kube-apiserver-operator:kube-apiserver-operator",
-	"system:serviceaccount:openshift-kube-apiserver:installer-sa",
-	"system:serviceaccount:openshift-kube-controller-manager-operator:kube-controller-manager-operator",
-	"system:serviceaccount:openshift-kube-controller-manager:installer-sa",
-	"system:serviceaccount:openshift-kube-scheduler-operator:openshift-kube-scheduler-operator",
-	"system:serviceaccount:openshift-kube-scheduler:installer-sa",
-	"system:serviceaccount:openshift-machine-config-operator:default",
-	"system:serviceaccount:openshift-network-operator:default",
-	"system:serviceaccount:openshift-operator-lifecycle-manager:olm-operator-serviceaccount",
-	"system:serviceaccount:openshift-service-ca-operator:service-ca-operator",
-	"system:serviceaccount:openshift-service-catalog-apiserver-operator:openshift-service-catalog-apiserver-operator",
-	"system:serviceaccount:openshift-service-catalog-controller-manager-operator:openshift-service-catalog-controller-manager-operator",
-	"system:serviceaccount:openshift-support:gather",
 )
 
 type resourceAccessReviewTest struct {
@@ -246,7 +221,7 @@ type resourceAccessReviewTest struct {
 	err      string
 }
 
-func (test resourceAccessReviewTest) run(t g.GinkgoTInterface) {
+func (test resourceAccessReviewTest) run() {
 	PolicyCachePollInterval := 100 * time.Millisecond
 	PolicyCachePollTimeout := 10 * time.Second
 	failMessage := ""
@@ -273,8 +248,18 @@ func (test resourceAccessReviewTest) run(t g.GinkgoTInterface) {
 				}
 			}
 
+			// many operators installed in openshift- namespaces are allowed to read all namespaces.  We simply suppress all those users from the user slice
+			// so we aren't sensitive to adding or removing them
+			actualUsersToCheck := sets.NewString()
+			for _, curr := range actualResponse.UsersSlice {
+				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
+					continue
+				}
+				actualUsersToCheck.Insert(curr)
+			}
+
 			if actualResponse.Namespace != test.response.Namespace ||
-				!reflect.DeepEqual(sets.NewString(actualResponse.UsersSlice...), sets.NewString(test.response.UsersSlice...)) ||
+				!reflect.DeepEqual(actualUsersToCheck, sets.NewString(test.response.UsersSlice...)) ||
 				!reflect.DeepEqual(sets.NewString(actualResponse.GroupsSlice...), sets.NewString(test.response.GroupsSlice...)) ||
 				actualResponse.EvaluationError != test.response.EvaluationError {
 				failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in any namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
@@ -288,12 +273,12 @@ func (test resourceAccessReviewTest) run(t g.GinkgoTInterface) {
 
 	if err != nil {
 		if len(failMessage) != 0 {
-			t.Error(failMessage)
+			g.Fail(failMessage)
 		}
-		t.Error(err)
+		g.Fail(err.Error())
 	}
 	if len(failMessage) != 0 {
-		t.Error(failMessage)
+		g.Fail(failMessage)
 	}
 
 }
@@ -307,7 +292,7 @@ type localResourceAccessReviewTest struct {
 	err      string
 }
 
-func (test localResourceAccessReviewTest) run(t g.GinkgoTInterface) {
+func (test localResourceAccessReviewTest) run() {
 	PolicyCachePollInterval := 100 * time.Millisecond
 	PolicyCachePollTimeout := 10 * time.Second
 	failMessage := ""
@@ -343,7 +328,16 @@ func (test localResourceAccessReviewTest) run(t g.GinkgoTInterface) {
 				return false, nil
 			}
 
-			if !reflect.DeepEqual(sets.NewString(actualResponse.UsersSlice...), sets.NewString(test.response.UsersSlice...)) {
+			// many operators installed in openshift- namespaces are allowed to read all namespaces.  We simply suppress all those users from the user slice
+			// so we aren't sensitive to adding or removing them
+			actualUsersToCheck := sets.NewString()
+			for _, curr := range actualResponse.UsersSlice {
+				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
+					continue
+				}
+				actualUsersToCheck.Insert(curr)
+			}
+			if !reflect.DeepEqual(actualUsersToCheck, sets.NewString(test.response.UsersSlice...)) {
 				failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in the current namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 				return false, nil
 			}
@@ -360,12 +354,12 @@ func (test localResourceAccessReviewTest) run(t g.GinkgoTInterface) {
 
 	if err != nil {
 		if len(failMessage) != 0 {
-			t.Error(failMessage)
+			g.Fail(failMessage)
 		}
-		t.Error(err)
+		g.Fail(err.Error())
 	}
 	if len(failMessage) != 0 {
-		t.Error(failMessage)
+		g.Fail(failMessage)
 	}
 }
 
@@ -377,8 +371,6 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 	g.Context("", func() {
 		g.Describe("TestAuthorizationResourceAccessReview", func() {
 			g.It(fmt.Sprintf("should succeed"), func() {
-				t := g.GinkgoT()
-
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
 				hammerProjectName := oc.CreateProject()
@@ -420,7 +412,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 					test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
 					test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
 					test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
-					test.run(t)
+					test.run()
 				}
 				{
 					test := localResourceAccessReviewTest{
@@ -436,7 +428,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 					test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
 					test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
 					test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
-					test.run(t)
+					test.run()
 				}
 
 				// mark should not be able to make global access review requests
@@ -447,7 +439,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 						review:          requestWhoCanViewDeploymentConfigs,
 						err:             "cannot ",
 					}
-					test.run(t)
+					test.run()
 				}
 
 				// a cluster-admin should be able to make global access review requests
@@ -464,7 +456,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization][Serial] authorization", fun
 					test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
 					test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
 					test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
-					test.run(t)
+					test.run()
 				}
 			})
 		})
