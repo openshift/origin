@@ -1,8 +1,9 @@
-hash: c19b0353e3baeabcaea05bf4bdff602f9424cc40532eb32bd5caff7c8385f498
-updated: 2019-04-24T01:23:22.917178542-04:00
+hash: 77f25154aedfa407df78dfee253ba73dd2c7efaaaf63abcb20cefd4d16d05c4a
+updated: 2019-07-10T16:08:05.181813755-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
+  vcs: hg
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
   subpackages:
@@ -106,69 +107,19 @@ imports:
 - name: github.com/cloudflare/cfssl
   version: 56268a613adfed278936377c18b1152d2c4ad5da
   subpackages:
-  - api
-  - api/bundle
-  - api/certinfo
-  - api/client
-  - api/crl
-  - api/gencrl
-  - api/generator
-  - api/health
-  - api/info
-  - api/initca
-  - api/ocsp
-  - api/revoke
-  - api/scan
-  - api/signhandler
   - auth
-  - bundler
   - certdb
-  - certdb/dbconf
-  - certdb/sql
-  - certinfo
-  - cli
-  - cli/bundle
-  - cli/certinfo
-  - cli/crl
-  - cli/gencert
-  - cli/gencrl
-  - cli/gencsr
-  - cli/genkey
-  - cli/info
-  - cli/ocspdump
-  - cli/ocsprefresh
-  - cli/ocspserve
-  - cli/ocspsign
-  - cli/printdefault
-  - cli/revoke
-  - cli/scan
-  - cli/selfsign
-  - cli/serve
-  - cli/sign
-  - cli/version
-  - cmd/cfssl
-  - cmd/cfssljson
   - config
-  - crl
   - crypto/pkcs7
   - csr
   - errors
   - helpers
   - helpers/derhelpers
   - info
-  - initca
   - log
-  - ocsp
   - ocsp/config
-  - revoke
-  - scan
-  - scan/crypto/tls
-  - selfsign
   - signer
   - signer/local
-  - signer/remote
-  - signer/universal
-  - ubiquity
 - name: github.com/clusterhq/flocker-go
   version: 2b8b7259d3139c96c4a6871031355808ab3fd3b3
 - name: github.com/cockroachdb/cmux
@@ -898,7 +849,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: f969221e02d73f8ecacf32ce24c12872ff8e0819
+  version: 81d064c11ff2d62705dbb09ed9ac200ef9557716
   subpackages:
   - apps
   - apps/v1
@@ -1073,7 +1024,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 04e2bf481415af9b2583c71f584f1075d0b9960c
+  version: 2467051efd29fec85731629f925b82f3c477db30
   subpackages:
   - pkg/assets
   - pkg/assets/create
@@ -1090,6 +1041,7 @@ imports:
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
+  - pkg/operator/resource/retry
   - pkg/serviceability
 - name: github.com/openshift/source-to-image
   version: 2ba8a349386aff03c26729096b0225a691355fe9
@@ -1132,7 +1084,7 @@ imports:
   - fflib/v1
   - fflib/v1/internal
 - name: github.com/prometheus/client_golang
-  version: origin-4.1-e7e903064f5e9eb5da98208bae10b475d4db0f8c
+  version: 35575419f32ff12153ae018d3192cdf8aa56be02
   repo: https://github.com/openshift/prometheus-client_golang
   subpackages:
   - prometheus
@@ -1253,7 +1205,6 @@ imports:
   - list
   - lookup
   - lookup/methods
-  - lookup/simulator
   - lookup/types
   - nfc
   - object
@@ -1262,16 +1213,11 @@ imports:
   - pbm/types
   - property
   - session
-  - simulator
-  - simulator/esx
-  - simulator/vpx
   - sts
   - sts/internal
-  - sts/simulator
   - task
   - vapi/internal
   - vapi/rest
-  - vapi/simulator
   - vapi/tags
   - vim25
   - vim25/debug
@@ -1397,13 +1343,7 @@ imports:
 - name: golang.org/x/tools
   version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
-  - benchmark/parse
   - container/intsets
-  - go/ast/astutil
-  - go/gcexportdata
-  - go/gcimporter15
-  - go/vcs
-  - imports
 - name: gonum.org/v1/gonum
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
   repo: https://github.com/gonum/gonum.git
@@ -1556,7 +1496,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 3c74db8dd172051b029f91536c681a1b43694809
+  version: 00ff0d33d7129c5e11ce594bd8e08c025c53344d
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1668,7 +1608,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 0064af82c693aad900dfffb117f91d31ac88c357
+  version: 1cbd0faf1cf2b8e13b55fd5139f4c0b1f2bb6818
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2039,7 +1979,7 @@ imports:
 - name: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
 - name: k8s.io/kube-aggregator
-  version: d054841b60b8d23b66472fbd8fe78bf512aee522
+  version: 8d7d5114988a6a6530c83e22640230ea78bc1945
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2100,7 +2040,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 8735f4df8055ba913ca37deedad27cbc3e576400
+  version: cc2afe3181bd5593ad5c03e9a768e3ff270ec343
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

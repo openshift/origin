@@ -49,7 +49,7 @@ func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResourc
 	}
 
 	cmd.Flags().StringVar(&o.DestinationDir, "destination-dir", o.DestinationDir, "Directory to write to")
-	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "Namespace to read from")
+	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "Namespace to read from (default to 'POD_NAMESPACE' environment variable)")
 	cmd.Flags().StringVar(&o.KubeConfigFile, "kubeconfig", o.KubeConfigFile, "Location of the master configuration file to run from.")
 
 	return cmd
@@ -66,10 +66,8 @@ func (o *CertSyncControllerOptions) Run() error {
 	observer.AddReactor(fileobserver.ExitOnChangeReactor, map[string][]byte{o.KubeConfigFile: initialContent}, o.KubeConfigFile)
 
 	stopCh := make(chan struct{})
-	go observer.Run(stopCh)
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(o.kubeClient, 10*time.Minute, informers.WithNamespace(o.Namespace))
-	go kubeInformers.Start(stopCh)
 
 	eventRecorder := events.NewKubeRecorder(o.kubeClient.CoreV1().Events(o.Namespace), "cert-syncer",
 		&corev1.ObjectReference{
@@ -90,7 +88,11 @@ func (o *CertSyncControllerOptions) Run() error {
 	if err != nil {
 		return err
 	}
+
+	// start everything. Informers start after they have been requested.
 	go controller.Run(1, stopCh)
+	go observer.Run(stopCh)
+	go kubeInformers.Start(stopCh)
 
 	<-stopCh
 	klog.Infof("Shutting down certificate syncer")
@@ -102,6 +104,10 @@ func (o *CertSyncControllerOptions) Complete() error {
 	kubeConfig, err := client.GetKubeConfigOrInClusterConfig(o.KubeConfigFile, nil)
 	if err != nil {
 		return err
+	}
+
+	if len(o.Namespace) == 0 && len(os.Getenv("POD_NAMESPACE")) > 0 {
+		o.Namespace = os.Getenv("POD_NAMESPACE")
 	}
 
 	protoKubeConfig := rest.CopyConfig(kubeConfig)

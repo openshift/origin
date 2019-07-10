@@ -113,16 +113,29 @@ func (c CertRotationController) syncWorker() error {
 	return nil
 }
 
+func (c *CertRotationController) WaitForReady(stopCh <-chan struct{}) {
+	klog.Infof("Waiting for CertRotationController - %q", c.name)
+	defer klog.Infof("Finished waiting for CertRotationController - %q", c.name)
+
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
+		return
+	}
+}
+
+// RunOnce will run the cert rotation logic, but will not try to update the static pod status.
+// This eliminates the need to pass an OperatorClient and avoids dubious writes and status.
+func (c *CertRotationController) RunOnce() error {
+	return c.syncWorker()
+}
+
 func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting CertRotationController - %q", c.name)
 	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
+	c.WaitForReady(stopCh)
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

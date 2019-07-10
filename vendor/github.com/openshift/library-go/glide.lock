@@ -1,5 +1,5 @@
-hash: 834b42ac04c13e26423b9cddffbd75a093f4d889cffb059911fae65aac364c7b
-updated: 2019-04-17T10:52:09.03874547-04:00
+hash: 1b36cef95ede62447c3cd1c2b0d796865e909039e83803865c0b08ddea11494f
+updated: 2019-05-16T16:08:16.187464+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -234,7 +234,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 7924f9106f8e132f4f33a0c7fb8841b49bfc2d83
+  version: 81d064c11ff2d62705dbb09ed9ac200ef9557716
   subpackages:
   - apps
   - apps/v1
@@ -389,7 +389,7 @@ imports:
   - go/ast/astutil
   - imports
 - name: google.golang.org/appengine
-  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
+  version: 311d3c5cf9373249645db030e53c37c209a8b378
   subpackages:
   - internal
   - internal/base
@@ -840,7 +840,7 @@ imports:
   - pkg/util
   - pkg/util/proto
 - name: sigs.k8s.io/controller-tools
-  version: 4e23e49e5d401ca6ced86aa30262d0cf2488c504
+  version: 72ae52c08b9dd626cfb64ebef0fbf40ce667939b
   repo: https://github.com/openshift/kubernetes-sigs-controller-tools
   subpackages:
   - pkg/crd/generator

@@ -21,12 +21,20 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/events/eventstesting"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 func TestNewNodeStateForInstallInProgress(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := fake.NewSimpleClientset(
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-config"}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-secret"}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: fmt.Sprintf("%s-%d", "test-secret", 1)}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: fmt.Sprintf("%s-%d", "test-config", 1)}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: fmt.Sprintf("%s-%d", "test-secret", 2)}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: fmt.Sprintf("%s-%d", "test-config", 2)}},
+	)
 
 	var installerPod *corev1.Pod
 
@@ -211,16 +219,13 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	}
 
 	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
-	if generation := currStatus.NodeStatuses[0].LastFailedRevision; generation != 2 {
-		t.Errorf("expected last failed revision generation for node to be 2, got %d", generation)
+	if generation := currStatus.NodeStatuses[0].LastFailedRevision; generation != 0 {
+		t.Errorf("expected last failed revision generation for node to be 0, got %d", generation)
 	}
 
-	if errors := currStatus.NodeStatuses[0].LastFailedRevisionErrors; len(errors) > 0 {
-		if errors[0] != "installer: fake death" {
-			t.Errorf("expected the error to be set to 'fake death', got %#v", errors)
-		}
-	} else {
-		t.Errorf("expected errors to be not empty")
+	// installer pod failures are suppressed
+	if errors := currStatus.NodeStatuses[0].LastFailedRevisionErrors; len(errors) != 0 {
+		t.Error(errors)
 	}
 
 	if v1helpers.FindOperatorCondition(currStatus.Conditions, operatorv1.OperatorStatusTypeProgressing) == nil {
@@ -244,7 +249,12 @@ func getPodsReactor(pods ...*corev1.Pod) ktesting.ReactionFunc {
 }
 
 func TestCreateInstallerPod(t *testing.T) {
-	kubeClient := fake.NewSimpleClientset()
+	kubeClient := fake.NewSimpleClientset(
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-config"}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "test-secret"}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: fmt.Sprintf("%s-%d", "test-secret", 1)}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: fmt.Sprintf("%s-%d", "test-config", 1)}},
+	)
 
 	var installerPod *corev1.Pod
 	kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -880,6 +890,8 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			installerPods := map[string]*corev1.Pod{}
 			updatedStaticPods := map[string]*corev1.Pod{}
 
+			namespace := fmt.Sprintf("test-%d", i)
+
 			installerNodeAndID := func(installerName string) (string, int) {
 				ss := strings.SplitN(strings.TrimPrefix(installerName, "installer-"), "-", 2)
 				id, err := strconv.Atoi(ss[0])
@@ -889,7 +901,12 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 				return ss[1], id
 			}
 
-			kubeClient := fake.NewSimpleClientset()
+			kubeClient := fake.NewSimpleClientset(
+				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "test-secret"}},
+				&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "test-config"}},
+				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: fmt.Sprintf("%s-%d", "test-secret", test.latestAvailableRevision)}},
+				&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: fmt.Sprintf("%s-%d", "test-config", test.latestAvailableRevision)}},
+			)
 			kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
 				createdPod := action.(ktesting.CreateAction).GetObject().(*corev1.Pod)
 				createdInstallerPods = append(createdInstallerPods, createdPod)
@@ -984,7 +1001,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
 			c := NewInstallerController(
-				fmt.Sprintf("test-%d", i), "test-pod",
+				namespace, "test-pod",
 				[]revision.RevisionResource{{Name: "test-config"}},
 				[]revision.RevisionResource{{Name: "test-secret"}},
 				[]string{"/bin/true"},
@@ -1325,11 +1342,15 @@ func TestSetConditions(t *testing.T) {
 
 }
 
-func TestEnsureCert(t *testing.T) {
+func TestEnsureRequiredResources(t *testing.T) {
 	tests := []struct {
 		name           string
 		certConfigMaps []revision.RevisionResource
 		certSecrets    []revision.RevisionResource
+
+		revisionNumber int32
+		configMaps     []revision.RevisionResource
+		secrets        []revision.RevisionResource
 
 		startingResources []runtime.Object
 		expectedErr       string
@@ -1348,16 +1369,39 @@ func TestEnsureCert(t *testing.T) {
 		},
 		{
 			name: "wait-required",
+			configMaps: []revision.RevisionResource{
+				{Name: "foo-cm"},
+			},
+			secrets: []revision.RevisionResource{
+				{Name: "foo-s"},
+			},
+			expectedErr: "missing required resources: [configmaps: foo-cm-0, secrets: foo-s-0]",
+		},
+		{
+			name: "found-required",
+			configMaps: []revision.RevisionResource{
+				{Name: "foo-cm"},
+			},
+			secrets: []revision.RevisionResource{
+				{Name: "foo-s"},
+			},
+			startingResources: []runtime.Object{
+				&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "foo-cm-0"}},
+				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "foo-s-0"}},
+			},
+		},
+		{
+			name: "wait-required-certs",
 			certConfigMaps: []revision.RevisionResource{
 				{Name: "foo-cm"},
 			},
 			certSecrets: []revision.RevisionResource{
 				{Name: "foo-s"},
 			},
-			expectedErr: "configmaps/foo-cm,secrets/foo-s",
+			expectedErr: "missing required resources: [configmaps: foo-cm, secrets: foo-s]",
 		},
 		{
-			name: "found-required",
+			name: "found-required-certs",
 			certConfigMaps: []revision.RevisionResource{
 				{Name: "foo-cm"},
 			},
@@ -1378,12 +1422,15 @@ func TestEnsureCert(t *testing.T) {
 				targetNamespace: "ns",
 				certConfigMaps:  test.certConfigMaps,
 				certSecrets:     test.certSecrets,
+				configMaps:      test.configMaps,
+				secrets:         test.secrets,
+				eventRecorder:   eventstesting.NewTestingEventRecorder(t),
 
 				configMapsGetter: client.CoreV1(),
 				secretsGetter:    client.CoreV1(),
 			}
 
-			actual := c.ensureCerts()
+			actual := c.ensureRequiredResourcesExist(test.revisionNumber)
 			switch {
 			case len(test.expectedErr) == 0 && actual == nil:
 			case len(test.expectedErr) == 0 && actual != nil:
@@ -1391,7 +1438,7 @@ func TestEnsureCert(t *testing.T) {
 			case len(test.expectedErr) != 0 && actual == nil:
 				t.Fatal(actual)
 			case len(test.expectedErr) != 0 && actual != nil && !strings.Contains(actual.Error(), test.expectedErr):
-				t.Fatal(actual)
+				t.Fatalf("actual error: %q does not match expected: %q", actual.Error(), test.expectedErr)
 			}
 
 		})

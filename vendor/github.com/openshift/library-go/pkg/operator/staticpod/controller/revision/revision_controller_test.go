@@ -49,6 +49,49 @@ func TestRevisionController(t *testing.T) {
 		expectSyncError         string
 	}{
 		{
+			testName:        "set-latest-revision-by-configmap",
+			targetNamespace: targetNamespace,
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 0,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+				nil,
+			),
+			testConfigs: []RevisionResource{{Name: "test-config"}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}},
+			startingObjects: []runtime.Object{
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: targetNamespace}},
+				&v1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: targetNamespace},
+					Data:       map[string]string{"revision": "1"},
+				},
+				&v1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: targetNamespace},
+					Data:       map[string]string{"revision": "2"},
+				},
+			},
+			validateStatus: func(t *testing.T, status *operatorv1.StaticPodOperatorStatus) {
+				if status.LatestAvailableRevision != 2 {
+					t.Errorf("expected status LatestAvailableRevision to be 2, got %v", status.LatestAvailableRevision)
+				}
+			},
+		},
+		{
 			testName:        "operator-unmanaged",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(

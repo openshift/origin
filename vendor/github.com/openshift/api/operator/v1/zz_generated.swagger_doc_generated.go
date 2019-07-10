@@ -293,6 +293,7 @@ var map_AdditionalNetworkDefinition = map[string]string{
 	"":             "AdditionalNetworkDefinition configures an extra network that is available but not created by default. Instead, pods must request them by name. type must be specified, along with exactly one \"Config\" that matches the type.",
 	"type":         "type is the type of network The only supported value is NetworkTypeRaw",
 	"name":         "name is the name of the network. This will be populated in the resulting CRD This must be unique.",
+	"namespace":    "namespace is the namespace of the network. This will be populated in the resulting CRD If not given the network will be created in the default namespace.",
 	"rawCNIConfig": "rawCNIConfig is the raw CNI configuration json to create in the NetworkAttachmentDefinition CRD",
 }
 

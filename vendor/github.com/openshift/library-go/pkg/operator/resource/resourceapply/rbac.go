@@ -131,7 +131,7 @@ func ApplyRole(client rbacclientv1.RolesGetter, recorder events.Recorder, requir
 	if klog.V(4) {
 		klog.Infof("Role %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, existingCopy))
 	}
-	actual, err := client.Roles(required.Namespace).Update(existing)
+	actual, err := client.Roles(required.Namespace).Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

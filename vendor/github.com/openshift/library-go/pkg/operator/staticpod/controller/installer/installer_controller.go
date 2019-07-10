@@ -10,18 +10,20 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
@@ -87,16 +89,16 @@ type InstallerController struct {
 // InstallerPodMutationFunc is a function that has a chance at changing the installer pod before it is created
 type InstallerPodMutationFunc func(pod *corev1.Pod, nodeName string, operatorSpec *operatorv1.StaticPodOperatorSpec, revision int32) error
 
-func (o *InstallerController) WithInstallerPodMutationFn(installerPodMutationFn InstallerPodMutationFunc) *InstallerController {
-	o.installerPodMutationFns = append(o.installerPodMutationFns, installerPodMutationFn)
-	return o
+func (c *InstallerController) WithInstallerPodMutationFn(installerPodMutationFn InstallerPodMutationFunc) *InstallerController {
+	c.installerPodMutationFns = append(c.installerPodMutationFns, installerPodMutationFn)
+	return c
 }
 
-func (o *InstallerController) WithCerts(certDir string, certConfigMaps, certSecrets []revision.RevisionResource) *InstallerController {
-	o.certDir = certDir
-	o.certConfigMaps = certConfigMaps
-	o.certSecrets = certSecrets
-	return o
+func (c *InstallerController) WithCerts(certDir string, certConfigMaps, certSecrets []revision.RevisionResource) *InstallerController {
+	c.certDir = certDir
+	c.certConfigMaps = certConfigMaps
+	c.certSecrets = certSecrets
+	return c
 }
 
 // staticPodState is the status of a static pod that has been installed to a node.
@@ -196,14 +198,14 @@ func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state stat
 	oldestNotReadyRevision := math.MaxInt32
 	for i := range nodes {
 		currNodeState := &nodes[i]
-		state, revision, _, err := getStaticPodState(currNodeState.NodeName)
+		state, currentRevision, _, err := getStaticPodState(currNodeState.NodeName)
 		if err != nil && apierrors.IsNotFound(err) {
 			return i, nil
 		}
 		if err != nil {
 			return 0, err
 		}
-		revisionNum, err := strconv.Atoi(revision)
+		revisionNum, err := strconv.Atoi(currentRevision)
 		if err != nil {
 			return i, nil
 		}
@@ -221,11 +223,11 @@ func nodeToStartRevisionWith(getStaticPodState func(nodeName string) (state stat
 	oldestPodRevision := math.MaxInt32
 	for i := range nodes {
 		currNodeState := &nodes[i]
-		_, revision, _, err := getStaticPodState(currNodeState.NodeName)
+		_, currentRevision, _, err := getStaticPodState(currNodeState.NodeName)
 		if err != nil {
 			return 0, err
 		}
-		revisionNum, err := strconv.Atoi(revision)
+		revisionNum, err := strconv.Atoi(currentRevision)
 		if err != nil {
 			return i, nil
 		}
@@ -297,7 +299,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 			}
 
 			pendingNewRevision := operatorStatus.LatestAvailableRevision > currNodeState.TargetRevision
-			newCurrNodeState, oom, err := c.newNodeStateForInstallInProgress(currNodeState, pendingNewRevision)
+			newCurrNodeState, installerPodFailed, err := c.newNodeStateForInstallInProgress(currNodeState, pendingNewRevision)
 			if err != nil {
 				return true, err
 			}
@@ -320,12 +322,12 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 			} else {
 				klog.V(2).Infof("%q is in transition to %d, but has not made progress", currNodeState.NodeName, currNodeState.TargetRevision)
 			}
-			if !oom {
+
+			// We want to retry the installer pod by deleting and then rekicking. Also we don't set LastFailedRevision.
+			if !installerPodFailed {
 				break
 			}
-
-			// OOM is special. We want to retry the installer pod by falling through here. Also we don't set LastFailedRevision.
-			klog.V(2).Infof("Retrying %q for revision %d because it was OOM killed", currNodeState.NodeName, currNodeState.TargetRevision)
+			klog.Infof("Retrying %q for revision %d because it failed", currNodeState.NodeName, currNodeState.TargetRevision)
 			installerPodName := getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName)
 			if err := c.podsGetter.Pods(c.targetNamespace).Delete(installerPodName, &metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				return true, err
@@ -422,19 +424,16 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 	failingCount := map[int32]int{}
 	failing := map[int32][]string{}
 	for _, currNodeStatus := range newStatus.NodeStatuses {
+		counts[currNodeStatus.CurrentRevision] = counts[currNodeStatus.CurrentRevision] + 1
 		if currNodeStatus.CurrentRevision != 0 {
 			numAvailable++
 		}
 
 		// keep track of failures so that we can report failing status
 		if currNodeStatus.LastFailedRevision != 0 {
-			existing := failingCount[currNodeStatus.CurrentRevision]
-			failingCount[currNodeStatus.CurrentRevision] = existing + 1
+			failingCount[currNodeStatus.LastFailedRevision] = failingCount[currNodeStatus.LastFailedRevision] + 1
 			failing[currNodeStatus.LastFailedRevision] = append(failing[currNodeStatus.LastFailedRevision], currNodeStatus.LastFailedRevisionErrors...)
 		}
-
-		existing := counts[currNodeStatus.CurrentRevision]
-		counts[currNodeStatus.CurrentRevision] = existing + 1
 
 		if newStatus.LatestAvailableRevision == currNodeStatus.CurrentRevision {
 			numAtLatestRevision += 1
@@ -444,8 +443,13 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 	}
 
 	revisionStrings := []string{}
-	for revision, count := range counts {
-		revisionStrings = append(revisionStrings, fmt.Sprintf("%d nodes are at revision %d", count, revision))
+	for _, currentRevision := range Int32KeySet(counts).List() {
+		count := counts[currentRevision]
+		revisionStrings = append(revisionStrings, fmt.Sprintf("%d nodes are at revision %d", count, currentRevision))
+	}
+	// if we are progressing and no nodes have achieved that level, we should indicate
+	if numProgressing > 0 && counts[newStatus.LatestAvailableRevision] == 0 {
+		revisionStrings = append(revisionStrings, fmt.Sprintf("%d nodes have achieved new revision %d", 0, newStatus.LatestAvailableRevision))
 	}
 	revisionDescription := strings.Join(revisionStrings, "; ")
 
@@ -482,11 +486,8 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 
 	if len(failing) > 0 {
 		failingStrings := []string{}
-		for failingRevision, errorStrings := range failing {
-			// Do not report failing for nodes that are actually not failing.
-			if failingCount[failingRevision] == 0 {
-				continue
-			}
+		for _, failingRevision := range Int32KeySet(failing).List() {
+			errorStrings := failing[failingRevision]
 			failingStrings = append(failingStrings, fmt.Sprintf("%d nodes are failing on revision %d:\n%v", failingCount[failingRevision], failingRevision, strings.Join(errorStrings, "\n")))
 		}
 		failingDescription := strings.Join(failingStrings, "; ")
@@ -508,7 +509,7 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 }
 
 // newNodeStateForInstallInProgress returns the new NodeState, whether it was killed by OOM or an error
-func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *operatorv1.NodeStatus, newRevisionPending bool) (status *operatorv1.NodeStatus, oom bool, err error) {
+func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *operatorv1.NodeStatus, newRevisionPending bool) (status *operatorv1.NodeStatus, installerPodFailed bool, err error) {
 	ret := currNodeState.DeepCopy()
 	installerPod, err := c.podsGetter.Pods(c.targetNamespace).Get(getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
@@ -533,12 +534,12 @@ func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *op
 			break
 		}
 
-		state, revision, failedErrors, err := c.getStaticPodState(currNodeState.NodeName)
+		state, currentRevision, failedErrors, err := c.getStaticPodState(currNodeState.NodeName)
 		if err != nil {
 			return nil, false, err
 		}
 
-		if revision != strconv.Itoa(int(currNodeState.TargetRevision)) {
+		if currentRevision != strconv.Itoa(int(currNodeState.TargetRevision)) {
 			// new updated pod to be launched
 			break
 		}
@@ -561,10 +562,9 @@ func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *op
 		for _, containerStatus := range installerPod.Status.ContainerStatuses {
 			if containerStatus.State.Terminated != nil && len(containerStatus.State.Terminated.Message) > 0 {
 				errors = append(errors, fmt.Sprintf("%s: %s", containerStatus.Name, containerStatus.State.Terminated.Message))
-				if containerStatus.State.Terminated.Reason == "OOMKilled" {
-					// do not set LastFailedRevision
-					return currNodeState, true, nil
-				}
+				c.eventRecorder.Warningf("InstallerPodFailed", "installer errors: %v", strings.Join(errors, "\n"))
+				// do not set LastFailedRevision
+				return currNodeState, true, nil
 			}
 		}
 	}
@@ -703,43 +703,74 @@ func getInstallerPodImageFromEnv() string {
 	return os.Getenv("OPERATOR_IMAGE")
 }
 
-// ensureCerts makes sure that our certs are ready or it will return an error to trigger a requeue so that we try again
-func (c InstallerController) ensureCerts() error {
-	missing := []string{}
-	for _, cm := range c.certConfigMaps {
-		if cm.Optional {
+func (c InstallerController) ensureSecretRevisionResourcesExists(secrets []revision.RevisionResource, hasRevisionSuffix bool, latestRevisionNumber int32) error {
+	missing := sets.NewString()
+	for _, secret := range secrets {
+		if secret.Optional {
 			continue
 		}
-		_, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(cm.Name, metav1.GetOptions{})
+		name := secret.Name
+		if !hasRevisionSuffix {
+			name = fmt.Sprintf("%s-%d", name, latestRevisionNumber)
+		}
+		_, err := c.secretsGetter.Secrets(c.targetNamespace).Get(name, metav1.GetOptions{})
 		if err == nil {
 			continue
 		}
 		if apierrors.IsNotFound(err) {
-			missing = append(missing, "configmaps/"+cm.Name)
-			continue
+			missing.Insert(name)
 		}
-		return err
 	}
-	for _, s := range c.certSecrets {
-		if s.Optional {
-			continue
-		}
-		_, err := c.secretsGetter.Secrets(c.targetNamespace).Get(s.Name, metav1.GetOptions{})
-		if err == nil {
-			continue
-		}
-		if apierrors.IsNotFound(err) {
-			missing = append(missing, "secrets/"+s.Name)
-			continue
-		}
-		return err
+	if missing.Len() == 0 {
+		return nil
 	}
+	return fmt.Errorf("secrets: %s", strings.Join(missing.List(), ","))
+}
 
-	if len(missing) == 0 {
+func (c InstallerController) ensureConfigMapRevisionResourcesExists(configs []revision.RevisionResource, hasRevisionSuffix bool, latestRevisionNumber int32) error {
+	missing := sets.NewString()
+	for _, config := range configs {
+		if config.Optional {
+			continue
+		}
+		name := config.Name
+		if !hasRevisionSuffix {
+			name = fmt.Sprintf("%s-%d", name, latestRevisionNumber)
+		}
+		_, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(name, metav1.GetOptions{})
+		if err == nil {
+			continue
+		}
+		if apierrors.IsNotFound(err) {
+			missing.Insert(name)
+		}
+	}
+	if missing.Len() == 0 {
+		return nil
+	}
+	return fmt.Errorf("configmaps: %s", strings.Join(missing.List(), ","))
+}
+
+// ensureRequiredResourcesExist makes sure that all non-optional resources are ready or it will return an error to trigger a requeue so that we try again.
+func (c InstallerController) ensureRequiredResourcesExist(revisionNumber int32) error {
+	errs := []error{}
+
+	errs = append(errs, c.ensureConfigMapRevisionResourcesExists(c.certConfigMaps, true, revisionNumber))
+	errs = append(errs, c.ensureConfigMapRevisionResourcesExists(c.configMaps, false, revisionNumber))
+	errs = append(errs, c.ensureSecretRevisionResourcesExists(c.certSecrets, true, revisionNumber))
+	errs = append(errs, c.ensureSecretRevisionResourcesExists(c.secrets, false, revisionNumber))
+
+	aggregatedErr := utilerrors.NewAggregate(errs)
+	if aggregatedErr == nil {
 		return nil
 	}
 
-	return fmt.Errorf("missing: %v", strings.Join(missing, ","))
+	eventMessages := []string{}
+	for _, err := range aggregatedErr.Errors() {
+		eventMessages = append(eventMessages, err.Error())
+	}
+	c.eventRecorder.Warningf("RequiredInstallerResourcesMissing", strings.Join(eventMessages, ", "))
+	return fmt.Errorf("missing required resources: %v", aggregatedErr)
 }
 
 func (c InstallerController) sync() error {
@@ -753,17 +784,19 @@ func (c InstallerController) sync() error {
 		return nil
 	}
 
-	if err := c.ensureCerts(); err != nil {
-		return err
+	err = c.ensureRequiredResourcesExist(originalOperatorStatus.LatestAvailableRevision)
+
+	// Only manage installation pods when all required certs are present.
+	if err == nil {
+		requeue, syncErr := c.manageInstallationPods(operatorSpec, operatorStatus, resourceVersion)
+		if requeue && syncErr == nil {
+			return fmt.Errorf("synthetic requeue request")
+		}
+		err = syncErr
 	}
 
-	requeue, syncErr := c.manageInstallationPods(operatorSpec, operatorStatus, resourceVersion)
-	if requeue && syncErr == nil {
-		return fmt.Errorf("synthetic requeue request")
-	}
-	err = syncErr
-
-	// update failing condition
+	// Update failing condition
+	// If required certs are missing, this will report degraded as we can't create installer pods because of this pre-condition.
 	cond := operatorv1.OperatorCondition{
 		Type:   operatorStatusInstallerControllerDegraded,
 		Status: operatorv1.ConditionFalse,

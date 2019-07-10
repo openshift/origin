@@ -11,9 +11,9 @@ import:
 - package: k8s.io/client-go
   version: kubernetes-1.13.4
 - package: github.com/openshift/api
-  version: master
+  version: release-4.1
 - package: github.com/openshift/client-go
-  version: master
+  version: release-4.1
 
 # crd-schema-gen
   # TODO: we need to this to get nullable patch, but we will replace this with new repo soon.
