@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	metricsclient "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 )
@@ -94,10 +95,12 @@ func (c *ReplicaCalculator) GetResourceReplicas(currentReplicas int32, targetUti
 	if !rebalanceIgnored && len(missingPods) == 0 {
 		if math.Abs(1.0-usageRatio) <= c.tolerance {
 			// return the current replicas if the change would be too small
+			klog.Infof("GetResourceReplicas 1: change too small: %d, %d, %d", currentReplicas, utilization, rawUtilization)
 			return currentReplicas, utilization, rawUtilization, timestamp, nil
 		}
 
 		// if we don't have any unready or missing pods, we can calculate the new replica count now
+		klog.Infof("GetResourceReplicas 2: no missing or unready pods: %d, %d, %d", int32(math.Ceil(usageRatio*float64(readyPodCount))), utilization, rawUtilization)
 		return int32(math.Ceil(usageRatio * float64(readyPodCount))), utilization, rawUtilization, timestamp, nil
 	}
 
@@ -105,11 +108,13 @@ func (c *ReplicaCalculator) GetResourceReplicas(currentReplicas int32, targetUti
 		if usageRatio < 1.0 {
 			// on a scale-down, treat missing pods as using 100% of the resource request
 			for podName := range missingPods {
+				klog.Infof("GetResourceReplicas 3: missing pod: %s assumed to be using all its request", podName)
 				metrics[podName] = metricsclient.PodMetric{Value: requests[podName]}
 			}
 		} else if usageRatio > 1.0 {
 			// on a scale-up, treat missing pods as using 0% of the resource request
 			for podName := range missingPods {
+				klog.Infof("GetResourceReplicas 4: missing pod: %s assumed to be using none of its request", podName)
 				metrics[podName] = metricsclient.PodMetric{Value: 0}
 			}
 		}
@@ -131,11 +136,15 @@ func (c *ReplicaCalculator) GetResourceReplicas(currentReplicas int32, targetUti
 	if math.Abs(1.0-newUsageRatio) <= c.tolerance || (usageRatio < 1.0 && newUsageRatio > 1.0) || (usageRatio > 1.0 && newUsageRatio < 1.0) {
 		// return the current replicas if the change would be too small,
 		// or if the new usage ratio would cause a change in scale direction
+		klog.Infof("GetResourceReplicas 5: no missing or unready pods: %d, %d, %d (%t, %t, %t)", currentReplicas, utilization, rawUtilization,
+			math.Abs(1.0-newUsageRatio) <= c.tolerance, (usageRatio < 1.0 && newUsageRatio > 1.0), (usageRatio > 1.0 && newUsageRatio < 1.0),
+		)
 		return currentReplicas, utilization, rawUtilization, timestamp, nil
 	}
 
 	// return the result, where the number of replicas considered is
 	// however many replicas factored into our calculation
+	klog.Infof("GetResourceReplicas 6: calculated: %d, %d, %d", int32(math.Ceil(newUsageRatio*float64(len(metrics)))), utilization, rawUtilization)
 	return int32(math.Ceil(newUsageRatio * float64(len(metrics)))), utilization, rawUtilization, timestamp, nil
 }
 
