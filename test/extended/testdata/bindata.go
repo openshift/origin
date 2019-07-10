@@ -188,6 +188,10 @@
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
+// test/extended/testdata/oauthserver/cabundle-cm.yaml
+// test/extended/testdata/oauthserver/oauth-network.yaml
+// test/extended/testdata/oauthserver/oauth-pod.yaml
+// test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
@@ -13458,6 +13462,218 @@ func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/multi-namespace-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+  labels:
+    app: test-oauth-server
+  name: service-ca
+`)
+
+func testExtendedTestdataOauthserverCabundleCmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverCabundleCmYaml, nil
+}
+
+func testExtendedTestdataOauthserverCabundleCmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverCabundleCmYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/cabundle-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverOauthNetworkYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  labels:
+    app: test-oauth-server
+  name: test-oauth-svc
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 6443
+  selector:
+    app: test-oauth-server
+  type: ClusterIP
+  serviceAffinitiy: None
+---
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: test-oauth-server
+  name: test-oauth-route
+spec:
+  port:
+    targetPort: 6443
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: passthrough
+  to:
+    kind: Service
+    name: test-oauth-svc
+    weight: 100
+  wildcardPolicy: None
+
+`)
+
+func testExtendedTestdataOauthserverOauthNetworkYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverOauthNetworkYaml, nil
+}
+
+func testExtendedTestdataOauthserverOauthNetworkYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverOauthNetworkYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/oauth-network.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverOauthPodYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test-oauth-server
+  name: test-oauth-server
+spec:
+  containers:
+  - command:
+    - oauth-server
+    - osinserver
+    - --config=/var/config/system/configmaps/oauth-config/oauth.conf
+    - --v=100
+    image: quay.io/openshift/origin-oauth-server:latest
+    imagePullPolicy: IfNotPresent
+    name: oauth-server
+    ports:
+    - containerPort: 6443
+      name: https
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /healthz
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+    securityContext:
+      capabilities:
+        drop:
+        - MKNOD
+      procMount: Default
+    volumeMounts:
+    - mountPath: /var/config/system/secrets/session-secret
+      name: session-secret
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/oauth-config
+      name: oauth-config
+      readOnly: true
+    - mountPath: /var/config/system/secrets/serving-cert
+      name: serving-cert
+      readOnly: true
+    - mountPath: /var/config/system/secrets/router-certs
+      name: router-certs
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/service-ca
+      name: service-ca
+      readOnly: true
+  serviceAccountName: e2e-oauth
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: oauth.conf
+        path: oauth.conf
+      name: oauth-config
+    name: oauth-config
+  - name: session-secret
+    secret:
+      defaultMode: 420
+      items:
+      - key: session
+        path: session
+      secretName: session-secret
+  - name: serving-cert
+    secret:
+      defaultMode: 420
+      items:
+      - key: tls.crt
+        path: tls.crt
+      - key: tls.key
+        path: tls.key
+      secretName: serving-cert
+  - name: router-certs
+    secret:
+      defaultMode: 420
+      secretName: router-certs
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: service-ca.crt
+        path: service-ca.crt
+      name: service-ca
+    name: service-ca
+
+`)
+
+func testExtendedTestdataOauthserverOauthPodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverOauthPodYaml, nil
+}
+
+func testExtendedTestdataOauthserverOauthPodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverOauthPodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/oauth-pod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverOauthSaYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: e2e-oauth
+  labels:
+    app: test-oauth-server
+`)
+
+func testExtendedTestdataOauthserverOauthSaYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverOauthSaYaml, nil
+}
+
+func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverOauthSaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/oauth-sa.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -36501,6 +36717,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
+	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
+	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
+	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
@@ -37004,6 +37224,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"oauthserver": &bintree{nil, map[string]*bintree{
+					"cabundle-cm.yaml": &bintree{testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
+					"oauth-network.yaml": &bintree{testExtendedTestdataOauthserverOauthNetworkYaml, map[string]*bintree{}},
+					"oauth-pod.yaml": &bintree{testExtendedTestdataOauthserverOauthPodYaml, map[string]*bintree{}},
+					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
+				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"releases": &bintree{nil, map[string]*bintree{

@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/client-go/discovery/cached"
+	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
@@ -403,6 +403,10 @@ func (c *CLI) AdminProjectClient() projectv1client.Interface {
 
 func (c *CLI) AdminQuotaClient() quotav1client.Interface {
 	return quotav1client.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) AdminOAuthClient() oauthv1client.Interface {
+	return oauthv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminRouteClient() routev1client.Interface {
