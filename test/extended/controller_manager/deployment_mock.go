@@ -3,7 +3,6 @@ package controller_manager
 import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,12 +24,6 @@ func OkDeploymentConfig(version int64) *appsv1.DeploymentConfig {
 			Selector: map[string]string{"a": "b"},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.DeploymentStrategyTypeRecreate,
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						corev1.ResourceName(corev1.ResourceCPU):    resource.MustParse("10"),
-						corev1.ResourceName(corev1.ResourceMemory): resource.MustParse("10G"),
-					},
-				},
 				RecreateParams: &appsv1.RecreateDeploymentStrategyParams{
 					TimeoutSeconds: mkintp(20),
 				},
