@@ -25,7 +25,7 @@ type validateCustomResource struct {
 	validators map[schema.GroupVersionKind]ObjectValidator
 }
 
-func NewValidator(resources map[schema.GroupResource]bool, validators map[schema.GroupVersionKind]ObjectValidator) (admission.Interface, error) {
+func NewValidator(resources map[schema.GroupResource]bool, validators map[schema.GroupVersionKind]ObjectValidator) (admission.ValidationInterface, error) {
 	return &validateCustomResource{
 		Handler:    admission.NewHandler(admission.Create, admission.Update),
 		resources:  resources,

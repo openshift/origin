@@ -25,7 +25,7 @@ func Register(plugins *kadmission.Plugins) {
 }
 
 type validateCustomResourceWithClient struct {
-	kadmission.Interface
+	kadmission.ValidationInterface
 
 	infrastructureGetter configv1client.InfrastructuresGetter
 }
@@ -43,7 +43,7 @@ func NewValidateAPIServer() (kadmission.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret.Interface = delegate
+	ret.ValidationInterface = delegate
 
 	return ret, nil
 }
@@ -68,7 +68,7 @@ func (a *validateCustomResourceWithClient) ValidateInitialization() error {
 		return fmt.Errorf(PluginName + " needs an infrastructureGetter")
 	}
 
-	if initializationValidator, ok := a.Interface.(kadmission.InitializationValidator); ok {
+	if initializationValidator, ok := a.ValidationInterface.(kadmission.InitializationValidator); ok {
 		return initializationValidator.ValidateInitialization()
 	}
 
