@@ -163,7 +163,6 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
 // test/extended/testdata/imagestream-jenkins-slave-pods.yaml
 // test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
-// test/extended/testdata/ingress.yaml
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
 // test/extended/testdata/jenkins-plugin/build-job.xml
@@ -193,7 +192,6 @@
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
-// test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
 // test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
@@ -202,13 +200,16 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
-// test/extended/testdata/router-common.yaml
-// test/extended/testdata/router-config-manager.yaml
-// test/extended/testdata/router-http-echo-server.yaml
-// test/extended/testdata/router-metrics.yaml
-// test/extended/testdata/router-override-domains.yaml
-// test/extended/testdata/router-override.yaml
-// test/extended/testdata/router-scoped.yaml
+// test/extended/testdata/router/ingress.yaml
+// test/extended/testdata/router/reencrypt-serving-cert.yaml
+// test/extended/testdata/router/router-common.yaml
+// test/extended/testdata/router/router-config-manager.yaml
+// test/extended/testdata/router/router-http-echo-server.yaml
+// test/extended/testdata/router/router-metrics.yaml
+// test/extended/testdata/router/router-override-domains.yaml
+// test/extended/testdata/router/router-override.yaml
+// test/extended/testdata/router/router-scoped.yaml
+// test/extended/testdata/router/weighted-router.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
@@ -231,7 +232,6 @@
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-gitserver.yaml
 // test/extended/testdata/test-secret.json
-// test/extended/testdata/weighted-router.yaml
 // test/integration/testdata/project-request-template-with-quota.yaml
 // test/integration/testdata/test-buildcli-beta2.json
 // test/integration/testdata/test-buildcli.json
@@ -11002,127 +11002,6 @@ func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataIngressYaml = []byte(`kind: List
-apiVersion: v1
-items:
-# an ingress that should be captured as individual routes
-- apiVersion: extensions/v1beta1
-  kind: Ingress
-  metadata:
-    name: test
-  spec:
-    tls:
-    - hosts:
-      - 3.ingress-test.com
-      secretName: ingress-endpoint-secret
-    rules:
-    - host: 1.ingress-test.com
-      http:
-        paths:
-        - path: /test
-          backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
-        - path: /other
-          backend:
-            serviceName: ingress-endpoint-2
-            servicePort: 80
-    - host: 2.ingress-test.com
-      http:
-        paths:
-        - path: /
-          backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
-    - host: 3.ingress-test.com
-      http:
-        paths:
-        - path: /
-          backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
-# an empty secret
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: ingress-endpoint-secret
-  type: kubernetes.io/tls
-  stringData:
-    tls.key: ""
-    tls.crt: ""
-# a service to be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: ingress-endpoint-1
-  spec:
-    selector:
-      app: ingress-endpoint-1
-    ports:
-    - port: 80
-      targetPort: 8080
-# a service to be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: ingress-endpoint-2
-  spec:
-    selector:
-      app: ingress-endpoint-2
-    ports:
-    - port: 80
-      targetPort: 8080
-# a pod that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: ingress-endpoint-1
-    labels:
-      app: ingress-endpoint-1
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-# a pod that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: ingress-endpoint-2
-    labels:
-      app: ingress-endpoint-2
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-`)
-
-func testExtendedTestdataIngressYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataIngressYaml, nil
-}
-
-func testExtendedTestdataIngressYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataIngressYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/ingress.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataJenkinsPluginBuildJobCloneXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>                                                                                                                                                                                                                         
 <flow-definition plugin="workflow-job@2.8">                                                                                                                                                                                                                    
   <actions/>                                                                                                                                                                                                                                                   
@@ -13705,114 +13584,6 @@ func testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml() (*asset, error
 	return a, nil
 }
 
-var _testExtendedTestdataReencryptServingCertYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: serving-cert
-    labels:
-      app: serving-cert
-  spec:
-    containers:
-    - image: nginx:1.15.3
-      name: serve
-      command:
-        - /usr/sbin/nginx
-      args:
-        - -c
-        - /etc/nginx/nginx.conf
-      ports:
-      - containerPort: 8443
-        protocol: TCP
-      volumeMounts:
-      - name: cert
-        mountPath: /etc/serving-cert
-      - name: conf
-        mountPath: /etc/nginx
-      - name: tmp
-        mountPath: /var/cache/nginx
-      - name: tmp
-        mountPath: /var/run
-    volumes:
-    - name: conf
-      configMap:
-        name: serving-cert
-    - name: cert
-      secret:
-        secretName: serving-cert
-    - name: tmp
-      emptyDir: {}
-    - name: tmp2
-      emptyDir: {}
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: serving-cert
-  data:
-    nginx.conf: |
-      daemon off;
-      events { }
-      http {
-        server {
-            listen 8443;
-            ssl    on;
-            ssl_certificate     /etc/serving-cert/tls.crt;
-            ssl_certificate_key    /etc/serving-cert/tls.key;
-            server_name  "*.svc";
-            location / {
-                root   /usr/share/nginx/html;
-                index  index.html index.htm;
-            }
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   /usr/share/nginx/html;
-            }
-        }
-      }
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: serving-cert
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
-  spec:
-    selector:
-      app: serving-cert
-    ports:
-      - port: 443
-        name: https
-        targetPort: 8443
-        protocol: TCP
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: serving-cert
-  spec:
-    tls:
-      termination: Reencrypt
-      # no destination CA certificate needed
-    to:
-      kind: Service
-      name: serving-cert
-`)
-
-func testExtendedTestdataReencryptServingCertYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataReencryptServingCertYaml, nil
-}
-
-func testExtendedTestdataReencryptServingCertYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataReencryptServingCertYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences = []byte(`kind: ImageStream
 apiVersion: image.openshift.io/v1
 spec:
@@ -14126,7 +13897,236 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterCommonYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterIngressYaml = []byte(`kind: List
+apiVersion: v1
+items:
+# an ingress that should be captured as individual routes
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    name: test
+  spec:
+    tls:
+    - hosts:
+      - 3.ingress-test.com
+      secretName: ingress-endpoint-secret
+    rules:
+    - host: 1.ingress-test.com
+      http:
+        paths:
+        - path: /test
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+        - path: /other
+          backend:
+            serviceName: ingress-endpoint-2
+            servicePort: 80
+    - host: 2.ingress-test.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+    - host: 3.ingress-test.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+# an empty secret
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ingress-endpoint-secret
+  type: kubernetes.io/tls
+  stringData:
+    tls.key: ""
+    tls.crt: ""
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-1
+  spec:
+    selector:
+      app: ingress-endpoint-1
+    ports:
+    - port: 80
+      targetPort: 8080
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-2
+  spec:
+    selector:
+      app: ingress-endpoint-2
+    ports:
+    - port: 80
+      targetPort: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-1
+    labels:
+      app: ingress-endpoint-1
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-2
+    labels:
+      app: ingress-endpoint-2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterIngressYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterIngressYaml, nil
+}
+
+func testExtendedTestdataRouterIngressYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterIngressYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/ingress.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterReencryptServingCertYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: serving-cert
+    labels:
+      app: serving-cert
+  spec:
+    containers:
+    - image: nginx:1.15.3
+      name: serve
+      command:
+        - /usr/sbin/nginx
+      args:
+        - -c
+        - /etc/nginx/nginx.conf
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      volumeMounts:
+      - name: cert
+        mountPath: /etc/serving-cert
+      - name: conf
+        mountPath: /etc/nginx
+      - name: tmp
+        mountPath: /var/cache/nginx
+      - name: tmp
+        mountPath: /var/run
+    volumes:
+    - name: conf
+      configMap:
+        name: serving-cert
+    - name: cert
+      secret:
+        secretName: serving-cert
+    - name: tmp
+      emptyDir: {}
+    - name: tmp2
+      emptyDir: {}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: serving-cert
+  data:
+    nginx.conf: |
+      daemon off;
+      events { }
+      http {
+        server {
+            listen 8443;
+            ssl    on;
+            ssl_certificate     /etc/serving-cert/tls.crt;
+            ssl_certificate_key    /etc/serving-cert/tls.key;
+            server_name  "*.svc";
+            location / {
+                root   /usr/share/nginx/html;
+                index  index.html index.htm;
+            }
+            error_page   500 502 503 504  /50x.html;
+            location = /50x.html {
+                root   /usr/share/nginx/html;
+            }
+        }
+      }
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: serving-cert
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  spec:
+    selector:
+      app: serving-cert
+    ports:
+      - port: 443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: serving-cert
+  spec:
+    tls:
+      termination: Reencrypt
+      # no destination CA certificate needed
+    to:
+      kind: Service
+      name: serving-cert
+`)
+
+func testExtendedTestdataRouterReencryptServingCertYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterReencryptServingCertYaml, nil
+}
+
+func testExtendedTestdataRouterReencryptServingCertYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterReencryptServingCertYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterCommonYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 objects:
@@ -14236,22 +14236,22 @@ objects:
         protocol: UDP
 `)
 
-func testExtendedTestdataRouterCommonYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterCommonYaml, nil
+func testExtendedTestdataRouterRouterCommonYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterCommonYaml, nil
 }
 
-func testExtendedTestdataRouterCommonYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterCommonYamlBytes()
+func testExtendedTestdataRouterRouterCommonYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterCommonYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-common.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-common.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterConfigManagerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterConfigManagerYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -14527,22 +14527,22 @@ objects:
       kind: Service
 `)
 
-func testExtendedTestdataRouterConfigManagerYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterConfigManagerYaml, nil
+func testExtendedTestdataRouterRouterConfigManagerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterConfigManagerYaml, nil
 }
 
-func testExtendedTestdataRouterConfigManagerYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterConfigManagerYamlBytes()
+func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterConfigManagerYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-config-manager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-config-manager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterHttpEchoServerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterHttpEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
@@ -14600,22 +14600,22 @@ items:
       name: router-http-echo
 `)
 
-func testExtendedTestdataRouterHttpEchoServerYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterHttpEchoServerYaml, nil
+func testExtendedTestdataRouterRouterHttpEchoServerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterHttpEchoServerYaml, nil
 }
 
-func testExtendedTestdataRouterHttpEchoServerYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterHttpEchoServerYamlBytes()
+func testExtendedTestdataRouterRouterHttpEchoServerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterHttpEchoServerYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-http-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-http-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterMetricsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterMetricsYaml = []byte(`apiVersion: v1
 kind: List
 items:
 # a route that has multiple weighted services that it points to
@@ -14722,22 +14722,22 @@ items:
         protocol: UDP
 `)
 
-func testExtendedTestdataRouterMetricsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterMetricsYaml, nil
+func testExtendedTestdataRouterRouterMetricsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterMetricsYaml, nil
 }
 
-func testExtendedTestdataRouterMetricsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterMetricsYamlBytes()
+func testExtendedTestdataRouterRouterMetricsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterMetricsYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-metrics.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-metrics.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterOverrideDomainsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterOverrideDomainsYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -14780,22 +14780,22 @@ objects:
     serviceAccountName: default
 `)
 
-func testExtendedTestdataRouterOverrideDomainsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterOverrideDomainsYaml, nil
+func testExtendedTestdataRouterRouterOverrideDomainsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterOverrideDomainsYaml, nil
 }
 
-func testExtendedTestdataRouterOverrideDomainsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterOverrideDomainsYamlBytes()
+func testExtendedTestdataRouterRouterOverrideDomainsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterOverrideDomainsYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-override-domains.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-override-domains.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterOverrideYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterOverrideYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -14838,22 +14838,22 @@ objects:
     serviceAccountName: default
 `)
 
-func testExtendedTestdataRouterOverrideYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterOverrideYaml, nil
+func testExtendedTestdataRouterRouterOverrideYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterOverrideYaml, nil
 }
 
-func testExtendedTestdataRouterOverrideYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterOverrideYamlBytes()
+func testExtendedTestdataRouterRouterOverrideYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterOverrideYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterScopedYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterScopedYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -14895,17 +14895,198 @@ objects:
     serviceAccountName: default
 `)
 
-func testExtendedTestdataRouterScopedYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterScopedYaml, nil
+func testExtendedTestdataRouterRouterScopedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterScopedYaml, nil
 }
 
-func testExtendedTestdataRouterScopedYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterScopedYamlBytes()
+func testExtendedTestdataRouterRouterScopedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterScopedYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterWeightedRouterYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+objects:
+# a weighted router
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: weighted-router
+    labels:
+      test: weighted-router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: system-router
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: system:router
+
+# a route that has multiple weighted services that it points to
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: weightedroute
+    labels:
+      test: router
+      select: weighted
+  spec:
+    host: weighted.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 90
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 10
+    ports:
+    - targetPort: 8080
+
+# a route that has multiple services but all weights are zero
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: zeroweightroute
+    labels:
+      test: router
+      select: weighted
+  spec:
+    host: zeroweight.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 0
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 0
+    ports:
+    - targetPort: 8080
+
+# two services that can be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints1
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+    ports:
+    - port: 8080
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints2
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+    ports:
+    - port: 8080
+# two pods that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-2
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-3
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterWeightedRouterYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterWeightedRouterYaml, nil
+}
+
+func testExtendedTestdataRouterWeightedRouterYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterWeightedRouterYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/weighted-router.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -16925,187 +17106,6 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/test-secret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataWeightedRouterYaml = []byte(`apiVersion: v1
-kind: Template
-parameters:
-- name: IMAGE
-  value: openshift/origin-haproxy-router:latest
-objects:
-# a weighted router
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: weighted-router
-    labels:
-      test: weighted-router
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: router
-      image: ${IMAGE}
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
-      hostNetwork: false
-      ports:
-      - containerPort: 80
-      - containerPort: 443
-      - containerPort: 1936
-        name: stats
-        protocol: TCP
-    serviceAccountName: default
-
-# ensure the router can access routes and endpoints
-- apiVersion: v1
-  kind: RoleBinding
-  metadata:
-    name: system-router
-  subjects:
-  - kind: ServiceAccount
-    name: default
-  roleRef:
-    name: system:router
-
-# a route that has multiple weighted services that it points to
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: weightedroute
-    labels:
-      test: router
-      select: weighted
-  spec:
-    host: weighted.example.com
-    to:
-      name: weightedendpoints1
-      kind: Service
-      weight: 90
-    alternateBackends:
-    - name: weightedendpoints2
-      kind: Service
-      weight: 10
-    ports:
-    - targetPort: 8080
-
-# a route that has multiple services but all weights are zero
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: zeroweightroute
-    labels:
-      test: router
-      select: weighted
-  spec:
-    host: zeroweight.example.com
-    to:
-      name: weightedendpoints1
-      kind: Service
-      weight: 0
-    alternateBackends:
-    - name: weightedendpoints2
-      kind: Service
-      weight: 0
-    ports:
-    - targetPort: 8080
-
-# two services that can be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: weightedendpoints1
-    labels:
-      test: router
-  spec:
-    selector:
-      test: weightedrouter1
-      endpoints: weightedrouter1
-    ports:
-    - port: 8080
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: weightedendpoints2
-    labels:
-      test: router
-  spec:
-    selector:
-      test: weightedrouter2
-      endpoints: weightedrouter2
-    ports:
-    - port: 8080
-# two pods that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-1
-    labels:
-      test: weightedrouter1
-      endpoints: weightedrouter1
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-2
-    labels:
-      test: weightedrouter2
-      endpoints: weightedrouter2
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-3
-    labels:
-      test: weightedrouter2
-      endpoints: weightedrouter2
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-`)
-
-func testExtendedTestdataWeightedRouterYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataWeightedRouterYaml, nil
-}
-
-func testExtendedTestdataWeightedRouterYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataWeightedRouterYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/weighted-router.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -36692,7 +36692,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json": testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
 	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
 	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
-	"test/extended/testdata/ingress.yaml": testExtendedTestdataIngressYaml,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
 	"test/extended/testdata/jenkins-plugin/build-job.xml": testExtendedTestdataJenkinsPluginBuildJobXml,
@@ -36722,7 +36721,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
-	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml": testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
 	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml": testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
@@ -36731,13 +36729,16 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
-	"test/extended/testdata/router-common.yaml": testExtendedTestdataRouterCommonYaml,
-	"test/extended/testdata/router-config-manager.yaml": testExtendedTestdataRouterConfigManagerYaml,
-	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
-	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
-	"test/extended/testdata/router-override-domains.yaml": testExtendedTestdataRouterOverrideDomainsYaml,
-	"test/extended/testdata/router-override.yaml": testExtendedTestdataRouterOverrideYaml,
-	"test/extended/testdata/router-scoped.yaml": testExtendedTestdataRouterScopedYaml,
+	"test/extended/testdata/router/ingress.yaml": testExtendedTestdataRouterIngressYaml,
+	"test/extended/testdata/router/reencrypt-serving-cert.yaml": testExtendedTestdataRouterReencryptServingCertYaml,
+	"test/extended/testdata/router/router-common.yaml": testExtendedTestdataRouterRouterCommonYaml,
+	"test/extended/testdata/router/router-config-manager.yaml": testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-http-echo-server.yaml": testExtendedTestdataRouterRouterHttpEchoServerYaml,
+	"test/extended/testdata/router/router-metrics.yaml": testExtendedTestdataRouterRouterMetricsYaml,
+	"test/extended/testdata/router/router-override-domains.yaml": testExtendedTestdataRouterRouterOverrideDomainsYaml,
+	"test/extended/testdata/router/router-override.yaml": testExtendedTestdataRouterRouterOverrideYaml,
+	"test/extended/testdata/router/router-scoped.yaml": testExtendedTestdataRouterRouterScopedYaml,
+	"test/extended/testdata/router/weighted-router.yaml": testExtendedTestdataRouterWeightedRouterYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
@@ -36760,7 +36761,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-gitserver.yaml": testExtendedTestdataTestGitserverYaml,
 	"test/extended/testdata/test-secret.json": testExtendedTestdataTestSecretJson,
-	"test/extended/testdata/weighted-router.yaml": testExtendedTestdataWeightedRouterYaml,
 	"test/integration/testdata/project-request-template-with-quota.yaml": testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
 	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
 	"test/integration/testdata/test-buildcli.json": testIntegrationTestdataTestBuildcliJson,
@@ -37191,7 +37191,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
-				"ingress.yaml": &bintree{testExtendedTestdataIngressYaml, map[string]*bintree{}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
 					"build-job-slave.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
@@ -37231,7 +37230,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
-				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"releases": &bintree{nil, map[string]*bintree{
 					"payload-1": &bintree{nil, map[string]*bintree{
 						"etcd-operator": &bintree{nil, map[string]*bintree{
@@ -37250,13 +37248,18 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
-				"router-common.yaml": &bintree{testExtendedTestdataRouterCommonYaml, map[string]*bintree{}},
-				"router-config-manager.yaml": &bintree{testExtendedTestdataRouterConfigManagerYaml, map[string]*bintree{}},
-				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
-				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
-				"router-override-domains.yaml": &bintree{testExtendedTestdataRouterOverrideDomainsYaml, map[string]*bintree{}},
-				"router-override.yaml": &bintree{testExtendedTestdataRouterOverrideYaml, map[string]*bintree{}},
-				"router-scoped.yaml": &bintree{testExtendedTestdataRouterScopedYaml, map[string]*bintree{}},
+				"router": &bintree{nil, map[string]*bintree{
+					"ingress.yaml": &bintree{testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
+					"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
+					"router-common.yaml": &bintree{testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
+					"router-config-manager.yaml": &bintree{testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-metrics.yaml": &bintree{testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
+					"router-override-domains.yaml": &bintree{testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
+					"router-override.yaml": &bintree{testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
+					"router-scoped.yaml": &bintree{testExtendedTestdataRouterRouterScopedYaml, map[string]*bintree{}},
+					"weighted-router.yaml": &bintree{testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
+				}},
 				"run_policy": &bintree{nil, map[string]*bintree{
 					"parallel-bc.yaml": &bintree{testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
@@ -37289,7 +37292,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-env-pod.json": &bintree{testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
 				"test-gitserver.yaml": &bintree{testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
 				"test-secret.json": &bintree{testExtendedTestdataTestSecretJson, map[string]*bintree{}},
-				"weighted-router.yaml": &bintree{testExtendedTestdataWeightedRouterYaml, map[string]*bintree{}},
 			}},
 		}},
 		"integration": &bintree{nil, map[string]*bintree{

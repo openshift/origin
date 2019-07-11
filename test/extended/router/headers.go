@@ -20,7 +20,7 @@ import (
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("testdata", "router-http-echo-server.yaml")
+		configPath = exutil.FixturePath("testdata", "router", "router-http-echo-server.yaml")
 		oc         = exutil.NewCLI("router-headers", exutil.KubeConfigPath())
 
 		routerIP  string

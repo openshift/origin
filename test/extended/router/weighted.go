@@ -21,7 +21,7 @@ import (
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("testdata", "weighted-router.yaml")
+		configPath = exutil.FixturePath("testdata", "router", "weighted-router.yaml")
 		oc         = exutil.NewCLI("weighted-router", exutil.KubeConfigPath())
 	)
 
