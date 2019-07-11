@@ -49,6 +49,16 @@ func (ConsoleCLIDownloadSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleCLIDownloadSpec
 }
 
+var map_ApplicationMenuSpec = map[string]string{
+	"":         "ApplicationMenuSpec is the specification of the desired section and icon used for the link in the application menu.",
+	"section":  "section is the section of the application menu in which the link should appear.",
+	"imageURL": "imageUrl is the URL for the icon used in front of the link in the application menu. The URL must be an HTTPS URL or a Data URI. The image should be square and will be shown at 24x24 pixels.",
+}
+
+func (ApplicationMenuSpec) SwaggerDoc() map[string]string {
+	return map_ApplicationMenuSpec
+}
+
 var map_ConsoleLink = map[string]string{
 	"":         "ConsoleLink is an extension for customizing OpenShift web console links.",
 	"metadata": "Standard object's metadata.",
@@ -67,8 +77,9 @@ func (ConsoleLinkList) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleLinkSpec = map[string]string{
-	"":         "ConsoleLinkSpec is the desired console link configuration.",
-	"location": "location determines which location in the console the link will be appended to.",
+	"":                "ConsoleLinkSpec is the desired console link configuration.",
+	"location":        "location determines which location in the console the link will be appended to.",
+	"applicationMenu": "applicationMenu holds information about section and icon used for the link in the application menu, and it is applicable only when location is set to ApplicationMenu.",
 }
 
 func (ConsoleLinkSpec) SwaggerDoc() map[string]string {

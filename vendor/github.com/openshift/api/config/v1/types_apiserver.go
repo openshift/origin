@@ -12,6 +12,7 @@ import (
 type APIServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	// +kubebuilder:validation:Required
 	// +required
 	Spec APIServerSpec `json:"spec"`
 	// +optional
@@ -30,18 +31,15 @@ type APIServerSpec struct {
 	// - ConfigMap.Data["ca-bundle.crt"] - CA bundle.
 	// +optional
 	ClientCA ConfigMapNameReference `json:"clientCA"`
+	// additionalCORSAllowedOrigins lists additional, user-defined regular expressions describing hosts for which the
+	// API server allows access using the CORS headers. This may be needed to access the API and the integrated OAuth
+	// server from JavaScript applications.
+	// The values are regular expressions that correspond to the Golang regular expression language.
+	// +optional
+	AdditionalCORSAllowedOrigins []string `json:"additionalCORSAllowedOrigins,omitempty"`
 }
 
 type APIServerServingCerts struct {
-	// defaultServingCertificate references a kubernetes.io/tls type secret containing the default TLS cert info for
-	// serving secure traffic. If no named certificates match the server name as understood by a client, this default
-	// certificate will be used. If defaultServingCertificate is not specified, then a operator managed certificate will
-	// be used.
-	// The secret must exist in the openshift-config namespace and contain the following required fields:
-	// - Secret.Data["tls.key"] - TLS private key.
-	// - Secret.Data["tls.crt"] - TLS certificate.
-	// +optional
-	DefaultServingCertificate SecretNameReference `json:"defaultServingCertificate"`
 	// namedCertificates references secrets containing the TLS cert info for serving secure traffic to specific hostnames.
 	// If no named certificates are provided, or no named certificates match the server name as understood by a client,
 	// the defaultServingCertificate will be used.

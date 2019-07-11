@@ -13,6 +13,7 @@ type KubeControllerManager struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec KubeControllerManagerSpec `json:"spec"`
 	// +optional

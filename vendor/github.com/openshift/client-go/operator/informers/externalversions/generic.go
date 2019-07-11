@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	v1 "github.com/openshift/api/operator/v1"
+	v1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -65,6 +66,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().ServiceCatalogAPIServers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("servicecatalogcontrollermanagers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().ServiceCatalogControllerManagers().Informer()}, nil
+
+		// Group=operator.openshift.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("imagecontentsourcepolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1alpha1().ImageContentSourcePolicies().Informer()}, nil
 
 	}
 
