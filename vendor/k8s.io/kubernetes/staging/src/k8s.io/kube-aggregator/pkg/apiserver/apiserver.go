@@ -172,11 +172,13 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		delegateHandler:                 delegationTarget.UnprotectedHandler(),
 		proxyTransport:                  c.ExtraConfig.ProxyTransport,
 		proxyHandlers:                   map[string]*proxyHandler{},
+		proxyClientCert:                 func() []byte { return nil },
+		proxyClientKey:                  func() []byte { return nil },
 		handledGroups:                   sets.String{},
 		handledAlwaysLocalDelegatePaths: sets.String{},
-		lister:                          informerFactory.Apiregistration().InternalVersion().APIServices().Lister(),
-		APIRegistrationInformers:        informerFactory,
-		serviceResolver:                 c.ExtraConfig.ServiceResolver,
+		lister: informerFactory.Apiregistration().InternalVersion().APIServices().Lister(),
+		APIRegistrationInformers: informerFactory,
+		serviceResolver:          c.ExtraConfig.ServiceResolver,
 	}
 
 	apiGroupInfo := apiservicerest.NewRESTStorage(c.GenericConfig.MergedResourceConfig, c.GenericConfig.RESTOptionsGetter)
@@ -192,12 +194,19 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandle("/apis/", apisHandler)
 
 	apiserviceRegistrationController := NewAPIServiceRegistrationController(informerFactory.Apiregistration().InternalVersion().APIServices(), s)
-	aggregatorProxyCerts := certs.NewDynamicCertKeyPairLoader(c.ExtraConfig.ProxyClientCert, c.ExtraConfig.ProxyClientKey, apiserviceRegistrationController.resyncAll)
-	if err := aggregatorProxyCerts.CheckCerts(); err != nil {
-		return nil, err
+	if len(c.ExtraConfig.ProxyClientCert) > 0 && len(c.ExtraConfig.ProxyClientKey) > 0 {
+		aggregatorProxyCerts := certs.NewDynamicCertKeyPairLoader(c.ExtraConfig.ProxyClientCert, c.ExtraConfig.ProxyClientKey, apiserviceRegistrationController.resyncAll)
+		if err := aggregatorProxyCerts.CheckCerts(); err != nil {
+			return nil, err
+		}
+		s.proxyClientCert = aggregatorProxyCerts.GetRawCert
+		s.proxyClientKey = aggregatorProxyCerts.GetRawKey
+
+		s.GenericAPIServer.AddPostStartHookOrDie("aggregator-reload-proxy-client-cert", func(context genericapiserver.PostStartHookContext) error {
+			go aggregatorProxyCerts.Run(context.StopCh)
+			return nil
+		})
 	}
-	s.proxyClientCert = aggregatorProxyCerts.GetRawCert
-	s.proxyClientKey = aggregatorProxyCerts.GetRawKey
 
 	availableController, err := statuscontrollers.NewAvailableConditionController(
 		informerFactory.Apiregistration().InternalVersion().APIServices(),
@@ -205,18 +214,14 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		c.GenericConfig.SharedInformerFactory.Core().V1().Endpoints(),
 		apiregistrationClient.Apiregistration(),
 		c.ExtraConfig.ProxyTransport,
-		aggregatorProxyCerts.GetRawCert,
-		aggregatorProxyCerts.GetRawKey,
+		(func() []byte)(s.proxyClientCert),
+		(func() []byte)(s.proxyClientKey),
 		s.serviceResolver,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	s.GenericAPIServer.AddPostStartHookOrDie("aggregator-reload-proxy-client-cert", func(context genericapiserver.PostStartHookContext) error {
-		go aggregatorProxyCerts.Run(context.StopCh)
-		return nil
-	})
 	s.GenericAPIServer.AddPostStartHookOrDie("start-kube-aggregator-informers", func(context genericapiserver.PostStartHookContext) error {
 		informerFactory.Start(context.StopCh)
 		c.GenericConfig.SharedInformerFactory.Start(context.StopCh)
