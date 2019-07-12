@@ -10984,7 +10984,7 @@ OS_ROOT="$( os::util::absolute_path "${init_source}" )"
 export OS_ROOT
 cd "${OS_ROOT}"
 
-for library_file in $( find "${OS_ROOT}/hack/lib" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ); do
+for library_file in $( find -L "${OS_ROOT}/hack/lib" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ); do
 	source "${library_file}"
 done
 
