@@ -452,13 +452,15 @@ func PVMultiNodeCheck(client clientset.Interface, claim *v1.PersistentVolumeClai
 	if secondNode.Affinity.NodeAffinity == nil {
 		secondNode.Affinity.NodeAffinity = &v1.NodeAffinity{}
 	}
-	if secondNode.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution == nil {
-		secondNode.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &v1.NodeSelector{}
-	}
-	secondNode.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = append(secondNode.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms,
-		v1.NodeSelectorTerm{
-			MatchFields: []v1.NodeSelectorRequirement{
-				{Key: "metadata.name", Operator: v1.NodeSelectorOpNotIn, Values: []string{actualNodeName}},
+	// Set anti-affinity preference: in case there are no nodes in the same AZ it may happen the second pod gets
+	// scheduled on the same node as the first one. In such a case the test needs to be skipped.
+	secondNode.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(secondNode.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution,
+		v1.PreferredSchedulingTerm{
+			Weight: int32(100),
+			Preference: v1.NodeSelectorTerm{
+				MatchFields: []v1.NodeSelectorRequirement{
+					{Key: "metadata.name", Operator: v1.NodeSelectorOpNotIn, Values: []string{actualNodeName}},
+				},
 			},
 		})
 
@@ -471,9 +473,13 @@ func PVMultiNodeCheck(client clientset.Interface, claim *v1.PersistentVolumeClai
 	framework.ExpectNoError(framework.WaitForPodSuccessInNamespaceSlow(client, pod.Name, pod.Namespace))
 	runningPod, err = client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred(), "get pod")
-	Expect(runningPod.Spec.NodeName).NotTo(Equal(actualNodeName), "second pod should have run on a different node")
 	StopPod(client, pod)
 	pod = nil
+	// The second pod got scheduled on the same node as the first one: skip the test.
+	if runningPod.Spec.NodeName == actualNodeName {
+		framework.Logf("Warning: The reader pod got scheduled on the same node as the writer pod: skipping test")
+		framework.Skipf("No node available for the second pod found")
+	}
 }
 
 func (t StorageClassTest) TestBindingWaitForFirstConsumer(nodeSelector map[string]string, expectUnschedulable bool) (*v1.PersistentVolume, *v1.Node) {
