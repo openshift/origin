@@ -128,6 +128,7 @@
 // test/extended/testdata/cmd/hack/lib/util/misc.sh
 // test/extended/testdata/cmd/hack/lib/util/text.sh
 // test/extended/testdata/cmd/hack/lib/util/trap.sh
+// test/extended/testdata/cmd/hack/run-tests.sh
 // test/extended/testdata/cmd/hack/test-cmd.sh
 // test/extended/testdata/cmd/test/cmd/admin.sh
 // test/extended/testdata/cmd/test/cmd/annotations.sh
@@ -13533,6 +13534,29 @@ func testExtendedTestdataCmdHackLibUtilTrapSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/util/trap.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackRunTestsSh = []byte(`#!/usr/bin/env bash
+
+mkdir -p /tmp/tests/hack
+cp -Lr /var/tests/hack/test-cmd.sh /var/tests/hack/lib /tmp/tests/hack
+cp -Lr "$TESTS_DIR" "/tmp/tests/test"
+TESTS_DIR="/tmp/tests/test/cmd" /tmp/tests/hack/test-cmd.sh
+`)
+
+func testExtendedTestdataCmdHackRunTestsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackRunTestsSh, nil
+}
+
+func testExtendedTestdataCmdHackRunTestsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackRunTestsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/run-tests.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -47783,6 +47807,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/hack/lib/util/misc.sh": testExtendedTestdataCmdHackLibUtilMiscSh,
 	"test/extended/testdata/cmd/hack/lib/util/text.sh": testExtendedTestdataCmdHackLibUtilTextSh,
 	"test/extended/testdata/cmd/hack/lib/util/trap.sh": testExtendedTestdataCmdHackLibUtilTrapSh,
+	"test/extended/testdata/cmd/hack/run-tests.sh": testExtendedTestdataCmdHackRunTestsSh,
 	"test/extended/testdata/cmd/hack/test-cmd.sh": testExtendedTestdataCmdHackTestCmdSh,
 	"test/extended/testdata/cmd/test/cmd/admin.sh": testExtendedTestdataCmdTestCmdAdminSh,
 	"test/extended/testdata/cmd/test/cmd/annotations.sh": testExtendedTestdataCmdTestCmdAnnotationsSh,
@@ -48322,6 +48347,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"trap.sh": &bintree{testExtendedTestdataCmdHackLibUtilTrapSh, map[string]*bintree{}},
 							}},
 						}},
+						"run-tests.sh": &bintree{testExtendedTestdataCmdHackRunTestsSh, map[string]*bintree{}},
 						"test-cmd.sh": &bintree{testExtendedTestdataCmdHackTestCmdSh, map[string]*bintree{}},
 					}},
 					"test": &bintree{nil, map[string]*bintree{

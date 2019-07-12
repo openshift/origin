@@ -32,7 +32,7 @@ var _ = g.Describe("[test-cmd][Serial] test-cmd:", func() {
 		oc = exutil.NewCLI("test-cmd", exutil.KubeConfigPath())
 	)
 
-	g.It("run all tests", func() { // TODO: maybe add an reading an ENV var to specify tests
+	g.It("run all tests", func() { // TODO: maybe add reading an ENV var to specify tests
 		hacklibVolume, hacklibVolumeMount := createConfigMapForDir(oc, hacklibDir, "/var/tests/hack")
 		testsVolume, testsVolumeMount := createConfigMapForDir(oc, testsDir, "/var/tests/test/cmd")
 
@@ -61,7 +61,7 @@ var _ = g.Describe("[test-cmd][Serial] test-cmd:", func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get("cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		log, errs := exutil.RunOneShotCommandPod(oc, "test-cmd", cliImageRef, "/var/tests/hack/test-cmd.sh",
+		log, errs := exutil.RunOneShotCommandPod(oc, "test-cmd", cliImageRef, "/var/tests/hack/run-tests.sh",
 			[]corev1.VolumeMount{
 				*hacklibVolumeMount,
 				*testsVolumeMount,
