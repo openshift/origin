@@ -150,7 +150,7 @@ function os::log::system::internal::plot() {
     local width
     records="$(( $( wc -l < "${datafile}" ) - 1 ))" # one of these lines will be the header comment
     if [[ "${records}" -gt 90 ]]; then
-        width="$(echo "8.5 + ${records}*0.025" | bc )"
+        width=$((8.5 + ${records}*0.025 ))
     else
         width="8.5"
     fi

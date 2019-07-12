@@ -10038,7 +10038,7 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	local test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
 
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
-	local time_elapsed=$(echo "scale=3; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+	local time_elapsed=$(echo $(( ${end_time} - ${start_time} )) | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
 	# clear the preamble so we can print out the success or error message
 	os::text::clear_string "${preamble}"
@@ -10146,13 +10146,13 @@ readonly -f os::cmd::internal::describe_expectation
 # os::cmd::internal::seconds_since_epoch returns the number of seconds elapsed since the epoch
 # with milli-second precision
 function os::cmd::internal::seconds_since_epoch() {
-	#local ns=$(date +%s%N)
+	local ns=$(date +%s%N)
 	# if `+"`"+`date`+"`"+` doesn't support nanoseconds, return second precision
-	#if [[ "$ns" == *N ]]; then
+	if [[ "$ns" == *N ]]; then
 		date "+%s.000"
-	#	return
-	#fi
-	# echo $(bc <<< "scale=3; ${ns}/1000000000")
+		return
+	fi
+	echo $(( ${ns}/1000000000 ))
 }
 readonly -f os::cmd::internal::seconds_since_epoch
 
@@ -10309,7 +10309,7 @@ function os::cmd::internal::run_until_exit_code() {
 	os::test::junit::declare_test_start
 
 	local description=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}")
-	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
+	local duration_seconds=`+"`"+`echo $(( $(( duration )) / 1000 )) | xargs printf '%5.3f')`+"`"+`
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	local preamble="Running ${description}..."
 	echo "${preamble}"
@@ -10331,7 +10331,7 @@ function os::cmd::internal::run_until_exit_code() {
 	done
 
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
-	local time_elapsed=$(echo "scale=9; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+	local time_elapsed=$(echo $(( ${end_time} - ${start_time} )) | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
 	# clear the preamble so we can print out the success or error message
 	os::text::clear_string "${preamble}"
@@ -10392,7 +10392,7 @@ function os::cmd::internal::run_until_text() {
 	os::test::junit::declare_test_start
 
 	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "${test_eval_func}")
-	local duration_seconds=$(echo "scale=3; $(( duration )) / 1000" | bc | xargs printf '%5.3f')
+	local duration_seconds=$(echo $(( $(( duration )) / 1000)) | xargs printf '%5.3f')
 	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
 	local preamble="Running ${description}..."
 	echo "${preamble}"
@@ -10417,7 +10417,7 @@ function os::cmd::internal::run_until_text() {
 	done
 
 	local end_time=$(os::cmd::internal::seconds_since_epoch)
-	local time_elapsed=$(echo "scale=9; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+	local time_elapsed=$(echo $(( ${end_time} - ${start_time} )) | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
     # clear the preamble so we can print out the success or error message
     os::text::clear_string "${preamble}"
@@ -11410,7 +11410,7 @@ function os::log::system::internal::plot() {
     local width
     records="$(( $( wc -l < "${datafile}" ) - 1 ))" # one of these lines will be the header comment
     if [[ "${records}" -gt 90 ]]; then
-        width="$(echo "8.5 + ${records}*0.025" | bc )"
+        width=$((8.5 + ${records}*0.025 ))
     else
         width="8.5"
     fi
