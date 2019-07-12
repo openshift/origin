@@ -75,16 +75,21 @@ import:
  # this matches the 1.14 branch from kube
 - package: k8s.io/gengo
   version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
+  repo:    https://github.com/kubernetes/gengo
 - package: k8s.io/utils
   version: c2654d5206da6b7b6ace12841e8f359bb89b443c
+  repo:    https://github.com/kubernetes/utils
 - package: k8s.io/kube-openapi
   version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
+  repo:    https://github.com/kubernetes/kube-openapi
 - package: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f # recent klog bump broke glog flags test in k8s.io/apiserver, pin
+  repo:    https://github.com/kubernetes/klog
 - package: github.com/coreos/etcd
   version: v3.3.10
 - package: google.golang.org/grpc
   version: v1.13.0
+  repo:    https://github.com/grpc/grpc-go
 - package: github.com/grpc-ecosystem/grpc-gateway
   version: v1.3.0
 - package: github.com/coreos/bbolt
@@ -180,7 +185,7 @@ import:
 # mine: specific to openshift
 # networking
 - package: github.com/containernetworking/plugins
-  version: ~0.6.0
+  version: v0.6.0
 # builds/cli
 - package: github.com/fsouza/go-dockerclient
   version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
@@ -243,7 +248,7 @@ import:
 # why do we have this?
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
-
+  repo:    https://github.com/golang/appengine
 # to avoid go4.org website outages on glide update
 - package: go4.org
   repo: https://github.com/go4org/go4
@@ -253,6 +258,7 @@ import:
 
 # force glide to pull this in
 - package: github.com/google/uuid
+  version: master
 
 # yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.

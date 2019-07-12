@@ -53,7 +53,7 @@ grep -v "updated:" glide.yaml | yaml2json | jq -r '.import | map("\(.package) \(
         r="$p"
     else
         remote="${r%.git}.git"
-        r=$(echo $r | sed 's#https://##;s#.git$##')
+        r=$(echo "$r" | sed 's#https://##;s#.git$##')
     fi
     if [[ "$v" == v*.*.* ]] && ! [[ $p == *.v* ]]; then
         dir=$(go mod download -json "$p@$v" | jq -r '.Dir' 2>/dev/null)
@@ -65,7 +65,7 @@ grep -v "updated:" glide.yaml | yaml2json | jq -r '.import | map("\(.package) \(
         fi
         # else fall trough to non-sha case below
     fi
-    if echo "$v" | grep -q -x '[a-z0-9]{40}'; then
+    if echo "$v" | grep -q -x -E '[a-f0-9]{40}'; then
         modver="v0.0.0-20190702153934-${v:0:10}"
         echo "Sha $p@$v => $modver"
     elif [ -z "$modver" ]; then
@@ -76,7 +76,7 @@ grep -v "updated:" glide.yaml | yaml2json | jq -r '.import | map("\(.package) \(
         # a branch
         sha=$(git ls-remote "${remote}" "$v" | awk '{print $1}')
         if [ -z "$sha" ]; then
-            echo "Cannot get sha of $p@$v"
+            echo "Cannot get sha of $p@$v via: git ls-remote "${remote}" "$v""
             exit 1
         fi
         modver="v0.0.0-20190702153934-${sha:0:10}"
