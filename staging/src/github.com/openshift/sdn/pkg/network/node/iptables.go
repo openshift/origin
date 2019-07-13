@@ -22,19 +22,21 @@ type NodeIPTables struct {
 	syncPeriod         time.Duration
 	masqueradeServices bool
 	vxlanPort          uint32
+	masqueradeBitHex   string // the masquerade bit as hex value
 
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 
 	egressIPs map[string]string
 }
 
-func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32) *NodeIPTables {
+func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32, masqueradeBit uint32) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,
 		syncPeriod:         syncPeriod,
 		masqueradeServices: masqueradeServices,
 		vxlanPort:          vxlanPort,
+		masqueradeBitHex:   fmt.Sprintf("%#x", 1<<masqueradeBit),
 		egressIPs:          make(map[string]string),
 	}
 }
@@ -198,8 +200,12 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			table:    "nat",
 			name:     "OPENSHIFT-MASQUERADE",
 			srcChain: "POSTROUTING",
-			srcRule:  []string{"-m", "comment", "--comment", "rules for masquerading OpenShift traffic"},
-			rules:    masqRules,
+			srcRule: []string{
+				"-m", "comment", "--comment", "rules for masquerading OpenShift traffic",
+				// We want to exclude services that have already been marked for masquerading
+				"-m", "mark", "!", "--mark", n.masqueradeBitHex + "/" + n.masqueradeBitHex,
+			},
+			rules: masqRules,
 		},
 		Chain{
 			table:    "filter",
