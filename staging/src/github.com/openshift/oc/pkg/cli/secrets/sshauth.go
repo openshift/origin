@@ -146,6 +146,9 @@ func (o *CreateSSHAuthSecretOptions) NewSSHAuthSecret() (*corev1.Secret, error) 
 // Complete fills CreateSSHAuthSecretOptions fields with data and checks whether necessary
 // arguments were provided.
 func (o *CreateSSHAuthSecretOptions) Complete(f kcmdutil.Factory, args []string) error {
+	if len(args) != 1 {
+		return errors.New("must have exactly one argument: secret name")
+	}
 	o.SecretName = args[0]
 
 	clientConfig, err := f.ToRESTConfig()
