@@ -91,6 +91,9 @@ const (
 
 	// VSpherePlatformType represents VMWare vSphere infrastructure.
 	VSpherePlatformType PlatformType = "VSphere"
+
+	// OvirtPlatformType represents oVirt/RHV infrastructure.
+	OvirtPlatformType PlatformType = "oVirt"
 )
 
 // PlatformStatus holds the current status specific to the underlying infrastructure provider
@@ -102,7 +105,7 @@ type PlatformStatus struct {
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
-	// "OpenStack", "VSphere", and "None". Individual components may not support
+	// "OpenStack", "VSphere", "oVirt", and "None". Individual components may not support
 	// all platforms, and must handle unrecognized platforms as None if they do
 	// not support that platform.
 	Type PlatformType `json:"type"`
@@ -110,11 +113,34 @@ type PlatformStatus struct {
 	// AWS contains settings specific to the Amazon Web Services infrastructure provider.
 	// +optional
 	AWS *AWSPlatformStatus `json:"aws,omitempty"`
+
+	// Azure contains settings specific to the Azure infrastructure provider.
+	// +optional
+	Azure *AzurePlatformStatus `json:"azure,omitempty"`
+
+	// GCP contains settings specific to the Google Cloud Platform infrastructure provider.
+	// +optional
+	GCP *GCPPlatformStatus `json:"gcp,omitempty"`
 }
 
 // AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.
 type AWSPlatformStatus struct {
 	// region holds the default AWS region for new AWS resources created by the cluster.
+	Region string `json:"region"`
+}
+
+// AzurePlatformStatus holds the current status of the Azure infrastructure provider.
+type AzurePlatformStatus struct {
+	// resourceGroupName is the Resource Group for new Azure resources created for the cluster.
+	ResourceGroupName string `json:"resourceGroupName"`
+}
+
+// GCPPlatformStatus holds the current status of the Google Cloud Platform infrastructure provider.
+type GCPPlatformStatus struct {
+	// resourceGroupName is the Project ID for new GCP resources created for the cluster.
+	ProjectID string `json:"projectID"`
+
+	// region holds the region for new GCP resources created for the cluster.
 	Region string `json:"region"`
 }
 

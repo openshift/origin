@@ -271,8 +271,9 @@ func (APIServerServingCerts) SwaggerDoc() map[string]string {
 }
 
 var map_APIServerSpec = map[string]string{
-	"servingCerts": "servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates will be used for serving secure traffic.",
-	"clientCA":     "clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid. You usually only have to set this if you have your own PKI you wish to honor client certificates from. The ConfigMap must exist in the openshift-config namespace and contain the following required fields: - ConfigMap.Data[\"ca-bundle.crt\"] - CA bundle.",
+	"servingCerts":                 "servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates will be used for serving secure traffic.",
+	"clientCA":                     "clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid. You usually only have to set this if you have your own PKI you wish to honor client certificates from. The ConfigMap must exist in the openshift-config namespace and contain the following required fields: - ConfigMap.Data[\"ca-bundle.crt\"] - CA bundle.",
+	"additionalCORSAllowedOrigins": "additionalCORSAllowedOrigins lists additional, user-defined regular expressions describing hosts for which the API server allows access using the CORS headers. This may be needed to access the API and the integrated OAuth server from JavaScript applications. The values are regular expressions that correspond to the Golang regular expression language.",
 }
 
 func (APIServerSpec) SwaggerDoc() map[string]string {
@@ -718,6 +719,25 @@ func (AWSPlatformStatus) SwaggerDoc() map[string]string {
 	return map_AWSPlatformStatus
 }
 
+var map_AzurePlatformStatus = map[string]string{
+	"":                  "AzurePlatformStatus holds the current status of the Azure infrastructure provider.",
+	"resourceGroupName": "resourceGroupName is the Resource Group for new Azure resources created for the cluster.",
+}
+
+func (AzurePlatformStatus) SwaggerDoc() map[string]string {
+	return map_AzurePlatformStatus
+}
+
+var map_GCPPlatformStatus = map[string]string{
+	"":          "GCPPlatformStatus holds the current status of the Google Cloud Platform infrastructure provider.",
+	"projectID": "resourceGroupName is the Project ID for new GCP resources created for the cluster.",
+	"region":    "region holds the region for new GCP resources created for the cluster.",
+}
+
+func (GCPPlatformStatus) SwaggerDoc() map[string]string {
+	return map_GCPPlatformStatus
+}
+
 var map_Infrastructure = map[string]string{
 	"":         "Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`",
 	"metadata": "Standard object's metadata.",
@@ -762,9 +782,11 @@ func (InfrastructureStatus) SwaggerDoc() map[string]string {
 }
 
 var map_PlatformStatus = map[string]string{
-	"":     "PlatformStatus holds the current status specific to the underlying infrastructure provider of the current cluster. Since these are used at status-level for the underlying cluster, it is supposed that only one of the status structs is set.",
-	"type": "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
-	"aws":  "AWS contains settings specific to the Amazon Web Services infrastructure provider.",
+	"":      "PlatformStatus holds the current status specific to the underlying infrastructure provider of the current cluster. Since these are used at status-level for the underlying cluster, it is supposed that only one of the status structs is set.",
+	"type":  "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+	"aws":   "AWS contains settings specific to the Amazon Web Services infrastructure provider.",
+	"azure": "Azure contains settings specific to the Azure infrastructure provider.",
+	"gcp":   "GCP contains settings specific to the Google Cloud Platform infrastructure provider.",
 }
 
 func (PlatformStatus) SwaggerDoc() map[string]string {
