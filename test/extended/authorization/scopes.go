@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -12,14 +13,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/apiserver/pkg/authentication/user"
 	apiserveruser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/rest"
-	rbacapiv1 "k8s.io/kubernetes/pkg/apis/rbac/v1"
+	"k8s.io/client-go/transport"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rbacvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	g "github.com/onsi/ginkgo"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectapiv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -28,11 +31,6 @@ import (
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/rbacconversion"
-	authorizationapiv1 "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/v1"
-	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
-	"github.com/openshift/openshift-apiserver/pkg/client/impersonatingclient"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"
 )
@@ -113,7 +111,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 			err := oc.AdminBuildClient().BuildV1().RESTClient().Get().
 				SetHeader(authenticationv1.ImpersonateUserHeader, userName).
 				SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationv1.ScopesKey, "user:info").
-				Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildapi.Build{})
+				Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildv1.Build{})
 			if !kapierrors.IsForbidden(err) {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -460,7 +458,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 				Name: userName,
 				Extra: map[string][]string{
 					authorizationv1.ScopesKey: {"user:list-projects", "bad"}}}
-			impersonatingConfig := impersonatingclient.NewImpersonatingConfig(&userInfo, *clusterAdminClientConfig)
+			impersonatingConfig := newImpersonatingConfig(&userInfo, *clusterAdminClientConfig)
 			projectClient := projectv1client.NewForConfigOrDie(&impersonatingConfig)
 
 			var projects *projectapiv1.ProjectList
@@ -490,7 +488,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 				Name: userName,
 				Extra: map[string][]string{
 					authorizationv1.ScopesKey: {"bad"}}}
-			badScopesImpersonatingConfig := impersonatingclient.NewImpersonatingConfig(
+			badScopesImpersonatingConfig := newImpersonatingConfig(
 				&badScopesUserInfo, *clusterAdminClientConfig)
 			badScopesProjectClient := projectv1client.NewForConfigOrDie(&badScopesImpersonatingConfig)
 			projects, err = badScopesProjectClient.Projects().List(metav1.ListOptions{})
@@ -557,7 +555,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 
 			// finally we can try covers both ways to assure the rules are
 			// semantically identical
-			equal, diffRules := checkEqualRules(rbacv1Rules, []rbacv1.PolicyRule{authorizationapi.DiscoveryRule})
+			equal, diffRules := checkEqualRules(rbacv1Rules, []rbacv1.PolicyRule{scopeDiscoveryRule})
 			if !equal {
 				t.Fatalf("Unmatching Rules when using unknown scopes: %v", diffRules)
 			}
@@ -565,26 +563,42 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] scopes", func() {
 	})
 })
 
-//convert SSRR result: authzv1 -> authz -> rbac -> rbacv1
+// scopeDiscoveryRule is a rule that allows a client to discover the API resources available on this server
+var scopeDiscoveryRule = rbacv1.PolicyRule{
+	Verbs: []string{"get"},
+	NonResourceURLs: []string{
+		// Server version checking
+		"/version", "/version/*",
+
+		// API discovery/negotiation
+		"/api", "/api/*",
+		"/apis", "/apis/*",
+		"/oapi", "/oapi/*",
+		"/openapi/v2",
+		"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1",
+		"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
+		"/.well-known", "/.well-known/*",
+
+		// we intentionally allow all to here
+		"/",
+	},
+}
+
+//convert SSRR result.  This works well enough for the test
 func authzv1_To_rbacv1_PolicyRules(authzv1Rules []authorizationv1.PolicyRule) ([]rbacv1.PolicyRule, error) {
-	authzRules := make([]authorizationapi.PolicyRule, len(authzv1Rules))
-	for index := range authzv1Rules {
-		err := authorizationapiv1.Convert_v1_PolicyRule_To_authorization_PolicyRule(&authzv1Rules[index], &authzRules[index], nil)
-		if err != nil {
-			return nil, err
-		}
+	ret := []rbacv1.PolicyRule{}
+
+	for _, curr := range authzv1Rules {
+		ret = append(ret, rbacv1.PolicyRule{
+			APIGroups:       curr.APIGroups,
+			ResourceNames:   curr.ResourceNames,
+			Resources:       curr.Resources,
+			Verbs:           curr.Verbs,
+			NonResourceURLs: curr.NonResourceURLsSlice,
+		})
 	}
 
-	rbacRules := rbacconversion.Convert_api_PolicyRules_To_rbac_PolicyRules(authzRules)
-	rbacv1Rules := make([]rbacv1.PolicyRule, len(rbacRules))
-	for index := range rbacRules {
-		err := rbacapiv1.Convert_rbac_PolicyRule_To_v1_PolicyRule(&rbacRules[index], &rbacv1Rules[index], nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return rbacv1Rules, nil
+	return ret, nil
 }
 
 func checkEqualRules(a, b []rbacv1.PolicyRule) (bool, []rbacv1.PolicyRule) {
@@ -593,4 +607,21 @@ func checkEqualRules(a, b []rbacv1.PolicyRule) (bool, []rbacv1.PolicyRule) {
 		covers, diffRules = rbacvalidation.Covers(b, a)
 	}
 	return covers, diffRules
+}
+
+// newImpersonatingConfig wraps the config's transport to impersonate a user, including user, groups, and scopes
+func newImpersonatingConfig(user user.Info, config rest.Config) rest.Config {
+	oldWrapTransport := config.WrapTransport
+	if oldWrapTransport == nil {
+		oldWrapTransport = func(rt http.RoundTripper) http.RoundTripper { return rt }
+	}
+	newConfig := transport.ImpersonationConfig{
+		UserName: user.GetName(),
+		Groups:   user.GetGroups(),
+		Extra:    user.GetExtra(),
+	}
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return transport.NewImpersonatingRoundTripper(newConfig, oldWrapTransport(rt))
+	}
+	return config
 }
