@@ -140,6 +140,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.AuthenticationSpec":                                                       schema_openshift_api_config_v1_AuthenticationSpec(ref),
 		"github.com/openshift/api/config/v1.AuthenticationStatus":                                                     schema_openshift_api_config_v1_AuthenticationStatus(ref),
 		"github.com/openshift/api/config/v1.AzurePlatformStatus":                                                      schema_openshift_api_config_v1_AzurePlatformStatus(ref),
+		"github.com/openshift/api/config/v1.BareMetalPlatformStatus":                                                  schema_openshift_api_config_v1_BareMetalPlatformStatus(ref),
 		"github.com/openshift/api/config/v1.BasicAuthIdentityProvider":                                                schema_openshift_api_config_v1_BasicAuthIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.Build":                                                                    schema_openshift_api_config_v1_Build(ref),
 		"github.com/openshift/api/config/v1.BuildDefaults":                                                            schema_openshift_api_config_v1_BuildDefaults(ref),
@@ -166,6 +167,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ConsoleList":                                                              schema_openshift_api_config_v1_ConsoleList(ref),
 		"github.com/openshift/api/config/v1.ConsoleSpec":                                                              schema_openshift_api_config_v1_ConsoleSpec(ref),
 		"github.com/openshift/api/config/v1.ConsoleStatus":                                                            schema_openshift_api_config_v1_ConsoleStatus(ref),
+		"github.com/openshift/api/config/v1.CustomFeatureGates":                                                       schema_openshift_api_config_v1_CustomFeatureGates(ref),
 		"github.com/openshift/api/config/v1.DNS":                                                                      schema_openshift_api_config_v1_DNS(ref),
 		"github.com/openshift/api/config/v1.DNSList":                                                                  schema_openshift_api_config_v1_DNSList(ref),
 		"github.com/openshift/api/config/v1.DNSSpec":                                                                  schema_openshift_api_config_v1_DNSSpec(ref),
@@ -180,6 +182,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.FeatureGate":                                                              schema_openshift_api_config_v1_FeatureGate(ref),
 		"github.com/openshift/api/config/v1.FeatureGateEnabledDisabled":                                               schema_openshift_api_config_v1_FeatureGateEnabledDisabled(ref),
 		"github.com/openshift/api/config/v1.FeatureGateList":                                                          schema_openshift_api_config_v1_FeatureGateList(ref),
+		"github.com/openshift/api/config/v1.FeatureGateSelection":                                                     schema_openshift_api_config_v1_FeatureGateSelection(ref),
 		"github.com/openshift/api/config/v1.FeatureGateSpec":                                                          schema_openshift_api_config_v1_FeatureGateSpec(ref),
 		"github.com/openshift/api/config/v1.FeatureGateStatus":                                                        schema_openshift_api_config_v1_FeatureGateStatus(ref),
 		"github.com/openshift/api/config/v1.GCPPlatformStatus":                                                        schema_openshift_api_config_v1_GCPPlatformStatus(ref),
@@ -251,6 +254,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.Update":                                                                   schema_openshift_api_config_v1_Update(ref),
 		"github.com/openshift/api/config/v1.UpdateHistory":                                                            schema_openshift_api_config_v1_UpdateHistory(ref),
 		"github.com/openshift/api/config/v1.WebhookTokenAuthenticator":                                                schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref),
+		"github.com/openshift/api/console/v1.ApplicationMenuSpec":                                                     schema_openshift_api_console_v1_ApplicationMenuSpec(ref),
 		"github.com/openshift/api/console/v1.ConsoleCLIDownload":                                                      schema_openshift_api_console_v1_ConsoleCLIDownload(ref),
 		"github.com/openshift/api/console/v1.ConsoleCLIDownloadList":                                                  schema_openshift_api_console_v1_ConsoleCLIDownloadList(ref),
 		"github.com/openshift/api/console/v1.ConsoleCLIDownloadSpec":                                                  schema_openshift_api_console_v1_ConsoleCLIDownloadSpec(ref),
@@ -7123,12 +7127,6 @@ func schema_openshift_api_config_v1_APIServerServingCerts(ref common.ReferenceCa
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"defaultServingCertificate": {
-						SchemaProps: spec.SchemaProps{
-							Description: "defaultServingCertificate references a kubernetes.io/tls type secret containing the default TLS cert info for serving secure traffic. If no named certificates match the server name as understood by a client, this default certificate will be used. If defaultServingCertificate is not specified, then a operator managed certificate will be used. The secret must exist in the openshift-config namespace and contain the following required fields: - Secret.Data[\"tls.key\"] - TLS private key. - Secret.Data[\"tls.crt\"] - TLS certificate.",
-							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
-						},
-					},
 					"namedCertificates": {
 						SchemaProps: spec.SchemaProps{
 							Description: "namedCertificates references secrets containing the TLS cert info for serving secure traffic to specific hostnames. If no named certificates are provided, or no named certificates match the server name as understood by a client, the defaultServingCertificate will be used.",
@@ -7146,7 +7144,7 @@ func schema_openshift_api_config_v1_APIServerServingCerts(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.APIServerNamedServingCert", "github.com/openshift/api/config/v1.SecretNameReference"},
+			"github.com/openshift/api/config/v1.APIServerNamedServingCert"},
 	}
 }
 
@@ -7563,6 +7561,40 @@ func schema_openshift_api_config_v1_AzurePlatformStatus(ref common.ReferenceCall
 					},
 				},
 				Required: []string{"resourceGroupName"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_BareMetalPlatformStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BareMetalPlatformStatus holds the current status of the BareMetal infrastructure provider.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiServerInternalIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI points to. It is the IP for a self-hosted load balancer in front of the API servers.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ingressIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"nodeDNSIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for BareMetal deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -8638,6 +8670,46 @@ func schema_openshift_api_config_v1_ConsoleStatus(ref common.ReferenceCallback) 
 	}
 }
 
+func schema_openshift_api_config_v1_CustomFeatureGates(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"enabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "enabled is a list of all feature gates that you want to force on",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"disabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabled is a list of all feature gates that you want to force off",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_openshift_api_config_v1_DNS(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -9166,6 +9238,33 @@ func schema_openshift_api_config_v1_FeatureGateList(ref common.ReferenceCallback
 	}
 }
 
+func schema_openshift_api_config_v1_FeatureGateSelection(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"featureSet": {
+						SchemaProps: spec.SchemaProps{
+							Description: "featureSet changes the list of features in the cluster.  The default is empty.  Be very careful adjusting this setting. Turning on or off features may cause irreversible changes in your cluster which cannot be undone.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"customNoUpgrade": {
+						SchemaProps: spec.SchemaProps{
+							Description: "customNoUpgrade allows the enabling or disabling of any feature. Turning this feature set on IS NOT SUPPORTED, CANNOT BE UNDONE, and PREVENTS UPGRADES. Because of its nature, this setting cannot be validated.  If you have any typos or accidentally apply invalid combinations your cluster may fail in an unrecoverable way.  featureSet must equal \"CustomNoUpgrade\" must be set to use this field.",
+							Ref:         ref("github.com/openshift/api/config/v1.CustomFeatureGates"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.CustomFeatureGates"},
+	}
+}
+
 func schema_openshift_api_config_v1_FeatureGateSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -9179,9 +9278,17 @@ func schema_openshift_api_config_v1_FeatureGateSpec(ref common.ReferenceCallback
 							Format:      "",
 						},
 					},
+					"customNoUpgrade": {
+						SchemaProps: spec.SchemaProps{
+							Description: "customNoUpgrade allows the enabling or disabling of any feature. Turning this feature set on IS NOT SUPPORTED, CANNOT BE UNDONE, and PREVENTS UPGRADES. Because of its nature, this setting cannot be validated.  If you have any typos or accidentally apply invalid combinations your cluster may fail in an unrecoverable way.  featureSet must equal \"CustomNoUpgrade\" must be set to use this field.",
+							Ref:         ref("github.com/openshift/api/config/v1.CustomFeatureGates"),
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.CustomFeatureGates"},
 	}
 }
 
@@ -11221,12 +11328,18 @@ func schema_openshift_api_config_v1_PlatformStatus(ref common.ReferenceCallback)
 							Ref:         ref("github.com/openshift/api/config/v1.GCPPlatformStatus"),
 						},
 					},
+					"baremetal": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BareMetal contains settings specific to the BareMetal platform.",
+							Ref:         ref("github.com/openshift/api/config/v1.BareMetalPlatformStatus"),
+						},
+					},
 				},
 				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AWSPlatformStatus", "github.com/openshift/api/config/v1.AzurePlatformStatus", "github.com/openshift/api/config/v1.GCPPlatformStatus"},
+			"github.com/openshift/api/config/v1.AWSPlatformStatus", "github.com/openshift/api/config/v1.AzurePlatformStatus", "github.com/openshift/api/config/v1.BareMetalPlatformStatus", "github.com/openshift/api/config/v1.GCPPlatformStatus"},
 	}
 }
 
@@ -11484,6 +11597,20 @@ func schema_openshift_api_config_v1_ProxySpec(ref common.ReferenceCallback) comm
 							Description: "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Empty means unset and will not result in an env var.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"readinessEndpoints": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readinessEndpoints is a list of endpoints used to verify readiness of the proxy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -11871,6 +11998,13 @@ func schema_openshift_api_config_v1_SchedulerSpec(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
+					"mastersSchedulable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MastersSchedulable allows masters nodes to be schedulable. When this flag is turned on, all the master nodes in the cluster will be made schedulable, so that workload pods can run on them. The default value for this field is false, meaning none of the master nodes are schedulable. Important Note: Once the workload pods start running on the master nodes, extreme care must be taken to ensure that cluster-critical control plane components are not impacted. Please turn on this field after doing due diligence.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -12240,6 +12374,34 @@ func schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref common.Referen
 	}
 }
 
+func schema_openshift_api_console_v1_ApplicationMenuSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ApplicationMenuSpec is the specification of the desired section and icon used for the link in the application menu.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"section": {
+						SchemaProps: spec.SchemaProps{
+							Description: "section is the section of the application menu in which the link should appear.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "imageUrl is the URL for the icon used in front of the link in the application menu. The URL must be an HTTPS URL or a Data URI. The image should be square and will be shown at 24x24 pixels.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"section", "imageURL"},
+			},
+		},
+	}
+}
+
 func schema_openshift_api_console_v1_ConsoleCLIDownload(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -12487,10 +12649,18 @@ func schema_openshift_api_console_v1_ConsoleLinkSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
+					"applicationMenu": {
+						SchemaProps: spec.SchemaProps{
+							Description: "applicationMenu holds information about section and icon used for the link in the application menu, and it is applicable only when location is set to ApplicationMenu.",
+							Ref:         ref("github.com/openshift/api/console/v1.ApplicationMenuSpec"),
+						},
+					},
 				},
 				Required: []string{"text", "href", "location"},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/console/v1.ApplicationMenuSpec"},
 	}
 }
 
