@@ -25,7 +25,7 @@ func Register(plugins *admission.Plugins) {
 }
 
 type validateCustomResourceWithClient struct {
-	admission.Interface
+	admission.ValidationInterface
 
 	infrastructureGetter configv1client.InfrastructuresGetter
 }
@@ -43,7 +43,7 @@ func NewValidateAPIServer() (admission.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret.Interface = delegate
+	ret.ValidationInterface = delegate
 
 	return ret, nil
 }
@@ -68,7 +68,7 @@ func (a *validateCustomResourceWithClient) ValidateInitialization() error {
 		return fmt.Errorf(PluginName + " needs an infrastructureGetter")
 	}
 
-	if initializationValidator, ok := a.Interface.(admission.InitializationValidator); ok {
+	if initializationValidator, ok := a.ValidationInterface.(admission.InitializationValidator); ok {
 		return initializationValidator.ValidateInitialization()
 	}
 
