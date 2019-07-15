@@ -147,6 +147,8 @@ func getPlatformName(platformType configv1.PlatformType, recorder events.Recorde
 	case configv1.VSpherePlatformType:
 		cloudProvider = "vsphere"
 	case configv1.BareMetalPlatformType:
+	case configv1.GCPPlatformType:
+		cloudProvider = "gce"
 	case configv1.LibvirtPlatformType:
 	case configv1.OpenStackPlatformType:
 		// TODO(flaper87): Enable this once we've figured out a way to write the cloud provider config in the master nodes

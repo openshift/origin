@@ -124,7 +124,7 @@ type Codec interface {
 // GenerateRandomKey(). It is recommended to use a key with 32 or 64 bytes.
 //
 // blockKey is optional, used to encrypt values. Create it using
-// GenerateRandomKey(). The key length must correspond to the block size
+// GenerateRandomKey(). The key length must correspond to the key size
 // of the encryption algorithm. For AES, used by default, valid lengths are
 // 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
 // The default encoder used for cookie serialization is encoding/gob.
