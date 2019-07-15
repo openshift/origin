@@ -16,7 +16,6 @@ import (
 	"k8s.io/component-base/logs"
 
 	"github.com/openshift/library-go/pkg/serviceability"
-	openshift_integrated_oauth_server "github.com/openshift/oauth-server/pkg/cmd/oauth-server"
 	"github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/sdn/pkg/openshift-network-controller"
@@ -70,12 +69,6 @@ func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 
 	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftNetworkController)
-
-	startOsin := openshift_integrated_oauth_server.NewOsinServer(os.Stdout, os.Stderr, stopCh)
-	startOsin.Use = "openshift-osinserver"
-	startOsin.Deprecated = "will be removed in 4.0"
-	startOsin.Hidden = true
-	cmd.AddCommand(startOsin)
 
 	return cmd
 }
