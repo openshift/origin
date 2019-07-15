@@ -28,10 +28,6 @@ var _ = g.Describe("[Area:Networking][endpoints] admission", func() {
 	})
 })
 
-const (
-	clusterNetworkCIDR = "10.128.0.0/14"
-)
-
 var exampleAddresses = map[string]string{
 	"cluster":  "10.128.0.2",
 	"service":  "172.30.0.2",
