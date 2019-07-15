@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ghodss/yaml"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -269,6 +271,10 @@ func (o *MirrorOptions) Run() error {
 		}
 	}
 
+	var currentRepo string
+	exists := struct{}{}
+	repoMap := map[string]struct{}{}
+
 	// build the mapping list for mirroring and rewrite if necessary
 	for i := range is.Spec.Tags {
 		tag := &is.Spec.Tags[i]
@@ -282,6 +288,10 @@ func (o *MirrorOptions) Run() error {
 		if len(from.Tag) > 0 || len(from.ID) == 0 {
 			return fmt.Errorf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
 		}
+
+		// Create a unique map of repos as keys
+		currentRepo = from.AsRepository().String()
+		repoMap[currentRepo] = exists
 
 		dstMirrorRef := targetFn(tag.Name)
 		mappings = append(mappings, mirror.Mapping{
@@ -442,7 +452,55 @@ func (o *MirrorOptions) Run() error {
 	} else {
 		fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirrored to: %s\n", to, o.To)
 	}
+
+	printInstallInstructions(o.Out, o.From, o.To, repoMap)
 	return nil
+}
+
+// printInstallInstructions provides detail to the user for using the new mirror for installs.
+// The instructions include yaml formatted output which should be added to the install-config.yaml.
+//
+// Exmaple output:
+//
+//  <descriptive installer usage text>
+//  imageContentSources:
+//  - sources:
+//    - mycompany.com/myrepository/repo                 # destination (mirror) listed first
+//    - registry.svc.ci.openshift.org/ocp/release       # source listed second
+//    - quay.io/openshift-release-dev/ocp-v4.0-art-dev  # repos from image-references
+//
+func printInstallInstructions(out io.Writer, from, to string, repos map[string]struct{}) {
+	type installConfigSubsectionImageContentSources struct {
+		Sources []string `json:"sources"`
+	}
+	type installConfigSubsection struct {
+		ImageContentSources []installConfigSubsectionImageContentSources `json:"imageContentSources"`
+	}
+
+	var repoList []string
+
+	// Append destination (mirror) repo first
+	mirrorRef, _ := imagereference.Parse(to)
+	mirrorRepo := mirrorRef.AsRepository().String()
+	repoList = append(repoList, mirrorRepo)
+
+	// Append source repo second
+	sourceRef, _ := imagereference.Parse(from)
+	sourceRepo := sourceRef.AsRepository().String()
+	repoList = append(repoList, sourceRepo)
+
+	// Append unordered repos from image-references in release-image
+	for repo := range repos {
+		repoList = append(repoList, repo)
+	}
+	sources := installConfigSubsectionImageContentSources{
+		Sources: repoList}
+	imageContentSource := installConfigSubsection{
+		ImageContentSources: []installConfigSubsectionImageContentSources{sources}}
+	result, _ := yaml.Marshal(imageContentSource)
+
+	fmt.Fprintf(out, "\nTo use the new mirrored release-image to install, provide the following list of release-image sources to the installer using the install-config.yaml:\n")
+	fmt.Fprintf(out, string(result))
 }
 
 func sourceImageRef(is *imagev1.ImageStream, name string) (string, bool) {
