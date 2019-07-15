@@ -8,7 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	oapi "github.com/openshift/openshift-apiserver/pkg/api"
+	"github.com/openshift/api/annotations"
+	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 )
@@ -35,9 +36,9 @@ func ValidateProjectName(name string, prefix bool) []string {
 func ValidateProject(project *projectapi.Project) field.ErrorList {
 	result := validation.ValidateObjectMeta(&project.ObjectMeta, false, ValidateProjectName, field.NewPath("metadata"))
 
-	if !validateNoNewLineOrTab(project.Annotations[oapi.OpenShiftDisplayName]) {
-		result = append(result, field.Invalid(field.NewPath("metadata", "annotations").Key(oapi.OpenShiftDisplayName),
-			project.Annotations[oapi.OpenShiftDisplayName], "may not contain a new line or tab"))
+	if !validateNoNewLineOrTab(project.Annotations[annotations.OpenShiftDisplayName]) {
+		result = append(result, field.Invalid(field.NewPath("metadata", "annotations").Key(annotations.OpenShiftDisplayName),
+			project.Annotations[annotations.OpenShiftDisplayName], "may not contain a new line or tab"))
 	}
 	result = append(result, validateNodeSelector(project)...)
 	return result
@@ -62,7 +63,7 @@ func ValidateProjectUpdate(newProject *projectapi.Project, oldProject *projectap
 
 	// TODO this restriction exists because our authorizer/admission cannot properly express and restrict mutation on the field level.
 	for name, value := range newProject.Annotations {
-		if name == oapi.OpenShiftDisplayName || name == oapi.OpenShiftDescription {
+		if name == annotations.OpenShiftDisplayName || name == annotations.OpenShiftDescription {
 			continue
 		}
 
@@ -72,7 +73,7 @@ func ValidateProjectUpdate(newProject *projectapi.Project, oldProject *projectap
 	}
 	// check for deletions
 	for name, value := range oldProject.Annotations {
-		if name == oapi.OpenShiftDisplayName || name == oapi.OpenShiftDescription {
+		if name == annotations.OpenShiftDisplayName || name == annotations.OpenShiftDescription {
 			continue
 		}
 		if _, inNew := newProject.Annotations[name]; !inNew {
@@ -105,10 +106,10 @@ func validateNodeSelector(p *projectapi.Project) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(p.Annotations) > 0 {
-		if selector, ok := p.Annotations[projectapi.ProjectNodeSelector]; ok {
+		if selector, ok := p.Annotations[projectv1.ProjectNodeSelector]; ok {
 			if _, err := labelselector.Parse(selector); err != nil {
 				allErrs = append(allErrs, field.Invalid(field.NewPath("nodeSelector"),
-					p.Annotations[projectapi.ProjectNodeSelector], "must be a valid label selector"))
+					p.Annotations[projectv1.ProjectNodeSelector], "must be a valid label selector"))
 			}
 		}
 	}

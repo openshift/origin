@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	projectv1 "github.com/openshift/api/project/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	testexutil "github.com/openshift/origin/test/extended/util"
@@ -315,7 +316,7 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 		if ns.Annotations == nil {
 			ns.Annotations = make(map[string]string)
 		}
-		ns.Annotations["openshift.io/node-selector"] = ""
+		ns.Annotations[projectv1.ProjectNodeSelector] = ""
 		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
 		if err == nil {
 			return

@@ -3,10 +3,12 @@ package validation
 import (
 	"testing"
 
+	"github.com/openshift/api/annotations"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	oapi "github.com/openshift/openshift-apiserver/pkg/api"
+	projectv1 "github.com/openshift/api/project/v1"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 )
 
@@ -22,8 +24,8 @@ func TestValidateProject(t *testing.T) {
 			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "hi",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "hi",
 					},
 				},
 			},
@@ -36,8 +38,8 @@ func TestValidateProject(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "141-.124.$",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "hi",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "hi",
 					},
 				},
 			},
@@ -123,8 +125,8 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "foo",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "hi",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "hi",
 					},
 				},
 			},
@@ -138,8 +140,8 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "h\t\ni",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "h\t\ni",
 					},
 				},
 			},
@@ -153,7 +155,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						projectapi.ProjectNodeSelector: "infra=true, env = test",
+						projectv1.ProjectNodeSelector: "infra=true, env = test",
 					},
 				},
 			},
@@ -166,7 +168,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						projectapi.ProjectNodeSelector: "infra, env = $test",
+						projectv1.ProjectNodeSelector: "infra, env = $test",
 					},
 				},
 			},
@@ -180,7 +182,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						projectapi.ProjectNodeSelector: "env,qa",
+						projectv1.ProjectNodeSelector: "env,qa",
 					},
 				},
 			},
@@ -206,8 +208,8 @@ func TestValidateProject(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
-				oapi.OpenShiftDescription: "This is a description",
-				oapi.OpenShiftDisplayName: "hi",
+				annotations.OpenShiftDescription: "This is a description",
+				annotations.OpenShiftDisplayName: "hi",
 			},
 		},
 	}
@@ -225,9 +227,9 @@ func TestValidateProjectUpdate(t *testing.T) {
 			Name:            "project-name",
 			ResourceVersion: "1",
 			Annotations: map[string]string{
-				oapi.OpenShiftDescription:      "This is a description",
-				oapi.OpenShiftDisplayName:      "display name",
-				projectapi.ProjectNodeSelector: "infra=true, env = test",
+				annotations.OpenShiftDescription: "This is a description",
+				annotations.OpenShiftDisplayName: "display name",
+				projectv1.ProjectNodeSelector:    "infra=true, env = test",
 			},
 			Labels: map[string]string{"label-name": "value"},
 		},
@@ -237,9 +239,9 @@ func TestValidateProjectUpdate(t *testing.T) {
 			Name:            "project-name",
 			ResourceVersion: "1",
 			Annotations: map[string]string{
-				oapi.OpenShiftDescription:      "This is a description",
-				oapi.OpenShiftDisplayName:      "display name change",
-				projectapi.ProjectNodeSelector: "infra=true, env = test",
+				annotations.OpenShiftDescription: "This is a description",
+				annotations.OpenShiftDisplayName: "display name change",
+				projectv1.ProjectNodeSelector:    "infra=true, env = test",
 			},
 			Labels: map[string]string{"label-name": "value"},
 		},
@@ -273,15 +275,15 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription:      "This is a description",
-						oapi.OpenShiftDisplayName:      "display name\n",
-						projectapi.ProjectNodeSelector: "infra=true, env = test",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "display name\n",
+						projectv1.ProjectNodeSelector:    "infra=true, env = test",
 					},
 					Labels: project.Labels,
 				},
 			},
 			T: field.ErrorTypeInvalid,
-			F: "metadata.annotations[" + oapi.OpenShiftDisplayName + "]",
+			F: "metadata.annotations[" + annotations.OpenShiftDisplayName + "]",
 		},
 		"updating disallowed annotation": {
 			A: projectapi.Project{
@@ -289,9 +291,9 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription:      "This is a description",
-						oapi.OpenShiftDisplayName:      "display name",
-						projectapi.ProjectNodeSelector: "infra=true, env = test2",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "display name",
+						projectv1.ProjectNodeSelector:    "infra=true, env = test2",
 					},
 					Labels: project.Labels,
 				},
@@ -305,8 +307,8 @@ func TestValidateProjectUpdate(t *testing.T) {
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "display name",
+						annotations.OpenShiftDescription: "This is a description",
+						annotations.OpenShiftDisplayName: "display name",
 					},
 					Labels: project.Labels,
 				},

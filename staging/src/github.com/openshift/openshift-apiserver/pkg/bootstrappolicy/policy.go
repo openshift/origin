@@ -1,6 +1,7 @@
 package bootstrappolicy
 
 import (
+	"github.com/openshift/api/annotations"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,7 +118,7 @@ var (
 	serviceBrokerRoot = "/brokers/template.openshift.io"
 
 	// openShiftDescription is a common, optional annotation that stores the description for a resource.
-	openShiftDescription = "openshift.io/description"
+	openShiftDescription = annotations.OpenShiftDescription
 )
 
 func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {

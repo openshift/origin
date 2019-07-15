@@ -1,6 +1,7 @@
 package defaultrolebindings
 
 import (
+	"github.com/openshift/api/annotations"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -8,7 +9,7 @@ import (
 )
 
 const (
-	openShiftDescription = "openshift.io/description"
+	openShiftDescription = annotations.OpenShiftDescription
 
 	ImagePullerRoleName  = "system:image-puller"
 	ImageBuilderRoleName = "system:image-builder"

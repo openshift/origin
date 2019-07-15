@@ -35,6 +35,7 @@ import (
 	// this appears to inexplicably auto-register global flags.
 	_ "k8s.io/kubernetes/test/e2e/storage/drivers"
 
+	projectv1 "github.com/openshift/api/project/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
 	"github.com/openshift/origin/pkg/version"
@@ -527,7 +528,7 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 		if ns.Annotations == nil {
 			ns.Annotations = make(map[string]string)
 		}
-		ns.Annotations["openshift.io/node-selector"] = ""
+		ns.Annotations[projectv1.ProjectNodeSelector] = ""
 		_, err = c.CoreV1().Namespaces().Update(ns)
 		return err
 	})
