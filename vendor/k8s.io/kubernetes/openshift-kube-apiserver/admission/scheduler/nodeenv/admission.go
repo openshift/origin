@@ -14,6 +14,8 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv/labelselector"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
+
+	projectv1 "github.com/openshift/api/project/v1"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -24,9 +26,8 @@ func Register(plugins *admission.Plugins) {
 }
 
 const (
-	timeToWaitForCacheSync       = 10 * time.Second
-	kubeProjectNodeSelector      = "scheduler.alpha.kubernetes.io/node-selector"
-	openShiftProjectNodeSelector = "openshift.io/node-selector"
+	timeToWaitForCacheSync  = 10 * time.Second
+	kubeProjectNodeSelector = "scheduler.alpha.kubernetes.io/node-selector"
 )
 
 // podNodeEnvironment is an implementation of admission.MutationInterface.
@@ -77,7 +78,7 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 	}
 
 	selector := p.defaultNodeSelector
-	if projectNodeSelector, ok := namespace.ObjectMeta.Annotations[openShiftProjectNodeSelector]; ok {
+	if projectNodeSelector, ok := namespace.ObjectMeta.Annotations[projectv1.ProjectNodeSelector]; ok {
 		selector = projectNodeSelector
 	}
 	projectNodeSelector, err := labelselector.Parse(selector)
