@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/cancelbuild"
 	"github.com/openshift/oc/pkg/cli/debug"
 	"github.com/openshift/oc/pkg/cli/deployer"
+	"github.com/openshift/oc/pkg/cli/experimental/console"
 	"github.com/openshift/oc/pkg/cli/experimental/dockergc"
 	"github.com/openshift/oc/pkg/cli/expose"
 	"github.com/openshift/oc/pkg/cli/extract"
@@ -329,6 +330,7 @@ func newExperimentalCommand(name, fullName string, f kcmdutil.Factory, ioStreams
 		BashCompletionFunction: admin.BashCompletionFunc,
 	}
 
+	experimental.AddCommand(console.NewCmdConsoleConfig(f, fullName, "console", ioStreams))
 	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", ioStreams))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, ioStreams))
 	experimental.AddCommand(options.NewCmdOptions(ioStreams))
