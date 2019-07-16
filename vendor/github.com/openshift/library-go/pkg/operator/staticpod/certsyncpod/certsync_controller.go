@@ -161,6 +161,12 @@ func (c *CertSyncController) Run(workers int, stopCh <-chan struct{}) {
 	klog.Infof("Starting CertSyncer")
 	defer klog.Infof("Shutting down CertSyncer")
 
+	if !cache.WaitForCacheSync(stopCh, c.preRunCaches...) {
+		klog.Error("failed waiting for caches")
+		return
+	}
+	klog.V(2).Infof("CertSyncer caches synced")
+
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
 

@@ -135,6 +135,10 @@ func (c *StaticPodStateController) sync() error {
 			c.operandName,
 			status.VersionForOperandFromEnv(),
 		)
+		c.versionRecorder.SetVersion(
+			"operator",
+			status.VersionForOperatorFromEnv(),
+		)
 	}
 
 	// update failing condition

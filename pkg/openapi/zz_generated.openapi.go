@@ -131,6 +131,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.APIServerServingCerts":                                                    schema_openshift_api_config_v1_APIServerServingCerts(ref),
 		"github.com/openshift/api/config/v1.APIServerSpec":                                                            schema_openshift_api_config_v1_APIServerSpec(ref),
 		"github.com/openshift/api/config/v1.APIServerStatus":                                                          schema_openshift_api_config_v1_APIServerStatus(ref),
+		"github.com/openshift/api/config/v1.AWSPlatformStatus":                                                        schema_openshift_api_config_v1_AWSPlatformStatus(ref),
 		"github.com/openshift/api/config/v1.AdmissionConfig":                                                          schema_openshift_api_config_v1_AdmissionConfig(ref),
 		"github.com/openshift/api/config/v1.AdmissionPluginConfig":                                                    schema_openshift_api_config_v1_AdmissionPluginConfig(ref),
 		"github.com/openshift/api/config/v1.AuditConfig":                                                              schema_openshift_api_config_v1_AuditConfig(ref),
@@ -220,6 +221,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.OpenIDClaims":                                                             schema_openshift_api_config_v1_OpenIDClaims(ref),
 		"github.com/openshift/api/config/v1.OpenIDIdentityProvider":                                                   schema_openshift_api_config_v1_OpenIDIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.OperandVersion":                                                           schema_openshift_api_config_v1_OperandVersion(ref),
+		"github.com/openshift/api/config/v1.PlatformStatus":                                                           schema_openshift_api_config_v1_PlatformStatus(ref),
 		"github.com/openshift/api/config/v1.Project":                                                                  schema_openshift_api_config_v1_Project(ref),
 		"github.com/openshift/api/config/v1.ProjectList":                                                              schema_openshift_api_config_v1_ProjectList(ref),
 		"github.com/openshift/api/config/v1.ProjectSpec":                                                              schema_openshift_api_config_v1_ProjectSpec(ref),
@@ -4734,14 +4736,14 @@ func schema_openshift_api_build_v1_BuildConfigSpec(ref common.ReferenceCallback)
 					},
 					"successfulBuildsHistoryLimit": {
 						SchemaProps: spec.SchemaProps{
-							Description: "successfulBuildsHistoryLimit is the number of old successful builds to retain. If not specified, all successful builds are retained.",
+							Description: "successfulBuildsHistoryLimit is the number of old successful builds to retain. When a BuildConfig is created, the 5 most recent successful builds are retained unless this value is set. If removed after the BuildConfig has been created, all successful builds are retained.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"failedBuildsHistoryLimit": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedBuildsHistoryLimit is the number of old failed builds to retain. If not specified, all failed builds are retained.",
+							Description: "failedBuildsHistoryLimit is the number of old failed builds to retain. When a BuildConfig is created, the 5 most recent failed builds are retained unless this value is set. If removed after the BuildConfig has been created, all failed builds are retained.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -7119,6 +7121,27 @@ func schema_openshift_api_config_v1_APIServerStatus(ref common.ReferenceCallback
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_AWSPlatformStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"region": {
+						SchemaProps: spec.SchemaProps{
+							Description: "region holds the default AWS region for new AWS resources created by the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"region"},
 			},
 		},
 	}
@@ -9875,9 +9898,15 @@ func schema_openshift_api_config_v1_InfrastructureStatus(ref common.ReferenceCal
 					},
 					"platform": {
 						SchemaProps: spec.SchemaProps{
-							Description: "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+							Description: "platform is the underlying infrastructure provider for the cluster.\n\nDeprecated: Use platformStatus.type instead.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"platformStatus": {
+						SchemaProps: spec.SchemaProps{
+							Description: "platformStatus holds status information specific to the underlying infrastructure provider.",
+							Ref:         ref("github.com/openshift/api/config/v1.PlatformStatus"),
 						},
 					},
 					"etcdDiscoveryDomain": {
@@ -9889,15 +9918,24 @@ func schema_openshift_api_config_v1_InfrastructureStatus(ref common.ReferenceCal
 					},
 					"apiServerURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "apiServerURL is a valid URL with scheme(http/https), address and port. apiServerURL can be used by components like kubelet on machines, to contact the `apisever` using the infrastructure provider rather than the kubernetes networking.",
+							Description: "apiServerURL is a valid URI with scheme(http/https), address and port.  apiServerURL can be used by components like the web console to tell users where to find the Kubernetes API.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiServerInternalURI": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiServerInternalURL is a valid URI with scheme(http/https), address and port.  apiServerInternalURL can be used by components like kubelets, to contact the Kubernetes API server using the infrastructure provider rather than Kubernetes networking.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"infrastructureName", "etcdDiscoveryDomain", "apiServerURL"},
+				Required: []string{"infrastructureName", "etcdDiscoveryDomain", "apiServerURL", "apiServerInternalURI"},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.PlatformStatus"},
 	}
 }
 
@@ -10940,6 +10978,35 @@ func schema_openshift_api_config_v1_OperandVersion(ref common.ReferenceCallback)
 				Required: []string{"name", "version"},
 			},
 		},
+	}
+}
+
+func schema_openshift_api_config_v1_PlatformStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PlatformStatus holds the current status specific to the underlying infrastructure provider of the current cluster. Since these are used at status-level for the underlying cluster, it is supposed that only one of the status structs is set.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"aws": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AWS contains settings specific to the Amazon Web Services infrastructure provider.",
+							Ref:         ref("github.com/openshift/api/config/v1.AWSPlatformStatus"),
+						},
+					},
+				},
+				Required: []string{"type"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.AWSPlatformStatus"},
 	}
 }
 
@@ -21080,6 +21147,13 @@ func schema_openshift_api_operator_v1_AdditionalNetworkDefinition(ref common.Ref
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the name of the network. This will be populated in the resulting CRD This must be unique.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace is the namespace of the network. This will be populated in the resulting CRD If not given the network will be created in the default namespace.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

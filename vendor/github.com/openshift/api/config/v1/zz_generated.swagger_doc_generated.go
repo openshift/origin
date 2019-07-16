@@ -699,6 +699,15 @@ func (RegistrySources) SwaggerDoc() map[string]string {
 	return map_RegistrySources
 }
 
+var map_AWSPlatformStatus = map[string]string{
+	"":       "AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.",
+	"region": "region holds the default AWS region for new AWS resources created by the cluster.",
+}
+
+func (AWSPlatformStatus) SwaggerDoc() map[string]string {
+	return map_AWSPlatformStatus
+}
+
 var map_Infrastructure = map[string]string{
 	"":         "Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`",
 	"metadata": "Standard object's metadata.",
@@ -729,15 +738,27 @@ func (InfrastructureSpec) SwaggerDoc() map[string]string {
 }
 
 var map_InfrastructureStatus = map[string]string{
-	"":                    "InfrastructureStatus describes the infrastructure the cluster is leveraging.",
-	"infrastructureName":  "infrastructureName uniquely identifies a cluster with a human friendly name. Once set it should not be changed. Must be of max length 27 and must have only alphanumeric or hyphen characters.",
-	"platform":            "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
-	"etcdDiscoveryDomain": "etcdDiscoveryDomain is the domain used to fetch the SRV records for discovering etcd servers and clients. For more info: https://github.com/etcd-io/etcd/blob/329be66e8b3f9e2e6af83c123ff89297e49ebd15/Documentation/op-guide/clustering.md#dns-discovery",
-	"apiServerURL":        "apiServerURL is a valid URL with scheme(http/https), address and port. apiServerURL can be used by components like kubelet on machines, to contact the `apisever` using the infrastructure provider rather than the kubernetes networking.",
+	"":                     "InfrastructureStatus describes the infrastructure the cluster is leveraging.",
+	"infrastructureName":   "infrastructureName uniquely identifies a cluster with a human friendly name. Once set it should not be changed. Must be of max length 27 and must have only alphanumeric or hyphen characters.",
+	"platform":             "platform is the underlying infrastructure provider for the cluster.\n\nDeprecated: Use platformStatus.type instead.",
+	"platformStatus":       "platformStatus holds status information specific to the underlying infrastructure provider.",
+	"etcdDiscoveryDomain":  "etcdDiscoveryDomain is the domain used to fetch the SRV records for discovering etcd servers and clients. For more info: https://github.com/etcd-io/etcd/blob/329be66e8b3f9e2e6af83c123ff89297e49ebd15/Documentation/op-guide/clustering.md#dns-discovery",
+	"apiServerURL":         "apiServerURL is a valid URI with scheme(http/https), address and port.  apiServerURL can be used by components like the web console to tell users where to find the Kubernetes API.",
+	"apiServerInternalURI": "apiServerInternalURL is a valid URI with scheme(http/https), address and port.  apiServerInternalURL can be used by components like kubelets, to contact the Kubernetes API server using the infrastructure provider rather than Kubernetes networking.",
 }
 
 func (InfrastructureStatus) SwaggerDoc() map[string]string {
 	return map_InfrastructureStatus
+}
+
+var map_PlatformStatus = map[string]string{
+	"":     "PlatformStatus holds the current status specific to the underlying infrastructure provider of the current cluster. Since these are used at status-level for the underlying cluster, it is supposed that only one of the status structs is set.",
+	"type": "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+	"aws":  "AWS contains settings specific to the Amazon Web Services infrastructure provider.",
+}
+
+func (PlatformStatus) SwaggerDoc() map[string]string {
+	return map_PlatformStatus
 }
 
 var map_Ingress = map[string]string{

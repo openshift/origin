@@ -5,11 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/management"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	"k8s.io/klog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -20,10 +18,13 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/monitoring/bindata"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
@@ -31,6 +32,8 @@ const (
 	controllerWorkQueueKey                             = "key"
 	manifestDir                                        = "pkg/operator/staticpod/controller/monitoring"
 )
+
+var syntheticRequeueError = fmt.Errorf("synthetic requeue request")
 
 type MonitoringResourceController struct {
 	targetNamespace    string
@@ -119,7 +122,14 @@ func (c MonitoringResourceController) sync() error {
 		errs = append(errs, fmt.Errorf("manifests/service-monitor.yaml: %v", err))
 	} else {
 		_, serviceMonitorErr := resourceapply.ApplyServiceMonitor(c.dynamicClient, c.eventRecorder, serviceMonitorBytes)
-		errs = append(errs, serviceMonitorErr)
+		// This is to handle 'the server could not find the requested resource' which occurs when the CRD is not available
+		// yet (the CRD is provided by prometheus operator). This produce noise and plenty of events.
+		if errors.IsNotFound(serviceMonitorErr) {
+			klog.V(4).Infof("Unable to apply service monitor: %v", err)
+			return syntheticRequeueError
+		} else if serviceMonitorErr != nil {
+			errs = append(errs, serviceMonitorErr)
+		}
 	}
 
 	err = v1helpers.NewMultiLineAggregate(errs)
@@ -179,7 +189,10 @@ func (c *MonitoringResourceController) processNextWorkItem() bool {
 		return true
 	}
 
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
+	if err != syntheticRequeueError {
+		utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
+	}
+
 	c.queue.AddRateLimited(dsKey)
 
 	return true

@@ -80,8 +80,8 @@ var map_BuildConfigSpec = map[string]string{
 	"":                             "BuildConfigSpec describes when and how builds are created",
 	"triggers":                     "triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation.",
 	"runPolicy":                    "RunPolicy describes how the new build created from this build configuration will be scheduled for execution. This is optional, if not specified we default to \"Serial\".",
-	"successfulBuildsHistoryLimit": "successfulBuildsHistoryLimit is the number of old successful builds to retain. If not specified, all successful builds are retained.",
-	"failedBuildsHistoryLimit":     "failedBuildsHistoryLimit is the number of old failed builds to retain. If not specified, all failed builds are retained.",
+	"successfulBuildsHistoryLimit": "successfulBuildsHistoryLimit is the number of old successful builds to retain. When a BuildConfig is created, the 5 most recent successful builds are retained unless this value is set. If removed after the BuildConfig has been created, all successful builds are retained.",
+	"failedBuildsHistoryLimit":     "failedBuildsHistoryLimit is the number of old failed builds to retain. When a BuildConfig is created, the 5 most recent failed builds are retained unless this value is set. If removed after the BuildConfig has been created, all failed builds are retained.",
 }
 
 func (BuildConfigSpec) SwaggerDoc() map[string]string {

@@ -2,6 +2,7 @@ package revision
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -248,6 +249,32 @@ func (c RevisionController) createNewRevision(revision int32) error {
 	return nil
 }
 
+// getLatestAvailableRevision returns the latest known revision to the operator
+// This is either the LatestAvailableRevision in the status or by checking revision status configmaps
+func (c RevisionController) getLatestAvailableRevision(operatorStatus *operatorv1.StaticPodOperatorStatus) (int32, error) {
+	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
+	if err != nil {
+		return 0, err
+	}
+	var latestRevision int32
+	for _, configMap := range configMaps.Items {
+		if !strings.HasPrefix(configMap.Name, "revision-status-") {
+			continue
+		}
+		if revision, ok := configMap.Data["revision"]; ok {
+			revisionNumber, err := strconv.Atoi(revision)
+			if err != nil {
+				return 0, err
+			}
+			if int32(revisionNumber) > latestRevision {
+				latestRevision = int32(revisionNumber)
+			}
+		}
+	}
+	// If there are no configmaps, then this should actually be revision 0
+	return latestRevision, nil
+}
+
 func (c RevisionController) sync() error {
 	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorClient.GetStaticPodOperatorStateWithQuorum()
 	if err != nil {
@@ -257,6 +284,25 @@ func (c RevisionController) sync() error {
 
 	if !management.IsOperatorManaged(operatorSpec.ManagementState) {
 		return nil
+	}
+
+	// If the operator status has 0 as its latest available revision, this is either the first revision
+	// or possibly the operator resource was deleted and reset back to 0, which is not what we want so check configmaps
+	if operatorStatus.LatestAvailableRevision == 0 {
+		// Check to see if current revision is accurate and if not, search through configmaps for latest revision
+		latestRevision, err := c.getLatestAvailableRevision(operatorStatus)
+		if err != nil {
+			return err
+		}
+		if latestRevision != 0 {
+			// Then make sure that revision number is what's in the operator status
+			_, _, err = v1helpers.UpdateStaticPodStatus(c.operatorClient, func(status *operatorv1.StaticPodOperatorStatus) error {
+				status.LatestAvailableRevision = latestRevision
+				return nil
+			})
+			// If we made a change return and requeue with the correct status
+			return fmt.Errorf("synthetic requeue request (err: %v)", err)
+		}
 	}
 
 	requeue, syncErr := c.createRevisionIfNeeded(operatorSpec, operatorStatus, resourceVersion)
