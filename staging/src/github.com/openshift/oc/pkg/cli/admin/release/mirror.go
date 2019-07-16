@@ -469,7 +469,7 @@ func (o *MirrorOptions) Run() error {
 //    - registry.svc.ci.openshift.org/ocp/release       # source listed second
 //    - quay.io/openshift-release-dev/ocp-v4.0-art-dev  # repos from image-references
 //
-func printInstallInstructions(out io.Writer, from, to string, repos map[string]struct{}) {
+func printInstallInstructions(out io.Writer, from, to string, repos map[string]struct{}) error {
 	type installConfigSubsectionImageContentSources struct {
 		Sources []string `json:"sources"`
 	}
@@ -480,12 +480,18 @@ func printInstallInstructions(out io.Writer, from, to string, repos map[string]s
 	var repoList []string
 
 	// Append destination (mirror) repo first
-	mirrorRef, _ := imagereference.Parse(to)
+	mirrorRef, err := imagereference.Parse(to)
+	if err != nil {
+		return fmt.Errorf("Unable to parse '--to' image reference: %v", err)
+	}
 	mirrorRepo := mirrorRef.AsRepository().String()
 	repoList = append(repoList, mirrorRepo)
 
 	// Append source repo second
-	sourceRef, _ := imagereference.Parse(from)
+	sourceRef, err := imagereference.Parse(from)
+	if err != nil {
+		return fmt.Errorf("Unable to parse '--from' image reference: %v", err)
+	}
 	sourceRepo := sourceRef.AsRepository().String()
 	repoList = append(repoList, sourceRepo)
 
@@ -497,10 +503,15 @@ func printInstallInstructions(out io.Writer, from, to string, repos map[string]s
 		Sources: repoList}
 	imageContentSource := installConfigSubsection{
 		ImageContentSources: []installConfigSubsectionImageContentSources{sources}}
-	result, _ := yaml.Marshal(imageContentSource)
+	result, err := yaml.Marshal(imageContentSource)
+	if err != nil {
+		return fmt.Errorf("Unable to marshal imageContentSource yaml: %v", err)
+	}
 
 	fmt.Fprintf(out, "\nTo use the new mirrored release-image to install, provide the following list of release-image sources to the installer using the install-config.yaml:\n")
 	fmt.Fprintf(out, string(result))
+
+	return nil
 }
 
 func sourceImageRef(is *imagev1.ImageStream, name string) (string, bool) {
