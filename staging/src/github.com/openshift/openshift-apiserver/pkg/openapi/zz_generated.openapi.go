@@ -227,6 +227,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ObjectReference":                                                          schema_openshift_api_config_v1_ObjectReference(ref),
 		"github.com/openshift/api/config/v1.OpenIDClaims":                                                             schema_openshift_api_config_v1_OpenIDClaims(ref),
 		"github.com/openshift/api/config/v1.OpenIDIdentityProvider":                                                   schema_openshift_api_config_v1_OpenIDIdentityProvider(ref),
+		"github.com/openshift/api/config/v1.OpenStackPlatformStatus":                                                  schema_openshift_api_config_v1_OpenStackPlatformStatus(ref),
 		"github.com/openshift/api/config/v1.OperandVersion":                                                           schema_openshift_api_config_v1_OperandVersion(ref),
 		"github.com/openshift/api/config/v1.PlatformStatus":                                                           schema_openshift_api_config_v1_PlatformStatus(ref),
 		"github.com/openshift/api/config/v1.Project":                                                                  schema_openshift_api_config_v1_Project(ref),
@@ -464,6 +465,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.EtcdStatus":                                                             schema_openshift_api_operator_v1_EtcdStatus(ref),
 		"github.com/openshift/api/operator/v1.GenerationStatus":                                                       schema_openshift_api_operator_v1_GenerationStatus(ref),
 		"github.com/openshift/api/operator/v1.HostNetworkStrategy":                                                    schema_openshift_api_operator_v1_HostNetworkStrategy(ref),
+		"github.com/openshift/api/operator/v1.IPAMConfig":                                                             schema_openshift_api_operator_v1_IPAMConfig(ref),
 		"github.com/openshift/api/operator/v1.IngressController":                                                      schema_openshift_api_operator_v1_IngressController(ref),
 		"github.com/openshift/api/operator/v1.IngressControllerList":                                                  schema_openshift_api_operator_v1_IngressControllerList(ref),
 		"github.com/openshift/api/operator/v1.IngressControllerSpec":                                                  schema_openshift_api_operator_v1_IngressControllerSpec(ref),
@@ -518,6 +520,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.ServiceCatalogControllerManagerList":                                    schema_openshift_api_operator_v1_ServiceCatalogControllerManagerList(ref),
 		"github.com/openshift/api/operator/v1.ServiceCatalogControllerManagerSpec":                                    schema_openshift_api_operator_v1_ServiceCatalogControllerManagerSpec(ref),
 		"github.com/openshift/api/operator/v1.ServiceCatalogControllerManagerStatus":                                  schema_openshift_api_operator_v1_ServiceCatalogControllerManagerStatus(ref),
+		"github.com/openshift/api/operator/v1.SimpleMacvlanConfig":                                                    schema_openshift_api_operator_v1_SimpleMacvlanConfig(ref),
+		"github.com/openshift/api/operator/v1.StaticIPAMAddresses":                                                    schema_openshift_api_operator_v1_StaticIPAMAddresses(ref),
+		"github.com/openshift/api/operator/v1.StaticIPAMConfig":                                                       schema_openshift_api_operator_v1_StaticIPAMConfig(ref),
+		"github.com/openshift/api/operator/v1.StaticIPAMDNS":                                                          schema_openshift_api_operator_v1_StaticIPAMDNS(ref),
+		"github.com/openshift/api/operator/v1.StaticIPAMRoutes":                                                       schema_openshift_api_operator_v1_StaticIPAMRoutes(ref),
 		"github.com/openshift/api/operator/v1.StaticPodOperatorSpec":                                                  schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref),
 		"github.com/openshift/api/operator/v1.StaticPodOperatorStatus":                                                schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref),
 		"github.com/openshift/api/operator/v1.StatuspageProvider":                                                     schema_openshift_api_operator_v1_StatuspageProvider(ref),
@@ -11269,6 +11276,47 @@ func schema_openshift_api_config_v1_OpenIDIdentityProvider(ref common.ReferenceC
 	}
 }
 
+func schema_openshift_api_config_v1_OpenStackPlatformStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OpenStackPlatformStatus holds the current status of the OpenStack infrastructure provider.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiServerInternalIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI points to. It is the IP for a self-hosted load balancer in front of the API servers.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"cloudName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "cloudName is the name of the desired OpenStack cloud in the client configuration file (`clouds.yaml`).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ingressIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"nodeDNSIP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for OpenStack deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_openshift_api_config_v1_OperandVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -11334,12 +11382,18 @@ func schema_openshift_api_config_v1_PlatformStatus(ref common.ReferenceCallback)
 							Ref:         ref("github.com/openshift/api/config/v1.BareMetalPlatformStatus"),
 						},
 					},
+					"openstack": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OpenStack contains settings specific to the OpenStack infrastructure provider.",
+							Ref:         ref("github.com/openshift/api/config/v1.OpenStackPlatformStatus"),
+						},
+					},
 				},
 				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AWSPlatformStatus", "github.com/openshift/api/config/v1.AzurePlatformStatus", "github.com/openshift/api/config/v1.BareMetalPlatformStatus", "github.com/openshift/api/config/v1.GCPPlatformStatus"},
+			"github.com/openshift/api/config/v1.AWSPlatformStatus", "github.com/openshift/api/config/v1.AzurePlatformStatus", "github.com/openshift/api/config/v1.BareMetalPlatformStatus", "github.com/openshift/api/config/v1.GCPPlatformStatus", "github.com/openshift/api/config/v1.OpenStackPlatformStatus"},
 	}
 }
 
@@ -11459,7 +11513,6 @@ func schema_openshift_api_config_v1_ProjectSpec(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"projectRequestMessage"},
 			},
 		},
 		Dependencies: []string{
@@ -21997,7 +22050,7 @@ func schema_openshift_api_operator_v1_AdditionalNetworkDefinition(ref common.Ref
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "type is the type of network The only supported value is NetworkTypeRaw",
+							Description: "type is the type of network The supported values are NetworkTypeRaw, NetworkTypeSimpleMacvlan",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -22023,10 +22076,18 @@ func schema_openshift_api_operator_v1_AdditionalNetworkDefinition(ref common.Ref
 							Format:      "",
 						},
 					},
+					"simpleMacvlanConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SimpleMacvlanConfig configures the macvlan interface in case of type:NetworkTypeSimpleMacvlan",
+							Ref:         ref("github.com/openshift/api/operator/v1.SimpleMacvlanConfig"),
+						},
+					},
 				},
-				Required: []string{"type", "name", "rawCNIConfig"},
+				Required: []string{"type", "name"},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.SimpleMacvlanConfig"},
 	}
 }
 
@@ -23084,6 +23145,35 @@ func schema_openshift_api_operator_v1_HostNetworkStrategy(ref common.ReferenceCa
 				Type:        []string{"object"},
 			},
 		},
+	}
+}
+
+func schema_openshift_api_operator_v1_IPAMConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IPAMConfig contains configurations for IPAM (IP Address Management)",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is the type of IPAM module will be used for IP Address Management(IPAM). The supported values are IPAMTypeDHCP, IPAMTypeStatic",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"staticIPAMConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StaticIPAMConfig configures the static IP address in case of type:IPAMTypeStatic",
+							Ref:         ref("github.com/openshift/api/operator/v1.StaticIPAMConfig"),
+						},
+					},
+				},
+				Required: []string{"type"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.StaticIPAMConfig"},
 	}
 }
 
@@ -25824,6 +25914,198 @@ func schema_openshift_api_operator_v1_ServiceCatalogControllerManagerStatus(ref 
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
+func schema_openshift_api_operator_v1_SimpleMacvlanConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SimpleMacvlanConfig contains configurations for macvlan interface.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"master": {
+						SchemaProps: spec.SchemaProps{
+							Description: "master is the host interface to create the macvlan interface from. If not specified, it will be default route interface",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ipamConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IPAMConfig configures IPAM module will be used for IP Address Management (IPAM).",
+							Ref:         ref("github.com/openshift/api/operator/v1.IPAMConfig"),
+						},
+					},
+					"mode": {
+						SchemaProps: spec.SchemaProps{
+							Description: "mode is the macvlan mode: bridge, private, vepa, passthru. The default is bridge",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"mtu": {
+						SchemaProps: spec.SchemaProps{
+							Description: "mtu is the mtu to use for the macvlan interface. if unset, host's kernel will select the value.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.IPAMConfig"},
+	}
+}
+
+func schema_openshift_api_operator_v1_StaticIPAMAddresses(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StaticIPAMAddresses provides IP address and Gateway for static IPAM addresses",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"address": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Address is the IP address in CIDR format",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"gateway": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Gateway is IP inside of subnet to designate as the gateway",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_operator_v1_StaticIPAMConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StaticIPAMConfig contains configurations for static IPAM (IP Address Management)",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"addresses": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Addresses configures IP address for the interface",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.StaticIPAMAddresses"),
+									},
+								},
+							},
+						},
+					},
+					"routes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Routes configures IP routes for the interface",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.StaticIPAMRoutes"),
+									},
+								},
+							},
+						},
+					},
+					"dns": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DNS configures DNS for the interface",
+							Ref:         ref("github.com/openshift/api/operator/v1.StaticIPAMDNS"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.StaticIPAMAddresses", "github.com/openshift/api/operator/v1.StaticIPAMDNS", "github.com/openshift/api/operator/v1.StaticIPAMRoutes"},
+	}
+}
+
+func schema_openshift_api_operator_v1_StaticIPAMDNS(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StaticIPAMDNS provides DNS related information for static IPAM",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nameservers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Nameservers points DNS servers for IP lookup",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"domain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Domain configures the domainname the local domain used for short hostname lookups",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"search": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Search configures priority ordered search domains for short hostname lookups",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_operator_v1_StaticIPAMRoutes(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StaticIPAMRoutes provides Destination/Gateway pairs for static IPAM routes",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"destination": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Destination points the IP route destination",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"gateway": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Gateway is the route's next-hop IP address If unset, a default gateway is assumed (as determined by the CNI plugin).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"destination"},
+			},
+		},
 	}
 }
 
