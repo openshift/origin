@@ -122,9 +122,9 @@ func NewCmdNewBuild(name, baseName string, f kcmdutil.Factory, streams genericcl
 	}
 
 	cmd.Flags().StringSliceVar(&o.Config.SourceRepositories, "code", o.Config.SourceRepositories, "Source code in the build configuration.")
-	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image", "", o.Config.ImageStreams, "Name of an image stream to to use as a builder. (deprecated)")
+	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image", "", o.Config.ImageStreams, "Name of an image stream to use as a builder. (deprecated)")
 	cmd.Flags().MarkDeprecated("image", "use --image-stream instead")
-	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image-stream", "i", o.Config.ImageStreams, "Name of an image stream to to use as a builder.")
+	cmd.Flags().StringSliceVarP(&o.Config.ImageStreams, "image-stream", "i", o.Config.ImageStreams, "Name of an image stream to use as a builder.")
 	cmd.Flags().StringSliceVar(&o.Config.DockerImages, "docker-image", o.Config.DockerImages, "Name of a Docker image to use as a builder.")
 	cmd.Flags().StringSliceVar(&o.Config.ConfigMaps, "build-config-map", o.Config.ConfigMaps, "ConfigMap and destination to use as an input for the build.")
 	cmd.Flags().StringSliceVar(&o.Config.Secrets, "build-secret", o.Config.Secrets, "Secret and destination to use as an input for the build.")
