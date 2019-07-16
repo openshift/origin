@@ -15,6 +15,7 @@ type Console struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ConsoleSpec `json:"spec,omitempty"`
 	// +optional

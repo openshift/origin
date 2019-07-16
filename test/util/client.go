@@ -22,9 +22,7 @@ import (
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/quota/v1"
-	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -133,50 +131,6 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 	}
 
 	return kubeClientset, userClientConfig, nil
-}
-
-func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig restclient.Config, namespace, name string) (*kubernetes.Clientset, *restclient.Config, error) {
-	_, err := adminClient.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
-	if err != nil && !kerrs.IsAlreadyExists(err) {
-		return nil, nil, err
-	}
-
-	sa, err := adminClient.CoreV1().ServiceAccounts(namespace).Create(&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}})
-	if kerrs.IsAlreadyExists(err) {
-		sa, err = adminClient.CoreV1().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-
-	token := ""
-	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		selector := fields.OneTermEqualSelector(coreapi.SecretTypeField, string(corev1.SecretTypeServiceAccountToken))
-		secrets, err := adminClient.CoreV1().Secrets(namespace).List(metav1.ListOptions{FieldSelector: selector.String()})
-		if err != nil {
-			return false, err
-		}
-		for _, secret := range secrets.Items {
-			if sautil.IsServiceAccountToken(&secret, sa) {
-				token = string(secret.Data[corev1.ServiceAccountTokenKey])
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	saClientConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(&clientConfig))
-	saClientConfig.BearerToken = token
-
-	kubeClientset, err := kubernetes.NewForConfig(saClientConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return kubeClientset, saClientConfig, nil
 }
 
 func WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig *rest.Config) error {

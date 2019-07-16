@@ -117,10 +117,7 @@ func (apiserverV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj r
 func validateAPIServerSpecCreate(spec configv1.APIServerSpec) field.ErrorList {
 	errs := field.ErrorList{}
 
-	// we rely on fall through for the service network
-	if len(spec.ServingCerts.DefaultServingCertificate.Name) > 0 {
-		errs = append(errs, field.Forbidden(field.NewPath("spec").Child("servingCerts").Child("defaultServingCertificate").Child("name"), "may not be set"))
-	}
+	//TODO: Add validation code, if needed
 
 	return errs
 }
@@ -128,10 +125,7 @@ func validateAPIServerSpecCreate(spec configv1.APIServerSpec) field.ErrorList {
 func validateAPIServerSpecUpdate(newSpec, oldSpec configv1.APIServerSpec) field.ErrorList {
 	errs := field.ErrorList{}
 
-	// we rely on fall through for the service network
-	if len(newSpec.ServingCerts.DefaultServingCertificate.Name) > 0 {
-		errs = append(errs, field.Forbidden(field.NewPath("spec").Child("servingCerts").Child("defaultServingCertificate").Child("name"), "may not be set"))
-	}
+	// TODO: Add validation code, if needed
 
 	return errs
 }

@@ -164,6 +164,9 @@ type OVNKubernetesConfig struct {
 // NetworkType describes the network plugin type to configure
 type NetworkType string
 
+// ProxyArgumentList is a list of arguments to pass to the kubeproxy process
+type ProxyArgumentList []string
+
 // ProxyConfig defines the configuration knobs for kubeproxy
 // All of these are optional and have sensible defaults
 type ProxyConfig struct {
@@ -176,7 +179,7 @@ type ProxyConfig struct {
 	BindAddress string `json:"bindAddress,omitempty"`
 
 	// Any additional arguments to pass to the kubeproxy process
-	ProxyArguments map[string][]string `json:"proxyArguments,omitempty"`
+	ProxyArguments map[string]ProxyArgumentList `json:"proxyArguments,omitempty"`
 }
 
 const (

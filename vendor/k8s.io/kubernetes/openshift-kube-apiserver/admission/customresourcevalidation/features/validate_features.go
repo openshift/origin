@@ -51,7 +51,7 @@ func toFeatureGateV1(uncastObj runtime.Object) (*configv1.FeatureGate, field.Err
 type featureGateV1 struct {
 }
 
-var knownFeatureSets = sets.NewString("", string(configv1.TechPreviewNoUpgrade))
+var knownFeatureSets = sets.NewString("", string(configv1.TechPreviewNoUpgrade), string(configv1.CustomNoUpgrade))
 
 func validateFeatureGateSpecCreate(spec configv1.FeatureGateSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
@@ -75,6 +75,10 @@ func validateFeatureGateSpecUpdate(spec, oldSpec configv1.FeatureGateSpec) field
 	// we do not allow anyone to take back TechPreview
 	if oldSpec.FeatureSet == configv1.TechPreviewNoUpgrade && spec.FeatureSet != configv1.TechPreviewNoUpgrade {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.featureSet"), "once enabled, tech preview features may not be disabled"))
+	}
+	// we do not allow anyone to take back CustomNoUpgrade
+	if oldSpec.FeatureSet == configv1.CustomNoUpgrade && spec.FeatureSet != configv1.CustomNoUpgrade {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.featureSet"), "once enabled, custom feature gates may not be disabled"))
 	}
 
 	return allErrs
