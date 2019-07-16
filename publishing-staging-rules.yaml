@@ -26,12 +26,6 @@ rules:
       source:
         branch: master
         dir: staging/src/github.com/openshift/openshift-controller-manager
-- destination: oauth-server
-  branches:
-    - name: master
-      source:
-        branch: master
-        dir: staging/src/github.com/openshift/oauth-server
 - destination: sdn
   branches:
     - name: master
