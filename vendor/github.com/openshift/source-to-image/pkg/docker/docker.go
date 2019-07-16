@@ -385,12 +385,12 @@ func (d *stiDocker) UploadToContainerWithTarWriter(fs fs.FileSystem, src, dest, 
 
 		w.CloseWithError(err)
 	}()
-	glog.V(3).Infof("Uploading %q to %q ...", src, destPath)
+	log.V(3).Infof("Uploading %q to %q ...", src, destPath)
 	ctx, cancel := getDefaultContext()
 	defer cancel()
 	err := d.client.CopyToContainer(ctx, container, destPath, r, dockertypes.CopyToContainerOptions{})
 	if err != nil {
-		glog.V(0).Infof("error: Uploading to container failed: %v", err)
+		log.V(0).Infof("error: Uploading to container failed: %v", err)
 	}
 	return err
 }
@@ -427,7 +427,7 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 	name = getImageName(name)
 	resp, err := d.InspectImage(name)
 	if err != nil {
-		glog.V(4).Infof("error inspecting image %s: %v", name, err)
+		log.V(4).Infof("error inspecting image %s: %v", name, err)
 		return "", s2ierr.NewInspectImageError(name, err)
 	}
 	user := resp.Config.User
@@ -454,7 +454,7 @@ func (d *stiDocker) GetOnBuild(name string) ([]string, error) {
 	name = getImageName(name)
 	resp, err := d.InspectImage(name)
 	if err != nil {
-		glog.V(4).Infof("error inspecting image %s: %v", name, err)
+		log.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, s2ierr.NewInspectImageError(name, err)
 	}
 	return resp.Config.OnBuild, nil
@@ -466,7 +466,7 @@ func (d *stiDocker) CheckAndPullImage(name string) (*api.Image, error) {
 	name = getImageName(name)
 	displayName := name
 
-	if !glog.Is(3) {
+	if !log.Is(3) {
 		// For less verbose log levels (less than 3), shorten long iamge names like:
 		//     "centos/php-56-centos7@sha256:51c3e2b08bd9fadefccd6ec42288680d6d7f861bdbfbd2d8d24960621e4e27f5"
 		// to include just enough characters to differentiate the build from others in the docker repository:
@@ -483,11 +483,11 @@ func (d *stiDocker) CheckAndPullImage(name string) (*api.Image, error) {
 		return nil, err
 	}
 	if image == nil {
-		glog.V(1).Infof("Image %q not available locally, pulling ...", displayName)
+		log.V(1).Infof("Image %q not available locally, pulling ...", displayName)
 		return d.PullImage(name)
 	}
 
-	glog.V(3).Infof("Using locally available image %q", displayName)
+	log.V(3).Infof("Using locally available image %q", displayName)
 	return image, nil
 }
 
@@ -496,7 +496,7 @@ func (d *stiDocker) CheckImage(name string) (*api.Image, error) {
 	name = getImageName(name)
 	inspect, err := d.InspectImage(name)
 	if err != nil {
-		glog.V(4).Infof("error inspecting image %s: %v", name, err)
+		log.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, s2ierr.NewInspectImageError(name, err)
 	}
 	if inspect != nil {
@@ -555,14 +555,14 @@ func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 					return msg.Error
 				}
 				if msg.Progress != nil {
-					glog.V(4).Infof("pulling image %s: %s", name, msg.Progress.String())
+					log.V(4).Infof("pulling image %s: %s", name, msg.Progress.String())
 				}
 			}
 		})
 		if err == nil {
 			break
 		}
-		glog.V(0).Infof("pulling image error : %v", err)
+		log.V(0).Infof("pulling image error : %v", err)
 		errMsg := fmt.Sprintf("%s", err)
 		for _, errorString := range RetriableErrors {
 			if strings.Contains(errMsg, errorString) {
@@ -575,7 +575,7 @@ func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 			return nil, s2ierr.NewPullImageError(name, err)
 		}
 
-		glog.V(0).Infof("retrying in %s ...", DefaultPullRetryDelay)
+		log.V(0).Infof("retrying in %s ...", DefaultPullRetryDelay)
 		time.Sleep(DefaultPullRetryDelay)
 	}
 
@@ -629,7 +629,7 @@ func (d *stiDocker) GetLabels(name string) (map[string]string, error) {
 	name = getImageName(name)
 	resp, err := d.InspectImage(name)
 	if err != nil {
-		glog.V(4).Infof("error inspecting image %s: %v", name, err)
+		log.V(4).Infof("error inspecting image %s: %v", name, err)
 		return nil, s2ierr.NewInspectImageError(name, err)
 	}
 	return resp.Config.Labels, nil
@@ -686,9 +686,9 @@ func (d *stiDocker) GetAssembleInputFiles(image string) (string, error) {
 
 	label := getLabel(imageMetadata, constants.AssembleInputFilesLabel)
 	if len(label) == 0 {
-		glog.V(0).Infof("warning: Image %q does not contain a value for the %s label", image, constants.AssembleInputFilesLabel)
+		log.V(0).Infof("warning: Image %q does not contain a value for the %s label", image, constants.AssembleInputFilesLabel)
 	} else {
-		glog.V(3).Infof("Image %q contains %s set to %q", image, constants.AssembleInputFilesLabel, label)
+		log.V(3).Infof("Image %q contains %s set to %q", image, constants.AssembleInputFilesLabel, label)
 	}
 	return label, nil
 }
@@ -713,21 +713,21 @@ func getScriptsURL(image *api.Image) string {
 	if len(scriptsURL) == 0 {
 		scriptsURL = getLabel(image, constants.DeprecatedScriptsURLLabel)
 		if len(scriptsURL) > 0 {
-			glog.V(0).Infof("warning: Image %s uses deprecated label '%s', please migrate it to %s instead!",
+			log.V(0).Infof("warning: Image %s uses deprecated label '%s', please migrate it to %s instead!",
 				image.ID, constants.DeprecatedScriptsURLLabel, constants.ScriptsURLLabel)
 		}
 	}
 	if len(scriptsURL) == 0 {
 		scriptsURL = getVariable(image, constants.ScriptsURLEnvironment)
 		if len(scriptsURL) != 0 {
-			glog.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
+			log.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
 				image.ID, constants.ScriptsURLEnvironment, constants.ScriptsURLLabel)
 		}
 	}
 	if len(scriptsURL) == 0 {
-		glog.V(0).Infof("warning: Image %s does not contain a value for the %s label", image.ID, constants.ScriptsURLLabel)
+		log.V(0).Infof("warning: Image %s does not contain a value for the %s label", image.ID, constants.ScriptsURLLabel)
 	} else {
-		glog.V(2).Infof("Image %s contains %s set to %q", image.ID, constants.ScriptsURLLabel, scriptsURL)
+		log.V(2).Infof("Image %s contains %s set to %q", image.ID, constants.ScriptsURLLabel, scriptsURL)
 	}
 
 	return scriptsURL
@@ -740,12 +740,12 @@ func getDestination(image *api.Image) string {
 	}
 	// For backward compatibility, support the old label schema
 	if val := getLabel(image, constants.DeprecatedDestinationLabel); len(val) != 0 {
-		glog.V(0).Infof("warning: Image %s uses deprecated label '%s', please migrate it to %s instead!",
+		log.V(0).Infof("warning: Image %s uses deprecated label '%s', please migrate it to %s instead!",
 			image.ID, constants.DeprecatedDestinationLabel, constants.DestinationLabel)
 		return val
 	}
 	if val := getVariable(image, constants.LocationEnvironment); len(val) != 0 {
-		glog.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
+		log.V(0).Infof("warning: Image %s uses deprecated environment variable %s, please migrate it to %s label instead!",
 			image.ID, constants.LocationEnvironment, constants.DestinationLabel)
 		return val
 	}
@@ -790,7 +790,7 @@ func determineCommandBaseDir(opts RunContainerOptions, imageMetadata *api.Image,
 		// the default subdirectory inside tar for them
 		// NOTE: We use path.Join instead of filepath.Join to avoid converting the
 		// path to UNC (Windows) format as we always run this inside container.
-		glog.V(2).Infof("Both scripts and untarred source will be placed in '%s'", tarDestination)
+		log.V(2).Infof("Both scripts and untarred source will be placed in '%s'", tarDestination)
 		return path.Join(tarDestination, "scripts")
 	}
 
@@ -801,7 +801,7 @@ func determineCommandBaseDir(opts RunContainerOptions, imageMetadata *api.Image,
 	}
 
 	commandBaseDir := strings.TrimPrefix(scriptsURL, "image://")
-	glog.V(2).Infof("Base directory for S2I scripts is '%s'. Untarring destination is '%s'.",
+	log.V(2).Infof("Base directory for S2I scripts is '%s'. Untarring destination is '%s'.",
 		commandBaseDir, tarDestination)
 
 	return commandBaseDir
@@ -826,7 +826,7 @@ func dumpContainerInfo(container dockercontainer.ContainerCreateCreatedBody, d *
 		}
 	}
 	liveports = liveports + "\n"
-	glog.V(0).Infof("\n\n\n\n\nThe image %s has been started in container %s as a result of the --run=true option.  The container's stdout/stderr will be redirected to this command's glog output to help you validate its behavior.  You can also inspect the container with docker commands if you like.  If the container is set up to stay running, you will have to Ctrl-C to exit this command, which should also stop the container %s.  This particular invocation attempts to run with the port mappings %+v \n\n\n\n\n", image, container.ID, container.ID, liveports)
+	log.V(0).Infof("\n\n\n\n\nThe image %s has been started in container %s as a result of the --run=true option.  The container's stdout/stderr will be redirected to this command's log output to help you validate its behavior.  You can also inspect the container with docker commands if you like.  If the container is set up to stay running, you will have to Ctrl-C to exit this command, which should also stop the container %s.  This particular invocation attempts to run with the port mappings %+v \n\n\n\n\n", image, container.ID, container.ID, liveports)
 }
 
 // redirectResponseToOutputStream handles incoming streamed data from a
@@ -927,7 +927,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		}
 	}
 	if err != nil {
-		glog.V(0).Infof("error: Unable to get image metadata for %s: %v", image, err)
+		log.V(0).Infof("error: Unable to get image metadata for %s: %v", image, err)
 		return err
 	}
 
@@ -958,7 +958,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 			tarDestination = determineTarDestinationDir(opts, imageMetadata)
 			cmd = constructCommand(opts, imageMetadata, tarDestination)
 		}
-		glog.V(5).Infof("Setting %q command for container ...", strings.Join(cmd, " "))
+		log.V(5).Infof("Setting %q command for container ...", strings.Join(cmd, " "))
 	}
 	createOpts.Config.Cmd = cmd
 
@@ -967,7 +967,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 	}
 
 	// Create a new container.
-	glog.V(2).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, *util.SafeForLoggingContainerConfig(createOpts.Config), createOpts.HostConfig)
+	log.V(2).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, *util.SafeForLoggingContainerConfig(createOpts.Config), createOpts.HostConfig)
 	ctx, cancel := getDefaultContext()
 	defer cancel()
 	container, err := d.client.ContainerCreate(ctx, createOpts.Config, createOpts.HostConfig, createOpts.NetworkingConfig, createOpts.Name)
@@ -977,17 +977,17 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 	// Container was created, so we defer its removal, and also remove it if we get a SIGINT/SIGTERM/SIGQUIT/SIGHUP.
 	removeContainer := func() {
-		glog.V(4).Infof("Removing container %q ...", container.ID)
+		log.V(4).Infof("Removing container %q ...", container.ID)
 
 		killErr := d.KillContainer(container.ID)
 
 		if removeErr := d.RemoveContainer(container.ID); removeErr != nil {
 			if killErr != nil {
-				glog.V(0).Infof("warning: Failed to kill container %q: %v", container.ID, killErr)
+				log.V(0).Infof("warning: Failed to kill container %q: %v", container.ID, killErr)
 			}
-			glog.V(0).Infof("warning: Failed to remove container %q: %v", container.ID, removeErr)
+			log.V(0).Infof("warning: Failed to remove container %q: %v", container.ID, removeErr)
 		} else {
-			glog.V(4).Infof("Removed container %q", container.ID)
+			log.V(4).Infof("Removed container %q", container.ID)
 		}
 	}
 	dumpStack := func(signal os.Signal) {
@@ -999,18 +999,18 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		os.Exit(2)
 	}
 	return interrupt.New(dumpStack, removeContainer).Run(func() error {
-		glog.V(2).Infof("Attaching to container %q ...", container.ID)
+		log.V(2).Infof("Attaching to container %q ...", container.ID)
 		ctx, cancel := getDefaultContext()
 		defer cancel()
 		resp, err := d.client.ContainerAttach(ctx, container.ID, opts.asDockerAttachToContainerOptions())
 		if err != nil {
-			glog.V(0).Infof("error: Unable to attach to container %q: %v", container.ID, err)
+			log.V(0).Infof("error: Unable to attach to container %q: %v", container.ID, err)
 			return err
 		}
 		defer resp.Close()
 
 		// Start the container
-		glog.V(2).Infof("Starting container %q ...", container.ID)
+		log.V(2).Infof("Starting container %q ...", container.ID)
 		ctx, cancel = getDefaultContext()
 		defer cancel()
 		err = d.client.ContainerStart(ctx, container.ID, dockertypes.ContainerStartOptions{})
@@ -1041,7 +1041,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 		// Return an error if the exit code of the container is
 		// non-zero.
-		glog.V(4).Infof("Waiting for container %q to stop ...", container.ID)
+		log.V(4).Infof("Waiting for container %q to stop ...", container.ID)
 		waitC, errC := d.client.ContainerWait(context.Background(), container.ID, dockercontainer.WaitConditionNotRunning)
 		select {
 		case result := <-waitC:
@@ -1066,7 +1066,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		}
 		// Run PostExec hook if defined.
 		if opts.PostExec != nil {
-			glog.V(2).Infof("Invoking PostExecute function")
+			log.V(2).Infof("Invoking PostExecute function")
 			if err = opts.PostExec.PostExecute(container.ID, tarDestination); err != nil {
 				return err
 			}
@@ -1100,7 +1100,7 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 			User:       opts.User,
 		}
 		dockerOpts.Config = &config
-		glog.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, *util.SafeForLoggingContainerConfig(&config))
+		log.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, *util.SafeForLoggingContainerConfig(&config))
 	}
 
 	resp, err := d.client.ContainerCommit(context.Background(), opts.ContainerID, dockerOpts)
@@ -1132,7 +1132,7 @@ func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
 		dockerOpts.MemorySwap = opts.CGroupLimits.MemorySwap
 		dockerOpts.CgroupParent = opts.CGroupLimits.Parent
 	}
-	glog.V(2).Infof("Building container using config: %+v", dockerOpts)
+	log.V(2).Infof("Building container using config: %+v", dockerOpts)
 	resp, err := d.client.ImageBuild(context.Background(), opts.Stdin, dockerOpts)
 	if err != nil {
 		return err

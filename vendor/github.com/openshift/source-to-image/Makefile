@@ -101,3 +101,8 @@ release: clean
 	hack/build-release.sh
 	hack/extract-release.sh
 .PHONY: release
+
+# Update dependencies
+update-deps:
+	hack/update-deps.sh
+.PHONY: update-deps

@@ -42,7 +42,7 @@ func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, name
 // informations.
 func GenerateLabelsFromSourceInfo(labels map[string]string, info *git.SourceInfo, namespace string) map[string]string {
 	if info == nil {
-		glog.V(3).Info("Unable to fetch source information, the output image labels will not be set")
+		log.V(3).Info("Unable to fetch source information, the output image labels will not be set")
 		return labels
 	}
 

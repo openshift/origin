@@ -5,10 +5,10 @@ import (
 	"text/template"
 
 	"github.com/openshift/source-to-image/pkg/create/templates"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // Bootstrap defines parameters for the template processing
 type Bootstrap struct {
@@ -52,20 +52,20 @@ func (b *Bootstrap) AddTests() {
 func (b *Bootstrap) process(t string, dst string, perm os.FileMode) {
 	tpl := template.Must(template.New("").Parse(t))
 	if _, err := os.Stat(b.DestinationDir + "/" + dst); err == nil {
-		glog.Errorf("File already exists: %s, skipping", dst)
+		log.Errorf("File already exists: %s, skipping", dst)
 		return
 	}
 	f, err := os.Create(b.DestinationDir + "/" + dst)
 	if err != nil {
-		glog.Errorf("Unable to create %s file, skipping: %v", dst, err)
+		log.Errorf("Unable to create %s file, skipping: %v", dst, err)
 		return
 	}
 	if err := os.Chmod(b.DestinationDir+"/"+dst, perm); err != nil {
-		glog.Errorf("Unable to chmod %s file to %v, skipping: %v", dst, perm, err)
+		log.Errorf("Unable to chmod %s file to %v, skipping: %v", dst, perm, err)
 		return
 	}
 	defer f.Close()
 	if err := tpl.Execute(f, b); err != nil {
-		glog.Errorf("Error processing %s template: %v", dst, err)
+		log.Errorf("Error processing %s template: %v", dst, err)
 	}
 }

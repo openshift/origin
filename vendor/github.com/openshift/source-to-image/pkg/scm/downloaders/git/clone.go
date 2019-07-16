@@ -5,7 +5,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
+
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/constants"
 	"github.com/openshift/source-to-image/pkg/scm/git"
@@ -31,21 +32,21 @@ func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
 
 	if len(config.ContextDir) > 0 {
 		targetSourceDir = filepath.Join(config.WorkingDir, constants.ContextTmp)
-		glog.V(1).Infof("Downloading %q (%q) ...", config.Source, config.ContextDir)
+		klog.V(1).Infof("Downloading %q (%q) ...", config.Source, config.ContextDir)
 	} else {
-		glog.V(1).Infof("Downloading %q ...", config.Source)
+		klog.V(1).Infof("Downloading %q ...", config.Source)
 	}
 
 	if !config.IgnoreSubmodules {
-		glog.V(2).Infof("Cloning sources into %q", targetSourceDir)
+		klog.V(2).Infof("Cloning sources into %q", targetSourceDir)
 	} else {
-		glog.V(2).Infof("Cloning sources (ignoring submodules) into %q", targetSourceDir)
+		klog.V(2).Infof("Cloning sources (ignoring submodules) into %q", targetSourceDir)
 	}
 
 	cloneConfig := git.CloneConfig{Quiet: true}
 	err := c.Clone(config.Source, targetSourceDir, cloneConfig)
 	if err != nil {
-		glog.V(0).Infof("error: git clone failed: %v", err)
+		klog.V(0).Infof("error: git clone failed: %v", err)
 		return nil, err
 	}
 
@@ -53,13 +54,13 @@ func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.V(1).Infof("Checked out %q", ref)
+	klog.V(1).Infof("Checked out %q", ref)
 	if !config.IgnoreSubmodules {
 		err = c.SubmoduleUpdate(targetSourceDir, true, true)
 		if err != nil {
 			return nil, err
 		}
-		glog.V(1).Infof("Updated submodules for %q", ref)
+		klog.V(1).Infof("Updated submodules for %q", ref)
 	}
 
 	// Record Git's knowledge about file permissions

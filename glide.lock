@@ -1,5 +1,5 @@
 hash: fe3239bb38d20a2b7078f3ba8cfd59b86b3a874004e6f1220ce9e5fb96ff3fbf
-updated: 2019-07-15T16:17:33.395193653-04:00
+updated: 2019-07-16T18:13:12.00489064-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -671,7 +671,6 @@ imports:
   - openstack/networking/v2/ports
   - openstack/utils
   - pagination
-  - testhelper
 - name: github.com/gorilla/context
   version: 8559d4a6b87e4f517ec1846eb90a192b8748cc89
 - name: github.com/gorilla/mux
@@ -932,7 +931,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: f15120709e0ac8de84e11616d8f0cac54e8f52e3
+  version: 25a4eebe16c8bcb53e28605f8d5b91df392daeba
   subpackages:
   - annotations
   - apps
@@ -1112,7 +1111,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 4b5911dde13d22012ff9d4c85c49bc1b7e26df34
+  version: e48a704752ab49d1a820b658d0f3d66d41245398
   subpackages:
   - pkg/apiserver/admission/admissionregistrationtesting
   - pkg/apiserver/admission/admissionrestconfig
@@ -1169,7 +1168,7 @@ imports:
   - pkg/template/templateprocessingclient
   - pkg/unidling/unidlingclient
 - name: github.com/openshift/oauth-server
-  version: 4e2c7e8021eb4d897db02b0fce34cdb3402c5483
+  version: f175d7e7fc13b3482d2a8e99630e72b00bd2fede
   subpackages:
   - pkg
   - pkg/api
@@ -1200,7 +1199,6 @@ imports:
   - pkg/oauthserver
   - pkg/osinserver
   - pkg/osinserver/registrystorage
-  - pkg/osinserver/teststorage
   - pkg/prometheus
   - pkg/scopecovers
   - pkg/server/crypto
@@ -1215,9 +1213,8 @@ imports:
   - pkg/server/session
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
-  - pkg/version
 - name: github.com/openshift/oc
-  version: 3b476e3d5a3ca778f0021ce7b4d36b66199ea362
+  version: 5eae85cf180026adc89ac596621fde81e75df733
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1380,7 +1377,7 @@ imports:
   - pkg/helpers/tokencmd
   - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: 0dc06f303d4c897df389a7ed73dc391ea5ba6feb
+  version: 0f59e3a3edec537209a906456e237423ff64a994
   subpackages:
   - pkg/api
   - pkg/api/apihelpers
@@ -1562,7 +1559,7 @@ imports:
   - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: 30c45bc4557c6c0aa812cb1e663f944a71035fd3
+  version: 617d3eb32539fe9f73c8613a6bcaabdf9940d31c
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1606,7 +1603,7 @@ imports:
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/sdn
-  version: 509cf483f8cf2359e7b83b6da989c758b11152ff
+  version: 5736d7436afb3be71cefb6f69fb2d7bf1a314e2d
   subpackages:
   - pkg/network
   - pkg/network/common
@@ -1621,10 +1618,9 @@ imports:
   - pkg/network/proxyimpl/unidler
   - pkg/openshift-network-controller
   - pkg/openshift-sdn
-  - pkg/openshift-sdn/flags
   - pkg/version
 - name: github.com/openshift/source-to-image
-  version: 3dee73c8b712954df879fc5d40f6bb66b4bc8ff5
+  version: 2a579ecd66dfaf9ee21bbc860fcde8e4d1d12301
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1635,7 +1631,7 @@ imports:
   - pkg/util/cmd
   - pkg/util/cygpath
   - pkg/util/fs
-  - pkg/util/glog
+  - pkg/util/log
   - pkg/util/status
   - pkg/util/user
 - name: github.com/openshift/template-service-broker
@@ -2699,7 +2695,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 27fa9266ffd422a0fc068b6d67b0ce59b16ef685
+  version: 0a254611a05f93947e024a3916bba8e670a129dd
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

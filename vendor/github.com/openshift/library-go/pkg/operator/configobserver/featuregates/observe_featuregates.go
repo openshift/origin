@@ -56,7 +56,9 @@ func (f *featureFlags) ObserveFeatureFlags(genericListers configobserver.Listers
 	if apierrors.IsNotFound(err) {
 		configResource = &configv1.FeatureGate{
 			Spec: configv1.FeatureGateSpec{
-				FeatureSet: configv1.Default,
+				FeatureGateSelection: configv1.FeatureGateSelection{
+					FeatureSet: configv1.Default,
+				},
 			},
 		}
 	} else if err != nil {
@@ -64,24 +66,9 @@ func (f *featureFlags) ObserveFeatureFlags(genericListers configobserver.Listers
 		return prevObservedConfig, errs
 	}
 
-	var newConfigValue []string
-	if featureSet, ok := configv1.FeatureSets[configResource.Spec.FeatureSet]; ok {
-		for _, enable := range featureSet.Enabled {
-			// only add whitelisted feature flags
-			if !f.allowAll && !f.knownFeatures.Has(enable) {
-				continue
-			}
-			newConfigValue = append(newConfigValue, enable+"=true")
-		}
-		for _, disable := range featureSet.Disabled {
-			// only add whitelisted feature flags
-			if !f.allowAll && !f.knownFeatures.Has(disable) {
-				continue
-			}
-			newConfigValue = append(newConfigValue, disable+"=false")
-		}
-	} else {
-		errs = append(errs, fmt.Errorf(".spec.featureSet %q not found", featureSet))
+	newConfigValue, err := f.getWhitelistedFeatureNames(configResource)
+	if err != nil {
+		errs = append(errs, err)
 		return prevObservedConfig, errs
 	}
 	if !reflect.DeepEqual(currentConfigValue, newConfigValue) {
@@ -94,4 +81,54 @@ func (f *featureFlags) ObserveFeatureFlags(genericListers configobserver.Listers
 	}
 
 	return observedConfig, errs
+}
+
+func (f *featureFlags) getWhitelistedFeatureNames(fg *configv1.FeatureGate) ([]string, error) {
+	var err error
+	newConfigValue := []string{}
+	enabledFeatures := []string{}
+	disabledFeatures := []string{}
+	formatEnabledFunc := func(fs string) string {
+		return fmt.Sprintf("%s=true", fs)
+	}
+	formatDisabledFunc := func(fs string) string {
+		return fmt.Sprintf("%s=false", fs)
+	}
+
+	enabledFeatures, disabledFeatures, err = getFeaturesFromTheSpec(fg)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, enable := range enabledFeatures {
+		// only add whitelisted feature flags
+		if !f.allowAll && !f.knownFeatures.Has(enable) {
+			continue
+		}
+		newConfigValue = append(newConfigValue, formatEnabledFunc(enable))
+	}
+	for _, disable := range disabledFeatures {
+		// only add whitelisted feature flags
+		if !f.allowAll && !f.knownFeatures.Has(disable) {
+			continue
+		}
+		newConfigValue = append(newConfigValue, formatDisabledFunc(disable))
+	}
+
+	return newConfigValue, nil
+}
+
+func getFeaturesFromTheSpec(fg *configv1.FeatureGate) ([]string, []string, error) {
+	if fg.Spec.FeatureSet == configv1.CustomNoUpgrade {
+		if fg.Spec.FeatureGateSelection.CustomNoUpgrade != nil {
+			return fg.Spec.FeatureGateSelection.CustomNoUpgrade.Enabled, fg.Spec.FeatureGateSelection.CustomNoUpgrade.Disabled, nil
+		}
+		return []string{}, []string{}, nil
+	}
+
+	featureSet, ok := configv1.FeatureSets[fg.Spec.FeatureSet]
+	if !ok {
+		return []string{}, []string{}, fmt.Errorf(".spec.featureSet %q not found", featureSet)
+	}
+	return featureSet.Enabled, featureSet.Disabled, nil
 }

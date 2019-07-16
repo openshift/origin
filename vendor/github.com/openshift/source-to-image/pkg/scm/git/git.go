@@ -11,15 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/golang/glog"
-
 	"github.com/openshift/source-to-image/pkg/util/cmd"
 	"github.com/openshift/source-to-image/pkg/util/cygpath"
 	"github.com/openshift/source-to-image/pkg/util/fs"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 var lsTreeRegexp = regexp.MustCompile("([0-7]{6}) [^ ]+ [0-9a-f]{40}\t(.*)")
 
 // Git is an interface used by main STI code to extract/checkout git repositories
@@ -187,7 +185,7 @@ func (h *stiGit) Clone(src *URL, target string, c CloneConfig) error {
 	opts := cmd.CommandOpts{Stderr: stderr}
 	err = h.RunWithOptions(opts, "git", cloneArgs...)
 	if err != nil {
-		glog.Errorf("Clone failed: source %s, target %s, with output %q", source, target, stderr.String())
+		log.Errorf("Clone failed: source %s, target %s, with output %q", source, target, stderr.String())
 		return err
 	}
 	return nil
@@ -200,10 +198,10 @@ func (h *stiGit) Checkout(repo, ref string) error {
 		Stderr: os.Stderr,
 		Dir:    repo,
 	}
-	if log.V(1) {
-		return h.RunWithOptions(opts, "git", "checkout", ref)
+	if log.Is(1) {
+		return h.RunWithOptions(opts, "git", "checkout", "--quiet", ref)
 	}
-	return h.RunWithOptions(opts, "git", "checkout", "--quiet", ref)
+	return h.RunWithOptions(opts, "git", "checkout", ref)
 }
 
 // SubmoduleInit initializes/clones submodules
@@ -299,7 +297,7 @@ func (h *stiGit) GetInfo(repo string) *SourceInfo {
 		command.Dir = repo
 		out, err := command.CombinedOutput()
 		if err != nil {
-			glog.V(1).Infof("Error executing 'git %#v': %s (%v)", arg, out, err)
+			log.V(1).Infof("Error executing 'git %#v': %s (%v)", arg, out, err)
 			return ""
 		}
 		return strings.TrimSpace(string(out))

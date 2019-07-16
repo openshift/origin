@@ -11,10 +11,10 @@ import (
 	"github.com/openshift/source-to-image/pkg/api"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/scm/git"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // Downloader downloads the specified URL to the target file location
 type Downloader interface {
@@ -50,7 +50,7 @@ func (d *downloader) Download(url *url.URL, targetFile string) (*git.SourceInfo,
 	r := d.schemeReaders[url.Scheme]
 	info := &git.SourceInfo{}
 	if r == nil {
-		glog.Errorf("No URL handler found for %s", url.String())
+		log.Errorf("No URL handler found for %s", url.String())
 		return nil, s2ierr.NewURLHandlerError(url.String())
 	}
 
@@ -64,17 +64,17 @@ func (d *downloader) Download(url *url.URL, targetFile string) (*git.SourceInfo,
 	defer out.Close()
 
 	if err != nil {
-		glog.Errorf("Unable to create target file %s (%v)", targetFile, err)
+		log.Errorf("Unable to create target file %s (%v)", targetFile, err)
 		return nil, err
 	}
 
 	if _, err = io.Copy(out, reader); err != nil {
 		os.Remove(targetFile)
-		glog.Warningf("Skipping file %s due to error copying from source: %v", targetFile, err)
+		log.Warningf("Skipping file %s due to error copying from source: %v", targetFile, err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Downloaded '%s'", url.String())
+	log.V(2).Infof("Downloaded '%s'", url.String())
 	info.Location = url.String()
 	return info, nil
 }
