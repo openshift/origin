@@ -137,6 +137,10 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	if err != nil {
 		return err
 	}
+	_, serviceIPNet, err := net.ParseCIDR(config.ServiceNetworkCIDR)
+	if err != nil {
+		return fmt.Errorf("failed to parse ServiceNetworkCIDR: %v", err)
+	}
 
 	var hostVeth, contVeth net.Interface
 	err = ns.WithNetNSPath(args.Netns, func(hostNS ns.NetNS) error {
@@ -194,17 +198,21 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			return fmt.Errorf("failed to configure container loopback: %v", err)
 		}
 
+		var dsts []*net.IPNet
 		// Set up macvlan0 (if it exists)
 		link, err = netlink.LinkByName("macvlan0")
 		if err == nil {
+			var addrs []netlink.Addr
 			err = netlink.LinkSetUp(link)
 			if err != nil {
 				return fmt.Errorf("failed to enable macvlan device: %v", err)
 			}
+			for _, addr := range addrs {
+				dsts = append(dsts, &net.IPNet{IP: addr.IP, Mask: net.CIDRMask(32, 32)})
+			}
 
 			// A macvlan can't reach its parent interface's IP, so we need to
 			// add a route to that via the SDN
-			var addrs []netlink.Addr
 			err = hostNS.Do(func(ns.NetNS) error {
 				// workaround for https://bugzilla.redhat.com/show_bug.cgi?id=1705686
 				parentIndex := link.Attrs().ParentIndex
@@ -222,26 +230,16 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			if err != nil {
 				return fmt.Errorf("failed to configure macvlan device: %v", err)
 			}
+		}
 
-			var dsts []*net.IPNet
-			for _, addr := range addrs {
-				dsts = append(dsts, &net.IPNet{IP: addr.IP, Mask: net.CIDRMask(32, 32)})
+		dsts = append(dsts, serviceIPNet)
+		for _, dst := range dsts {
+			route := &netlink.Route{
+				Dst: dst,
+				Gw:  defaultGW,
 			}
-
-			_, serviceIPNet, err := net.ParseCIDR(config.ServiceNetworkCIDR)
-			if err != nil {
-				return fmt.Errorf("failed to parse ServiceNetworkCIDR: %v", err)
-			}
-			dsts = append(dsts, serviceIPNet)
-
-			for _, dst := range dsts {
-				route := &netlink.Route{
-					Dst: dst,
-					Gw:  defaultGW,
-				}
-				if err := netlink.RouteAdd(route); err != nil && !os.IsExist(err) {
-					return fmt.Errorf("failed to add route to dst: %v via SDN: %v", dst, err)
-				}
+			if err := netlink.RouteAdd(route); err != nil && !os.IsExist(err) {
+				return fmt.Errorf("failed to add route to dst: %v via SDN: %v", dst, err)
 			}
 		}
 
