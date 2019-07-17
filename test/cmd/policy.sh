@@ -263,7 +263,7 @@ os::cmd::expect_success "oc replace --kubeconfig=${new_kubeconfig} clusterrole/a
 # alternate-cluster-admin should NOT have the power add back star now (anything other than star is considered less so this mimics testing against no groups)
 os::cmd::try_until_failure "oc policy who-can update hpa.autoscaling | grep -q alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
-cp ${OS_ROOT}/staging/src/github.com/openshift/openshift-apiserver/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
+cp ${OS_ROOT}/vendor/github.com/openshift/openshift-apiserver/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
 os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempting to grant RBAC permissions not currently held"
 

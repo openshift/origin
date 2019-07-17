@@ -12,7 +12,7 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/set-probe-liveness"
 # This test setting a liveness probe, without warning about replication controllers whose deployment depends on deployment configs
-os::cmd::expect_success_and_text 'oc create -f staging/src/github.com/openshift/oc/pkg/helpers/graph/genericgraph/test/simple-deployment.yaml' 'deploymentconfig.apps.openshift.io/simple-deployment created'
+os::cmd::expect_success_and_text 'oc create -f vendor/github.com/openshift/oc/pkg/helpers/graph/genericgraph/test/simple-deployment.yaml' 'deploymentconfig.apps.openshift.io/simple-deployment created'
 os::cmd::expect_success_and_text 'oc status --suggest' 'dc/simple-deployment has no liveness probe'
 
 # test --local flag
