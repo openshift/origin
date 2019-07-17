@@ -10,22 +10,7 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions
 ALL_FQ_APIS=(
-    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/config/v1
-    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template/v1
-
     github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1
-
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/build/apis/build/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/image/apis/image/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apis/project/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/quota/apis/quota/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/route/apis/route/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/security/apis/security/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/template/apis/template/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/user/apis/user/v1
 )
 
 ALL_PEERS=(
