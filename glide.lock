@@ -1,5 +1,5 @@
 hash: fe3239bb38d20a2b7078f3ba8cfd59b86b3a874004e6f1220ce9e5fb96ff3fbf
-updated: 2019-07-16T18:13:12.00489064-04:00
+updated: 2019-07-17T10:56:20.304801-07:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -931,7 +931,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 25a4eebe16c8bcb53e28605f8d5b91df392daeba
+  version: 9e8bd7c286dd525a9cb0fcd01864dee9e7c77c44
   subpackages:
   - annotations
   - apps
@@ -1214,7 +1214,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 5eae85cf180026adc89ac596621fde81e75df733
+  version: 7775a17b574a60902dbf3302436864b5c0878daa
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1377,7 +1377,7 @@ imports:
   - pkg/helpers/tokencmd
   - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: 0f59e3a3edec537209a906456e237423ff64a994
+  version: 44fd28f0fec8a2d4a18045f5426b1cc92e2a63f1
   subpackages:
   - pkg/api
   - pkg/api/apihelpers
@@ -1559,7 +1559,7 @@ imports:
   - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: 617d3eb32539fe9f73c8613a6bcaabdf9940d31c
+  version: c0915910ae86ab3bfaced8d586c44e430b0829d2
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1603,7 +1603,7 @@ imports:
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/sdn
-  version: 5736d7436afb3be71cefb6f69fb2d7bf1a314e2d
+  version: 399ad59149a9ad46b67ce945ca79fb16993a5d06
   subpackages:
   - pkg/network
   - pkg/network/common
@@ -1635,7 +1635,7 @@ imports:
   - pkg/util/status
   - pkg/util/user
 - name: github.com/openshift/template-service-broker
-  version: dd3579d87218fc77304019fe6088ae6ab6a285c8
+  version: 040dfe33ea57a789592374e46691446efdea8f33
   subpackages:
   - apis/config
   - apis/config/install
@@ -1655,6 +1655,8 @@ imports:
   version: dba45d427ff48cfb9bcf633db3a8e43b7364e261
 - name: github.com/peterbourgon/diskv
   version: 5f041e8faa004a95c88a202771f4cc3e991971e6
+- name: github.com/pkg/browser
+  version: 0a3d74bf9ce488f035cf5bc36f753a711bc74334
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
@@ -1944,22 +1946,10 @@ imports:
   subpackages:
   - rate
 - name: golang.org/x/tools
-  version: 7f7074d5bcfd282eb16bc382b0bb3da762461985
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
-  - benchmark/parse
   - container/intsets
-  - go/ast/astutil
-  - go/gcexportdata
-  - go/internal/cgo
-  - go/internal/gcimporter
-  - go/internal/packagesdriver
-  - go/packages
-  - go/vcs
   - imports
-  - internal/fastwalk
-  - internal/gopathwalk
-  - internal/module
-  - internal/semver
 - name: gonum.org/v1/gonum
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
   repo: https://github.com/gonum/gonum.git
@@ -2695,7 +2685,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 0a254611a05f93947e024a3916bba8e670a129dd
+  version: f4f34eb292bdfc0cae5fa7250572482d0bbee6b0
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

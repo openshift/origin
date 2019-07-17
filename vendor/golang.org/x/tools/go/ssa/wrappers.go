@@ -141,9 +141,13 @@ func makeWrapper(prog *Program, sel *types.Selection) *Function {
 // start is the index of the first regular parameter to use.
 //
 func createParams(fn *Function, start int) {
+	var last *Parameter
 	tparams := fn.Signature.Params()
 	for i, n := start, tparams.Len(); i < n; i++ {
-		fn.addParamObj(tparams.At(i))
+		last = fn.addParamObj(tparams.At(i))
+	}
+	if fn.Signature.Variadic() {
+		last.typ = types.NewSlice(last.typ)
 	}
 }
 

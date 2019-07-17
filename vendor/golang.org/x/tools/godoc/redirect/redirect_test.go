@@ -53,24 +53,15 @@ func TestRedirects(t *testing.T) {
 		"/wiki/foo":  {302, "https://github.com/golang/go/wiki/foo"},
 		"/wiki/foo/": {302, "https://github.com/golang/go/wiki/foo/"},
 
-		"/design":              {301, "https://go.googlesource.com/proposal/+/master/design"},
+		"/design":              {301, "https://github.com/golang/proposal/tree/master/design"},
 		"/design/":             {302, "/design"},
-		"/design/123-foo":      {302, "https://go.googlesource.com/proposal/+/master/design/123-foo.md"},
-		"/design/text/123-foo": {302, "https://go.googlesource.com/proposal/+/master/design/text/123-foo.md"},
+		"/design/123-foo":      {302, "https://github.com/golang/proposal/blob/master/design/123-foo.md"},
+		"/design/text/123-foo": {302, "https://github.com/golang/proposal/blob/master/design/text/123-foo.md"},
 
-		"/cl/1":          {302, "https://go-review.googlesource.com/1"},
-		"/cl/1/":         {302, "https://go-review.googlesource.com/1"},
+		"/cl/1":          {302, "https://go-review.googlesource.com/r/1"},
+		"/cl/1/":         {302, "https://go-review.googlesource.com/r/1"},
 		"/cl/267120043":  {302, "https://codereview.appspot.com/267120043"},
 		"/cl/267120043/": {302, "https://codereview.appspot.com/267120043"},
-
-		// Verify that we're using the Rietveld CL table:
-		"/cl/152046": {302, "https://codereview.appspot.com/152046"},
-		"/cl/152047": {302, "https://go-review.googlesource.com/152047"},
-		"/cl/152048": {302, "https://codereview.appspot.com/152048"},
-
-		// And verify we're using the the "bigEnoughAssumeRietveld" value:
-		"/cl/299999": {302, "https://go-review.googlesource.com/299999"},
-		"/cl/300000": {302, "https://codereview.appspot.com/300000"},
 	}
 
 	mux := http.NewServeMux()

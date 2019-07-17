@@ -214,7 +214,7 @@ func lift(fn *Function) {
 	rename(fn.Blocks[0], renaming, newPhis)
 
 	// Eliminate dead φ-nodes.
-	removeDeadPhis(fn.Blocks, newPhis)
+	removeDeadPhis(newPhis)
 
 	// Prepend remaining live φ-nodes to each block.
 	for _, b := range fn.Blocks {
@@ -269,14 +269,8 @@ func lift(fn *Function) {
 
 // removeDeadPhis removes φ-nodes not transitively needed by a
 // non-Phi, non-DebugRef instruction.
-func removeDeadPhis(blocks []*BasicBlock, newPhis newPhiMap) {
-	// First pass: find the set of "live" φ-nodes: those reachable
-	// from some non-Phi instruction.
-	//
-	// We compute reachability in reverse, starting from each φ,
-	// rather than forwards, starting from each live non-Phi
-	// instruction, because this way visits much less of the
-	// Value graph.
+func removeDeadPhis(newPhis newPhiMap) {
+	// First pass: compute reachability from non-Phi/DebugRef instructions.
 	livePhis := make(map[*Phi]bool)
 	for _, npList := range newPhis {
 		for _, np := range npList {
@@ -284,14 +278,6 @@ func removeDeadPhis(blocks []*BasicBlock, newPhis newPhiMap) {
 			if !livePhis[phi] && phiHasDirectReferrer(phi) {
 				markLivePhi(livePhis, phi)
 			}
-		}
-	}
-
-	// Existing φ-nodes due to && and || operators
-	// are all considered live (see Go issue 19622).
-	for _, b := range blocks {
-		for _, phi := range b.phis() {
-			markLivePhi(livePhis, phi.(*Phi))
 		}
 	}
 
@@ -309,7 +295,9 @@ func removeDeadPhis(blocks []*BasicBlock, newPhis newPhiMap) {
 						*refs = removeInstr(*refs, np.phi)
 					}
 				}
-				np.phi.block = nil
+				// This may leave DebugRef instructions referring to
+				// Phis that aren't in the control flow graph.
+				// TODO(adonovan): we should delete them.
 			}
 		}
 		newPhis[block] = npList[:j]
@@ -330,11 +318,14 @@ func markLivePhi(livePhis map[*Phi]bool, phi *Phi) {
 }
 
 // phiHasDirectReferrer reports whether phi is directly referred to by
-// a non-Phi instruction.  Such instructions are the
+// a non-Phi, non-DebugRef instruction.  Such instructions are the
 // roots of the liveness traversal.
 func phiHasDirectReferrer(phi *Phi) bool {
 	for _, instr := range *phi.Referrers() {
-		if _, ok := instr.(*Phi); !ok {
+		switch instr.(type) {
+		case *Phi, *DebugRef:
+			// ignore
+		default:
 			return true
 		}
 	}
@@ -639,15 +630,10 @@ func rename(u *BasicBlock, renaming []Value, newPhis newPhiMap) {
 
 	// Continue depth-first recursion over domtree, pushing a
 	// fresh copy of the renaming map for each subtree.
-	for i, v := range u.dom.children {
-		r := renaming
-		if i < len(u.dom.children)-1 {
-			// On all but the final iteration, we must make
-			// a copy to avoid destructive update.
-			r = make([]Value, len(renaming))
-			copy(r, renaming)
-		}
+	for _, v := range u.dom.children {
+		// TODO(adonovan): opt: avoid copy on final iteration; use destructive update.
+		r := make([]Value, len(renaming))
+		copy(r, renaming)
 		rename(v, r, newPhis)
 	}
-
 }

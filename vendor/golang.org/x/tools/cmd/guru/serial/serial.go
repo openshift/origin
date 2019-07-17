@@ -193,10 +193,9 @@ type PointsTo struct {
 // A DescribeValue is the additional result of a 'describe' query
 // if the selection indicates a value or expression.
 type DescribeValue struct {
-	Type     string       `json:"type"`               // type of the expression
-	Value    string       `json:"value,omitempty"`    // value of the expression, if constant
-	ObjPos   string       `json:"objpos,omitempty"`   // location of the definition, if an Ident
-	TypesPos []Definition `json:"typespos,omitempty"` // location of the named types, that type consist of
+	Type   string `json:"type"`             // type of the expression
+	Value  string `json:"value,omitempty"`  // value of the expression, if constant
+	ObjPos string `json:"objpos,omitempty"` // location of the definition, if an Ident
 }
 
 type DescribeMethod struct {

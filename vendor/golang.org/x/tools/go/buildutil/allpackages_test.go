@@ -10,7 +10,6 @@ package buildutil_test
 
 import (
 	"go/build"
-	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -19,10 +18,6 @@ import (
 )
 
 func TestAllPackages(t *testing.T) {
-	if runtime.Compiler == "gccgo" {
-		t.Skip("gccgo has no standard packages")
-	}
-
 	all := buildutil.AllPackages(&build.Default)
 
 	set := make(map[string]bool)

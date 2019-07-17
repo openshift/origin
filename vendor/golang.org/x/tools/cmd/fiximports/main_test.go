@@ -10,7 +10,6 @@ package main
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -33,25 +32,11 @@ import (
 // titanic.biz/bar	-- domain is sinking; package has jumped ship to new.com/bar
 // titanic.biz/foo	-- domain is sinking but package has no import comment yet
 
-var gopath = filepath.Join(cwd, "testdata")
-
-func init() {
-	if err := os.Setenv("GOPATH", gopath); err != nil {
-		log.Fatal(err)
-	}
-
-	// This test currently requires GOPATH mode.
-	// Explicitly disabling module mode should suffix, but
-	// we'll also turn off GOPROXY just for good measure.
-	if err := os.Setenv("GO111MODULE", "off"); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.Setenv("GOPROXY", "off"); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func TestFixImports(t *testing.T) {
+	gopath := filepath.Join(cwd, "testdata")
+	if err := os.Setenv("GOPATH", gopath); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
 	defer func() {
 		stderr = os.Stderr
 		*badDomains = "code.google.com"
@@ -239,6 +224,11 @@ import (
 
 // TestDryRun tests that the -n flag suppresses calls to writeFile.
 func TestDryRun(t *testing.T) {
+	gopath := filepath.Join(cwd, "testdata")
+	if err := os.Setenv("GOPATH", gopath); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+
 	*dryrun = true
 	defer func() { *dryrun = false }() // restore
 	stderr = new(bytes.Buffer)

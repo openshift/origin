@@ -32,7 +32,8 @@ type ApplicationMenuSpec struct {
 	Section string `json:"section"`
 	// imageUrl is the URL for the icon used in front of the link in the application menu.
 	// The URL must be an HTTPS URL or a Data URI. The image should be square and will be shown at 24x24 pixels.
-	ImageURL string `json:"imageURL"`
+	// +optional
+	ImageURL string `json:"imageURL,omitempty"`
 }
 
 // ConsoleLinkLocationSelector is a set of possible menu targets to which a link may be appended.
