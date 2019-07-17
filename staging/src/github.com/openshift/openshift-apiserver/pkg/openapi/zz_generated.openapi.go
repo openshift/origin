@@ -12449,7 +12449,7 @@ func schema_openshift_api_console_v1_ApplicationMenuSpec(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"section", "imageURL"},
+				Required: []string{"section"},
 			},
 		},
 	}
