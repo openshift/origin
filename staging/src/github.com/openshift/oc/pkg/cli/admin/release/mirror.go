@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ghodss/yaml"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -23,6 +22,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	"sigs.k8s.io/yaml"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
@@ -271,9 +271,7 @@ func (o *MirrorOptions) Run() error {
 		}
 	}
 
-	var currentRepo string
-	exists := struct{}{}
-	repoMap := map[string]struct{}{}
+	repositories := make(map[string]struct{})
 
 	// build the mapping list for mirroring and rewrite if necessary
 	for i := range is.Spec.Tags {
@@ -290,8 +288,8 @@ func (o *MirrorOptions) Run() error {
 		}
 
 		// Create a unique map of repos as keys
-		currentRepo = from.AsRepository().String()
-		repoMap[currentRepo] = exists
+		currentRepo := from.AsRepository().String()
+		repositories[currentRepo] = struct{}{}
 
 		dstMirrorRef := targetFn(tag.Name)
 		mappings = append(mappings, mirror.Mapping{
@@ -453,7 +451,7 @@ func (o *MirrorOptions) Run() error {
 		fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirrored to: %s\n", to, o.To)
 	}
 
-	printInstallInstructions(o.Out, o.From, o.To, repoMap)
+	printInstallInstructions(o.Out, o.From, o.To, repositories)
 	return nil
 }
 
