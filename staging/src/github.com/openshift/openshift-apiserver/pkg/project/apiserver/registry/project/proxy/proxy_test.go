@@ -13,7 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes/fake"
 
-	oapi "github.com/openshift/openshift-apiserver/pkg/api"
+	"github.com/openshift/api/annotations"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 )
 
@@ -76,7 +76,7 @@ func TestCreateInvalidProject(t *testing.T) {
 	storage := NewREST(mockClient.CoreV1().Namespaces(), &mockLister{}, nil, nil)
 	_, err := storage.Create(apirequest.NewContext(), &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{oapi.OpenShiftDisplayName: "h\t\ni"},
+			Annotations: map[string]string{annotations.OpenShiftDisplayName: "h\t\ni"},
 		},
 	}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if !errors.IsInvalid(err) {

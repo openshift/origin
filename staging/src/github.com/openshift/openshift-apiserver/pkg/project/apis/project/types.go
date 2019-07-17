@@ -58,9 +58,6 @@ type ProjectRequest struct {
 
 // These constants represent annotations keys affixed to projects
 const (
-	// ProjectNodeSelector is an annotation that holds the node selector;
-	// the node selector annotation determines which nodes will have pods from this project scheduled to them
-	ProjectNodeSelector = "openshift.io/node-selector"
 	// ProjectRequester is the username that requested a given project.  Its not guaranteed to be present,
 	// but it is set by the default project template.
 	ProjectRequester = "openshift.io/requester"

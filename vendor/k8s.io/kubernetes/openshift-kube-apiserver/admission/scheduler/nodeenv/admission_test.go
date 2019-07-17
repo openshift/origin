@@ -11,6 +11,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv/labelselector"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	projectv1 "github.com/openshift/api/project/v1"
 )
 
 // TestPodAdmission verifies various scenarios involving pod/project/global node label selectors
@@ -109,7 +111,7 @@ func TestPodAdmission(t *testing.T) {
 		handler.defaultNodeSelector = test.defaultNodeSelector
 
 		if !test.ignoreProjectNodeSelector {
-			namespace.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
+			namespace.ObjectMeta.Annotations = map[string]string{projectv1.ProjectNodeSelector: test.projectNodeSelector}
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 

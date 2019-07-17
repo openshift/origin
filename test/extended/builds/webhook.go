@@ -1,54 +1,46 @@
-package integration
+package builds
 
 import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
+	g "github.com/onsi/ginkgo"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
-
-	testutil "github.com/openshift/origin/test/util"
-	testserver "github.com/openshift/origin/test/util/server"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func TestWebhook(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unable to start master: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
+var _ = g.Describe("[Feature:Builds][webhook]", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("build-webhooks", exutil.KubeConfigPath())
 
-	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unable to get kubeClient: %v", err)
-	}
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unable to get osClient: %v", err)
-	}
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
-
-	kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
+	g.It("TestWebhook", func() {
+		TestWebhook(g.GinkgoT(), oc)
 	})
+	g.It("TestWebhookGitHubPushWithImage", func() {
+		TestWebhookGitHubPushWithImage(g.GinkgoT(), oc)
+	})
+	g.It("TestWebhookGitHubPushWithImageStream", func() {
+		TestWebhookGitHubPushWithImageStream(g.GinkgoT(), oc)
+	})
+	g.It("TestWebhookGitHubPing", func() {
+		TestWebhookGitHubPing(g.GinkgoT(), oc)
+	})
+})
 
-	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{"builder", "default"}); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
+	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
-	if _, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -63,9 +55,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "generic/testdata/push-generic.json",
 			HeaderFunc: genericHeaderFunc,
 			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret201/generic",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret202/generic",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret201/generic",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret202/generic",
 			},
 		},
 		{
@@ -73,9 +65,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "github/testdata/pushevent.json",
 			HeaderFunc: githubHeaderFunc,
 			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 			},
 		},
 		{
@@ -83,9 +75,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "gitlab/testdata/pushevent.json",
 			HeaderFunc: gitlabHeaderFunc,
 			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret301/gitlab",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret302/gitlab",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret301/gitlab",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret302/gitlab",
 			},
 		},
 		{
@@ -93,9 +85,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "bitbucket/testdata/pushevent.json",
 			HeaderFunc: bitbucketHeaderFunc,
 			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret401/bitbucket",
-				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret402/bitbucket",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret401/bitbucket",
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret402/bitbucket",
 			},
 		},
 	}
@@ -103,23 +95,20 @@ func TestWebhook(t *testing.T) {
 	for _, test := range tests {
 		for _, s := range test.URLs {
 			// trigger build event sending push notification
-			clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			clusterAdminClientConfig := oc.AdminConfig()
 
-			body := postFile(clusterAdminBuildClient.RESTClient(), test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t)
+			body := postFile(clusterAdminBuildClient.RESTClient(), test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 			if len(body) == 0 {
 				t.Fatalf("%s: Webhook did not return expected Build object.", test.Name)
 			}
 
 			returnedBuild := &buildv1.Build{}
-			err = json.Unmarshal(body, returnedBuild)
+			err := json.Unmarshal(body, returnedBuild)
 			if err != nil {
 				t.Fatalf("%s: Unable to unmarshal returned body into a Build object: %v", test.Name, err)
 			}
 
-			actual, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
+			actual, err := clusterAdminBuildClient.Builds(oc.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("Created build not found in cluster: %v", err)
 			}
@@ -132,54 +121,30 @@ func TestWebhook(t *testing.T) {
 	}
 }
 
-func TestWebhookGitHubPushWithImage(t *testing.T) {
+func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 	const registryHostname = "registry:3000"
-	testutil.SetAdditionalAllowedRegistries(registryHostname)
 
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
-
-	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{"builder", "default"}); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	clusterAdminClientConfig := oc.AdminConfig()
+	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
+	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
 
 	// create imagerepo
 	imageStream := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Spec: imagev1.ImageStreamSpec{
-			DockerImageRepository: registryHostname + "/integration/imagestream",
+			DockerImageRepository: registryHostname + "/" + oc.Namespace() + "/imagestream",
 			Tags: []imagev1.TagReference{
 				{
 					Name: "validtag",
 					From: &corev1.ObjectReference{
 						Kind: "DockerImage",
-						Name: registryHostname + "/integration/imagestream:success",
+						Name: registryHostname + "/" + oc.Namespace() + "/imagestream:success",
 					},
 				},
 			},
 		},
 	}
-	if _, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if _, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -190,28 +155,28 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myimage",
 			},
-			DockerImageReference: registryHostname + "/integration/imagestream:success",
+			DockerImageReference: registryHostname + "/" + oc.Namespace() + "/imagestream:success",
 		},
 	}
-	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
+	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ism); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
 
-	if _, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	for _, s := range []string{
-		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+		"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 
 		// trigger build event sending push notification
-		body := postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		body := postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 		if len(body) == 0 {
 			t.Errorf("Webhook did not return Build in body")
 		}
@@ -224,7 +189,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			t.Errorf("Webhook returned incomplete or wrong Build")
 		}
 
-		actual, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
+		actual, err := clusterAdminBuildClient.Builds(oc.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("Created build not found in cluster: %v", err)
 		}
@@ -246,53 +211,30 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	}
 }
 
-func TestWebhookGitHubPushWithImageStream(t *testing.T) {
+func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) {
 	const registryHostname = "registry:3000"
-	testutil.SetAdditionalAllowedRegistries(registryHostname)
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
-
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{"builder", "default"}); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	clusterAdminClientConfig := oc.AdminConfig()
+	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
+	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
 
 	// create imagerepo
 	imageStream := &imagev1.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Spec: imagev1.ImageStreamSpec{
-			DockerImageRepository: registryHostname + "/integration/imagestream",
+			DockerImageRepository: registryHostname + "/" + oc.Namespace() + "/imagestream",
 			Tags: []imagev1.TagReference{
 				{
 					Name: "validtag",
 					From: &corev1.ObjectReference{
 						Kind: "DockerImage",
-						Name: registryHostname + "/integration/imagestream:success",
+						Name: registryHostname + "/" + oc.Namespace() + "/imagestream:success",
 					},
 				},
 			},
 		},
 	}
-	if _, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if _, err := clusterAdminImageClient.ImageStreams(oc.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -303,30 +245,30 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myimage",
 			},
-			DockerImageReference: registryHostname + "/integration/imagestream:success",
+			DockerImageReference: registryHostname + "/" + oc.Namespace() + "/imagestream:success",
 		},
 	}
-	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
+	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ism); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageStreamParms("originalimage", "image-stream", "validtag")
 
-	if _, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	watch, err := clusterAdminBuildClient.Builds(oc.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
-	s := "/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
+	s := "/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
 	// trigger build event sending push notification
-	postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+	postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 
 	var build *buildv1.Build
 
@@ -345,56 +287,35 @@ Loop:
 			break Loop
 		}
 	}
-	if build.Spec.Strategy.SourceStrategy.From.Name != registryHostname+"/integration/imagestream:success" {
-		t.Errorf("Expected %s, got %s", registryHostname+"/integration/imagestream:success", build.Spec.Strategy.SourceStrategy.From.Name)
+	if build.Spec.Strategy.SourceStrategy.From.Name != registryHostname+"/"+oc.Namespace()+"/imagestream:success" {
+		t.Errorf("Expected %s, got %s", registryHostname+"/"+oc.Namespace()+"/imagestream:success", build.Spec.Strategy.SourceStrategy.From.Name)
 	}
 }
 
-func TestWebhookGitHubPing(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unable to start master: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unable to get kubeClient: %v", err)
-	}
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unable to get osClient: %v", err)
-	}
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
-
-	kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
-	})
+func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
+	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
-	if _, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	watch, err := clusterAdminBuildClient.Builds(oc.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	for _, s := range []string{
-		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+		"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 		// trigger build event sending push notification
-		clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		clusterAdminClientConfig := oc.AdminConfig()
 
-		postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second * 5)
@@ -408,8 +329,9 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 }
 
-func postFile(client rest.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t *testing.T) []byte {
-	data, err := ioutil.ReadFile("../../vendor/github.com/openshift/openshift-apiserver/pkg/build/apiserver/webhook/" + filename)
+func postFile(client rest.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t g.GinkgoTInterface, oc *exutil.CLI) []byte {
+	path := exutil.FixturePath("testdata", "builds", "webhook", filename)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}

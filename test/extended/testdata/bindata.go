@@ -97,6 +97,20 @@
 // test/extended/testdata/builds/valuefrom/test-configmap.yaml
 // test/extended/testdata/builds/valuefrom/test-is.json
 // test/extended/testdata/builds/valuefrom/test-secret.yaml
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json
+// test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json
+// test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json
+// test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml
+// test/extended/testdata/builds/webhook/generic/testdata/push-generic.json
+// test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json
+// test/extended/testdata/builds/webhook/github/testdata/pingevent.json
+// test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json
+// test/extended/testdata/builds/webhook/github/testdata/pushevent.json
+// test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json
+// test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json
 // test/extended/testdata/cluster/master-vert.yaml
 // test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
 // test/extended/testdata/cluster/quickstarts/dancer-mysql.json
@@ -5343,6 +5357,1417 @@ func testExtendedTestdataBuildsValuefromTestSecretYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/test-secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson = []byte(`{
+	"actor": {
+		"type": "user",
+		"username": "emmap1",
+		"display_name": "Emma",
+		"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/emmap1"
+			},
+			"avatar": {
+				"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+			}
+		}
+	},
+	"repository": {
+		"type": "repository",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/repositories/bitbucket/bitbucket"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/bitbucket/bitbucket"
+			},
+			"avatar": {
+				"href": "https://api-staging-assetroot.s3.amazonaws.com/c/photos/2014/Aug/01/bitbucket-logo-2629490769-3_avatar.png"
+			}
+		},
+		"uuid": "{673a6070-3421-46c9-9d48-90745f7bfe8e}",
+		"project": {
+			"type": "project",
+			"project": "Untitled project",
+			"uuid": "{3b7898dc-6891-4225-ae60-24613bb83080}",
+			"links": {
+				"html": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj"
+				},
+				"avatar": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj/avatar/32"
+				}
+			},
+			"key": "proj"
+		},
+		"full_name": "team_name/repo_name",
+		"name": "repo_name",
+		"website": "https://mywebsite.com/",
+		"owner": {
+			"type": "user",
+			"username": "emmap1",
+			"display_name": "Emma",
+			"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+			"links": {
+				"self": {
+					"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+				},
+				"html": {
+					"href": "https://api.bitbucket.org/emmap1"
+				},
+				"avatar": {
+					"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+				}
+			}
+		},
+		"scm": "git",
+		"is_private": true
+	},
+	"push": {
+		"changes": [
+			{
+				"new": {
+					"type": "branch",
+					"name": "this-is-not-master",
+					"target": {
+						"type": "commit",
+						"hash": "709d658dc5b6d6afcd46049c2f332ee3f515a67d",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "new commit message\n",
+						"date": "2015-06-09T03:34:49+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/8cbbd65829c7ad834a97841e0defc965718036a0"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/8cbbd65829c7ad834a97841e0defc965718036a0"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"old": {
+					"type": "branch",
+					"name": "this-is-not-master",
+					"target": {
+						"type": "commit",
+						"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "old commit message\n",
+						"date": "2015-06-08T21:34:56+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "e0d0c2041e09746be5ce4b55067d5a8e3098c843",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"links": {
+					"html": {
+						"href": "https://bitbucket.org/user_name/repo_name/branches/compare/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"diff": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/diff/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"commits": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits?include=c4b2b7914156a878aa7c9da452a09fb50c2091f2&exclude=b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					}
+				},
+				"created": false,
+				"forced": false,
+				"closed": false,
+				"commits": [
+					{
+						"hash": "03f4a7270240708834de475bcf21532d6134777e",
+						"type": "commit",
+						"message": "First commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					},
+					{
+						"hash": "ffffffffffffffffffffffffffffffffffffffff",
+						"type": "commit",
+						"message": "Second commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					}
+				],
+				"truncated": false
+			}
+		]
+	}
+}
+`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson = []byte(`{
+	"actor": {
+		"type": "user",
+		"username": "emmap1",
+		"display_name": "Emma",
+		"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/emmap1"
+			},
+			"avatar": {
+				"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+			}
+		}
+	},
+	"repository": {
+		"type": "repository",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/repositories/bitbucket/bitbucket"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/bitbucket/bitbucket"
+			},
+			"avatar": {
+				"href": "https://api-staging-assetroot.s3.amazonaws.com/c/photos/2014/Aug/01/bitbucket-logo-2629490769-3_avatar.png"
+			}
+		},
+		"uuid": "{673a6070-3421-46c9-9d48-90745f7bfe8e}",
+		"project": {
+			"type": "project",
+			"project": "Untitled project",
+			"uuid": "{3b7898dc-6891-4225-ae60-24613bb83080}",
+			"links": {
+				"html": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj"
+				},
+				"avatar": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj/avatar/32"
+				}
+			},
+			"key": "proj"
+		},
+		"full_name": "team_name/repo_name",
+		"name": "repo_name",
+		"website": "https://mywebsite.com/",
+		"owner": {
+			"type": "user",
+			"username": "emmap1",
+			"display_name": "Emma",
+			"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+			"links": {
+				"self": {
+					"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+				},
+				"html": {
+					"href": "https://api.bitbucket.org/emmap1"
+				},
+				"avatar": {
+					"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+				}
+			}
+		},
+		"scm": "git",
+		"is_private": true
+	},
+	"push": {
+		"changes": [
+			{
+				"new": {
+					"type": "branch",
+					"name": "master",
+					"target": {
+						"type": "commit",
+						"hash": "709d658dc5b6d6afcd46049c2f332ee3f515a67d",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "new commit message\n",
+						"date": "2015-06-09T03:34:49+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/8cbbd65829c7ad834a97841e0defc965718036a0"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/8cbbd65829c7ad834a97841e0defc965718036a0"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"old": {
+					"type": "branch",
+					"name": "master",
+					"target": {
+						"type": "commit",
+						"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "old commit message\n",
+						"date": "2015-06-08T21:34:56+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "e0d0c2041e09746be5ce4b55067d5a8e3098c843",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"links": {
+					"html": {
+						"href": "https://bitbucket.org/user_name/repo_name/branches/compare/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"diff": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/diff/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"commits": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits?include=c4b2b7914156a878aa7c9da452a09fb50c2091f2&exclude=b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					}
+				},
+				"created": false,
+				"forced": false,
+				"closed": false,
+				"commits": [
+					{
+						"hash": "03f4a7270240708834de475bcf21532d6134777e",
+						"type": "commit",
+						"message": "First commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					},
+					{
+						"hash": "ffffffffffffffffffffffffffffffffffffffff",
+						"type": "commit",
+						"message": "Second commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					}
+				],
+				"truncated": false
+			}
+		]
+	}
+}
+`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson = []byte(`{  
+  "eventKey":"repo:refs_changed",
+  "date":"2017-09-19T09:45:32+1000",
+  "actor":{  
+    "name":"admin",
+    "emailAddress":"admin@example.com",
+    "id":1,
+    "displayName":"Administrator",
+    "active":true,
+    "slug":"admin",
+    "type":"NORMAL"
+  },
+  "repository":{  
+    "slug":"repository",
+    "id":84,
+    "name":"repository",
+    "scmId":"git",
+    "state":"AVAILABLE",
+    "statusMessage":"Available",
+    "forkable":true,
+    "project":{  
+      "key":"PROJ",
+      "id":84,
+      "name":"project",
+      "public":false,
+      "type":"NORMAL"
+    },
+    "public":false
+  },
+  "changes":[  
+    {  
+      "ref":{  
+        "id":"refs/heads/other",
+        "displayId":"other",
+        "type":"BRANCH"
+      },
+      "refId":"refs/heads/other",
+      "fromHash":"ecddabb624f6f5ba43816f5926e580a5f680a932",
+      "toHash":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+      "type":"UPDATE"
+    }
+  ]
+}`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(`{  
+  "eventKey":"repo:refs_changed",
+  "date":"2017-09-19T09:45:32+1000",
+  "actor":{  
+    "name":"admin",
+    "emailAddress":"admin@example.com",
+    "id":1,
+    "displayName":"Administrator",
+    "active":true,
+    "slug":"admin",
+    "type":"NORMAL"
+  },
+  "repository":{  
+    "slug":"repository",
+    "id":84,
+    "name":"repository",
+    "scmId":"git",
+    "state":"AVAILABLE",
+    "statusMessage":"Available",
+    "forkable":true,
+    "project":{  
+      "key":"PROJ",
+      "id":84,
+      "name":"project",
+      "public":false,
+      "type":"NORMAL"
+    },
+    "public":false
+  },
+  "changes":[  
+    {  
+      "ref":{  
+        "id":"refs/heads/master",
+        "displayId":"master",
+        "type":"BRANCH"
+      },
+      "refId":"refs/heads/master",
+      "fromHash":"ecddabb624f6f5ba43816f5926e580a5f680a932",
+      "toHash":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+      "type":"UPDATE"
+    }
+  ]
+}`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54JsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54JsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson = []byte(`{
+  "type": "Git",
+  "git": {
+    "author": {},
+    "committer": {},
+    "refs": [
+      {
+        "ref": "refs/heads/master",
+        "commit": "2602ace61490de0513dfbd7c7de949356cf9bd17",
+        "author": {
+          "name": "Joe Smith",
+          "email": "joe.smith@gmail.com"
+        },
+        "committer": {
+          "name": "Joe Smith",
+          "email": "joe.smith@gmail.com"
+        },
+        "message": "Merge pull request #31 from mnagy/prepare_for_new_mysql_image\n\nPrepare for new centos/mysql-56-centos7 image"
+      }
+    ]
+  }
+}`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson = []byte(`{
+  "type" : "Git",
+  "git" : {
+    "uri" : "git://mygitserver/myrepo.git",
+    "ref" : "refs/heads/master",
+    "commit" : "9bdc3a26ff933b32f3e558636b58aea86a69f051",
+    "message" : "Random act of kindness",
+    "author" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    },
+    "committer" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    }
+  },
+  "env": [
+      {
+          "name": "EXAMPLE",
+          "value": "sample-app"
+      }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml = []byte(`---
+  type: "Git"
+  git: 
+    uri: "git://mygitserver/myrepo.git"
+    ref: "refs/heads/master"
+    commit: "9bdc3a26ff933b32f3e558636b58aea86a69f051"
+    message: "Random act of kindness"
+    author: 
+      name: "Jon Doe"
+      email: "jondoe@email.com"
+    committer: 
+      name: "Jon Doe"
+      email: "jondoe@email.com"
+  env: 
+    - 
+      name: "EXAMPLE"
+      value: "sample-app"
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson = []byte(`{
+  "type" : "Git",
+  "git" : {
+    "uri" : "git://mygitserver/myrepo.git",
+    "ref" : "refs/heads/master",
+    "commit" : "9bdc3a26ff933b32f3e558636b58aea86a69f051",
+    "message" : "Random act of kindness",
+    "author" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    },
+    "committer" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-generic.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson = []byte(`{
+  "object_kind":"push",
+  "before":"cf1fa898d2a78685ccde72f14b4922b474f73cd1",
+  "after":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+  "ref":"refs/heads/master",
+  "checkout_sha":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+  "message":null,
+  "user_id":12345,
+  "user_name":"Jon Doe",
+  "user_email":"jondoe@email.com",
+  "project_id":12345,
+  "repository":{
+    "name":"ruby-hello-world",
+    "url":"git@gitlab.com:jondoe/repo.git",
+    "description":"",
+    "homepage":"https://gitlab.com/jondoe/repo",
+    "git_http_url":"https://gitlab.com/jondoe/repo",
+    "git_ssh_url":"git@gitlab.com:jondoe/repo",
+    "visibility_level":20
+  },
+  "commits":[
+    {
+      "id":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+      "message":"Random act of kindness",
+      "timestamp":"2015-03-17T09:23:58+01:00",
+      "url":"https://gitlab.com/jondoe/repo/commit/2602ace61490de0513dfbd7c7de949356cf9bd17",
+      "author":{
+        "name":"Jon Doe",
+        "email":"jondoe@email.com"
+      }
+    }
+  ],
+  "total_commits_count":3
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson = []byte(`{
+   "zen":"Encourage flow.",
+   "hook":{
+      "url":"https://api.github.com/repos/anonUser/anonRepo/hooks/2896466",
+      "test_url":"https://api.github.com/repos/anonUser/anonRepo/hooks/2896466/test",
+      "id":2896466,
+      "name":"web",
+      "active":true,
+      "events":[
+         "push"
+      ],
+      "config":{
+         "secret":"",
+         "url":"http://example.com/gitwebhook",
+         "content_type":"json",
+         "insecure_ssl":"0"
+      },
+      "last_response":{
+         "code":null,
+         "status":"unused",
+         "message":null
+      },
+      "updated_at":"2014-08-28T14:25:47Z",
+      "created_at":"2014-08-28T14:25:47Z"
+   },
+   "hook_id":2896466
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPingeventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGithubTestdataPingeventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/github/testdata/pingevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson = []byte(`{
+   "ref":"refs/heads/my_other_branch",
+   "after":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+   "before":"0000000000000000000000000000000000000000",
+   "created":true,
+   "deleted":false,
+   "forced":true,
+   "compare":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff93",
+   "commits":[
+      {
+         "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "distinct":true,
+         "message":"Added license",
+         "timestamp":"2014-08-28T16:55:36+02:00",
+         "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "author":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "committer":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "added":[
+            "LICENSE"
+         ],
+         "removed":[
+
+         ],
+         "modified":[
+
+         ]
+      }
+   ],
+   "head_commit":{
+      "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "distinct":true,
+      "message":"Added license",
+      "timestamp":"2014-08-28T16:55:36+02:00",
+      "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "author":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "committer":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "added":[
+         "LICENSE"
+      ],
+      "removed":[
+
+      ],
+      "modified":[
+
+      ]
+   },
+   "repository":{
+      "id":23354788,
+      "name":"anonRepo",
+      "full_name":"anonUser/anonRepo",
+      "owner":{
+         "name":"anonUser",
+         "email":"anonUser@example.com"
+      },
+      "private":false,
+      "html_url":"https://github.com/anonUser/anonRepo",
+      "description":"Git webhook implementation in Go.",
+      "fork":false,
+      "url":"https://github.com/anonUser/anonRepo",
+      "forks_url":"https://api.github.com/repos/anonUser/anonRepo/forks",
+      "keys_url":"https://api.github.com/repos/anonUser/anonRepo/keys{/key_id}",
+      "collaborators_url":"https://api.github.com/repos/anonUser/anonRepo/collaborators{/collaborator}",
+      "teams_url":"https://api.github.com/repos/anonUser/anonRepo/teams",
+      "hooks_url":"https://api.github.com/repos/anonUser/anonRepo/hooks",
+      "issue_events_url":"https://api.github.com/repos/anonUser/anonRepo/issues/events{/number}",
+      "events_url":"https://api.github.com/repos/anonUser/anonRepo/events",
+      "assignees_url":"https://api.github.com/repos/anonUser/anonRepo/assignees{/user}",
+      "branches_url":"https://api.github.com/repos/anonUser/anonRepo/branches{/branch}",
+      "tags_url":"https://api.github.com/repos/anonUser/anonRepo/tags",
+      "blobs_url":"https://api.github.com/repos/anonUser/anonRepo/git/blobs{/sha}",
+      "git_tags_url":"https://api.github.com/repos/anonUser/anonRepo/git/tags{/sha}",
+      "git_refs_url":"https://api.github.com/repos/anonUser/anonRepo/git/refs{/sha}",
+      "trees_url":"https://api.github.com/repos/anonUser/anonRepo/git/trees{/sha}",
+      "statuses_url":"https://api.github.com/repos/anonUser/anonRepo/statuses/{sha}",
+      "languages_url":"https://api.github.com/repos/anonUser/anonRepo/languages",
+      "stargazers_url":"https://api.github.com/repos/anonUser/anonRepo/stargazers",
+      "contributors_url":"https://api.github.com/repos/anonUser/anonRepo/contributors",
+      "subscribers_url":"https://api.github.com/repos/anonUser/anonRepo/subscribers",
+      "subscription_url":"https://api.github.com/repos/anonUser/anonRepo/subscription",
+      "commits_url":"https://api.github.com/repos/anonUser/anonRepo/commits{/sha}",
+      "git_commits_url":"https://api.github.com/repos/anonUser/anonRepo/git/commits{/sha}",
+      "comments_url":"https://api.github.com/repos/anonUser/anonRepo/comments{/number}",
+      "issue_comment_url":"https://api.github.com/repos/anonUser/anonRepo/issues/comments/{number}",
+      "contents_url":"https://api.github.com/repos/anonUser/anonRepo/contents/{+path}",
+      "compare_url":"https://api.github.com/repos/anonUser/anonRepo/compare/{base}...{head}",
+      "merges_url":"https://api.github.com/repos/anonUser/anonRepo/merges",
+      "archive_url":"https://api.github.com/repos/anonUser/anonRepo/{archive_format}{/ref}",
+      "downloads_url":"https://api.github.com/repos/anonUser/anonRepo/downloads",
+      "issues_url":"https://api.github.com/repos/anonUser/anonRepo/issues{/number}",
+      "pulls_url":"https://api.github.com/repos/anonUser/anonRepo/pulls{/number}",
+      "milestones_url":"https://api.github.com/repos/anonUser/anonRepo/milestones{/number}",
+      "notifications_url":"https://api.github.com/repos/anonUser/anonRepo/notifications{?since,all,participating}",
+      "labels_url":"https://api.github.com/repos/anonUser/anonRepo/labels{/name}",
+      "releases_url":"https://api.github.com/repos/anonUser/anonRepo/releases{/id}",
+      "created_at":1409063699,
+      "updated_at":"2014-08-26T14:34:59Z",
+      "pushed_at":1409238007,
+      "git_url":"git://github.com/anonUser/anonRepo.git",
+      "ssh_url":"git@github.com:anonUser/anonRepo.git",
+      "clone_url":"https://github.com/anonUser/anonRepo.git",
+      "svn_url":"https://github.com/anonUser/anonRepo",
+      "homepage":null,
+      "size":0,
+      "stargazers_count":0,
+      "watchers_count":0,
+      "language":null,
+      "has_issues":true,
+      "has_downloads":true,
+      "has_wiki":true,
+      "forks_count":0,
+      "mirror_url":null,
+      "open_issues_count":0,
+      "forks":0,
+      "open_issues":0,
+      "watchers":0,
+      "default_branch":"master",
+      "stargazers":0,
+      "master_branch":"master"
+   },
+   "pusher":{
+      "name":"anonUser",
+      "email":"anonUser@example.com"
+   }
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson = []byte(`{
+   "ref":"refs/heads/master",
+   "after":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+   "before":"0000000000000000000000000000000000000000",
+   "created":true,
+   "deleted":false,
+   "forced":true,
+   "compare":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff93",
+   "commits":[
+      {
+         "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "distinct":true,
+         "message":"Added license",
+         "timestamp":"2014-08-28T16:55:36+02:00",
+         "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "author":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "committer":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "added":[
+            "LICENSE"
+         ],
+         "removed":[
+
+         ],
+         "modified":[
+
+         ]
+      }
+   ],
+   "head_commit":{
+      "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "distinct":true,
+      "message":"Added license",
+      "timestamp":"2014-08-28T16:55:36+02:00",
+      "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "author":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "committer":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "added":[
+         "LICENSE"
+      ],
+      "removed":[
+
+      ],
+      "modified":[
+
+      ]
+   },
+   "repository":{
+      "id":23354788,
+      "name":"anonRepo",
+      "full_name":"anonUser/anonRepo",
+      "owner":{
+         "name":"anonUser",
+         "email":"anonUser@example.com"
+      },
+      "private":false,
+      "html_url":"https://github.com/anonUser/anonRepo",
+      "description":"Git webhook implementation in Go.",
+      "fork":false,
+      "url":"https://github.com/anonUser/anonRepo",
+      "forks_url":"https://api.github.com/repos/anonUser/anonRepo/forks",
+      "keys_url":"https://api.github.com/repos/anonUser/anonRepo/keys{/key_id}",
+      "collaborators_url":"https://api.github.com/repos/anonUser/anonRepo/collaborators{/collaborator}",
+      "teams_url":"https://api.github.com/repos/anonUser/anonRepo/teams",
+      "hooks_url":"https://api.github.com/repos/anonUser/anonRepo/hooks",
+      "issue_events_url":"https://api.github.com/repos/anonUser/anonRepo/issues/events{/number}",
+      "events_url":"https://api.github.com/repos/anonUser/anonRepo/events",
+      "assignees_url":"https://api.github.com/repos/anonUser/anonRepo/assignees{/user}",
+      "branches_url":"https://api.github.com/repos/anonUser/anonRepo/branches{/branch}",
+      "tags_url":"https://api.github.com/repos/anonUser/anonRepo/tags",
+      "blobs_url":"https://api.github.com/repos/anonUser/anonRepo/git/blobs{/sha}",
+      "git_tags_url":"https://api.github.com/repos/anonUser/anonRepo/git/tags{/sha}",
+      "git_refs_url":"https://api.github.com/repos/anonUser/anonRepo/git/refs{/sha}",
+      "trees_url":"https://api.github.com/repos/anonUser/anonRepo/git/trees{/sha}",
+      "statuses_url":"https://api.github.com/repos/anonUser/anonRepo/statuses/{sha}",
+      "languages_url":"https://api.github.com/repos/anonUser/anonRepo/languages",
+      "stargazers_url":"https://api.github.com/repos/anonUser/anonRepo/stargazers",
+      "contributors_url":"https://api.github.com/repos/anonUser/anonRepo/contributors",
+      "subscribers_url":"https://api.github.com/repos/anonUser/anonRepo/subscribers",
+      "subscription_url":"https://api.github.com/repos/anonUser/anonRepo/subscription",
+      "commits_url":"https://api.github.com/repos/anonUser/anonRepo/commits{/sha}",
+      "git_commits_url":"https://api.github.com/repos/anonUser/anonRepo/git/commits{/sha}",
+      "comments_url":"https://api.github.com/repos/anonUser/anonRepo/comments{/number}",
+      "issue_comment_url":"https://api.github.com/repos/anonUser/anonRepo/issues/comments/{number}",
+      "contents_url":"https://api.github.com/repos/anonUser/anonRepo/contents/{+path}",
+      "compare_url":"https://api.github.com/repos/anonUser/anonRepo/compare/{base}...{head}",
+      "merges_url":"https://api.github.com/repos/anonUser/anonRepo/merges",
+      "archive_url":"https://api.github.com/repos/anonUser/anonRepo/{archive_format}{/ref}",
+      "downloads_url":"https://api.github.com/repos/anonUser/anonRepo/downloads",
+      "issues_url":"https://api.github.com/repos/anonUser/anonRepo/issues{/number}",
+      "pulls_url":"https://api.github.com/repos/anonUser/anonRepo/pulls{/number}",
+      "milestones_url":"https://api.github.com/repos/anonUser/anonRepo/milestones{/number}",
+      "notifications_url":"https://api.github.com/repos/anonUser/anonRepo/notifications{?since,all,participating}",
+      "labels_url":"https://api.github.com/repos/anonUser/anonRepo/labels{/name}",
+      "releases_url":"https://api.github.com/repos/anonUser/anonRepo/releases{/id}",
+      "created_at":1409063699,
+      "updated_at":"2014-08-26T14:34:59Z",
+      "pushed_at":1409238007,
+      "git_url":"git://github.com/anonUser/anonRepo.git",
+      "ssh_url":"git@github.com:anonUser/anonRepo.git",
+      "clone_url":"https://github.com/anonUser/anonRepo.git",
+      "svn_url":"https://github.com/anonUser/anonRepo",
+      "homepage":null,
+      "size":0,
+      "stargazers_count":0,
+      "watchers_count":0,
+      "language":null,
+      "has_issues":true,
+      "has_downloads":true,
+      "has_wiki":true,
+      "forks_count":0,
+      "mirror_url":null,
+      "open_issues_count":0,
+      "forks":0,
+      "open_issues":0,
+      "watchers":0,
+      "default_branch":"master",
+      "stargazers":0,
+      "master_branch":"master"
+   },
+   "pusher":{
+      "name":"anonUser",
+      "email":"anonUser@example.com"
+   }
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGithubTestdataPusheventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/github/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson = []byte(`{
+  "object_kind": "push",
+  "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
+  "after": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "ref": "refs/heads/my_other_branch",
+  "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "user_id": 4,
+  "user_name": "John Smith",
+  "user_email": "john@example.com",
+  "user_avatar": "https://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=8://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=80",
+  "project_id": 15,
+  "project":{
+    "name":"Diaspora",
+    "description":"",
+    "web_url":"http://example.com/mike/diaspora",
+    "avatar_url":null,
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "namespace":"Mike",
+    "visibility_level":0,
+    "path_with_namespace":"mike/diaspora",
+    "default_branch":"master",
+    "homepage":"http://example.com/mike/diaspora",
+    "url":"git@example.com:mike/diaspora.git",
+    "ssh_url":"git@example.com:mike/diaspora.git",
+    "http_url":"http://example.com/mike/diaspora.git"
+  },
+  "repository":{
+    "name": "Diaspora",
+    "url": "git@example.com:mike/diaspora.git",
+    "description": "",
+    "homepage": "http://example.com/mike/diaspora",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "visibility_level":0
+  },
+  "commits": [
+    {
+      "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "message": "Update Catalan translation to e38cb41.",
+      "timestamp": "2011-12-12T14:27:31+02:00",
+      "url": "http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "author": {
+        "name": "Jordi Mallach",
+        "email": "jordi@softcatala.org"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    },
+    {
+      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "message": "fixed readme",
+      "timestamp": "2012-01-03T23:36:29+02:00",
+      "url": "http://example.com/mike/diaspora/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "author": {
+        "name": "GitLab dev user",
+        "email": "gitlabdev@dv6700.(none)"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 4
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson = []byte(`{
+  "object_kind": "push",
+  "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
+  "after": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "ref": "refs/heads/master",
+  "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "user_id": 4,
+  "user_name": "John Smith",
+  "user_email": "john@example.com",
+  "user_avatar": "https://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=8://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=80",
+  "project_id": 15,
+  "project":{
+    "name":"Diaspora",
+    "description":"",
+    "web_url":"http://example.com/mike/diaspora",
+    "avatar_url":null,
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "namespace":"Mike",
+    "visibility_level":0,
+    "path_with_namespace":"mike/diaspora",
+    "default_branch":"master",
+    "homepage":"http://example.com/mike/diaspora",
+    "url":"git@example.com:mike/diaspora.git",
+    "ssh_url":"git@example.com:mike/diaspora.git",
+    "http_url":"http://example.com/mike/diaspora.git"
+  },
+  "repository":{
+    "name": "Diaspora",
+    "url": "git@example.com:mike/diaspora.git",
+    "description": "",
+    "homepage": "http://example.com/mike/diaspora",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "visibility_level":0
+  },
+  "commits": [
+    {
+      "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "message": "Update Catalan translation to e38cb41.",
+      "timestamp": "2011-12-12T14:27:31+02:00",
+      "url": "http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "author": {
+        "name": "Jordi Mallach",
+        "email": "jordi@softcatala.org"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    },
+    {
+      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "message": "fixed readme",
+      "timestamp": "2012-01-03T23:36:29+02:00",
+      "url": "http://example.com/mike/diaspora/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "author": {
+        "name": "GitLab dev user",
+        "email": "gitlabdev@dv6700.(none)"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 4
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -36627,6 +38052,20 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/valuefrom/test-configmap.yaml": testExtendedTestdataBuildsValuefromTestConfigmapYaml,
 	"test/extended/testdata/builds/valuefrom/test-is.json": testExtendedTestdataBuildsValuefromTestIsJson,
 	"test/extended/testdata/builds/valuefrom/test-secret.yaml": testExtendedTestdataBuildsValuefromTestSecretYaml,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json,
+	"test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json": testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json": testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml": testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic.json": testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json": testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pingevent.json": testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json": testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json": testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json": testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
+	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json": testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
 	"test/extended/testdata/cluster/master-vert.yaml": testExtendedTestdataClusterMasterVertYaml,
 	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json": testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
 	"test/extended/testdata/cluster/quickstarts/dancer-mysql.json": testExtendedTestdataClusterQuickstartsDancerMysqlJson,
@@ -37076,6 +38515,38 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-configmap.yaml": &bintree{testExtendedTestdataBuildsValuefromTestConfigmapYaml, map[string]*bintree{}},
 						"test-is.json": &bintree{testExtendedTestdataBuildsValuefromTestIsJson, map[string]*bintree{}},
 						"test-secret.yaml": &bintree{testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
+					}},
+					"webhook": &bintree{nil, map[string]*bintree{
+						"bitbucket": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"pushevent-not-master.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson, map[string]*bintree{}},
+								"pushevent.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson, map[string]*bintree{}},
+								"pushevent54-not-master.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson, map[string]*bintree{}},
+								"pushevent54.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json, map[string]*bintree{}},
+							}},
+						}},
+						"generic": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"post-receive-git.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson, map[string]*bintree{}},
+								"push-generic-envs.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson, map[string]*bintree{}},
+								"push-generic-envs.yaml": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml, map[string]*bintree{}},
+								"push-generic.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson, map[string]*bintree{}},
+								"push-gitlab.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson, map[string]*bintree{}},
+							}},
+						}},
+						"github": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"pingevent.json": &bintree{testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson, map[string]*bintree{}},
+								"pushevent-not-master-branch.json": &bintree{testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson, map[string]*bintree{}},
+								"pushevent.json": &bintree{testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson, map[string]*bintree{}},
+							}},
+						}},
+						"gitlab": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"pushevent-not-master-branch.json": &bintree{testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson, map[string]*bintree{}},
+								"pushevent.json": &bintree{testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson, map[string]*bintree{}},
+							}},
+						}},
 					}},
 				}},
 				"cluster": &bintree{nil, map[string]*bintree{

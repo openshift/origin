@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,8 +15,6 @@ import (
 	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/api/annotations"
-	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/origin/test/extended/cluster/metrics"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -286,18 +283,6 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	})
 })
 
-func newProject(nsName string) *projectv1.Project {
-	return &projectv1.Project{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nsName,
-			Annotations: map[string]string{
-				annotations.OpenShiftDisplayName: nsName,
-				//"openshift.io/node-selector": "purpose=test",
-			},
-		},
-	}
-}
-
 // mkPath returns fully qualfied file path as a string
 func mkPath(filename, config string) (string, error) {
 	// Use absolute path if provided in config
@@ -326,9 +311,4 @@ func mkPath(filename, config string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to find pod/template file %s\n", filename)
-}
-
-// appendIntToString appends an integer i to string s
-func appendIntToString(s string, i int) string {
-	return s + strconv.Itoa(i)
 }

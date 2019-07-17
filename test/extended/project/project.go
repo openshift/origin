@@ -60,7 +60,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 					Name: "new-project-" + oc.Namespace(),
 					Annotations: map[string]string{
 						annotations.OpenShiftDisplayName: "Hello World",
-						"openshift.io/node-selector":     "env=test",
+						projectv1.ProjectNodeSelector:    "env=test",
 					},
 				},
 			}
@@ -81,8 +81,8 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 			if project.Annotations[annotations.OpenShiftDisplayName] != namespace.Annotations[annotations.OpenShiftDisplayName] {
 				t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[annotations.OpenShiftDisplayName], namespace.Annotations[annotations.OpenShiftDisplayName])
 			}
-			if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
-				t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
+			if project.Annotations[projectv1.ProjectNodeSelector] != namespace.Annotations[projectv1.ProjectNodeSelector] {
+				t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations[projectv1.ProjectNodeSelector], namespace.Annotations[projectv1.ProjectNodeSelector])
 			}
 		})
 	})

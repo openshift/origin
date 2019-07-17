@@ -10,7 +10,6 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	exutil "github.com/openshift/origin/test/extended/util"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,7 +48,7 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 
 		actualProject, err := valerieProjectClient.ProjectV1().Projects().Get(projectRequest.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if e, a := oc.Username(), actualProject.Annotations[projectapi.ProjectRequester]; e != a {
+		if e, a := oc.Username(), actualProject.Annotations["openshift.io/requester"]; e != a {
 			t.Errorf("incorrect project requester: expected %v, got %v", e, a)
 		}
 

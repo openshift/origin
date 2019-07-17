@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 
+	"github.com/openshift/api/annotations"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -11,7 +13,6 @@ import (
 	apistorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	oapi "github.com/openshift/openshift-apiserver/pkg/api"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 )
 
@@ -51,7 +52,7 @@ func ConvertProjectToExternal(project *projectapi.Project) *corev1.Namespace {
 	if namespace.Annotations == nil {
 		namespace.Annotations = map[string]string{}
 	}
-	namespace.Annotations[oapi.OpenShiftDisplayName] = project.Annotations[oapi.OpenShiftDisplayName]
+	namespace.Annotations[annotations.OpenShiftDisplayName] = project.Annotations[annotations.OpenShiftDisplayName]
 	return namespace
 }
 
