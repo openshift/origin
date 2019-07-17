@@ -1,4 +1,4 @@
-package glog
+package log
 
 import (
 	"bufio"
@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/golang/glog"
+	"k8s.io/klog"
 )
 
-// Logger is a simple interface that is roughly equivalent to glog.
+// Logger is a simple interface that is roughly equivalent to klog.
 type Logger interface {
 	Is(level int32) bool
 	V(level int32) VerboseLogger
@@ -25,14 +25,14 @@ type Logger interface {
 	Fatal(args ...interface{})
 }
 
-// VerboseLogger is roughly equivalent to glog's Verbose.
+// VerboseLogger is roughly equivalent to klog's Verbose.
 type VerboseLogger interface {
 	Infof(format string, args ...interface{})
 	Info(args ...interface{})
 }
 
 // ToFile creates a logger that will log any items at level or below to file, and defer
-// any other output to glog (no matter what the level is).
+// any other output to klog (no matter what the level is).
 func ToFile(x io.Writer, level int32) Logger {
 	return &FileLogger{
 		&sync.Mutex{},
@@ -94,7 +94,7 @@ func (discard) Fatal(...interface{}) {
 }
 
 // FileLogger logs the provided messages at level or below to the writer, or delegates
-// to glog.
+// to klog.
 type FileLogger struct {
 	mutex *sync.Mutex
 	w     *bufio.Writer
@@ -109,7 +109,7 @@ func (f *FileLogger) Is(level int32) bool {
 // V will returns a logger which will discard output if the specified level is greater than the current logging level.
 func (f *FileLogger) V(level int32) VerboseLogger {
 	// Is the loglevel set verbose enough to accept the forthcoming log statement
-	if log.V(log.Level(level)) {
+	if klog.V(klog.Level(level)) {
 		return f
 	}
 	// Otherwise discard
@@ -126,7 +126,7 @@ const (
 )
 
 // Elevated logger methods output a detailed prefix for each logging statement.
-// At present, we delegate to glog to accomplish this.
+// At present, we delegate to klog to accomplish this.
 type elevated func(int, ...interface{})
 
 type severityDetail struct {
@@ -135,10 +135,10 @@ type severityDetail struct {
 }
 
 var severities = []severityDetail{
-	infoLog:    {"", log.InfoDepth},
-	warningLog: {"WARNING: ", log.WarningDepth},
-	errorLog:   {"ERROR: ", log.ErrorDepth},
-	fatalLog:   {"FATAL: ", log.FatalDepth},
+	infoLog:    {"", klog.InfoDepth},
+	warningLog: {"WARNING: ", klog.WarningDepth},
+	errorLog:   {"ERROR: ", klog.ErrorDepth},
+	fatalLog:   {"FATAL: ", klog.FatalDepth},
 }
 
 func (f *FileLogger) writeln(sev severity, line string) {
@@ -147,7 +147,7 @@ func (f *FileLogger) writeln(sev severity, line string) {
 	// If the loglevel has been elevated above this file logger's verbosity (generally set to 2)
 	// then delegate ALL messages to elevated logger in order to leverage its file/line/timestamp
 	// prefix information.
-	if log.V(log.Level(f.level + 1)) {
+	if klog.V(klog.Level(f.level + 1)) {
 		severity.delegateFn(3, line)
 	} else {
 		// buf.io is not threadsafe, so serialize access to the stream

@@ -84,7 +84,7 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 		)
 		return buildResult, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
 	}
-	glog.V(2).Info("Preparing the source code for build")
+	log.V(2).Info("Preparing the source code for build")
 	// Change the installation directory for this config to store scripts inside
 	// the application root directory.
 	if err := builder.source.Prepare(config); err != nil {
@@ -94,7 +94,7 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 	// If necessary, copy the STI scripts into application root directory
 	builder.copySTIScripts(config)
 
-	glog.V(2).Info("Creating application Dockerfile")
+	log.V(2).Info("Creating application Dockerfile")
 	if err := builder.CreateDockerfile(config); err != nil {
 		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonDockerfileCreateFailed,
@@ -103,7 +103,7 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 		return buildResult, err
 	}
 
-	glog.V(2).Info("Creating application source code image")
+	log.V(2).Info("Creating application source code image")
 	tarStream := builder.tar.CreateTarStreamReader(filepath.Join(config.WorkingDir, "upload", "src"), false)
 	defer tarStream.Close()
 
@@ -117,7 +117,7 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 		CGroupLimits: config.CGroupLimits,
 	}
 
-	glog.V(2).Info("Building the application source")
+	log.V(2).Info("Building the application source")
 	if err := builder.docker.BuildImage(opts); err != nil {
 		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonDockerImageBuildFailed,
@@ -126,7 +126,7 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 		return buildResult, err
 	}
 
-	glog.V(2).Info("Cleaning up temporary containers")
+	log.V(2).Info("Cleaning up temporary containers")
 	builder.garbage.Cleanup(config)
 
 	var imageID string
@@ -159,7 +159,7 @@ func (builder *OnBuild) CreateDockerfile(config *api.Config) error {
 	}
 	env, err := scripts.GetEnvironment(filepath.Join(config.WorkingDir, constants.Source))
 	if err != nil {
-		glog.V(1).Infof("Environment: %v", err)
+		log.V(1).Infof("Environment: %v", err)
 	} else {
 		buffer.WriteString(scripts.ConvertEnvironmentToDocker(env))
 	}
@@ -178,11 +178,11 @@ func (builder *OnBuild) copySTIScripts(config *api.Config) {
 	scriptsPath := filepath.Join(config.WorkingDir, "upload", "scripts")
 	sourcePath := filepath.Join(config.WorkingDir, "upload", "src")
 	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, constants.Run)); err == nil {
-		glog.V(3).Info("Found S2I 'run' script, copying to application source dir")
+		log.V(3).Info("Found S2I 'run' script, copying to application source dir")
 		builder.fs.Copy(filepath.Join(scriptsPath, constants.Run), filepath.Join(sourcePath, constants.Run), nil)
 	}
 	if _, err := builder.fs.Stat(filepath.Join(scriptsPath, constants.Assemble)); err == nil {
-		glog.V(3).Info("Found S2I 'assemble' script, copying to application source dir")
+		log.V(3).Info("Found S2I 'assemble' script, copying to application source dir")
 		builder.fs.Copy(filepath.Join(scriptsPath, constants.Assemble), filepath.Join(sourcePath, constants.Assemble), nil)
 	}
 }

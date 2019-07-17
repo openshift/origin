@@ -9,12 +9,12 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/scm/git"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 var savedEnvMatcher = regexp.MustCompile("env-[0-9]+")
 
 // DefaultConfigPath specifies the default location of the S2I config file
@@ -47,11 +47,11 @@ func Save(config *api.Config, cmd *cobra.Command) {
 	})
 	data, err := json.Marshal(c)
 	if err != nil {
-		glog.V(1).Infof("Unable to serialize to %s: %v", DefaultConfigPath, err)
+		log.V(1).Infof("Unable to serialize to %s: %v", DefaultConfigPath, err)
 		return
 	}
 	if err := ioutil.WriteFile(DefaultConfigPath, data, 0644); err != nil {
-		glog.V(1).Infof("Unable to save %s: %v", DefaultConfigPath, err)
+		log.V(1).Infof("Unable to save %s: %v", DefaultConfigPath, err)
 	}
 	return
 }
@@ -62,21 +62,21 @@ func Restore(config *api.Config, cmd *cobra.Command) {
 	if err != nil {
 		data, err = ioutil.ReadFile(".stifile")
 		if err != nil {
-			glog.V(1).Infof("Unable to restore %s: %v", DefaultConfigPath, err)
+			log.V(1).Infof("Unable to restore %s: %v", DefaultConfigPath, err)
 			return
 		}
-		glog.Infof("DEPRECATED: Use %s instead of .stifile", DefaultConfigPath)
+		log.Infof("DEPRECATED: Use %s instead of .stifile", DefaultConfigPath)
 	}
 
 	c := Config{}
 	if err := json.Unmarshal(data, &c); err != nil {
-		glog.V(1).Infof("Unable to parse %s: %v", DefaultConfigPath, err)
+		log.V(1).Infof("Unable to parse %s: %v", DefaultConfigPath, err)
 		return
 	}
 
 	source, err := git.Parse(c.Source)
 	if err != nil {
-		glog.V(1).Infof("Unable to parse %s: %v", c.Source, err)
+		log.V(1).Infof("Unable to parse %s: %v", c.Source, err)
 		return
 	}
 

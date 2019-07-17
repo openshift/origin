@@ -16,10 +16,11 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/klog"
+
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerapi "github.com/docker/docker/client"
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build/strategies"
 	"github.com/openshift/source-to-image/pkg/docker"
@@ -77,6 +78,8 @@ const (
 var engineClient docker.Client
 
 func init() {
+	klog.InitFlags(nil)
+
 	var err error
 	engineClient, err = docker.NewEngineAPIClient(docker.GetDefaultDockerConfig())
 	if err != nil {
@@ -161,7 +164,7 @@ var (
 
 func getLogLevel() (level int) {
 	for level = 5; level >= 0; level-- {
-		if glog.V(glog.Level(level)) == true {
+		if klog.V(klog.Level(level)) == true {
 			break
 		}
 	}
@@ -190,14 +193,14 @@ func (i *integrationTest) setup() {
 	from := flag.CommandLine
 	if vflag := from.Lookup("v"); vflag != nil {
 		// the thing here is that we are looking for the bash -v passed into test-integration.sh (with no value),
-		// but for glog (https://github.com/golang/glog/blob/master/glog.go), one specifies
+		// but for klog (https://k8s.io/klog/blob/master/klog.go), one specifies
 		// the logging level with -v=# (i.e. -v=0 or -v=3 or -v=5).
-		// so, for the changes stemming from issue 133, we 'reuse' the bash -v, and set the highest glog level.
-		// (if you look at STI's main.go, and setupGlog, it essentially maps glog's -v to --loglevel for use by the sti command)
+		// so, for the changes stemming from issue 133, we 'reuse' the bash -v, and set the highest klog level.
+		// (if you look at STI's main.go, and setupGlog, it essentially maps klog's -v to --loglevel for use by the sti command)
 		//NOTE - passing --loglevel or -v=5 into test-integration.sh does not work
 		if getLogLevel() != 5 {
 			vflag.Value.Set("5")
-			// FIXME currently glog has only option to redirect output to stderr
+			// FIXME currently klog has only option to redirect output to stderr
 			// the preferred for STI would be to redirect to stdout
 			flag.CommandLine.Set("logtostderr", "true")
 		}

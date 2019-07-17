@@ -19,11 +19,11 @@ import (
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util/fs"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 const defaultDestination = "/tmp"
 
@@ -75,7 +75,7 @@ func getDestination(config *api.Config) string {
 func checkValidDirWithContents(name string) bool {
 	items, err := ioutil.ReadDir(name)
 	if os.IsNotExist(err) {
-		glog.Warningf("Unable to access directory %q: %v", name, err)
+		log.Warningf("Unable to access directory %q: %v", name, err)
 	}
 	return !(err != nil || len(items) == 0)
 }
@@ -100,11 +100,11 @@ func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	// even if the "scripts" dir exists, the COPY would fail if it was empty
 	scriptsIncluded := checkValidDirWithContents(uploadScriptsDir)
 	if scriptsIncluded {
-		glog.V(2).Infof("The scripts are included in %q directory", uploadScriptsDir)
+		log.V(2).Infof("The scripts are included in %q directory", uploadScriptsDir)
 		buffer.WriteString(fmt.Sprintf("COPY scripts %s\n", filepath.ToSlash(scriptsDir)))
 	} else {
 		// if an err on reading or opening dir, can't copy it
-		glog.V(2).Infof("Could not gather scripts from the directory %q", uploadScriptsDir)
+		log.V(2).Infof("Could not gather scripts from the directory %q", uploadScriptsDir)
 	}
 	buffer.WriteString(fmt.Sprintf("COPY src %s\n", filepath.ToSlash(sourcesDir)))
 
@@ -124,7 +124,7 @@ func (builder *Layered) CreateDockerfile(config *api.Config) error {
 	if err := builder.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes()); err != nil {
 		return err
 	}
-	glog.V(2).Infof("Writing custom Dockerfile to %s", uploadDir)
+	log.V(2).Infof("Writing custom Dockerfile to %s", uploadDir)
 	return nil
 }
 
@@ -157,7 +157,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 		return buildResult, err
 	}
 
-	glog.V(2).Info("Creating application source code image")
+	log.V(2).Info("Creating application source code image")
 	tarStream := builder.tar.CreateTarStreamReader(filepath.Join(config.WorkingDir, "upload"), false)
 	defer tarStream.Close()
 
@@ -170,9 +170,9 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 		Stdout:       outWriter,
 		CGroupLimits: config.CGroupLimits,
 	}
-	docker.StreamContainerIO(outReader, nil, func(s string) { glog.V(2).Info(s) })
+	docker.StreamContainerIO(outReader, nil, func(s string) { log.V(2).Info(s) })
 
-	glog.V(2).Infof("Building new image %s with scripts and sources already inside", newBuilderImage)
+	log.V(2).Infof("Building new image %s with scripts and sources already inside", newBuilderImage)
 	startTime := time.Now()
 	err := builder.docker.BuildImage(opts)
 	buildResult.BuildInfo.Stages = api.RecordStageAndStepInfo(buildResult.BuildInfo.Stages, api.StageBuild, api.StepBuildDockerImage, startTime, time.Now())
@@ -190,7 +190,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 	builder.config.BuilderImage = newBuilderImage
 	// see CreateDockerfile, conditional copy, location of scripts
 	scriptsIncluded := checkValidDirWithContents(path.Join(config.WorkingDir, constants.UploadScripts))
-	glog.V(2).Infof("Scripts dir has contents %v", scriptsIncluded)
+	log.V(2).Infof("Scripts dir has contents %v", scriptsIncluded)
 	if scriptsIncluded {
 		builder.config.ScriptsURL = "image://" + path.Join(getDestination(config), "scripts")
 	} else {
@@ -205,7 +205,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 		}
 	}
 
-	glog.V(2).Infof("Building %s using sti-enabled image", builder.config.Tag)
+	log.V(2).Infof("Building %s using sti-enabled image", builder.config.Tag)
 	startTime = time.Now()
 	err = builder.scripts.Execute(constants.Assemble, config.AssembleUser, builder.config)
 	buildResult.BuildInfo.Stages = api.RecordStageAndStepInfo(buildResult.BuildInfo.Stages, api.StageAssemble, api.StepAssembleBuildScripts, startTime, time.Now())

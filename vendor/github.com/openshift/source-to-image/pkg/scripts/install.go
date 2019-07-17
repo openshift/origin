@@ -76,7 +76,7 @@ func (s *URLScriptHandler) Get(script string) *api.InstallResult {
 	}
 	scriptURL, err := url.ParseRequestURI(s.URL + "/" + script)
 	if err != nil {
-		glog.Infof("invalid script url %q: %v", s.URL, err)
+		log.Infof("invalid script url %q: %v", s.URL, err)
 		return nil
 	}
 	return &api.InstallResult{
@@ -127,7 +127,7 @@ func (s *SourceScriptHandler) Get(script string) *api.InstallResult {
 	// and this should (and will) be removed soon.
 	location = filepath.FromSlash(strings.Replace(filepath.ToSlash(location), "s2i/bin", "sti/bin", 1))
 	if s.fs.Exists(location) {
-		glog.Info("DEPRECATED: Use .s2i/bin instead of .sti/bin")
+		log.Info("DEPRECATED: Use .s2i/bin instead of .sti/bin")
 		return &api.InstallResult{Script: script, URL: location}
 	}
 	return nil
@@ -252,13 +252,13 @@ func (m *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir st
 				if err := h.Install(r); err != nil {
 					failedSources = append(failedSources, h.String())
 					// all this means is this source didn't have this particular script
-					glog.V(4).Infof("script %q found by the %s, but failed to install: %v", script, h, err)
+					log.V(4).Infof("script %q found by the %s, but failed to install: %v", script, h, err)
 				} else {
 					r.FailedSources = failedSources
 					result = append(result, *r)
 					installed = true
 					detected = true
-					glog.V(4).Infof("Using %q installed from %q", script, r.URL)
+					log.V(4).Infof("Using %q installed from %q", script, r.URL)
 				}
 			}
 			if detected {

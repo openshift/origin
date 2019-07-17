@@ -26,7 +26,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 	"github.com/openshift/source-to-image/pkg/util/cmd"
 	"github.com/openshift/source-to-image/pkg/util/fs"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	glog = utilglog.StderrLog
+	log = utillog.StderrLog
 
 	// List of directories that needs to be present inside working dir
 	workingDirs = []string{
@@ -201,35 +201,35 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 	}
 	defer builder.garbage.Cleanup(config)
 
-	glog.V(1).Infof("Preparing to build %s", config.Tag)
+	log.V(1).Infof("Preparing to build %s", config.Tag)
 	if err := builder.preparer.Prepare(config); err != nil {
 		return builder.result, err
 	}
 
 	if builder.incremental = builder.artifacts.Exists(config); builder.incremental {
 		tag := util.FirstNonEmpty(config.IncrementalFromTag, config.Tag)
-		glog.V(1).Infof("Existing image for tag %s detected for incremental build", tag)
+		log.V(1).Infof("Existing image for tag %s detected for incremental build", tag)
 	} else {
-		glog.V(1).Info("Clean build will be performed")
+		log.V(1).Info("Clean build will be performed")
 	}
 
-	glog.V(2).Infof("Performing source build from %s", config.Source)
+	log.V(2).Infof("Performing source build from %s", config.Source)
 	if builder.incremental {
 		if err := builder.artifacts.Save(config); err != nil {
-			glog.Warning("Clean build will be performed because of error saving previous build artifacts")
-			glog.V(2).Infof("error: %v", err)
+			log.Warning("Clean build will be performed because of error saving previous build artifacts")
+			log.V(2).Infof("error: %v", err)
 		}
 	}
 
 	if len(config.AssembleUser) > 0 {
-		glog.V(1).Infof("Running %q in %q as %q user", constants.Assemble, config.Tag, config.AssembleUser)
+		log.V(1).Infof("Running %q in %q as %q user", constants.Assemble, config.Tag, config.AssembleUser)
 	} else {
-		glog.V(1).Infof("Running %q in %q", constants.Assemble, config.Tag)
+		log.V(1).Infof("Running %q in %q", constants.Assemble, config.Tag)
 	}
 	startTime := time.Now()
 	if err := builder.scripts.Execute(constants.Assemble, config.AssembleUser, config); err != nil {
 		if err == errMissingRequirements {
-			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
+			log.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
 			return builder.layered.Build(config)
 		}
 		if e, ok := err.(s2ierr.ContainerError); ok {
@@ -240,7 +240,7 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 				)
 				return builder.result, err
 			}
-			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
+			log.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
 			buildResult, err := builder.layered.Build(config)
 			return buildResult, err
 		}
@@ -284,7 +284,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 				utilstatus.ReasonPullRuntimeImageFailed,
 				utilstatus.ReasonMessagePullRuntimeImageFailed,
 			)
-			glog.Errorf("Unable to pull runtime image %q: %v", config.RuntimeImage, err)
+			log.Errorf("Unable to pull runtime image %q: %v", config.RuntimeImage, err)
 			return err
 		}
 
@@ -416,7 +416,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 
 	for _, r := range requiredAndOptional {
 		if r.Error != nil {
-			glog.Warningf("Error getting %v from %s: %v", r.Script, r.URL, r.Error)
+			log.Warningf("Error getting %v from %s: %v", r.Script, r.URL, r.Error)
 			continue
 		}
 
@@ -449,7 +449,7 @@ func (builder *STI) PostExecute(containerID, destination string) error {
 
 	for _, step := range stageSteps {
 		if err := step.execute(builder.postExecutorStepsContext); err != nil {
-			glog.V(0).Info("error: Execution of post execute step failed")
+			log.V(0).Info("error: Execution of post execute step failed")
 			return err
 		}
 	}
@@ -462,7 +462,7 @@ func (builder *STI) PostExecute(containerID, destination string) error {
 func CreateBuildEnvironment(sourcePath string, cfgEnv api.EnvironmentList) []string {
 	s2iEnv, err := scripts.GetEnvironment(filepath.Join(sourcePath, constants.Source))
 	if err != nil {
-		glog.V(3).Infof("No user environment provided (%v)", err)
+		log.V(3).Infof("No user environment provided (%v)", err)
 	}
 
 	return append(scripts.ConvertEnvironmentList(s2iEnv), scripts.ConvertEnvironmentList(cfgEnv)...)
@@ -492,7 +492,7 @@ func (builder *STI) Exists(config *api.Config) bool {
 			utilstatus.ReasonPullPreviousImageFailed,
 			utilstatus.ReasonMessagePullPreviousImageFailed,
 		)
-		glog.V(2).Infof("Unable to pull previously built image %q: %v", tag, err)
+		log.V(2).Infof("Unable to pull previously built image %q: %v", tag, err)
 		return false
 	}
 
@@ -519,7 +519,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
-	glog.V(1).Infof("Saving build artifacts from image %s to path %s", image, artifactTmpDir)
+	log.V(1).Infof("Saving build artifacts from image %s to path %s", image, artifactTmpDir)
 	extractFunc := func(string) error {
 		startTime := time.Now()
 		extractErr := builder.tar.ExtractTarStream(artifactTmpDir, outReader)
@@ -543,9 +543,9 @@ func (builder *STI) Save(config *api.Config) (err error) {
 			)
 			return err
 		}
-		glog.V(3).Infof("The assemble user is not set, defaulting to %q user", user)
+		log.V(3).Infof("The assemble user is not set, defaulting to %q user", user)
 	} else {
-		glog.V(3).Infof("Using assemble user %q to extract artifacts", user)
+		log.V(3).Infof("Using assemble user %q to extract artifacts", user)
 	}
 
 	opts := dockerpkg.RunContainerOptions{
@@ -567,7 +567,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		AddHost:         config.AddHost,
 	}
 
-	dockerpkg.StreamContainerIO(errReader, nil, func(s string) { glog.Info(s) })
+	dockerpkg.StreamContainerIO(errReader, nil, func(s string) { log.Info(s) })
 	err = builder.docker.RunContainer(opts)
 	if e, ok := err.(s2ierr.ContainerError); ok {
 		err = s2ierr.NewSaveArtifactsError(image, e.Output, err)
@@ -582,7 +582,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 
 // Execute runs the specified STI script in the builder image.
 func (builder *STI) Execute(command string, user string, config *api.Config) error {
-	glog.V(2).Infof("Using image name %s", config.BuilderImage)
+	log.V(2).Infof("Using image name %s", config.BuilderImage)
 
 	// Ensure that the builder image is present in the local Docker daemon.
 	// The image should have been pulled when the strategy was created, so
@@ -700,7 +700,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 				w.Close()
 				return
 			}
-			glog.V(2).Info("starting the source uploading ...")
+			log.V(2).Info("starting the source uploading ...")
 			uploadDir := filepath.Join(config.WorkingDir, "upload")
 			w.CloseWithError(builder.tar.CreateTarStream(uploadDir, false, w))
 		}()
@@ -708,11 +708,11 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 
 	dockerpkg.StreamContainerIO(outReader, nil, func(s string) {
 		if !config.Quiet {
-			glog.Info(strings.TrimSpace(s))
+			log.Info(strings.TrimSpace(s))
 		}
 	})
 
-	c := dockerpkg.StreamContainerIO(errReader, &errOutput, func(s string) { glog.Info(s) })
+	c := dockerpkg.StreamContainerIO(errReader, &errOutput, func(s string) { log.Info(s) })
 
 	err := builder.docker.RunContainer(opts)
 	if err != nil {
@@ -732,7 +732,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 // uploadInjections uploads the injected volumes to the s2i container, along with the source
 // removal script to truncate volumes that should not be kept.
 func (builder *STI) uploadInjections(config *api.Config, rmScript, containerID string) error {
-	glog.V(2).Info("starting the injections uploading ...")
+	log.V(2).Info("starting the injections uploading ...")
 	for _, s := range config.Injections {
 		if err := builder.docker.UploadToContainer(builder.fs, s.Source, s.Destination, containerID); err != nil {
 			return util.HandleInjectionError(s, err)
