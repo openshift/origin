@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/watch"
 	informers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -28,7 +29,16 @@ var (
 		ObjectMeta: metav1.ObjectMeta{Name: registryName, Namespace: registryNamespace},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "172.16.123.123",
-			Ports:     []v1.ServicePort{{Port: 443}},
+			Ports: []v1.ServicePort{
+				{
+					Port:       443,
+					TargetPort: intstr.FromInt(5000),
+				},
+				{
+					Port:       5000,
+					TargetPort: intstr.FromInt(5000),
+				},
+			},
 		},
 	}
 )
@@ -184,10 +194,13 @@ func TestUpdateNewStyleSecretAndDNSSuffixAndAdditionalURLs(t *testing.T) {
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
 	expectedLocations := []string{"foo.bar.com",
 		"172.16.123.123:443",
+		"172.16.123.123:5000",
 		"172.16.123.123",
 		"docker-registry.default.svc:443",
+		"docker-registry.default.svc:5000",
 		"docker-registry.default.svc",
 		"docker-registry.default.svc.something.else:443",
+		"docker-registry.default.svc.something.else:5000",
 		"docker-registry.default.svc.something.else"}
 	for _, key := range expectedLocations {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
@@ -280,8 +293,10 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
 	expectedLocations := []string{
 		"172.16.123.123:443",
+		"172.16.123.123:5000",
 		"172.16.123.123",
 		"docker-registry.default.svc:443",
+		"docker-registry.default.svc:5000",
 		"docker-registry.default.svc"}
 	for _, key := range expectedLocations {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
@@ -376,8 +391,10 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
 	expectedLocations := []string{
 		"172.16.123.123:443",
+		"172.16.123.123:5000",
 		"172.16.123.123",
 		"docker-registry.default.svc:443",
+		"docker-registry.default.svc:5000",
 		"docker-registry.default.svc"}
 	for _, key := range expectedLocations {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{
@@ -515,8 +532,10 @@ func TestClearSecretAndRecreate(t *testing.T) {
 	expectedDockercfgMap := credentialprovider.DockerConfig{}
 	expectedLocations := []string{
 		"172.16.123.123:443",
+		"172.16.123.123:5000",
 		"172.16.123.123",
 		"docker-registry.default.svc:443",
+		"docker-registry.default.svc:5000",
 		"docker-registry.default.svc"}
 	for _, key := range expectedLocations {
 		expectedDockercfgMap[key] = credentialprovider.DockerConfigEntry{

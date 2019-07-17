@@ -247,29 +247,29 @@ func getDockerRegistryLocations(lister listers.ServiceLister, location serviceLo
 		return []string{}
 	}
 
+	ret := []string{}
 	hasClusterIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
-	if hasClusterIP && len(service.Spec.Ports) > 0 {
-		svcPort := service.Spec.Ports[0].Port
-		ret := []string{
-			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", svcPort)),
-			net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", svcPort)),
-		}
-		// Bug 1701422: if using HTTP/S default ports, add locations without the port number
-		if svcPort == 80 || svcPort == 443 {
-			ret = append(ret, service.Spec.ClusterIP, fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace))
-		}
-		if len(clusterDNSSuffix) > 0 {
-			ret = append(ret, net.JoinHostPort(fmt.Sprintf("%s.%s.svc."+clusterDNSSuffix, service.Name, service.Namespace), fmt.Sprintf("%d", svcPort)))
+	if hasClusterIP {
+		hasPortlessLocation := false
+		for _, portSpec := range service.Spec.Ports {
+			svcPort := portSpec.Port
+			ret = append(ret,
+				net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", svcPort)),
+				net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", svcPort)))
+			if len(clusterDNSSuffix) > 0 {
+				ret = append(ret, net.JoinHostPort(fmt.Sprintf("%s.%s.svc."+clusterDNSSuffix, service.Name, service.Namespace), fmt.Sprintf("%d", svcPort)))
+			}
 			// Bug 1701422: if using HTTP/S default ports, add locations without the port number
-			if svcPort == 80 || svcPort == 443 {
-				ret = append(ret, fmt.Sprintf("%s.%s.svc."+clusterDNSSuffix, service.Name, service.Namespace))
+			if !hasPortlessLocation && (svcPort == 80 || svcPort == 443) {
+				ret = append(ret, service.Spec.ClusterIP, fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace))
+				if len(clusterDNSSuffix) > 0 {
+					ret = append(ret, fmt.Sprintf("%s.%s.svc."+clusterDNSSuffix, service.Name, service.Namespace))
+				}
+				hasPortlessLocation = true
 			}
 		}
-
-		return ret
 	}
-
-	return []string{}
+	return ret
 }
 
 // syncRegistryLocationChange goes through all service account dockercfg secrets and updates them to point at a new docker-registry location
