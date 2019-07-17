@@ -59,7 +59,7 @@ var schema = Schema{
 	SwaggerSchemaProps: SwaggerSchemaProps{
 		Discriminator: "not this",
 		ReadOnly:      true,
-		XML:           &XMLObject{Name: "sch", Namespace: "io", Prefix: "sw", Attribute: true, Wrapped: true},
+		XML:           &XMLObject{"sch", "io", "sw", true, true},
 		ExternalDocs: &ExternalDocumentation{
 			Description: "the documentation etc",
 			URL:         "http://readthedocs.org/swagger",
@@ -150,11 +150,11 @@ var schemaJSON = `{
 func TestSchema(t *testing.T) {
 
 	expected := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(schemaJSON), &expected)
+	json.Unmarshal([]byte(schemaJSON), &expected)
 	b, err := json.Marshal(schema)
 	if assert.NoError(t, err) {
 		var actual map[string]interface{}
-		_ = json.Unmarshal(b, &actual)
+		json.Unmarshal(b, &actual)
 		assert.Equal(t, expected, actual)
 	}
 
@@ -207,6 +207,6 @@ func TestSchema(t *testing.T) {
 func BenchmarkSchemaUnmarshal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		sch := &Schema{}
-		_ = sch.UnmarshalJSON([]byte(schemaJSON))
+		sch.UnmarshalJSON([]byte(schemaJSON))
 	}
 }

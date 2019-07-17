@@ -49,6 +49,26 @@ func (ConsoleCLIDownloadSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleCLIDownloadSpec
 }
 
+var map_ConsoleExternalLogLink = map[string]string{
+	"":         "ConsoleExternalLogLink is an extension for customizing OpenShift web console log links.",
+	"metadata": "Standard object's metadata.",
+}
+
+func (ConsoleExternalLogLink) SwaggerDoc() map[string]string {
+	return map_ConsoleExternalLogLink
+}
+
+var map_ConsoleExternalLogLinkSpec = map[string]string{
+	"":                "ConsoleExternalLogLinkSpec is the desired log link configuration. The log link will appear on the logs tab of the pod details page.",
+	"text":            "text is the display text for the link",
+	"hrefTemplate":    "hrefTemplate is an absolute secure URL (must use https) for the log link including variables to be replaced. Variables are specified in the URL with the format ${variableName}, for instance, ${containerName} and will be replaced with the corresponding values from the resource. Resource is a pod. Supported variables are: - ${resourceName} - name of the resource which containes the logs - ${resourceUID} - UID of the resource which contains the logs\n              - e.g. `11111111-2222-3333-4444-555555555555`\n- ${containerName} - name of the resource's container that contains the logs - ${resourceNamespace} - namespace of the resource that contains the logs - ${podLabels} - JSON representation of labels matching the pod with the logs\n            - e.g. `{\"key1\":\"value1\",\"key2\":\"value2\"}`\n\ne.g., https://example.com/logs?resourceName=${resourceName}&containerName=${containerName}&resourceNamespace=${resourceNamespace}&podLabels=${podLabels}",
+	"namespaceFilter": "namespaceFilter is a regular expression used to restrict a log link to a matching set of namespaces (e.g., `/^openshift-/g`). If not specified, links will be displayed for all the namespaces.",
+}
+
+func (ConsoleExternalLogLinkSpec) SwaggerDoc() map[string]string {
+	return map_ConsoleExternalLogLinkSpec
+}
+
 var map_ApplicationMenuSpec = map[string]string{
 	"":         "ApplicationMenuSpec is the specification of the desired section and icon used for the link in the application menu.",
 	"section":  "section is the section of the application menu in which the link should appear.",

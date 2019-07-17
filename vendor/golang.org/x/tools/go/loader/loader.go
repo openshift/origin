@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"golang.org/x/tools/go/ast/astutil"
-	"golang.org/x/tools/go/internal/cgo"
 )
 
 var ignoreVendor build.ImportMode
@@ -106,7 +105,7 @@ type Config struct {
 	// conventions, for example.
 	//
 	// It must be safe to call concurrently from multiple goroutines.
-	FindPackage func(ctxt *build.Context, importPath, fromDir string, mode build.ImportMode) (*build.Package, error)
+	FindPackage func(ctxt *build.Context, fromDir, importPath string, mode build.ImportMode) (*build.Package, error)
 
 	// AfterTypeCheck is called immediately after a list of files
 	// has been type-checked and appended to info.Files.
@@ -755,7 +754,7 @@ func (conf *Config) parsePackageFiles(bp *build.Package, which rune) ([]*ast.Fil
 
 	// Preprocess CgoFiles and parse the outputs (sequentially).
 	if which == 'g' && bp.CgoFiles != nil {
-		cgofiles, err := cgo.ProcessFiles(bp, conf.fset(), conf.DisplayPath, conf.ParserMode)
+		cgofiles, err := processCgoFiles(bp, conf.fset(), conf.DisplayPath, conf.ParserMode)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -780,7 +779,7 @@ func (imp *importer) doImport(from *PackageInfo, to string) (*types.Package, err
 	if to == "C" {
 		// This should be unreachable, but ad hoc packages are
 		// not currently subject to cgo preprocessing.
-		// See https://golang.org/issue/11627.
+		// See https://github.com/golang/go/issues/11627.
 		return nil, fmt.Errorf(`the loader doesn't cgo-process ad hoc packages like %q; see Go issue 11627`,
 			from.Pkg.Path())
 	}
@@ -1010,18 +1009,14 @@ func (imp *importer) addFiles(info *PackageInfo, files []*ast.File, cycleCheck b
 			time.Since(imp.start), info.Pkg.Path(), len(files))
 	}
 
-	// Don't call checker.Files on Unsafe, even with zero files,
-	// because it would mutate the package, which is a global.
-	if info.Pkg == types.Unsafe {
-		if len(files) > 0 {
-			panic(`"unsafe" package contains unexpected files`)
-		}
-	} else {
-		// Ignore the returned (first) error since we
-		// already collect them all in the PackageInfo.
-		info.checker.Files(files)
-		info.Files = append(info.Files, files...)
+	if info.Pkg == types.Unsafe && len(files) > 0 {
+		panic(`addFiles("unsafe") not permitted`)
 	}
+
+	// Ignore the returned (first) error since we
+	// already collect them all in the PackageInfo.
+	info.checker.Files(files)
+	info.Files = append(info.Files, files...)
 
 	if imp.conf.AfterTypeCheck != nil {
 		imp.conf.AfterTypeCheck(info, files)

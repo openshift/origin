@@ -13,7 +13,6 @@ package godoc
 import (
 	"fmt"
 	"go/ast"
-	"go/doc"
 	"go/token"
 	"io"
 	"strconv"
@@ -54,7 +53,7 @@ func LinkifyText(w io.Writer, text []byte, n ast.Node) {
 				prev = "a"
 			case info.path == "" && info.name != "":
 				// local identifier
-				if info.isVal {
+				if info.mode == identVal {
 					fmt.Fprintf(w, `<span id="%s">`, info.name)
 					prev = "span"
 				} else if ast.IsExported(info.name) {
@@ -75,9 +74,18 @@ func LinkifyText(w io.Writer, text []byte, n ast.Node) {
 // The zero value of a link represents "no link".
 //
 type link struct {
+	mode       identMode
 	path, name string // package path, identifier name
-	isVal      bool   // identifier is defined in a const or var declaration
 }
+
+// The identMode describes how an identifier is "used" at its source location.
+type identMode int
+
+const (
+	identUse identMode = iota // identifier is used (must be zero value for identMode)
+	identDef                  // identifier is defined
+	identVal                  // identifier is defined in a const or var declaration
+)
 
 // linksFor returns the list of links for the identifiers used
 // by node in the same order as they appear in the source.
@@ -93,20 +101,18 @@ func linksFor(node ast.Node) (links []link) {
 		switch n := node.(type) {
 		case *ast.Field:
 			for _, n := range n.Names {
-				linkMap[n] = link{}
+				linkMap[n] = link{mode: identDef}
 			}
 		case *ast.ImportSpec:
 			if name := n.Name; name != nil {
-				linkMap[name] = link{}
+				linkMap[name] = link{mode: identDef}
 			}
 		case *ast.ValueSpec:
 			for _, n := range n.Names {
-				linkMap[n] = link{name: n.Name, isVal: true}
+				linkMap[n] = link{mode: identVal, name: n.Name}
 			}
-		case *ast.FuncDecl:
-			linkMap[n.Name] = link{}
 		case *ast.TypeSpec:
-			linkMap[n.Name] = link{}
+			linkMap[n.Name] = link{mode: identDef}
 		case *ast.AssignStmt:
 			// Short variable declarations only show up if we apply
 			// this code to all source code (as opposed to exported
@@ -119,7 +125,7 @@ func linksFor(node ast.Node) (links []link) {
 					// Each lhs expression should be an
 					// ident, but we are conservative and check.
 					if n, _ := x.(*ast.Ident); n != nil {
-						linkMap[n] = link{isVal: true}
+						linkMap[n] = link{mode: identVal}
 					}
 				}
 			}
@@ -135,8 +141,8 @@ func linksFor(node ast.Node) (links []link) {
 						if path, err := strconv.Unquote(spec.Path.Value); err == nil {
 							// Register two links, one for the package
 							// and one for the qualified identifier.
-							linkMap[x] = link{path: path}
-							linkMap[n.Sel] = link{path: path, name: n.Sel.Name}
+							linkMap[x] = link{mode: identUse, path: path}
+							linkMap[n.Sel] = link{mode: identUse, path: path, name: n.Sel.Name}
 						}
 					}
 				}
@@ -158,8 +164,8 @@ func linksFor(node ast.Node) (links []link) {
 							if path, err := strconv.Unquote(spec.Path.Value); err == nil {
 								// Register two links, one for the package
 								// and one for the qualified identifier.
-								linkMap[x] = link{path: path}
-								linkMap[typ.Sel] = link{path: path, name: typ.Sel.Name}
+								linkMap[x] = link{mode: identUse, path: path}
+								linkMap[typ.Sel] = link{mode: identUse, path: path, name: typ.Sel.Name}
 								fieldPath = path
 								prefix = typ.Sel.Name + "."
 							}
@@ -174,7 +180,7 @@ func linksFor(node ast.Node) (links []link) {
 						// if this is a struct literal or a map literal without type
 						// information. We assume struct literal.
 						name := prefix + k.Name
-						linkMap[k] = link{path: fieldPath, name: name}
+						linkMap[k] = link{mode: identUse, path: fieldPath, name: name}
 					}
 				}
 			}
@@ -182,8 +188,8 @@ func linksFor(node ast.Node) (links []link) {
 			if l, ok := linkMap[n]; ok {
 				links = append(links, l)
 			} else {
-				l := link{name: n.Name}
-				if n.Obj == nil && doc.IsPredeclared(n.Name) {
+				l := link{mode: identUse, name: n.Name}
+				if n.Obj == nil && predeclared[n.Name] {
 					l.path = builtinPkgPath
 				}
 				links = append(links, l)
@@ -192,4 +198,50 @@ func linksFor(node ast.Node) (links []link) {
 		return true
 	})
 	return
+}
+
+// The predeclared map represents the set of all predeclared identifiers.
+// TODO(gri) This information is also encoded in similar maps in go/doc,
+//           but not exported. Consider exporting an accessor and using
+//           it instead.
+var predeclared = map[string]bool{
+	"bool":       true,
+	"byte":       true,
+	"complex64":  true,
+	"complex128": true,
+	"error":      true,
+	"float32":    true,
+	"float64":    true,
+	"int":        true,
+	"int8":       true,
+	"int16":      true,
+	"int32":      true,
+	"int64":      true,
+	"rune":       true,
+	"string":     true,
+	"uint":       true,
+	"uint8":      true,
+	"uint16":     true,
+	"uint32":     true,
+	"uint64":     true,
+	"uintptr":    true,
+	"true":       true,
+	"false":      true,
+	"iota":       true,
+	"nil":        true,
+	"append":     true,
+	"cap":        true,
+	"close":      true,
+	"complex":    true,
+	"copy":       true,
+	"delete":     true,
+	"imag":       true,
+	"len":        true,
+	"make":       true,
+	"new":        true,
+	"panic":      true,
+	"print":      true,
+	"println":    true,
+	"real":       true,
+	"recover":    true,
 }

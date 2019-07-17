@@ -1,5 +1,5 @@
-hash: fe3239bb38d20a2b7078f3ba8cfd59b86b3a874004e6f1220ce9e5fb96ff3fbf
-updated: 2019-07-16T18:13:12.00489064-04:00
+hash: dac4fb4e99b9debe92777c26c64ab25de44f4e8c71c4d1d8f2786744562fc709
+updated: 2019-07-17T16:54:11.546753118-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -428,14 +428,14 @@ imports:
 - name: github.com/docker/go-metrics
   version: b84716841b82eab644a0c64fc8b42d480e49add5
 - name: github.com/docker/go-units
-  version: 519db1ee28dcc9fd2474ae59fca29a810482bfb1
+  version: 9e638d38cf6977a37a8ea0078f3ee75a7cdb2dd1
 - name: github.com/docker/libnetwork
   version: a9cd636e37898226332c439363e2ed0ea185ae92
   subpackages:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -484,7 +484,7 @@ imports:
 - name: github.com/go-openapi/runtime
   version: 231d7876b7019dbcbfc97a7ba764379497b67c1d
 - name: github.com/go-openapi/spec
-  version: bdfd7e07daecc404d77868a88b2364d0aed0ee5a
+  version: 5bae59e25b21498baea7f9d46e9c147ec106a42e
 - name: github.com/go-openapi/strfmt
   version: 35fe47352985e13cc75f13120d70d26fd764ed51
 - name: github.com/go-openapi/swag
@@ -773,7 +773,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/MakeNowJust/heredoc
-  version: e9091a26100e9cfb2b6a8f470085bfa541931a91
+  version: bb23615498cded5e105af4ce27de75b089cbe851
 - name: github.com/marstr/guid
   version: 8bdf7d1a087ccc975cf37dd6507da50698fd19ca
 - name: github.com/mattn/go-shellwords
@@ -895,7 +895,7 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: github.com/opencontainers/go-digest
-  version: ac19fd6e7483ff933754af248d80be865e543d22
+  version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
 - name: github.com/opencontainers/image-spec
   version: 372ad780f63454fbbbbcc7cf80e5b90245c13e13
   subpackages:
@@ -931,7 +931,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 25a4eebe16c8bcb53e28605f8d5b91df392daeba
+  version: 0390d1e77d6496df897e3a9d48b32d8827425320
   subpackages:
   - annotations
   - apps
@@ -994,10 +994,8 @@ imports:
   - apps/informers/externalversions/internalinterfaces
   - apps/listers/apps/v1
   - authorization/clientset/versioned
-  - authorization/clientset/versioned/fake
   - authorization/clientset/versioned/scheme
   - authorization/clientset/versioned/typed/authorization/v1
-  - authorization/clientset/versioned/typed/authorization/v1/fake
   - authorization/informers/externalversions
   - authorization/informers/externalversions/authorization
   - authorization/informers/externalversions/authorization/v1
@@ -1042,10 +1040,8 @@ imports:
   - network/informers/externalversions/network/v1
   - network/listers/network/v1
   - oauth/clientset/versioned
-  - oauth/clientset/versioned/fake
   - oauth/clientset/versioned/scheme
   - oauth/clientset/versioned/typed/oauth/v1
-  - oauth/clientset/versioned/typed/oauth/v1/fake
   - oauth/informers/externalversions
   - oauth/informers/externalversions/internalinterfaces
   - oauth/informers/externalversions/oauth
@@ -1056,10 +1052,8 @@ imports:
   - operator/clientset/versioned/typed/operator/v1
   - operator/clientset/versioned/typed/operator/v1alpha1
   - project/clientset/versioned
-  - project/clientset/versioned/fake
   - project/clientset/versioned/scheme
   - project/clientset/versioned/typed/project/v1
-  - project/clientset/versioned/typed/project/v1/fake
   - quota/clientset/versioned
   - quota/clientset/versioned/fake
   - quota/clientset/versioned/scheme
@@ -1101,19 +1095,16 @@ imports:
   - template/informers/externalversions/template/v1
   - template/listers/template/v1
   - user/clientset/versioned
-  - user/clientset/versioned/fake
   - user/clientset/versioned/scheme
   - user/clientset/versioned/typed/user/v1
-  - user/clientset/versioned/typed/user/v1/fake
   - user/informers/externalversions
   - user/informers/externalversions/internalinterfaces
   - user/informers/externalversions/user
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: e48a704752ab49d1a820b658d0f3d66d41245398
+  version: 83581c469d2eeb6dadfe86a4b6d8033b465ffd15
   subpackages:
-  - pkg/apiserver/admission/admissionregistrationtesting
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
   - pkg/apiserver/apiserverconfig
@@ -1159,7 +1150,6 @@ imports:
   - pkg/quota/quotautil
   - pkg/security/ldapclient
   - pkg/security/ldapquery
-  - pkg/security/ldaptestclient
   - pkg/security/ldaputil
   - pkg/security/uid
   - pkg/serviceability
@@ -1168,7 +1158,7 @@ imports:
   - pkg/template/templateprocessingclient
   - pkg/unidling/unidlingclient
 - name: github.com/openshift/oauth-server
-  version: f175d7e7fc13b3482d2a8e99630e72b00bd2fede
+  version: 0a5e433b582821a84470032a6bf902ef94ca82b1
   subpackages:
   - pkg
   - pkg/api
@@ -1214,7 +1204,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 5eae85cf180026adc89ac596621fde81e75df733
+  version: 7775a17b574a60902dbf3302436864b5c0878daa
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1261,7 +1251,6 @@ imports:
   - pkg/cli/deployer/strategy/rolling
   - pkg/cli/deployer/strategy/support
   - pkg/cli/deployer/strategy/util
-  - pkg/cli/deployer/strategy/util/appstest
   - pkg/cli/experimental/dockergc
   - pkg/cli/expose
   - pkg/cli/extract
@@ -1275,7 +1264,6 @@ imports:
   - pkg/cli/image/manifest/dockercredentials
   - pkg/cli/image/mirror
   - pkg/cli/image/workqueue
-  - pkg/cli/importer/appjson
   - pkg/cli/importimage
   - pkg/cli/kubectlwrappers
   - pkg/cli/login
@@ -1308,7 +1296,6 @@ imports:
   - pkg/cli/tag
   - pkg/cli/version
   - pkg/cli/whoami
-  - pkg/helpers/apps/test
   - pkg/helpers/authorization
   - pkg/helpers/build
   - pkg/helpers/build/client/v1
@@ -1330,7 +1317,6 @@ imports:
   - pkg/helpers/graph/buildgraph/nodes
   - pkg/helpers/graph/genericgraph
   - pkg/helpers/graph/genericgraph/graphview
-  - pkg/helpers/graph/genericgraph/test
   - pkg/helpers/graph/imagegraph
   - pkg/helpers/graph/imagegraph/nodes
   - pkg/helpers/graph/kubegraph
@@ -1349,13 +1335,10 @@ imports:
   - pkg/helpers/image
   - pkg/helpers/image/dockerlayer
   - pkg/helpers/image/dockerlayer/add
-  - pkg/helpers/image/test
   - pkg/helpers/kubeconfig
   - pkg/helpers/legacy
   - pkg/helpers/newapp
   - pkg/helpers/newapp/app
-  - pkg/helpers/newapp/app/test
-  - pkg/helpers/newapp/appjson
   - pkg/helpers/newapp/cmd
   - pkg/helpers/newapp/docker
   - pkg/helpers/newapp/docker/dockerfile
@@ -1377,22 +1360,19 @@ imports:
   - pkg/helpers/tokencmd
   - pkg/version
 - name: github.com/openshift/openshift-apiserver
-  version: 0f59e3a3edec537209a906456e237423ff64a994
+  version: 401d4175751d893275151fb20f2ff0b2e8df3e42
   subpackages:
   - pkg/api
   - pkg/api/apihelpers
-  - pkg/api/apihelpers/apitesting
   - pkg/api/install
   - pkg/api/legacy
   - pkg/apiserver/labelselector
   - pkg/apiserver/rest
   - pkg/apps/apis/apps
   - pkg/apps/apis/apps/install
-  - pkg/apps/apis/apps/internaltest
   - pkg/apps/apis/apps/v1
   - pkg/apps/apis/apps/validation
   - pkg/apps/apiserver
-  - pkg/apps/apiserver/registry/appstest
   - pkg/apps/apiserver/registry/deployconfig
   - pkg/apps/apiserver/registry/deployconfig/etcd
   - pkg/apps/apiserver/registry/deploylog
@@ -1452,10 +1432,8 @@ imports:
   - pkg/image/apis/image/install
   - pkg/image/apis/image/v1
   - pkg/image/apis/image/validation
-  - pkg/image/apis/image/validation/fake
   - pkg/image/apis/image/validation/whitelist
   - pkg/image/apiserver
-  - pkg/image/apiserver/admission/fake
   - pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators
   - pkg/image/apiserver/admission/limitrange
   - pkg/image/apiserver/importer
@@ -1472,7 +1450,6 @@ imports:
   - pkg/image/apiserver/registry/imagestreammapping
   - pkg/image/apiserver/registry/imagestreamtag
   - pkg/image/apiserver/registryhostname
-  - pkg/image/apiserver/testutil
   - pkg/oauth/apis/oauth
   - pkg/oauth/apis/oauth/install
   - pkg/oauth/apis/oauth/v1
@@ -1507,7 +1484,6 @@ imports:
   - pkg/quota/apis/quota
   - pkg/quota/apis/quota/install
   - pkg/quota/apis/quota/v1
-  - pkg/quota/apis/quota/validation
   - pkg/quota/apiserver
   - pkg/quota/apiserver/registry/appliedclusterresourcequota
   - pkg/quota/apiserver/registry/clusterresourcequota/etcd
@@ -1528,7 +1504,6 @@ imports:
   - pkg/security/apis/security/v1
   - pkg/security/apis/security/validation
   - pkg/security/apiserver
-  - pkg/security/apiserver/admission/testing
   - pkg/security/apiserver/registry/podsecuritypolicyreview
   - pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview
   - pkg/security/apiserver/registry/podsecuritypolicysubjectreview
@@ -1559,7 +1534,7 @@ imports:
   - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: 617d3eb32539fe9f73c8613a6bcaabdf9940d31c
+  version: 00d1c150f485b38906ab6a71d7f2f67f064a0621
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1603,7 +1578,7 @@ imports:
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/sdn
-  version: 5736d7436afb3be71cefb6f69fb2d7bf1a314e2d
+  version: 399ad59149a9ad46b67ce945ca79fb16993a5d06
   subpackages:
   - pkg/network
   - pkg/network/common
@@ -1635,20 +1610,7 @@ imports:
   - pkg/util/status
   - pkg/util/user
 - name: github.com/openshift/template-service-broker
-  version: dd3579d87218fc77304019fe6088ae6ab6a285c8
-  subpackages:
-  - apis/config
-  - apis/config/install
-  - apis/config/v1
-  - apis/template
-  - apis/template/v1
-  - apis/template/validation
-  - pkg/openservicebroker/api
-  - pkg/openservicebroker/client
-  - pkg/openservicebroker/server
-  - pkg/servicebroker
-  - pkg/util
-  - pkg/version
+  version: 040dfe33ea57a789592374e46691446efdea8f33
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
@@ -1940,26 +1902,14 @@ imports:
   - unicode/norm
   - width
 - name: golang.org/x/time
-  version: 9d24e82272b4f38b78bc8cff74fa936d31ccd8ef
+  version: f51c12702a4d776e4c1fa9b0fabab841babae631
   subpackages:
   - rate
 - name: golang.org/x/tools
-  version: 7f7074d5bcfd282eb16bc382b0bb3da762461985
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
-  - benchmark/parse
   - container/intsets
-  - go/ast/astutil
-  - go/gcexportdata
-  - go/internal/cgo
-  - go/internal/gcimporter
-  - go/internal/packagesdriver
-  - go/packages
-  - go/vcs
   - imports
-  - internal/fastwalk
-  - internal/gopathwalk
-  - internal/module
-  - internal/semver
 - name: gonum.org/v1/gonum
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
   repo: https://github.com/gonum/gonum.git
@@ -2162,7 +2112,6 @@ imports:
   subpackages:
   - pkg/api/apitesting
   - pkg/api/apitesting/fuzzer
-  - pkg/api/apitesting/roundtrip
   - pkg/api/equality
   - pkg/api/errors
   - pkg/api/meta
@@ -2293,9 +2242,7 @@ imports:
   - pkg/registry/generic
   - pkg/registry/generic/registry
   - pkg/registry/generic/rest
-  - pkg/registry/generic/testing
   - pkg/registry/rest
-  - pkg/registry/rest/resttest
   - pkg/server
   - pkg/server/certs
   - pkg/server/filters
@@ -2321,7 +2268,6 @@ imports:
   - pkg/storage/names
   - pkg/storage/storagebackend
   - pkg/storage/storagebackend/factory
-  - pkg/storage/testing
   - pkg/storage/value
   - pkg/storage/value/encrypt/aes
   - pkg/storage/value/encrypt/envelope
@@ -2374,7 +2320,6 @@ imports:
   - discovery/cached/memory
   - discovery/fake
   - dynamic
-  - dynamic/fake
   - informers
   - informers/admissionregistration
   - informers/admissionregistration/v1beta1
@@ -2678,7 +2623,6 @@ imports:
   - pkg/schemaconv
   - pkg/util
   - pkg/util/proto
-  - pkg/util/proto/testing
   - pkg/util/proto/validation
   - pkg/util/sets
 - name: k8s.io/kube-proxy
@@ -2695,7 +2639,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 0a254611a05f93947e024a3916bba8e670a129dd
+  version: 633890629565205dd78bad77de2977033bbbc03a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -3075,13 +3019,11 @@ imports:
   - pkg/kubectl/cmd/set
   - pkg/kubectl/cmd/set/env
   - pkg/kubectl/cmd/taint
-  - pkg/kubectl/cmd/testing
   - pkg/kubectl/cmd/top
   - pkg/kubectl/cmd/util
   - pkg/kubectl/cmd/util/editor
   - pkg/kubectl/cmd/util/editor/crlf
   - pkg/kubectl/cmd/util/openapi
-  - pkg/kubectl/cmd/util/openapi/testing
   - pkg/kubectl/cmd/util/openapi/validation
   - pkg/kubectl/cmd/version
   - pkg/kubectl/cmd/wait
@@ -3684,13 +3626,9 @@ imports:
   - typed
   - value
 - name: sigs.k8s.io/yaml
-  version: 4cd0c284b15f1735b8cc247df097d262b8903f9f
+  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
   - sortorder
-testImports:
-- name: github.com/AaronO/go-git-http
-  version: 1d9485b3a98f7484772acb5f0dda28b69b958fdd
-  subpackages:
-  - auth
+testImports: []

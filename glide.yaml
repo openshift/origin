@@ -91,6 +91,9 @@ import:
   version: v1.3.1-coreos.6
 - package: github.com/google/cadvisor
   version: v0.32.0
+# for gengo
+- package: golang.org/x/tools/imports
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
 
 # openshift second
 - package: github.com/openshift/api

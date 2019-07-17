@@ -37,7 +37,7 @@ import (
 	"golang.org/x/tools/go/callgraph/cha"
 	"golang.org/x/tools/go/callgraph/rta"
 	"golang.org/x/tools/go/callgraph/static"
-	"golang.org/x/tools/go/packages"
+	"golang.org/x/tools/go/loader"
 	"golang.org/x/tools/go/pointer"
 	"golang.org/x/tools/go/ssa"
 	"golang.org/x/tools/go/ssa/ssautil"
@@ -67,7 +67,7 @@ const Usage = `callgraph: display the the call graph of a Go program.
 
 Usage:
 
-  callgraph [-algo=static|cha|rta|pta] [-test] [-format=...] package...
+  callgraph [-algo=static|cha|rta|pta] [-test] [-format=...] <args>...
 
 Flags:
 
@@ -114,9 +114,11 @@ Flags:
 
            Caller and Callee are *ssa.Function values, which print as
            "(*sync/atomic.Mutex).Lock", but other attributes may be
-           derived from them, e.g. Caller.Pkg.Pkg.Path yields the
+           derived from them, e.g. Caller.Pkg.Object.Path yields the
            import path of the enclosing package.  Consult the go/ssa
            API documentation for details.
+
+` + loader.FromArgsUsage + `
 
 Examples:
 
@@ -126,7 +128,7 @@ Examples:
 
   Same, but show only the packages of each function:
 
-    callgraph -format '{{.Caller.Pkg.Pkg.Path}} -> {{.Callee.Pkg.Pkg.Path}}' \
+    callgraph -format '{{.Caller.Pkg.Object.Path}} -> {{.Callee.Pkg.Object.Path}}' \
       $GOROOT/src/net/http/triv.go | sort | uniq
 
   Show functions that make dynamic calls into the 'fmt' test package,
@@ -156,7 +158,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	if err := doCallgraph("", "", *algoFlag, *formatFlag, *testFlag, flag.Args()); err != nil {
+	if err := doCallgraph(&build.Default, *algoFlag, *formatFlag, *testFlag, flag.Args()); err != nil {
 		fmt.Fprintf(os.Stderr, "callgraph: %s\n", err)
 		os.Exit(1)
 	}
@@ -164,30 +166,28 @@ func main() {
 
 var stdout io.Writer = os.Stdout
 
-func doCallgraph(dir, gopath, algo, format string, tests bool, args []string) error {
+func doCallgraph(ctxt *build.Context, algo, format string, tests bool, args []string) error {
+	conf := loader.Config{Build: ctxt}
+
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, Usage)
 		return nil
 	}
 
-	cfg := &packages.Config{
-		Mode:  packages.LoadAllSyntax,
-		Tests: tests,
-		Dir:   dir,
-	}
-	if gopath != "" {
-		cfg.Env = append(os.Environ(), "GOPATH="+gopath) // to enable testing
-	}
-	initial, err := packages.Load(cfg, args...)
+	// Use the initial packages from the command line.
+	_, err := conf.FromArgs(args, tests)
 	if err != nil {
 		return err
 	}
-	if packages.PrintErrors(initial) > 0 {
-		return fmt.Errorf("packages contain errors")
+
+	// Load, parse and type-check the whole program.
+	iprog, err := conf.Load()
+	if err != nil {
+		return err
 	}
 
 	// Create and build SSA-form program representation.
-	prog, pkgs := ssautil.AllPackages(initial, 0)
+	prog := ssautil.CreateProgram(iprog, 0)
 	prog.Build()
 
 	// -- call graph construction ------------------------------------------
@@ -221,7 +221,7 @@ func doCallgraph(dir, gopath, algo, format string, tests bool, args []string) er
 			}
 		}
 
-		mains, err := mainPackages(pkgs)
+		mains, err := mainPackages(prog, tests)
 		if err != nil {
 			return err
 		}
@@ -237,7 +237,7 @@ func doCallgraph(dir, gopath, algo, format string, tests bool, args []string) er
 		cg = ptares.CallGraph
 
 	case "rta":
-		mains, err := mainPackages(pkgs)
+		mains, err := mainPackages(prog, tests)
 		if err != nil {
 			return err
 		}
@@ -305,13 +305,25 @@ func doCallgraph(dir, gopath, algo, format string, tests bool, args []string) er
 
 // mainPackages returns the main packages to analyze.
 // Each resulting package is named "main" and has a main function.
-func mainPackages(pkgs []*ssa.Package) ([]*ssa.Package, error) {
+func mainPackages(prog *ssa.Program, tests bool) ([]*ssa.Package, error) {
+	pkgs := prog.AllPackages() // TODO(adonovan): use only initial packages
+
+	// If tests, create a "testmain" package for each test.
 	var mains []*ssa.Package
-	for _, p := range pkgs {
-		if p != nil && p.Pkg.Name() == "main" && p.Func("main") != nil {
-			mains = append(mains, p)
+	if tests {
+		for _, pkg := range pkgs {
+			if main := prog.CreateTestMainPackage(pkg); main != nil {
+				mains = append(mains, main)
+			}
 		}
+		if mains == nil {
+			return nil, fmt.Errorf("no tests")
+		}
+		return mains, nil
 	}
+
+	// Otherwise, use the main packages.
+	mains = append(mains, ssautil.MainPackages(pkgs)...)
 	if len(mains) == 0 {
 		return nil, fmt.Errorf("no main packages")
 	}
