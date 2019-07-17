@@ -11,6 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	"github.com/docker/distribution/manifest/schema2"
+	dockerClient "github.com/fsouza/go-dockerclient"
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +23,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/registry/serial][local] Image hard prune", func() {
@@ -98,7 +98,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		cleanUp := NewCleanUpContainer(oc)
 		defer cleanUp.Run()
 
-		dClient, err := testutil.NewDockerClient()
+		dClient, err := dockerClient.NewClientFromEnv()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		baseImg1, imageId, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, "a", "latest", testImageSize, 2, outSink, true, false)

@@ -16,7 +16,6 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
-	"github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	osbclient "github.com/openshift/origin/test/extended/templates/openservicebroker/client"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -137,9 +136,9 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateIn
 	fmt.Fprintf(g.GinkgoWriter, "dumping object readiness for %s/%s\n", templateInstance.Namespace, templateInstance.Name)
 
 	for _, object := range templateInstance.Status.Objects {
-		if !controller.CanCheckReadiness(object.Ref) {
-			continue
-		}
+		//if !controller.CanCheckReadiness(object.Ref) {
+		//	continue
+		//}
 
 		mapping, err := restmapper.RESTMapping(object.Ref.GroupVersionKind().GroupKind())
 		if err != nil {
@@ -159,15 +158,15 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateIn
 			continue
 		}
 
-		ready, failed, err := controller.CheckReadiness(oc.BuildClient(), object.Ref, obj)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintf(g.GinkgoWriter, "%s %s/%s: ready %v, failed %v\n", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name, ready, failed)
-		if !ready || failed {
-			fmt.Fprintf(g.GinkgoWriter, "object: %#v\n", obj)
-		}
+		//ready, failed, err := controller.CheckReadiness(oc.BuildClient(), object.Ref, obj)
+		//if err != nil {
+		//	return err
+		//}
+		//
+		//fmt.Fprintf(g.GinkgoWriter, "%s %s/%s: ready %v, failed %v\n", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name, ready, failed)
+		//if !ready || failed {
+		//	fmt.Fprintf(g.GinkgoWriter, "object: %#v\n", obj)
+		//}
 	}
 
 	return nil

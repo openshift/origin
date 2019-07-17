@@ -16,7 +16,6 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 const (
@@ -77,7 +76,7 @@ var _ = g.Describe("[Feature:OAuthServer] OAuth server", func() {
 		invalidCert.CertData, invalidCert.KeyData, err = clientCertConfig.GetPEMBytes()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, fooUserConfig, err := testutil.GetClientForUser(oc.AdminConfig(), tokenUser)
+		fooUserConfig := oc.GetClientConfigForUser(tokenUser)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		validToken := fooUserConfig.BearerToken
 		o.Expect(validToken).ToNot(o.BeEmpty())

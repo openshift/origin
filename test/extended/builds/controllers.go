@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	testutil "github.com/openshift/origin/test/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +18,25 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
+)
+
+const (
+	// BuildStartedEventReason is the reason associated with the event registered when a build is started (pod is created).
+	BuildStartedEventReason = "BuildStarted"
+	// BuildStartedEventMessage is the message associated with the event registered when a build is started (pod is created).
+	BuildStartedEventMessage = "Build %s/%s is now running"
+	// BuildCompletedEventReason is the reason associated with the event registered when build completes successfully.
+	BuildCompletedEventReason = "BuildCompleted"
+	// BuildCompletedEventMessage is the message associated with the event registered when build completes successfully.
+	BuildCompletedEventMessage = "Build %s/%s completed successfully"
+	// BuildFailedEventReason is the reason associated with the event registered when build fails.
+	BuildFailedEventReason = "BuildFailed"
+	// BuildFailedEventMessage is the message associated with the event registered when build fails.
+	BuildFailedEventMessage = "Build %s/%s failed"
+	// BuildCancelledEventReason is the reason associated with the event registered when build is cancelled.
+	BuildCancelledEventReason = "BuildCancelled"
+	// BuildCancelledEventMessage is the message associated with the event registered when build is cancelled.
+	BuildCancelledEventMessage = "Build %s/%s has been cancelled"
 )
 
 var (
@@ -127,7 +144,7 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1client
 		registryHostname = "registry:8080"
 	)
 
-	testutil.SetAdditionalAllowedRegistries(registryHostname)
+	//testutil.SetAdditionalAllowedRegistries(registryHostname)
 
 	imageStream := mockImageStream2(registryHostname, tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, registryHostname+"/openshift/test-image-trigger:"+tag)
@@ -343,7 +360,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.Builds
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	pod := event.Object.(*corev1.Pod)
-	if expected := buildutil.GetBuildPodName(newBuild); pod.Name != expected {
+	if expected := GetBuildPodName(newBuild); pod.Name != expected {
 		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", expected, pod.Name)
 	}
 
@@ -425,7 +442,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clientty
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.CoreV1().Pods(ns).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.CoreV1().Pods(ns).Delete(GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -444,9 +461,9 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clientty
 			return false, fmt.Errorf("error getting build events: %v", err)
 		}
 		for _, event := range events.Items {
-			if event.Reason == buildutil.BuildFailedEventReason {
+			if event.Reason == BuildFailedEventReason {
 				foundFailed = true
-				expect := fmt.Sprintf(buildutil.BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
+				expect := fmt.Sprintf(BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
 				if event.Message != expect {
 					return false, fmt.Errorf("expected failed event message to be %s, got %s", expect, event.Message)
 				}
@@ -519,7 +536,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clientt
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.CoreV1().Pods(ns).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.CoreV1().Pods(ns).Delete(GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
 	newBuild, err = clusterAdminClient.Builds(ns).Get(newBuild.Name, metav1.GetOptions{})
 	if err != nil {

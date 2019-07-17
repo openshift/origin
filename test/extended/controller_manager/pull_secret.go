@@ -12,9 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openshift/openshift-controller-manager/pkg/serviceaccounts/controllers"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func waitForServiceAccountToken(client kubernetes.Interface, ns, name string, attempts int, interval time.Duration) (string, error) {
@@ -150,10 +148,6 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, sa.Namespace, []string{sa.Name}); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
 		// Get the service account dockercfg secret's name
 		dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
 		if err != nil {
@@ -168,7 +162,7 @@ var _ = g.Describe("[Feature:OpenShiftControllerManager]", func() {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		secretName := dockercfgSecret.Annotations[controllers.ServiceAccountTokenSecretNameKey]
+		secretName := dockercfgSecret.Annotations["openshift.io/token-secret.name"]
 		if len(secretName) == 0 {
 			t.Fatal("secret was not created")
 		}

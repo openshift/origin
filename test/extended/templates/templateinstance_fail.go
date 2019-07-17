@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	templatev1 "github.com/openshift/api/template/v1"
-	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -37,7 +36,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance creation with inva
 				if err != nil {
 					return false, err
 				}
-				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
+				if TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 					return true, nil
 				}
 				return false, nil
