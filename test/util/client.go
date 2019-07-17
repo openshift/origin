@@ -10,19 +10,15 @@ import (
 
 	"github.com/pborman/uuid"
 
-	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/quota/v1"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -169,80 +165,6 @@ func WaitForCRDAvailable(clusterAdminClientConfig *rest.Config, gvr schema.Group
 		return fmt.Errorf("failed to wait for cluster resource quota CRD: %v", err)
 	}
 	return nil
-}
-
-// WaitForResourceQuotaLimitSync watches given resource quota until its hard limit is updated to match the desired
-// spec or timeout occurs.
-func WaitForResourceQuotaLimitSync(
-	client corev1client.ResourceQuotaInterface,
-	name string,
-	hardLimit corev1.ResourceList,
-	timeout time.Duration,
-) error {
-	startTime := time.Now()
-	endTime := startTime.Add(timeout)
-
-	expectedResourceNames := quota.ResourceNames(hardLimit)
-
-	list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
-	if err != nil {
-		return err
-	}
-
-	for i := range list.Items {
-		used := quota.Mask(list.Items[i].Status.Hard, expectedResourceNames)
-		if isLimitSynced(used, hardLimit) {
-			return nil
-		}
-	}
-
-	rv := list.ResourceVersion
-	w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
-	if err != nil {
-		return err
-	}
-	defer w.Stop()
-
-	for time.Now().Before(endTime) {
-		select {
-		case val, ok := <-w.ResultChan():
-			if !ok {
-				// reget and re-watch
-				continue
-			}
-			if rq, ok := val.Object.(*corev1.ResourceQuota); ok {
-				used := quota.Mask(rq.Status.Hard, expectedResourceNames)
-				if isLimitSynced(used, hardLimit) {
-					return nil
-				}
-			}
-		case <-time.After(endTime.Sub(time.Now())):
-			return wait.ErrWaitTimeout
-		}
-	}
-	return wait.ErrWaitTimeout
-}
-
-func isLimitSynced(received, expected corev1.ResourceList) bool {
-	resourceNames := quota.ResourceNames(expected)
-	masked := quota.Mask(received, resourceNames)
-	if len(masked) != len(expected) {
-		return false
-	}
-	if le, _ := quota.LessThanOrEqual(masked, expected); !le {
-		return false
-	}
-	if le, _ := quota.LessThanOrEqual(expected, masked); !le {
-		return false
-	}
-	return true
-}
-
-func NonProtobufConfig(inConfig *rest.Config) *rest.Config {
-	npConfig := rest.CopyConfig(inConfig)
-	npConfig.ContentConfig.AcceptContentTypes = "application/json"
-	npConfig.ContentConfig.ContentType = "application/json"
-	return npConfig
 }
 
 // turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
