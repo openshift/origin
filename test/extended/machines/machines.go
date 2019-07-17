@@ -11,19 +11,71 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
-	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
 	operatorWait = 1 * time.Minute
 )
+
+var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		oc         = exutil.NewCLI("machine", exutil.KubeConfigPath())
+		machine    = exutil.FixturePath("testdata", "machines", "machine-example.yaml")
+		machineset = exutil.FixturePath("testdata", "machines", "machineset-example.yaml")
+	)
+
+	g.It("create machine/machineset", func() {
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dc, err := dynamic.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("getting exist machines parameters")
+		allMachinesets, err := listMachinesets(dc)
+		if err != nil {
+			e2e.Failf("unable to fetch machinesets: %v", err)
+		}
+
+		if len(allMachinesets) == 0 {
+			e2e.Failf("cluster should have machinesets")
+		}
+
+		for _, m := range allMachinesets {
+			profileId := m.Get("spec.template.spec.providerSpec.value.iamInstanceProfile.id").String()
+			clusterId := profileId[0 : len(profileId)-15]
+			ami := m.Get("spec.template.spec.providerSpec.value.ami.id").String()
+			region := m.Get("spec.template.spec.providerSpec.value.placement.region").String()
+
+			g.By("create a machine")
+			configFile, err := oc.AsAdmin().Run("process").Args("-f", machine, "-p", fmt.Sprintf("CLUSTERID=%s", clusterId), "-p", fmt.Sprintf("AMI=%s", ami), "-p", fmt.Sprintf("REGION=%s", region), "-n", "openshift-machine-api").OutputToFile("config.json")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.AsAdmin().Run("create").Args("-f", configFile, "-n", "openshift-machine-api").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			output, err := oc.AsAdmin().Run("get").Args("machine", "-n", "openshift-machine-api").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(output).To(o.ContainSubstring("mymachine"))
+
+			g.By("create a machineset")
+			configFile, err = oc.AsAdmin().Run("process").Args("-f", machineset, "-p", fmt.Sprintf("CLUSTERID=%s", clusterId), "-p", fmt.Sprintf("AMI=%s", ami), "-p", fmt.Sprintf("REGION=%s", region), "-n", "openshift-machine-api").OutputToFile("config.json")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.AsAdmin().Run("create").Args("-f", configFile, "-n", "openshift-machine-api").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			output, err = oc.AsAdmin().Run("get").Args("machineset", "-n", "openshift-machine-api").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(output).To(o.ContainSubstring("mymachineset"))
+			break
+		}
+	})
+})
 
 var _ = g.Describe("[Feature:Machines][Smoke] Managed cluster should", func() {
 	defer g.GinkgoRecover()
@@ -99,37 +151,3 @@ var _ = g.Describe("[Feature:Machines][Smoke] Managed cluster should", func() {
 		}
 	})
 })
-
-func skipUnlessMachineAPIOperator(c coreclient.NamespaceInterface) {
-	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-		_, err := c.Get("openshift-machine-api", metav1.GetOptions{})
-		if err == nil {
-			return true, nil
-		}
-		if errors.IsNotFound(err) {
-			e2e.Skipf("The cluster machines are not managed by machine api operator")
-		}
-		e2e.Logf("Unable to check for machine api operator: %v", err)
-		return false, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func objects(from *objx.Value) []objx.Map {
-	var values []objx.Map
-	switch {
-	case from.IsObjxMapSlice():
-		return from.ObjxMapSlice()
-	case from.IsInterSlice():
-		for _, i := range from.InterSlice() {
-			if msi, ok := i.(map[string]interface{}); ok {
-				values = append(values, objx.Map(msi))
-			}
-		}
-	}
-	return values
-}
-
-func nodeNameFromNodeRef(item objx.Map) string {
-	return item.Get("status.nodeRef.name").String()
-}

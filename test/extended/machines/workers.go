@@ -8,12 +8,8 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/stretchr/objx"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -27,78 +23,6 @@ const (
 	// TODO: tighten this further based on node lifecycle controller [appears to be ~5m30s]
 	machineRepairWait = 7 * time.Minute
 )
-
-// machineClient returns a client for machines scoped to the proper namespace
-func machineClient(dc dynamic.Interface) dynamic.ResourceInterface {
-	machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
-	return machineClient.Namespace(machineAPINamespace)
-}
-
-// listMachines list all machines scoped by selector
-func listMachines(dc dynamic.Interface, labelSelector string) ([]objx.Map, error) {
-	mc := machineClient(dc)
-	obj, err := mc.List(metav1.ListOptions{
-		LabelSelector: labelSelector,
-	})
-	if err != nil {
-		return nil, err
-	}
-	machines := objx.Map(obj.UnstructuredContent())
-	items := objects(machines.Get("items"))
-	return items, nil
-}
-
-// deleteMachine deletes the named machine
-func deleteMachine(dc dynamic.Interface, machineName string) error {
-	mc := machineClient(dc)
-	return mc.Delete(machineName, &metav1.DeleteOptions{})
-}
-
-// machineName returns the machine name
-func machineName(item objx.Map) string {
-	return item.Get("metadata.name").String()
-}
-
-// nodeNames returns the names of nodes
-func nodeNames(nodes []corev1.Node) sets.String {
-	result := sets.NewString()
-	for i := range nodes {
-		result.Insert(nodes[i].Name)
-	}
-	return result
-}
-
-// nodeNames returns the names of nodes
-func machineNames(machines []objx.Map) sets.String {
-	result := sets.NewString()
-	for i := range machines {
-		result.Insert(machineName(machines[i]))
-	}
-	return result
-}
-
-// mapNodeNameToMachine returns a tuple (map node to machine by name, true if a match is found for every node)
-func mapNodeNameToMachine(nodes []corev1.Node, machines []objx.Map) (map[string]objx.Map, bool) {
-	result := map[string]objx.Map{}
-	for i := range nodes {
-		for j := range machines {
-			if nodes[i].Name == nodeNameFromNodeRef(machines[j]) {
-				result[nodes[i].Name] = machines[j]
-				break
-			}
-		}
-	}
-	return result, len(nodes) == len(result)
-}
-
-func isNodeReady(node corev1.Node) bool {
-	for _, c := range node.Status.Conditions {
-		if c.Type == corev1.NodeReady {
-			return c.Status == corev1.ConditionTrue
-		}
-	}
-	return false
-}
 
 var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func() {
 	defer g.GinkgoRecover()
