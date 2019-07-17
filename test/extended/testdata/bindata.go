@@ -12843,6 +12843,7 @@ data:
             ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif -d $OPENLDAP_DEBUG_LEVEL
             ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif -d $OPENLDAP_DEBUG_LEVEL
             ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/openldap/testPerson.ldif -d $OPENLDAP_DEBUG_LEVEL
 
             # domain and TLS setup
             ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/domain_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
