@@ -334,7 +334,6 @@ readonly OS_ALL_IMAGES=(
   origin-deployer
   origin-docker-builder
   origin-recycler
-  origin-template-service-broker
   origin-tests
   origin-oauth-server
 )
@@ -392,7 +391,6 @@ function os::build::images() {
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
   # images that depend on "${tag_prefix}-source" or "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
   ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
   ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
   ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &

@@ -131,15 +131,7 @@ image_config = {
             "hyperkube": "/usr/bin/hyperkube"
         },
         "files": {}
-    },
-    "template-service-broker": {
-        "tag": "latest",
-        "directory": "template-service-broker",
-        "binaries": {
-            "template-service-broker": "/usr/bin/template-service-broker"
-        },
-        "files": {}
-    },
+    }
 }
 
 
