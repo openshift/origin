@@ -8964,6 +8964,48 @@ _oc_ex_build-chain()
     noun_aliases=()
 }
 
+_oc_ex_console()
+{
+    last_command="oc_ex_console"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--url")
+    local_nonpersistent_flags+=("--url")
+    flags+=("--as=")
+    flags+=("--as-group=")
+    flags+=("--cache-dir=")
+    flags+=("--certificate-authority=")
+    flags+=("--client-certificate=")
+    flags+=("--client-key=")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--kubeconfig=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    flags_with_completion+=("--namespace")
+    flags_completion+=("__oc_get_namespaces")
+    two_word_flags+=("-n")
+    flags_with_completion+=("-n")
+    flags_completion+=("__oc_get_namespaces")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    two_word_flags+=("-s")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _oc_ex_dockergc()
 {
     last_command="oc_ex_dockergc"
@@ -9167,6 +9209,7 @@ _oc_ex()
     last_command="oc_ex"
     commands=()
     commands+=("build-chain")
+    commands+=("console")
     commands+=("dockergc")
     commands+=("options")
     commands+=("prune-groups")
