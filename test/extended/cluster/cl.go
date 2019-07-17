@@ -202,16 +202,36 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 		// Wait for builds and deployments to complete
 		for _, ns := range namespaces {
+			rcList, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).List(metav1.ListOptions{})
+			if err != nil {
+				e2e.Failf("Error listing RCs: %v", err)
+			}
+			rcCount := len(rcList.Items)
+			if rcCount > 0 {
+				e2e.Logf("Waiting for %d RCs in namespace %s", rcCount, ns)
+				for _, rc := range rcList.Items {
+					e2e.Logf("Waiting for RC: %s", rc.Name)
+					err := e2e.WaitForRCToStabilize(oc.AdminKubeClient(), ns, rc.Name, checkPodRunningTimeout)
+					if err != nil {
+						e2e.Failf("Error in waiting for RC to stabilize: %v", err)
+					}
+					err = WaitForRCReady(oc, ns, rc.Name, checkPodRunningTimeout)
+					if err != nil {
+						e2e.Failf("Error in waiting for RC to become ready: %v", err)
+					}
+				}
+			}
+
 			podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{})
 			if err != nil {
-				e2e.Logf("Error listing pods: %v", err)
+				e2e.Failf("Error listing pods: %v", err)
 			}
 			podCount := len(podList.Items)
 			if podCount > 0 {
-				e2e.Logf("Waiting for %d pods in %s", podCount, ns)
+				e2e.Logf("Waiting for %d pods in namespace %s", podCount, ns)
 				pods, err := exutil.WaitForPods(c.CoreV1().Pods(ns), exutil.ParseLabelsOrDie(mapToString(podLabels)), exutil.CheckPodIsRunning, podCount, checkPodRunningTimeout)
 				if err != nil {
-					e2e.Failf("Error in pod wait... %v", err)
+					e2e.Failf("Error in pod wait: %v", err)
 				} else if len(pods) < podCount {
 					e2e.Failf("Only got %v out of %v pods in %s (timeout)", len(pods), podCount, checkPodRunningTimeout)
 				}
@@ -220,7 +240,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 			buildList, err := oc.AsAdmin().BuildClient().BuildV1().Builds(ns).List(metav1.ListOptions{})
 			if err != nil {
-				e2e.Logf("Error listing builds: %v", err)
+				e2e.Failf("Error listing builds: %v", err)
 			}
 			e2e.Logf("Build List: %+v", buildList)
 			if len(buildList.Items) > 0 {
@@ -238,7 +258,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 			dcList, err := oc.AsAdmin().AppsClient().AppsV1().DeploymentConfigs(ns).List(metav1.ListOptions{})
 			if err != nil {
-				e2e.Logf("Error listing deployment configs: %v", err)
+				e2e.Failf("Error listing deployment configs: %v", err)
 			}
 			if len(dcList.Items) > 0 {
 				// Get first deployment config name
