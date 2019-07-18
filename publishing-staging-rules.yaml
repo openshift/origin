@@ -2,12 +2,6 @@ skip-godeps: true
 skip-gomod: true
 skip-tags: true
 rules:
-- destination: openshift-controller-manager
-  branches:
-    - name: master
-      source:
-        branch: master
-        dir: staging/src/github.com/openshift/openshift-controller-manager
 - destination: sdn
   branches:
     - name: master
