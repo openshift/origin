@@ -23,9 +23,11 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/fake"
 	utiltesting "k8s.io/client-go/util/testing"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
@@ -167,7 +169,7 @@ func TestPlugin(t *testing.T) {
 
 	// Test Provisioner
 	options := volume.VolumeOptions{
-		PVC:                           volumetest.CreateTestPVC("100Mi", []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}),
+		PVC: volumetest.CreateTestPVC("100Mi", []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}),
 		PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
 	}
 	provisioner, err := plug.(*awsElasticBlockStorePlugin).newProvisionerInternal(options, &fakePDManager{})
@@ -374,5 +376,39 @@ func TestMountOptions(t *testing.T) {
 	expectedMountOptions := []string{"_netdev", "bind"}
 	if !reflect.DeepEqual(mountOptions, expectedMountOptions) {
 		t.Errorf("Expected mount options to be %v got %v", expectedMountOptions, mountOptions)
+	}
+}
+
+func TestGetCandidateZone(t *testing.T) {
+	const testZone = "my-zone-1a"
+
+	// TODO: add test case for immediate bind volume when we have a good way to mock Cloud outside cloudprovider
+	tests := []struct {
+		cloud         *aws.Cloud
+		node          *v1.Node
+		expectedZones sets.String
+	}{
+		{
+			cloud: nil,
+			node: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						v1.LabelZoneFailureDomain: testZone,
+					},
+				},
+			},
+			expectedZones: sets.NewString(),
+		},
+		{
+			cloud:         nil,
+			node:          &v1.Node{},
+			expectedZones: sets.NewString(),
+		},
+	}
+
+	for _, test := range tests {
+		zones, err := getCandidateZones(test.cloud, test.node)
+		assert.Nil(t, err)
+		assert.Equal(t, test.expectedZones, zones)
 	}
 }
