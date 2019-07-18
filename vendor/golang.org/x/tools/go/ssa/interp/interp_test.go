@@ -13,7 +13,6 @@ import (
 	"go/types"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -103,8 +102,8 @@ var gorootTestTests = []string{
 	"floatcmp.go",
 	"crlf.go", // doesn't actually assert anything (runoutput)
 	// Slow tests follow.
-	"bom.go",                         // ~1.7s
-	"gc1.go",                         // ~1.7s
+	"bom.go", // ~1.7s
+	"gc1.go", // ~1.7s
 	"cmplxdivide.go cmplxdivide1.go", // ~2.4s
 
 	// Working, but not worth enabling:
@@ -153,13 +152,30 @@ var testdataTests = []string{
 	"callstack.go",
 }
 
+// These are files and packages in $GOROOT/src/.
+var gorootSrcTests = []string{
+	"encoding/ascii85",
+	"encoding/hex",
+	// "encoding/pem", // TODO(adonovan): implement (reflect.Value).SetString
+	// "testing",      // TODO(adonovan): implement runtime.Goexit correctly
+	// "hash/crc32",   // TODO(adonovan): implement hash/crc32.haveCLMUL
+	// "log",          // TODO(adonovan): implement runtime.Callers correctly
+
+	// Too slow:
+	// "container/ring",
+	// "hash/adler32",
+
+	"unicode/utf8",
+	"path",
+	"flag",
+	"encoding/csv",
+	"text/scanner",
+	"unicode",
+}
+
 type successPredicate func(exitcode int, output string) error
 
 func run(t *testing.T, dir, input string, success successPredicate) bool {
-	t.Skip("https://golang.org/issue/27292")
-	if runtime.GOOS == "darwin" {
-		t.Skip("skipping on darwin until https://golang.org/issue/23166 is fixed")
-	}
 	fmt.Printf("Input: %s\n", input)
 
 	start := time.Now()
@@ -193,7 +209,7 @@ func run(t *testing.T, dir, input string, success successPredicate) bool {
 		interp.CapturedOutput = nil
 	}()
 
-	hint = fmt.Sprintf("To dump SSA representation, run:\n%% go build golang.org/x/tools/cmd/ssadump && ./ssadump -test -build=CFP %s\n", strings.Join(inputs, " "))
+	hint = fmt.Sprintf("To dump SSA representation, run:\n%% go build golang.org/x/tools/cmd/ssadump && ./ssadump -test -build=CFP %s\n", input)
 
 	iprog, err := conf.Load()
 	if err != nil {
@@ -228,7 +244,7 @@ func run(t *testing.T, dir, input string, success successPredicate) bool {
 	var out bytes.Buffer
 	interp.CapturedOutput = &out
 
-	hint = fmt.Sprintf("To trace execution, run:\n%% go build golang.org/x/tools/cmd/ssadump && ./ssadump -build=C -test -run --interp=T %s\n", strings.Join(inputs, " "))
+	hint = fmt.Sprintf("To trace execution, run:\n%% go build golang.org/x/tools/cmd/ssadump && ./ssadump -build=C -test -run --interp=T %s\n", input)
 	exitCode := interp.Interpret(mainPkg, 0, &types.StdSizes{WordSize: 8, MaxAlign: 8}, inputs[0], []string{})
 
 	// The definition of success varies with each file.
@@ -296,7 +312,51 @@ func TestGorootTest(t *testing.T) {
 			failures = append(failures, input)
 		}
 	}
+	for _, input := range gorootSrcTests {
+		if !run(t, filepath.Join(build.Default.GOROOT, "src")+slash, input, success) {
+			failures = append(failures, input)
+		}
+	}
 	printFailures(failures)
+}
+
+// TestTestmainPackage runs the interpreter on a synthetic "testmain" package.
+func TestTestmainPackage(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // too slow on some platforms
+	}
+
+	success := func(exitcode int, output string) error {
+		if exitcode == 0 {
+			return fmt.Errorf("unexpected success")
+		}
+		if !strings.Contains(output, "FAIL: TestFoo") {
+			return fmt.Errorf("missing failure log for TestFoo")
+		}
+		if !strings.Contains(output, "FAIL: TestBar") {
+			return fmt.Errorf("missing failure log for TestBar")
+		}
+		// TODO(adonovan): test benchmarks too
+		return nil
+	}
+	run(t, "testdata"+slash, "a_test.go", success)
+
+	// Run a test with a custom TestMain function and ensure that it
+	// is executed, and that m.Run runs the tests.
+	success = func(exitcode int, output string) error {
+		if exitcode != 0 {
+			return fmt.Errorf("unexpected failure; output=%s", output)
+		}
+		if want := `TestMain start
+TestC
+PASS
+TestMain end
+`; output != want {
+			return fmt.Errorf("output was %q, want %q", output, want)
+		}
+		return nil
+	}
+	run(t, "testdata"+slash, "c_test.go", success)
 }
 
 // CreateTestMainPackage should return nil if there were no tests.

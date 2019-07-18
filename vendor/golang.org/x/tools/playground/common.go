@@ -9,15 +9,13 @@ package playground // import "golang.org/x/tools/playground"
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 )
 
-const baseURL = "https://play.golang.org"
+const baseURL = "https://golang.org"
 
 func init() {
 	http.HandleFunc("/compile", bounce)
@@ -27,7 +25,7 @@ func init() {
 func bounce(w http.ResponseWriter, r *http.Request) {
 	b := new(bytes.Buffer)
 	if err := passThru(b, r); err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, "Server error.", http.StatusInternalServerError)
 		report(r, err)
 		return
 	}
@@ -40,9 +38,7 @@ func passThru(w io.Writer, req *http.Request) error {
 	}
 	defer req.Body.Close()
 	url := baseURL + req.URL.Path
-	ctx, cancel := context.WithTimeout(contextFunc(req), 60*time.Second)
-	defer cancel()
-	r, err := post(ctx, url, req.Header.Get("Content-type"), req.Body)
+	r, err := client(req).Post(url, req.Header.Get("Content-type"), req.Body)
 	if err != nil {
 		return fmt.Errorf("making POST request: %v", err)
 	}
@@ -53,7 +49,7 @@ func passThru(w io.Writer, req *http.Request) error {
 	return nil
 }
 
-var onAppengine = false // will be overridden by appengine.go
+var onAppengine = false // will be overriden by appengine.go and appenginevm.go
 
 func allowShare(r *http.Request) bool {
 	if !onAppengine {

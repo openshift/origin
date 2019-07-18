@@ -145,9 +145,7 @@ func subpackages(ctxt *build.Context, srcDir string, dir string) map[string]bool
 			log.Fatalf("unexpected error in ForEachPackage: %v", err)
 		}
 
-		// Only process the package or a sub-package
-		if !(strings.HasPrefix(pkg, dir) &&
-			(len(pkg) == len(dir) || pkg[len(dir)] == '/')) {
+		if !strings.HasPrefix(pkg, path.Join(dir, "")) {
 			return
 		}
 

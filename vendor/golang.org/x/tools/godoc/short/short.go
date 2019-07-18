@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0
 // license that can be found in the LICENSE file.
 
-// +build golangorg
+// +build appengine
 
 // Package short implements a simple URL shortener, serving an administrative
 // interface at /s and shortened urls from /s/key.
@@ -12,18 +12,19 @@ package short
 // TODO(adg): collect statistics on URL visits
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 
-	"cloud.google.com/go/datastore"
-	"golang.org/x/tools/internal/memcache"
+	"golang.org/x/net/context"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/user"
 )
 
@@ -40,32 +41,17 @@ type Link struct {
 
 var validKey = regexp.MustCompile(`^[a-zA-Z0-9-_.]+$`)
 
-type server struct {
-	datastore *datastore.Client
-	memcache  *memcache.CodecClient
-}
-
-func RegisterHandlers(mux *http.ServeMux, dc *datastore.Client, mc *memcache.Client) {
-	s := server{dc, mc.WithCodec(memcache.JSON)}
-	mux.HandleFunc(prefix+"/", s.linkHandler)
-
-	// TODO(cbro): move storage of the links to a text file in Gerrit.
-	// Disable the admin handler until that happens, since GAE Flex doesn't support
-	// the "google.golang.org/appengine/user" package.
-	// See golang.org/issue/29988 and golang.org/issue/27205#issuecomment-418673218.
-	// mux.HandleFunc(prefix, adminHandler)
-	mux.HandleFunc(prefix, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-		io.WriteString(w, "Link creation temporarily unavailable. See golang.org/issue/29988.")
-	})
+func RegisterHandlers(mux *http.ServeMux) {
+	mux.HandleFunc(prefix, adminHandler)
+	mux.HandleFunc(prefix+"/", linkHandler)
 }
 
 // linkHandler services requests to short URLs.
 //   http://golang.org/s/key
 // It consults memcache and datastore for the Link for key.
 // It then sends a redirects or an error message.
-func (h server) linkHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func linkHandler(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
 
 	key := r.URL.Path[len(prefix)+1:]
 	if !validKey.MatchString(key) {
@@ -74,15 +60,16 @@ func (h server) linkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var link Link
-	if err := h.memcache.Get(ctx, cacheKey(key), &link); err != nil {
-		k := datastore.NameKey(kind, key, nil)
-		err = h.datastore.Get(ctx, k, &link)
+	_, err := memcache.JSON.Get(c, cacheKey(key), &link)
+	if err != nil {
+		k := datastore.NewKey(c, kind, key, 0, nil)
+		err = datastore.Get(c, k, &link)
 		switch err {
 		case datastore.ErrNoSuchEntity:
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		default: // != nil
-			log.Printf("ERROR %q: %v", key, err)
+			log.Errorf(c, "%q: %v", key, err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		case nil:
@@ -90,8 +77,8 @@ func (h server) linkHandler(w http.ResponseWriter, r *http.Request) {
 				Key:    cacheKey(key),
 				Object: &link,
 			}
-			if err := h.memcache.Set(ctx, item); err != nil {
-				log.Printf("WARNING %q: %v", key, err)
+			if err := memcache.JSON.Set(c, item); err != nil {
+				log.Warningf(c, "%q: %v", key, err)
 			}
 		}
 	}
@@ -102,10 +89,10 @@ func (h server) linkHandler(w http.ResponseWriter, r *http.Request) {
 var adminTemplate = template.Must(template.New("admin").Parse(templateHTML))
 
 // adminHandler serves an administrative interface.
-func (h server) adminHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
 
-	if !user.IsAdmin(ctx) {
+	if !user.IsAdmin(c) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -117,24 +104,24 @@ func (h server) adminHandler(w http.ResponseWriter, r *http.Request) {
 		switch r.FormValue("do") {
 		case "Add":
 			newLink = &Link{key, r.FormValue("target")}
-			doErr = h.putLink(ctx, newLink)
+			doErr = putLink(c, newLink)
 		case "Delete":
-			k := datastore.NameKey(kind, key, nil)
-			doErr = h.datastore.Delete(ctx, k)
+			k := datastore.NewKey(c, kind, key, 0, nil)
+			doErr = datastore.Delete(c, k)
 		default:
 			http.Error(w, "unknown action", http.StatusBadRequest)
 		}
-		err := h.memcache.Delete(ctx, cacheKey(key))
+		err := memcache.Delete(c, cacheKey(key))
 		if err != nil && err != memcache.ErrCacheMiss {
-			log.Printf("WARNING %q: %v", key, err)
+			log.Warningf(c, "%q: %v", key, err)
 		}
 	}
 
 	var links []*Link
-	q := datastore.NewQuery(kind).Order("Key")
-	if _, err := h.datastore.GetAll(ctx, q, &links); err != nil {
+	_, err := datastore.NewQuery(kind).Order("Key").GetAll(c, &links)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("ERROR %v", err)
+		log.Errorf(c, "%v", err)
 		return
 	}
 
@@ -163,20 +150,20 @@ func (h server) adminHandler(w http.ResponseWriter, r *http.Request) {
 		Error   error
 	}{baseURL, prefix, links, newLink, doErr}
 	if err := adminTemplate.Execute(w, &data); err != nil {
-		log.Printf("ERROR adminTemplate: %v", err)
+		log.Criticalf(c, "adminTemplate: %v", err)
 	}
 }
 
 // putLink validates the provided link and puts it into the datastore.
-func (h server) putLink(ctx context.Context, link *Link) error {
+func putLink(c context.Context, link *Link) error {
 	if !validKey.MatchString(link.Key) {
 		return errors.New("invalid key; must match " + validKey.String())
 	}
 	if _, err := url.Parse(link.Target); err != nil {
 		return fmt.Errorf("bad target: %v", err)
 	}
-	k := datastore.NameKey(kind, link.Key, nil)
-	_, err := h.datastore.Put(ctx, k, link)
+	k := datastore.NewKey(c, kind, link.Key, 0, nil)
+	_, err := datastore.Put(c, k, link)
 	return err
 }
 

@@ -10,7 +10,7 @@ import (
 // ManifestOptions contains the values that influence manifest contents.
 type ManifestOptions struct {
 	Namespace             string
-	Image                 string
+	Image, OperatorImage  string
 	ImagePullPolicy       string
 	ConfigHostPath        string
 	ConfigFileName        string
@@ -37,6 +37,8 @@ func (o *ManifestOptions) AddFlags(fs *pflag.FlagSet, humanReadableComponentName
 		fmt.Sprintf("Target namespace for phase 3 %s pods.", humanReadableComponentName))
 	fs.StringVar(&o.Image, "manifest-image", o.Image,
 		fmt.Sprintf("Image to use for the %s.", humanReadableComponentName))
+	fs.StringVar(&o.OperatorImage, "manifest-operator-image", o.OperatorImage,
+		fmt.Sprintf("Operator image to use for the %s.", humanReadableComponentName))
 	fs.StringVar(&o.ImagePullPolicy, "manifest-image-pull-policy", o.ImagePullPolicy,
 		fmt.Sprintf("Image pull policy to use for the %s.", humanReadableComponentName))
 	fs.StringVar(&o.ConfigHostPath, "manifest-config-host-path", o.ConfigHostPath,
@@ -85,6 +87,7 @@ func (o *ManifestOptions) Validate() error {
 func (o *ManifestOptions) ApplyTo(cfg *ManifestConfig) error {
 	cfg.Namespace = o.Namespace
 	cfg.Image = o.Image
+	cfg.OperatorImage = o.OperatorImage
 	cfg.ImagePullPolicy = o.ImagePullPolicy
 	cfg.ConfigHostPath = o.ConfigHostPath
 	cfg.ConfigFileName = o.ConfigFileName
