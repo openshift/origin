@@ -7,8 +7,8 @@ import (
 
 	"k8s.io/client-go/rest"
 
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,6 +28,7 @@ var _ = g.Describe("[Conformance][templates] template-api", func() {
 	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
 
 	g.It("TestTemplate", func() {
+		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		t := g.GinkgoT()
 
 		for _, version := range []schema.GroupVersion{v1.SchemeGroupVersion} {
@@ -100,6 +101,7 @@ var _ = g.Describe("[Conformance][templates] template-api", func() {
 	oc := exutil.NewCLI("templates", exutil.KubeConfigPath())
 
 	g.It("TestTemplateTransformationFromConfig", func() {
+		g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 		t := g.GinkgoT()
 
 		clusterAdminClientConfig := oc.AdminConfig()

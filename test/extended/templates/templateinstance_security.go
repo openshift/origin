@@ -128,6 +128,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 		})
 
 		g.It("should pass security tests", func() {
+			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			tests := []struct {
 				by              string
 				user            *userv1.User
