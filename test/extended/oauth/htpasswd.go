@@ -32,7 +32,7 @@ var _ = g.Describe("[Suite:openshift/oauth/htpasswd] HTPasswd IDP", func() {
 		oc = exutil.NewCLI("htpasswd-idp", exutil.KubeConfigPath())
 	)
 
-	g.It("should successfully configure htpasswd and be responsive", func() {
+	g.It("[Flaky] should successfully configure htpasswd and be responsive", func() {
 		secrets := []corev1.Secret{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "htpasswd-secret",
