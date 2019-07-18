@@ -47,3 +47,7 @@ func (rm *RegistryMetadata) ID() string {
 func (rm *RegistryMetadata) String() string {
 	return fmt.Sprintf("%s/%s:%s", rm.Namespace, rm.Name, rm.Release)
 }
+
+func (rm *RegistryMetadata) FileName() string {
+	return fmt.Sprintf("%s-%s-%s-%s",  rm.Namespace, rm.Name, rm.Release, rm.Digest)
+}

@@ -1,15 +1,24 @@
 package catalog
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/origin/staging/src/github.com/openshift/oc/pkg/cli/admin/catalog/apprclient"
+	"github.com/openshift/oc/pkg/cli/admin/catalog/apprclient"
 )
 
 func NewBuildImageOptions(streams genericclioptions.IOStreams) *BuildImageOptions {
@@ -79,13 +88,86 @@ func (o *BuildImageOptions) Run() error {
 		return fmt.Errorf("couldn't connect to appregistry, %s", err.Error())
 	}
 
-	ps, err := client.ListPackages(o.AppRegistryNamespace)
+	downloader := apprclient.NewDownloader(client)
+	dir, err := downloader.DownloadManifestsTmp(o.AppRegistryNamespace)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("downloaded to %s\n", dir)
 
-	for _, p := range ps {
-		fmt.Printf("%s - %s\n", p.Name, p.Release)
+	archivePath, err := BuildManifestLayer(dir)
+	if err != nil {
+		klog.V(4).Info(err)
+		return err
 	}
+
+	fmt.Printf("archive: %s\n", archivePath)
+
 	return nil
+}
+
+func BuildManifestLayer(directory string) (string, error) {
+	archiveDir, err := ioutil.TempDir("", "archive-")
+	if err != nil {
+		return "", err
+	}
+
+	archive, err := os.Create(path.Join(archiveDir, "layer.tar.gz"))
+	if err != nil {
+		return "", err
+	}
+	defer func(){
+		if err := archive.Close(); err != nil {
+			klog.Warningf("error closing file: %s", err.Error())
+		}
+	}()
+
+	gzipWriter := gzip.NewWriter(archive)
+	defer func(){
+		if err := gzipWriter.Close(); err != nil {
+			klog.Warningf("error closing writer: %s", err.Error())
+		}
+	}()
+	writer := tar.NewWriter(gzipWriter)
+	defer func(){
+		if err := writer.Close(); err != nil {
+			klog.Warningf("error closing writer: %s", err.Error())
+		}
+	}()
+
+	if err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer func(){
+			if err := file.Close(); err != nil {
+				klog.Warningf("error closing file: %s", err.Error())
+			}
+		}()
+
+		header := new(tar.Header)
+		header.Name = "/manifests"+strings.TrimPrefix(file.Name(), directory)
+		header.Size = info.Size()
+		header.Mode = int64(info.Mode())
+		header.ModTime = info.ModTime()
+		err = writer.WriteHeader(header)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(writer, file)
+		return err
+	}); err != nil {
+		return "", err
+	}
+
+	return archive.Name(), nil
 }
