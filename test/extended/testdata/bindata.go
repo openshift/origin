@@ -12695,11 +12695,11 @@ new="$(mktemp -d)/tempconfig"
 os::cmd::expect_success "oc config view --raw > $new"
 export KUBECONFIG=$new
 project=$(oc project -q)
-os::cmd::expect_success 'oc policy add-role-to-user view view-user'
-os::cmd::expect_success 'oc login -u view-user -p anything'
-os::cmd::try_until_success 'oc project ${project}'
-os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" 'cannot get resource "secrets" in API group "" in the namespace'
-oc login -u system:admin
+#os::cmd::expect_success 'oc policy add-role-to-user view view-user'
+#os::cmd::expect_success 'oc login -u view-user -p anything'
+#os::cmd::try_until_success 'oc project ${project}'
+#os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" 'cannot get resource "secrets" in API group "" in the namespace'
+#oc login -u system:admin
 # clean up
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
@@ -12741,10 +12741,10 @@ os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"
 temp_config="$(mktemp -d)/tempconfig"
 os::cmd::expect_success "oc config view --raw > '${temp_config}'"
 export KUBECONFIG="${temp_config}"
-os::cmd::expect_success 'oc policy add-role-to-user admin project-admin'
-os::cmd::expect_success 'oc login -u project-admin -p anything'
-os::cmd::expect_success 'oc new-project test-project-admin'
-os::cmd::try_until_success "oc project test-project-admin"
+#os::cmd::expect_success 'oc policy add-role-to-user admin project-admin'
+#os::cmd::expect_success 'oc login -u project-admin -p anything'
+#os::cmd::expect_success 'oc new-project test-project-admin'
+#os::cmd::try_until_success "oc project test-project-admin"
 
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
@@ -12782,7 +12782,7 @@ os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token bui
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly
-os::cmd::expect_success 'oc login -u system:admin'
+#os::cmd::expect_success 'oc login -u system:admin'
 group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
 os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
 os::cmd::expect_success          "oc patch group patch-group -p 'users: [\"myuser\"]' --loglevel=8"
