@@ -6,6 +6,7 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
   oc delete all,templates --all
+  oc delete users.user.openshift.io test-user-1
   exit 0
 ) &>/dev/null
 

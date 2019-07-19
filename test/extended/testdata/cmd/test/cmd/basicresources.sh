@@ -9,6 +9,8 @@ trap os::test::junit::reconcile_output EXIT
   oc delete image v1-image
   oc delete group patch-group
   oc delete project test-project-admin
+  oc delete oauthaccesstokens.oauth.openshift.io/DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod
+  oc delete -f ${TEST_DATA}/multiport-service.yaml
   exit 0
 ) &>/dev/null
 

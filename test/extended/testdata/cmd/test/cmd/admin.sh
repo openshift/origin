@@ -3,19 +3,29 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete project/example project/ui-test-project project/recreated-project
-  oc delete groups/shortoutputgroup
-  oc delete groups/group1
-  oc delete groups/cascaded-group
-  oc delete groups/orphaned-group
-  oc delete users/cascaded-user
-  oc delete users/orphaned-user
-  oc delete identities/alwaysallow:orphaned-user
-  oc delete identities/alwaysallow:cascaded-user
-  oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
-) &>/dev/null
+#(
+#  set +e
+  oc delete project/example project/ui-test-project project/recreated-project &>/dev/null || true
+  oc delete groups/shortoutputgroup &>/dev/null || true
+  oc delete groups/group1 &>/dev/null || true
+  oc delete groups/cascaded-group &>/dev/null || true
+  oc delete groups/orphaned-group &>/dev/null || true
+  oc delete users/cascaded-user &>/dev/null || true
+  oc delete users/orphaned-user &>/dev/null || true
+  oc delete identities/alwaysallow:orphaned-user &>/dev/null || true
+  oc delete identities/alwaysallow:cascaded-user &>/dev/null || true
+  oc delete clusterroles/basic-users2 &>/dev/null || true
+  oc delete clusterroles/basic-user2 &>/dev/null || true
+  oc delete clusterrolebindings/basic-users2 &>/dev/null || true
+  oc delete clusterrolebindings/basic-user2 &>/dev/null || true
+  oc delete user/test-cmd-user &>/dev/null || true
+  oc delete namespace example &>/dev/null || true
+  oc delete identities.user.openshift.io/test-idp:test-uid &>/dev/null || true
+  oc delete images.image.openshift.io/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6 &>/dev/null || true
+  oc delete -n default imagestreams.image.openshift.io/busybox &>/dev/null || true
+  oc wait --for=delete namespace/example --timeout=60s || true
+#  oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
+#) &>/dev/null
 
 project="$( oc project -q )"
 

@@ -31,7 +31,6 @@ os::cmd::expect_success_and_text 'oc login --help' 'insecure-skip-tls-verify'
 
 # help for given command with --help flag must be consistent
 os::cmd::expect_success_and_text 'oc get --help' 'Display one or many resources'
-os::cmd::expect_success_and_text 'openshift-sdn --help' 'Start OpenShift SDN node components'
 os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
 os::cmd::expect_success_and_text 'oc projects --help' 'existing projects'
 os::cmd::expect_success_and_text 'oc get --help' 'oc'

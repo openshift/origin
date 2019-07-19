@@ -10,7 +10,7 @@ trap os::test::junit::reconcile_output EXIT
 ) &>/dev/null
 
 
-url=":${API_PORT:-8443}"
+url=":${API_PORT:-6443}"
 project="$(oc project -q)"
 
 os::test::junit::declare_suite_start "cmd/builds"
