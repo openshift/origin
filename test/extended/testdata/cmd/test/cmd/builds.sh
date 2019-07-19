@@ -16,11 +16,11 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/builds"
 # This test validates builds and build related commands
 
-os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
-os::cmd::expect_success 'oc get bc/ruby-hello-world'
-
-os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
-os::cmd::expect_success 'oc get bc/test'
+#os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
+#os::cmd::expect_success 'oc get bc/ruby-hello-world'
+#
+#os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
+#os::cmd::expect_success 'oc get bc/test'
 
 template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
 
@@ -59,8 +59,8 @@ os::cmd::expect_success 'oc delete is/origin'
 os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
-os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
-os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/sclorg/ruby-ex ruby-22-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
+#os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
+#os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/sclorg/ruby-ex ruby-22-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
 
@@ -68,7 +68,7 @@ os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
 os::cmd::expect_success_and_not_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '.'
 
 # Ensure output is valid JSON
-os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
+#os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
 
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
