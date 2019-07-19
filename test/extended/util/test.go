@@ -480,6 +480,10 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)] volumeMode should create sc, pod, pv, and pvc, read/write to the pv, and delete all created resources`,
 		},
 		"[Suite:openshift/scalability]": {},
+		// tests that replace the old test-cmd script
+		"[Suite:openshift/test-cmd]": {
+			`\[Suite:openshift/test-cmd\]`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
@@ -492,7 +496,7 @@ var (
 		`\[Slow\]`,
 		`\[Flaky\]`,
 		`\[local\]`,
-		`\[Local\]`,
+		`\[Suite:openshift/test-cmd\]`,
 	}
 )
 

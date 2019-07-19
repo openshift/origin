@@ -136,6 +136,13 @@ var staticSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool { return !strings.Contains(name, "[Suite:openshift/conformance/") },
 	},
 	{
+		Name: "openshift/test-cmd",
+		Description: templates.LongDesc(`
+		Run only tests for test-cmd.
+		`),
+		Matches: func(name string) bool { return strings.Contains(name, "[Suite:openshift/test-cmd]") },
+	},
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.
