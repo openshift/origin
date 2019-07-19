@@ -66,6 +66,7 @@ func TestList(t *testing.T) {
 
 		expected := []rules.SecGroupRule{
 			{
+				Description:    "",
 				Direction:      "egress",
 				EtherType:      "IPv6",
 				ID:             "3c0e45ff-adaf-4124-b083-bf390e5482ff",
@@ -113,6 +114,7 @@ func TestCreate(t *testing.T) {
 		th.TestJSONRequest(t, r, `
 {
     "security_group_rule": {
+        "description": "test description of rule",
         "direction": "ingress",
         "port_range_min": 80,
         "ethertype": "IPv4",
@@ -130,6 +132,7 @@ func TestCreate(t *testing.T) {
 		fmt.Fprintf(w, `
 {
     "security_group_rule": {
+        "description": "test description of rule",
         "direction": "ingress",
         "ethertype": "IPv4",
         "id": "2bc0accf-312e-429a-956e-e4407625eb62",
@@ -146,6 +149,7 @@ func TestCreate(t *testing.T) {
 	})
 
 	opts := rules.CreateOpts{
+		Description:   "test description of rule",
 		Direction:     "ingress",
 		PortRangeMin:  80,
 		EtherType:     rules.EtherType4,

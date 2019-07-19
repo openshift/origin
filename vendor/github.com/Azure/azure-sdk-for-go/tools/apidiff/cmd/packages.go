@@ -39,6 +39,10 @@ Commit sequences must be comma-delimited.`,
 		if err != nil {
 			return err
 		}
+		err = printReport(rpt)
+		if err != nil {
+			return err
+		}
 		evalReportStatus(rpt)
 		return nil
 	},
@@ -92,7 +96,6 @@ func thePackagesCmd(args []string) (rpt CommitPkgsReport, err error) {
 		return
 	}
 
-	err = printReport(rpt)
 	return
 }
 

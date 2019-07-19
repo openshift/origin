@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ProjectV1() projectv1.ProjectV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Project() projectv1.ProjectV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // ProjectV1 retrieves the ProjectV1Client
 func (c *Clientset) ProjectV1() projectv1.ProjectV1Interface {
-	return c.projectV1
-}
-
-// Deprecated: Project retrieves the default version of ProjectClient.
-// Please explicitly pick a version.
-func (c *Clientset) Project() projectv1.ProjectV1Interface {
 	return c.projectV1
 }
 

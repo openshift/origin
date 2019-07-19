@@ -210,7 +210,7 @@ type ExecNewPodAction struct {
   // Env is a set of environment variables to supply to the action's container.
   Env []EnvVar `json:"env,omitempty"`
   // ContainerName is the name of a container in the deployment pod
-  // template whose Docker image will be used for the action's container.
+  // template whose container image will be used for the action's container.
   ContainerName string `json:"containerName"`
 }
 ```

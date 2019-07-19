@@ -42,7 +42,7 @@ os::cmd::try_until_text "oc login --server=${KUBERNETES_MASTER} --certificate-au
 
 # make sure `oc status` re-uses the correct "no projects" message from `oc login`
 os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
-os::cmd::expect_success_and_text 'oc status --all-namespaces' "Showing all projects on server"
+os::cmd::expect_success_and_text 'oc status -A' "Showing all projects on server"
 # make sure `oc status` does not re-use the "no projects" message from `oc login` if -n is specified
 os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "forbidden"'
 

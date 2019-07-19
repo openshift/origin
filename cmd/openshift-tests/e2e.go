@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
 
@@ -44,6 +44,25 @@ var staticSuites = []*ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/conformance/multitenant",
+		Description: templates.LongDesc(`
+		Only the portion of the openshift/conformance test suite that applies to the openshift-sdn multitenant plugin.
+		`),
+		Matches: func(name string) bool {
+			return !strings.Contains(name, "[Feature:NetworkPolicy]") && strings.Contains(name, "[Suite:openshift/conformance/")
+		},
+		Parallelism: 30,
+	},
+	{
+		Name: "openshift/disruptive",
+		Description: templates.LongDesc(`
+		The disruptive test suite.
+		`),
+		Matches: func(name string) bool {
+			return !strings.Contains(name, "[Disabled") && strings.Contains(name, "[Disruptive]")
+		},
+	},
+	{
 		Name: "kubernetes/conformance",
 		Description: templates.LongDesc(`
 		The default Kubernetes conformance suite.
@@ -59,7 +78,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Tests that exercise the OpenShift build functionality.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Feature:Builds]")
+			return !strings.Contains(name, "[Disabled") && strings.Contains(name, "[Feature:Builds]")
 		},
 		Parallelism: 7,
 		// TODO: Builds are really flaky right now, remove when we land perf updates and fix io on workers
@@ -93,7 +112,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Tests that exercise the OpenShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "openshift pipeline")
+			return strings.Contains(name, "[Feature:Jenkins]")
 		},
 		Parallelism: 3,
 		TestTimeout: 20 * time.Minute,

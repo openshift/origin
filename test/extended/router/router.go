@@ -7,8 +7,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -24,7 +22,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		host, ns string
 		oc       *exutil.CLI
 
-		configPath = exutil.FixturePath("testdata", "ingress.yaml")
+		configPath = exutil.FixturePath("testdata", "router", "ingress.yaml")
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -51,11 +49,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.BeforeEach(func() {
 		var err error
-		host, err = waitForRouterServiceIP(oc)
-		if kapierrs.IsNotFound(err) {
-			g.Skip("no router installed on the cluster")
-			return
-		}
+		host, err = exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name
@@ -80,7 +74,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By("waiting for the ingress rule to be converted to routes")
 			client := routeclientset.NewForConfigOrDie(oc.AdminConfig())
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				routes, err := client.Route().Routes(ns).List(metav1.ListOptions{})
+				routes, err := client.RouteV1().Routes(ns).List(metav1.ListOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -103,41 +97,3 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		})
 	})
 })
-
-func waitForRouterServiceIP(oc *exutil.CLI) (string, error) {
-	return waitForNamedRouterServiceIP(oc, "router-default")
-}
-
-func waitForRouterMetricsIP(oc *exutil.CLI) (string, error) {
-	return waitForNamedRouterServiceIP(oc, "router-internal-default")
-}
-
-func waitForNamedRouterServiceIP(oc *exutil.CLI, name string) (string, error) {
-	_, ns, err := exutil.GetRouterPodTemplate(oc)
-	if err != nil {
-		return "", err
-	}
-
-	// wait for the service to show up
-	var host string
-	err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
-		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get(name, metav1.GetOptions{})
-		if kapierrs.IsNotFound(err) {
-			// see if an older service named 'router' exists.
-			svc, err = oc.AdminKubeClient().CoreV1().Services(ns).Get("router", metav1.GetOptions{})
-			if kapierrs.IsNotFound(err) {
-				return false, nil
-			}
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-		host = svc.Spec.ClusterIP
-		if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-			if len(svc.Status.LoadBalancer.Ingress) == 0 || len(svc.Status.LoadBalancer.Ingress[0].Hostname) == 0 {
-				return false, nil
-			}
-			host = svc.Status.LoadBalancer.Ingress[0].Hostname
-		}
-		return true, nil
-	})
-	return host, err
-}

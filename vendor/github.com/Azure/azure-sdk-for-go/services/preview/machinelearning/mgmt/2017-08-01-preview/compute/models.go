@@ -383,6 +383,69 @@ func (gsc GlobalServiceConfiguration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// UnmarshalJSON is the custom unmarshaler for GlobalServiceConfiguration struct.
+func (gsc *GlobalServiceConfiguration) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		default:
+			if v != nil {
+				var additionalProperties interface{}
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if gsc.AdditionalProperties == nil {
+					gsc.AdditionalProperties = make(map[string]interface{})
+				}
+				gsc.AdditionalProperties[k] = additionalProperties
+			}
+		case "etag":
+			if v != nil {
+				var etag string
+				err = json.Unmarshal(*v, &etag)
+				if err != nil {
+					return err
+				}
+				gsc.Etag = &etag
+			}
+		case "ssl":
+			if v != nil {
+				var ssl SslConfiguration
+				err = json.Unmarshal(*v, &ssl)
+				if err != nil {
+					return err
+				}
+				gsc.Ssl = &ssl
+			}
+		case "serviceAuth":
+			if v != nil {
+				var serviceAuth ServiceAuthConfiguration
+				err = json.Unmarshal(*v, &serviceAuth)
+				if err != nil {
+					return err
+				}
+				gsc.ServiceAuth = &serviceAuth
+			}
+		case "autoScale":
+			if v != nil {
+				var autoScale AutoScaleConfiguration
+				err = json.Unmarshal(*v, &autoScale)
+				if err != nil {
+					return err
+				}
+				gsc.AutoScale = &autoScale
+			}
+		}
+	}
+
+	return nil
+}
+
 // KubernetesClusterProperties kubernetes cluster specific properties
 type KubernetesClusterProperties struct {
 	// ServicePrincipal - The Azure Service Principal used by Kubernetes

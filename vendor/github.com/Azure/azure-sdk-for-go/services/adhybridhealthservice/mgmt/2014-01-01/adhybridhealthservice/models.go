@@ -271,7 +271,7 @@ type AdditionalInformation struct {
 	TitleName *string `json:"titleName,omitempty"`
 	// TitleValue - The title value for the property.
 	TitleValue *string `json:"titleValue,omitempty"`
-	// Properties - The list of properties which are included in the aditional information.
+	// Properties - The list of properties which are included in the additional information.
 	Properties interface{} `json:"properties,omitempty"`
 	// HasProperties - Indicates if properties are present or not.
 	HasProperties *bool `json:"hasProperties,omitempty"`

@@ -12,8 +12,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	buildapi "github.com/openshift/api/build/v1"
-	buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/api/build/v1"
 )
 
 type BuildAnalyzerOptions struct {
@@ -86,7 +85,7 @@ func (o *BuildAnalyzerOptions) Run() error {
 		fmt.Printf("Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	var buildList buildapi.BuildList
+	var buildList buildv1.BuildList
 	err = json.Unmarshal(raw, &buildList)
 	if err != nil {
 		fmt.Printf("Error processing build list: %v\n", err)
@@ -94,7 +93,7 @@ func (o *BuildAnalyzerOptions) Run() error {
 	}
 	fmt.Printf("Processing %d builds from file\n", len(buildList.Items))
 
-	allBuildConfigs := map[string][]buildapi.Build{}
+	allBuildConfigs := map[string][]buildv1.Build{}
 	totalBuilds := 0
 	for _, build := range buildList.Items {
 		totalBuilds += 1
@@ -135,7 +134,7 @@ func (o *BuildAnalyzerOptions) Run() error {
 			if o.TriggerTime != nil && build.Status.CompletionTimestamp != nil && build.Status.CompletionTimestamp.Before(o.TriggerTime) {
 				// the set of builds that completed(successfully or otherwise) before the new set of builds were triggered.
 				beforecnt += 1
-				if build.Status.Phase == buildapi.BuildPhaseComplete {
+				if build.Status.Phase == buildv1.BuildPhaseComplete {
 					hasPriorSuccess = true
 				}
 			} else {
@@ -158,13 +157,13 @@ func (o *BuildAnalyzerOptions) Run() error {
 				if o.TriggerTime == nil || hasPriorSuccess {
 					interestcnt += 1
 					switch build.Status.Phase {
-					case buildapi.BuildPhaseComplete:
+					case buildv1.BuildPhaseComplete:
 						successcnt += 1
-					case buildapi.BuildPhaseFailed:
+					case buildv1.BuildPhaseFailed:
 						failcnt += 1
 						failedReasons[string(build.Status.Reason)+":"+string(build.Status.Message)] += 1
 						if o.TestClone {
-							if string(build.Status.Reason) == string(buildinternalapi.StatusReasonFetchSourceFailed) {
+							if string(build.Status.Reason) == string(buildv1.StatusReasonFetchSourceFailed) {
 								//fmt.Printf("Attempting to clone %s\n", build.Spec.Source.Git.URI)
 								err := exec.Command("/bin/sh", "-c", "GIT_TERMINAL_PROMPT=0 git clone -q "+build.Spec.Source.Git.URI).Run()
 								if err == nil {
@@ -175,18 +174,18 @@ func (o *BuildAnalyzerOptions) Run() error {
 								//fmt.Println("Done.")
 							}
 						}
-					case buildapi.BuildPhaseError:
+					case buildv1.BuildPhaseError:
 						errcnt += 1
 						errorReasons[string(build.Status.Reason)+":"+string(build.Status.Message)] += 1
-					case buildapi.BuildPhaseCancelled:
+					case buildv1.BuildPhaseCancelled:
 						cancelcnt += 1
-					case buildapi.BuildPhaseNew:
+					case buildv1.BuildPhaseNew:
 						newcnt += 1
 						newReasons[string(build.Status.Reason)+":"+string(build.Status.Message)] += 1
-					case buildapi.BuildPhasePending:
+					case buildv1.BuildPhasePending:
 						pendingcnt += 1
 						pendingReasons[string(build.Status.Reason)+":"+string(build.Status.Message)] += 1
-					case buildapi.BuildPhaseRunning:
+					case buildv1.BuildPhaseRunning:
 						runningcnt += 1
 					}
 				}
@@ -233,8 +232,8 @@ func (o *BuildAnalyzerOptions) Run() error {
 	return nil
 }
 
-func appendBuild(bcs map[string][]buildapi.Build, build buildapi.Build) {
-	bc := build.Annotations[buildinternalapi.BuildConfigAnnotation]
+func appendBuild(bcs map[string][]buildv1.Build, build buildv1.Build) {
+	bc := build.Annotations[buildv1.BuildConfigAnnotation]
 	if len(bc) == 0 {
 		fmt.Printf("Skipping build with no buildconfig: %s\n", build.Name)
 		return
@@ -248,11 +247,11 @@ func appendBuild(bcs map[string][]buildapi.Build, build buildapi.Build) {
 	for i, b := range bcs[bc] {
 		if build.CreationTimestamp.Before(&b.CreationTimestamp) {
 			if i == 0 {
-				bcs[bc] = append([]buildapi.Build{build}, bcs[bc]...)
+				bcs[bc] = append([]buildv1.Build{build}, bcs[bc]...)
 				f = true
 				break
 			}
-			bcs[bc] = append(bcs[bc][0:i], append([]buildapi.Build{build}, bcs[bc][i:]...)...)
+			bcs[bc] = append(bcs[bc][0:i], append([]buildv1.Build{build}, bcs[bc][i:]...)...)
 			f = true
 			break
 		}

@@ -16,7 +16,6 @@ package ctfe
 
 import (
 	"context"
-	"encoding/hex"
 	"time"
 
 	"github.com/golang/glog"
@@ -64,6 +63,12 @@ type RequestLog interface {
 	// LeafHash will be called once for get proof by hash requests with the
 	// requested hash value (if the parameters parse correctly).
 	LeafHash(context.Context, []byte)
+	// IssueSCT will be called once when the server is about to issue an SCT to a
+	// client. This should not be called if the submission process fails before an
+	// SCT could be presented to a client, even if this is unrelated to
+	// the validity of the submitted chain. The SCT bytes will be in TLS
+	// serialized format.
+	IssueSCT(context.Context, []byte)
 	// Status will be called once to set the HTTP status code that was the
 	// the result after the request has been handled.
 	Status(context.Context, int)
@@ -87,7 +92,7 @@ func (dlr *DefaultRequestLog) LogPrefix(_ context.Context, p string) {
 
 // AddDERToChain logs the raw bytes of a submitted certificate.
 func (dlr *DefaultRequestLog) AddDERToChain(_ context.Context, d []byte) {
-	glog.V(vLevel).Infof("RL: Cert DER: %s", hex.EncodeToString(d))
+	glog.V(vLevel).Infof("RL: Cert DER: %x", d)
 }
 
 // AddCertToChain logs some issuer / subject / timing fields from a
@@ -122,7 +127,12 @@ func (dlr *DefaultRequestLog) TreeSize(_ context.Context, ts int64) {
 
 // LeafHash logs request parameters.
 func (dlr *DefaultRequestLog) LeafHash(_ context.Context, lh []byte) {
-	glog.V(vLevel).Infof("RL: LeafHash: %s", hex.EncodeToString(lh))
+	glog.V(vLevel).Infof("RL: LeafHash: %x", lh)
+}
+
+// IssueSCT logs an SCT that will be issued to a client.
+func (dlr *DefaultRequestLog) IssueSCT(_ context.Context, sct []byte) {
+	glog.V(vLevel).Infof("RL: Issuing SCT: %x", sct)
 }
 
 // Status logs the response HTTP status code after processing completes.

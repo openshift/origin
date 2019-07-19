@@ -2,23 +2,30 @@ package certrotation
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/golang/glog"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
+
+	operatorv1 "github.com/openshift/api/operator/v1"
+
+	"github.com/openshift/library-go/pkg/operator/condition"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
-	// CertificateExpiryAnnotation contains the certificate expiration date in RFC3339 format.
-	CertificateExpiryAnnotation = "auth.openshift.io/certificate-expiry-date"
-	// CertificateSignedBy contains the common name of the certificate that signed another certificate.
-	CertificateSignedBy = "auth.openshift.io/certificate-signed-by"
+	// CertificateNotBeforeAnnotation contains the certificate expiration date in RFC3339 format.
+	CertificateNotBeforeAnnotation = "auth.openshift.io/certificate-not-before"
+	// CertificateNotAfterAnnotation contains the certificate expiration date in RFC3339 format.
+	CertificateNotAfterAnnotation = "auth.openshift.io/certificate-not-after"
+	// CertificateIssuer contains the common name of the certificate that signed another certificate.
+	CertificateIssuer = "auth.openshift.io/certificate-issuer"
+	// CertificateHostnames contains the hostnames used by a signer.
+	CertificateHostnames = "auth.openshift.io/certificate-hostnames"
 )
 
 const workQueueKey = "key"
@@ -39,10 +46,8 @@ type CertRotationController struct {
 	TargetRotation   TargetRotation
 	OperatorClient   v1helpers.StaticPodOperatorClient
 
-	cachesSynced []cache.InformerSynced
-
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
+	cachesToSync []cache.InformerSynced
+	queue        workqueue.RateLimitingInterface
 }
 
 func NewCertRotationController(
@@ -52,55 +57,41 @@ func NewCertRotationController(
 	targetRotation TargetRotation,
 	operatorClient v1helpers.StaticPodOperatorClient,
 ) (*CertRotationController, error) {
-	if !isOverlapSufficient(signingRotation, targetRotation) {
-		return nil, fmt.Errorf("insufficient overlap between signer and target")
-	}
+	c := &CertRotationController{
+		name: name,
 
-	ret := &CertRotationController{
 		SigningRotation:  signingRotation,
 		CABundleRotation: caBundleRotation,
 		TargetRotation:   targetRotation,
 		OperatorClient:   operatorClient,
 
-		cachesSynced: []cache.InformerSynced{
-			signingRotation.Informer.Informer().HasSynced,
-			caBundleRotation.Informer.Informer().HasSynced,
-			targetRotation.Informer.Informer().HasSynced,
-		},
-
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), strings.Replace(name, "-", "_", -1)),
 	}
 
-	signingRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
-	caBundleRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
-	targetRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
+	signingRotation.Informer.Informer().AddEventHandler(c.eventHandler())
+	caBundleRotation.Informer.Informer().AddEventHandler(c.eventHandler())
+	targetRotation.Informer.Informer().AddEventHandler(c.eventHandler())
 
-	return ret, nil
-}
+	c.cachesToSync = append(c.cachesToSync, signingRotation.Informer.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, caBundleRotation.Informer.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, targetRotation.Informer.Informer().HasSynced)
 
-func isOverlapSufficient(signingRotation SigningRotation, targetRotation TargetRotation) bool {
-	targetRefreshOverlap := float32(targetRotation.Validity) * (1 - targetRotation.RefreshPercentage)
-	requiredSignerAge := targetRefreshOverlap / 10
-	signerRefreshOverlap := float32(signingRotation.Validity) * (signingRotation.RefreshPercentage)
-	if signerRefreshOverlap < requiredSignerAge*2 {
-		return false
-	}
-	return true
+	return c, nil
 }
 
 func (c CertRotationController) sync() error {
 	syncErr := c.syncWorker()
 
-	condition := operatorv1.OperatorCondition{
-		Type:   "CertRotation_" + c.name + "_Failing",
+	newCondition := operatorv1.OperatorCondition{
+		Type:   fmt.Sprintf(condition.CertRotationDegradedConditionTypeFmt, c.name),
 		Status: operatorv1.ConditionFalse,
 	}
 	if syncErr != nil {
-		condition.Status = operatorv1.ConditionTrue
-		condition.Reason = "RotationError"
-		condition.Message = syncErr.Error()
+		newCondition.Status = operatorv1.ConditionTrue
+		newCondition.Reason = "RotationError"
+		newCondition.Message = syncErr.Error()
 	}
-	if _, _, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); updateErr != nil {
+	if _, _, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(newCondition)); updateErr != nil {
 		return updateErr
 	}
 
@@ -125,38 +116,29 @@ func (c CertRotationController) syncWorker() error {
 	return nil
 }
 
-func needNewCertKeyPairForTime(annotations map[string]string, validity time.Duration, renewalPercentage float32) bool {
-	signingCertKeyPairExpiry := annotations[CertificateExpiryAnnotation]
-	if len(signingCertKeyPairExpiry) == 0 {
-		return true
-	}
-	certExpiry, err := time.Parse(time.RFC3339, signingCertKeyPairExpiry)
-	if err != nil {
-		glog.Infof("bad expiry: %q", signingCertKeyPairExpiry)
-		// just create a new one
-		return true
-	}
+func (c *CertRotationController) WaitForReady(stopCh <-chan struct{}) {
+	klog.Infof("Waiting for CertRotationController - %q", c.name)
+	defer klog.Infof("Finished waiting for CertRotationController - %q", c.name)
 
-	// If Certificate is not-expired, skip this iteration.
-	renewalDuration := -1 * float32(validity) * (1 - renewalPercentage)
-	if certExpiry.Add(time.Duration(renewalDuration)).After(time.Now()) {
-		return false
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
+		return
 	}
+}
 
-	return true
+// RunOnce will run the cert rotation logic, but will not try to update the static pod status.
+// This eliminates the need to pass an OperatorClient and avoids dubious writes and status.
+func (c *CertRotationController) RunOnce() error {
+	return c.syncWorker()
 }
 
 func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting CertRotationController - %q", c.name)
-	defer glog.Infof("Shutting down CertRotationController - %q", c.name)
-
-	if !cache.WaitForCacheSync(stopCh, c.cachesSynced...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
+	klog.Infof("Starting CertRotationController - %q", c.name)
+	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
+	c.WaitForReady(stopCh)
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
@@ -176,6 +158,22 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 		}
 
 	}, time.Minute, stopCh)
+
+	// if we have a need to force rechecking the cert, use this channel to do it.
+	if refresher, ok := c.TargetRotation.CertCreator.(TargetCertRechecker); ok {
+		targetRefresh := refresher.RecheckChannel()
+		go wait.Until(func() {
+			for {
+				select {
+				case <-targetRefresh:
+					c.queue.Add(workQueueKey)
+				case <-stopCh:
+					return
+				}
+			}
+
+		}, time.Minute, stopCh)
+	}
 
 	<-stopCh
 }
@@ -198,7 +196,7 @@ func (c *CertRotationController) processNextWorkItem() bool {
 		return true
 	}
 
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
+	utilruntime.HandleError(fmt.Errorf("%v: %v failed with: %v", c.name, dsKey, err))
 	c.queue.AddRateLimited(dsKey)
 
 	return true

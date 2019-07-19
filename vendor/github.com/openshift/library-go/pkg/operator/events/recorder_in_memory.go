@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 )
 
 type inMemoryEventRecorder struct {
@@ -33,6 +33,21 @@ func NewInMemoryRecorder(sourceComponent string) InMemoryRecorder {
 	return &inMemoryEventRecorder{events: []*corev1.Event{}, source: sourceComponent}
 }
 
+func (r *inMemoryEventRecorder) ComponentName() string {
+	return r.source
+}
+
+func (r *inMemoryEventRecorder) ForComponent(component string) Recorder {
+	r.Lock()
+	defer r.Unlock()
+	r.source = component
+	return r
+}
+
+func (r *inMemoryEventRecorder) WithComponentSuffix(suffix string) Recorder {
+	return r.ForComponent(fmt.Sprintf("%s-%s", r.ComponentName(), suffix))
+}
+
 // Events returns list of recorded events
 func (r *inMemoryEventRecorder) Events() []*corev1.Event {
 	return r.events
@@ -53,7 +68,7 @@ func (r *inMemoryEventRecorder) Warning(reason, message string) {
 	r.Lock()
 	defer r.Unlock()
 	event := makeEvent(&inMemoryDummyObjectReference, r.source, corev1.EventTypeWarning, reason, message)
-	glog.Info(event.String())
+	klog.Info(event.String())
 	r.events = append(r.events, event)
 }
 

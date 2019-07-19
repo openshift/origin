@@ -25,7 +25,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		var lastPodsWithProblems []*corev1.Pod
 		var pending map[string]*corev1.Pod
 		wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
-			allPods, err := c.Core().Pods("").List(metav1.ListOptions{})
+			allPods, err := c.CoreV1().Pods("").List(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			var pods []*corev1.Pod
@@ -41,7 +41,16 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 				pending = make(map[string]*corev1.Pod)
 				for _, pod := range pods {
 					if pod.Status.Phase == corev1.PodPending {
-						pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
+						hasInitContainerRunning := false
+						for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+							if initContainerStatus.State.Running != nil {
+								hasInitContainerRunning = true
+								break
+							}
+						}
+						if !hasInitContainerRunning {
+							pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
+						}
 					}
 				}
 			} else {

@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/route/v1"
 	scheme "github.com/openshift/client-go/route/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type RouteInterface interface {
 	Create(*v1.Route) (*v1.Route, error)
 	Update(*v1.Route) (*v1.Route, error)
 	UpdateStatus(*v1.Route) (*v1.Route, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.Route, error)
-	List(opts meta_v1.ListOptions) (*v1.RouteList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.Route, error)
+	List(opts metav1.ListOptions) (*v1.RouteList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Route, err error)
 	RouteExpansion
 }
@@ -46,7 +48,7 @@ func newRoutes(c *RouteV1Client, namespace string) *routes {
 }
 
 // Get takes name of the route, and returns the corresponding route object, and an error if there is any.
-func (c *routes) Get(name string, options meta_v1.GetOptions) (result *v1.Route, err error) {
+func (c *routes) Get(name string, options metav1.GetOptions) (result *v1.Route, err error) {
 	result = &v1.Route{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -59,24 +61,34 @@ func (c *routes) Get(name string, options meta_v1.GetOptions) (result *v1.Route,
 }
 
 // List takes label and field selectors, and returns the list of Routes that match those selectors.
-func (c *routes) List(opts meta_v1.ListOptions) (result *v1.RouteList, err error) {
+func (c *routes) List(opts metav1.ListOptions) (result *v1.RouteList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.RouteList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("routes").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *routes) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("routes").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -122,7 +134,7 @@ func (c *routes) UpdateStatus(route *v1.Route) (result *v1.Route, err error) {
 }
 
 // Delete takes name of the route and deletes it. Returns an error if one occurs.
-func (c *routes) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *routes) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
@@ -133,11 +145,16 @@ func (c *routes) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *routes) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *routes) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

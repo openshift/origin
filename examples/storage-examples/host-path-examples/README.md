@@ -110,7 +110,7 @@ _Under volumes_
         hello.html  *helloworld.html*
 
 
-- Enter simple curl command from the docker container to serve the page
+- Enter simple curl command from the container to serve the page
 
         curl http://10.1.0.2/test/helloworld.html
 

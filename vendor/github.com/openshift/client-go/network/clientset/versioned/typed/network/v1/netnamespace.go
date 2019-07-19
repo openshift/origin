@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/network/v1"
 	scheme "github.com/openshift/client-go/network/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -21,11 +23,11 @@ type NetNamespacesGetter interface {
 type NetNamespaceInterface interface {
 	Create(*v1.NetNamespace) (*v1.NetNamespace, error)
 	Update(*v1.NetNamespace) (*v1.NetNamespace, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.NetNamespace, error)
-	List(opts meta_v1.ListOptions) (*v1.NetNamespaceList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.NetNamespace, error)
+	List(opts metav1.ListOptions) (*v1.NetNamespaceList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.NetNamespace, err error)
 	NetNamespaceExpansion
 }
@@ -43,7 +45,7 @@ func newNetNamespaces(c *NetworkV1Client) *netNamespaces {
 }
 
 // Get takes name of the netNamespace, and returns the corresponding netNamespace object, and an error if there is any.
-func (c *netNamespaces) Get(name string, options meta_v1.GetOptions) (result *v1.NetNamespace, err error) {
+func (c *netNamespaces) Get(name string, options metav1.GetOptions) (result *v1.NetNamespace, err error) {
 	result = &v1.NetNamespace{}
 	err = c.client.Get().
 		Resource("netnamespaces").
@@ -55,22 +57,32 @@ func (c *netNamespaces) Get(name string, options meta_v1.GetOptions) (result *v1
 }
 
 // List takes label and field selectors, and returns the list of NetNamespaces that match those selectors.
-func (c *netNamespaces) List(opts meta_v1.ListOptions) (result *v1.NetNamespaceList, err error) {
+func (c *netNamespaces) List(opts metav1.ListOptions) (result *v1.NetNamespaceList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.NetNamespaceList{}
 	err = c.client.Get().
 		Resource("netnamespaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested netNamespaces.
-func (c *netNamespaces) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *netNamespaces) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("netnamespaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -98,7 +110,7 @@ func (c *netNamespaces) Update(netNamespace *v1.NetNamespace) (result *v1.NetNam
 }
 
 // Delete takes name of the netNamespace and deletes it. Returns an error if one occurs.
-func (c *netNamespaces) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *netNamespaces) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("netnamespaces").
 		Name(name).
@@ -108,10 +120,15 @@ func (c *netNamespaces) Delete(name string, options *meta_v1.DeleteOptions) erro
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *netNamespaces) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *netNamespaces) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("netnamespaces").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

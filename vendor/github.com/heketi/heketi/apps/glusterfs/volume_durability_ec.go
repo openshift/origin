@@ -10,9 +10,21 @@
 package glusterfs
 
 import (
+	"encoding/gob"
+
 	"github.com/heketi/heketi/executors"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 )
+
+func init() {
+	// Volume Entry has VolumeDurability interface as a member.
+	// Serialization tools need to know the types that satisfy this
+	// interface. gob is used to serialize entries for db. Strictly
+	// speaking, it is not required to store VolumeDurability member in db
+	// as it can be recreated from volumeInfo. But removing it now would
+	// break backward with db.
+	gob.Register(&VolumeDisperseDurability{})
+}
 
 type VolumeDisperseDurability struct {
 	api.DisperseDurability
@@ -69,6 +81,10 @@ func (d *VolumeDisperseDurability) MinVolumeSize() uint64 {
 
 func (d *VolumeDisperseDurability) BricksInSet() int {
 	return d.Data + d.Redundancy
+}
+
+func (d *VolumeDisperseDurability) QuorumBrickCount() int {
+	return d.Data
 }
 
 func (d *VolumeDisperseDurability) SetExecutorVolumeRequest(v *executors.VolumeRequest) {

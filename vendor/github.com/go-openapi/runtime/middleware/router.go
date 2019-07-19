@@ -15,9 +15,13 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
+	fpath "path"
 	"regexp"
 	"strings"
+
+	"github.com/go-openapi/runtime/security"
 
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/errors"
@@ -26,7 +30,6 @@ import (
 	"github.com/go-openapi/runtime/middleware/denco"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	"github.com/gorilla/context"
 )
 
 // RouteParam is a object to capture route params in a framework agnostic way.
@@ -62,41 +65,25 @@ func (r RouteParams) GetOK(name string) ([]string, bool, bool) {
 	return nil, false, false
 }
 
-func newRouter(ctx *Context, next http.Handler) http.Handler {
+// NewRouter creates a new context aware router middleware
+func NewRouter(ctx *Context, next http.Handler) http.Handler {
 	if ctx.router == nil {
 		ctx.router = DefaultRouter(ctx.spec, ctx.api)
 	}
-	basePath := ctx.spec.BasePath()
-	isRoot := basePath == "" || basePath == "/"
-	for strings.HasSuffix(basePath, "/") {
-		basePath = basePath[:len(basePath)-1]
-	}
 
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		defer context.Clear(r)
-		// use context to lookup routes
-		if isRoot {
-			if _, ok := ctx.RouteInfo(r); ok {
-				next.ServeHTTP(rw, r)
-				return
-			}
-		} else {
-			ep := r.URL.EscapedPath()
-			if p := strings.TrimPrefix(ep, basePath); len(p) < len(ep) {
-				r.URL.Path = p
-				if _, ok := ctx.RouteInfo(r); ok {
-					next.ServeHTTP(rw, r)
-					return
-				}
-			}
+		if _, rCtx, ok := ctx.RouteInfo(r); ok {
+			next.ServeHTTP(rw, rCtx)
+			return
 		}
+
 		// Not found, check if it exists in the other methods first
 		if others := ctx.AllowedMethods(r); len(others) > 0 {
 			ctx.Respond(rw, r, ctx.analyzer.RequiredProduces(), nil, errors.MethodNotAllowed(r.Method, others))
 			return
 		}
 
-		ctx.Respond(rw, r, ctx.analyzer.RequiredProduces(), nil, errors.NotFound("path %s was not found", r.URL.Path))
+		ctx.Respond(rw, r, ctx.analyzer.RequiredProduces(), nil, errors.NotFound("path %s was not found", r.URL.EscapedPath()))
 	})
 }
 
@@ -108,6 +95,7 @@ type RoutableAPI interface {
 	ConsumersFor([]string) map[string]runtime.Consumer
 	ProducersFor([]string) map[string]runtime.Producer
 	AuthenticatorsFor(map[string]spec.SecurityScheme) map[string]runtime.Authenticator
+	Authorizer() runtime.Authorizer
 	Formats() strfmt.Registry
 	DefaultProduces() string
 	DefaultConsumes() string
@@ -128,7 +116,6 @@ type defaultRouteBuilder struct {
 
 type defaultRouter struct {
 	spec    *loads.Document
-	api     RoutableAPI
 	routers map[string]*denco.Router
 }
 
@@ -147,11 +134,150 @@ func DefaultRouter(spec *loads.Document, api RoutableAPI) Router {
 	if spec != nil {
 		for method, paths := range builder.analyzer.Operations() {
 			for path, operation := range paths {
-				builder.AddRoute(method, path, operation)
+				fp := fpath.Join(spec.BasePath(), path)
+				debugLog("adding route %s %s %q", method, fp, operation.ID)
+				builder.AddRoute(method, fp, operation)
 			}
 		}
 	}
 	return builder.Build()
+}
+
+// RouteAuthenticator is an authenticator that can compose several authenticators together.
+// It also knows when it contains an authenticator that allows for anonymous pass through.
+// Contains a group of 1 or more authenticators that have a logical AND relationship
+type RouteAuthenticator struct {
+	Authenticator  map[string]runtime.Authenticator
+	Schemes        []string
+	Scopes         map[string][]string
+	allScopes      []string
+	commonScopes   []string
+	allowAnonymous bool
+}
+
+func (ra *RouteAuthenticator) AllowsAnonymous() bool {
+	return ra.allowAnonymous
+}
+
+// AllScopes returns a list of unique scopes that is the combination
+// of all the scopes in the requirements
+func (ra *RouteAuthenticator) AllScopes() []string {
+	return ra.allScopes
+}
+
+// CommonScopes returns a list of unique scopes that are common in all the
+// scopes in the requirements
+func (ra *RouteAuthenticator) CommonScopes() []string {
+	return ra.commonScopes
+}
+
+// Authenticate Authenticator interface implementation
+func (ra *RouteAuthenticator) Authenticate(req *http.Request, route *MatchedRoute) (bool, interface{}, error) {
+	if ra.allowAnonymous {
+		route.Authenticator = ra
+		return true, nil, nil
+	}
+	// iterate in proper order
+	var lastResult interface{}
+	for _, scheme := range ra.Schemes {
+		if authenticator, ok := ra.Authenticator[scheme]; ok {
+			applies, princ, err := authenticator.Authenticate(&security.ScopedAuthRequest{
+				Request:        req,
+				RequiredScopes: ra.Scopes[scheme],
+			})
+			if !applies {
+				return false, nil, nil
+			}
+
+			if err != nil {
+				route.Authenticator = ra
+				return true, nil, err
+			}
+			lastResult = princ
+		}
+	}
+	route.Authenticator = ra
+	return true, lastResult, nil
+}
+
+func stringSliceUnion(slices ...[]string) []string {
+	unique := make(map[string]struct{})
+	var result []string
+	for _, slice := range slices {
+		for _, entry := range slice {
+			if _, ok := unique[entry]; ok {
+				continue
+			}
+			unique[entry] = struct{}{}
+			result = append(result, entry)
+		}
+	}
+	return result
+}
+
+func stringSliceIntersection(slices ...[]string) []string {
+	unique := make(map[string]int)
+	var intersection []string
+
+	total := len(slices)
+	var emptyCnt int
+	for _, slice := range slices {
+		if len(slice) == 0 {
+			emptyCnt++
+			continue
+		}
+
+		for _, entry := range slice {
+			unique[entry]++
+			if unique[entry] == total-emptyCnt { // this entry appeared in all the non-empty slices
+				intersection = append(intersection, entry)
+			}
+		}
+	}
+
+	return intersection
+}
+
+// RouteAuthenticators represents a group of authenticators that represent a logical OR
+type RouteAuthenticators []RouteAuthenticator
+
+// AllowsAnonymous returns true when there is an authenticator that means optional auth
+func (ras RouteAuthenticators) AllowsAnonymous() bool {
+	for _, ra := range ras {
+		if ra.AllowsAnonymous() {
+			return true
+		}
+	}
+	return false
+}
+
+// Authenticate method implemention so this collection can be used as authenticator
+func (ras RouteAuthenticators) Authenticate(req *http.Request, route *MatchedRoute) (bool, interface{}, error) {
+	var lastError error
+	var allowsAnon bool
+	var anonAuth RouteAuthenticator
+
+	for _, ra := range ras {
+		if ra.AllowsAnonymous() {
+			anonAuth = ra
+			allowsAnon = true
+			continue
+		}
+		applies, usr, err := ra.Authenticate(req, route)
+		if !applies || err != nil || usr == nil {
+			if err != nil {
+				lastError = err
+			}
+			continue
+		}
+		return applies, usr, nil
+	}
+
+	if allowsAnon && lastError == nil {
+		route.Authenticator = &anonAuth
+		return true, nil, lastError
+	}
+	return lastError != nil, nil, lastError
 }
 
 type routeEntry struct {
@@ -166,29 +292,73 @@ type routeEntry struct {
 	Handler        http.Handler
 	Formats        strfmt.Registry
 	Binder         *untypedRequestBinder
-	Authenticators map[string]runtime.Authenticator
-	Scopes         map[string][]string
+	Authenticators RouteAuthenticators
+	Authorizer     runtime.Authorizer
 }
 
 // MatchedRoute represents the route that was matched in this request
 type MatchedRoute struct {
 	routeEntry
-	Params   RouteParams
-	Consumer runtime.Consumer
-	Producer runtime.Producer
+	Params        RouteParams
+	Consumer      runtime.Consumer
+	Producer      runtime.Producer
+	Authenticator *RouteAuthenticator
+}
+
+// HasAuth returns true when the route has a security requirement defined
+func (m *MatchedRoute) HasAuth() bool {
+	return len(m.Authenticators) > 0
+}
+
+// NeedsAuth returns true when the request still
+// needs to perform authentication
+func (m *MatchedRoute) NeedsAuth() bool {
+	return m.HasAuth() && m.Authenticator == nil
 }
 
 func (d *defaultRouter) Lookup(method, path string) (*MatchedRoute, bool) {
-	if router, ok := d.routers[strings.ToUpper(method)]; ok {
-		if m, rp, ok := router.Lookup(path); ok && m != nil {
+	mth := strings.ToUpper(method)
+	debugLog("looking up route for %s %s", method, path)
+	if Debug {
+		if len(d.routers) == 0 {
+			debugLog("there are no known routers")
+		}
+		for meth := range d.routers {
+			debugLog("got a router for %s", meth)
+		}
+	}
+	if router, ok := d.routers[mth]; ok {
+		if m, rp, ok := router.Lookup(fpath.Clean(path)); ok && m != nil {
 			if entry, ok := m.(*routeEntry); ok {
+				debugLog("found a route for %s %s with %d parameters", method, path, len(entry.Parameters))
 				var params RouteParams
 				for _, p := range rp {
-					params = append(params, RouteParam{Name: p.Name, Value: p.Value})
+					v, err := pathUnescape(p.Value)
+					if err != nil {
+						debugLog("failed to escape %q: %v", p.Value, err)
+						v = p.Value
+					}
+					// a workaround to handle fragment/composing parameters until they are supported in denco router
+					// check if this parameter is a fragment within a path segment
+					if xpos := strings.Index(entry.PathPattern, fmt.Sprintf("{%s}", p.Name)) + len(p.Name) + 2; xpos < len(entry.PathPattern) && entry.PathPattern[xpos] != '/' {
+						// extract fragment parameters
+						ep := strings.Split(entry.PathPattern[xpos:], "/")[0]
+						pnames, pvalues := decodeCompositParams(p.Name, v, ep, nil, nil)
+						for i, pname := range pnames {
+							params = append(params, RouteParam{Name: pname, Value: pvalues[i]})
+						}
+					} else {
+						// use the parameter directly
+						params = append(params, RouteParam{Name: p.Name, Value: v})
+					}
 				}
 				return &MatchedRoute{routeEntry: *entry, Params: params}, true
 			}
+		} else {
+			debugLog("couldn't find a route by path for %s %s", method, path)
 		}
+	} else {
+		debugLog("couldn't find a route by method for %s %s", method, path)
 	}
 	return nil, false
 }
@@ -198,7 +368,7 @@ func (d *defaultRouter) OtherMethods(method, path string) []string {
 	var methods []string
 	for k, v := range d.routers {
 		if k != mn {
-			if _, _, ok := v.Lookup(path); ok {
+			if _, _, ok := v.Lookup(fpath.Clean(path)); ok {
 				methods = append(methods, k)
 				continue
 			}
@@ -207,44 +377,98 @@ func (d *defaultRouter) OtherMethods(method, path string) []string {
 	return methods
 }
 
-var pathConverter = regexp.MustCompile(`{(\w+)}`)
+// convert swagger parameters per path segment into a denco parameter as multiple parameters per segment are not supported in denco
+var pathConverter = regexp.MustCompile(`{(.+?)}([^/]*)`)
+
+func decodeCompositParams(name string, value string, pattern string, names []string, values []string) ([]string, []string) {
+	pleft := strings.Index(pattern, "{")
+	names = append(names, name)
+	if pleft < 0 {
+		if strings.HasSuffix(value, pattern) {
+			values = append(values, value[:len(value)-len(pattern)])
+		} else {
+			values = append(values, "")
+		}
+	} else {
+		toskip := pattern[:pleft]
+		pright := strings.Index(pattern, "}")
+		vright := strings.Index(value, toskip)
+		if vright >= 0 {
+			values = append(values, value[:vright])
+		} else {
+			values = append(values, "")
+			value = ""
+		}
+		return decodeCompositParams(pattern[pleft+1:pright], value[vright+len(toskip):], pattern[pright+1:], names, values)
+	}
+	return names, values
+}
 
 func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Operation) {
 	mn := strings.ToUpper(method)
 
-	if handler, ok := d.api.HandlerFor(method, path); ok {
+	bp := fpath.Clean(d.spec.BasePath())
+	if len(bp) > 0 && bp[len(bp)-1] == '/' {
+		bp = bp[:len(bp)-1]
+	}
+
+	debugLog("operation: %#v", *operation)
+	if handler, ok := d.api.HandlerFor(method, strings.TrimPrefix(path, bp)); ok {
 		consumes := d.analyzer.ConsumesFor(operation)
 		produces := d.analyzer.ProducesFor(operation)
-		parameters := d.analyzer.ParamsFor(method, path)
-		definitions := d.analyzer.SecurityDefinitionsFor(operation)
-		requirements := d.analyzer.SecurityRequirementsFor(operation)
-		scopes := make(map[string][]string, len(requirements))
-		for _, v := range requirements {
-			scopes[v.Name] = v.Scopes
-		}
+		parameters := d.analyzer.ParamsFor(method, strings.TrimPrefix(path, bp))
 
 		record := denco.NewRecord(pathConverter.ReplaceAllString(path, ":$1"), &routeEntry{
+			BasePath:       bp,
+			PathPattern:    path,
 			Operation:      operation,
 			Handler:        handler,
 			Consumes:       consumes,
 			Produces:       produces,
-			Consumers:      d.api.ConsumersFor(consumes),
-			Producers:      d.api.ProducersFor(produces),
+			Consumers:      d.api.ConsumersFor(normalizeOffers(consumes)),
+			Producers:      d.api.ProducersFor(normalizeOffers(produces)),
 			Parameters:     parameters,
 			Formats:        d.api.Formats(),
 			Binder:         newUntypedRequestBinder(parameters, d.spec.Spec(), d.api.Formats()),
-			Authenticators: d.api.AuthenticatorsFor(definitions),
-			Scopes:         scopes,
+			Authenticators: d.buildAuthenticators(operation),
+			Authorizer:     d.api.Authorizer(),
 		})
 		d.records[mn] = append(d.records[mn], record)
 	}
+}
+
+func (d *defaultRouteBuilder) buildAuthenticators(operation *spec.Operation) RouteAuthenticators {
+	requirements := d.analyzer.SecurityRequirementsFor(operation)
+	var auths []RouteAuthenticator
+	for _, reqs := range requirements {
+		var schemes []string
+		scopes := make(map[string][]string, len(reqs))
+		var scopeSlices [][]string
+		for _, req := range reqs {
+			schemes = append(schemes, req.Name)
+			scopes[req.Name] = req.Scopes
+			scopeSlices = append(scopeSlices, req.Scopes)
+		}
+
+		definitions := d.analyzer.SecurityDefinitionsForRequirements(reqs)
+		authenticators := d.api.AuthenticatorsFor(definitions)
+		auths = append(auths, RouteAuthenticator{
+			Authenticator:  authenticators,
+			Schemes:        schemes,
+			Scopes:         scopes,
+			allScopes:      stringSliceUnion(scopeSlices...),
+			commonScopes:   stringSliceIntersection(scopeSlices...),
+			allowAnonymous: len(reqs) == 1 && reqs[0].Name == "",
+		})
+	}
+	return auths
 }
 
 func (d *defaultRouteBuilder) Build() *defaultRouter {
 	routers := make(map[string]*denco.Router)
 	for method, records := range d.records {
 		router := denco.New()
-		router.Build(records)
+		_ = router.Build(records)
 		routers[method] = router
 	}
 	return &defaultRouter{

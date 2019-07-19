@@ -18,7 +18,7 @@ Each time a new deployment is created, the `latestVersion` field of `deploymentC
 
 ## Defining a deploymentConfig
 
-A `deploymentConfig` in OpenShift is a REST object which can be POSTed to the API server to create a new instance. Consider a simple configuration which should result in a new `deployment` every time a Docker image tag changes.
+A `deploymentConfig` in OpenShift is a REST object which can be POSTed to the API server to create a new instance. Consider a simple configuration which should result in a new `deployment` every time a container image tag changes.
 
 ```
 {
@@ -166,7 +166,7 @@ The Custom `strategy` allows users of OpenShift to provide their own deployment 
 }
 ```
 
-With this specification, the `organization/strategy` Docker image will carry out the `strategy` behavior. The optional `command` array overrides any `CMD` directive specified in the image's Dockerfile. The optional `environment` variables provided will be added to the execution environment of the `strategy` process.
+With this specification, the `organization/strategy` container image will carry out the `strategy` behavior. The optional `command` array overrides any `CMD` directive specified in the image's Dockerfile. The optional `environment` variables provided will be added to the execution environment of the `strategy` process.
 
 Additionally, the following environment variables are provided by OpenShift to the `strategy` process:
 

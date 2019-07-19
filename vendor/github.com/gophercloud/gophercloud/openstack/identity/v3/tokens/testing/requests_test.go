@@ -275,6 +275,48 @@ func TestCreateProjectNameAndDomainNameScope(t *testing.T) {
 	`)
 }
 
+func TestCreateApplicationCredentialIDAndSecret(t *testing.T) {
+	authTokenPost(t, tokens.AuthOptions{ApplicationCredentialID: "12345abcdef", ApplicationCredentialSecret: "mysecret"}, nil, `
+		{
+			"auth": {
+				"identity": {
+					"application_credential": {
+						"id": "12345abcdef",
+						"secret": "mysecret"
+					},
+					"methods": [
+						"application_credential"
+					]
+				}
+			}
+		}
+	`)
+}
+
+func TestCreateApplicationCredentialNameAndSecret(t *testing.T) {
+	authTokenPost(t, tokens.AuthOptions{ApplicationCredentialName: "myappcred", ApplicationCredentialSecret: "mysecret", Username: "fenris", DomainName: "evil-plans"}, nil, `
+		{
+			"auth": {
+				"identity": {
+					"application_credential": {
+						"name": "myappcred",
+						"secret": "mysecret",
+						"user": {
+							"name": "fenris",
+							"domain": {
+								"name": "evil-plans"
+							}
+						}
+					},
+					"methods": [
+						"application_credential"
+					]
+				}
+			}
+		}
+	`)
+}
+
 func TestCreateExtractsTokenFromResponse(t *testing.T) {
 	testhelper.SetupHTTP()
 	defer testhelper.TeardownHTTP()

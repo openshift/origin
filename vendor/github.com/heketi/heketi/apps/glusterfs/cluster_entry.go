@@ -17,7 +17,8 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
-	"github.com/heketi/heketi/pkg/utils"
+	"github.com/heketi/heketi/pkg/idgen"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/lpabon/godbc"
 )
 
@@ -38,13 +39,20 @@ func NewClusterEntry() *ClusterEntry {
 	entry := &ClusterEntry{}
 	entry.Info.Nodes = make(sort.StringSlice, 0)
 	entry.Info.Volumes = make(sort.StringSlice, 0)
+	entry.Info.BlockVolumes = make(sort.StringSlice, 0)
+	entry.Info.Block = false
+	entry.Info.File = false
 
 	return entry
 }
 
-func NewClusterEntryFromRequest() *ClusterEntry {
+func NewClusterEntryFromRequest(req *api.ClusterCreateRequest) *ClusterEntry {
+	godbc.Require(req != nil)
+
 	entry := NewClusterEntry()
-	entry.Info.Id = utils.GenUUID()
+	entry.Info.Id = idgen.GenUUID()
+	entry.Info.Block = req.Block
+	entry.Info.File = req.File
 
 	return entry
 }
@@ -117,6 +125,9 @@ func (c *ClusterEntry) Unmarshal(buffer []byte) error {
 	if c.Info.Volumes == nil {
 		c.Info.Volumes = make(sort.StringSlice, 0)
 	}
+	if c.Info.BlockVolumes == nil {
+		c.Info.BlockVolumes = make(sort.StringSlice, 0)
+	}
 
 	return nil
 }
@@ -141,13 +152,89 @@ func (c *ClusterEntry) VolumeAdd(id string) {
 }
 
 func (c *ClusterEntry) VolumeDelete(id string) {
-	c.Info.Volumes = utils.SortedStringsDelete(c.Info.Volumes, id)
+	c.Info.Volumes = sortedstrings.Delete(c.Info.Volumes, id)
+}
+
+func (c *ClusterEntry) BlockVolumeAdd(id string) {
+	c.Info.BlockVolumes = append(c.Info.BlockVolumes, id)
+	c.Info.BlockVolumes.Sort()
+}
+
+func (c *ClusterEntry) BlockVolumeDelete(id string) {
+	c.Info.BlockVolumes = sortedstrings.Delete(c.Info.BlockVolumes, id)
 }
 
 func (c *ClusterEntry) NodeDelete(id string) {
-	c.Info.Nodes = utils.SortedStringsDelete(c.Info.Nodes, id)
+	c.Info.Nodes = sortedstrings.Delete(c.Info.Nodes, id)
 }
 
 func ClusterEntryUpgrade(tx *bolt.Tx) error {
+	err := addBlockFileFlagsInClusterEntry(tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func addBlockFileFlagsInClusterEntry(tx *bolt.Tx) error {
+	entry, err := NewDbAttributeEntryFromKey(tx, DB_CLUSTER_HAS_FILE_BLOCK_FLAG)
+	// This key won't exist if we are introducing the feature now
+	if err != nil && err != ErrNotFound {
+		return err
+	}
+
+	if err == ErrNotFound {
+		entry = NewDbAttributeEntry()
+		entry.Key = DB_CLUSTER_HAS_FILE_BLOCK_FLAG
+		entry.Value = "no"
+	} else {
+		// This case is only for future, if ever we want to set this key to "no"
+		if entry.Value == "yes" {
+			return nil
+		}
+	}
+
+	clusters, err := ClusterList(tx)
+	if err != nil {
+		return err
+	}
+	for _, cluster := range clusters {
+		clusterEntry, err := NewClusterEntryFromId(tx, cluster)
+		if err != nil {
+			return err
+		}
+		clusterEntry.Info.Block = true
+		clusterEntry.Info.File = true
+		err = clusterEntry.Save(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	entry.Value = "yes"
+	return entry.Save(tx)
+}
+
+func (c *ClusterEntry) DeleteBricksWithEmptyPath(tx *bolt.Tx) error {
+
+	logger.Debug("Deleting bricks with empty path in cluster [%v].",
+		c.Info.Id)
+
+	for _, nodeid := range c.Info.Nodes {
+		node, err := NewNodeEntryFromId(tx, nodeid)
+		if err == ErrNotFound {
+			logger.Warning("Ignoring nonexisting node [%v] in "+
+				"cluster [%v].", nodeid, c.Info.Id)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+
+		err = node.DeleteBricksWithEmptyPath(tx)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

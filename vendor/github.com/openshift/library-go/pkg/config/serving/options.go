@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+	utilflag "k8s.io/component-base/cli/flag"
 
 	configv1 "github.com/openshift/api/config/v1"
 )

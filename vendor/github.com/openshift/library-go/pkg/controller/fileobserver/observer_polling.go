@@ -1,6 +1,7 @@
 package fileobserver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -9,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 )
 
 type pollingObserver struct {
@@ -22,7 +23,7 @@ type pollingObserver struct {
 }
 
 // AddReactor will add new reactor to this observer.
-func (o *pollingObserver) AddReactor(reaction reactorFn, files ...string) Observer {
+func (o *pollingObserver) AddReactor(reaction reactorFn, startingFileContent map[string][]byte, files ...string) Observer {
 	o.reactorsMutex.Lock()
 	defer o.reactorsMutex.Unlock()
 	for _, f := range files {
@@ -34,10 +35,19 @@ func (o *pollingObserver) AddReactor(reaction reactorFn, files ...string) Observ
 			continue
 		}
 		var err error
-		glog.V(3).Infof("Adding reactor for file %q", f)
-		o.files[f], err = calculateFileHash(f)
-		if err != nil {
-			panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
+
+		if startingContent, ok := startingFileContent[f]; ok {
+			klog.V(3).Infof("Starting from specified content for file %q", f)
+			o.files[f], err = calculateHash(bytes.NewBuffer(startingContent))
+			if err != nil {
+				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
+			}
+		} else {
+			klog.V(3).Infof("Adding reactor for file %q", f)
+			o.files[f], err = calculateFileHash(f)
+			if err != nil {
+				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
+			}
 		}
 		o.reactors[f] = append(o.reactors[f], reaction)
 	}
@@ -65,7 +75,7 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 				continue
 			}
 
-			glog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentHash, lastKnownHash)
+			klog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentHash, lastKnownHash)
 			o.files[filename] = currentHash
 
 			for i := range reactors {
@@ -80,21 +90,21 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 				}
 
 				if err := reactors[i](filename, action); err != nil {
-					glog.Errorf("Reactor for %q failed: %v", filename, err)
+					klog.Errorf("Reactor for %q failed: %v", filename, err)
 				}
 			}
 		}
 		return false, nil
 	})
 	if err != nil {
-		glog.Fatalf("file observer failed: %v", err)
+		klog.Fatalf("file observer failed: %v", err)
 	}
 }
 
 // Run will start a new observer.
 func (o *pollingObserver) Run(stopChan <-chan struct{}) {
-	glog.Info("Starting file observer")
-	defer glog.Infof("Shutting down file observer")
+	klog.Info("Starting file observer")
+	defer klog.Infof("Shutting down file observer")
 	o.processReactors(stopChan)
 }
 
@@ -118,8 +128,12 @@ func calculateFileHash(path string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
+	return calculateHash(f)
+}
+
+func calculateHash(content io.Reader) (string, error) {
 	hasher := sha256.New()
-	if _, err := io.Copy(hasher, f); err != nil {
+	if _, err := io.Copy(hasher, content); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil

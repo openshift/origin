@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,18 +10,22 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	restclient "k8s.io/client-go/rest"
+	"sigs.k8s.io/yaml"
 
-	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/library-go/pkg/config/helpers"
+	authapi "github.com/openshift/oauth-server/pkg/api"
+	"github.com/openshift/oc/pkg/cli/admin/cert"
+	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	v1 "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
 
 	"github.com/vjeantet/ldapserver"
 )
@@ -52,6 +57,7 @@ func TestOAuthLDAP(t *testing.T) {
 		myUserName     = "My User, Jr."
 		myUserEmail    = "myuser@example.com"
 		myUserDN       = searchAttr + "=" + myUserUID + "," + searchDN
+		myUserDNBase64 = base64.RawURLEncoding.EncodeToString([]byte(myUserDN))
 		myUserPassword = "myuser-password-" + randomSuffix
 	)
 
@@ -97,7 +103,7 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer os.Remove(bindPasswordKeyFile.Name())
-	encryptOpts := &admin.EncryptOptions{
+	encryptOpts := &cert.EncryptOptions{
 		CleartextData: []byte(bindPassword),
 		EncryptedFile: bindPasswordFile.Name(),
 		GenKeyFile:    bindPasswordKeyFile.Name(),
@@ -132,12 +138,12 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// serialize to YAML to make sure a complex StringSource survives a round-trip
-	serializedOptions, err := configapilatest.WriteYAML(masterOptions)
+	serializedOptions, err := deprecatedWriteYAML(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// read back in
-	deserializedObject, err := configapilatest.ReadYAML(bytes.NewBuffer(serializedOptions))
+	deserializedObject, err := helpers.ReadYAMLToInternal(bytes.NewBuffer(serializedOptions), configapi.InstallLegacy, v1.InstallLegacy)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -237,7 +243,7 @@ func TestOAuthLDAP(t *testing.T) {
 	userConfig := anonConfig
 	userConfig.BearerToken = accessToken
 
-	user, err := userclient.NewForConfigOrDie(&userConfig).Users().Get("~", metav1.GetOptions{})
+	user, err := userv1client.NewForConfigOrDie(&userConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -246,11 +252,11 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Make sure the identity got created and contained the mapped attributes
-	identity, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDN), metav1.GetOptions{})
+	identity, err := userv1client.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if identity.ProviderUserName != myUserDN {
+	if identity.ProviderUserName != myUserDNBase64 {
 		t.Errorf("Expected %q, got %q", myUserDN, identity.ProviderUserName)
 	}
 	if v := identity.Extra[authapi.IdentityDisplayNameKey]; v != myUserName {
@@ -263,4 +269,18 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Errorf("Expected %q, got %q", myUserEmail, v)
 	}
 
+}
+
+// TODO: Remove this when a YAML serializer is available from upstream
+func deprecatedWriteYAML(obj runtime.Object) ([]byte, error) {
+	json, err := runtime.Encode(configconversion.Codec, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }

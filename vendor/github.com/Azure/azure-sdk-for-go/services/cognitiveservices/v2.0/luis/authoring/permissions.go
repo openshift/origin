@@ -31,13 +31,8 @@ type PermissionsClient struct {
 }
 
 // NewPermissionsClient creates an instance of the PermissionsClient client.
-func NewPermissionsClient() PermissionsClient {
-	return NewPermissionsClientWithBaseURI(DefaultBaseURI)
-}
-
-// NewPermissionsClientWithBaseURI creates an instance of the PermissionsClient client.
-func NewPermissionsClientWithBaseURI(baseURI string) PermissionsClient {
-	return PermissionsClient{NewWithBaseURI(baseURI)}
+func NewPermissionsClient(endpoint string) PermissionsClient {
+	return PermissionsClient{New(endpoint)}
 }
 
 // Add adds a user to the allowed list of users to access this LUIS application. Users are added using their email
@@ -69,6 +64,10 @@ func (client PermissionsClient) Add(ctx context.Context, appID uuid.UUID, userTo
 
 // AddPreparer prepares the Add request.
 func (client PermissionsClient) AddPreparer(ctx context.Context, appID uuid.UUID, userToAdd UserCollaborator) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId": autorest.Encode("path", appID),
 	}
@@ -76,7 +75,7 @@ func (client PermissionsClient) AddPreparer(ctx context.Context, appID uuid.UUID
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/permissions", pathParameters),
 		autorest.WithJSON(userToAdd))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -131,6 +130,10 @@ func (client PermissionsClient) Delete(ctx context.Context, appID uuid.UUID, use
 
 // DeletePreparer prepares the Delete request.
 func (client PermissionsClient) DeletePreparer(ctx context.Context, appID uuid.UUID, userToDelete UserCollaborator) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId": autorest.Encode("path", appID),
 	}
@@ -138,7 +141,7 @@ func (client PermissionsClient) DeletePreparer(ctx context.Context, appID uuid.U
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/permissions", pathParameters),
 		autorest.WithJSON(userToDelete))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -191,13 +194,17 @@ func (client PermissionsClient) List(ctx context.Context, appID uuid.UUID) (resu
 
 // ListPreparer prepares the List request.
 func (client PermissionsClient) ListPreparer(ctx context.Context, appID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId": autorest.Encode("path", appID),
 	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/permissions", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -251,6 +258,10 @@ func (client PermissionsClient) Update(ctx context.Context, appID uuid.UUID, col
 
 // UpdatePreparer prepares the Update request.
 func (client PermissionsClient) UpdatePreparer(ctx context.Context, appID uuid.UUID, collaborators CollaboratorsArray) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId": autorest.Encode("path", appID),
 	}
@@ -258,7 +269,7 @@ func (client PermissionsClient) UpdatePreparer(ctx context.Context, appID uuid.U
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/permissions", pathParameters),
 		autorest.WithJSON(collaborators))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))

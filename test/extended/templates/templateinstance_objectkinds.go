@@ -7,10 +7,10 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -32,16 +32,16 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 
 		// wait for templateinstance controller to do its thing
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			templateinstance, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
+			templateinstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
 
 			for _, c := range templateinstance.Status.Conditions {
-				if c.Reason == "Failed" && c.Status == kapi.ConditionTrue {
+				if c.Reason == "Failed" && c.Status == corev1.ConditionTrue {
 					return false, fmt.Errorf("failed condition: %s", c.Message)
 				}
-				if c.Reason == "Created" && c.Status == kapi.ConditionTrue {
+				if c.Reason == "Created" && c.Status == corev1.ConditionTrue {
 					return true, nil
 				}
 			}
@@ -57,18 +57,18 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 		_, err = cli.KubeClient().AppsV1beta1().Deployments(cli.Namespace()).Get("deployment", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete("templateinstance", nil)
+		err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Delete("templateinstance", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting the template instance")
 		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			_, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
+			_, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get("templateinstance", metav1.GetOptions{})
 			if kapierrs.IsNotFound(err) {
 				return true, nil
 			}
@@ -87,12 +87,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
 		if !kapierrs.IsNotFound(err) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
+		_, err = cli.RouteClient().RouteV1().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		if !kapierrs.IsNotFound(err) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}

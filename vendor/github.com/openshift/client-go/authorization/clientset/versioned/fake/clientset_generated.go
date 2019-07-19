@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) AuthorizationV1() authorizationv1.AuthorizationV1Interface {
 	return &fakeauthorizationv1.FakeAuthorizationV1{Fake: &c.Fake}
 }
-
-// Authorization retrieves the AuthorizationV1Client
-func (c *Clientset) Authorization() authorizationv1.AuthorizationV1Interface {
-	return &fakeauthorizationv1.FakeAuthorizationV1{Fake: &c.Fake}
-}

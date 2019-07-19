@@ -4,7 +4,7 @@ package v1
 
 import (
 	v1 "github.com/openshift/api/image/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -16,7 +16,7 @@ type ImageStreamMappingsGetter interface {
 
 // ImageStreamMappingInterface has methods to work with ImageStreamMapping resources.
 type ImageStreamMappingInterface interface {
-	Create(*v1.ImageStreamMapping) (*meta_v1.Status, error)
+	Create(*v1.ImageStreamMapping) (*metav1.Status, error)
 
 	ImageStreamMappingExpansion
 }
@@ -36,8 +36,8 @@ func newImageStreamMappings(c *ImageV1Client, namespace string) *imageStreamMapp
 }
 
 // Create takes the representation of a imageStreamMapping and creates it.  Returns the server's representation of the status, and an error, if there is any.
-func (c *imageStreamMappings) Create(imageStreamMapping *v1.ImageStreamMapping) (result *meta_v1.Status, err error) {
-	result = &meta_v1.Status{}
+func (c *imageStreamMappings) Create(imageStreamMapping *v1.ImageStreamMapping) (result *metav1.Status, err error) {
+	result = &metav1.Status{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("imagestreammappings").

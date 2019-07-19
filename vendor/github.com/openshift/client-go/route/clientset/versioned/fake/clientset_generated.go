@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) RouteV1() routev1.RouteV1Interface {
 	return &fakeroutev1.FakeRouteV1{Fake: &c.Fake}
 }
-
-// Route retrieves the RouteV1Client
-func (c *Clientset) Route() routev1.RouteV1Interface {
-	return &fakeroutev1.FakeRouteV1{Fake: &c.Fake}
-}

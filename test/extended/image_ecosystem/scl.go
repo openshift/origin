@@ -130,23 +130,8 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
 
 	g.Context("", func() {
-		g.BeforeEach(func() {
-			exutil.PreTestDump()
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
+			exutil.PreTestDump()
 		})
 
 		g.AfterEach(func() {

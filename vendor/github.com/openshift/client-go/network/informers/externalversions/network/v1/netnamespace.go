@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	network_v1 "github.com/openshift/api/network/v1"
+	networkv1 "github.com/openshift/api/network/v1"
 	versioned "github.com/openshift/client-go/network/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/network/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/network/listers/network/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewNetNamespaceInformer(client versioned.Interface, resyncPeriod time.Durat
 func NewFilteredNetNamespaceInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.NetworkV1().NetNamespaces().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.NetworkV1().NetNamespaces().Watch(options)
 			},
 		},
-		&network_v1.NetNamespace{},
+		&networkv1.NetNamespace{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *netNamespaceInformer) defaultInformer(client versioned.Interface, resyn
 }
 
 func (f *netNamespaceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&network_v1.NetNamespace{}, f.defaultInformer)
+	return f.factory.InformerFor(&networkv1.NetNamespace{}, f.defaultInformer)
 }
 
 func (f *netNamespaceInformer) Lister() v1.NetNamespaceLister {

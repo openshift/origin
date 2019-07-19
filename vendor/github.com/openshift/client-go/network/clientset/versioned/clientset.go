@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	NetworkV1() networkv1.NetworkV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Network() networkv1.NetworkV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // NetworkV1 retrieves the NetworkV1Client
 func (c *Clientset) NetworkV1() networkv1.NetworkV1Interface {
-	return c.networkV1
-}
-
-// Deprecated: Network retrieves the default version of NetworkClient.
-// Please explicitly pick a version.
-func (c *Clientset) Network() networkv1.NetworkV1Interface {
 	return c.networkV1
 }
 

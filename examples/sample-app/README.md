@@ -9,13 +9,13 @@ equivalent for your host platform/architecture), you have that and its
 symlink/copy `oc` in your `PATH` and root's, and Docker is installed and
 working. See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
-Alternatively, if you are using the openshift/origin Docker container, please
+Alternatively, if you are using the openshift/origin container, please
 make sure you follow these instructions first:
 https://github.com/openshift/origin/blob/master/examples/sample-app/container-setup.md
 
 Security Warning
 ----------------
-OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs Docker containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
+OpenShift no longer requires SElinux to be disabled, however OpenShift is a system which runs containers on your system.  In some cases (build operations and the registry service) it does so using privileged containers.  Furthermore those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they effectively have root access.  This is particularly relevant when running the OpenShift nodes directly on your host system.
 
 For more information, see these articles:
 
@@ -54,7 +54,7 @@ This will set up a go workspace locally and will build all go components.  It is
 **VAGRANT USERS**:
 If you are using the OpenShift Vagrant image you can skip this step.
 
-First, you'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.
+First, you'll need to configure the Docker daemon on your host to trust the container image registry service you'll be starting.
 
 To do this, you need to add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
 
@@ -64,7 +64,7 @@ Note that you need to have installed Docker 1.3.2 or higher in order to use the 
 
 If you are running Docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
 
-This will instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet,
+This will instruct the Docker daemon to trust any container image registry on the 172.30.0.0/16 subnet,
 rather than requiring the registry to have a verifiable certificate.
 
 These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16.
@@ -195,8 +195,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     The built image will be named with the ImageStream
     (origin-ruby-sample) named in the BuildConfig and pushed to the
-    private Docker registry running in OpenShift.  (Note that the private
-    docker registry is using ephemeral storage, so when it is stopped,
+    private container image registry running in OpenShift.  (Note that the private
+    container image registry is using ephemeral storage, so when it is stopped,
     the image will be lost.)
 
     Stream the build logs:
@@ -217,7 +217,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         I0310 12:54:10.286740       1 sti.go:270] Successfully pushed 172.30.163.205:5000/test/origin-ruby-sample:latest
 
 
-    The creation of the new image in the Docker registry will
+    The creation of the new image in the container image registry will
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
 
@@ -415,7 +415,7 @@ Another interesting example is deleting a pod.
 
         $ oc delete pod frontend-1-votq4
 
-  - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
+  - Verify that the pod has been removed by listing the available pods. This also stopped the associated container, you can check using the command:
 
         $ docker ps -a
         CONTAINER ID        IMAGE                                                COMMAND                CREATED              STATUS                          PORTS               NAMES
@@ -430,6 +430,6 @@ To clean up all of your environment, you can run the script:
 
         $ sudo ./cleanup.sh
 
-This will stop the `openshift` process, remove files created by OpenShift and kill all Docker containers created by Kubernetes in your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.
+This will stop the `openshift` process, remove files created by OpenShift and kill all containers created by Kubernetes in your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.
 
-**Use with caution!** Any Docker container prefixed with "k8s_" will be killed by this script.
+**Use with caution!** Any container prefixed with "k8s_" will be killed by this script.

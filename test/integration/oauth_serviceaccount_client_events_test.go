@@ -18,28 +18,26 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	oauthapiv1 "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oauth/scope"
-	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	"github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient"
+	"github.com/openshift/oauth-server/pkg/scopecovers"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 type testServer struct {
-	clusterAdminKubeClient   kclientset.Interface
+	clusterAdminKubeClient   kubernetes.Interface
 	clusterAdminClientConfig *restclient.Config
-	clusterAdminOAuthClient  *oauthclient.Clientset
+	clusterAdminOAuthClient  oauthv1client.OauthV1Interface
 	authCodes                chan string
 	authErrors               chan string
 	oauthServer              *httptest.Server
@@ -65,12 +63,12 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 		expectBadRequest    bool
 	}{
 		"test-good-url": {
-			annotationPrefix: saoauth.OAuthRedirectModelAnnotationURIPrefix + "one",
+			annotationPrefix: oauthserviceaccountclient.OAuthRedirectModelAnnotationURIPrefix + "one",
 			annotation:       "/oauthcallback",
 			numEvents:        0,
 		},
 		"test-bad-url": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationURIPrefix + "one",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationURIPrefix + "one",
 			annotation:          "foo:foo",
 			expectedEventReason: "NoSAOAuthRedirectURIs",
 			expectedEventMsg:    "system:serviceaccount:" + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>",
@@ -78,7 +76,7 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			expectBadRequest:    true,
 		},
 		"test-bad-url-parse": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationURIPrefix + "one",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationURIPrefix + "one",
 			annotation:          "::",
 			expectedEventReason: "NoSAOAuthRedirectURIs",
 			expectedEventMsg:    "[parse ::: missing protocol scheme, system:serviceaccount:" + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
@@ -86,15 +84,15 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			expectBadRequest:    true,
 		},
 		"test-bad-redirect-annotation-kind": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationReferencePrefix + "1",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          `{"kind":"foo","apiVersion":"oauth.openshift.io/v1","metadata":{"creationTimestamp":null},"reference":{"group":"foo","kind":"Route","name":"route1"}}`,
 			expectedEventReason: "NoSAOAuthRedirectURIs",
-			expectedEventMsg:    `[no kind "foo" is registered for version "oauth.openshift.io/v1" in scheme "github.com/openshift/origin/pkg/serviceaccounts/oauthclient/oauthclientregistry.go:54", system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
+			expectedEventMsg:    `[no kind "foo" is registered for version "oauth.openshift.io/v1" in scheme "github.com/openshift/library-go/pkg/oauth/oauthserviceaccountclient/oauthclientregistry.go:54", system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
 			numEvents:           1,
 			expectBadRequest:    true,
 		},
 		"test-bad-redirect-type-parse": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationReferencePrefix + "1",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          `{asdf":"adsf"}`,
 			expectedEventReason: "NoSAOAuthRedirectURIs",
 			expectedEventMsg:    `[couldn't get version/kind; json parse error: invalid character 'a' looking for beginning of object key string, system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
@@ -102,7 +100,7 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			expectBadRequest:    true,
 		},
 		"test-bad-redirect-route-not-found": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationReferencePrefix + "1",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          buildRedirectObjectReferenceString(t, "Route", "route1", "route.openshift.io"),
 			expectedEventReason: "NoSAOAuthRedirectURIs",
 			expectedEventMsg:    `[routes.route.openshift.io "route1" not found, system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]",
@@ -110,7 +108,7 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			expectBadRequest:    true,
 		},
 		"test-bad-redirect-route-wrong-group": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationReferencePrefix + "1",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          buildRedirectObjectReferenceString(t, "Route", "route1", "foo"),
 			expectedEventReason: "NoSAOAuthRedirectURIs",
 			expectedEventMsg:    `system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>",
@@ -118,7 +116,7 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			expectBadRequest:    true,
 		},
 		"test-bad-redirect-reference-kind": {
-			annotationPrefix:    saoauth.OAuthRedirectModelAnnotationReferencePrefix + "1",
+			annotationPrefix:    oauthserviceaccountclient.OAuthRedirectModelAnnotationReferencePrefix + "1",
 			annotation:          buildRedirectObjectReferenceString(t, "foo", "route1", "route.openshift.io"),
 			expectedEventReason: "NoSAOAuthRedirectURIs",
 			expectedEventMsg:    `system:serviceaccount:` + projectName + ":" + saName + " has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>",
@@ -155,9 +153,9 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 		runTestOAuthFlow(t, testServer, sa, secret, redirect, testCase.expectBadRequest)
 
 		// Check events with a short poll to stop flakes
-		var evList *kapi.EventList
+		var evList *corev1.EventList
 		err = wait.Poll(time.Second, 5*time.Second, func() (bool, error) {
-			evList, err = testServer.clusterAdminKubeClient.Core().Events(projectName).List(metav1.ListOptions{})
+			evList, err = testServer.clusterAdminKubeClient.CoreV1().Events(projectName).List(metav1.ListOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -181,15 +179,15 @@ func TestOAuthServiceAccountClientEvent(t *testing.T) {
 			t.Fatalf("%s: expected event message %s, got %s", tcName, testCase.expectedEventMsg, events[0].Message)
 		}
 
-		err = testServer.clusterAdminKubeClient.Core().Events(projectName).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{})
+		err = testServer.clusterAdminKubeClient.CoreV1().Events(projectName).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("%s: error deleting events: %s", tcName, err)
 		}
 	}
 }
 
-func collectEventsWithReason(eventList *kapi.EventList, reason string) []kapi.Event {
-	var events []kapi.Event
+func collectEventsWithReason(eventList *corev1.EventList, reason string) []corev1.Event {
+	var events []corev1.Event
 	for _, ev := range eventList.Items {
 		if ev.Reason != reason {
 			continue
@@ -200,14 +198,14 @@ func collectEventsWithReason(eventList *kapi.EventList, reason string) []kapi.Ev
 }
 
 func buildRedirectObjectReferenceString(t *testing.T, kind, name, group string) string {
-	ref := &oauthapiv1.OAuthRedirectReference{
-		Reference: oauthapiv1.RedirectReference{
+	ref := &oauthv1.OAuthRedirectReference{
+		Reference: oauthv1.RedirectReference{
 			Kind:  kind,
 			Name:  name,
 			Group: group,
 		},
 	}
-	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion), ref)
+	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(oauthv1.SchemeGroupVersion), ref)
 	if err != nil {
 		t.Fatalf("unexpected err %v", err)
 	}
@@ -231,7 +229,7 @@ func setupTestOAuthServer() (*testServer, error) {
 		}
 	}))
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +237,7 @@ func setupTestOAuthServer() (*testServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminOAuthClient := oauthv1client.NewForConfigOrDie(clusterAdminClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -262,13 +260,13 @@ func setupTestOAuthServer() (*testServer, error) {
 	}, nil
 }
 
-func setupTestSA(client kclientset.Interface, annotationPrefix, annotation string) (*kapi.ServiceAccount, error) {
-	var serviceAccount *kapi.ServiceAccount
+func setupTestSA(client kubernetes.Interface, annotationPrefix, annotation string) (*corev1.ServiceAccount, error) {
+	var serviceAccount *corev1.ServiceAccount
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		var err error
-		serviceAccount, err = client.Core().ServiceAccounts(projectName).Get(saName, metav1.GetOptions{})
+		serviceAccount, err = client.CoreV1().ServiceAccounts(projectName).Get(saName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -277,8 +275,8 @@ func setupTestSA(client kclientset.Interface, annotationPrefix, annotation strin
 		serviceAccount.Annotations = map[string]string{}
 
 		serviceAccount.Annotations[annotationPrefix] = annotation
-		serviceAccount.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
-		serviceAccount, err = client.Core().ServiceAccounts(projectName).Update(serviceAccount)
+		serviceAccount.Annotations[oauthserviceaccountclient.OAuthWantChallengesAnnotationPrefix] = "true"
+		serviceAccount, err = client.CoreV1().ServiceAccounts(projectName).Update(serviceAccount)
 		return err
 	})
 	if err != nil {
@@ -288,26 +286,17 @@ func setupTestSA(client kclientset.Interface, annotationPrefix, annotation strin
 	return serviceAccount, nil
 }
 
-func setupTestSecrets(client kclientset.Interface, sa *kapi.ServiceAccount) (*kapi.Secret, error) {
-	sav1 := &corev1.ServiceAccount{}
-	if err := corev1conversions.Convert_core_ServiceAccount_To_v1_ServiceAccount(sa, sav1, nil); err != nil {
-		return nil, err
-	}
-	var oauthSecret *kapi.Secret
+func setupTestSecrets(client kubernetes.Interface, sa *corev1.ServiceAccount) (*corev1.Secret, error) {
+	var oauthSecret *corev1.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err := wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		allSecrets, err := client.Core().Secrets(projectName).List(metav1.ListOptions{})
+		allSecrets, err := client.CoreV1().Secrets(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
 		for i := range allSecrets.Items {
 			secret := &allSecrets.Items[i]
-			secretv1 := &corev1.Secret{}
-			err := corev1conversions.Convert_core_Secret_To_v1_Secret(secret, secretv1, nil)
-			if err != nil {
-				return false, err
-			}
-			if serviceaccount.IsServiceAccountToken(secretv1, sav1) {
+			if serviceaccount.IsServiceAccountToken(secret, sa) {
 				oauthSecret = secret
 				return true, nil
 			}
@@ -323,14 +312,14 @@ func setupTestSecrets(client kclientset.Interface, sa *kapi.ServiceAccount) (*ka
 
 // Run through a standard OAuth sequence for a single test. The tests vary in modifications to the SA annotations so
 // the specific sequence does not matter, as long as it can generate the server_error that we expect.
-func runTestOAuthFlow(t *testing.T, ts *testServer, sa *kapi.ServiceAccount, secret *kapi.Secret, redirectURL string, expectBadRequest bool) {
+func runTestOAuthFlow(t *testing.T, ts *testServer, sa *corev1.ServiceAccount, secret *corev1.Secret, redirectURL string, expectBadRequest bool) {
 	oauthClientConfig := &osincli.ClientConfig{
-		ClientId:     apiserverserviceaccount.MakeUsername(sa.Namespace, sa.Name),
-		ClientSecret: string(secret.Data[kapi.ServiceAccountTokenKey]),
-		AuthorizeUrl: ts.clusterAdminClientConfig.Host + "/oauth/authorize",
-		TokenUrl:     ts.clusterAdminClientConfig.Host + "/oauth/token",
-		RedirectUrl:  redirectURL,
-		Scope:        scope.Join([]string{"user:info", "role:edit:" + projectName}),
+		ClientId:                 apiserverserviceaccount.MakeUsername(sa.Namespace, sa.Name),
+		ClientSecret:             string(secret.Data[corev1.ServiceAccountTokenKey]),
+		AuthorizeUrl:             ts.clusterAdminClientConfig.Host + "/oauth/authorize",
+		TokenUrl:                 ts.clusterAdminClientConfig.Host + "/oauth/token",
+		RedirectUrl:              redirectURL,
+		Scope:                    scopecovers.Join([]string{"user:info", "role:edit:" + projectName}),
 		SendClientSecretInParams: true,
 	}
 
@@ -346,7 +335,7 @@ func runTestOAuthFlow(t *testing.T, ts *testServer, sa *kapi.ServiceAccount, sec
 		"code",
 	})
 
-	ts.clusterAdminOAuthClient.Oauth().OAuthClientAuthorizations().Delete(adminUser+":"+oauthClientConfig.ClientId, nil)
+	ts.clusterAdminOAuthClient.OAuthClientAuthorizations().Delete(adminUser+":"+oauthClientConfig.ClientId, nil)
 }
 
 func doOAuthFlow(

@@ -17,7 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -41,13 +44,6 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 				ReadOnly:      &readOnly,
 				AcceptSchema2: &acceptSchema2,
 			})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("waiting for default service account")
-		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		g.By("waiting for builder service account")
-		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
@@ -137,9 +133,11 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		err = oc.Run("tag").Args("--source=istag", "a:latest", "a-tagged:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		imgs := map[string]*imageapi.Image{}
+		imgs := map[string]*imagev1.Image{}
 		for _, imgName := range []string{baseImg1, baseImg2, baseImg3, baseImg4, childImg1, childImg2, childImg3} {
-			img, err := oc.AsAdmin().ImageClient().Image().Images().Get(imgName, metav1.GetOptions{})
+			img, err := oc.AsAdmin().ImageClient().ImageV1().Images().Get(imgName, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = imageutil.ImageWithMetadata(img)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			imgs[imgName] = img
 			o.Expect(img.DockerImageManifestMediaType).To(o.Equal(schema2.MediaTypeManifest))
@@ -167,14 +165,14 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		 *  childImg3 | baseImg3 | 7 8 9  | c
 		 */
 
-		err = oc.AsAdmin().ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("a:latest", nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Delete("a:latest", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		expectedDeletions := &RegistryStorageFiles{
 			/* TODO: reenable once we delete layer links as well
 			LayerLinks: RepoLinks{oc.Namespace()+"/a": []string{
-				imgs[baseImg1].DockerImageMetadata.ID,
+				imgs[baseImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 				imgs[baseImg1].DockerImageLayers[0].Name,
 				imgs[baseImg1].DockerImageLayers[1].Name,
 			}},
@@ -184,26 +182,27 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().ImageClient().Image().Images().Delete(childImg1, nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().Images().Delete(childImg1, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// The repository a-tagged will not be removed even though it has no tags anymore.
 		// For the repository to be removed, the image stream itself needs to be deleted.
-		err = oc.AsAdmin().ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("a-tagged:latest", nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Delete("a-tagged:latest", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[childImg1])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/c": []string{
-					imgs[childImg1].DockerImageMetadata.ID,
+					imgs[childImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[childImg1].DockerImageLayers[0].Name,
 				}},
 				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/c": []string{childImg1}},
 				Blobs: []string{
 					childImg1, // manifest blob
-					imgs[childImg1].DockerImageMetadata.ID, // manifest config
+					imgs[childImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID, // manifest config
 					imgs[childImg1].DockerImageLayers[0].Name,
 				},
 			},
@@ -211,15 +210,16 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().ImageClient().Image().Images().Delete(baseImg1, nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().Images().Delete(baseImg1, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[baseImg1])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				Blobs: []string{
 					baseImg1, // manifest blob
-					imgs[baseImg1].DockerImageMetadata.ID, // manifest config
+					imgs[baseImg1].DockerImageMetadata.Object.(*docker10.DockerImage).ID, // manifest config
 					imgs[baseImg1].DockerImageLayers[0].Name,
 					imgs[baseImg1].DockerImageLayers[1].Name,
 				},
@@ -228,22 +228,23 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().ImageClient().Image().Images().Delete(childImg2, nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().Images().Delete(childImg2, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[childImg2])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[childImg2].DockerImageMetadata.ID,
+					imgs[childImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[childImg2].DockerImageLayers[0].Name,
 				}},
 				*/
 				ManifestLinks: RepoLinks{oc.Namespace() + "/b": []string{childImg2}},
 				Blobs: []string{
 					childImg2, // manifest blob
-					imgs[childImg2].DockerImageMetadata.ID, // manifest config
+					imgs[childImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID, // manifest config
 					imgs[childImg2].DockerImageLayers[0].Name,
 				},
 			},
@@ -252,18 +253,19 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// untag both baseImg2 and childImg2
-		err = oc.AsAdmin().ImageClient().Image().ImageStreams(oc.Namespace()).Delete("b", nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().ImageStreams(oc.Namespace()).Delete("b", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		delete(expectedDeletions.ManifestLinks, oc.Namespace()+"/b")
-		err = oc.AsAdmin().ImageClient().Image().Images().Delete(baseImg2, nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().Images().Delete(baseImg2, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[baseImg2])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[baseImg2].DockerImageMetadata.ID,
+					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[baseImg2].DockerImageLayers[0].Name,
 					imgs[baseImg2].DockerImageLayers[1].Name,
 				}},
@@ -271,7 +273,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 				Repos: []string{oc.Namespace() + "/b"},
 				Blobs: []string{
 					baseImg2, // manifest blob
-					imgs[baseImg2].DockerImageMetadata.ID, // manifest config
+					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID, // manifest config
 					imgs[baseImg2].DockerImageLayers[0].Name,
 					imgs[baseImg2].DockerImageLayers[1].Name,
 				},
@@ -293,7 +295,8 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 			"prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring(baseImg3))
-		o.Expect(output).To(o.ContainSubstring(imgs[baseImg3].DockerImageMetadata.ID))
+		imageutil.ImageWithMetadataOrDie(imgs[baseImg3])
+		o.Expect(output).To(o.ContainSubstring(imgs[baseImg3].DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 		for _, layer := range imgs[baseImg3].DockerImageLayers {
 			o.Expect(output).To(o.ContainSubstring(layer.Name))
 		}
@@ -309,15 +312,16 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().ImageClient().Image().Images().Delete(childImg3, nil)
+		err = oc.AsAdmin().ImageClient().ImageV1().Images().Delete(childImg3, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		imageutil.ImageWithMetadataOrDie(imgs[childImg3])
 		expectedDeletions = mergeOrSetExpectedDeletions(expectedDeletions,
 			&RegistryStorageFiles{
 				/* TODO: reenable once we delete layer links as well
 				LayerLinks: RepoLinks{oc.Namespace()+"/b": []string{
-					imgs[baseImg2].DockerImageMetadata.ID,
+					imgs[baseImg2].DockerImageMetadata.Object.(*docker10.DockerImage).ID,
 					imgs[baseImg2].DockerImageLayers[0].Name,
 					imgs[baseImg2].DockerImageLayers[1].Name,
 				}},
@@ -325,7 +329,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 				ManifestLinks: RepoLinks{oc.Namespace() + "/c": []string{childImg3}},
 				Blobs: []string{
 					childImg3,
-					imgs[childImg3].DockerImageMetadata.ID, // manifest config
+					imgs[childImg3].DockerImageMetadata.Object.(*docker10.DockerImage).ID, // manifest config
 					imgs[childImg3].DockerImageLayers[0].Name,
 				},
 			},
@@ -340,12 +344,13 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 		 *  baseImg4  |          | 11 12  | a
 		 */
 
-		assertImageBlobsPresent := func(present bool, img *imageapi.Image) {
+		assertImageBlobsPresent := func(present bool, img *imagev1.Image) {
+			imageutil.ImageWithMetadataOrDie(img)
 			for _, layer := range img.DockerImageLayers {
 				o.Expect(pathExistsInRegistry(oc, strings.Split(blobToPath("", layer.Name), "/")...)).
 					To(o.Equal(present))
 			}
-			o.Expect(pathExistsInRegistry(oc, strings.Split(blobToPath("", img.DockerImageMetadata.ID), "/")...)).
+			o.Expect(pathExistsInRegistry(oc, strings.Split(blobToPath("", img.DockerImageMetadata.Object.(*docker10.DockerImage).ID), "/")...)).
 				To(o.Equal(present))
 			o.Expect(pathExistsInRegistry(oc, strings.Split(blobToPath("", img.Name), "/")...)).
 				To(o.Equal(present))
@@ -374,7 +379,7 @@ const (
 	defaultAcceptSchema2 = true
 )
 
-// GetDockerRegistryURL returns a cluster URL of internal docker registry if available.
+// GetDockerRegistryURL returns a cluster URL of internal container image registry if available.
 func GetDockerRegistryURL(oc *exutil.CLI) (string, error) {
 	return oc.Run("registry").Args("info").Output()
 }
@@ -413,7 +418,7 @@ func GetRegistryPod(podsGetter kcoreclient.PodsGetter) (*kapiv1.Pod, error) {
 
 // LogRegistryPod attempts to write registry log to a file in artifacts directory.
 func LogRegistryPod(oc *exutil.CLI) error {
-	pod, err := GetRegistryPod(oc.KubeClient().Core())
+	pod, err := GetRegistryPod(oc.KubeClient().CoreV1())
 	if err != nil {
 		return fmt.Errorf("failed to get registry pod: %v", err)
 	}

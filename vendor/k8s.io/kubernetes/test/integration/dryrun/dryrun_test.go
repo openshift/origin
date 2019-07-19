@@ -58,7 +58,7 @@ func DryRunCreateTest(t *testing.T, rsc dynamic.ResourceInterface, obj *unstruct
 
 func DryRunPatchTest(t *testing.T, rsc dynamic.ResourceInterface, name string) {
 	patch := []byte(`{"metadata":{"annotations":{"patch": "true"}}}`)
-	obj, err := rsc.Patch(name, types.MergePatchType, patch, metav1.UpdateOptions{DryRun: []string{metav1.DryRunAll}})
+	obj, err := rsc.Patch(name, types.MergePatchType, patch, metav1.PatchOptions{DryRun: []string{metav1.DryRunAll}})
 	if err != nil {
 		t.Fatalf("failed to dry-run patch object: %v", err)
 	}
@@ -97,7 +97,7 @@ func DryRunScalePatchTest(t *testing.T, rsc dynamic.ResourceInterface, name stri
 
 	replicas := getReplicasOrFail(t, obj)
 	patch := []byte(`{"spec":{"replicas":10}}`)
-	patchedObj, err := rsc.Patch(name, types.MergePatchType, patch, metav1.UpdateOptions{DryRun: []string{metav1.DryRunAll}}, "scale")
+	patchedObj, err := rsc.Patch(name, types.MergePatchType, patch, metav1.PatchOptions{DryRun: []string{metav1.DryRunAll}}, "scale")
 	if err != nil {
 		t.Fatalf("failed to dry-run patch object: %v", err)
 	}
@@ -208,6 +208,7 @@ func TestDryRun(t *testing.T) {
 
 	master := etcd.StartRealMasterOrDie(t)
 	defer master.Cleanup()
+
 	if _, err := master.Client.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatal(err)
 	}
@@ -223,6 +224,7 @@ func TestDryRun(t *testing.T) {
 		data.Stub = stub
 		dryrunData[resource] = data
 	}
+
 	for _, resourceToTest := range master.Resources {
 		t.Run(resourceToTest.Mapping.Resource.String(), func(t *testing.T) {
 			mapping := resourceToTest.Mapping
@@ -244,6 +246,7 @@ func TestDryRun(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to unmarshal stub (%v): %v", testData.Stub, err)
 			}
+
 			name := obj.GetName()
 
 			DryRunCreateTest(t, rsc, obj, gvResource)

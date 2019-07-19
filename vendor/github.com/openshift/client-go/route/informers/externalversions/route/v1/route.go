@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	route_v1 "github.com/openshift/api/route/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	versioned "github.com/openshift/client-go/route/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/route/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/route/listers/route/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -41,20 +41,20 @@ func NewRouteInformer(client versioned.Interface, namespace string, resyncPeriod
 func NewFilteredRouteInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.RouteV1().Routes(namespace).List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.RouteV1().Routes(namespace).Watch(options)
 			},
 		},
-		&route_v1.Route{},
+		&routev1.Route{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,7 +65,7 @@ func (f *routeInformer) defaultInformer(client versioned.Interface, resyncPeriod
 }
 
 func (f *routeInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&route_v1.Route{}, f.defaultInformer)
+	return f.factory.InformerFor(&routev1.Route{}, f.defaultInformer)
 }
 
 func (f *routeInformer) Lister() v1.RouteLister {

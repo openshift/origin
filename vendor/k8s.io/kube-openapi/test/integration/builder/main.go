@@ -22,10 +22,13 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/test/integration/pkg/generated"
 )
 
@@ -53,7 +56,8 @@ func main() {
 	// Create a minimal builder config, then call the builder with the definition names.
 	config := createOpenAPIBuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
-	swagger, serr := builder.BuildOpenAPIDefinitionsForResources(config, defNames...)
+	// Build the Paths using a simple WebService for the final spec
+	swagger, serr := builder.BuildOpenAPISpec(createWebServices(), config)
 	if serr != nil {
 		log.Fatalf("ERROR: %s", serr.Error())
 	}
@@ -61,7 +65,7 @@ func main() {
 	// Marshal the swagger spec into JSON, then write it out.
 	specBytes, err := json.MarshalIndent(swagger, " ", " ")
 	if err != nil {
-		panic(fmt.Sprintf("json marshal error: %s", err.Error()))
+		log.Fatalf("json marshal error: %s", err.Error())
 	}
 	err = ioutil.WriteFile(swaggerFilename, specBytes, 0644)
 	if err != nil {
@@ -81,5 +85,51 @@ func createOpenAPIBuilderConfig() *common.Config {
 				Version: "1.0",
 			},
 		},
+		ResponseDefinitions: map[string]spec.Response{
+			"NotFound": spec.Response{
+				ResponseProps: spec.ResponseProps{
+					Description: "Entity not found.",
+				},
+			},
+		},
+		CommonResponses: map[int]spec.Response{
+			404: *spec.ResponseRef("#/responses/NotFound"),
+		},
 	}
+}
+
+// createWebServices hard-codes a simple WebService which only defines a GET path
+// for testing.
+func createWebServices() []*restful.WebService {
+	w := new(restful.WebService)
+	w.Route(buildRouteForType(w, "dummytype", "Foo"))
+	w.Route(buildRouteForType(w, "dummytype", "Bar"))
+	w.Route(buildRouteForType(w, "dummytype", "Baz"))
+	w.Route(buildRouteForType(w, "dummytype", "Waldo"))
+	w.Route(buildRouteForType(w, "listtype", "AtomicList"))
+	w.Route(buildRouteForType(w, "listtype", "MapList"))
+	w.Route(buildRouteForType(w, "listtype", "SetList"))
+	return []*restful.WebService{w}
+}
+
+// Implements OpenAPICanonicalTypeNamer
+var _ = util.OpenAPICanonicalTypeNamer(&typeNamer{})
+
+type typeNamer struct {
+	pkg  string
+	name string
+}
+
+func (t *typeNamer) OpenAPICanonicalTypeName() string {
+	return fmt.Sprintf("k8s.io/kube-openapi/test/integration/testdata/%s.%s", t.pkg, t.name)
+}
+
+func buildRouteForType(ws *restful.WebService, pkg, name string) *restful.RouteBuilder {
+	namer := typeNamer{
+		pkg:  pkg,
+		name: name,
+	}
+	return ws.GET(fmt.Sprintf("test/%s/%s", pkg, strings.ToLower(name))).
+		To(func(*restful.Request, *restful.Response) {}).
+		Writes(&namer)
 }

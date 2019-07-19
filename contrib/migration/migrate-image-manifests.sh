@@ -246,7 +246,7 @@ if [[ -z "${token:-}" ]]; then
 fi
 
 if ! curl --fail ${curlargs[@]-} --max-time 15 "${url}/healthz"; then
-    echo "Please, provide endpoint of integrated docker registry." >&2
+    echo "Please, provide endpoint of integrated container image registry." >&2
     exit 1
 fi
 

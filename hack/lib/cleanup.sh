@@ -120,7 +120,7 @@ function os::cleanup::containers() {
 		return
 	fi
 
-	os::log::info "[CLEANUP] Stopping docker containers"
+	os::log::info "[CLEANUP] Stopping containers"
 	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Stopping ${id}"
 		docker stop "${id}" >/dev/null
@@ -130,7 +130,7 @@ function os::cleanup::containers() {
 		return
 	fi
 
-	os::log::info "[CLEANUP] Removing docker containers"
+	os::log::info "[CLEANUP] Removing containers"
 	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Removing ${id}"
 		docker rm --volumes "${id}" >/dev/null
@@ -166,7 +166,7 @@ function os::cleanup::dump_container_logs() {
 readonly -f os::cleanup::dump_container_logs
 
 # os::cleanup::internal::list_our_containers returns a space-delimited list of
-# docker containers that belonged to some part of the Origin deployment.
+# containers that belonged to some part of the Origin deployment.
 #
 # Globals:
 #  None
@@ -181,7 +181,7 @@ function os::cleanup::internal::list_our_containers() {
 readonly -f os::cleanup::internal::list_our_containers
 
 # os::cleanup::internal::list_k8s_containers returns a space-delimited list of
-# docker containers that belonged to k8s.
+# containers that belonged to k8s.
 #
 # Globals:
 #  None
@@ -195,7 +195,7 @@ function os::cleanup::internal::list_k8s_containers() {
 readonly -f os::cleanup::internal::list_k8s_containers
 
 # os::cleanup::internal::list_containers returns a space-delimited list of
-# docker containers that match a name regex.
+# containers that match a name regex.
 #
 # Globals:
 #  None

@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	OauthV1() oauthv1.OauthV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Oauth() oauthv1.OauthV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // OauthV1 retrieves the OauthV1Client
 func (c *Clientset) OauthV1() oauthv1.OauthV1Interface {
-	return c.oauthV1
-}
-
-// Deprecated: Oauth retrieves the default version of OauthClient.
-// Please explicitly pick a version.
-func (c *Clientset) Oauth() oauthv1.OauthV1Interface {
 	return c.oauthV1
 }
 

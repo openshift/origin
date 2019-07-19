@@ -1,0 +1,13 @@
+FROM fedora:29
+
+ENV GOPATH=/go
+ENV PATH=/go/bin:$PATH
+
+RUN dnf -y install make git unzip golang wget
+RUN go get -u -v golang.org/x/tools/cmd/...
+RUN wget https://github.com/google/protobuf/releases/download/v3.0.2/protoc-3.0.2-linux-x86_64.zip && \
+    mkdir protoc && \
+    unzip protoc-3.0.2-linux-x86_64.zip -d protoc/ && \
+    mv protoc/bin/protoc /usr/bin && \
+    rm -rf protoc
+

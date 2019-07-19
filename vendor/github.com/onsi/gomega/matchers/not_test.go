@@ -15,6 +15,13 @@ var _ = Describe("NotMatcher", func() {
 			Expect(input).ToNot(Not(Not(false1)))
 			Expect(input).To(Not(Not(Not(false2))))
 		})
+
+		It("fails on error", func() {
+			failuresMessages := InterceptGomegaFailures(func() {
+				Expect(input).To(Not(Panic()))
+			})
+			Expect(failuresMessages).To(Equal([]string{"PanicMatcher expects a function.  Got:\n    <string>: hi"}))
+		})
 	})
 
 	Context("De Morgan's laws", func() {

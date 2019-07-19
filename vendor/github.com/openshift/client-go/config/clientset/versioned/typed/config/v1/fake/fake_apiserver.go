@@ -3,7 +3,7 @@
 package fake
 
 import (
-	config_v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var apiserversResource = schema.GroupVersionResource{Group: "config.openshift.io
 var apiserversKind = schema.GroupVersionKind{Group: "config.openshift.io", Version: "v1", Kind: "APIServer"}
 
 // Get takes name of the aPIServer, and returns the corresponding aPIServer object, and an error if there is any.
-func (c *FakeAPIServers) Get(name string, options v1.GetOptions) (result *config_v1.APIServer, err error) {
+func (c *FakeAPIServers) Get(name string, options v1.GetOptions) (result *configv1.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(apiserversResource, name), &config_v1.APIServer{})
+		Invokes(testing.NewRootGetAction(apiserversResource, name), &configv1.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.APIServer), err
+	return obj.(*configv1.APIServer), err
 }
 
 // List takes label and field selectors, and returns the list of APIServers that match those selectors.
-func (c *FakeAPIServers) List(opts v1.ListOptions) (result *config_v1.APIServerList, err error) {
+func (c *FakeAPIServers) List(opts v1.ListOptions) (result *configv1.APIServerList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(apiserversResource, apiserversKind, opts), &config_v1.APIServerList{})
+		Invokes(testing.NewRootListAction(apiserversResource, apiserversKind, opts), &configv1.APIServerList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeAPIServers) List(opts v1.ListOptions) (result *config_v1.APIServerL
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &config_v1.APIServerList{ListMeta: obj.(*config_v1.APIServerList).ListMeta}
-	for _, item := range obj.(*config_v1.APIServerList).Items {
+	list := &configv1.APIServerList{ListMeta: obj.(*configv1.APIServerList).ListMeta}
+	for _, item := range obj.(*configv1.APIServerList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,40 +59,40 @@ func (c *FakeAPIServers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a aPIServer and creates it.  Returns the server's representation of the aPIServer, and an error, if there is any.
-func (c *FakeAPIServers) Create(aPIServer *config_v1.APIServer) (result *config_v1.APIServer, err error) {
+func (c *FakeAPIServers) Create(aPIServer *configv1.APIServer) (result *configv1.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(apiserversResource, aPIServer), &config_v1.APIServer{})
+		Invokes(testing.NewRootCreateAction(apiserversResource, aPIServer), &configv1.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.APIServer), err
+	return obj.(*configv1.APIServer), err
 }
 
 // Update takes the representation of a aPIServer and updates it. Returns the server's representation of the aPIServer, and an error, if there is any.
-func (c *FakeAPIServers) Update(aPIServer *config_v1.APIServer) (result *config_v1.APIServer, err error) {
+func (c *FakeAPIServers) Update(aPIServer *configv1.APIServer) (result *configv1.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(apiserversResource, aPIServer), &config_v1.APIServer{})
+		Invokes(testing.NewRootUpdateAction(apiserversResource, aPIServer), &configv1.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.APIServer), err
+	return obj.(*configv1.APIServer), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAPIServers) UpdateStatus(aPIServer *config_v1.APIServer) (*config_v1.APIServer, error) {
+func (c *FakeAPIServers) UpdateStatus(aPIServer *configv1.APIServer) (*configv1.APIServer, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(apiserversResource, "status", aPIServer), &config_v1.APIServer{})
+		Invokes(testing.NewRootUpdateSubresourceAction(apiserversResource, "status", aPIServer), &configv1.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.APIServer), err
+	return obj.(*configv1.APIServer), err
 }
 
 // Delete takes name of the aPIServer and deletes it. Returns an error if one occurs.
 func (c *FakeAPIServers) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(apiserversResource, name), &config_v1.APIServer{})
+		Invokes(testing.NewRootDeleteAction(apiserversResource, name), &configv1.APIServer{})
 	return err
 }
 
@@ -100,16 +100,16 @@ func (c *FakeAPIServers) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeAPIServers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(apiserversResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &config_v1.APIServerList{})
+	_, err := c.Fake.Invokes(action, &configv1.APIServerList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aPIServer.
-func (c *FakeAPIServers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *config_v1.APIServer, err error) {
+func (c *FakeAPIServers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *configv1.APIServer, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(apiserversResource, name, data, subresources...), &config_v1.APIServer{})
+		Invokes(testing.NewRootPatchSubresourceAction(apiserversResource, name, pt, data, subresources...), &configv1.APIServer{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.APIServer), err
+	return obj.(*configv1.APIServer), err
 }

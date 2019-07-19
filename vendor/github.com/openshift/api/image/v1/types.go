@@ -6,27 +6,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const (
-	// ResourceImageStreams represents a number of image streams in a project.
-	ResourceImageStreams corev1.ResourceName = "openshift.io/imagestreams"
-
-	// ResourceImageStreamImages represents a number of unique references to images in all image stream
-	// statuses of a project.
-	ResourceImageStreamImages corev1.ResourceName = "openshift.io/images"
-
-	// ResourceImageStreamTags represents a number of unique references to images in all image stream specs
-	// of a project.
-	ResourceImageStreamTags corev1.ResourceName = "openshift.io/image-tags"
-
-	// Limit that applies to images. Used with a max["storage"] LimitRangeItem to set
-	// the maximum size of an image.
-	LimitTypeImage corev1.LimitType = "openshift.io/Image"
-
-	// Limit that applies to image streams. Used with a max[resource] LimitRangeItem to set the maximum number
-	// of resource. Where the resource is one of "openshift.io/images" and "openshift.io/image-tags".
-	LimitTypeImageStream corev1.LimitType = "openshift.io/ImageStream"
-)
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageList is a list of Image objects.

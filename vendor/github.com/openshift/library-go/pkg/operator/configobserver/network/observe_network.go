@@ -2,111 +2,128 @@ package network
 
 import (
 	"fmt"
+	"net"
 
-	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
-
+	configv1 "github.com/openshift/api/config/v1"
+	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/listers/core/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 )
 
-const (
-	clusterConfigNamespace = "kube-system"
-	clusterConfigName      = "cluster-config-v1"
-)
-
-// GetClusterCIDRs reads the cluster CIDRs from the install-config ConfigMap in the cluster.
-func GetClusterCIDRs(lister v1.ConfigMapLister, recorder events.Recorder) ([]string, error) {
-	clusterConfig, err := lister.ConfigMaps(clusterConfigNamespace).Get(clusterConfigName)
+// GetClusterCIDRs reads the cluster CIDRs from the global network configuration resource. Emits events if CIDRs are not found.
+func GetClusterCIDRs(lister configlistersv1.NetworkLister, recorder events.Recorder) ([]string, error) {
+	network, err := lister.Get("cluster")
 	if errors.IsNotFound(err) {
-		recorder.Warningf("ObserveClusterCIDRFailed", "Required %s/%s config map not found", clusterConfigNamespace, clusterConfigName)
-		glog.Warning("configmap/cluster-config-v1.kube-system: not found")
+		recorder.Warningf("GetClusterCIDRsFailed", "Required networks.%s/cluster not found", configv1.GroupName)
 		return nil, nil
 	}
 	if err != nil {
+		recorder.Warningf("GetClusterCIDRsFailed", "error getting networks.%s/cluster: %v", configv1.GroupName, err)
 		return nil, err
 	}
 
-	installConfigYaml, ok := clusterConfig.Data["install-config"]
-	if !ok {
-		glog.Warning("configmap/cluster-config-v1.kube-system: install-config not found")
-		recorder.Warningf("ObserveClusterCIDRFailed", "ConfigMap %s/%s does not have required 'install-config'", clusterConfigNamespace, clusterConfigName)
-		return nil, nil
-	}
-	installConfig := map[string]interface{}{}
-	err = yaml.Unmarshal([]byte(installConfigYaml), &installConfig)
-	if err != nil {
-		recorder.Warningf("ObserveRestrictedCIDRFailed", "Unable to decode install config: %v'", err)
-		return nil, fmt.Errorf("unable to parse install-config: %s", err)
+	if len(network.Status.ClusterNetwork) == 0 {
+		recorder.Warningf("GetClusterCIDRsFailed", "Required status.clusterNetwork field is not set in networks.%s/cluster", configv1.GroupName)
+		return nil, fmt.Errorf("networks.%s/cluster: status.clusterNetwork not found", configv1.GroupName)
 	}
 
 	var clusterCIDRs []string
-	clusterNetworks, _, err := unstructured.NestedSlice(installConfig, "networking", "clusterNetworks")
-	if err != nil {
-		return nil, fmt.Errorf("unabled to parse install-config: %s", err)
-	}
-	for i, n := range clusterNetworks {
-		obj, ok := n.(map[string]interface{})
-		if !ok {
-			recorder.Warningf("ObserveRestrictedCIDRFailed", "Required networking.clusterNetworks field is not set in install-config")
-			return nil, fmt.Errorf("unabled to parse install-config: expected networking.clusterNetworks[%d] to be an object, got: %#v", i, n)
+	for i, clusterNetwork := range network.Status.ClusterNetwork {
+		if len(clusterNetwork.CIDR) == 0 {
+			recorder.Warningf("GetClusterCIDRsFailed", "Required status.clusterNetwork[%d].cidr field is not set in networks.%s/cluster", i, configv1.GroupName)
+			return nil, fmt.Errorf("networks.%s/cluster: status.clusterNetwork[%d].cidr not found", configv1.GroupName, i)
 		}
-		cidr, _, err := unstructured.NestedString(obj, "cidr")
-		if err != nil {
-			return nil, fmt.Errorf("unabled to parse install-config: %v", err)
-		}
-		clusterCIDRs = append(clusterCIDRs, cidr)
-	}
-	// fallback to podCIDR
-	if clusterNetworks == nil {
-		podCIDR, _, err := unstructured.NestedString(installConfig, "networking", "podCIDR")
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse install-config: %v", err)
-		}
-		if len(podCIDR) == 0 {
-			return nil, fmt.Errorf("configmap/cluster-config-v1.kube-system: install-config.networking.clusterNetworks and install-config.networking.podCIDR not found")
-		}
-		clusterCIDRs = append(clusterCIDRs, podCIDR)
+		clusterCIDRs = append(clusterCIDRs, clusterNetwork.CIDR)
 	}
 
 	return clusterCIDRs, nil
 }
 
-// GetServiceCIDR reads the service IP range from the install-config ConfigMap in the cluster.
-func GetServiceCIDR(lister v1.ConfigMapLister, recorder events.Recorder) (string, error) {
-	clusterConfig, err := lister.ConfigMaps(clusterConfigNamespace).Get(clusterConfigName)
+// GetServiceCIDR reads the service IP range from the global network configuration resource. Emits events if CIDRs are not found.
+func GetServiceCIDR(lister configlistersv1.NetworkLister, recorder events.Recorder) (string, error) {
+	network, err := lister.Get("cluster")
 	if errors.IsNotFound(err) {
-		glog.Warning("configmap/cluster-config-v1.kube-system: not found")
-		recorder.Warningf("ObserveServiceClusterIPRangesFailed", "Required %s/%s config map not found", clusterConfigNamespace, clusterConfigName)
+		recorder.Warningf("GetServiceCIDRFailed", "Required networks.%s/cluster not found", configv1.GroupName)
 		return "", nil
 	}
 	if err != nil {
+		recorder.Warningf("GetServiceCIDRFailed", "error getting networks.%s/cluster: %v", configv1.GroupName, err)
 		return "", err
 	}
 
-	installConfigYaml, ok := clusterConfig.Data["install-config"]
-	if !ok {
-		glog.Warning("configmap/cluster-config-v1.kube-system: install-config not found")
-		recorder.Warningf("ObserveServiceClusterIPRangesFailed", "ConfigMap %s/%s does not have required 'install-config'", clusterConfigNamespace, clusterConfigName)
-		return "", nil
-	}
-	installConfig := map[string]interface{}{}
-	err = yaml.Unmarshal([]byte(installConfigYaml), &installConfig)
-	if err != nil {
-		return "", fmt.Errorf("unable to parse install-config: %v", err)
+	if len(network.Status.ServiceNetwork) == 0 || len(network.Status.ServiceNetwork[0]) == 0 {
+		recorder.Warningf("GetServiceCIDRFailed", "Required status.serviceNetwork field is not set in networks.%s/cluster", configv1.GroupName)
+		return "", fmt.Errorf("networks.%s/cluster: status.serviceNetwork not found", configv1.GroupName)
 	}
 
-	serviceCIDR, _, err := unstructured.NestedString(installConfig, "networking", "serviceCIDR")
-	if err != nil {
-		return "", fmt.Errorf("unable to parse install-config: %v", err)
+	return network.Status.ServiceNetwork[0], nil
+}
+
+// GetExternalIPPolicy retrieves the ExternalIPPolicy for the cluster.
+// The policy may be null.
+func GetExternalIPPolicy(lister configlistersv1.NetworkLister, recorder events.Recorder) (*configv1.ExternalIPPolicy, error) {
+	network, err := lister.Get("cluster")
+	if errors.IsNotFound(err) {
+		recorder.Warningf("GetExternalIPPolicyFailed", "Required networks.%s/cluster not found", configv1.GroupName)
+		return nil, nil
 	}
-	if len(serviceCIDR) == 0 {
-		recorder.Warningf("ObserveServiceClusterIPRangesFailed", "Required networking.serviceCIDR field is not set in install-config")
-		return "", fmt.Errorf("configmap/cluster-config-v1.kube-system: install-config.networking.serviceCIDR not found")
+	if err != nil {
+		recorder.Warningf("GetExternalIPPolicyFailed", "error getting networks.%s/cluster: %v", configv1.GroupName, err)
+		return nil, err
 	}
 
-	return serviceCIDR, nil
+	if network.Spec.ExternalIP == nil {
+		return nil, nil
+	}
+
+	pol := network.Spec.ExternalIP.Policy
+	if pol != nil {
+		if err := validateCIDRs(pol.AllowedCIDRs); err != nil {
+			recorder.Warningf("GetExternalIPPolicyFailed", "error parsing networks.%s/cluster Spec.ExternalIP.Policy.AllowedCIDRs: invalid cidr: %v", configv1.GroupName, err)
+			return nil, err
+		}
+		if err := validateCIDRs(pol.RejectedCIDRs); err != nil {
+			recorder.Warningf("GetExternalIPPolicyFailed", "error parsing networks.%s/cluster Spec.ExternalIP.Policy.RejectedCIDRs: invalid cidr: %v", configv1.GroupName, err)
+			return nil, err
+		}
+	}
+
+	return network.Spec.ExternalIP.Policy, nil
+}
+
+// GetExternalIPAutoAssignCIDRs retrieves the ExternalIPAutoAssignCIDRs, if configured.
+func GetExternalIPAutoAssignCIDRs(lister configlistersv1.NetworkLister, recorder events.Recorder) ([]string, error) {
+	network, err := lister.Get("cluster")
+	if errors.IsNotFound(err) {
+		recorder.Warningf("GetExternalIPAutoAssignCIDRsFailed", "Required networks.%s/cluster not found", configv1.GroupName)
+		return nil, nil
+	}
+	if err != nil {
+		recorder.Warningf("GetExternalIPAutoAssignCIDRsFailed", "error getting networks.%s/cluster: %v", configv1.GroupName, err)
+		return nil, err
+	}
+
+	if network.Spec.ExternalIP == nil {
+		return nil, nil
+	}
+
+	// ensure all ips are valid
+	if err := validateCIDRs(network.Spec.ExternalIP.AutoAssignCIDRs); err != nil {
+		recorder.Warningf("GetExternalIPAutoAssignCIDRsFailed", "error parsing networks.%s/cluster Spec.ExternalIP.AutoAssignCIDRs: invalid cidr: %v", configv1.GroupName, err)
+		return nil, err
+	}
+
+	return network.Spec.ExternalIP.AutoAssignCIDRs, nil
+}
+
+// validateCIDRs returns an err if any cidr in the list is invalid
+func validateCIDRs(in []string) error {
+	for _, cidr := range in {
+		_, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

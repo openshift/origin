@@ -15,9 +15,9 @@ import (
 
 	knet "k8s.io/apimachinery/pkg/util/net"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 // simulate embedding the given string in a template href
@@ -132,7 +132,7 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	urlMap["/login"] = urlResults{http.StatusNotFound, ""}
 
 	// Create the common base URLs
-	escapedPublicURL := url.QueryEscape(urls.OpenShiftOAuthTokenDisplayURL(masterOptions.OAuthConfig.MasterPublicURL))
+	escapedPublicURL := url.QueryEscape(oauthdiscovery.OpenShiftOAuthTokenDisplayURL(masterOptions.OAuthConfig.MasterPublicURL))
 	loginSelectorBase := "/oauth/authorize?client_id=openshift-browser-client&response_type=token&state=%2F&redirect_uri=" + escapedPublicURL
 
 	// Iterate through each of the providers and verify that they redirect to

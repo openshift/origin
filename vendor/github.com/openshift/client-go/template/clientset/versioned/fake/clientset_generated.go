@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) TemplateV1() templatev1.TemplateV1Interface {
 	return &faketemplatev1.FakeTemplateV1{Fake: &c.Fake}
 }
-
-// Template retrieves the TemplateV1Client
-func (c *Clientset) Template() templatev1.TemplateV1Interface {
-	return &faketemplatev1.FakeTemplateV1{Fake: &c.Fake}
-}

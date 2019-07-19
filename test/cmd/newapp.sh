@@ -71,7 +71,7 @@ os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 os::cmd::expect_failure_and_text 'oc new-app docker.io/node~https://github.com/sclorg/nodejs-ex' 'the image match \"docker.io/node\" for source repository \"https://github.com/sclorg/nodejs-ex\" does not appear to be a source-to-image builder.'
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/rails-ex' 'the image match \"ruby\" for source repository \"https://github.com/sclorg/rails-ex\" does not appear to be a source-to-image builder.'
 os::cmd::expect_success 'oc new-app https://github.com/sclorg/rails-ex --strategy=source --dry-run'
-# verify we can generate a Docker image based component "mongodb" directly
+# verify we can generate a container image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
@@ -106,6 +106,9 @@ os::cmd::expect_success 'oc create -f test/testdata/newapp/imagestream-ref.yaml'
 os::cmd::try_until_success 'oc get imagestreamtags myruby:latest'
 os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hello-world.git --dry-run'
 os::cmd::expect_success 'oc delete is myruby'
+
+# Ensure clear error message wrt templates container CRDs and new-app appears
+os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/newapp/template-with-crd.yaml' 'error: The template contained an object type unknown to '
 
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/nodejs-ex --strategy=docker' 'No Dockerfile was found'
@@ -385,13 +388,13 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mariadb' "T
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+3.2, 3.4, 3.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nginx' "Tags:\s+1.10, 1.12, 1.8, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+10, 6, 8, 8-RHOAR, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+10, 11, 6, 8, 8-RHOAR, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.24, 5.26, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+10, 9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.5, 3.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.3, 2.4, 2.5, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 11.0, 12.0, 13.0, 14.0, 8.1, 9.0, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 11.0, 12.0, 13.0, 14.0, 15.0, 8.1, 9.0, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - no matches
 os::cmd::expect_failure_and_text 'oc new-app -S foo-the-bar' 'no matches found'
@@ -467,7 +470,7 @@ os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.
 os::cmd::expect_success 'oc new-app --image-stream ruby:2.5 https://github.com/sclorg/rails-ex --dry-run'
 os::cmd::expect_success 'oc delete imagestreams --all'
 
-# newapp does not attempt to create an imagestream that already exists for a Docker image
+# newapp does not attempt to create an imagestream that already exists for a container image
 os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream.image.openshift.io "ruby" created'
 # make sure the ruby:latest tag is imported before we run new-app again
 os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
@@ -476,7 +479,7 @@ os::cmd::expect_success 'oc delete all -l app=testapp2'
 os::cmd::expect_success 'oc delete all -l app=testapp1'
 os::cmd::expect_success 'oc delete all -l app=ruby --ignore-not-found'
 os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
-# newapp does not attempt to create an imagestream that already exists for a Docker image
+# newapp does not attempt to create an imagestream that already exists for a container image
 os::cmd::expect_success 'oc new-app docker.io/ruby:2.2'
 # the next one technically fails cause the DC is already created, but we should still see the ist created
 os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.4' 'imagestreamtag.image.openshift.io "ruby:2.4" created'

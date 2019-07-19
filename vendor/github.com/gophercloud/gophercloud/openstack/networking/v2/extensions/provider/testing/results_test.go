@@ -43,6 +43,9 @@ func TestList(t *testing.T) {
 	th.AssertEquals(t, "db193ab3-96e3-4cb3-8fc5-05f4296d0324", actual[1].ID)
 	th.AssertEquals(t, "local", actual[1].NetworkType)
 	th.AssertEquals(t, "1234567890", actual[1].SegmentationID)
+	th.AssertEquals(t, actual[0].Subnets[0], "54d6f61d-db07-451c-9ab3-b9609b6b6f0b")
+	th.AssertEquals(t, actual[1].Subnets[0], "08eae331-0402-425a-923c-34f7cfe39c1b")
+
 }
 
 func TestGet(t *testing.T) {

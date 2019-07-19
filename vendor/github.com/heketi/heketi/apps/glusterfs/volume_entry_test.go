@@ -22,15 +22,16 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/heketi/heketi/pkg/utils"
 	"github.com/heketi/tests"
 )
 
-func createSampleVolumeEntry(size int) *VolumeEntry {
+func createSampleReplicaVolumeEntry(size int, replica int) *VolumeEntry {
 	req := &api.VolumeCreateRequest{}
 	req.Size = size
 	req.Durability.Type = api.DurabilityReplicate
-	req.Durability.Replicate.Replica = 2
+	req.Durability.Replicate.Replica = replica
 
 	v := NewVolumeEntryFromRequest(req)
 
@@ -41,7 +42,6 @@ func setupSampleDbWithTopology(app *App,
 	clusters, nodes_per_cluster, devices_per_node int,
 	disksize uint64) error {
 
-	var clusterlist []string
 	err := app.db.Update(func(tx *bolt.Tx) error {
 		for c := 0; c < clusters; c++ {
 			cluster := createSampleClusterEntry()
@@ -57,13 +57,7 @@ func setupSampleDbWithTopology(app *App,
 					device := createSampleDeviceEntry(node.Info.Id, disksize)
 					node.DeviceAdd(device.Id())
 
-					// Update allocator
-					err := app.allocator.AddDevice(cluster, node, device)
-					if err != nil {
-						return nil
-					}
-
-					err = device.Save(tx)
+					err := device.Save(tx)
 					if err != nil {
 						return err
 					}
@@ -80,7 +74,7 @@ func setupSampleDbWithTopology(app *App,
 		}
 
 		var err error
-		clusterlist, err = ClusterList(tx)
+		_, err = ClusterList(tx)
 		if err != nil {
 			return err
 		}
@@ -319,21 +313,21 @@ func TestVolumeEntryAddDeleteDevices(t *testing.T) {
 	tests.Assert(t, len(v.Bricks) == 0)
 
 	v.BrickAdd("123")
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "123"))
+	tests.Assert(t, sortedstrings.Has(v.Bricks, "123"))
 	tests.Assert(t, len(v.Bricks) == 1)
 	v.BrickAdd("abc")
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "123"))
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "abc"))
+	tests.Assert(t, sortedstrings.Has(v.Bricks, "123"))
+	tests.Assert(t, sortedstrings.Has(v.Bricks, "abc"))
 	tests.Assert(t, len(v.Bricks) == 2)
 
 	v.BrickDelete("123")
-	tests.Assert(t, !utils.SortedStringHas(v.Bricks, "123"))
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "abc"))
+	tests.Assert(t, !sortedstrings.Has(v.Bricks, "123"))
+	tests.Assert(t, sortedstrings.Has(v.Bricks, "abc"))
 	tests.Assert(t, len(v.Bricks) == 1)
 
 	v.BrickDelete("ccc")
-	tests.Assert(t, !utils.SortedStringHas(v.Bricks, "123"))
-	tests.Assert(t, utils.SortedStringHas(v.Bricks, "abc"))
+	tests.Assert(t, !sortedstrings.Has(v.Bricks, "123"))
+	tests.Assert(t, sortedstrings.Has(v.Bricks, "abc"))
 	tests.Assert(t, len(v.Bricks) == 1)
 }
 
@@ -363,7 +357,7 @@ func TestVolumeEntryFromId(t *testing.T) {
 	defer app.Close()
 
 	// Create a volume entry
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 
 	// Save in database
 	err := app.db.Update(func(tx *bolt.Tx) error {
@@ -392,7 +386,7 @@ func TestVolumeEntrySaveDelete(t *testing.T) {
 	defer app.Close()
 
 	// Create a volume entry
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 
 	// Save in database
 	err := app.db.Update(func(tx *bolt.Tx) error {
@@ -441,7 +435,7 @@ func TestNewVolumeEntryNewInfoResponse(t *testing.T) {
 	defer app.Close()
 
 	// Create a volume entry
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 
 	// Save in database
 	err := app.db.Update(func(tx *bolt.Tx) error {
@@ -484,7 +478,7 @@ func TestVolumeEntryCreateMissingCluster(t *testing.T) {
 	defer app.Close()
 
 	// Create a volume entry
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 	v.Info.Clusters = []string{}
 
 	// Save in database
@@ -493,7 +487,7 @@ func TestVolumeEntryCreateMissingCluster(t *testing.T) {
 	})
 	tests.Assert(t, err == nil)
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == ErrNoSpace)
 
 }
@@ -517,8 +511,8 @@ func TestVolumeEntryCreateRunOutOfSpaceMinBrickSizeLimit(t *testing.T) {
 
 	// Create a 100 GB volume
 	// Shouldn't be able to break it down enough to allocate volume
-	v := createSampleVolumeEntry(100)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(100, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == ErrNoSpace)
 	tests.Assert(t, v.Info.Cluster == "")
 
@@ -565,8 +559,8 @@ func TestVolumeEntryCreateRunOutOfSpaceMaxBrickLimit(t *testing.T) {
 
 	// Create a volume who will be broken down to
 	// Shouldn't be able to break it down enough to allocate volume
-	v := createSampleVolumeEntry(BrickMaxNum * 2 * int(BrickMinSize/GB))
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(BrickMaxNum*2*int(BrickMinSize/GB), 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == ErrNoSpace)
 
 	// Check database volume does not exist
@@ -579,7 +573,7 @@ func TestVolumeEntryCreateRunOutOfSpaceMaxBrickLimit(t *testing.T) {
 	// Check no bricks or volumes exist
 	var bricks []string
 	var volumes []string
-	err = app.db.View(func(tx *bolt.Tx) error {
+	app.db.View(func(tx *bolt.Tx) error {
 		bricks = EntryKeys(tx, BOLTDB_BUCKET_BRICK)
 
 		volumes = EntryKeys(tx, BOLTDB_BUCKET_VOLUME)
@@ -622,17 +616,18 @@ func TestVolumeEntryCreateTwoBricks(t *testing.T) {
 			Path: "/mockpath",
 		}
 
-		tests.Assert(t, brick.Gid == gid)
+		tests.Assert(t, brick.Gid == gid,
+			"expected brick.Gid == gid, got:", brick.Gid, gid)
 		return bInfo, nil
 	}
 
 	// Create a volume who will be broken down to
-	v := createSampleVolumeEntry(250)
+	v := createSampleReplicaVolumeEntry(250, 2)
 
 	// Set a GID
 	v.Info.Gid = gid
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil, err)
 	tests.Assert(t, brickCreateCount == 2)
 
@@ -684,7 +679,7 @@ func TestVolumeEntryCreateTwoBricks(t *testing.T) {
 
 	// Check mount information
 	host := strings.Split(info.Mount.GlusterFS.MountPoint, ":")[0]
-	tests.Assert(t, utils.SortedStringHas(nodelist, host), host, nodelist)
+	tests.Assert(t, sortedstrings.Has(nodelist, host), host, nodelist)
 	volfileServers := strings.Split(info.Mount.GlusterFS.Options["backup-volfile-servers"], ",")
 	for index, node := range volfileServers {
 		tests.Assert(t, node != host, index, node, host)
@@ -696,7 +691,7 @@ func TestVolumeEntryCreateTwoBricks(t *testing.T) {
 		info)
 
 	// Check all hosts are in the list
-	err = app.db.View(func(tx *bolt.Tx) error {
+	app.db.View(func(tx *bolt.Tx) error {
 		for _, brick := range info.Bricks {
 			found := false
 
@@ -737,8 +732,8 @@ func TestVolumeEntryCreateBrickDivision(t *testing.T) {
 
 	// Create a volume which is so big that it does
 	// not fit into a single replica set
-	v := createSampleVolumeEntry(2000)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(2000, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	var info *api.VolumeInfoResponse
@@ -792,7 +787,7 @@ func TestVolumeEntryCreateBrickDivision(t *testing.T) {
 
 	// Check mount information
 	host := strings.Split(info.Mount.GlusterFS.MountPoint, ":")[0]
-	tests.Assert(t, utils.SortedStringHas(nodelist, host), host, nodelist)
+	tests.Assert(t, sortedstrings.Has(nodelist, host), host, nodelist)
 	volfileServers := strings.Split(info.Mount.GlusterFS.Options["backup-volfile-servers"], ",")
 	for index, node := range volfileServers {
 		tests.Assert(t, node != host, index, node, host)
@@ -818,8 +813,8 @@ func TestVolumeEntryCreateMaxBrickSize(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create a volume whose bricks must be at most BrickMaxSize
-	v := createSampleVolumeEntry(int(BrickMaxSize / GB * 4))
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(int(BrickMaxSize/GB*4), 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Get volume information
@@ -877,13 +872,13 @@ func TestVolumeEntryCreateOnClustersRequested(t *testing.T) {
 	clusters.Sort()
 
 	// Create a 1TB volume
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 
 	// Set the clusters to the first two cluster ids
 	v.Info.Clusters = []string{clusters[0]}
 
 	// Create volume
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Check database volume does not exist
@@ -907,9 +902,9 @@ func TestVolumeEntryCreateOnClustersRequested(t *testing.T) {
 
 	// Create a new volume on either of three clusters
 	clusterset := clusters[2:5]
-	v = createSampleVolumeEntry(1024)
+	v = createSampleReplicaVolumeEntry(1024, 2)
 	v.Info.Clusters = clusterset
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Check database volume exists
@@ -928,7 +923,7 @@ func TestVolumeEntryCreateOnClustersRequested(t *testing.T) {
 
 	})
 	tests.Assert(t, err == nil)
-	tests.Assert(t, utils.SortedStringHas(clusterset, info.Cluster))
+	tests.Assert(t, sortedstrings.Has(clusterset, info.Cluster))
 
 }
 
@@ -963,12 +958,6 @@ func TestVolumeEntryCreateCheckingClustersForSpace(t *testing.T) {
 				device := createSampleDeviceEntry(node.Info.Id, 4*TB)
 				node.DeviceAdd(device.Id())
 
-				// update allocator
-				err := app.allocator.AddDevice(cluster, node, device)
-				if err != nil {
-					return nil
-				}
-
 				// Save
 				err = device.Save(tx)
 				if err != nil {
@@ -989,10 +978,10 @@ func TestVolumeEntryCreateCheckingClustersForSpace(t *testing.T) {
 	})
 
 	// Create a 1TB volume
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 
 	// Create volume
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Check database volume exists
@@ -1035,11 +1024,11 @@ func TestVolumeEntryCreateWithSnapshot(t *testing.T) {
 	// Create a volume with a snapshot factor of 1.5
 	// For a 200G vol, it would get a brick size of 100G, with a thin pool
 	// size of 100G * 1.5 = 150GB.
-	v := createSampleVolumeEntry(200)
+	v := createSampleReplicaVolumeEntry(200, 2)
 	v.Info.Snapshot.Enable = true
 	v.Info.Snapshot.Factor = 1.5
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Check database volume exists
@@ -1103,8 +1092,8 @@ func TestVolumeEntryCreateBrickCreationFailure(t *testing.T) {
 	// Create a volume with a snapshot factor of 1.5
 	// For a 200G vol, it would get a brick size of 100G, with a thin pool
 	// size of 100G * 1.5 = 150GB.
-	v := createSampleVolumeEntry(200)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(200, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == mockerror, err, mockerror)
 
 	// Check database is still clean. No bricks and No volumes
@@ -1157,8 +1146,8 @@ func TestVolumeEntryCreateVolumeCreationFailure(t *testing.T) {
 	// Create a volume with a snapshot factor of 1.5
 	// For a 200G vol, it would get a brick size of 100G, with a thin pool
 	// size of 100G * 1.5 = 150GB.
-	v := createSampleVolumeEntry(200)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(200, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == mockerror)
 
 	// Check database is still clean. No bricks and No volumes
@@ -1177,7 +1166,9 @@ func TestVolumeEntryCreateVolumeCreationFailure(t *testing.T) {
 
 		cluster, err := NewClusterEntryFromId(tx, clusters[0])
 		tests.Assert(t, err == nil)
-		tests.Assert(t, len(cluster.Info.Volumes) == 0)
+		tests.Assert(t, len(cluster.Info.Volumes) == 0,
+			"expected len(cluster.Info.Volumes) == 0, got:",
+			len(cluster.Info.Volumes))
 
 		return nil
 
@@ -1205,11 +1196,11 @@ func TestVolumeEntryDestroy(t *testing.T) {
 	// Create a volume with a snapshot factor of 1.5
 	// For a 200G vol, it would get a brick size of 100G, with a thin pool
 	// size of 100G * 1.5 = 150GB.
-	v := createSampleVolumeEntry(200)
+	v := createSampleReplicaVolumeEntry(200, 2)
 	v.Info.Snapshot.Enable = true
 	v.Info.Snapshot.Factor = 1.5
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Destroy the volume
@@ -1217,7 +1208,7 @@ func TestVolumeEntryDestroy(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Check database volume does not exist
-	err = app.db.View(func(tx *bolt.Tx) error {
+	app.db.View(func(tx *bolt.Tx) error {
 
 		// Check that all devices have no used data
 		devices, err := DeviceList(tx)
@@ -1232,11 +1223,11 @@ func TestVolumeEntryDestroy(t *testing.T) {
 		// Check there are no bricks
 		bricks, err := BrickList(tx)
 		tests.Assert(t, len(bricks) == 0)
+		tests.Assert(t, err == nil)
 
 		return nil
 
 	})
-	tests.Assert(t, err == nil)
 
 	// Check that the devices have no bricks
 	err = app.db.View(func(tx *bolt.Tx) error {
@@ -1293,8 +1284,8 @@ func TestVolumeEntryExpandNoSpace(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create large volume
-	v := createSampleVolumeEntry(1190)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(1190, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Save a copy of the volume before expansion
@@ -1302,11 +1293,11 @@ func TestVolumeEntryExpandNoSpace(t *testing.T) {
 	*vcopy = *v
 
 	// Asking for a large amount will require too many little bricks
-	err = v.Expand(app.db, app.executor, app.allocator, 5000)
+	err = v.Expand(app.db, app.executor, 5000)
 	tests.Assert(t, err == ErrMaxBricks, err)
 
 	// Asking for a small amount will set the bricks too small
-	err = v.Expand(app.db, app.executor, app.allocator, 10)
+	err = v.Expand(app.db, app.executor, 10)
 	tests.Assert(t, err == ErrMinimumBrickSize, err)
 
 	// Check db is the same as before expansion
@@ -1339,8 +1330,8 @@ func TestVolumeEntryExpandMaxBrickLimit(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create large volume
-	v := createSampleVolumeEntry(100)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(100, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Add a bunch of bricks until the limit
@@ -1349,7 +1340,7 @@ func TestVolumeEntryExpandMaxBrickLimit(t *testing.T) {
 
 	// Try to expand the volume, but it will return that the max number
 	// of bricks has been reached
-	err = v.Expand(app.db, app.executor, app.allocator, 100)
+	err = v.Expand(app.db, app.executor, 100)
 	tests.Assert(t, err == ErrMaxBricks, err)
 }
 
@@ -1371,8 +1362,8 @@ func TestVolumeEntryExpandCreateBricksFailure(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create volume
-	v := createSampleVolumeEntry(100)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(100, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Save a copy of the volume before expansion
@@ -1386,7 +1377,7 @@ func TestVolumeEntryExpandCreateBricksFailure(t *testing.T) {
 	}
 
 	// Expand volume
-	err = v.Expand(app.db, app.executor, app.allocator, 500)
+	err = v.Expand(app.db, app.executor, 500)
 	tests.Assert(t, err == ErrMock)
 
 	// Check db is the same as before expansion
@@ -1419,14 +1410,14 @@ func TestVolumeEntryExpand(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create volume
-	v := createSampleVolumeEntry(1024)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(1024, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, v.Info.Size == 1024)
 	tests.Assert(t, len(v.Bricks) == 2)
 
 	// Expand volume
-	err = v.Expand(app.db, app.executor, app.allocator, 1234)
+	err = v.Expand(app.db, app.executor, 1234)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, v.Info.Size == 1024+1234)
 	tests.Assert(t, len(v.Bricks) == 4)
@@ -1462,13 +1453,13 @@ func TestVolumeEntryDoNotAllowDeviceOnSameNode(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create volume
-	v := createSampleVolumeEntry(100)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v := createSampleReplicaVolumeEntry(100, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err != nil, err)
 	tests.Assert(t, err == ErrNoSpace)
 
-	v = createSampleVolumeEntry(10000)
-	err = v.Create(app.db, app.executor, app.allocator)
+	v = createSampleReplicaVolumeEntry(10000, 2)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err != nil, err)
 	tests.Assert(t, err == ErrNoSpace)
 }
@@ -1493,36 +1484,14 @@ func TestVolumeEntryDestroyCheck(t *testing.T) {
 	// Create a volume with a snapshot factor of 1.5
 	// For a 200G vol, it would get a brick size of 100G, with a thin pool
 	// size of 100G * 1.5 = 150GB.
-	v := createSampleVolumeEntry(200)
+	v := createSampleReplicaVolumeEntry(200, 2)
 	v.Info.Snapshot.Enable = true
 	v.Info.Snapshot.Factor = 1.5
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
-	// Test that a volume that is sharing space in a thin pool
-	// with either a clone or a snapshot cannot be deleted
-	app.xo.MockBrickDestroyCheck = func(host string, brick *executors.BrickRequest) error {
-		return fmt.Errorf("BRICKMOCK")
-	}
-	err = v.Destroy(app.db, app.executor)
-	tests.Assert(t, err != nil)
-	tests.Assert(t, err.Error() == "BRICKMOCK")
-	app.xo.MockBrickDestroyCheck = func(host string, brick *executors.BrickRequest) error {
-		return nil
-	}
-
-	// Check that a volume with snapshots cannot be deleted
-	app.xo.MockVolumeDestroyCheck = func(host, volume string) error {
-		return fmt.Errorf("VOLMOCK")
-	}
-	err = v.Destroy(app.db, app.executor)
-	tests.Assert(t, err != nil)
-	tests.Assert(t, err.Error() == "VOLMOCK")
-	app.xo.MockVolumeDestroyCheck = func(host, volume string) error {
-		return nil
-	}
-
+	// volumes (and bricks) can now be destroyed even when snapshots exist
 	// Now it should be able to be deleted
 	err = v.Destroy(app.db, app.executor)
 	tests.Assert(t, err == nil)
@@ -1546,15 +1515,15 @@ func TestVolumeEntryNameConflictSingleCluster(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create volume
-	v := createSampleVolumeEntry(1024)
+	v := createSampleReplicaVolumeEntry(1024, 2)
 	v.Info.Name = "myvol"
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Create another volume same name
-	v = createSampleVolumeEntry(10000)
+	v = createSampleReplicaVolumeEntry(10000, 2)
 	v.Info.Name = "myvol"
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err != nil, err)
 }
 
@@ -1577,17 +1546,17 @@ func TestVolumeEntryNameConflictMultiCluster(t *testing.T) {
 
 	// Create 10 volumes
 	for i := 0; i < 10; i++ {
-		v := createSampleVolumeEntry(1024)
+		v := createSampleReplicaVolumeEntry(1024, 2)
 		v.Info.Name = "myvol"
-		err = v.Create(app.db, app.executor, app.allocator)
+		err = v.Create(app.db, app.executor)
 		logger.Info("%v", v.Info.Cluster)
 		tests.Assert(t, err == nil, err)
 	}
 
 	// Create another volume same name
-	v := createSampleVolumeEntry(10000)
+	v := createSampleReplicaVolumeEntry(10000, 2)
 	v.Info.Name = "myvol"
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err != nil, err)
 }
 
@@ -1601,15 +1570,15 @@ func TestReplaceBrickInVolume(t *testing.T) {
 	// Create a cluster in the database
 	err := setupSampleDbWithTopology(app,
 		1,      // clusters
-		3,      // nodes_per_cluster
+		4,      // nodes_per_cluster
 		1,      // devices_per_node,
 		500*GB, // disksize)
 	)
 	tests.Assert(t, err == nil)
 
-	v := createSampleVolumeEntry(100)
+	v := createSampleReplicaVolumeEntry(100, 3)
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil, err)
 	var brickNames []string
 	var be *BrickEntry
@@ -1635,6 +1604,8 @@ func TestReplaceBrickInVolume(t *testing.T) {
 		bricks = append(bricks, brick)
 		brick = executors.Brick{Name: brickNames[1]}
 		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[2]}
+		bricks = append(bricks, brick)
 		Bricks := executors.Bricks{
 			BrickList: bricks,
 		}
@@ -1643,9 +1614,25 @@ func TestReplaceBrickInVolume(t *testing.T) {
 		}
 		return b, nil
 	}
+	app.xo.MockHealInfo = func(host string, volume string) (*executors.HealInfo, error) {
+		var bricks executors.HealInfoBricks
+		brick := executors.BrickHealStatus{Name: brickNames[0],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		brick = executors.BrickHealStatus{Name: brickNames[1],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		brick = executors.BrickHealStatus{Name: brickNames[2],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		h := &executors.HealInfo{
+			Bricks: bricks,
+		}
+		return h, nil
+	}
 	brickId := be.Id()
-	err = v.replaceBrickInVolume(app.db, app.executor, app.allocator, brickId)
-	tests.Assert(t, err == nil)
+	err = v.replaceBrickInVolume(app.db, app.executor, brickId)
+	tests.Assert(t, err == nil, err)
 
 	oldNode := be.Info.NodeId
 	brickOnOldNode := false
@@ -1702,9 +1689,9 @@ func TestNewVolumeEntryWithVolumeOptions(t *testing.T) {
 	tests.Assert(t, v.Info.Size == 1024)
 	tests.Assert(t, len(v.Info.Id) != 0)
 	tests.Assert(t, len(v.Bricks) == 0)
-	tests.Assert(t, v.GlusterVolumeOptions[0] == "test-option")
+	tests.Assert(t, strings.Contains(strings.Join(v.GlusterVolumeOptions, ","), "test-option"))
 
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	logger.Info("%v", v.Info.Cluster)
 	tests.Assert(t, err == nil, err)
 
@@ -1716,6 +1703,1055 @@ func TestNewVolumeEntryWithVolumeOptions(t *testing.T) {
 				Get([]byte(v.Info.Id)))
 	})
 	tests.Assert(t, err == nil)
-	tests.Assert(t, entry.GlusterVolumeOptions[0] == "test-option")
+	tests.Assert(t, strings.Contains(strings.Join(entry.GlusterVolumeOptions, ","), "test-option"))
 
+}
+func TestNewVolumeEntryWithTSPForMountHosts(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	// Create a cluster in the database
+	err := setupSampleDbWithTopology(app,
+		1,      // clusters
+		5,      // nodes_per_cluster
+		1,      // devices_per_node,
+		500*GB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+	req := &api.VolumeCreateRequest{}
+	req.Size = 100
+
+	v := NewVolumeEntryFromRequest(req)
+	tests.Assert(t, v.Info.Name == "vol_"+v.Info.Id)
+	tests.Assert(t, v.Info.Snapshot.Enable == false)
+	tests.Assert(t, v.Info.Snapshot.Factor == 1)
+	tests.Assert(t, v.Info.Size == 100)
+	tests.Assert(t, len(v.Info.Id) != 0)
+	tests.Assert(t, len(v.Bricks) == 0)
+
+	err = v.Create(app.db, app.executor)
+	logger.Info("%v", v.Info.Cluster)
+	tests.Assert(t, err == nil, err)
+
+	// Check that the data on the database is recorded correctly
+	var entry VolumeEntry
+	err = app.db.View(func(tx *bolt.Tx) error {
+		return entry.Unmarshal(
+			tx.Bucket([]byte(BOLTDB_BUCKET_VOLUME)).
+				Get([]byte(v.Info.Id)))
+	})
+	tests.Assert(t, err == nil)
+	tests.Assert(t, len(entry.Info.Mount.GlusterFS.Hosts) == 5)
+
+}
+
+func TestReplaceBrickInVolumeSelfHeal1(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	// Create a cluster in the database
+	err := setupSampleDbWithTopology(app,
+		1,      // clusters
+		4,      // nodes_per_cluster
+		1,      // devices_per_node,
+		500*GB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+
+	v := createSampleReplicaVolumeEntry(100, 3)
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, err)
+	var brickNames []string
+	var be *BrickEntry
+	err = app.db.View(func(tx *bolt.Tx) error {
+
+		for _, brick := range v.Bricks {
+			be, err = NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			brickName := fmt.Sprintf("%v:%v", ne.Info.Hostnames.Storage[0], be.Info.Path)
+			brickNames = append(brickNames, brickName)
+		}
+		return nil
+	})
+	app.xo.MockVolumeInfo = func(host string, volume string) (*executors.Volume, error) {
+		var bricks []executors.Brick
+		brick := executors.Brick{Name: brickNames[0]}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[1]}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[2]}
+		bricks = append(bricks, brick)
+		Bricks := executors.Bricks{
+			BrickList: bricks,
+		}
+		b := &executors.Volume{
+			Bricks: Bricks,
+		}
+		return b, nil
+	}
+	app.xo.MockHealInfo = func(host string, volume string) (*executors.HealInfo, error) {
+		var bricks executors.HealInfoBricks
+		brick := executors.BrickHealStatus{Name: brickNames[0],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		brick = executors.BrickHealStatus{Name: brickNames[1],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		// Skip entry for brick to be replaced, should pass
+		h := &executors.HealInfo{
+			Bricks: bricks,
+		}
+		return h, nil
+	}
+	brickId := be.Id()
+	err = v.replaceBrickInVolume(app.db, app.executor, brickId)
+	tests.Assert(t, err == nil, err)
+
+	oldNode := be.Info.NodeId
+	brickOnOldNode := false
+	oldBrickIdExists := false
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+
+		for _, brick := range v.Bricks {
+			be, err = NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			if ne.Info.Id == oldNode {
+				brickOnOldNode = true
+			}
+			if be.Info.Id == brickId {
+				oldBrickIdExists = true
+			}
+		}
+		return nil
+	})
+
+	tests.Assert(t, !brickOnOldNode, "brick found on oldNode")
+	tests.Assert(t, !oldBrickIdExists, "old Brick not deleted")
+}
+
+func TestReplaceBrickInVolumeSelfHeal2(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	// Create a cluster in the database
+	err := setupSampleDbWithTopology(app,
+		1,      // clusters
+		4,      // nodes_per_cluster
+		1,      // devices_per_node,
+		500*GB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+
+	v := createSampleReplicaVolumeEntry(100, 3)
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, err)
+	var brickNames []string
+	var be *BrickEntry
+	err = app.db.View(func(tx *bolt.Tx) error {
+
+		for _, brick := range v.Bricks {
+			be, err = NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			brickName := fmt.Sprintf("%v:%v", ne.Info.Hostnames.Storage[0], be.Info.Path)
+			brickNames = append(brickNames, brickName)
+		}
+		return nil
+	})
+	app.xo.MockVolumeInfo = func(host string, volume string) (*executors.Volume, error) {
+		var bricks []executors.Brick
+		brick := executors.Brick{Name: brickNames[0]}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[1]}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[2]}
+		bricks = append(bricks, brick)
+		Bricks := executors.Bricks{
+			BrickList: bricks,
+		}
+		b := &executors.Volume{
+			Bricks: Bricks,
+		}
+		return b, nil
+	}
+	app.xo.MockHealInfo = func(host string, volume string) (*executors.HealInfo, error) {
+		var bricks executors.HealInfoBricks
+		brick := executors.BrickHealStatus{Name: brickNames[0],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		brick = executors.BrickHealStatus{Name: brickNames[1],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		// Brick to be replaced is source, should fail
+		brick = executors.BrickHealStatus{Name: brickNames[2],
+			NumberOfEntries: "100"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		h := &executors.HealInfo{
+			Bricks: bricks,
+		}
+		return h, nil
+	}
+	brickId := be.Id()
+	err = v.replaceBrickInVolume(app.db, app.executor, brickId)
+	tests.Assert(t, err != nil, err)
+
+	oldNode := be.Info.NodeId
+	brickOnOldNode := false
+	oldBrickIdExists := false
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+
+		for _, brick := range v.Bricks {
+			be, err = NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			if ne.Info.Id == oldNode {
+				brickOnOldNode = true
+			}
+			if be.Info.Id == brickId {
+				oldBrickIdExists = true
+			}
+		}
+		return nil
+	})
+
+	tests.Assert(t, brickOnOldNode, "brick found on oldNode")
+	tests.Assert(t, oldBrickIdExists, "old Brick not deleted")
+}
+
+func TestReplaceBrickInVolumeSelfHealQuorumNotMet(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	// Create a cluster in the database
+	err := setupSampleDbWithTopology(app,
+		1,      // clusters
+		4,      // nodes_per_cluster
+		1,      // devices_per_node,
+		500*GB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+
+	v := createSampleReplicaVolumeEntry(100, 3)
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, err)
+	var brickNames []string
+	var be *BrickEntry
+	err = app.db.View(func(tx *bolt.Tx) error {
+
+		for _, brick := range v.Bricks {
+			be, err = NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			brickName := fmt.Sprintf("%v:%v", ne.Info.Hostnames.Storage[0], be.Info.Path)
+			brickNames = append(brickNames, brickName)
+		}
+		return nil
+	})
+	app.xo.MockVolumeInfo = func(host string, volume string) (*executors.Volume, error) {
+		var bricks []executors.Brick
+		brick := executors.Brick{Name: brickNames[0]}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[1]}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: brickNames[2]}
+		bricks = append(bricks, brick)
+		Bricks := executors.Bricks{
+			BrickList: bricks,
+		}
+		b := &executors.Volume{
+			Bricks: Bricks,
+		}
+		return b, nil
+	}
+	app.xo.MockHealInfo = func(host string, volume string) (*executors.HealInfo, error) {
+		var bricks executors.HealInfoBricks
+		brick := executors.BrickHealStatus{Name: brickNames[0],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		// Quorum not met, should fail
+		brick = executors.BrickHealStatus{Name: brickNames[2],
+			NumberOfEntries: "0"}
+		bricks.BrickList = append(bricks.BrickList, brick)
+		h := &executors.HealInfo{
+			Bricks: bricks,
+		}
+		return h, nil
+	}
+	brickId := be.Id()
+	err = v.replaceBrickInVolume(app.db, app.executor, brickId)
+	tests.Assert(t, err != nil, "expected err != nil, got:", err)
+
+	oldNode := be.Info.NodeId
+	brickOnOldNode := false
+	oldBrickIdExists := false
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+
+		for _, brick := range v.Bricks {
+			be, err = NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			ne, err := NewNodeEntryFromId(tx, be.Info.NodeId)
+			if err != nil {
+				return err
+			}
+			if ne.Info.Id == oldNode {
+				brickOnOldNode = true
+			}
+			if be.Info.Id == brickId {
+				oldBrickIdExists = true
+			}
+		}
+		return nil
+	})
+
+	tests.Assert(t, brickOnOldNode, "brick found on oldNode")
+	tests.Assert(t, oldBrickIdExists, "old Brick not deleted")
+}
+
+func TestVolumeEntryNoMatchingFlags(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		6,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+	// now change the clusters to disable block access
+	err = app.db.Update(func(tx *bolt.Tx) error {
+		cl, err := ClusterList(tx)
+		if err != nil {
+			return err
+		}
+		for _, cid := range cl {
+			c, err := NewClusterEntryFromId(tx, cid)
+			if err != nil {
+				return err
+			}
+			c.Info.Block = false
+			c.Save(tx)
+		}
+		return nil
+	})
+	tests.Assert(t, err == nil)
+
+	// Create volume
+	v := createSampleReplicaVolumeEntry(1024, 2)
+	v.Info.Name = "blockhead"
+	// request block volume
+	v.Info.Block = true
+	err = v.Create(app.db, app.executor)
+	// expect no space error due to no clusters able to satisfy block volume
+	tests.Assert(t, err == ErrNoSpace)
+}
+
+func TestVolumeEntryMissingFlags(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		6,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+	// now change the clusters to disable block and file flags
+	err = app.db.Update(func(tx *bolt.Tx) error {
+		cl, err := ClusterList(tx)
+		if err != nil {
+			return err
+		}
+		for _, cid := range cl {
+			c, err := NewClusterEntryFromId(tx, cid)
+			if err != nil {
+				return err
+			}
+			c.Info.File = false
+			c.Info.Block = false
+			c.Save(tx)
+		}
+		return nil
+	})
+	tests.Assert(t, err == nil)
+
+	// Create volume
+	v := createSampleReplicaVolumeEntry(1024, 2)
+	err = v.Create(app.db, app.executor)
+	// expect no space error due to no clusters able to satisfy block volume
+	tests.Assert(t, err == ErrNoSpace)
+}
+
+func TestVolumeCreateBrickAlloc(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		2*TB, // disksize)
+	)
+
+	// create a fairly large volume
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	v := NewVolumeEntryFromRequest(req)
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// check that the volume has exactly 3 bricks
+	tests.Assert(t, len(v.Bricks) == 3,
+		"expected len(v.Bricks) == 3, got:", len(v.Bricks))
+
+	req = &api.VolumeCreateRequest{}
+	req.Size = 1024 * 6
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	v2 := NewVolumeEntryFromRequest(req)
+
+	err = v2.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// check that the volume has exactly 12 bricks
+	tests.Assert(t, len(v2.Bricks) == 12,
+		"expected len(v.Bricks) == 12, got:", len(v2.Bricks))
+
+	// verify that the corrent number of bricks is saved in the DB
+	var bc int
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, err := BrickList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		bc = len(bl)
+		return nil
+	})
+	tests.Assert(t, bc == 15, "expected bc == 15, got:", bc)
+}
+
+func TestVolumeCreateConcurrent(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+
+	sg := utils.NewStatusGroup()
+	vols := [](*VolumeEntry){}
+	for i := 0; i < 9; i++ {
+		req := &api.VolumeCreateRequest{}
+		req.Size = 1024
+		req.Durability.Type = api.DurabilityReplicate
+		req.Durability.Replicate.Replica = 3
+		v := NewVolumeEntryFromRequest(req)
+		vols = append(vols, v)
+
+		sg.Add(1)
+		go func() {
+			defer sg.Done()
+			err := v.Create(app.db, app.executor)
+			sg.Err(err)
+		}()
+	}
+
+	err = sg.Result()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	for _, v := range vols {
+		// check that the volume has exactly 3 bricks
+		tests.Assert(t, len(v.Bricks) == 3,
+			"expected len(v.Bricks) == 3, got:", len(v.Bricks))
+	}
+
+	brickCount := 0
+	app.db.View(func(tx *bolt.Tx) error {
+		devices, err := DeviceList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		tests.Assert(t, len(devices) == 24,
+			"expected len(devices) == 24, got:", len(devices))
+		for _, deviceId := range devices {
+			d, err := NewDeviceEntryFromId(tx, deviceId)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			brickCount += len(d.Bricks)
+		}
+		return nil
+	})
+	tests.Assert(t, brickCount == 27,
+		"expected brickCount == 27, got:", brickCount)
+}
+
+func TestVolumeCreateArbiter(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	cc := 0
+	mVolumeCreate := app.xo.MockVolumeCreate
+	app.xo.MockVolumeCreate = func(host string, volume *executors.VolumeRequest) (*executors.Volume, error) {
+		cc++
+		tests.Assert(t, volume.Arbiter, "expected volumeArbiter=true, was false")
+		return mVolumeCreate(host, volume)
+	}
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	req.GlusterVolumeOptions = []string{"user.heketi.arbiter true"}
+
+	v := NewVolumeEntryFromRequest(req)
+	tests.Assert(t, v.HasArbiterOption(),
+		"expected v.HasArbiterOption() to be true, got false")
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// verify that the mock volume create was called
+	tests.Assert(t, cc == 1, "expected cc == 1, got:", cc)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, err := BrickList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		tests.Assert(t, len(bl) == 3,
+			"expected len(devices) == 3, got:", len(bl))
+		return nil
+	})
+}
+func TestVolumeCreateArbiterSizing(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	cc := 0
+	arbiterBrickCount := 0
+	mVolumeCreate := app.xo.MockVolumeCreate
+	app.xo.MockVolumeCreate = func(host string, volume *executors.VolumeRequest) (*executors.Volume, error) {
+		cc++
+		tests.Assert(t, volume.Arbiter, "expected volumeArbiter=true, was false")
+		return mVolumeCreate(host, volume)
+	}
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 64
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	req.GlusterVolumeOptions = []string{"user.heketi.arbiter true"}
+
+	v := NewVolumeEntryFromRequest(req)
+	tests.Assert(t, v.HasArbiterOption(),
+		"expected v.HasArbiterOption() to be true, got false")
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// verify that the mock volume create was called
+	tests.Assert(t, cc == 1, "expected cc == 1, got:", cc)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, err := BrickList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		tests.Assert(t, len(bl) == 3,
+			"expected len(devices) == 3, got:", len(bl))
+		for _, id := range bl {
+			brick, err := NewBrickEntryFromId(tx, id)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			if brick.Info.Size == 1*GB {
+				arbiterBrickCount++
+			}
+		}
+
+		tests.Assert(t, arbiterBrickCount == 1, "expected arbiterBrickCount == 1, got:", arbiterBrickCount)
+		return nil
+	})
+}
+
+func TestVolumeCreateArbiterSizingCustom(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	cc := 0
+	arbiterBrickCount := 0
+	mVolumeCreate := app.xo.MockVolumeCreate
+	app.xo.MockVolumeCreate = func(host string, volume *executors.VolumeRequest) (*executors.Volume, error) {
+		cc++
+		tests.Assert(t, volume.Arbiter, "expected volumeArbiter=true, was false")
+		return mVolumeCreate(host, volume)
+	}
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 100
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+	req.GlusterVolumeOptions = []string{"user.heketi.arbiter true", "user.heketi.average-file-size 100"}
+
+	v := NewVolumeEntryFromRequest(req)
+	tests.Assert(t, v.HasArbiterOption(),
+		"expected v.HasArbiterOption() to be true, got false")
+
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	// verify that the mock volume create was called
+	tests.Assert(t, cc == 1, "expected cc == 1, got:", cc)
+
+	app.db.View(func(tx *bolt.Tx) error {
+		bl, err := BrickList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		tests.Assert(t, len(bl) == 3,
+			"expected len(devices) == 3, got:", len(bl))
+		for _, id := range bl {
+			brick, err := NewBrickEntryFromId(tx, id)
+			tests.Assert(t, err == nil, "expected err == nil, got:", err)
+			if brick.Info.Size == 1*GB {
+				arbiterBrickCount++
+			}
+		}
+
+		tests.Assert(t, arbiterBrickCount == 1, "expected arbiterBrickCount == 1, got:", arbiterBrickCount)
+		return nil
+	})
+}
+
+func TestVolumeCreateBoundarySizing(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		1,      // clusters
+		4,      // nodes_per_cluster
+		8,      // devices_per_node,
+		500*GB, // disksize)
+	)
+
+	for i := 0; i < 2; i++ {
+		req := &api.VolumeCreateRequest{}
+		// setting the size to 300 or more fails the test intermittently
+		// due to randomization in the device selection
+		req.Size = 2500
+		req.Snapshot.Enable = true
+		req.Snapshot.Factor = 1.5
+		req.Durability.Type = api.DurabilityReplicate
+
+		v := NewVolumeEntryFromRequest(req)
+		err = v.Create(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+		err = v.Destroy(app.db, app.executor)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	}
+
+	// Create a 1TB volume
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Snapshot.Enable = true
+	req.Snapshot.Factor = 1.5
+	req.Durability.Type = api.DurabilityReplicate
+
+	err = NewVolumeEntryFromRequest(req).Create(app.db, app.executor)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+}
+
+func TestVolumeCreateMultiClusterErrorsNodes(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		3,      // clusters
+		0,      // nodes_per_cluster
+		0,      // devices_per_node,
+		500*GB, // disksize)
+	)
+
+	var clusters []string
+	app.db.View(func(tx *bolt.Tx) error {
+		var err error
+		clusters, err = ClusterList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		return nil
+	})
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	err = NewVolumeEntryFromRequest(req).Create(app.db, app.executor)
+	tests.Assert(t, err != nil, "expected err != nil, got:", err)
+
+	etext := err.Error()
+	tests.Assert(t, strings.Contains(etext, ErrEmptyCluster.Error()),
+		"expected strings.Contains(etext, ErrEmptyCluster.Error()), got:",
+		etext)
+	// verify every cluster id is listed
+	for _, cid := range clusters {
+		tests.Assert(t, strings.Contains(etext, cid),
+			"expected strings.Contains(etext, cid), got:",
+			etext)
+	}
+}
+
+func TestVolumeCreateMultiClusterErrorsDevices(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	err := setupSampleDbWithTopology(app,
+		3,      // clusters
+		3,      // nodes_per_cluster
+		0,      // devices_per_node,
+		500*GB, // disksize)
+	)
+
+	var clusters []string
+	app.db.View(func(tx *bolt.Tx) error {
+		var err error
+		clusters, err = ClusterList(tx)
+		tests.Assert(t, err == nil, "expected err == nil, got:", err)
+		return nil
+	})
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	err = NewVolumeEntryFromRequest(req).Create(app.db, app.executor)
+	tests.Assert(t, err != nil, "expected err != nil, got:", err)
+
+	etext := err.Error()
+	tests.Assert(t, strings.Contains(etext, ErrNoStorage.Error()),
+		"expected strings.Contains(etext, ErrNoStorage.Error()), got:",
+		etext)
+	// verify every cluster id is listed
+	for _, cid := range clusters {
+		tests.Assert(t, strings.Contains(etext, cid),
+			"expected strings.Contains(etext, cid), got:",
+			etext)
+	}
+}
+
+func TestVolumeCreateRollbackSpaceReclaimed(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	mockerror := errors.New("MOCK")
+	app.xo.MockVolumeCreate = func(host string, volume *executors.VolumeRequest) (*executors.Volume, error) {
+		return nil, mockerror
+	}
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+		devices, e := DeviceList(tx)
+		if e != nil {
+			return e
+		}
+
+		for _, id := range devices {
+			device, e := NewDeviceEntryFromId(tx, id)
+			if e != nil {
+				return e
+			}
+			tests.Assert(t, device.Info.Storage.Free == 6*TB, id, device)
+		}
+		return nil
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	req := &api.VolumeCreateRequest{}
+	req.Size = 1024
+	req.Durability.Type = api.DurabilityReplicate
+	req.Durability.Replicate.Replica = 3
+
+	vol := NewVolumeEntryFromRequest(req)
+	vc := NewVolumeCreateOperation(vol, app.db)
+
+	e := vc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	e = vc.Exec(app.executor)
+	tests.Assert(t, e != nil, "expected e != nil, got", e)
+
+	e = vc.Rollback(app.executor)
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+
+		devices, e := DeviceList(tx)
+		if e != nil {
+			return e
+		}
+
+		for _, id := range devices {
+			device, e := NewDeviceEntryFromId(tx, id)
+			if e != nil {
+				return e
+			}
+			tests.Assert(t, device.Info.Storage.Free == 6*TB, id, device)
+		}
+		return nil
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+}
+
+func TestBlockVolumeCreateRollbackSpaceReclaimed(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+
+	mockerror := errors.New("MOCK")
+	app.xo.MockBlockVolumeCreate = func(host string, blockVolume *executors.BlockVolumeRequest) (*executors.BlockVolumeInfo, error) {
+		return nil, mockerror
+	}
+
+	err := setupSampleDbWithTopology(app,
+		2,    // clusters
+		3,    // nodes_per_cluster
+		4,    // devices_per_node,
+		6*TB, // disksize)
+	)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+		devices, e := DeviceList(tx)
+		if e != nil {
+			return e
+		}
+
+		for _, id := range devices {
+			device, e := NewDeviceEntryFromId(tx, id)
+			if e != nil {
+				return e
+			}
+			tests.Assert(t, device.Info.Storage.Free == 6*TB, id, device)
+		}
+		return nil
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+	bv := createSampleBlockVolumeEntry(500)
+	bv.Info.Name = "myvol"
+	bc := NewBlockVolumeCreateOperation(bv, app.db)
+
+	e := bc.Build()
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	e = bc.Exec(app.executor)
+	tests.Assert(t, e != nil, "expected e != nil, got", e)
+
+	e = bc.Rollback(app.executor)
+	tests.Assert(t, e == nil, "expected e == nil, got", e)
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+		pol, e := PendingOperationList(tx)
+		tests.Assert(t, e == nil, "expected e == nil, got", e)
+		tests.Assert(t, len(pol) == 0, "expected len(pol) == 0, got", len(pol))
+
+		devices, e := DeviceList(tx)
+		if e != nil {
+			return e
+		}
+
+		for _, id := range devices {
+			device, e := NewDeviceEntryFromId(tx, id)
+			if e != nil {
+				return e
+			}
+			tests.Assert(t, device.Info.Storage.Free == 6*TB, id, device)
+		}
+		return nil
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+}
+
+func TestVolumeEntryBlockCapacityLimits(t *testing.T) {
+	var (
+		err   error
+		v     *VolumeEntry
+		mkVol = func() *VolumeEntry {
+			v := NewVolumeEntry()
+			v.Info.Name = "Foo"
+			v.Info.Size = 100
+			v.Info.Block = true
+			return v
+		}
+	)
+
+	t.Run("AddCapacityOver", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		err = v.AddRawCapacity(5)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+	t.Run("AddCapacity", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(95)
+		err = v.AddRawCapacity(5)
+		tests.Assert(t, err == nil, "expected err == nil, got", err)
+	})
+	t.Run("SetCapacityOver", func(t *testing.T) {
+		v = mkVol()
+		err = v.SetRawCapacity(101)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+	t.Run("TakeFreeSpace", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		err = v.ModifyFreeSize(-10)
+		tests.Assert(t, err == nil, "expected err == nil, got", err)
+	})
+	t.Run("ReturnFreeSpace", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(95)
+		err = v.ModifyFreeSize(1)
+		tests.Assert(t, err == nil, "expected err == nil, got", err)
+	})
+	t.Run("TakeTooMuchFreeSpace", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		err = v.ModifyFreeSize(-1000)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+	t.Run("ReturnTooMuchFreeSpace", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		err = v.ModifyFreeSize(1)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+	t.Run("TakeFreeSpaceInvalidSize", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		v.Info.Size = 50
+		err = v.ModifyFreeSize(-1)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+	t.Run("TakeTooMuchReservedSpace", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		err = v.ModifyReservedSize(-200)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
+	t.Run("ReturnTooMuchReservedSpace", func(t *testing.T) {
+		v = mkVol()
+		v.SetRawCapacity(100)
+		err = v.ModifyReservedSize(2)
+		tests.Assert(t, err != nil, "expected err != nil, got", err)
+	})
 }

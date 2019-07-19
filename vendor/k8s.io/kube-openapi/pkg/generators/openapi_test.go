@@ -71,11 +71,11 @@ func testOpenAPITypeWriter(t *testing.T, code string) (error, error, *assert.Ass
 
 	callBuffer := &bytes.Buffer{}
 	callSW := generator.NewSnippetWriter(callBuffer, context, "$", "$")
-	callError := newOpenAPITypeWriter(callSW).generateCall(blahT)
+	callError := newOpenAPITypeWriter(callSW, context).generateCall(blahT)
 
 	funcBuffer := &bytes.Buffer{}
 	funcSW := generator.NewSnippetWriter(funcBuffer, context, "$", "$")
-	funcError := newOpenAPITypeWriter(funcSW).generate(blahT)
+	funcError := newOpenAPITypeWriter(funcSW, context).generate(blahT)
 
 	return callError, funcError, assert, callBuffer, funcBuffer
 }
@@ -147,6 +147,7 @@ return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
 Description: "Blah is a test.",
+Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "String": {
 SchemaProps: spec.SchemaProps{
@@ -306,7 +307,35 @@ Extensions: spec.Extensions{
 },
 },
 },
-Dependencies: []string{
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestEmptyProperties(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Blah demonstrate a struct without fields.
+type Blah struct {
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct without fields.",
+Type: []string{"object"},
+},
 },
 }
 }
@@ -437,6 +466,7 @@ return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
 Description: "PointerSample demonstrate pointer's properties",
+Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "StringPointer": {
 SchemaProps: spec.SchemaProps{
@@ -470,6 +500,7 @@ SchemaProps: spec.SchemaProps{
 Description: "A map pointer",
 Type: []string{"object"},
 AdditionalProperties: &spec.SchemaOrBool{
+Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
 Type: []string{"string"},
@@ -516,6 +547,7 @@ return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
 Description: "Blah is a test.",
+Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "NestedList": {
 SchemaProps: spec.SchemaProps{
@@ -546,8 +578,6 @@ Extensions: spec.Extensions{
 "x-kubernetes-type-tag": "type_test",
 },
 },
-},
-Dependencies: []string{
 },
 }
 }
@@ -583,11 +613,12 @@ return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
 Description: "Blah is a test.",
+Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "WithListField": {
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
-"x-kubernetes-list-map-keys": []string{
+"x-kubernetes-list-map-keys": []interface{}{
 "port",
 "protocol",
 },
@@ -615,8 +646,6 @@ Extensions: spec.Extensions{
 "x-kubernetes-type-tag": "type_test",
 },
 },
-},
-Dependencies: []string{
 },
 }
 }

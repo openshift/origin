@@ -20,27 +20,29 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"k8s.io/klog"
 
-	registerapi "k8s.io/kubernetes/pkg/kubelet/apis/pluginregistration/v1alpha1"
+	registerapi "k8s.io/kubernetes/pkg/kubelet/apis/pluginregistration/v1"
 	utilfs "k8s.io/kubernetes/pkg/util/filesystem"
 )
 
 // Watcher is the plugin watcher
 type Watcher struct {
-	path      string
-	stopCh    chan interface{}
-	fs        utilfs.Filesystem
-	fsWatcher *fsnotify.Watcher
-	wg        sync.WaitGroup
+	path           string
+	deprecatedPath string
+	stopCh         chan interface{}
+	fs             utilfs.Filesystem
+	fsWatcher      *fsnotify.Watcher
+	wg             sync.WaitGroup
 
 	mutex       sync.Mutex
 	handlers    map[string]PluginHandler
@@ -54,10 +56,13 @@ type pathInfo struct {
 }
 
 // NewWatcher provides a new watcher
-func NewWatcher(sockDir string) *Watcher {
+// deprecatedSockDir refers to a pre-GA directory that was used by older plugins
+// for socket registration. New plugins should not use this directory.
+func NewWatcher(sockDir string, deprecatedSockDir string) *Watcher {
 	return &Watcher{
-		path: sockDir,
-		fs:   &utilfs.DefaultFs{},
+		path:           sockDir,
+		deprecatedPath: deprecatedSockDir,
+		fs:             &utilfs.DefaultFs{},
 
 		handlers:    make(map[string]PluginHandler),
 		plugins:     make(map[string]pathInfo),
@@ -82,7 +87,7 @@ func (w *Watcher) getHandler(pluginType string) (PluginHandler, bool) {
 
 // Start watches for the creation of plugin sockets at the path
 func (w *Watcher) Start() error {
-	glog.V(2).Infof("Plugin Watcher Start at %s", w.path)
+	klog.V(2).Infof("Plugin Watcher Start at %s", w.path)
 	w.stopCh = make(chan interface{})
 
 	// Creating the directory to be watched if it doesn't exist yet,
@@ -97,35 +102,43 @@ func (w *Watcher) Start() error {
 	}
 	w.fsWatcher = fsWatcher
 
+	// Traverse plugin dir and add filesystem watchers before starting the plugin processing goroutine.
+	if err := w.traversePluginDir(w.path); err != nil {
+		w.Stop()
+		return fmt.Errorf("failed to traverse plugin socket path %q, err: %v", w.path, err)
+	}
+
+	// Traverse deprecated plugin dir, if specified.
+	if len(w.deprecatedPath) != 0 {
+		if err := w.traversePluginDir(w.deprecatedPath); err != nil {
+			w.Stop()
+			return fmt.Errorf("failed to traverse deprecated plugin socket path %q, err: %v", w.deprecatedPath, err)
+		}
+	}
+
 	w.wg.Add(1)
 	go func(fsWatcher *fsnotify.Watcher) {
 		defer w.wg.Done()
+
 		for {
 			select {
 			case event := <-fsWatcher.Events:
 				//TODO: Handle errors by taking corrective measures
-
-				w.wg.Add(1)
-				go func() {
-					defer w.wg.Done()
-
-					if event.Op&fsnotify.Create == fsnotify.Create {
-						err := w.handleCreateEvent(event)
-						if err != nil {
-							glog.Errorf("error %v when handling create event: %s", err, event)
-						}
-					} else if event.Op&fsnotify.Remove == fsnotify.Remove {
-						err := w.handleDeleteEvent(event)
-						if err != nil {
-							glog.Errorf("error %v when handling delete event: %s", err, event)
-						}
+				if event.Op&fsnotify.Create == fsnotify.Create {
+					err := w.handleCreateEvent(event)
+					if err != nil {
+						klog.Errorf("error %v when handling create event: %s", err, event)
 					}
-					return
-				}()
+				} else if event.Op&fsnotify.Remove == fsnotify.Remove {
+					err := w.handleDeleteEvent(event)
+					if err != nil {
+						klog.Errorf("error %v when handling delete event: %s", err, event)
+					}
+				}
 				continue
 			case err := <-fsWatcher.Errors:
 				if err != nil {
-					glog.Errorf("fsWatcher received error: %v", err)
+					klog.Errorf("fsWatcher received error: %v", err)
 				}
 				continue
 			case <-w.stopCh:
@@ -133,12 +146,6 @@ func (w *Watcher) Start() error {
 			}
 		}
 	}(fsWatcher)
-
-	// Traverse plugin dir after starting the plugin processing goroutine
-	if err := w.traversePluginDir(w.path); err != nil {
-		w.Stop()
-		return fmt.Errorf("failed to traverse plugin socket path, err: %v", err)
-	}
 
 	return nil
 }
@@ -165,7 +172,7 @@ func (w *Watcher) Stop() error {
 }
 
 func (w *Watcher) init() error {
-	glog.V(4).Infof("Ensuring Plugin directory at %s ", w.path)
+	klog.V(4).Infof("Ensuring Plugin directory at %s ", w.path)
 
 	if err := w.fs.MkdirAll(w.path, 0755); err != nil {
 		return fmt.Errorf("error (re-)creating root %s: %v", w.path, err)
@@ -175,26 +182,39 @@ func (w *Watcher) init() error {
 }
 
 // Walks through the plugin directory discover any existing plugin sockets.
+// Goroutines started here will be waited for in Stop() before cleaning up.
+// Ignore all errors except root dir not being walkable
 func (w *Watcher) traversePluginDir(dir string) error {
 	return w.fs.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return fmt.Errorf("error accessing path: %s error: %v", path, err)
+			if path == dir {
+				return fmt.Errorf("error accessing path: %s error: %v", path, err)
+			}
+
+			klog.Errorf("error accessing path: %s error: %v", path, err)
+			return nil
 		}
 
 		switch mode := info.Mode(); {
 		case mode.IsDir():
+			if w.containsBlacklistedDir(path) {
+				return filepath.SkipDir
+			}
+
 			if err := w.fsWatcher.Add(path); err != nil {
 				return fmt.Errorf("failed to watch %s, err: %v", path, err)
 			}
 		case mode&os.ModeSocket != 0:
-			go func() {
-				w.fsWatcher.Events <- fsnotify.Event{
-					Name: path,
-					Op:   fsnotify.Create,
-				}
-			}()
+			event := fsnotify.Event{
+				Name: path,
+				Op:   fsnotify.Create,
+			}
+			//TODO: Handle errors by taking corrective measures
+			if err := w.handleCreateEvent(event); err != nil {
+				klog.Errorf("error %v when handling create event: %s", err, event)
+			}
 		default:
-			glog.V(5).Infof("Ignoring file %s with mode %v", path, mode)
+			klog.V(5).Infof("Ignoring file %s with mode %v", path, mode)
 		}
 
 		return nil
@@ -202,8 +222,14 @@ func (w *Watcher) traversePluginDir(dir string) error {
 }
 
 // Handle filesystem notify event.
+// Files names:
+// - MUST NOT start with a '.'
 func (w *Watcher) handleCreateEvent(event fsnotify.Event) error {
-	glog.V(6).Infof("Handling create event: %v", event)
+	klog.V(6).Infof("Handling create event: %v", event)
+
+	if w.containsBlacklistedDir(event.Name) {
+		return nil
+	}
 
 	fi, err := os.Stat(event.Name)
 	if err != nil {
@@ -211,11 +237,16 @@ func (w *Watcher) handleCreateEvent(event fsnotify.Event) error {
 	}
 
 	if strings.HasPrefix(fi.Name(), ".") {
-		glog.Errorf("Ignoring file: %s", fi.Name())
+		klog.V(5).Infof("Ignoring file (starts with '.'): %s", fi.Name())
 		return nil
 	}
 
 	if !fi.IsDir() {
+		if fi.Mode()&os.ModeSocket == 0 {
+			klog.V(5).Infof("Ignoring non socket file %s", fi.Name())
+			return nil
+		}
+
 		return w.handlePluginRegistration(event.Name)
 	}
 
@@ -255,8 +286,10 @@ func (w *Watcher) handlePluginRegistration(socketPath string) error {
 		infoResp.Endpoint = socketPath
 	}
 
+	foundInDeprecatedDir := w.foundInDeprecatedDir(socketPath)
+
 	// calls handler callback to verify registration request
-	if err := handler.ValidatePlugin(infoResp.Name, infoResp.Endpoint, infoResp.SupportedVersions); err != nil {
+	if err := handler.ValidatePlugin(infoResp.Name, infoResp.Endpoint, infoResp.SupportedVersions, foundInDeprecatedDir); err != nil {
 		return w.notifyPlugin(client, false, fmt.Sprintf("plugin validation failed with err: %v", err))
 	}
 
@@ -264,7 +297,7 @@ func (w *Watcher) handlePluginRegistration(socketPath string) error {
 	// so that if we receive a delete event during Register Plugin, we can process it as a DeRegister call.
 	w.registerPlugin(socketPath, infoResp.Type, infoResp.Name)
 
-	if err := handler.RegisterPlugin(infoResp.Name, infoResp.Endpoint); err != nil {
+	if err := handler.RegisterPlugin(infoResp.Name, infoResp.Endpoint, infoResp.SupportedVersions); err != nil {
 		return w.notifyPlugin(client, false, fmt.Sprintf("plugin registration failed with err: %v", err))
 	}
 
@@ -277,11 +310,12 @@ func (w *Watcher) handlePluginRegistration(socketPath string) error {
 }
 
 func (w *Watcher) handleDeleteEvent(event fsnotify.Event) error {
-	glog.V(6).Infof("Handling delete event: %v", event)
+	klog.V(6).Infof("Handling delete event: %v", event)
 
 	plugin, ok := w.getPlugin(event.Name)
 	if !ok {
-		return fmt.Errorf("could not find plugin for deleted file %s", event.Name)
+		klog.V(5).Infof("could not find plugin for deleted file %s", event.Name)
+		return nil
 	}
 
 	// You should not get a Deregister call while registering a plugin
@@ -295,7 +329,7 @@ func (w *Watcher) handleDeleteEvent(event fsnotify.Event) error {
 	// When ReRegistering, the new plugin will have removed the current mapping (map[socketPath] = plugin) and replaced
 	// it with it's own socketPath.
 	if _, ok = w.getPlugin(event.Name); !ok {
-		glog.V(2).Infof("A newer plugin watcher has been registered for plugin %v, dropping DeRegister call", plugin)
+		klog.V(2).Infof("A newer plugin watcher has been registered for plugin %v, dropping DeRegister call", plugin)
 		return nil
 	}
 
@@ -304,7 +338,7 @@ func (w *Watcher) handleDeleteEvent(event fsnotify.Event) error {
 		return fmt.Errorf("could not find handler %s for plugin %s at path %s", plugin.pluginType, plugin.pluginName, event.Name)
 	}
 
-	glog.V(2).Infof("DeRegistering plugin %v at path %s", plugin, event.Name)
+	klog.V(2).Infof("DeRegistering plugin %v at path %s", plugin, event.Name)
 	w.deRegisterPlugin(event.Name, plugin.pluginType, plugin.pluginName)
 	h.DeRegisterPlugin(plugin.pluginName)
 
@@ -399,4 +433,28 @@ func dial(unixSocketPath string, timeout time.Duration) (registerapi.Registratio
 	}
 
 	return registerapi.NewRegistrationClient(c), c, nil
+}
+
+// While deprecated dir is supported, to add extra protection around #69015
+// we will explicitly blacklist kubernetes.io directory.
+func (w *Watcher) containsBlacklistedDir(path string) bool {
+	return strings.HasPrefix(path, w.deprecatedPath+"/kubernetes.io/") ||
+		path == w.deprecatedPath+"/kubernetes.io"
+}
+
+func (w *Watcher) foundInDeprecatedDir(socketPath string) bool {
+	if len(w.deprecatedPath) != 0 {
+		if socketPath == w.deprecatedPath {
+			return true
+		}
+
+		deprecatedPath := w.deprecatedPath
+		if !strings.HasSuffix(deprecatedPath, "/") {
+			deprecatedPath = deprecatedPath + "/"
+		}
+		if strings.HasPrefix(socketPath, deprecatedPath) {
+			return true
+		}
+	}
+	return false
 }

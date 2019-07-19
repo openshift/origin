@@ -409,6 +409,8 @@ type Information struct {
 	ErrorMessage *[]ErrorDetails `json:"errorMessage,omitempty"`
 	// DegreeOfParallelism - the degree of parallelism used for this job. This must be greater than 0.
 	DegreeOfParallelism *int32 `json:"degreeOfParallelism,omitempty"`
+	// DegreeOfParallelismPercent - the degree of parallelism in percentage used for this job.
+	DegreeOfParallelismPercent *float64 `json:"degreeOfParallelismPercent,omitempty"`
 	// Priority - the priority value for the current job. Lower numbers have a higher priority. By default, a job has a priority of 1000. This must be greater than 0.
 	Priority *int32 `json:"priority,omitempty"`
 	// SubmitTime - the time the job was submitted to the service.
@@ -427,6 +429,8 @@ type Information struct {
 	LogFilePatterns *[]string `json:"logFilePatterns,omitempty"`
 	// StateAuditRecords - the job state audit records, indicating when various operations have been performed on this job.
 	StateAuditRecords *[]StateAuditRecord `json:"stateAuditRecords,omitempty"`
+	// HierarchyQueueNode - the name of hierarchy queue node this job is assigned to, null if job has not been assigned yet or the account doesn't have hierarchy queue.
+	HierarchyQueueNode *string `json:"hierarchyQueueNode,omitempty"`
 	// Properties - the job specific properties.
 	Properties BasicProperties `json:"properties,omitempty"`
 }
@@ -493,6 +497,15 @@ func (i *Information) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				i.DegreeOfParallelism = &degreeOfParallelism
+			}
+		case "degreeOfParallelismPercent":
+			if v != nil {
+				var degreeOfParallelismPercent float64
+				err = json.Unmarshal(*v, &degreeOfParallelismPercent)
+				if err != nil {
+					return err
+				}
+				i.DegreeOfParallelismPercent = &degreeOfParallelismPercent
 			}
 		case "priority":
 			if v != nil {
@@ -574,6 +587,15 @@ func (i *Information) UnmarshalJSON(body []byte) error {
 					return err
 				}
 				i.StateAuditRecords = &stateAuditRecords
+			}
+		case "hierarchyQueueNode":
+			if v != nil {
+				var hierarchyQueueNode string
+				err = json.Unmarshal(*v, &hierarchyQueueNode)
+				if err != nil {
+					return err
+				}
+				i.HierarchyQueueNode = &hierarchyQueueNode
 			}
 		case "properties":
 			if v != nil {

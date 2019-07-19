@@ -42,18 +42,21 @@ type targetHTTPHandler struct {
 	called  bool
 	headers map[string][]string
 	path    string
+	host    string
 }
 
 func (d *targetHTTPHandler) Reset() {
 	d.path = ""
 	d.called = false
 	d.headers = nil
+	d.host = ""
 }
 
 func (d *targetHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d.path = r.URL.Path
 	d.called = true
 	d.headers = r.Header
+	d.host = r.Host
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -83,6 +86,10 @@ type mockedRouter struct {
 
 func (r *mockedRouter) ResolveEndpoint(namespace, name string) (*url.URL, error) {
 	return &url.URL{Scheme: "https", Host: r.destinationHost}, r.err
+}
+
+func emptyCert() []byte {
+	return []byte{}
 }
 
 func TestProxyHandler(t *testing.T) {
@@ -272,6 +279,8 @@ func TestProxyHandler(t *testing.T) {
 				localDelegate:   http.NewServeMux(),
 				serviceResolver: serviceResolver,
 				proxyTransport:  &http.Transport{},
+				proxyClientCert: emptyCert,
+				proxyClientKey:  emptyCert,
 			}
 			server := httptest.NewServer(contextHandler(handler, tc.user))
 			defer server.Close()
@@ -313,6 +322,10 @@ func TestProxyHandler(t *testing.T) {
 				t.Errorf("%s: expected %v, got %v", name, e, a)
 				return
 			}
+			if e, a := targetServer.Listener.Addr().String(), target.host; tc.expectedCalled && !reflect.DeepEqual(e, a) {
+				t.Errorf("%s: expected %v, got %v", name, e, a)
+				return
+			}
 		}()
 	}
 }
@@ -344,9 +357,9 @@ func TestProxyUpgrade(t *testing.T) {
 			APIService: &apiregistration.APIService{
 				Spec: apiregistration.APIServiceSpec{
 					InsecureSkipTLSVerify: true,
-					Group:   "mygroup",
-					Version: "v1",
-					Service: &apiregistration.ServiceReference{Name: "invalid-service", Namespace: "invalid-ns"},
+					Group:                 "mygroup",
+					Version:               "v1",
+					Service:               &apiregistration.ServiceReference{Name: "invalid-service", Namespace: "invalid-ns"},
 				},
 				Status: apiregistration.APIServiceStatus{
 					Conditions: []apiregistration.APIServiceCondition{
@@ -392,12 +405,12 @@ func TestProxyUpgrade(t *testing.T) {
 			}))
 
 			backendServer := httptest.NewUnstartedServer(backendHandler)
-			if cert, err := tls.X509KeyPair(svcCrt, svcKey); err != nil {
+			cert, err := tls.X509KeyPair(svcCrt, svcKey)
+			if err != nil {
 				t.Errorf("https (valid hostname): %v", err)
 				return
-			} else {
-				backendServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 			}
+			backendServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 			backendServer.StartTLS()
 			defer backendServer.Close()
 
@@ -411,6 +424,8 @@ func TestProxyUpgrade(t *testing.T) {
 			proxyHandler := &proxyHandler{
 				serviceResolver: &mockedRouter{destinationHost: serverURL.Host},
 				proxyTransport:  &http.Transport{},
+				proxyClientCert: emptyCert,
+				proxyClientKey:  emptyCert,
 			}
 			proxyHandler.updateAPIService(tc.APIService)
 			aggregator := httptest.NewServer(contextHandler(proxyHandler, &user.DefaultInfo{Name: "username"}))

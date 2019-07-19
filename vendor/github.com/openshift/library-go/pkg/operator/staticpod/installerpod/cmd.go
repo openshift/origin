@@ -1,6 +1,7 @@
 package installerpod
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,17 +10,20 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/library-go/pkg/config/client"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	"github.com/openshift/library-go/pkg/operator/resource/retry"
 )
 
 type InstallOptions struct {
@@ -36,12 +40,30 @@ type InstallOptions struct {
 	ConfigMapNamePrefixes         []string
 	OptionalConfigMapNamePrefixes []string
 
+	CertSecretNames                   []string
+	OptionalCertSecretNamePrefixes    []string
+	CertConfigMapNamePrefixes         []string
+	OptionalCertConfigMapNamePrefixes []string
+
+	CertDir        string
 	ResourceDir    string
 	PodManifestDir string
+
+	Timeout time.Duration
+
+	PodMutationFns []PodMutationFunc
 }
+
+// PodMutationFunc is a function that has a chance at changing the pod before it is created
+type PodMutationFunc func(pod *corev1.Pod) error
 
 func NewInstallOptions() *InstallOptions {
 	return &InstallOptions{}
+}
+
+func (o *InstallOptions) WithPodMutationFn(podMutationFn PodMutationFunc) *InstallOptions {
+	o.PodMutationFns = append(o.PodMutationFns, podMutationFn)
+	return o
 }
 
 func NewInstaller() *cobra.Command {
@@ -51,17 +73,20 @@ func NewInstaller() *cobra.Command {
 		Use:   "installer",
 		Short: "Install static pod and related resources",
 		Run: func(cmd *cobra.Command, args []string) {
-			glog.V(1).Info(cmd.Flags())
-			glog.V(1).Info(spew.Sdump(o))
+			klog.V(1).Info(cmd.Flags())
+			klog.V(1).Info(spew.Sdump(o))
 
 			if err := o.Complete(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 			if err := o.Validate(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
-			if err := o.Run(); err != nil {
-				glog.Fatal(err)
+
+			ctx, cancel := context.WithTimeout(context.TODO(), o.Timeout)
+			defer cancel()
+			if err := o.Run(ctx); err != nil {
+				klog.Fatal(err)
 			}
 		},
 	}
@@ -82,6 +107,13 @@ func (o *InstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringSliceVar(&o.OptionalConfigMapNamePrefixes, "optional-configmaps", o.OptionalConfigMapNamePrefixes, "list of optional configmaps to be included")
 	fs.StringVar(&o.ResourceDir, "resource-dir", o.ResourceDir, "directory for all files supporting the static pod manifest")
 	fs.StringVar(&o.PodManifestDir, "pod-manifest-dir", o.PodManifestDir, "directory for the static pod manifest")
+	fs.DurationVar(&o.Timeout, "timeout-duration", 120*time.Second, "maximum time in seconds to wait for the copying to complete (default: 2m)")
+
+	fs.StringSliceVar(&o.CertSecretNames, "cert-secrets", o.CertSecretNames, "list of secret names to be included")
+	fs.StringSliceVar(&o.CertConfigMapNamePrefixes, "cert-configmaps", o.CertConfigMapNamePrefixes, "list of configmaps to be included")
+	fs.StringSliceVar(&o.OptionalCertSecretNamePrefixes, "optional-cert-secrets", o.OptionalCertSecretNamePrefixes, "list of optional secret names to be included")
+	fs.StringSliceVar(&o.OptionalCertConfigMapNamePrefixes, "optional-cert-configmaps", o.OptionalCertConfigMapNamePrefixes, "list of optional configmaps to be included")
+	fs.StringVar(&o.CertDir, "cert-dir", o.CertDir, "directory for all certs")
 }
 
 func (o *InstallOptions) Complete() error {
@@ -89,7 +121,13 @@ func (o *InstallOptions) Complete() error {
 	if err != nil {
 		return err
 	}
-	o.KubeClient, err = kubernetes.NewForConfig(clientConfig)
+
+	// Use protobuf to fetch configmaps and secrets and create pods.
+	protoConfig := rest.CopyConfig(clientConfig)
+	protoConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protoConfig.ContentType = "application/vnd.kubernetes.protobuf"
+
+	o.KubeClient, err = kubernetes.NewForConfig(protoConfig)
 	if err != nil {
 		return err
 	}
@@ -106,11 +144,11 @@ func (o *InstallOptions) Validate() error {
 	if len(o.PodConfigMapNamePrefix) == 0 {
 		return fmt.Errorf("--pod is required")
 	}
-	if len(o.SecretNamePrefixes) == 0 {
-		return fmt.Errorf("--secrets is required")
-	}
 	if len(o.ConfigMapNamePrefixes) == 0 {
 		return fmt.Errorf("--configmaps is required")
+	}
+	if o.Timeout == 0 {
+		return fmt.Errorf("--timeout-duration cannot be 0")
 	}
 
 	if o.KubeClient == nil {
@@ -128,106 +166,166 @@ func (o *InstallOptions) prefixFor(name string) string {
 	return name[0 : len(name)-len(fmt.Sprintf("-%s", o.Revision))]
 }
 
-func (o *InstallOptions) copyContent() error {
-	// gather all secrets
+func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceDir string,
+	secretNames, optionalSecretNames, configNames, optionalConfigNames sets.String, prefixed bool) error {
+	klog.Infof("Creating target resource directory %q ...", resourceDir)
+	if err := os.MkdirAll(resourceDir, 0755); err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	// Gather secrets. If we get API server error, retry getting until we hit the timeout.
+	// Retrying will prevent temporary API server blips or networking issues.
+	// We return when all "required" secrets are gathered, optional secrets are not checked.
+	klog.Infof("Getting secrets ...")
 	secrets := []*corev1.Secret{}
-	for _, currPrefix := range o.SecretNamePrefixes {
-		glog.Infof("getting secrets/%s -n %s", o.nameFor(currPrefix), o.Namespace)
-		val, err := o.KubeClient.CoreV1().Secrets(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
+	for _, name := range append(secretNames.List(), optionalSecretNames.List()...) {
+		secret, err := o.getSecretWithRetry(ctx, name, optionalSecretNames.Has(name))
 		if err != nil {
 			return err
 		}
-		secrets = append(secrets, val)
-	}
-	for _, currPrefix := range o.OptionalSecretNamePrefixes {
-		glog.Infof("getting optional secrets/%s -n %s", o.nameFor(currPrefix), o.Namespace)
-		val, err := o.KubeClient.CoreV1().Secrets(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			glog.Infof("missing optional secrets/%s -n %s", o.nameFor(currPrefix), o.Namespace)
-			continue
+		// secret is nil means the secret was optional and we failed to get it.
+		if secret != nil {
+			secrets = append(secrets, secret)
 		}
-		if err != nil {
-			return err
-		}
-		secrets = append(secrets, val)
 	}
 
-	// gather all configmaps
-	configmaps := []*corev1.ConfigMap{}
-	for _, currPrefix := range o.ConfigMapNamePrefixes {
-		glog.Infof("getting configmaps/%s -n %s", o.nameFor(currPrefix), o.Namespace)
-		val, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
+	klog.Infof("Getting config maps ...")
+	configs := []*corev1.ConfigMap{}
+	for _, name := range append(configNames.List(), optionalConfigNames.List()...) {
+		config, err := o.getConfigMapWithRetry(ctx, name, optionalConfigNames.Has(name))
 		if err != nil {
 			return err
 		}
-		configmaps = append(configmaps, val)
-	}
-	for _, currPrefix := range o.OptionalConfigMapNamePrefixes {
-		glog.Infof("getting optional configmaps/%s -n %s", o.nameFor(currPrefix), o.Namespace)
-		val, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			glog.Infof("missing optional configmaps/%s -n %s", o.nameFor(currPrefix), o.Namespace)
-			continue
+		// config is nil means the config was optional and we failed to get it.
+		if config != nil {
+			configs = append(configs, config)
 		}
-		if err != nil {
-			return err
-		}
-		configmaps = append(configmaps, val)
 	}
 
-	// gather pod
-	glog.Infof("getting pod configmaps/%s -n %s", o.nameFor(o.PodConfigMapNamePrefix), o.Namespace)
-	podConfigMap, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(o.PodConfigMapNamePrefix), metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	podContent := podConfigMap.Data["pod.yaml"]
-	podContent = strings.Replace(podContent, "REVISION", o.Revision, -1)
-
-	// write secrets, configmaps, static pods
-	resourceDir := path.Join(o.ResourceDir, o.nameFor(o.PodConfigMapNamePrefix))
-	glog.Infof("creating dir %q", resourceDir)
-	if err := os.MkdirAll(resourceDir, 0755); err != nil {
-		return err
-	}
 	for _, secret := range secrets {
-		contentDir := path.Join(resourceDir, "secrets", o.prefixFor(secret.Name))
-		glog.Infof("creating dir %q", contentDir)
+		secretBaseName := secret.Name
+		if prefixed {
+			secretBaseName = o.prefixFor(secret.Name)
+		}
+		contentDir := path.Join(resourceDir, "secrets", secretBaseName)
+		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil {
 			return err
 		}
 		for filename, content := range secret.Data {
 			// TODO fix permissions
-			glog.Infof("writing secret file %q", path.Join(contentDir, filename))
-			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0644); err != nil {
+			klog.Infof("Writing secret manifest %q ...", path.Join(contentDir, filename))
+			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0600); err != nil {
 				return err
 			}
 		}
 	}
-	for _, configmap := range configmaps {
-		contentDir := path.Join(resourceDir, "configmaps", o.prefixFor(configmap.Name))
-		glog.Infof("creating dir %q", contentDir)
+	for _, configmap := range configs {
+		configMapBaseName := configmap.Name
+		if prefixed {
+			configMapBaseName = o.prefixFor(configmap.Name)
+		}
+		contentDir := path.Join(resourceDir, "configmaps", configMapBaseName)
+		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil {
 			return err
 		}
 		for filename, content := range configmap.Data {
-			glog.Infof("writing configmap file %q", path.Join(contentDir, filename))
+			klog.Infof("Writing config file %q ...", path.Join(contentDir, filename))
 			if err := ioutil.WriteFile(path.Join(contentDir, filename), []byte(content), 0644); err != nil {
 				return err
 			}
 		}
 	}
+
+	return nil
+}
+
+func (o *InstallOptions) copyContent(ctx context.Context) error {
+	resourceDir := path.Join(o.ResourceDir, o.nameFor(o.PodConfigMapNamePrefix))
+	klog.Infof("Creating target resource directory %q ...", resourceDir)
+	if err := os.MkdirAll(resourceDir, 0755); err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	secretPrefixes := sets.NewString()
+	optionalSecretPrefixes := sets.NewString()
+	configPrefixes := sets.NewString()
+	optionalConfigPrefixes := sets.NewString()
+	for _, prefix := range o.SecretNamePrefixes {
+		secretPrefixes.Insert(o.nameFor(prefix))
+	}
+	for _, prefix := range o.OptionalSecretNamePrefixes {
+		optionalSecretPrefixes.Insert(o.nameFor(prefix))
+	}
+	for _, prefix := range o.ConfigMapNamePrefixes {
+		configPrefixes.Insert(o.nameFor(prefix))
+	}
+	for _, prefix := range o.OptionalConfigMapNamePrefixes {
+		optionalConfigPrefixes.Insert(o.nameFor(prefix))
+	}
+	if err := o.copySecretsAndConfigMaps(ctx, resourceDir, secretPrefixes, optionalSecretPrefixes, configPrefixes, optionalConfigPrefixes, true); err != nil {
+		return err
+	}
+
+	// Copy the current state of the certs as we see them.  This primes us once and allows a kube-apiserver to start once
+	if len(o.CertDir) > 0 {
+		if err := o.copySecretsAndConfigMaps(ctx, o.CertDir,
+			sets.NewString(o.CertSecretNames...),
+			sets.NewString(o.OptionalCertSecretNamePrefixes...),
+			sets.NewString(o.CertConfigMapNamePrefixes...),
+			sets.NewString(o.OptionalCertConfigMapNamePrefixes...),
+			false,
+		); err != nil {
+			return err
+		}
+	}
+
+	// Gather pod yaml from config map
+	var podContent string
+
+	err := retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
+		klog.Infof("Getting pod configmaps/%s -n %s", o.nameFor(o.PodConfigMapNamePrefix), o.Namespace)
+		podConfigMap, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(o.PodConfigMapNamePrefix), metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		podData, exists := podConfigMap.Data["pod.yaml"]
+		if !exists {
+			return true, fmt.Errorf("required 'pod.yaml' key does not exist in configmap")
+		}
+		podContent = strings.Replace(podData, "REVISION", o.Revision, -1)
+		return true, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Write secrets, config maps and pod to disk
+	// This does not need timeout, instead we should fail hard when we are not able to write.
+
 	podFileName := o.PodConfigMapNamePrefix + ".yaml"
+	klog.Infof("Writing pod manifest %q ...", path.Join(resourceDir, podFileName))
 	if err := ioutil.WriteFile(path.Join(resourceDir, podFileName), []byte(podContent), 0644); err != nil {
 		return err
 	}
 
 	// copy static pod
-	glog.Infof("creating dir %q", o.PodManifestDir)
+	klog.Infof("Creating directory for static pod manifest %q ...", o.PodManifestDir)
 	if err := os.MkdirAll(o.PodManifestDir, 0755); err != nil {
 		return err
 	}
-	glog.Infof("writing static pod %q", path.Join(o.PodManifestDir, podFileName))
+
+	for _, fn := range o.PodMutationFns {
+		klog.V(2).Infof("Customizing static pod ...")
+		pod := resourceread.ReadPodV1OrDie([]byte(podContent))
+		if err := fn(pod); err != nil {
+			return err
+		}
+		podContent = resourceread.WritePodV1OrDie(pod)
+	}
+
+	klog.Infof("Writing static pod manifest %q ...\n%s", path.Join(o.PodManifestDir, podFileName), podContent)
 	if err := ioutil.WriteFile(path.Join(o.PodManifestDir, podFileName), []byte(podContent), 0644); err != nil {
 		return err
 	}
@@ -235,27 +333,27 @@ func (o *InstallOptions) copyContent() error {
 	return nil
 }
 
-func (o *InstallOptions) Run() error {
-	// ~2 min total waiting
-	backoff := utilwait.Backoff{
-		Duration: time.Second,
-		Factor:   1.5,
-		Steps:    11,
-	}
-	attempts := 0
-	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
-		attempts += 1
-		if copyErr := o.copyContent(); copyErr != nil {
-			fmt.Fprintf(os.Stderr, "#%d: failed to copy content: %v", attempts, copyErr)
-			return false, nil
+func (o *InstallOptions) Run(ctx context.Context) error {
+	var eventTarget *corev1.ObjectReference
+
+	err := retry.RetryOnConnectionErrors(ctx, func(context.Context) (bool, error) {
+		var clientErr error
+		eventTarget, clientErr = events.GetControllerReferenceForCurrentPod(o.KubeClient, o.Namespace, nil)
+		if clientErr != nil {
+			return false, clientErr
 		}
 		return true, nil
 	})
 	if err != nil {
-		return fmt.Errorf("error: %v", err)
+		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
 	}
 
-	// TODO wait for healthy pod status
+	recorder := events.NewRecorder(o.KubeClient.CoreV1().Events(o.Namespace), "static-pod-installer", eventTarget)
+	if err := o.copyContent(ctx); err != nil {
+		recorder.Warningf("StaticPodInstallerFailed", "Installing revision %s: %v", o.Revision, err)
+		return fmt.Errorf("failed to copy: %v", err)
+	}
 
+	recorder.Eventf("StaticPodInstallerCompleted", "Successfully installed revision %s", o.Revision)
 	return nil
 }

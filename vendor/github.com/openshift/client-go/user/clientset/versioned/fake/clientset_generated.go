@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) UserV1() userv1.UserV1Interface {
 	return &fakeuserv1.FakeUserV1{Fake: &c.Fake}
 }
-
-// User retrieves the UserV1Client
-func (c *Clientset) User() userv1.UserV1Interface {
-	return &fakeuserv1.FakeUserV1{Fake: &c.Fake}
-}

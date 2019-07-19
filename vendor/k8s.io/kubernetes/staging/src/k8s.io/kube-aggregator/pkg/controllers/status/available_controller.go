@@ -22,9 +22,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/golang/glog"
-
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -39,7 +37,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/workqueue"
-
+	"k8s.io/klog"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
 	informers "k8s.io/kube-aggregator/pkg/client/informers/internalversion/apiregistration/internalversion"
@@ -47,10 +45,14 @@ import (
 	"k8s.io/kube-aggregator/pkg/controllers"
 )
 
+type certFunc func() []byte
+
+// ServiceResolver knows how to convert a service reference into an actual location.
 type ServiceResolver interface {
 	ResolveEndpoint(namespace, name string) (*url.URL, error)
 }
 
+// AvailableConditionController handles checking the availability of registered API services.
 type AvailableConditionController struct {
 	apiServiceClient apiregistrationclient.APIServicesGetter
 
@@ -64,7 +66,9 @@ type AvailableConditionController struct {
 	endpointsLister v1listers.EndpointsLister
 	endpointsSynced cache.InformerSynced
 
-	discoveryClient *http.Client
+	proxyTransport  *http.Transport
+	proxyClientCert certFunc
+	proxyClientKey  certFunc
 	serviceResolver ServiceResolver
 
 	// To allow injection for testing.
@@ -73,16 +77,17 @@ type AvailableConditionController struct {
 	queue workqueue.RateLimitingInterface
 }
 
+// NewAvailableConditionController returns a new AvailableConditionController.
 func NewAvailableConditionController(
 	apiServiceInformer informers.APIServiceInformer,
 	serviceInformer v1informers.ServiceInformer,
 	endpointsInformer v1informers.EndpointsInformer,
 	apiServiceClient apiregistrationclient.APIServicesGetter,
 	proxyTransport *http.Transport,
-	proxyClientCert []byte,
-	proxyClientKey []byte,
+	proxyClientCert certFunc,
+	proxyClientKey certFunc,
 	serviceResolver ServiceResolver,
-) *AvailableConditionController {
+) (*AvailableConditionController, error) {
 	c := &AvailableConditionController{
 		apiServiceClient: apiServiceClient,
 		apiServiceLister: apiServiceInformer.Lister(),
@@ -98,30 +103,10 @@ func NewAvailableConditionController(
 			// the maximum disruption time to a minimum, but it does prevent hot loops.
 			workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 30*time.Second),
 			"AvailableConditionController"),
+		proxyTransport:  proxyTransport,
+		proxyClientCert: proxyClientCert,
+		proxyClientKey:  proxyClientKey,
 	}
-
-	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
-	// that's not so bad) and sets a very short timeout.
-	restConfig := &rest.Config{
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
-			CertData: proxyClientCert,
-			KeyData:  proxyClientKey,
-		},
-	}
-	transport, err := rest.TransportFor(restConfig)
-	if err != nil {
-		panic(err)
-	}
-	discoveryClient := &http.Client{
-		Transport: transport,
-		// the request should happen quickly.
-		Timeout: 5 * time.Second,
-	}
-	if proxyTransport != nil {
-		discoveryClient.Transport = proxyTransport
-	}
-	c.discoveryClient = discoveryClient
 
 	// resync on this one because it is low cardinality and rechecking the actual discovery
 	// allows us to detect health in a more timely fashion when network connectivity to
@@ -149,7 +134,7 @@ func NewAvailableConditionController(
 
 	c.syncFn = c.sync
 
-	return c
+	return c, nil
 }
 
 func (c *AvailableConditionController) sync(key string) error {
@@ -159,6 +144,29 @@ func (c *AvailableConditionController) sync(key string) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	// if a particular transport was specified, use that otherwise build one
+	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
+	// that's not so bad) and sets a very short timeout.  This is a best effort GET that provides no additional information
+	restConfig := &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: true,
+			CertData: c.proxyClientCert(),
+			KeyData:  c.proxyClientKey(),
+		},
+	}
+	if c.proxyTransport != nil && c.proxyTransport.DialContext != nil {
+		restConfig.Dial = c.proxyTransport.DialContext
+	}
+	restTransport, err := rest.TransportFor(restConfig)
+	if err != nil {
+		panic(err)
+	}
+	discoveryClient := &http.Client{
+		Transport: restTransport,
+		// the request should happen quickly.
+		Timeout: 5 * time.Second,
 	}
 
 	apiService := originalAPIService.DeepCopy()
@@ -262,22 +270,25 @@ func (c *AvailableConditionController) sync(key string) error {
 						return
 					}
 
+					// setting the system-masters identity ensures that we will always have access rights
 					transport.SetAuthProxyHeaders(newReq, "system:kube-aggregator", []string{"system:masters"}, nil)
-					resp, err := c.discoveryClient.Do(newReq)
+					resp, err := discoveryClient.Do(newReq)
 					if resp != nil {
 						resp.Body.Close()
+						// we should always been in the 200s or 300s
 						if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 							errCh <- fmt.Errorf("bad status from %v: %v", discoveryURL, resp.StatusCode)
 							return
 						}
 					}
+
 					errCh <- err
 				}()
 
 				select {
 				case err = <-errCh:
 					if err != nil {
-						results <- fmt.Errorf("no response from %v: %v", discoveryURL, err)
+						results <- fmt.Errorf("failing or missing response from %v: %v", discoveryURL, err)
 						return
 					}
 
@@ -329,6 +340,7 @@ func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, orig
 	if equality.Semantic.DeepEqual(originalAPIService.Status, newAPIService.Status) {
 		return newAPIService, nil
 	}
+
 	newAPIService, err := client.APIServices().UpdateStatus(newAPIService)
 	if err != nil {
 		return nil, err
@@ -354,12 +366,13 @@ func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, orig
 	return newAPIService, nil
 }
 
+// Run starts the AvailableConditionController loop which manages the availability condition of API services.
 func (c *AvailableConditionController) Run(threadiness int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting AvailableConditionController")
-	defer glog.Infof("Shutting down AvailableConditionController")
+	klog.Infof("Starting AvailableConditionController")
+	defer klog.Infof("Shutting down AvailableConditionController")
 
 	if !controllers.WaitForCacheSync("AvailableConditionController", stopCh, c.apiServiceSynced, c.servicesSynced, c.endpointsSynced) {
 		return
@@ -400,7 +413,7 @@ func (c *AvailableConditionController) processNextWorkItem() bool {
 func (c *AvailableConditionController) enqueue(obj *apiregistration.APIService) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %#v: %v", obj, err)
+		klog.Errorf("Couldn't get key for object %#v: %v", obj, err)
 		return
 	}
 
@@ -409,13 +422,13 @@ func (c *AvailableConditionController) enqueue(obj *apiregistration.APIService) 
 
 func (c *AvailableConditionController) addAPIService(obj interface{}) {
 	castObj := obj.(*apiregistration.APIService)
-	glog.V(4).Infof("Adding %s", castObj.Name)
+	klog.V(4).Infof("Adding %s", castObj.Name)
 	c.enqueue(castObj)
 }
 
 func (c *AvailableConditionController) updateAPIService(obj, _ interface{}) {
 	castObj := obj.(*apiregistration.APIService)
-	glog.V(4).Infof("Updating %s", castObj.Name)
+	klog.V(4).Infof("Updating %s", castObj.Name)
 	c.enqueue(castObj)
 }
 
@@ -424,16 +437,16 @@ func (c *AvailableConditionController) deleteAPIService(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			klog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
 		castObj, ok = tombstone.Obj.(*apiregistration.APIService)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
+			klog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
 		}
 	}
-	glog.V(4).Infof("Deleting %q", castObj.Name)
+	klog.V(4).Infof("Deleting %q", castObj.Name)
 	c.enqueue(castObj)
 }
 
@@ -478,12 +491,12 @@ func (c *AvailableConditionController) deleteService(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			klog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
 		castObj, ok = tombstone.Obj.(*v1.Service)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
+			klog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
 		}
 	}
@@ -509,12 +522,12 @@ func (c *AvailableConditionController) deleteEndpoints(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			klog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
 		castObj, ok = tombstone.Obj.(*v1.Endpoints)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
+			klog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
 		}
 	}

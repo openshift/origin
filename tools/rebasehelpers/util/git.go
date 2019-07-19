@@ -35,6 +35,7 @@ type Commit struct {
 	Summary     string
 	Description []string
 	Files       []File
+	Email       string
 }
 
 func (c Commit) DeclaresUpstreamChange() bool {
@@ -231,6 +232,10 @@ func NewCommitFromOnelineLog(log string) (Commit, error) {
 		return commit, err
 	}
 	commit.Files = files
+	commit.Email, err = emailInCommit(commit.Sha)
+	if err != nil {
+		return commit, err
+	}
 	return commit, nil
 }
 
@@ -324,6 +329,14 @@ func CurrentRev(repoDir string) (string, error) {
 	} else {
 		return strings.TrimSpace(stdout), nil
 	}
+}
+
+func emailInCommit(sha string) (string, error) {
+	stdout, stderr, err := run("git", "show", `--format=%ae`, "-s", sha)
+	if err != nil {
+		return "", fmt.Errorf("%s: %s", stderr, err)
+	}
+	return strings.TrimSpace(stdout), nil
 }
 
 func filesInCommit(sha string) ([]File, error) {

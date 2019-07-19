@@ -55,7 +55,7 @@ type RouteList struct {
 // roundrobin scheduling the portion of requests that go to each backend is the backend
 // weight divided by the sum of all of the backend weights. When the backend has more than
 // one endpoint the requests that end up on the backend are roundrobin distributed among
-// the endpoints. Weights are between 0 and 256 with default 1. Weight 0 causes no requests
+// the endpoints. Weights are between 0 and 256 with default 100. Weight 0 causes no requests
 // to the backend. If all weights are zero the route will be considered to have no backends
 // and return a standard 503 response.
 //
@@ -70,11 +70,27 @@ type RouteSpec struct {
 	// chosen.
 	// Must follow DNS952 subdomain conventions.
 	Host string `json:"host" protobuf:"bytes,1,opt,name=host"`
-	// Path that the router watches for, to route traffic for to the service. Optional
+	// subdomain is a DNS subdomain that is requested within the ingress controller's
+	// domain (as a subdomain). If host is set this field is ignored. An ingress
+	// controller may choose to ignore this suggested name, in which case the controller
+	// will report the assigned name in the status.ingress array or refuse to admit the
+	// route. If this value is set and the server does not support this field host will
+	// be populated automatically. Otherwise host is left empty. The field may have
+	// multiple parts separated by a dot, but not all ingress controllers may honor
+	// the request. This field may not be changed after creation except by a user with
+	// the update routes/custom-host permission.
+	//
+	// Example: subdomain `frontend` automatically receives the router subdomain
+	// `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
+	//
+	// +optional
+	Subdomain string `json:"subdomain" protobuf:"bytes,8,opt,name=subdomain"`
+
+	// path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty" protobuf:"bytes,2,opt,name=path"`
 
 	// to is an object the route should use as the primary backend. Only the Service kind
-	// is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1)
+	// is allowed, and it will be defaulted to Service. If the weight field (0-256 default 100)
 	// is set to zero, no traffic will be sent to this backend.
 	To RouteTargetReference `json:"to" protobuf:"bytes,3,opt,name=to"`
 
@@ -105,7 +121,7 @@ type RouteTargetReference struct {
 	// name of the service/target that is being referred to. e.g. name of the service
 	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
 
-	// weight as an integer between 0 and 256, default 1, that specifies the target's relative weight
+	// weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
 	// against other target reference objects. 0 suppresses requests to this backend.
 	Weight *int32 `json:"weight" protobuf:"varint,3,opt,name=weight"`
 }

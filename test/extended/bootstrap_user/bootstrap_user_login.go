@@ -1,29 +1,38 @@
 package bootstrap_user
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"strings"
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
+	"golang.org/x/crypto/bcrypt"
 
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var _ = g.Describe("The bootstrap user", func() {
 	defer g.GinkgoRecover()
-	var oc *exutil.CLI
-	var originalPasswordHash []byte
-	secretExists := true
-	recorder := events.NewInMemoryRecorder("")
-	oc = exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
+
+	// since login mutates the current kubeconfig we want to use NewCLI
+	// as that will give each one of our test runs a new config via SetupProject
+	oc := exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
+
 	g.It("should successfully login with password decoded from kubeadmin secret", func() {
+		var originalPasswordHash []byte
+		secretExists := true
+		recorder := events.NewInMemoryRecorder("")
+
 		// We aren't testing that the installer has created this secret here, instead,
 		// we create it/apply new data/restore it after (if it existed, or delete it if
 		// it didn't.  Here, we are only testing the oauth flow
@@ -48,9 +57,19 @@ var _ = g.Describe("The bootstrap user", func() {
 		_, _, err = resourceapply.ApplySecret(oc.AsAdmin().KubeClient().CoreV1(), recorder, kubeadminSecret)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		e2e.Logf("logging in as kubeadmin user")
-		out, err := oc.Run("login").Args("-u", "kubeadmin", "-p", password).Output()
+		err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
+			out, err := oc.Run("login").Args("-u", "kubeadmin").InputString(password + "\n").Output()
+			if err != nil {
+				e2e.Logf("oc login for bootstrap user failed: %s", strings.Replace(err.Error(), password, "<redacted>", -1))
+				return false, nil
+			}
+			if !strings.Contains(out, "Login successful") {
+				e2e.Logf("oc login output did not contain success message:\n%s", strings.Replace(out, password, "<redacted>", -1))
+				return false, nil
+			}
+			return true, nil
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Login successful"))
 		user, err := oc.Run("whoami").Args().Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(user).To(o.ContainSubstring("kube:admin"))
@@ -68,7 +87,8 @@ var _ = g.Describe("The bootstrap user", func() {
 })
 
 func generatePassword() (string, []byte, error) {
-	password := crypto.Random256BitsString()
+	// these are all copied, but we could hardcode a single one if we liked.
+	password := random256BitsString()
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", nil, err
@@ -86,4 +106,32 @@ func generateSecret(data []byte) *v1.Secret {
 			"kubeadmin": data,
 		},
 	}
+}
+
+// RandomBits returns a random byte slice with at least the requested bits of entropy.
+// Callers should avoid using a value less than 256 unless they have a very good reason.
+func randomBits(bits int) []byte {
+	size := bits / 8
+	if bits%8 != 0 {
+		size++
+	}
+	b := make([]byte, size)
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // rand should never fail
+	}
+	return b
+}
+
+// RandomBitsString returns a random string with at least the requested bits of entropy.
+// It uses RawURLEncoding to ensure we do not get / characters or trailing ='s.
+func randomBitsString(bits int) string {
+	return base64.RawURLEncoding.EncodeToString(randomBits(bits))
+}
+
+// Random256BitsString is a convenience function for calling RandomBitsString(256).
+// Callers that need a random string should use this function unless they have a
+// very good reason to need a different amount of entropy.
+func random256BitsString() string {
+	// 32 bytes (256 bits) = 43 base64-encoded characters
+	return randomBitsString(256)
 }

@@ -4,6 +4,7 @@ package versioned
 
 import (
 	operatorv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	operatorv1alpha1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -12,15 +13,15 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	OperatorV1() operatorv1.OperatorV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Operator() operatorv1.OperatorV1Interface
+	OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	operatorV1 *operatorv1.OperatorV1Client
+	operatorV1       *operatorv1.OperatorV1Client
+	operatorV1alpha1 *operatorv1alpha1.OperatorV1alpha1Client
 }
 
 // OperatorV1 retrieves the OperatorV1Client
@@ -28,10 +29,9 @@ func (c *Clientset) OperatorV1() operatorv1.OperatorV1Interface {
 	return c.operatorV1
 }
 
-// Deprecated: Operator retrieves the default version of OperatorClient.
-// Please explicitly pick a version.
-func (c *Clientset) Operator() operatorv1.OperatorV1Interface {
-	return c.operatorV1
+// OperatorV1alpha1 retrieves the OperatorV1alpha1Client
+func (c *Clientset) OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface {
+	return c.operatorV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -54,6 +54,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.operatorV1alpha1, err = operatorv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -67,6 +71,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.operatorV1 = operatorv1.NewForConfigOrDie(c)
+	cs.operatorV1alpha1 = operatorv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -76,6 +81,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.operatorV1 = operatorv1.New(c)
+	cs.operatorV1alpha1 = operatorv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	client "github.com/heketi/heketi/client/api/go-client"
+	glusterapi "github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/tests"
 )
 
@@ -50,8 +51,13 @@ func TestHeketiMockTestServer(t *testing.T) {
 
 	api := client.NewClient(h.URL(), "admin", "admin")
 	tests.Assert(t, api != nil)
-
-	cluster, err := api.ClusterCreate()
+	cluster_req := &glusterapi.ClusterCreateRequest{
+		ClusterFlags: glusterapi.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := api.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, cluster != nil)
 	tests.Assert(t, len(cluster.Nodes) == 0)

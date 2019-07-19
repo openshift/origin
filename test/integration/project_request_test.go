@@ -12,10 +12,10 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 
+	projectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	"github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/projectrequest/delegated"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -39,7 +39,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -74,21 +74,21 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Watch the project, rolebindings, and configmaps
-	nswatch, err := kubeClientset.Core().Namespaces().Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns).String()})
+	nswatch, err := kubeClientset.CoreV1().Namespaces().Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns).String()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	roleWatch, err := kubeClientset.Rbac().RoleBindings(ns).Watch(metav1.ListOptions{})
+	roleWatch, err := kubeClientset.RbacV1().RoleBindings(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(metav1.ListOptions{})
+	cmwatch, err := kubeClientset.CoreV1().ConfigMaps(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Create project request
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+	_, err = projectv1client.NewForConfigOrDie(clusterAdminClientConfig).ProjectRequests().Create(&projectv1.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if err == nil || err.Error() != `Internal error occurred: ConfigMap "" is invalid: metadata.name: Required value: name or generateName is required` {
 		t.Fatalf("Expected internal error creating project, got %v", err)
 	}
@@ -123,11 +123,11 @@ func TestProjectRequestError(t *testing.T) {
 		}
 		t.Errorf("expected 1 namespace to be added and deleted, got %d added / %d deleted", added, deleted)
 	}
-	if added, deleted, events := pairCreationDeletion(roleWatch); added != deleted || added != 4 {
+	if added, deleted, events := pairCreationDeletion(roleWatch); added != deleted || added != 1 {
 		for _, e := range events {
 			t.Logf("%s %#v", e.Type, e.Object)
 		}
-		t.Errorf("expected 4 (1 admin + 3 SA) roleBindings to be added and deleted, got %d added / %d deleted", added, deleted)
+		t.Errorf("expected 1 (1 admin) roleBindings to be added and deleted, got %d added / %d deleted", added, deleted)
 	}
 	if added, deleted, events := pairCreationDeletion(cmwatch); added != deleted || added != 1 {
 		for _, e := range events {
@@ -137,7 +137,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Verify project is deleted
-	if nsObj, err := kubeClientset.Core().Namespaces().Get(ns, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
+	if nsObj, err := kubeClientset.CoreV1().Namespaces().Get(ns, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
 		t.Errorf("Expected namespace to be gone, got %#v, %#v", nsObj, err)
 	}
 }

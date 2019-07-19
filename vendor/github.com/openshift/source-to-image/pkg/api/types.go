@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/openshift/source-to-image/pkg/scm/git"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // invalidFilenameCharacters contains a list of character we consider malicious
 // when injecting the directories into containers.
@@ -600,7 +600,7 @@ func (e *EnvironmentList) Set(value string) error {
 		return fmt.Errorf("invalid environment format %q, must be NAME=VALUE", value)
 	}
 	if strings.Contains(parts[1], ",") && strings.Contains(parts[1], "=") {
-		glog.Warningf("DEPRECATED: Use multiple -e flags to specify multiple environment variables instead of comma (%q)", value)
+		log.Warningf("DEPRECATED: Use multiple -e flags to specify multiple environment variables instead of comma (%q)", value)
 	}
 	*e = append(*e, EnvironmentSpec{
 		Name:  strings.TrimSpace(parts[0]),

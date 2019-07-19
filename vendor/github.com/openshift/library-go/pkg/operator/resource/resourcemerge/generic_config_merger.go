@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,7 +39,7 @@ func MergeProcessConfig(specialCases map[string]MergeFunc, configYAMLs ...[]byte
 	for _, currConfigYAML := range configYAMLs[1:] {
 		prevConfigJSON, err := kyaml.ToJSON(currentConfigYAML)
 		if err != nil {
-			glog.Warning(err)
+			klog.Warning(err)
 			// maybe it's just json
 			prevConfigJSON = currentConfigYAML
 		}
@@ -51,7 +51,7 @@ func MergeProcessConfig(specialCases map[string]MergeFunc, configYAMLs ...[]byte
 		if len(currConfigYAML) > 0 {
 			currConfigJSON, err := kyaml.ToJSON(currConfigYAML)
 			if err != nil {
-				glog.Warning(err)
+				klog.Warning(err)
 				// maybe it's just json
 				currConfigJSON = currConfigYAML
 			}

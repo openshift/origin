@@ -19,16 +19,23 @@
 
 package containerinstance
 
-import original "github.com/Azure/azure-sdk-for-go/services/containerinstance/mgmt/2018-06-01/containerinstance"
+import original "github.com/Azure/azure-sdk-for-go/services/containerinstance/mgmt/2018-10-01/containerinstance"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
+type ContainerClient = original.ContainerClient
 type ContainerGroupsClient = original.ContainerGroupsClient
 type ContainerGroupUsageClient = original.ContainerGroupUsageClient
-type ContainerLogsClient = original.ContainerLogsClient
+type ContainerGroupIPAddressType = original.ContainerGroupIPAddressType
+
+const (
+	Private ContainerGroupIPAddressType = original.Private
+	Public  ContainerGroupIPAddressType = original.Public
+)
+
 type ContainerGroupNetworkProtocol = original.ContainerGroupNetworkProtocol
 
 const (
@@ -51,6 +58,13 @@ const (
 	ContainerNetworkProtocolUDP ContainerNetworkProtocol = original.ContainerNetworkProtocolUDP
 )
 
+type LogAnalyticsLogType = original.LogAnalyticsLogType
+
+const (
+	ContainerInsights     LogAnalyticsLogType = original.ContainerInsights
+	ContainerInstanceLogs LogAnalyticsLogType = original.ContainerInstanceLogs
+)
+
 type OperatingSystemTypes = original.OperatingSystemTypes
 
 const (
@@ -65,19 +79,43 @@ const (
 	User   OperationsOrigin = original.User
 )
 
+type ResourceIdentityType = original.ResourceIdentityType
+
+const (
+	None                       ResourceIdentityType = original.None
+	SystemAssigned             ResourceIdentityType = original.SystemAssigned
+	SystemAssignedUserAssigned ResourceIdentityType = original.SystemAssignedUserAssigned
+	UserAssigned               ResourceIdentityType = original.UserAssigned
+)
+
+type Scheme = original.Scheme
+
+const (
+	HTTP  Scheme = original.HTTP
+	HTTPS Scheme = original.HTTPS
+)
+
 type AzureFileVolume = original.AzureFileVolume
 type Container = original.Container
+type ContainerExec = original.ContainerExec
 type ContainerExecRequest = original.ContainerExecRequest
 type ContainerExecRequestTerminalSize = original.ContainerExecRequestTerminalSize
 type ContainerExecResponse = original.ContainerExecResponse
 type ContainerGroup = original.ContainerGroup
+type ContainerGroupDiagnostics = original.ContainerGroupDiagnostics
+type ContainerGroupIdentity = original.ContainerGroupIdentity
+type ContainerGroupIdentityUserAssignedIdentitiesValue = original.ContainerGroupIdentityUserAssignedIdentitiesValue
 type ContainerGroupListResult = original.ContainerGroupListResult
 type ContainerGroupListResultIterator = original.ContainerGroupListResultIterator
 type ContainerGroupListResultPage = original.ContainerGroupListResultPage
+type ContainerGroupNetworkProfile = original.ContainerGroupNetworkProfile
 type ContainerGroupProperties = original.ContainerGroupProperties
 type ContainerGroupPropertiesInstanceView = original.ContainerGroupPropertiesInstanceView
 type ContainerGroupsCreateOrUpdateFuture = original.ContainerGroupsCreateOrUpdateFuture
+type ContainerGroupsRestartFuture = original.ContainerGroupsRestartFuture
+type ContainerHTTPGet = original.ContainerHTTPGet
 type ContainerPort = original.ContainerPort
+type ContainerProbe = original.ContainerProbe
 type ContainerProperties = original.ContainerProperties
 type ContainerPropertiesInstanceView = original.ContainerPropertiesInstanceView
 type ContainerState = original.ContainerState
@@ -86,6 +124,7 @@ type Event = original.Event
 type GitRepoVolume = original.GitRepoVolume
 type ImageRegistryCredential = original.ImageRegistryCredential
 type IPAddress = original.IPAddress
+type LogAnalytics = original.LogAnalytics
 type Logs = original.Logs
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
@@ -101,13 +140,19 @@ type UsageName = original.UsageName
 type Volume = original.Volume
 type VolumeMount = original.VolumeMount
 type OperationsClient = original.OperationsClient
-type StartContainerClient = original.StartContainerClient
+type ServiceAssociationLinkClient = original.ServiceAssociationLinkClient
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewContainerClient(subscriptionID string) ContainerClient {
+	return original.NewContainerClient(subscriptionID)
+}
+func NewContainerClientWithBaseURI(baseURI string, subscriptionID string) ContainerClient {
+	return original.NewContainerClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewContainerGroupsClient(subscriptionID string) ContainerGroupsClient {
 	return original.NewContainerGroupsClient(subscriptionID)
@@ -121,11 +166,8 @@ func NewContainerGroupUsageClient(subscriptionID string) ContainerGroupUsageClie
 func NewContainerGroupUsageClientWithBaseURI(baseURI string, subscriptionID string) ContainerGroupUsageClient {
 	return original.NewContainerGroupUsageClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewContainerLogsClient(subscriptionID string) ContainerLogsClient {
-	return original.NewContainerLogsClient(subscriptionID)
-}
-func NewContainerLogsClientWithBaseURI(baseURI string, subscriptionID string) ContainerLogsClient {
-	return original.NewContainerLogsClientWithBaseURI(baseURI, subscriptionID)
+func PossibleContainerGroupIPAddressTypeValues() []ContainerGroupIPAddressType {
+	return original.PossibleContainerGroupIPAddressTypeValues()
 }
 func PossibleContainerGroupNetworkProtocolValues() []ContainerGroupNetworkProtocol {
 	return original.PossibleContainerGroupNetworkProtocolValues()
@@ -136,11 +178,20 @@ func PossibleContainerGroupRestartPolicyValues() []ContainerGroupRestartPolicy {
 func PossibleContainerNetworkProtocolValues() []ContainerNetworkProtocol {
 	return original.PossibleContainerNetworkProtocolValues()
 }
+func PossibleLogAnalyticsLogTypeValues() []LogAnalyticsLogType {
+	return original.PossibleLogAnalyticsLogTypeValues()
+}
 func PossibleOperatingSystemTypesValues() []OperatingSystemTypes {
 	return original.PossibleOperatingSystemTypesValues()
 }
 func PossibleOperationsOriginValues() []OperationsOrigin {
 	return original.PossibleOperationsOriginValues()
+}
+func PossibleResourceIdentityTypeValues() []ResourceIdentityType {
+	return original.PossibleResourceIdentityTypeValues()
+}
+func PossibleSchemeValues() []Scheme {
+	return original.PossibleSchemeValues()
 }
 func NewOperationsClient(subscriptionID string) OperationsClient {
 	return original.NewOperationsClient(subscriptionID)
@@ -148,11 +199,11 @@ func NewOperationsClient(subscriptionID string) OperationsClient {
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewStartContainerClient(subscriptionID string) StartContainerClient {
-	return original.NewStartContainerClient(subscriptionID)
+func NewServiceAssociationLinkClient(subscriptionID string) ServiceAssociationLinkClient {
+	return original.NewServiceAssociationLinkClient(subscriptionID)
 }
-func NewStartContainerClientWithBaseURI(baseURI string, subscriptionID string) StartContainerClient {
-	return original.NewStartContainerClientWithBaseURI(baseURI, subscriptionID)
+func NewServiceAssociationLinkClientWithBaseURI(baseURI string, subscriptionID string) ServiceAssociationLinkClient {
+	return original.NewServiceAssociationLinkClientWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

@@ -178,6 +178,7 @@ message SELinuxContextStrategyOptions {
 // That exposure is deprecated and will be removed in a future release - users
 // should instead use the security.openshift.io group to manage
 // SecurityContextConstraints.
+// +kubebuilder:singular=securitycontextconstraint
 message SecurityContextConstraints {
   // Standard object's metadata.
   // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
@@ -189,6 +190,7 @@ message SecurityContextConstraints {
   // for multiple SCCs are equal they will be sorted from most restrictive to
   // least restrictive. If both priorities and restrictions are equal the
   // SCCs will be sorted by name.
+  // +nullable
   optional int32 priority = 2;
 
   // AllowPrivilegedContainer determines if a container can request to be run as privileged.
@@ -197,16 +199,19 @@ message SecurityContextConstraints {
   // DefaultAddCapabilities is the default set of capabilities that will be added to the container
   // unless the pod spec specifically drops the capability.  You may not list a capabiility in both
   // DefaultAddCapabilities and RequiredDropCapabilities.
+  // +nullable
   repeated string defaultAddCapabilities = 4;
 
   // RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
   // are required to be dropped and cannot be added.
+  // +nullable
   repeated string requiredDropCapabilities = 5;
 
   // AllowedCapabilities is a list of capabilities that can be requested to add to the container.
   // Capabilities in this field maybe added at the pod author's discretion.
   // You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
   // To allow all capabilities you may use '*'.
+  // +nullable
   repeated string allowedCapabilities = 6;
 
   // AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
@@ -216,12 +221,14 @@ message SecurityContextConstraints {
   // Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
   // of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
   // To allow no volumes, set to ["none"].
+  // +nullable
   repeated string volumes = 8;
 
   // AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
   // Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
   // is allowed in the "Volumes" field.
   // +optional
+  // +nullable
   repeated AllowedFlexVolume allowedFlexVolumes = 21;
 
   // AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
@@ -239,23 +246,29 @@ message SecurityContextConstraints {
   // DefaultAllowPrivilegeEscalation controls the default setting for whether a
   // process can gain more privileges than its parent process.
   // +optional
+  // +nullable
   optional bool defaultAllowPrivilegeEscalation = 22;
 
   // AllowPrivilegeEscalation determines if a pod can request to allow
   // privilege escalation. If unspecified, defaults to true.
   // +optional
+  // +nullable
   optional bool allowPrivilegeEscalation = 23;
 
   // SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
+  // +nullable
   optional SELinuxContextStrategyOptions seLinuxContext = 13;
 
   // RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+  // +nullable
   optional RunAsUserStrategyOptions runAsUser = 14;
 
   // SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+  // +nullable
   optional SupplementalGroupsStrategyOptions supplementalGroups = 15;
 
   // FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+  // +nullable
   optional FSGroupStrategyOptions fsGroup = 16;
 
   // ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file
@@ -267,10 +280,12 @@ message SecurityContextConstraints {
 
   // The users who have permissions to use this security context constraints
   // +optional
+  // +nullable
   repeated string users = 18;
 
   // The groups that have permission to use this security context constraints
   // +optional
+  // +nullable
   repeated string groups = 19;
 
   // SeccompProfiles lists the allowed profiles that may be set for the pod or
@@ -278,27 +293,30 @@ message SecurityContextConstraints {
   // be specifid by the pod or container.	The wildcard '*' may be used to allow all profiles.  When
   // used to generate a value for a pod the first non-wildcard profile will be used as
   // the default.
+  // +nullable
   repeated string seccompProfiles = 20;
 
   // AllowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
   // Each entry is either a plain sysctl name or ends in "*" in which case it is considered
   // as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed.
   // Kubelet has to whitelist all allowed unsafe sysctls explicitly to avoid rejection.
-  // 
+  //
   // Examples:
   // e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
   // e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
   // +optional
+  // +nullable
   repeated string allowedUnsafeSysctls = 24;
 
   // ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
   // Each entry is either a plain sysctl name or ends in "*" in which case it is considered
   // as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
-  // 
+  //
   // Examples:
   // e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
   // e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
   // +optional
+  // +nullable
   repeated string forbiddenSysctls = 25;
 }
 

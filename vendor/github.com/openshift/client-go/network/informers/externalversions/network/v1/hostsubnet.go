@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	network_v1 "github.com/openshift/api/network/v1"
+	networkv1 "github.com/openshift/api/network/v1"
 	versioned "github.com/openshift/client-go/network/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/network/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/network/listers/network/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewHostSubnetInformer(client versioned.Interface, resyncPeriod time.Duratio
 func NewFilteredHostSubnetInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.NetworkV1().HostSubnets().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.NetworkV1().HostSubnets().Watch(options)
 			},
 		},
-		&network_v1.HostSubnet{},
+		&networkv1.HostSubnet{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *hostSubnetInformer) defaultInformer(client versioned.Interface, resyncP
 }
 
 func (f *hostSubnetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&network_v1.HostSubnet{}, f.defaultInformer)
+	return f.factory.InformerFor(&networkv1.HostSubnet{}, f.defaultInformer)
 }
 
 func (f *hostSubnetInformer) Lister() v1.HostSubnetLister {

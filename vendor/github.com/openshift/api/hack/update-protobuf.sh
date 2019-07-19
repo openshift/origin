@@ -11,6 +11,7 @@ install the platform appropriate Protobuf package for your OS:
   https://github.com/google/protobuf/releases
 
 To skip protobuf generation, set \$PROTO_OPTIONAL."
+  exit 1
 fi
 
 rm -rf go-to-protobuf

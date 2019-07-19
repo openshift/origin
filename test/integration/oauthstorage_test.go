@@ -13,8 +13,8 @@ import (
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	"github.com/openshift/origin/pkg/oauthserver/osinserver"
-	"github.com/openshift/origin/pkg/oauthserver/osinserver/registrystorage"
+	"github.com/openshift/oauth-server/pkg/osinserver"
+	"github.com/openshift/oauth-server/pkg/osinserver/registrystorage"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -43,7 +43,7 @@ func TestOAuthStorage(t *testing.T) {
 		testClientSecret1  = "secret1"
 		testClientRedirect = "/assert"
 
-		// The OAuth endpoints we use, see github.com/openshift/origin/pkg/oauth/urls
+		// The OAuth endpoints we use, see github.com/openshift/library-go/pkg/oauth/oauthdiscovery
 		authorizePath = "/authorize"
 		tokenPath     = "/token"
 	)
@@ -94,6 +94,7 @@ func TestOAuthStorage(t *testing.T) {
 	oaclientConfig := &osincli.ClientConfig{
 		ClientId:     testClient,
 		ClientSecret: testClientSecret0,
+		Scope:        "user:full",
 		RedirectUrl:  assertServer.URL + testClientRedirect,
 		AuthorizeUrl: server.URL + authorizePath,
 		TokenUrl:     server.URL + tokenPath,
@@ -112,6 +113,7 @@ func TestOAuthStorage(t *testing.T) {
 			ObjectMeta:        metav1.ObjectMeta{Name: testClient},
 			Secret:            testClientSecret0,
 			AdditionalSecrets: []string{testClientSecret1},
+			GrantMethod:       oauthapi.GrantHandlerAuto,
 			RedirectURIs:      []string{assertServer.URL + testClientRedirect},
 		}); err != nil {
 			t.Fatal(err)

@@ -20,12 +20,13 @@ func (in *ClusterNetwork) DeepCopyInto(out *ClusterNetwork) {
 	}
 	if in.VXLANPort != nil {
 		in, out := &in.VXLANPort, &out.VXLANPort
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(uint32)
-			**out = **in
-		}
+		*out = new(uint32)
+		**out = **in
+	}
+	if in.MTU != nil {
+		in, out := &in.MTU, &out.MTU
+		*out = new(uint32)
+		**out = **in
 	}
 	return
 }

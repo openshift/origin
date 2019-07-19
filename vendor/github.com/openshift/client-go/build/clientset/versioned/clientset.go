@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	BuildV1() buildv1.BuildV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Build() buildv1.BuildV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // BuildV1 retrieves the BuildV1Client
 func (c *Clientset) BuildV1() buildv1.BuildV1Interface {
-	return c.buildV1
-}
-
-// Deprecated: Build retrieves the default version of BuildClient.
-// Please explicitly pick a version.
-func (c *Clientset) Build() buildv1.BuildV1Interface {
 	return c.buildV1
 }
 

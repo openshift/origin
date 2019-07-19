@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/config/v1"
 	scheme "github.com/openshift/client-go/config/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -21,11 +23,11 @@ type BuildsGetter interface {
 type BuildInterface interface {
 	Create(*v1.Build) (*v1.Build, error)
 	Update(*v1.Build) (*v1.Build, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.Build, error)
-	List(opts meta_v1.ListOptions) (*v1.BuildList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.Build, error)
+	List(opts metav1.ListOptions) (*v1.BuildList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Build, err error)
 	BuildExpansion
 }
@@ -43,7 +45,7 @@ func newBuilds(c *ConfigV1Client) *builds {
 }
 
 // Get takes name of the build, and returns the corresponding build object, and an error if there is any.
-func (c *builds) Get(name string, options meta_v1.GetOptions) (result *v1.Build, err error) {
+func (c *builds) Get(name string, options metav1.GetOptions) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Get().
 		Resource("builds").
@@ -55,22 +57,32 @@ func (c *builds) Get(name string, options meta_v1.GetOptions) (result *v1.Build,
 }
 
 // List takes label and field selectors, and returns the list of Builds that match those selectors.
-func (c *builds) List(opts meta_v1.ListOptions) (result *v1.BuildList, err error) {
+func (c *builds) List(opts metav1.ListOptions) (result *v1.BuildList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.BuildList{}
 	err = c.client.Get().
 		Resource("builds").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested builds.
-func (c *builds) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *builds) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("builds").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -98,7 +110,7 @@ func (c *builds) Update(build *v1.Build) (result *v1.Build, err error) {
 }
 
 // Delete takes name of the build and deletes it. Returns an error if one occurs.
-func (c *builds) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *builds) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("builds").
 		Name(name).
@@ -108,10 +120,15 @@ func (c *builds) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *builds) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *builds) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("builds").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

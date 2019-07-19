@@ -71,12 +71,12 @@ func TestVIPsCRUD(t *testing.T) {
 
 	_, err = vips.Update(client, vip.ID, updateOpts).Extract()
 	if err != nil {
-		t.Fatalf("Unable to update vip: %v")
+		t.Fatalf("Unable to update vip: %v", err)
 	}
 
 	newVIP, err := vips.Get(client, vip.ID).Extract()
 	if err != nil {
-		t.Fatalf("Unable to get vip: %v")
+		t.Fatalf("Unable to get vip: %v", err)
 	}
 
 	tools.PrintResource(t, newVIP)

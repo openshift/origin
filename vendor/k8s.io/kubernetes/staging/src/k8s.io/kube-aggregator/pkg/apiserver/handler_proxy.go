@@ -22,9 +22,8 @@ import (
 	"net/url"
 	"sync/atomic"
 
-	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -36,8 +35,13 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
+	"k8s.io/klog"
 	apiregistrationapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 )
+
+const aggregatorComponent string = "aggregator"
+
+type certFunc func() []byte
 
 // proxyHandler provides a http.Handler which will proxy traffic to locations
 // specified by items implementing Redirector.
@@ -47,8 +51,8 @@ type proxyHandler struct {
 
 	// proxyClientCert/Key are the client cert used to identify this proxy. Backing APIServices use
 	// this to confirm the proxy's identity
-	proxyClientCert []byte
-	proxyClientKey  []byte
+	proxyClientCert certFunc
+	proxyClientKey  certFunc
 	proxyTransport  *http.Transport
 
 	// Endpoints based routing to map from cluster IP to routable IP
@@ -84,11 +88,11 @@ func proxyError(w http.ResponseWriter, req *http.Request, error string, code int
 	ctx := req.Context()
 	info, ok := genericapirequest.RequestInfoFrom(ctx)
 	if !ok {
-		glog.Warning("no RequestInfo found in the context")
+		klog.Warning("no RequestInfo found in the context")
 		return
 	}
 	// TODO: record long-running request differently? The long-running check func does not necessarily match the one of the aggregated apiserver
-	endpointmetrics.Record(req, info, "", code, 0, 0)
+	endpointmetrics.Record(req, info, aggregatorComponent, "", code, 0, 0)
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -105,6 +109,14 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		r.localDelegate.ServeHTTP(w, req)
 		return
+	}
+
+	// some groupResources should always be delegated
+	if requestInfo, ok := genericapirequest.RequestInfoFrom(req.Context()); ok {
+		if alwaysLocalDelegateGroupResource[schema.GroupResource{Group: requestInfo.APIGroup, Resource: requestInfo.Resource}] {
+			r.localDelegate.ServeHTTP(w, req)
+			return
+		}
 	}
 
 	if !handlingInfo.serviceAvailable {
@@ -128,7 +140,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	location.Scheme = "https"
 	rloc, err := r.serviceResolver.ResolveEndpoint(handlingInfo.serviceNamespace, handlingInfo.serviceName)
 	if err != nil {
-		glog.Errorf("error resolving %s/%s: %v", handlingInfo.serviceNamespace, handlingInfo.serviceName, err)
+		klog.Errorf("error resolving %s/%s: %v", handlingInfo.serviceNamespace, handlingInfo.serviceName, err)
 		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -140,6 +152,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	newReq := req.WithContext(context.Background())
 	newReq.Header = utilnet.CloneHeader(req.Header)
 	newReq.URL = location
+	newReq.Host = location.Host
 
 	if handlingInfo.proxyRoundTripper == nil {
 		proxyError(w, req, "", http.StatusNotFound)
@@ -216,8 +229,8 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 			TLSClientConfig: restclient.TLSClientConfig{
 				Insecure:   apiService.Spec.InsecureSkipTLSVerify,
 				ServerName: apiService.Spec.Service.Name + "." + apiService.Spec.Service.Namespace + ".svc",
-				CertData:   r.proxyClientCert,
-				KeyData:    r.proxyClientKey,
+				CertData:   r.proxyClientCert(),
+				KeyData:    r.proxyClientKey(),
 				CAData:     apiService.Spec.CABundle,
 			},
 		},
@@ -230,7 +243,7 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 	}
 	newInfo.proxyRoundTripper, newInfo.transportBuildingError = restclient.TransportFor(newInfo.restConfig)
 	if newInfo.transportBuildingError != nil {
-		glog.Warning(newInfo.transportBuildingError.Error())
+		klog.Warning(newInfo.transportBuildingError.Error())
 	}
 	r.handlingInfo.Store(newInfo)
 }

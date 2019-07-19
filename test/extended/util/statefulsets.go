@@ -14,7 +14,7 @@ func RemoveStatefulSets(oc *CLI, sets ...string) error {
 	errs := []error{}
 	for _, set := range sets {
 		e2e.Logf("Removing stateful set %s/%s", oc.Namespace(), set)
-		if err := oc.AdminKubeClient().Apps().StatefulSets(oc.Namespace()).Delete(set, &metav1.DeleteOptions{}); err != nil {
+		if err := oc.AdminKubeClient().AppsV1().StatefulSets(oc.Namespace()).Delete(set, &metav1.DeleteOptions{}); err != nil {
 			e2e.Logf("Error occurred removing stateful set: %v", err)
 			errs = append(errs, err)
 		}

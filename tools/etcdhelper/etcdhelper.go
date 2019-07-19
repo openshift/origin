@@ -16,20 +16,17 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 
-	// install all APIs
-	install "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/api"
 )
 
 func init() {
-	install.InstallInternalOpenShift(scheme.Scheme)
-	install.InstallInternalKube(scheme.Scheme)
-	legacy.InstallInternalLegacyAll(scheme.Scheme)
+	api.Install(scheme.Scheme)
+	api.InstallKube(scheme.Scheme)
 }
 
 func main() {
 	var endpoint, keyFile, certFile, caFile string
-	flag.StringVar(&endpoint, "endpoint", "https://127.0.0.1:4001", "Etcd endpoint.")
+	flag.StringVar(&endpoint, "endpoint", "https://127.0.0.1:2379", "etcd endpoint.")
 	flag.StringVar(&keyFile, "key", "", "TLS client key.")
 	flag.StringVar(&certFile, "cert", "", "TLS client certificate.")
 	flag.StringVar(&caFile, "cacert", "", "Server TLS CA certificate.")

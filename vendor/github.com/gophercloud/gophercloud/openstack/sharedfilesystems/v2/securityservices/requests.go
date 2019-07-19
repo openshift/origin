@@ -32,6 +32,8 @@ type CreateOpts struct {
 	Description string `json:"description,omitempty"`
 	// The DNS IP address that is used inside the tenant network
 	DNSIP string `json:"dns_ip,omitempty"`
+	// The security service organizational unit (OU). Minimum supported microversion for OU is 2.44.
+	OU string `json:"ou,omitempty"`
 	// The security service user or group name that is used by the tenant
 	User string `json:"user,omitempty"`
 	// The user password, if you specify a user
@@ -90,6 +92,8 @@ type ListOpts struct {
 	Name string `q:"name"`
 	// The DNS IP address that is used inside the tenant network
 	DNSIP string `q:"dns_ip"`
+	// The security service organizational unit (OU). Minimum supported microversion for OU is 2.44.
+	OU string `q:"ou"`
 	// The security service user or group name that is used by the tenant
 	User string `q:"user"`
 	// The security service host name or IP address
@@ -138,21 +142,23 @@ type UpdateOptsBuilder interface {
 // the SecurityService object.
 type UpdateOpts struct {
 	// The security service name
-	Name string `json:"name"`
+	Name *string `json:"name"`
 	// The security service description
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 	// The security service type. A valid value is ldap, kerberos, or active_directory
 	Type string `json:"type,omitempty"`
 	// The DNS IP address that is used inside the tenant network
-	DNSIP string `json:"dns_ip,omitempty"`
+	DNSIP *string `json:"dns_ip,omitempty"`
+	// The security service organizational unit (OU). Minimum supported microversion for OU is 2.44.
+	OU *string `json:"ou,omitempty"`
 	// The security service user or group name that is used by the tenant
-	User string `json:"user,omitempty"`
+	User *string `json:"user,omitempty"`
 	// The user password, if you specify a user
-	Password string `json:"password,omitempty"`
+	Password *string `json:"password,omitempty"`
 	// The security service domain
-	Domain string `json:"domain,omitempty"`
+	Domain *string `json:"domain,omitempty"`
 	// The security service host name or IP address
-	Server string `json:"server,omitempty"`
+	Server *string `json:"server,omitempty"`
 }
 
 // ToSecurityServiceUpdateMap assembles a request body based on the contents of an

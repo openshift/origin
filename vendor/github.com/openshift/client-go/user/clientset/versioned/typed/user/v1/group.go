@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/user/v1"
 	scheme "github.com/openshift/client-go/user/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -21,11 +23,11 @@ type GroupsGetter interface {
 type GroupInterface interface {
 	Create(*v1.Group) (*v1.Group, error)
 	Update(*v1.Group) (*v1.Group, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.Group, error)
-	List(opts meta_v1.ListOptions) (*v1.GroupList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.Group, error)
+	List(opts metav1.ListOptions) (*v1.GroupList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Group, err error)
 	GroupExpansion
 }
@@ -43,7 +45,7 @@ func newGroups(c *UserV1Client) *groups {
 }
 
 // Get takes name of the group, and returns the corresponding group object, and an error if there is any.
-func (c *groups) Get(name string, options meta_v1.GetOptions) (result *v1.Group, err error) {
+func (c *groups) Get(name string, options metav1.GetOptions) (result *v1.Group, err error) {
 	result = &v1.Group{}
 	err = c.client.Get().
 		Resource("groups").
@@ -55,22 +57,32 @@ func (c *groups) Get(name string, options meta_v1.GetOptions) (result *v1.Group,
 }
 
 // List takes label and field selectors, and returns the list of Groups that match those selectors.
-func (c *groups) List(opts meta_v1.ListOptions) (result *v1.GroupList, err error) {
+func (c *groups) List(opts metav1.ListOptions) (result *v1.GroupList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.GroupList{}
 	err = c.client.Get().
 		Resource("groups").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested groups.
-func (c *groups) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *groups) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("groups").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -98,7 +110,7 @@ func (c *groups) Update(group *v1.Group) (result *v1.Group, err error) {
 }
 
 // Delete takes name of the group and deletes it. Returns an error if one occurs.
-func (c *groups) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *groups) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("groups").
 		Name(name).
@@ -108,10 +120,15 @@ func (c *groups) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *groups) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *groups) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("groups").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

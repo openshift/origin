@@ -46,11 +46,3 @@ func DeleteShareType(t *testing.T, client *gophercloud.ServiceClient, shareType 
 
 	t.Logf("Deleted share type: %s", shareType.ID)
 }
-
-// PrintShareType will print a share type and all of its attributes.
-func PrintShareType(t *testing.T, shareType *sharetypes.ShareType) {
-	t.Logf("Name: %s", shareType.Name)
-	t.Logf("ID: %s", shareType.ID)
-	t.Logf("OS share type access is public: %t", shareType.IsPublic)
-	t.Logf("Extra specs: %#v", shareType.ExtraSpecs)
-}

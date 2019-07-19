@@ -32,15 +32,6 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 			exutil.PreTestDump()
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -65,8 +56,8 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 				br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", path)
 				br.AssertSuccess()
 
-				g.By("getting the Docker image reference from ImageStream")
-				imageName, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
+				g.By("getting the container image reference from ImageStream")
+				imageName, err := exutil.GetDockerImageReference(oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()), "test", "latest")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("instantiating a pod and service with the new image")

@@ -24,19 +24,23 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/klog"
+
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 )
 
 const (
-	// The reason and message set on a pod when its state cannot be confirmed as kubelet is unresponsive
+	// NodeUnreachablePodReason is the reason on a pod when its state cannot be confirmed as kubelet is unresponsive
 	// on the node it is (was) running.
-	NodeUnreachablePodReason  = "NodeLost"
+	NodeUnreachablePodReason = "NodeLost"
+	// NodeUnreachablePodMessage is the message on a pod when its state cannot be confirmed as kubelet is unresponsive
+	// on the node it is (was) running.
 	NodeUnreachablePodMessage = "Node %v which was running pod %v is unresponsive"
 )
 
@@ -60,6 +64,17 @@ func GetHostname(hostnameOverride string) (string, error) {
 	return strings.ToLower(hostName), nil
 }
 
+// NoMatchError is a typed implementation of the error interface. It indicates a failure to get a matching Node.
+type NoMatchError struct {
+	addresses []v1.NodeAddress
+}
+
+// Error is the implementation of the conventional interface for
+// representing an error condition, with the nil value representing no error.
+func (e *NoMatchError) Error() string {
+	return fmt.Sprintf("no preferred addresses found; known addresses: %v", e.addresses)
+}
+
 // GetPreferredNodeAddress returns the address of the provided node, using the provided preference order.
 // If none of the preferred address types are found, an error is returned.
 func GetPreferredNodeAddress(node *v1.Node, preferredAddressTypes []v1.NodeAddressType) (string, error) {
@@ -70,7 +85,7 @@ func GetPreferredNodeAddress(node *v1.Node, preferredAddressTypes []v1.NodeAddre
 			}
 		}
 	}
-	return "", fmt.Errorf("no preferred addresses found; known addresses: %v", node.Status.Addresses)
+	return "", &NoMatchError{addresses: node.Status.Addresses}
 }
 
 // GetNodeHostIP returns the provided node's IP, based on the priority:
@@ -91,6 +106,22 @@ func GetNodeHostIP(node *v1.Node) (net.IP, error) {
 	return nil, fmt.Errorf("host IP unknown; known addresses: %v", addresses)
 }
 
+// GetNodeIP returns the ip of node with the provided hostname
+func GetNodeIP(client clientset.Interface, hostname string) net.IP {
+	var nodeIP net.IP
+	node, err := client.CoreV1().Nodes().Get(hostname, metav1.GetOptions{})
+	if err != nil {
+		klog.Warningf("Failed to retrieve node info: %v", err)
+		return nil
+	}
+	nodeIP, err = GetNodeHostIP(node)
+	if err != nil {
+		klog.Warningf("Failed to retrieve node IP: %v", err)
+		return nil
+	}
+	return nodeIP
+}
+
 // GetZoneKey is a helper function that builds a string identifier that is unique per failure-zone;
 // it returns empty-string for no zone.
 func GetZoneKey(node *v1.Node) string {
@@ -99,8 +130,8 @@ func GetZoneKey(node *v1.Node) string {
 		return ""
 	}
 
-	region, _ := labels[kubeletapis.LabelZoneRegion]
-	failureDomain, _ := labels[kubeletapis.LabelZoneFailureDomain]
+	region, _ := labels[v1.LabelZoneRegion]
+	failureDomain, _ := labels[v1.LabelZoneFailureDomain]
 
 	if region == "" && failureDomain == "" {
 		return ""
@@ -165,12 +196,21 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, n
 		return nil, fmt.Errorf("failed to Marshal oldData for node %q: %v", nodeName, err)
 	}
 
+	// NodeStatus.Addresses is incorrectly annotated as patchStrategy=merge, which
+	// will cause strategicpatch.CreateTwoWayMergePatch to create an incorrect patch
+	// if it changed.
+	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNode.Status.Addresses)
+
 	// Reset spec to make sure only patch for Status or ObjectMeta is generated.
 	// Note that we don't reset ObjectMeta here, because:
 	// 1. This aligns with Nodes().UpdateStatus().
 	// 2. Some component does use this to update node annotations.
-	newNode.Spec = oldNode.Spec
-	newData, err := json.Marshal(newNode)
+	diffNode := newNode.DeepCopy()
+	diffNode.Spec = oldNode.Spec
+	if manuallyPatchAddresses {
+		diffNode.Status.Addresses = oldNode.Status.Addresses
+	}
+	newData, err := json.Marshal(diffNode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to Marshal newData for node %q: %v", nodeName, err)
 	}
@@ -179,5 +219,63 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, n
 	if err != nil {
 		return nil, fmt.Errorf("failed to CreateTwoWayMergePatch for node %q: %v", nodeName, err)
 	}
+	if manuallyPatchAddresses {
+		patchBytes, err = fixupPatchForNodeStatusAddresses(patchBytes, newNode.Status.Addresses)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fix up NodeAddresses in patch for node %q: %v", nodeName, err)
+		}
+	}
+
 	return patchBytes, nil
+}
+
+// fixupPatchForNodeStatusAddresses adds a replace-strategy patch for Status.Addresses to
+// the existing patch
+func fixupPatchForNodeStatusAddresses(patchBytes []byte, addresses []v1.NodeAddress) ([]byte, error) {
+	// Given patchBytes='{"status": {"conditions": [ ... ], "phase": ...}}' and
+	// addresses=[{"type": "InternalIP", "address": "10.0.0.1"}], we need to generate:
+	//
+	//   {
+	//     "status": {
+	//       "conditions": [ ... ],
+	//       "phase": ...,
+	//       "addresses": [
+	//         {
+	//           "type": "InternalIP",
+	//           "address": "10.0.0.1"
+	//         },
+	//         {
+	//           "$patch": "replace"
+	//         }
+	//       ]
+	//     }
+	//   }
+
+	var patchMap map[string]interface{}
+	if err := json.Unmarshal(patchBytes, &patchMap); err != nil {
+		return nil, err
+	}
+
+	addrBytes, err := json.Marshal(addresses)
+	if err != nil {
+		return nil, err
+	}
+	var addrArray []interface{}
+	if err := json.Unmarshal(addrBytes, &addrArray); err != nil {
+		return nil, err
+	}
+	addrArray = append(addrArray, map[string]interface{}{"$patch": "replace"})
+
+	status := patchMap["status"]
+	if status == nil {
+		status = map[string]interface{}{}
+		patchMap["status"] = status
+	}
+	statusMap, ok := status.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected data in patch")
+	}
+	statusMap["addresses"] = addrArray
+
+	return json.Marshal(patchMap)
 }

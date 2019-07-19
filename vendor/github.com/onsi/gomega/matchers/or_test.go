@@ -23,6 +23,13 @@ var _ = Describe("OrMatcher", func() {
 		Expect(input).To(SatisfyAny(false1, false2, true3))
 	})
 
+	It("stops on errors", func() {
+		failuresMessages := InterceptGomegaFailures(func() {
+			Expect(input).To(Or(Panic(), true1))
+		})
+		Expect(failuresMessages).To(Equal([]string{"PanicMatcher expects a function.  Got:\n    <string>: hi"}))
+	})
+
 	It("works with negative cases", func() {
 		Expect(input).ToNot(Or())
 		Expect(input).ToNot(Or(false1))

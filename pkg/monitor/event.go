@@ -19,13 +19,14 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return
 			default:
 			}
-			events, err := client.Core().Events("").List(metav1.ListOptions{Limit: 1})
+			events, err := client.CoreV1().Events("").List(metav1.ListOptions{Limit: 1})
 			if err != nil {
 				continue
 			}
 			rv := events.ResourceVersion
-			for {
-				w, err := client.Core().Events("").Watch(metav1.ListOptions{ResourceVersion: rv})
+
+			for expired := false; !expired; {
+				w, err := client.CoreV1().Events("").Watch(metav1.ListOptions{ResourceVersion: rv})
 				if err != nil {
 					if errors.IsResourceExpired(err) {
 						break
@@ -44,10 +45,14 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if !ok {
 								continue
 							}
+							message := obj.Message
+							if obj.Count > 1 {
+								message += fmt.Sprintf(" (%d times)", obj.Count)
+							}
 							condition := Condition{
 								Level:   Info,
 								Locator: locateEvent(obj),
-								Message: obj.Message + fmt.Sprintf(" count(%d)", +obj.Count),
+								Message: message,
 							}
 							if obj.Type == corev1.EventTypeWarning {
 								condition.Level = Warning
@@ -56,6 +61,10 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 						case watch.Error:
 							var message string
 							if status, ok := event.Object.(*metav1.Status); ok {
+								if err := errors.FromObject(status); err != nil && errors.IsResourceExpired(err) {
+									expired = true
+									return
+								}
 								message = status.Message
 							} else {
 								message = fmt.Sprintf("event object was not a Status: %T", event.Object)

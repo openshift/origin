@@ -30,7 +30,7 @@ Finally, these extra things should be kept in mind when writing a CNI plugin for
    - Each namespace should be treated like a tenant where its pods and services are isolated from another project's pods/services
    - *Support exists for operations like merge/join networks even when they belong to different namespaces
 
-2. Certain services in the cluster will be run as infrastructure services. e.g. Load balancer, registry, DNS server(skydns). The plugin should allow for a 'global' tenant which is-accessible-by/can-access all pods of the cluster. For example, a load balancer can run in two modes - private and global. The global load balancer should have access to all tenants/namespaces of the cluster. A private load balancer is one that is launched as a pod by a particular namespace, and this should obey tenant isolation rules.
+2. Certain services in the cluster will be run as infrastructure services. e.g. Load balancer, registry, DNS server. The plugin should allow for a 'global' tenant which is-accessible-by/can-access all pods of the cluster. For example, a load balancer can run in two modes - private and global. The global load balancer should have access to all tenants/namespaces of the cluster. A private load balancer is one that is launched as a pod by a particular namespace, and this should obey tenant isolation rules.
 
 3. *Access to all pods from the host - particularly important if kube-proxy is used by the SDN solution to support kubernetes services. Please note that iptables based kube-proxy will be enabled by default in OpenShift. This will have to be overridden specially if the plugin wants a different behaviour. One could disable the proxy by giving the option "--disable proxy" to OpenShift's node process.
 e.g. for the OpenShift node's systemd service, add the following option to the sysconfig file (/etc/sysconfig/origin-node in case of origin):
@@ -40,7 +40,7 @@ OPTIONS="--loglevel=2 --disable proxy"
 
 4. Access to external networks by pods whether through NAT or direct access.
 
-5. Build containers - as part of the developer workflow, OpenShift builds docker images. The build is run through 'docker build' api. This means that docker's default networking will be invoked for this container (CNI/kube-plugin will not run as this is not a pod). These containers still need a network and access to external network (the internet e.g.).
+5. Build containers - as part of the developer workflow, OpenShift builds container images. The build is run through 'docker build' api. This means that docker's default networking will be invoked for this container (CNI/kube-plugin will not run as this is not a pod). These containers still need a network and access to external network (the internet e.g.).
 
 6. *Respect the PodSecurityContext::HostNetwork=true for infra pods. Or provide an externally routable IP address to the pod. This is used for the load balancer pods which are the entry point for all external traffic funneling into the cluster.
    - Note that the HostPort<->ContainerPort mapping will not be available by default if the CNI plugin is enabled (as the default docker networking is turned off). The plugin will have to implement this functionality by itself.

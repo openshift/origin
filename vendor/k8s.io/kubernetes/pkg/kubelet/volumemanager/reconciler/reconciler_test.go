@@ -21,8 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
-
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -31,9 +29,11 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	utilfeaturetesting "k8s.io/apiserver/pkg/util/feature/testing"
 	"k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/cache"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -441,7 +441,8 @@ func Test_Run_Positive_VolumeUnmountControllerAttachEnabled(t *testing.T) {
 // no detach/teardownDevice calls.
 func Test_Run_Positive_VolumeAttachAndMap(t *testing.T) {
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	// Arrange
 	volumePluginMgr, fakePlugin := volumetesting.GetTestVolumePluginMgr(t)
 	dsw := cache.NewDesiredStateOfWorld(volumePluginMgr)
@@ -515,9 +516,6 @@ func Test_Run_Positive_VolumeAttachAndMap(t *testing.T) {
 		1 /* expectedGetMapDeviceCallCount */, fakePlugin))
 	assert.NoError(t, volumetesting.VerifyZeroTearDownDeviceCallCount(fakePlugin))
 	assert.NoError(t, volumetesting.VerifyZeroDetachCallCount(fakePlugin))
-
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 // Populates desiredStateOfWorld cache with one volume/pod.
@@ -528,7 +526,8 @@ func Test_Run_Positive_VolumeAttachAndMap(t *testing.T) {
 // Verifies there are no attach/detach calls.
 func Test_Run_Positive_BlockVolumeMapControllerAttachEnabled(t *testing.T) {
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	// Arrange
 	volumePluginMgr, fakePlugin := volumetesting.GetTestVolumePluginMgr(t)
 	dsw := cache.NewDesiredStateOfWorld(volumePluginMgr)
@@ -603,9 +602,6 @@ func Test_Run_Positive_BlockVolumeMapControllerAttachEnabled(t *testing.T) {
 		1 /* expectedGetMapDeviceCallCount */, fakePlugin))
 	assert.NoError(t, volumetesting.VerifyZeroTearDownDeviceCallCount(fakePlugin))
 	assert.NoError(t, volumetesting.VerifyZeroDetachCallCount(fakePlugin))
-
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 // Populates desiredStateOfWorld cache with one volume/pod.
@@ -616,7 +612,8 @@ func Test_Run_Positive_BlockVolumeMapControllerAttachEnabled(t *testing.T) {
 // Verifies one detach/teardownDevice calls are issued.
 func Test_Run_Positive_BlockVolumeAttachMapUnmapDetach(t *testing.T) {
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	// Arrange
 	volumePluginMgr, fakePlugin := volumetesting.GetTestVolumePluginMgr(t)
 	dsw := cache.NewDesiredStateOfWorld(volumePluginMgr)
@@ -700,9 +697,6 @@ func Test_Run_Positive_BlockVolumeAttachMapUnmapDetach(t *testing.T) {
 		1 /* expectedTearDownDeviceCallCount */, fakePlugin))
 	assert.NoError(t, volumetesting.VerifyDetachCallCount(
 		1 /* expectedDetachCallCount */, fakePlugin))
-
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 // Populates desiredStateOfWorld cache with one volume/pod.
@@ -714,7 +708,8 @@ func Test_Run_Positive_BlockVolumeAttachMapUnmapDetach(t *testing.T) {
 // Verifies there are no attach/detach calls made.
 func Test_Run_Positive_VolumeUnmapControllerAttachEnabled(t *testing.T) {
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	// Arrange
 	volumePluginMgr, fakePlugin := volumetesting.GetTestVolumePluginMgr(t)
 	dsw := cache.NewDesiredStateOfWorld(volumePluginMgr)
@@ -799,9 +794,6 @@ func Test_Run_Positive_VolumeUnmapControllerAttachEnabled(t *testing.T) {
 	assert.NoError(t, volumetesting.VerifyTearDownDeviceCallCount(
 		1 /* expectedTearDownDeviceCallCount */, fakePlugin))
 	assert.NoError(t, volumetesting.VerifyZeroDetachCallCount(fakePlugin))
-
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 func Test_GenerateMapVolumeFunc_Plugin_Not_Found(t *testing.T) {
@@ -823,7 +815,8 @@ func Test_GenerateMapVolumeFunc_Plugin_Not_Found(t *testing.T) {
 	}
 
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			volumePluginMgr := &volume.VolumePluginMgr{}
@@ -855,8 +848,6 @@ func Test_GenerateMapVolumeFunc_Plugin_Not_Found(t *testing.T) {
 			}
 		})
 	}
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 func Test_GenerateUnmapVolumeFunc_Plugin_Not_Found(t *testing.T) {
@@ -878,7 +869,8 @@ func Test_GenerateUnmapVolumeFunc_Plugin_Not_Found(t *testing.T) {
 	}
 
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			volumePluginMgr := &volume.VolumePluginMgr{}
@@ -902,8 +894,6 @@ func Test_GenerateUnmapVolumeFunc_Plugin_Not_Found(t *testing.T) {
 			}
 		})
 	}
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 func Test_GenerateUnmapDeviceFunc_Plugin_Not_Found(t *testing.T) {
@@ -925,7 +915,8 @@ func Test_GenerateUnmapDeviceFunc_Plugin_Not_Found(t *testing.T) {
 	}
 
 	// Enable BlockVolume feature gate
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=true")
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.BlockVolume, true)()
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			volumePluginMgr := &volume.VolumePluginMgr{}
@@ -948,8 +939,6 @@ func Test_GenerateUnmapDeviceFunc_Plugin_Not_Found(t *testing.T) {
 			}
 		})
 	}
-	// Rollback feature gate to false.
-	utilfeature.DefaultFeatureGate.Set("BlockVolume=false")
 }
 
 // Populates desiredStateOfWorld cache with one volume/pod.
@@ -959,14 +948,17 @@ func Test_GenerateUnmapDeviceFunc_Plugin_Not_Found(t *testing.T) {
 // Mark volume as fsResizeRequired in ASW.
 // Verifies volume's fsResizeRequired flag is cleared later.
 func Test_Run_Positive_VolumeFSResizeControllerAttachEnabled(t *testing.T) {
-	utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%s=true", features.ExpandInUsePersistentVolumes))
+	defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ExpandInUsePersistentVolumes, true)()
+
+	fs := v1.PersistentVolumeFilesystem
 	pv := &v1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pv",
 			UID:  "pvuid",
 		},
 		Spec: v1.PersistentVolumeSpec{
-			ClaimRef: &v1.ObjectReference{Name: "pvc"},
+			ClaimRef:   &v1.ObjectReference{Name: "pvc"},
+			VolumeMode: &fs,
 		},
 	}
 	pvc := &v1.PersistentVolumeClaim{
@@ -976,6 +968,7 @@ func Test_Run_Positive_VolumeFSResizeControllerAttachEnabled(t *testing.T) {
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
 			VolumeName: "pv",
+			VolumeMode: &fs,
 		},
 	}
 	pod := &v1.Pod{
@@ -1233,14 +1226,22 @@ func Test_Run_Positive_VolumeMountControllerAttachEnabledRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddPodToVolume failed. Expected: <no error> Actual: <%v>", err)
 	}
-	runReconciler(reconciler)
+	// Start the reconciler to fill ASW.
+	stopChan, stoppedChan := make(chan struct{}), make(chan struct{})
+	go func() {
+		reconciler.Run(stopChan)
+		close(stoppedChan)
+	}()
 	waitForMount(t, fakePlugin, generatedVolumeName, asw)
+	// Stop the reconciler.
+	close(stopChan)
+	<-stoppedChan
 
 	finished := make(chan interface{})
 	fakePlugin.UnmountDeviceHook = func(mountPath string) error {
 		// Act:
 		// 3. While a volume is being unmounted, add it back to the desired state of world
-		glog.Infof("UnmountDevice called")
+		klog.Infof("UnmountDevice called")
 		generatedVolumeName, err = dsw.AddPodToVolume(
 			podName, pod, volumeSpec, volumeSpec.Name(), "" /* volumeGidValue */)
 		dsw.MarkVolumesReportedInUse([]v1.UniqueVolumeName{generatedVolumeName})
@@ -1258,6 +1259,9 @@ func Test_Run_Positive_VolumeMountControllerAttachEnabledRace(t *testing.T) {
 		close(finished)
 		return devicePath, nil
 	}
+
+	// Start the reconciler again.
+	go reconciler.Run(wait.NeverStop)
 
 	// 2. Delete the volume from DSW (and wait for callbacks)
 	dsw.DeletePodFromVolume(podName, generatedVolumeName)

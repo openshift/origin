@@ -18,12 +18,14 @@ import (
 	"fmt"
 )
 
+// UnitOption represents an option in a systemd unit file.
 type UnitOption struct {
 	Section string
 	Name    string
 	Value   string
 }
 
+// NewUnitOption returns a new UnitOption instance with pre-set values.
 func NewUnitOption(section, name, value string) *UnitOption {
 	return &UnitOption{Section: section, Name: name, Value: value}
 }
@@ -32,12 +34,15 @@ func (uo *UnitOption) String() string {
 	return fmt.Sprintf("{Section: %q, Name: %q, Value: %q}", uo.Section, uo.Name, uo.Value)
 }
 
+// Match compares two UnitOptions and returns true if they are identical.
 func (uo *UnitOption) Match(other *UnitOption) bool {
 	return uo.Section == other.Section &&
 		uo.Name == other.Name &&
 		uo.Value == other.Value
 }
 
+// AllMatch compares two slices of UnitOptions and returns true if they are
+// identical.
 func AllMatch(u1 []*UnitOption, u2 []*UnitOption) bool {
 	length := len(u1)
 	if length != len(u2) {

@@ -16,9 +16,12 @@ type ClusterVersion struct {
 
 	// spec is the desired state of the cluster version - the operator will work
 	// to ensure that the desired version is applied to the cluster.
+	// +kubebuilder:validation:Required
+	// +required
 	Spec ClusterVersionSpec `json:"spec"`
 	// status contains information about the available updates and any in-progress
 	// updates.
+	// +optional
 	Status ClusterVersionStatus `json:"status"`
 }
 
@@ -46,19 +49,19 @@ type ClusterVersionSpec struct {
 	// rollbacks will succeed.
 	//
 	// +optional
-	DesiredUpdate *Update `json:"desiredUpdate"`
+	DesiredUpdate *Update `json:"desiredUpdate,omitempty"`
 
 	// upstream may be used to specify the preferred update server. By default
 	// it will use the appropriate update server for the cluster and region.
 	//
 	// +optional
-	Upstream URL `json:"upstream"`
+	Upstream URL `json:"upstream,omitempty"`
 	// channel is an identifier for explicitly requesting that a non-default
 	// set of updates be applied to this cluster. The default channel will be
 	// contain stable updates that are appropriate for production clusters.
 	//
 	// +optional
-	Channel string `json:"channel"`
+	Channel string `json:"channel,omitempty"`
 
 	// overrides is list of overides for components that are managed by
 	// cluster version operator. Marking a component unmanaged will prevent
@@ -86,7 +89,8 @@ type ClusterVersionStatus struct {
 	// Completed if the rollout completed - if an update was failing or halfway
 	// applied the state will be Partial. Only a limited amount of update history
 	// is preserved.
-	History []UpdateHistory `json:"history"`
+	// +optional
+	History []UpdateHistory `json:"history,omitempty"`
 
 	// observedGeneration reports which version of the spec is being synced.
 	// If this value is not equal to metadata.generation, then the desired
@@ -101,16 +105,18 @@ type ClusterVersionStatus struct {
 	// conditions provides information about the cluster version. The condition
 	// "Available" is set to true if the desiredUpdate has been reached. The
 	// condition "Progressing" is set to true if an update is being applied.
-	// The condition "Failing" is set to true if an update is currently blocked
+	// The condition "Degraded" is set to true if an update is currently blocked
 	// by a temporary or permanent error. Conditions are only valid for the
 	// current desiredUpdate when metadata.generation is equal to
 	// status.generation.
-	Conditions []ClusterOperatorStatusCondition `json:"conditions"`
+	// +optional
+	Conditions []ClusterOperatorStatusCondition `json:"conditions,omitempty"`
 
 	// availableUpdates contains the list of updates that are appropriate
 	// for this cluster. This list may be empty if no updates are recommended,
 	// if the update service is unavailable, or if an invalid channel has
 	// been specified.
+	// +nullable
 	AvailableUpdates []Update `json:"availableUpdates"`
 }
 
@@ -141,6 +147,7 @@ type UpdateHistory struct {
 	// that is currently being applied will have a null completion time.
 	// Completion time will always be set for entries that are not the current
 	// update (usually to the started time of the next update).
+	// +nullable
 	CompletionTime *metav1.Time `json:"completionTime"`
 
 	// version is a semantic versioning identifying the update version. If the
@@ -152,6 +159,9 @@ type UpdateHistory struct {
 	// image is a container image location that contains the update. This value
 	// is always populated.
 	Image string `json:"image"`
+	// verified indicates whether the provided update was properly verified
+	// before it was installed. If this is false the cluster may not be trusted.
+	Verified bool `json:"verified"`
 }
 
 // ClusterID is string RFC4122 uuid.
@@ -196,6 +206,19 @@ type Update struct {
 	//
 	// +optional
 	Image string `json:"image"`
+	// force allows an administrator to update to an image that has failed
+	// verification, does not appear in the availableUpdates list, or otherwise
+	// would be blocked by normal protections on update. This option should only
+	// be used when the authenticity of the provided image has been verified out
+	// of band because the provided image will run with full administrative access
+	// to the cluster. Do not use this flag with images that comes from unknown
+	// or potentially malicious sources.
+	//
+	// This flag does not override other forms of consistency checking that are
+	// required before a new update is deployed.
+	//
+	// +optional
+	Force bool `json:"force"`
 }
 
 // RetrievedUpdates reports whether available updates have been retrieved from

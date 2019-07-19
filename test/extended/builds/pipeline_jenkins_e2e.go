@@ -19,12 +19,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
 
-var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipeline build", func() {
+var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slow openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -73,7 +73,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			exutil.PreTestDump()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
-			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
+			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a container image that extends
 			// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
 			// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
 			// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
@@ -169,13 +169,6 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
 			}
-
-			g.By("waiting for default service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		debugAnyJenkinsFailure = func(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -206,7 +199,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			setupJenkins(jenkinsPersistentTemplatePath)
 			// additionally ensure that the build works in a memory constrained
 			// environment
-			_, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(&corev1.LimitRange{
+			_, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(&corev1.LimitRange{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "limitrange",
 				},
@@ -222,7 +215,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				},
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Delete("limitrange", &metav1.DeleteOptions{})
+			defer oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Delete("limitrange", &metav1.DeleteOptions{})
 
 			g.By("delete jenkins job runs when jenkins re-establishes communications")
 			g.By("should delete job runs when the associated build is deleted - jenkins unreachable")
@@ -243,10 +236,10 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				br.AssertSuccess()
 
 				// get the build information
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				jenkinsBuildURI, err := url.Parse(build.Annotations[buildutil.BuildJenkinsBuildURIAnnotation])
+				jenkinsBuildURI, err := url.Parse(build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation])
 
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "error parsing build uri: %s", err)
@@ -258,7 +251,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			for buildName, buildInfo := range buildNameToBuildInfoMap {
 				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+				_, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 			}
@@ -271,7 +264,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			for buildName, buildInfo := range buildNameToBuildInfoMap {
 				if buildInfo.number%2 == 0 {
 					fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
-					err := oc.BuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+					err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 				}
@@ -309,11 +302,11 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				o.Expect(err).NotTo(o.HaveOccurred())
 				fmt.Fprintf(g.GinkgoWriter, "Checking %s, status: %v\n", buildName, status)
 				if buildInfo.number%2 == 0 {
-					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).To(o.HaveOccurred())
 					o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
 				} else {
-					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 				}
@@ -377,7 +370,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				// start the build
 				g.By("waiting for the build to complete")
 				br := &exutil.BuildResult{Oc: oc, BuildName: "gradle-1"}
-				err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
+				err = exutil.WaitForBuildResult(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br)
 				if err != nil || !br.BuildSuccess {
 					exutil.DumpBuilds(oc)
 					exutil.DumpPodLogsStartingWith("maven", oc)
@@ -453,7 +446,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				err = oc.Run("new-app").Args(repo.RepoPath, "--strategy=pipeline", "--build-env=FOO1=BAR1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(envVarsPipelineGitRepoBuildConfig, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				envs := bc.Spec.Strategy.JenkinsPipelineStrategy.Env
 				o.Expect(len(envs)).To(o.Equal(1))
@@ -487,12 +480,12 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 						g.By("Waiting for the build uri")
 						var jenkinsBuildURI string
 						for {
-							build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+							build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 							if err != nil {
 								errs <- fmt.Errorf("error getting build: %s", err)
 								return
 							}
-							jenkinsBuildURI = build.Annotations[buildutil.BuildJenkinsBuildURIAnnotation]
+							jenkinsBuildURI = build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation]
 							if jenkinsBuildURI != "" {
 								break
 							}
@@ -537,7 +530,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 						defer g.GinkgoRecover()
 
 						for {
-							build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+							build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 							switch {
 							case err != nil:
 								errs <- fmt.Errorf("error getting build: %s", err)
@@ -615,10 +608,10 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 					br.AssertSuccess()
 
 					// get the build information
-					build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+					build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					jenkinsBuildURI, err := url.Parse(build.Annotations[buildutil.BuildJenkinsBuildURIAnnotation])
+					jenkinsBuildURI, err := url.Parse(build.Annotations[buildv1.BuildJenkinsBuildURIAnnotation])
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "error parsing build uri: %s", err)
 					}
@@ -629,7 +622,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				for buildName, buildInfo := range buildNameToBuildInfoMap {
 					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					_, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					_, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 				}
@@ -638,7 +631,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				for buildName, buildInfo := range buildNameToBuildInfoMap {
 					if buildInfo.number%2 == 0 {
 						fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
-						err := oc.BuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+						err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 					}
@@ -666,11 +659,11 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					if buildInfo.number%2 == 0 {
-						_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+						_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
 					} else {
-						_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+						_, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
 					}

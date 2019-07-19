@@ -105,6 +105,25 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					Locator: locatePod(pod),
 					Message: fmt.Sprintf("pod moved to the Unknown phase"),
 				})
+			case new == corev1.PodFailed && old != corev1.PodFailed:
+				for _, s := range pod.Status.InitContainerStatuses {
+					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
+						conditions = append(conditions, Condition{
+							Level:   Error,
+							Locator: locatePodContainer(pod, s.Name),
+							Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
+						})
+					}
+				}
+				for _, s := range pod.Status.ContainerStatuses {
+					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
+						conditions = append(conditions, Condition{
+							Level:   Error,
+							Locator: locatePodContainer(pod, s.Name),
+							Message: fmt.Sprintf("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
+						})
+					}
+				}
 			}
 			return conditions
 		},
@@ -136,6 +155,13 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if previous == nil {
 					continue
 				}
+				if t := s.State.Terminated; t != nil && previous.State.Terminated == nil && t.ExitCode != 0 {
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePodContainer(pod, s.Name),
+						Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
+					})
+				}
 				if s.RestartCount != previous.RestartCount {
 					conditions = append(conditions, Condition{
 						Level:   Warning,
@@ -143,7 +169,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						Message: "container restarted",
 					})
 				}
-				if previous.Ready && !s.Ready {
+				if s.State.Terminated == nil && previous.Ready && !s.Ready {
 					conditions = append(conditions, Condition{
 						Level:   Warning,
 						Locator: locatePodContainer(pod, s.Name),
@@ -151,13 +177,50 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					})
 				}
 			}
+			for i := range pod.Status.InitContainerStatuses {
+				s := &pod.Status.InitContainerStatuses[i]
+				previous := findContainerStatus(oldPod.Status.InitContainerStatuses, s.Name, i)
+				if previous == nil {
+					continue
+				}
+				if t := s.State.Terminated; t != nil && previous.State.Terminated == nil && t.ExitCode != 0 {
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePodContainer(pod, s.Name),
+						Message: fmt.Sprintf("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
+					})
+				}
+				if s.RestartCount != previous.RestartCount {
+					conditions = append(conditions, Condition{
+						Level:   Warning,
+						Locator: locatePodContainer(pod, s.Name),
+						Message: "init container restarted",
+					})
+				}
+			}
 			return conditions
 		},
 	}
 
+	startTime := time.Now().Add(-time.Minute)
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {},
+			AddFunc: func(obj interface{}) {
+				pod, ok := obj.(*corev1.Pod)
+				if !ok {
+					return
+				}
+				// filter out old pods so our monitor doesn't send a big chunk
+				// of pod creations
+				if pod.CreationTimestamp.Time.Before(startTime) {
+					return
+				}
+				m.Record(Condition{
+					Level:   Info,
+					Locator: locatePod(pod),
+					Message: "created",
+				})
+			},
 			DeleteFunc: func(obj interface{}) {
 				pod, ok := obj.(*corev1.Pod)
 				if !ok {

@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/authorization/v1"
 	scheme "github.com/openshift/client-go/authorization/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -21,11 +23,11 @@ type RoleBindingRestrictionsGetter interface {
 type RoleBindingRestrictionInterface interface {
 	Create(*v1.RoleBindingRestriction) (*v1.RoleBindingRestriction, error)
 	Update(*v1.RoleBindingRestriction) (*v1.RoleBindingRestriction, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.RoleBindingRestriction, error)
-	List(opts meta_v1.ListOptions) (*v1.RoleBindingRestrictionList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.RoleBindingRestriction, error)
+	List(opts metav1.ListOptions) (*v1.RoleBindingRestrictionList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.RoleBindingRestriction, err error)
 	RoleBindingRestrictionExpansion
 }
@@ -45,7 +47,7 @@ func newRoleBindingRestrictions(c *AuthorizationV1Client, namespace string) *rol
 }
 
 // Get takes name of the roleBindingRestriction, and returns the corresponding roleBindingRestriction object, and an error if there is any.
-func (c *roleBindingRestrictions) Get(name string, options meta_v1.GetOptions) (result *v1.RoleBindingRestriction, err error) {
+func (c *roleBindingRestrictions) Get(name string, options metav1.GetOptions) (result *v1.RoleBindingRestriction, err error) {
 	result = &v1.RoleBindingRestriction{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -58,24 +60,34 @@ func (c *roleBindingRestrictions) Get(name string, options meta_v1.GetOptions) (
 }
 
 // List takes label and field selectors, and returns the list of RoleBindingRestrictions that match those selectors.
-func (c *roleBindingRestrictions) List(opts meta_v1.ListOptions) (result *v1.RoleBindingRestrictionList, err error) {
+func (c *roleBindingRestrictions) List(opts metav1.ListOptions) (result *v1.RoleBindingRestrictionList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.RoleBindingRestrictionList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested roleBindingRestrictions.
-func (c *roleBindingRestrictions) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *roleBindingRestrictions) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -105,7 +117,7 @@ func (c *roleBindingRestrictions) Update(roleBindingRestriction *v1.RoleBindingR
 }
 
 // Delete takes name of the roleBindingRestriction and deletes it. Returns an error if one occurs.
-func (c *roleBindingRestrictions) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *roleBindingRestrictions) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
@@ -116,11 +128,16 @@ func (c *roleBindingRestrictions) Delete(name string, options *meta_v1.DeleteOpt
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *roleBindingRestrictions) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *roleBindingRestrictions) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

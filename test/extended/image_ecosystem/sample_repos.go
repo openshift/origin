@@ -42,15 +42,6 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 				exutil.PreTestDump()
 			})
 
-			g.JustBeforeEach(func() {
-				g.By("waiting for default service account")
-				err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("waiting for builder service account")
-				err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
 			g.AfterEach(func() {
 				if g.CurrentGinkgoTestDescription().Failed {
 					exutil.DumpPodStates(oc)
@@ -71,7 +62,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					buildName := c.buildConfigName + "-1"
 
 					g.By("expecting the build is in the Complete phase")
-					err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
+					err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 					if err != nil {
 						exutil.DumpBuildLogs(c.buildConfigName, oc)
 					}
@@ -183,7 +174,8 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 		},
 	))
 
-	var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
+	// dependency download is intermittently slow enough to blow away the e2e timeouts
+	/*var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "dancer-mysql",
 			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json",
@@ -195,7 +187,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 			dbDeploymentConfigName: "database",
 			dbServiceName:          "database",
 		},
-	))
+	))*/
 
 	// test the no-db templates too
 	g.Describe("[image_ecosystem][python] test python images with django-ex repo", NewSampleRepoTest(
@@ -240,7 +232,8 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 		},
 	))
 
-	var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex repo", NewSampleRepoTest(
+	// dependency download is intermittently slow enough to blow away the e2e timeouts
+	/*var _ = g.Describe("[image_ecosystem][perl] test perl images with dancer-ex repo", NewSampleRepoTest(
 		sampleRepoConfig{
 			repoName:               "dancer",
 			templateURL:            "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer.json",
@@ -252,6 +245,6 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift sample application reposit
 			dbDeploymentConfigName: "",
 			dbServiceName:          "",
 		},
-	))
+	))*/
 
 })

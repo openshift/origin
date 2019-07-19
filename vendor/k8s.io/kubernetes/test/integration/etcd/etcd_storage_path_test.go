@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 )
 
 // Only add kinds to this list when this a virtual resource with get and create verbs that doesn't actually
@@ -49,7 +50,15 @@ const testNamespace = "etcdstoragepathtestnamespace"
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
 func TestEtcdStoragePath(t *testing.T) {
-	master := StartRealMasterOrDie(t)
+	master := StartRealMasterOrDie(t, func(opts *options.ServerRunOptions) {
+		// force enable all resources so we can check storage.
+		// TODO: drop these once we stop allowing them to be served.
+		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/deployments"] = "true"
+		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/daemonsets"] = "true"
+		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/replicasets"] = "true"
+		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/podsecuritypolicies"] = "true"
+		opts.APIEnablement.RuntimeConfig["extensions/v1beta1/networkpolicies"] = "true"
+	})
 	defer master.Cleanup()
 	defer dumpEtcdKVOnFailure(t, master.KV)
 
@@ -60,23 +69,6 @@ func TestEtcdStoragePath(t *testing.T) {
 	}
 
 	etcdStorageData := GetEtcdStorageData()
-
-	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(clientConfig)}
-	kubeClient := clientset.NewForConfigOrDie(clientConfig)
-	if _, err := kubeClient.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
-		t.Fatal(err)
-	}
-
-	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
-	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	restMapper.Reset()
-
-	resourcesToPersist := []resourceToPersist{}
-	serverResources, err := kubeClient.Discovery().ServerResources()
-	if err != nil {
-		t.Fatal(err)
-	}
-	resourcesToPersist = append(resourcesToPersist, getResourcesToPersist(serverResources, false, t)...)
 
 	kindSeen := sets.NewString()
 	pathSeen := map[string][]schema.GroupVersionResource{}
@@ -291,7 +283,7 @@ func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cl
 		return err
 	}
 
-	actual, err := resourceClient.Create(obj)
+	actual, err := resourceClient.Create(obj, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

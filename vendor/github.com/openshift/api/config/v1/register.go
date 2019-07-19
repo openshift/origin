@@ -44,6 +44,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ConsoleList{},
 		&DNS{},
 		&DNSList{},
+		&FeatureGate{},
+		&FeatureGateList{},
 		&Image{},
 		&ImageList{},
 		&Infrastructure{},
@@ -58,8 +60,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ProjectList{},
 		&Proxy{},
 		&ProxyList{},
-		&Scheduling{},
-		&SchedulingList{},
+		&Scheduler{},
+		&SchedulerList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

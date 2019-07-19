@@ -107,6 +107,16 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 	if obj.StreamingConnectionIdleTimeout == zeroDuration {
 		obj.StreamingConnectionIdleTimeout = metav1.Duration{Duration: 4 * time.Hour}
 	}
+	if obj.NodeStatusReportFrequency == zeroDuration {
+		// For backward compatibility, NodeStatusReportFrequency's default value is
+		// set to NodeStatusUpdateFrequency if NodeStatusUpdateFrequency is set
+		// explicitly.
+		if obj.NodeStatusUpdateFrequency == zeroDuration {
+			obj.NodeStatusReportFrequency = metav1.Duration{Duration: time.Minute}
+		} else {
+			obj.NodeStatusReportFrequency = obj.NodeStatusUpdateFrequency
+		}
+	}
 	if obj.NodeStatusUpdateFrequency == zeroDuration {
 		obj.NodeStatusUpdateFrequency = metav1.Duration{Duration: 10 * time.Second}
 	}
@@ -205,7 +215,7 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 		obj.ContainerLogMaxFiles = utilpointer.Int32Ptr(5)
 	}
 	if obj.ConfigMapAndSecretChangeDetectionStrategy == "" {
-		obj.ConfigMapAndSecretChangeDetectionStrategy = kubeletconfigv1beta1.WatchChangeDetectionStrategy
+		obj.ConfigMapAndSecretChangeDetectionStrategy = kubeletconfigv1beta1.TTLCacheChangeDetectionStrategy
 	}
 	if obj.EnforceNodeAllocatable == nil {
 		obj.EnforceNodeAllocatable = DefaultNodeAllocatableEnforcement

@@ -22,11 +22,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	"k8s.io/gengo/args"
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
+	"k8s.io/klog"
 
 	"k8s.io/code-generator/cmd/client-gen/generators/util"
 	clientgentypes "k8s.io/code-generator/cmd/client-gen/types"
@@ -36,8 +36,11 @@ import (
 // NameSystems returns the name system used by the generators in this package.
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
+		"DNS":                        "DNSes",
+		"DNSList":                    "DNSList",
 		"Endpoints":                  "Endpoints",
 		"Features":                   "Features",
+		"FeaturesList":               "FeaturesList",
 		"SecurityContextConstraints": "SecurityContextConstraints",
 	}
 	return namer.NameSystems{
@@ -104,12 +107,12 @@ func vendorless(p string) string {
 func Packages(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
 	boilerplate, err := arguments.LoadGoBoilerplate()
 	if err != nil {
-		glog.Fatalf("Failed loading boilerplate: %v", err)
+		klog.Fatalf("Failed loading boilerplate: %v", err)
 	}
 
 	customArgs, ok := arguments.CustomArgs.(*informergenargs.CustomArgs)
 	if !ok {
-		glog.Fatalf("Wrong CustomArgs type: %T", arguments.CustomArgs)
+		klog.Fatalf("Wrong CustomArgs type: %T", arguments.CustomArgs)
 	}
 
 	internalVersionPackagePath := filepath.Join(arguments.OutputPackagePath)
@@ -130,7 +133,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 
 		objectMeta, internal, err := objectMetaForPackage(p)
 		if err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 		if objectMeta == nil {
 			// no types in this package had genclient
@@ -143,7 +146,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		if internal {
 			lastSlash := strings.LastIndex(p.Path, "/")
 			if lastSlash == -1 {
-				glog.Fatalf("error constructing internal group version for package %q", p.Path)
+				klog.Fatalf("error constructing internal group version for package %q", p.Path)
 			}
 			gv.Group = clientgentypes.Group(p.Path[lastSlash+1:])
 			targetGroupVersions = internalGroupVersions
@@ -322,9 +325,9 @@ func versionPackage(basePackage string, groupPkgName string, gv clientgentypes.G
 				DefaultGen: generator.DefaultGen{
 					OptionalName: "interface",
 				},
-				outputPackage: packagePath,
-				imports:       generator.NewImportTracker(),
-				types:         typesToGenerate,
+				outputPackage:             packagePath,
+				imports:                   generator.NewImportTracker(),
+				types:                     typesToGenerate,
 				internalInterfacesPackage: packageForInternalInterfaces(basePackage),
 			})
 

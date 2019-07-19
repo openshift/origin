@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -18,6 +18,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+
 	"github.com/openshift/library-go/pkg/config/client"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
@@ -31,9 +32,27 @@ type StartFunc func(*ControllerContext) error
 
 type ControllerContext struct {
 	ComponentConfig *unstructured.Unstructured
-	KubeConfig      *rest.Config
-	EventRecorder   events.Recorder
-	Context         context.Context
+
+	// KubeConfig provides the REST config with no content type (it will default to JSON).
+	// Use this config for CR resources.
+	KubeConfig *rest.Config
+
+	// ProtoKubeConfig provides the REST config with "application/vnd.kubernetes.protobuf,application/json" content type.
+	// Note that this config might not be safe for CR resources, instead it should be used for other resources.
+	ProtoKubeConfig *rest.Config
+
+	// EventRecorder is used to record events in controllers.
+	EventRecorder events.Recorder
+
+	// Server is the GenericAPIServer serving healthz checks and debug info
+	Server *genericapiserver.GenericAPIServer
+
+	stopChan <-chan struct{}
+}
+
+// Done returns a channel which will close on termination.
+func (c ControllerContext) Done() <-chan struct{} {
+	return c.stopChan
 }
 
 // defaultObserverInterval specifies the default interval that file observer will do rehash the files it watches and react to any changes
@@ -48,10 +67,11 @@ type ControllerBuilder struct {
 	fileObserver            fileobserver.Observer
 	fileObserverReactorFn   func(file string, action fileobserver.ActionType) error
 
-	startFunc        StartFunc
-	componentName    string
-	instanceIdentity string
-	observerInterval time.Duration
+	startFunc          StartFunc
+	componentName      string
+	componentNamespace string
+	instanceIdentity   string
+	observerInterval   time.Duration
 
 	servingInfo          *configv1.HTTPServingInfo
 	authenticationConfig *operatorv1alpha1.DelegatedAuthentication
@@ -70,7 +90,7 @@ func NewController(componentName string, startFunc StartFunc) *ControllerBuilder
 
 // WithRestartOnChange will enable a file observer controller loop that observes changes into specified files. If a change to a file is detected,
 // the specified channel will be closed (allowing to graceful shutdown for other channels).
-func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, files ...string) *ControllerBuilder {
+func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, startingFileContent map[string][]byte, files ...string) *ControllerBuilder {
 	if len(files) == 0 {
 		return b
 	}
@@ -85,13 +105,18 @@ func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, files ..
 
 	b.fileObserverReactorFn = func(filename string, action fileobserver.ActionType) error {
 		once.Do(func() {
-			glog.Warning(fmt.Sprintf("Restart triggered because of %s", action.String(filename)))
+			klog.Warning(fmt.Sprintf("Restart triggered because of %s", action.String(filename)))
 			close(stopCh)
 		})
 		return nil
 	}
 
-	b.fileObserver.AddReactor(b.fileObserverReactorFn, files...)
+	b.fileObserver.AddReactor(b.fileObserverReactorFn, startingFileContent, files...)
+	return b
+}
+
+func (b *ControllerBuilder) WithComponentNamespace(ns string) *ControllerBuilder {
+	b.componentNamespace = ns
 	return b
 }
 
@@ -147,13 +172,13 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 	}
 
 	kubeClient := kubernetes.NewForConfigOrDie(clientConfig)
-	namespace, err := b.getNamespace()
+	namespace, err := b.getComponentNamespace()
 	if err != nil {
-		panic("unable to read the namespace")
+		klog.Warningf("unable to identify the current namespace for events: %v", err)
 	}
 	controllerRef, err := events.GetControllerReferenceForCurrentPod(kubeClient, namespace, nil)
 	if err != nil {
-		panic(fmt.Sprintf("unable to obtain replicaset reference for events: %v", err))
+		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
 	}
 	eventRecorder := events.NewKubeRecorder(kubeClient.CoreV1().Events(namespace), b.componentName, controllerRef)
 
@@ -166,39 +191,43 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 		}
 	}
 
-	switch {
-	case b.servingInfo == nil && len(b.healthChecks) > 0:
-		return fmt.Errorf("healthchecks without server config won't work")
-
-	default:
-		kubeConfig := ""
-		if b.kubeAPIServerConfigFile != nil {
-			kubeConfig = *b.kubeAPIServerConfigFile
-		}
-		serverConfig, err := serving.ToServerConfig(*b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
-		if err != nil {
-			return err
-		}
-		serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
-
-		server, err := serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
-		if err != nil {
-			return err
-		}
-
-		go func() {
-			if err := server.PrepareRun().Run(ctx.Done()); err != nil {
-				glog.Error(err)
-			}
-			glog.Fatal("server exited")
-		}()
+	if b.servingInfo == nil {
+		return fmt.Errorf("server config required for health checks and debugging endpoints")
 	}
+
+	kubeConfig := ""
+	if b.kubeAPIServerConfigFile != nil {
+		kubeConfig = *b.kubeAPIServerConfigFile
+	}
+	serverConfig, err := serving.ToServerConfig(ctx, *b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
+	if err != nil {
+		return err
+	}
+	serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
+
+	server, err := serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		if err := server.PrepareRun().Run(ctx.Done()); err != nil {
+			klog.Error(err)
+		}
+		klog.Fatal("server exited")
+	}()
+
+	protoConfig := rest.CopyConfig(clientConfig)
+	protoConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protoConfig.ContentType = "application/vnd.kubernetes.protobuf"
 
 	controllerContext := &ControllerContext{
 		ComponentConfig: config,
 		KubeConfig:      clientConfig,
+		ProtoKubeConfig: protoConfig,
 		EventRecorder:   eventRecorder,
-		Context:         ctx,
+		Server:          server,
+		stopChan:        ctx.Done(),
 	}
 
 	if b.leaderElection == nil {
@@ -214,21 +243,24 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 	}
 
 	leaderElection.Callbacks.OnStartedLeading = func(ctx context.Context) {
-		controllerContext.Context = ctx
+		controllerContext.stopChan = ctx.Done()
 		if err := b.startFunc(controllerContext); err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 	}
 	leaderelection.RunOrDie(ctx, leaderElection)
 	return fmt.Errorf("exited")
 }
 
-func (b *ControllerBuilder) getNamespace() (string, error) {
+func (b *ControllerBuilder) getComponentNamespace() (string, error) {
+	if len(b.componentNamespace) > 0 {
+		return b.componentNamespace, nil
+	}
 	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
-		return "", err
+		return "openshift-config-managed", err
 	}
-	return string(nsBytes), err
+	return string(nsBytes), nil
 }
 
 func (b *ControllerBuilder) getClientConfig() (*rest.Config, error) {

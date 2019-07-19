@@ -178,10 +178,6 @@ func TestPruneAPIResources(t *testing.T) {
 	for _, tc := range tests {
 		kubeClient := fake.NewSimpleClientset(tc.startingObjects...)
 		fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-			&operatorv1.OperatorSpec{
-				ManagementState: operatorv1.Managed,
-			},
-			&operatorv1.OperatorStatus{},
 			&operatorv1.StaticPodOperatorSpec{
 				FailedRevisionLimit:    tc.failedLimit,
 				SucceededRevisionLimit: tc.succeededLimit,
@@ -194,11 +190,12 @@ func TestPruneAPIResources(t *testing.T) {
 				NodeStatuses: []operatorv1.NodeStatus{
 					{
 						NodeName:        "test-node-1",
-						CurrentRevision: 0,
+						CurrentRevision: 1,
 						TargetRevision:  0,
 					},
 				},
 			},
+			nil,
 			nil,
 		)
 		eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
@@ -208,35 +205,38 @@ func TestPruneAPIResources(t *testing.T) {
 			NodeStatuses: []operatorv1.NodeStatus{
 				{
 					NodeName:        "test-node-1",
-					CurrentRevision: 0,
+					CurrentRevision: 1,
 					TargetRevision:  0,
 				},
 			},
 		}
 
 		c := &PruneController{
-			targetNamespace:      tc.targetNamespace,
-			podResourcePrefix:    "test-pod",
-			command:              []string{"/bin/true"},
-			configMapGetter:      kubeClient.CoreV1(),
-			secretGetter:         kubeClient.CoreV1(),
-			podGetter:            kubeClient.CoreV1(),
-			eventRecorder:        eventRecorder,
-			operatorConfigClient: fakeStaticPodOperatorClient,
+			targetNamespace:   tc.targetNamespace,
+			podResourcePrefix: "test-pod",
+			command:           []string{"/bin/true"},
+			configMapGetter:   kubeClient.CoreV1(),
+			secretGetter:      kubeClient.CoreV1(),
+			podGetter:         kubeClient.CoreV1(),
+			eventRecorder:     eventRecorder,
+			operatorClient:    fakeStaticPodOperatorClient,
+		}
+		c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
+			return []metav1.OwnerReference{}, nil
 		}
 		c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
-		operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+		operatorSpec, _, _, err := c.operatorClient.GetStaticPodOperatorState()
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
 		failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-		excludedIDs, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
+		excludedRevisions, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
-		if apiErr := c.pruneAPIResources(excludedIDs, excludedIDs[len(excludedIDs)-1]); apiErr != nil {
+		if apiErr := c.pruneAPIResources(excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); apiErr != nil {
 			t.Fatalf("unexpected error %q", apiErr)
 		}
 
@@ -252,13 +252,13 @@ func TestPruneAPIResources(t *testing.T) {
 
 func TestPruneDiskResources(t *testing.T) {
 	tests := []struct {
-		name           string
-		failedLimit    int32
-		succeededLimit int32
-		maxEligibleID  int
-		protectedIDs   string
-		configMaps     []configMapInfo
-		expectedErr    string
+		name                string
+		failedLimit         int32
+		succeededLimit      int32
+		maxEligibleRevision int
+		protectedRevisions  string
+		configMaps          []configMapInfo
+		expectedErr         string
 	}{
 		{
 			name: "creates prune pod appropriately",
@@ -282,10 +282,10 @@ func TestPruneDiskResources(t *testing.T) {
 					phase:     string(v1.PodSucceeded),
 				},
 			},
-			maxEligibleID:  3,
-			protectedIDs:   "2,3",
-			failedLimit:    1,
-			succeededLimit: 1,
+			maxEligibleRevision: 3,
+			protectedRevisions:  "2,3",
+			failedLimit:         1,
+			succeededLimit:      1,
 		},
 
 		{
@@ -310,8 +310,8 @@ func TestPruneDiskResources(t *testing.T) {
 					phase:     string(v1.PodSucceeded),
 				},
 			},
-			maxEligibleID: 3,
-			protectedIDs:  "1,2,3",
+			maxEligibleRevision: 3,
+			protectedRevisions:  "1,2,3",
 		},
 
 		{
@@ -330,8 +330,8 @@ func TestPruneDiskResources(t *testing.T) {
 					phase:     "garbage",
 				},
 			},
-			maxEligibleID: 2,
-			protectedIDs:  "1,2",
+			maxEligibleRevision: 2,
+			protectedRevisions:  "1,2",
 		},
 		{
 			name: "handles revisions of only one type of phase",
@@ -349,10 +349,10 @@ func TestPruneDiskResources(t *testing.T) {
 					phase:     string(v1.PodSucceeded),
 				},
 			},
-			maxEligibleID:  2,
-			protectedIDs:   "2",
-			failedLimit:    1,
-			succeededLimit: 1,
+			maxEligibleRevision: 2,
+			protectedRevisions:  "2",
+			failedLimit:         1,
+			succeededLimit:      1,
 		},
 		{
 			name: "protects all with unlimited revisions",
@@ -370,10 +370,10 @@ func TestPruneDiskResources(t *testing.T) {
 					phase:     string(v1.PodSucceeded),
 				},
 			},
-			maxEligibleID:  2,
-			protectedIDs:   "2",
-			failedLimit:    1,
-			succeededLimit: 1,
+			maxEligibleRevision: 2,
+			protectedRevisions:  "2",
+			failedLimit:         1,
+			succeededLimit:      1,
 		},
 	}
 
@@ -391,10 +391,6 @@ func TestPruneDiskResources(t *testing.T) {
 			})
 
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					FailedRevisionLimit:    test.failedLimit,
 					SucceededRevisionLimit: test.succeededLimit,
@@ -407,11 +403,12 @@ func TestPruneDiskResources(t *testing.T) {
 					NodeStatuses: []operatorv1.NodeStatus{
 						{
 							NodeName:        "test-node-1",
-							CurrentRevision: 0,
+							CurrentRevision: 1,
 							TargetRevision:  0,
 						},
 					},
 				},
+				nil,
 				nil,
 			)
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
@@ -421,35 +418,38 @@ func TestPruneDiskResources(t *testing.T) {
 				NodeStatuses: []operatorv1.NodeStatus{
 					{
 						NodeName:        "test-node-1",
-						CurrentRevision: 0,
+						CurrentRevision: 1,
 						TargetRevision:  0,
 					},
 				},
 			}
 
 			c := &PruneController{
-				targetNamespace:      "test",
-				podResourcePrefix:    "test-pod",
-				command:              []string{"/bin/true"},
-				configMapGetter:      kubeClient.CoreV1(),
-				secretGetter:         kubeClient.CoreV1(),
-				podGetter:            kubeClient.CoreV1(),
-				eventRecorder:        eventRecorder,
-				operatorConfigClient: fakeStaticPodOperatorClient,
+				targetNamespace:   "test",
+				podResourcePrefix: "test-pod",
+				command:           []string{"/bin/true"},
+				configMapGetter:   kubeClient.CoreV1(),
+				secretGetter:      kubeClient.CoreV1(),
+				podGetter:         kubeClient.CoreV1(),
+				eventRecorder:     eventRecorder,
+				operatorClient:    fakeStaticPodOperatorClient,
+			}
+			c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
+				return []metav1.OwnerReference{}, nil
 			}
 			c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
-			operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+			operatorSpec, _, _, err := c.operatorClient.GetStaticPodOperatorState()
 			if err != nil {
 				t.Fatalf("unexpected error %q", err)
 			}
 			failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-			excludedIDs, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
+			excludedRevisions, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
 			if err != nil {
 				t.Fatalf("unexpected error %q", err)
 			}
-			if diskErr := c.pruneDiskResources(operatorStatus, excludedIDs, excludedIDs[len(excludedIDs)-1]); diskErr != nil {
+			if diskErr := c.pruneDiskResources(operatorStatus, excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); diskErr != nil {
 				t.Fatalf("unexpected error %q", diskErr)
 			}
 
@@ -467,8 +467,8 @@ func TestPruneDiskResources(t *testing.T) {
 
 			expectedArgs := []string{
 				"-v=4",
-				fmt.Sprintf("--max-eligible-id=%d", test.maxEligibleID),
-				fmt.Sprintf("--protected-ids=%s", test.protectedIDs),
+				fmt.Sprintf("--max-eligible-revision=%d", test.maxEligibleRevision),
+				fmt.Sprintf("--protected-revisions=%s", test.protectedRevisions),
 				fmt.Sprintf("--resource-dir=%s", "/etc/kubernetes/static-pod-resources"),
 				fmt.Sprintf("--static-pod-name=%s", "test-pod"),
 			}

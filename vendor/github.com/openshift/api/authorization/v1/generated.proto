@@ -116,9 +116,11 @@ message GroupRestriction {
   // Groups is a list of groups used to match against an individual user's
   // groups. If the user is a member of one of the whitelisted groups, the user
   // is allowed to be bound to a role.
+  // +nullable
   repeated string groups = 1;
 
   // Selectors specifies a list of label selectors over group labels.
+  // +nullable
   repeated k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector labels = 2;
 }
 
@@ -333,12 +335,15 @@ message RoleBindingRestrictionList {
 // field must be non-nil.
 message RoleBindingRestrictionSpec {
   // UserRestriction matches against user subjects.
+  // +nullable
   optional UserRestriction userrestriction = 1;
 
   // GroupRestriction matches against group subjects.
+  // +nullable
   optional GroupRestriction grouprestriction = 2;
 
   // ServiceAccountRestriction matches against service-account subjects.
+  // +nullable
   optional ServiceAccountRestriction serviceaccountrestriction = 3;
 }
 
@@ -467,9 +472,11 @@ message UserRestriction {
   repeated string users = 1;
 
   // Groups specifies a list of literal group names.
+  // +nullable
   repeated string groups = 2;
 
   // Selectors specifies a list of label selectors over user labels.
+  // +nullable
   repeated k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector labels = 3;
 }
 

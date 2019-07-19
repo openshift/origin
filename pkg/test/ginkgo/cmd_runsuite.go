@@ -30,12 +30,21 @@ type Options struct {
 
 	IncludeSuccessOutput bool
 
-	Provider string
+	Provider     string
+	SuiteOptions string
 
 	Suites []*TestSuite
 
-	DryRun      bool
-	Out, ErrOut io.Writer
+	DryRun        bool
+	PrintCommands bool
+	Out, ErrOut   io.Writer
+}
+
+func (opt *Options) AsEnv() []string {
+	var args []string
+	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
+	args = append(args, fmt.Sprintf("TEST_SUITE_OPTIONS=%s", opt.SuiteOptions))
+	return args
 }
 
 func (opt *Options) Run(args []string) error {
@@ -104,31 +113,12 @@ func (opt *Options) Run(args []string) error {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
+	if opt.PrintCommands {
+		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, opt.AsEnv())
+		newParallelTestQueue(tests).Execute(context.Background(), 1, status.OutputCommand)
+		return nil
+	}
 	if opt.DryRun {
-		// if true {
-		// 	bySuite := make(map[string][]*testCase)
-		// 	for _, test := range tests {
-		// 		bySuite[test.testExclusion] = append(bySuite[test.testExclusion], test)
-		// 	}
-		// 	var names []string
-		// 	for k := range bySuite {
-		// 		names = append(names, k)
-		// 	}
-		// 	sort.Slice(names, func(i, j int) bool {
-		// 		return len(bySuite[names[i]]) > len(bySuite[names[j]])
-		// 	})
-		// 	for _, name := range names {
-		// 		if len(name) == 0 {
-		// 			fmt.Fprintf(out, "<none>:\n")
-		// 		} else {
-		// 			fmt.Fprintf(out, "%s:\n", name)
-		// 		}
-		// 		for _, test := range sortedTests(bySuite[name]) {
-		// 			fmt.Fprintf(out, "  %q\n", test.name)
-		// 		}
-		// 	}
-		// 	return nil
-		// }
 		for _, test := range sortedTests(tests) {
 			fmt.Fprintf(opt.Out, "%q\n", test.name)
 		}
@@ -158,8 +148,6 @@ func (opt *Options) Run(args []string) error {
 		timeout = suite.TestTimeout
 	}
 	if timeout == 0 {
-		// TODO: temporarily increased because some normally fast build tests have become much slower
-		//   reduce back to 10m at some point in the future
 		timeout = 15 * time.Minute
 	}
 
@@ -185,7 +173,12 @@ func (opt *Options) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	status := newTestStatus(opt.Out, opt.IncludeSuccessOutput, len(tests), timeout, m)
+	// if we run a single test, always include success output
+	includeSuccess := opt.IncludeSuccessOutput
+	if len(tests) == 1 {
+		includeSuccess = true
+	}
+	status := newTestStatus(opt.Out, includeSuccess, len(tests), timeout, m, opt.AsEnv())
 
 	smoke, normal := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Smoke]")
@@ -276,7 +269,7 @@ func (opt *Options) Run(args []string) error {
 		}
 
 		q := newParallelTestQueue(retries)
-		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m)
+		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m, opt.AsEnv())
 		q.Execute(ctx, parallelism, status.Run)
 		var flaky []string
 		var repeatFailures []*testCase

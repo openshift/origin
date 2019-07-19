@@ -19,13 +19,13 @@ option go_package = "v1";
 // administrator typically configures their router to be visible outside the cluster firewall, and
 // may also add additional security, caching, or traffic controls on the service content. Routers
 // usually talk directly to the service endpoints.
-// 
+//
 // Once a route is created, the `host` field may not be changed. Generally, routers use the oldest
 // route with a given host when resolving conflicts.
-// 
+//
 // Routers are subject to additional customization and may support additional controls via the
 // annotations field.
-// 
+//
 // Because administrators may configure multiple routers, the route status field is used to
 // return information to clients about the names and states of the route under each router.
 // If a client chooses a duplicate name, for instance, the route status conditions are used
@@ -105,10 +105,10 @@ message RoutePort {
 // roundrobin scheduling the portion of requests that go to each backend is the backend
 // weight divided by the sum of all of the backend weights. When the backend has more than
 // one endpoint the requests that end up on the backend are roundrobin distributed among
-// the endpoints. Weights are between 0 and 256 with default 1. Weight 0 causes no requests
+// the endpoints. Weights are between 0 and 256 with default 100. Weight 0 causes no requests
 // to the backend. If all weights are zero the route will be considered to have no backends
 // and return a standard 503 response.
-// 
+//
 // The `tls` field is optional and allows specific certificates or behavior for the
 // route. Routers typically configure a default certificate on a wildcard domain to
 // terminate routes without explicit certificates, but custom hostnames usually must
@@ -121,11 +121,27 @@ message RouteSpec {
   // Must follow DNS952 subdomain conventions.
   optional string host = 1;
 
-  // Path that the router watches for, to route traffic for to the service. Optional
+  // subdomain is a DNS subdomain that is requested within the ingress controller's
+  // domain (as a subdomain). If host is set this field is ignored. An ingress
+  // controller may choose to ignore this suggested name, in which case the controller
+  // will report the assigned name in the status.ingress array or refuse to admit the
+  // route. If this value is set and the server does not support this field host will
+  // be populated automatically. Otherwise host is left empty. The field may have
+  // multiple parts separated by a dot, but not all ingress controllers may honor
+  // the request. This field may not be changed after creation except by a user with
+  // the update routes/custom-host permission.
+  //
+  // Example: subdomain `frontend` automatically receives the router subdomain
+  // `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
+  //
+  // +optional
+  optional string subdomain = 8;
+
+  // path that the router watches for, to route traffic for to the service. Optional
   optional string path = 2;
 
   // to is an object the route should use as the primary backend. Only the Service kind
-  // is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1)
+  // is allowed, and it will be defaulted to Service. If the weight field (0-256 default 100)
   // is set to zero, no traffic will be sent to this backend.
   optional RouteTargetReference to = 3;
 
@@ -165,7 +181,7 @@ message RouteTargetReference {
   // name of the service/target that is being referred to. e.g. name of the service
   optional string name = 2;
 
-  // weight as an integer between 0 and 256, default 1, that specifies the target's relative weight
+  // weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
   // against other target reference objects. 0 suppresses requests to this backend.
   optional int32 weight = 3;
 }
@@ -207,7 +223,7 @@ message TLSConfig {
 
   // insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While
   // each router may make its own decisions on which ports to expose, this is normally port 80.
-  // 
+  //
   // * Allow - traffic is sent to the server on the insecure port (default)
   // * Disable - no traffic is allowed on the insecure port.
   // * Redirect - clients are redirected to the secure port.

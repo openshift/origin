@@ -171,7 +171,7 @@ _Under volumes_
 *Notice we also see our `helloworld.html` file that we created within that directory*
 
 
-- Enter a simple curl command from the docker container to serve the page
+- Enter a simple curl command from the container to serve the page
 
 
         curl http://10.1.0.9/test/helloworld.html

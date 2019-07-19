@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +19,18 @@ type Recorder interface {
 	Eventf(reason, messageFmt string, args ...interface{})
 	Warning(reason, message string)
 	Warningf(reason, messageFmt string, args ...interface{})
+
+	// ForComponent allows to fiddle the component name before sending the event to sink.
+	// Making more unique components will prevent the spam filter in upstream event sink from dropping
+	// events.
+	ForComponent(componentName string) Recorder
+
+	// WithComponentSuffix is similar to ForComponent except it just suffix the current component name instead of overriding.
+	WithComponentSuffix(componentNameSuffix string) Recorder
+
+	// ComponentName returns the current source component name for the event.
+	// This allows to suffix the original component name with 'sub-component'.
+	ComponentName() string
 }
 
 // podNameEnv is a name of environment variable inside container that specifies the name of the current replica set.
@@ -32,6 +44,8 @@ var podNameEnvFunc = func() string {
 
 // GetControllerReferenceForCurrentPod provides an object reference to a controller managing the pod/container where this process runs.
 // The pod name must be provided via the POD_NAME name.
+// Even if this method returns an error, it always return valid reference to the namespace. It allows the callers to control the logging
+// and decide to fail or accept the namespace.
 func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetNamespace string, reference *corev1.ObjectReference) (*corev1.ObjectReference, error) {
 	if reference == nil {
 		// Try to get the pod name via POD_NAME environment variable
@@ -42,7 +56,10 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 		// If that fails, lets try to guess the pod by listing all pods in namespaces and using the first pod in the list
 		reference, err := guessControllerReferenceForNamespace(client.CoreV1().Pods(targetNamespace))
 		if err != nil {
-			return nil, err
+			// If this fails, do not give up with error but instead use the namespace as controller reference for the pod
+			// NOTE: This is last resort, if we see this often it might indicate something is wrong in the cluster.
+			//       In some cases this might help with flakes.
+			return getControllerReferenceForNamespace(targetNamespace), err
 		}
 		return GetControllerReferenceForCurrentPod(client, targetNamespace, reference)
 	}
@@ -51,7 +68,7 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 	case "Pod":
 		pod, err := client.CoreV1().Pods(reference.Namespace).Get(reference.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return getControllerReferenceForNamespace(reference.Namespace), err
 		}
 		if podController := metav1.GetControllerOf(pod); podController != nil {
 			return GetControllerReferenceForCurrentPod(client, targetNamespace, makeObjectReference(podController, targetNamespace))
@@ -61,7 +78,7 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 	case "ReplicaSet":
 		rs, err := client.AppsV1().ReplicaSets(reference.Namespace).Get(reference.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return getControllerReferenceForNamespace(reference.Namespace), err
 		}
 		if rsController := metav1.GetControllerOf(rs); rsController != nil {
 			return GetControllerReferenceForCurrentPod(client, targetNamespace, makeObjectReference(rsController, targetNamespace))
@@ -70,6 +87,16 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 		return reference, nil
 	default:
 		return reference, nil
+	}
+}
+
+// getControllerReferenceForNamespace returns an object reference to the given namespace.
+func getControllerReferenceForNamespace(targetNamespace string) *corev1.ObjectReference {
+	return &corev1.ObjectReference{
+		Kind:       "Namespace",
+		Namespace:  targetNamespace,
+		Name:       targetNamespace,
+		APIVersion: "v1",
 	}
 }
 
@@ -121,6 +148,20 @@ type recorder struct {
 	sourceComponent   string
 }
 
+func (r *recorder) ComponentName() string {
+	return r.sourceComponent
+}
+
+func (r *recorder) ForComponent(componentName string) Recorder {
+	newRecorderForComponent := *r
+	newRecorderForComponent.sourceComponent = componentName
+	return &newRecorderForComponent
+}
+
+func (r *recorder) WithComponentSuffix(suffix string) Recorder {
+	return r.ForComponent(fmt.Sprintf("%s-%s", r.ComponentName(), suffix))
+}
+
 // Event emits the normal type event and allow formatting of message.
 func (r *recorder) Eventf(reason, messageFmt string, args ...interface{}) {
 	r.Event(reason, fmt.Sprintf(messageFmt, args...))
@@ -135,7 +176,7 @@ func (r *recorder) Warningf(reason, messageFmt string, args ...interface{}) {
 func (r *recorder) Event(reason, message string) {
 	event := makeEvent(r.involvedObjectRef, r.sourceComponent, corev1.EventTypeNormal, reason, message)
 	if _, err := r.eventClient.Create(event); err != nil {
-		glog.Warningf("Error creating event %+v: %v", event, err)
+		klog.Warningf("Error creating event %+v: %v", event, err)
 	}
 }
 
@@ -143,7 +184,7 @@ func (r *recorder) Event(reason, message string) {
 func (r *recorder) Warning(reason, message string) {
 	event := makeEvent(r.involvedObjectRef, r.sourceComponent, corev1.EventTypeWarning, reason, message)
 	if _, err := r.eventClient.Create(event); err != nil {
-		glog.Warningf("Error creating event %+v: %v", event, err)
+		klog.Warningf("Error creating event %+v: %v", event, err)
 	}
 }
 

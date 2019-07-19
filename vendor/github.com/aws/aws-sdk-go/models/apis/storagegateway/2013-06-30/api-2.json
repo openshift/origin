@@ -77,6 +77,19 @@
         {"shape":"InternalServerError"}
       ]
     },
+    "AttachVolume":{
+      "name":"AttachVolume",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"AttachVolumeInput"},
+      "output":{"shape":"AttachVolumeOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
     "CancelArchival":{
       "name":"CancelArchival",
       "http":{
@@ -124,6 +137,19 @@
       },
       "input":{"shape":"CreateNFSFileShareInput"},
       "output":{"shape":"CreateNFSFileShareOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "CreateSMBFileShare":{
+      "name":"CreateSMBFileShare",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateSMBFileShareInput"},
+      "output":{"shape":"CreateSMBFileShareOutput"},
       "errors":[
         {"shape":"InvalidGatewayRequestException"},
         {"shape":"InternalServerError"}
@@ -391,6 +417,32 @@
         {"shape":"InternalServerError"}
       ]
     },
+    "DescribeSMBFileShares":{
+      "name":"DescribeSMBFileShares",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeSMBFileSharesInput"},
+      "output":{"shape":"DescribeSMBFileSharesOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "DescribeSMBSettings":{
+      "name":"DescribeSMBSettings",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeSMBSettingsInput"},
+      "output":{"shape":"DescribeSMBSettingsOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
     "DescribeSnapshotSchedule":{
       "name":"DescribeSnapshotSchedule",
       "http":{
@@ -495,6 +547,19 @@
         {"shape":"InternalServerError"}
       ]
     },
+    "DetachVolume":{
+      "name":"DetachVolume",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DetachVolumeInput"},
+      "output":{"shape":"DetachVolumeOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
     "DisableGateway":{
       "name":"DisableGateway",
       "http":{
@@ -503,6 +568,19 @@
       },
       "input":{"shape":"DisableGatewayInput"},
       "output":{"shape":"DisableGatewayOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "JoinDomain":{
+      "name":"JoinDomain",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"JoinDomainInput"},
+      "output":{"shape":"JoinDomainOutput"},
       "errors":[
         {"shape":"InvalidGatewayRequestException"},
         {"shape":"InternalServerError"}
@@ -703,6 +781,19 @@
         {"shape":"InternalServerError"}
       ]
     },
+    "SetSMBGuestPassword":{
+      "name":"SetSMBGuestPassword",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SetSMBGuestPasswordInput"},
+      "output":{"shape":"SetSMBGuestPasswordOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
     "ShutdownGateway":{
       "name":"ShutdownGateway",
       "http":{
@@ -802,6 +893,19 @@
       },
       "input":{"shape":"UpdateNFSFileShareInput"},
       "output":{"shape":"UpdateNFSFileShareOutput"},
+      "errors":[
+        {"shape":"InvalidGatewayRequestException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "UpdateSMBFileShare":{
+      "name":"UpdateSMBFileShare",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateSMBFileShareInput"},
+      "output":{"shape":"UpdateSMBFileShareOutput"},
       "errors":[
         {"shape":"InvalidGatewayRequestException"},
         {"shape":"InternalServerError"}
@@ -932,6 +1036,33 @@
         "GatewayARN":{"shape":"GatewayARN"}
       }
     },
+    "AttachVolumeInput":{
+      "type":"structure",
+      "required":[
+        "GatewayARN",
+        "VolumeARN",
+        "NetworkInterfaceId"
+      ],
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"},
+        "TargetName":{"shape":"TargetName"},
+        "VolumeARN":{"shape":"VolumeARN"},
+        "NetworkInterfaceId":{"shape":"NetworkInterfaceId"},
+        "DiskId":{"shape":"DiskId"}
+      }
+    },
+    "AttachVolumeOutput":{
+      "type":"structure",
+      "members":{
+        "VolumeARN":{"shape":"VolumeARN"},
+        "TargetARN":{"shape":"TargetARN"}
+      }
+    },
+    "Authentication":{
+      "type":"string",
+      "max":15,
+      "min":5
+    },
     "BandwidthDownloadRateLimit":{
       "type":"long",
       "min":102400
@@ -953,13 +1084,15 @@
         "VolumeId":{"shape":"VolumeId"},
         "VolumeType":{"shape":"VolumeType"},
         "VolumeStatus":{"shape":"VolumeStatus"},
+        "VolumeAttachmentStatus":{"shape":"VolumeAttachmentStatus"},
         "VolumeSizeInBytes":{"shape":"long"},
         "VolumeProgress":{"shape":"DoubleObject"},
         "SourceSnapshotId":{"shape":"SnapshotId"},
         "VolumeiSCSIAttributes":{"shape":"VolumeiSCSIAttributes"},
         "CreatedDate":{"shape":"CreatedDate"},
         "VolumeUsedInBytes":{"shape":"VolumeUsedInBytes"},
-        "KMSKey":{"shape":"KMSKey"}
+        "KMSKey":{"shape":"KMSKey"},
+        "TargetName":{"shape":"TargetName"}
       }
     },
     "CachediSCSIVolumes":{
@@ -1082,6 +1215,37 @@
         "FileShareARN":{"shape":"FileShareARN"}
       }
     },
+    "CreateSMBFileShareInput":{
+      "type":"structure",
+      "required":[
+        "ClientToken",
+        "GatewayARN",
+        "Role",
+        "LocationARN"
+      ],
+      "members":{
+        "ClientToken":{"shape":"ClientToken"},
+        "GatewayARN":{"shape":"GatewayARN"},
+        "KMSEncrypted":{"shape":"Boolean"},
+        "KMSKey":{"shape":"KMSKey"},
+        "Role":{"shape":"Role"},
+        "LocationARN":{"shape":"LocationARN"},
+        "DefaultStorageClass":{"shape":"StorageClass"},
+        "ObjectACL":{"shape":"ObjectACL"},
+        "ReadOnly":{"shape":"Boolean"},
+        "GuessMIMETypeEnabled":{"shape":"Boolean"},
+        "RequesterPays":{"shape":"Boolean"},
+        "ValidUserList":{"shape":"FileShareUserList"},
+        "InvalidUserList":{"shape":"FileShareUserList"},
+        "Authentication":{"shape":"Authentication"}
+      }
+    },
+    "CreateSMBFileShareOutput":{
+      "type":"structure",
+      "members":{
+        "FileShareARN":{"shape":"FileShareARN"}
+      }
+    },
     "CreateSnapshotFromVolumeRecoveryPointInput":{
       "type":"structure",
       "required":[
@@ -1134,7 +1298,9 @@
         "SnapshotId":{"shape":"SnapshotId"},
         "PreserveExistingData":{"shape":"boolean"},
         "TargetName":{"shape":"TargetName"},
-        "NetworkInterfaceId":{"shape":"NetworkInterfaceId"}
+        "NetworkInterfaceId":{"shape":"NetworkInterfaceId"},
+        "KMSEncrypted":{"shape":"Boolean"},
+        "KMSKey":{"shape":"KMSKey"}
       }
     },
     "CreateStorediSCSIVolumeOutput":{
@@ -1426,6 +1592,34 @@
         "NFSFileShareInfoList":{"shape":"NFSFileShareInfoList"}
       }
     },
+    "DescribeSMBFileSharesInput":{
+      "type":"structure",
+      "required":["FileShareARNList"],
+      "members":{
+        "FileShareARNList":{"shape":"FileShareARNList"}
+      }
+    },
+    "DescribeSMBFileSharesOutput":{
+      "type":"structure",
+      "members":{
+        "SMBFileShareInfoList":{"shape":"SMBFileShareInfoList"}
+      }
+    },
+    "DescribeSMBSettingsInput":{
+      "type":"structure",
+      "required":["GatewayARN"],
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"}
+      }
+    },
+    "DescribeSMBSettingsOutput":{
+      "type":"structure",
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"},
+        "DomainName":{"shape":"DomainName"},
+        "SMBGuestPasswordSet":{"shape":"Boolean"}
+      }
+    },
     "DescribeSnapshotScheduleInput":{
       "type":"structure",
       "required":["VolumeARN"],
@@ -1560,6 +1754,20 @@
       "max":255,
       "min":1
     },
+    "DetachVolumeInput":{
+      "type":"structure",
+      "required":["VolumeARN"],
+      "members":{
+        "VolumeARN":{"shape":"VolumeARN"},
+        "ForceDetach":{"shape":"Boolean"}
+      }
+    },
+    "DetachVolumeOutput":{
+      "type":"structure",
+      "members":{
+        "VolumeARN":{"shape":"VolumeARN"}
+      }
+    },
     "DeviceType":{
       "type":"string",
       "max":50,
@@ -1596,13 +1804,25 @@
         "DiskStatus":{"shape":"string"},
         "DiskSizeInBytes":{"shape":"long"},
         "DiskAllocationType":{"shape":"DiskAllocationType"},
-        "DiskAllocationResource":{"shape":"string"}
+        "DiskAllocationResource":{"shape":"string"},
+        "DiskAttributeList":{"shape":"DiskAttributeList"}
       }
     },
     "DiskAllocationType":{
       "type":"string",
       "max":100,
       "min":3
+    },
+    "DiskAttribute":{
+      "type":"string",
+      "max":64,
+      "min":1
+    },
+    "DiskAttributeList":{
+      "type":"list",
+      "member":{"shape":"DiskAttribute"},
+      "max":10,
+      "min":0
     },
     "DiskId":{
       "type":"string",
@@ -1616,6 +1836,25 @@
     "Disks":{
       "type":"list",
       "member":{"shape":"Disk"}
+    },
+    "DomainName":{
+      "type":"string",
+      "max":1024,
+      "min":1,
+      "pattern":"^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$"
+    },
+    "DomainUserName":{
+      "type":"string",
+      "max":1024,
+      "min":1,
+      "pattern":"^\\w[\\w\\.\\- ]*$"
+    },
+    "DomainUserPassword":{
+      "type":"string",
+      "max":1024,
+      "min":1,
+      "pattern":"^[ -~]+$",
+      "sensitive":true
     },
     "DoubleObject":{"type":"double"},
     "ErrorCode":{
@@ -1709,6 +1948,7 @@
     "FileShareInfo":{
       "type":"structure",
       "members":{
+        "FileShareType":{"shape":"FileShareType"},
         "FileShareARN":{"shape":"FileShareARN"},
         "FileShareId":{"shape":"FileShareId"},
         "FileShareStatus":{"shape":"FileShareStatus"},
@@ -1723,6 +1963,35 @@
       "type":"string",
       "max":50,
       "min":3
+    },
+    "FileShareType":{
+      "type":"string",
+      "enum":[
+        "NFS",
+        "SMB"
+      ]
+    },
+    "FileShareUser":{
+      "type":"string",
+      "max":64,
+      "min":1
+    },
+    "FileShareUserList":{
+      "type":"list",
+      "member":{"shape":"FileShareUser"},
+      "max":100,
+      "min":0
+    },
+    "Folder":{
+      "type":"string",
+      "max":1024,
+      "min":1
+    },
+    "FolderList":{
+      "type":"list",
+      "member":{"shape":"Folder"},
+      "max":50,
+      "min":1
     },
     "GatewayARN":{
       "type":"string",
@@ -1778,6 +2047,14 @@
       "type":"list",
       "member":{"shape":"GatewayInfo"}
     },
+    "Host":{
+      "type":"string",
+      "pattern":"^(([a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9\\-]*[A-Za-z0-9])(:(\\d+))?$"
+    },
+    "Hosts":{
+      "type":"list",
+      "member":{"shape":"Host"}
+    },
     "HourOfDay":{
       "type":"integer",
       "max":23,
@@ -1817,6 +2094,29 @@
       "max":255,
       "min":1,
       "pattern":"[0-9a-z:.-]+"
+    },
+    "JoinDomainInput":{
+      "type":"structure",
+      "required":[
+        "GatewayARN",
+        "DomainName",
+        "UserName",
+        "Password"
+      ],
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"},
+        "DomainName":{"shape":"DomainName"},
+        "OrganizationalUnit":{"shape":"OrganizationalUnit"},
+        "DomainControllers":{"shape":"Hosts"},
+        "UserName":{"shape":"DomainUserName"},
+        "Password":{"shape":"DomainUserPassword"}
+      }
+    },
+    "JoinDomainOutput":{
+      "type":"structure",
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"}
+      }
     },
     "KMSKey":{
       "type":"string",
@@ -2062,6 +2362,11 @@
         "aws-exec-read"
       ]
     },
+    "OrganizationalUnit":{
+      "type":"string",
+      "max":1024,
+      "min":1
+    },
     "Path":{"type":"string"},
     "PermissionId":{
       "type":"long",
@@ -2087,13 +2392,16 @@
       "type":"structure",
       "required":["FileShareARN"],
       "members":{
-        "FileShareARN":{"shape":"FileShareARN"}
+        "FileShareARN":{"shape":"FileShareARN"},
+        "FolderList":{"shape":"FolderList"},
+        "Recursive":{"shape":"Boolean"}
       }
     },
     "RefreshCacheOutput":{
       "type":"structure",
       "members":{
-        "FileShareARN":{"shape":"FileShareARN"}
+        "FileShareARN":{"shape":"FileShareARN"},
+        "NotificationId":{"shape":"NotificationId"}
       }
     },
     "RegionId":{
@@ -2175,6 +2483,39 @@
       "max":2048,
       "min":20
     },
+    "SMBFileShareInfo":{
+      "type":"structure",
+      "members":{
+        "FileShareARN":{"shape":"FileShareARN"},
+        "FileShareId":{"shape":"FileShareId"},
+        "FileShareStatus":{"shape":"FileShareStatus"},
+        "GatewayARN":{"shape":"GatewayARN"},
+        "KMSEncrypted":{"shape":"boolean"},
+        "KMSKey":{"shape":"KMSKey"},
+        "Path":{"shape":"Path"},
+        "Role":{"shape":"Role"},
+        "LocationARN":{"shape":"LocationARN"},
+        "DefaultStorageClass":{"shape":"StorageClass"},
+        "ObjectACL":{"shape":"ObjectACL"},
+        "ReadOnly":{"shape":"Boolean"},
+        "GuessMIMETypeEnabled":{"shape":"Boolean"},
+        "RequesterPays":{"shape":"Boolean"},
+        "ValidUserList":{"shape":"FileShareUserList"},
+        "InvalidUserList":{"shape":"FileShareUserList"},
+        "Authentication":{"shape":"Authentication"}
+      }
+    },
+    "SMBFileShareInfoList":{
+      "type":"list",
+      "member":{"shape":"SMBFileShareInfo"}
+    },
+    "SMBGuestPassword":{
+      "type":"string",
+      "max":512,
+      "min":6,
+      "pattern":"^[ -~]+$",
+      "sensitive":true
+    },
     "ServiceUnavailableError":{
       "type":"structure",
       "members":{
@@ -2195,6 +2536,23 @@
       }
     },
     "SetLocalConsolePasswordOutput":{
+      "type":"structure",
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"}
+      }
+    },
+    "SetSMBGuestPasswordInput":{
+      "type":"structure",
+      "required":[
+        "GatewayARN",
+        "Password"
+      ],
+      "members":{
+        "GatewayARN":{"shape":"GatewayARN"},
+        "Password":{"shape":"SMBGuestPassword"}
+      }
+    },
+    "SetSMBGuestPasswordOutput":{
       "type":"structure",
       "members":{
         "GatewayARN":{"shape":"GatewayARN"}
@@ -2259,6 +2617,7 @@
         "VolumeId":{"shape":"VolumeId"},
         "VolumeType":{"shape":"VolumeType"},
         "VolumeStatus":{"shape":"VolumeStatus"},
+        "VolumeAttachmentStatus":{"shape":"VolumeAttachmentStatus"},
         "VolumeSizeInBytes":{"shape":"long"},
         "VolumeProgress":{"shape":"DoubleObject"},
         "VolumeDiskId":{"shape":"DiskId"},
@@ -2266,7 +2625,9 @@
         "PreservedExistingData":{"shape":"boolean"},
         "VolumeiSCSIAttributes":{"shape":"VolumeiSCSIAttributes"},
         "CreatedDate":{"shape":"CreatedDate"},
-        "VolumeUsedInBytes":{"shape":"VolumeUsedInBytes"}
+        "VolumeUsedInBytes":{"shape":"VolumeUsedInBytes"},
+        "KMSKey":{"shape":"KMSKey"},
+        "TargetName":{"shape":"TargetName"}
       }
     },
     "StorediSCSIVolumes":{
@@ -2288,7 +2649,7 @@
       "type":"string",
       "max":128,
       "min":1,
-      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-%@]*)$"
+      "pattern":"^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$"
     },
     "TagKeys":{
       "type":"list",
@@ -2518,6 +2879,28 @@
         "FileShareARN":{"shape":"FileShareARN"}
       }
     },
+    "UpdateSMBFileShareInput":{
+      "type":"structure",
+      "required":["FileShareARN"],
+      "members":{
+        "FileShareARN":{"shape":"FileShareARN"},
+        "KMSEncrypted":{"shape":"Boolean"},
+        "KMSKey":{"shape":"KMSKey"},
+        "DefaultStorageClass":{"shape":"StorageClass"},
+        "ObjectACL":{"shape":"ObjectACL"},
+        "ReadOnly":{"shape":"Boolean"},
+        "GuessMIMETypeEnabled":{"shape":"Boolean"},
+        "RequesterPays":{"shape":"Boolean"},
+        "ValidUserList":{"shape":"FileShareUserList"},
+        "InvalidUserList":{"shape":"FileShareUserList"}
+      }
+    },
+    "UpdateSMBFileShareOutput":{
+      "type":"structure",
+      "members":{
+        "FileShareARN":{"shape":"FileShareARN"}
+      }
+    },
     "UpdateSnapshotScheduleInput":{
       "type":"structure",
       "required":[
@@ -2590,6 +2973,11 @@
       "type":"list",
       "member":{"shape":"VolumeARN"}
     },
+    "VolumeAttachmentStatus":{
+      "type":"string",
+      "max":50,
+      "min":3
+    },
     "VolumeId":{
       "type":"string",
       "max":30,
@@ -2603,7 +2991,8 @@
         "GatewayARN":{"shape":"GatewayARN"},
         "GatewayId":{"shape":"GatewayId"},
         "VolumeType":{"shape":"VolumeType"},
-        "VolumeSizeInBytes":{"shape":"long"}
+        "VolumeSizeInBytes":{"shape":"long"},
+        "VolumeAttachmentStatus":{"shape":"VolumeAttachmentStatus"}
       }
     },
     "VolumeInfos":{

@@ -132,10 +132,9 @@ os::cmd::expect_success 'oc expose dc/database --name=fromdc'
 # should be a service
 os::cmd::expect_success 'oc get svc/fromdc'
 os::cmd::expect_success 'oc delete svc/fromdc'
-os::cmd::expect_failure_and_text 'oc stop dc/database' 'delete'
 os::cmd::expect_success 'oc delete dc/database'
 os::cmd::expect_failure 'oc get dc/database'
-os::cmd::expect_failure 'oc get rc/database-1'
+os::cmd::try_until_failure 'oc get rc/database-1'
 echo "stop: ok"
 os::test::junit::declare_suite_end
 

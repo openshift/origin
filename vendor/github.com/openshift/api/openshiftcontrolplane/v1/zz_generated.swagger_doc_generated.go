@@ -20,11 +20,11 @@ func (BuildControllerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_BuildDefaultsConfig = map[string]string{
-	"":              "BuildDefaultsConfig controls the default information for Builds",
-	"gitHTTPProxy":  "gitHTTPProxy is the location of the HTTPProxy for Git source",
-	"gitHTTPSProxy": "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
-	"gitNoProxy":    "gitNoProxy is the list of domains for which the proxy should not be used",
-	"env":           "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
+	"":                       "BuildDefaultsConfig controls the default information for Builds",
+	"gitHTTPProxy":           "gitHTTPProxy is the location of the HTTPProxy for Git source",
+	"gitHTTPSProxy":          "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
+	"gitNoProxy":             "gitNoProxy is the list of domains for which the proxy should not be used",
+	"env":                    "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
 	"sourceStrategyDefaults": "sourceStrategyDefaults are default values that apply to builds using the source strategy.",
 	"imageLabels":            "imageLabels is a list of labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
 	"nodeSelector":           "nodeSelector is a selector which must be true for the build pod to fit on a node",
@@ -121,7 +121,7 @@ func (IngressControllerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_JenkinsPipelineConfig = map[string]string{
-	"": "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"":                     "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
 	"autoProvisionEnabled": "autoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
 	"templateNamespace":    "templateNamespace contains the namespace name where the Jenkins template is stored",
 	"templateName":         "templateName is the name of the default Jenkins template",
@@ -143,14 +143,13 @@ func (NetworkControllerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_OpenShiftAPIServerConfig = map[string]string{
-	"aggregatorConfig":                              "aggregatorConfig contains information about how to verify the aggregator front proxy",
-	"imagePolicyConfig":                             "imagePolicyConfig feeds the image policy admission plugin",
-	"projectConfig":                                 "projectConfig feeds an admission plugin",
-	"routingConfig":                                 "routingConfig holds information about routing and route generation",
-	"serviceAccountOAuthGrantMethod":                "serviceAccountOAuthGrantMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt, or \"\"",
-	"jenkinsPipelineConfig":                         "jenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
-	"cloudProviderFile":                             "cloudProviderFile points to the cloud config file",
-	"enableDeprecatedOAPIThatWillBeRemovedVerySoon": "enableDeprecatedOAPIThatWillBeRemovedVerySoon allows the openshift-apiserver to serve oapi endpoints.  This option is going away along with the entire API. Consider yourself warned again. Deprecated",
+	"aggregatorConfig":               "aggregatorConfig contains information about how to verify the aggregator front proxy",
+	"imagePolicyConfig":              "imagePolicyConfig feeds the image policy admission plugin",
+	"projectConfig":                  "projectConfig feeds an admission plugin",
+	"routingConfig":                  "routingConfig holds information about routing and route generation",
+	"serviceAccountOAuthGrantMethod": "serviceAccountOAuthGrantMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt, or \"\"",
+	"jenkinsPipelineConfig":          "jenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
+	"cloudProviderFile":              "cloudProviderFile points to the cloud config file",
 }
 
 func (OpenShiftAPIServerConfig) SwaggerDoc() map[string]string {

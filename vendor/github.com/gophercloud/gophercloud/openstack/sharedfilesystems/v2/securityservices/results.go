@@ -27,6 +27,8 @@ type SecurityService struct {
 	Description string `json:"description"`
 	// The DNS IP address that is used inside the tenant network
 	DNSIP string `json:"dns_ip"`
+	// The security service organizational unit (OU)
+	OU string `json:"ou"`
 	// The security service user or group name that is used by the tenant
 	User string `json:"user"`
 	// The user password, if you specify a user

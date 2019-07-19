@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) ImageV1() imagev1.ImageV1Interface {
 	return &fakeimagev1.FakeImageV1{Fake: &c.Fake}
 }
-
-// Image retrieves the ImageV1Client
-func (c *Clientset) Image() imagev1.ImageV1Interface {
-	return &fakeimagev1.FakeImageV1{Fake: &c.Fake}
-}

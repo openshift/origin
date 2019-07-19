@@ -36,13 +36,15 @@ const (
 	CreateModeGeoRestore CreateMode = "GeoRestore"
 	// CreateModePointInTimeRestore ...
 	CreateModePointInTimeRestore CreateMode = "PointInTimeRestore"
+	// CreateModeReplica ...
+	CreateModeReplica CreateMode = "Replica"
 	// CreateModeServerPropertiesForCreate ...
 	CreateModeServerPropertiesForCreate CreateMode = "ServerPropertiesForCreate"
 )
 
 // PossibleCreateModeValues returns an array of possible values for the CreateMode const type.
 func PossibleCreateModeValues() []CreateMode {
-	return []CreateMode{CreateModeDefault, CreateModeGeoRestore, CreateModePointInTimeRestore, CreateModeServerPropertiesForCreate}
+	return []CreateMode{CreateModeDefault, CreateModeGeoRestore, CreateModePointInTimeRestore, CreateModeReplica, CreateModeServerPropertiesForCreate}
 }
 
 // GeoRedundantBackup enumerates the values for geo redundant backup.
@@ -75,6 +77,21 @@ const (
 // PossibleOperationOriginValues returns an array of possible values for the OperationOrigin const type.
 func PossibleOperationOriginValues() []OperationOrigin {
 	return []OperationOrigin{NotSpecified, System, User}
+}
+
+// ServerSecurityAlertPolicyState enumerates the values for server security alert policy state.
+type ServerSecurityAlertPolicyState string
+
+const (
+	// ServerSecurityAlertPolicyStateDisabled ...
+	ServerSecurityAlertPolicyStateDisabled ServerSecurityAlertPolicyState = "Disabled"
+	// ServerSecurityAlertPolicyStateEnabled ...
+	ServerSecurityAlertPolicyStateEnabled ServerSecurityAlertPolicyState = "Enabled"
+)
+
+// PossibleServerSecurityAlertPolicyStateValues returns an array of possible values for the ServerSecurityAlertPolicyState const type.
+func PossibleServerSecurityAlertPolicyStateValues() []ServerSecurityAlertPolicyState {
+	return []ServerSecurityAlertPolicyState{ServerSecurityAlertPolicyStateDisabled, ServerSecurityAlertPolicyStateEnabled}
 }
 
 // ServerState enumerates the values for server state.
@@ -807,6 +824,24 @@ type ProxyResource struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// SecurityAlertPolicyProperties properties of a security alert policy.
+type SecurityAlertPolicyProperties struct {
+	// State - Specifies the state of the policy, whether it is enabled or disabled. Possible values include: 'ServerSecurityAlertPolicyStateEnabled', 'ServerSecurityAlertPolicyStateDisabled'
+	State ServerSecurityAlertPolicyState `json:"state,omitempty"`
+	// DisabledAlerts - Specifies an array of alerts that are disabled. Allowed values are: Sql_Injection, Sql_Injection_Vulnerability, Access_Anomaly
+	DisabledAlerts *[]string `json:"disabledAlerts,omitempty"`
+	// EmailAddresses - Specifies an array of e-mail addresses to which the alert is sent.
+	EmailAddresses *[]string `json:"emailAddresses,omitempty"`
+	// EmailAccountAdmins - Specifies that the alert is sent to the account administrators.
+	EmailAccountAdmins *bool `json:"emailAccountAdmins,omitempty"`
+	// StorageEndpoint - Specifies the blob storage endpoint (e.g. https://MyAccount.blob.core.windows.net). This blob storage will hold all Threat Detection audit logs.
+	StorageEndpoint *string `json:"storageEndpoint,omitempty"`
+	// StorageAccountAccessKey - Specifies the identifier key of the Threat Detection audit storage account.
+	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
+	// RetentionDays - Specifies the number of days to keep in the Threat Detection audit logs.
+	RetentionDays *int32 `json:"retentionDays,omitempty"`
+}
+
 // Server represents a server.
 type Server struct {
 	autorest.Response `json:"-"`
@@ -1032,6 +1067,12 @@ type ServerProperties struct {
 	EarliestRestoreDate *date.Time `json:"earliestRestoreDate,omitempty"`
 	// StorageProfile - Storage profile of a server.
 	StorageProfile *StorageProfile `json:"storageProfile,omitempty"`
+	// ReplicationRole - The replication role of the server.
+	ReplicationRole *string `json:"replicationRole,omitempty"`
+	// MasterServerID - The master server id of a relica server.
+	MasterServerID *string `json:"masterServerId,omitempty"`
+	// ReplicaCapacity - The maximum number of replicas that a master server can have.
+	ReplicaCapacity *int32 `json:"replicaCapacity,omitempty"`
 }
 
 // BasicServerPropertiesForCreate the properties used to create a new server.
@@ -1039,6 +1080,7 @@ type BasicServerPropertiesForCreate interface {
 	AsServerPropertiesForDefaultCreate() (*ServerPropertiesForDefaultCreate, bool)
 	AsServerPropertiesForRestore() (*ServerPropertiesForRestore, bool)
 	AsServerPropertiesForGeoRestore() (*ServerPropertiesForGeoRestore, bool)
+	AsServerPropertiesForReplica() (*ServerPropertiesForReplica, bool)
 	AsServerPropertiesForCreate() (*ServerPropertiesForCreate, bool)
 }
 
@@ -1050,7 +1092,7 @@ type ServerPropertiesForCreate struct {
 	SslEnforcement SslEnforcementEnum `json:"sslEnforcement,omitempty"`
 	// StorageProfile - Storage profile of a server.
 	StorageProfile *StorageProfile `json:"storageProfile,omitempty"`
-	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore'
+	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore', 'CreateModeReplica'
 	CreateMode CreateMode `json:"createMode,omitempty"`
 }
 
@@ -1074,6 +1116,10 @@ func unmarshalBasicServerPropertiesForCreate(body []byte) (BasicServerProperties
 		var spfgr ServerPropertiesForGeoRestore
 		err := json.Unmarshal(body, &spfgr)
 		return spfgr, err
+	case string(CreateModeReplica):
+		var spfr ServerPropertiesForReplica
+		err := json.Unmarshal(body, &spfr)
+		return spfr, err
 	default:
 		var spfc ServerPropertiesForCreate
 		err := json.Unmarshal(body, &spfc)
@@ -1133,6 +1179,11 @@ func (spfc ServerPropertiesForCreate) AsServerPropertiesForGeoRestore() (*Server
 	return nil, false
 }
 
+// AsServerPropertiesForReplica is the BasicServerPropertiesForCreate implementation for ServerPropertiesForCreate.
+func (spfc ServerPropertiesForCreate) AsServerPropertiesForReplica() (*ServerPropertiesForReplica, bool) {
+	return nil, false
+}
+
 // AsServerPropertiesForCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForCreate.
 func (spfc ServerPropertiesForCreate) AsServerPropertiesForCreate() (*ServerPropertiesForCreate, bool) {
 	return &spfc, true
@@ -1155,7 +1206,7 @@ type ServerPropertiesForDefaultCreate struct {
 	SslEnforcement SslEnforcementEnum `json:"sslEnforcement,omitempty"`
 	// StorageProfile - Storage profile of a server.
 	StorageProfile *StorageProfile `json:"storageProfile,omitempty"`
-	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore'
+	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore', 'CreateModeReplica'
 	CreateMode CreateMode `json:"createMode,omitempty"`
 }
 
@@ -1199,6 +1250,11 @@ func (spfdc ServerPropertiesForDefaultCreate) AsServerPropertiesForGeoRestore() 
 	return nil, false
 }
 
+// AsServerPropertiesForReplica is the BasicServerPropertiesForCreate implementation for ServerPropertiesForDefaultCreate.
+func (spfdc ServerPropertiesForDefaultCreate) AsServerPropertiesForReplica() (*ServerPropertiesForReplica, bool) {
+	return nil, false
+}
+
 // AsServerPropertiesForCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForDefaultCreate.
 func (spfdc ServerPropertiesForDefaultCreate) AsServerPropertiesForCreate() (*ServerPropertiesForCreate, bool) {
 	return nil, false
@@ -1220,7 +1276,7 @@ type ServerPropertiesForGeoRestore struct {
 	SslEnforcement SslEnforcementEnum `json:"sslEnforcement,omitempty"`
 	// StorageProfile - Storage profile of a server.
 	StorageProfile *StorageProfile `json:"storageProfile,omitempty"`
-	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore'
+	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore', 'CreateModeReplica'
 	CreateMode CreateMode `json:"createMode,omitempty"`
 }
 
@@ -1261,6 +1317,11 @@ func (spfgr ServerPropertiesForGeoRestore) AsServerPropertiesForGeoRestore() (*S
 	return &spfgr, true
 }
 
+// AsServerPropertiesForReplica is the BasicServerPropertiesForCreate implementation for ServerPropertiesForGeoRestore.
+func (spfgr ServerPropertiesForGeoRestore) AsServerPropertiesForReplica() (*ServerPropertiesForReplica, bool) {
+	return nil, false
+}
+
 // AsServerPropertiesForCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForGeoRestore.
 func (spfgr ServerPropertiesForGeoRestore) AsServerPropertiesForCreate() (*ServerPropertiesForCreate, bool) {
 	return nil, false
@@ -1269,6 +1330,72 @@ func (spfgr ServerPropertiesForGeoRestore) AsServerPropertiesForCreate() (*Serve
 // AsBasicServerPropertiesForCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForGeoRestore.
 func (spfgr ServerPropertiesForGeoRestore) AsBasicServerPropertiesForCreate() (BasicServerPropertiesForCreate, bool) {
 	return &spfgr, true
+}
+
+// ServerPropertiesForReplica the properties to create a new replica.
+type ServerPropertiesForReplica struct {
+	// SourceServerID - The master server id to create replica from.
+	SourceServerID *string `json:"sourceServerId,omitempty"`
+	// Version - Server version. Possible values include: 'FiveFullStopSix', 'FiveFullStopSeven'
+	Version ServerVersion `json:"version,omitempty"`
+	// SslEnforcement - Enable ssl enforcement or not when connect to server. Possible values include: 'SslEnforcementEnumEnabled', 'SslEnforcementEnumDisabled'
+	SslEnforcement SslEnforcementEnum `json:"sslEnforcement,omitempty"`
+	// StorageProfile - Storage profile of a server.
+	StorageProfile *StorageProfile `json:"storageProfile,omitempty"`
+	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore', 'CreateModeReplica'
+	CreateMode CreateMode `json:"createMode,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) MarshalJSON() ([]byte, error) {
+	spfr.CreateMode = CreateModeReplica
+	objectMap := make(map[string]interface{})
+	if spfr.SourceServerID != nil {
+		objectMap["sourceServerId"] = spfr.SourceServerID
+	}
+	if spfr.Version != "" {
+		objectMap["version"] = spfr.Version
+	}
+	if spfr.SslEnforcement != "" {
+		objectMap["sslEnforcement"] = spfr.SslEnforcement
+	}
+	if spfr.StorageProfile != nil {
+		objectMap["storageProfile"] = spfr.StorageProfile
+	}
+	if spfr.CreateMode != "" {
+		objectMap["createMode"] = spfr.CreateMode
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsServerPropertiesForDefaultCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) AsServerPropertiesForDefaultCreate() (*ServerPropertiesForDefaultCreate, bool) {
+	return nil, false
+}
+
+// AsServerPropertiesForRestore is the BasicServerPropertiesForCreate implementation for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) AsServerPropertiesForRestore() (*ServerPropertiesForRestore, bool) {
+	return nil, false
+}
+
+// AsServerPropertiesForGeoRestore is the BasicServerPropertiesForCreate implementation for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) AsServerPropertiesForGeoRestore() (*ServerPropertiesForGeoRestore, bool) {
+	return nil, false
+}
+
+// AsServerPropertiesForReplica is the BasicServerPropertiesForCreate implementation for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) AsServerPropertiesForReplica() (*ServerPropertiesForReplica, bool) {
+	return &spfr, true
+}
+
+// AsServerPropertiesForCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) AsServerPropertiesForCreate() (*ServerPropertiesForCreate, bool) {
+	return nil, false
+}
+
+// AsBasicServerPropertiesForCreate is the BasicServerPropertiesForCreate implementation for ServerPropertiesForReplica.
+func (spfr ServerPropertiesForReplica) AsBasicServerPropertiesForCreate() (BasicServerPropertiesForCreate, bool) {
+	return &spfr, true
 }
 
 // ServerPropertiesForRestore the properties used to create a new server by restoring from a backup.
@@ -1283,7 +1410,7 @@ type ServerPropertiesForRestore struct {
 	SslEnforcement SslEnforcementEnum `json:"sslEnforcement,omitempty"`
 	// StorageProfile - Storage profile of a server.
 	StorageProfile *StorageProfile `json:"storageProfile,omitempty"`
-	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore'
+	// CreateMode - Possible values include: 'CreateModeServerPropertiesForCreate', 'CreateModeDefault', 'CreateModePointInTimeRestore', 'CreateModeGeoRestore', 'CreateModeReplica'
 	CreateMode CreateMode `json:"createMode,omitempty"`
 }
 
@@ -1324,6 +1451,11 @@ func (spfr ServerPropertiesForRestore) AsServerPropertiesForRestore() (*ServerPr
 
 // AsServerPropertiesForGeoRestore is the BasicServerPropertiesForCreate implementation for ServerPropertiesForRestore.
 func (spfr ServerPropertiesForRestore) AsServerPropertiesForGeoRestore() (*ServerPropertiesForGeoRestore, bool) {
+	return nil, false
+}
+
+// AsServerPropertiesForReplica is the BasicServerPropertiesForCreate implementation for ServerPropertiesForRestore.
+func (spfr ServerPropertiesForRestore) AsServerPropertiesForReplica() (*ServerPropertiesForReplica, bool) {
 	return nil, false
 }
 
@@ -1385,6 +1517,117 @@ func (future *ServersDeleteFuture) Result(client ServersClient) (ar autorest.Res
 	}
 	ar.Response = future.Response()
 	return
+}
+
+// ServerSecurityAlertPoliciesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ServerSecurityAlertPoliciesCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ServerSecurityAlertPoliciesCreateOrUpdateFuture) Result(client ServerSecurityAlertPoliciesClient) (ssap ServerSecurityAlertPolicy, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "mysql.ServerSecurityAlertPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("mysql.ServerSecurityAlertPoliciesCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if ssap.Response.Response, err = future.GetResult(sender); err == nil && ssap.Response.Response.StatusCode != http.StatusNoContent {
+		ssap, err = client.CreateOrUpdateResponder(ssap.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "mysql.ServerSecurityAlertPoliciesCreateOrUpdateFuture", "Result", ssap.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ServerSecurityAlertPolicy a server security alert policy.
+type ServerSecurityAlertPolicy struct {
+	autorest.Response `json:"-"`
+	// SecurityAlertPolicyProperties - Resource properties.
+	*SecurityAlertPolicyProperties `json:"properties,omitempty"`
+	// ID - Resource ID
+	ID *string `json:"id,omitempty"`
+	// Name - Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ServerSecurityAlertPolicy.
+func (ssap ServerSecurityAlertPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ssap.SecurityAlertPolicyProperties != nil {
+		objectMap["properties"] = ssap.SecurityAlertPolicyProperties
+	}
+	if ssap.ID != nil {
+		objectMap["id"] = ssap.ID
+	}
+	if ssap.Name != nil {
+		objectMap["name"] = ssap.Name
+	}
+	if ssap.Type != nil {
+		objectMap["type"] = ssap.Type
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ServerSecurityAlertPolicy struct.
+func (ssap *ServerSecurityAlertPolicy) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var securityAlertPolicyProperties SecurityAlertPolicyProperties
+				err = json.Unmarshal(*v, &securityAlertPolicyProperties)
+				if err != nil {
+					return err
+				}
+				ssap.SecurityAlertPolicyProperties = &securityAlertPolicyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				ssap.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				ssap.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				ssap.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
 }
 
 // ServersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
@@ -1492,6 +1735,8 @@ type ServerUpdateParametersProperties struct {
 	Version ServerVersion `json:"version,omitempty"`
 	// SslEnforcement - Enable ssl enforcement or not when connect to server. Possible values include: 'SslEnforcementEnumEnabled', 'SslEnforcementEnumDisabled'
 	SslEnforcement SslEnforcementEnum `json:"sslEnforcement,omitempty"`
+	// ReplicationRole - The replication role of the server.
+	ReplicationRole *string `json:"replicationRole,omitempty"`
 }
 
 // Sku billing information related properties of a server.

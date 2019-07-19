@@ -8,8 +8,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -17,8 +17,8 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	templatev1 "github.com/openshift/api/template/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
+	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -42,7 +42,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return false, err
 		}
 
-		build, err := cli.BuildClient().Build().Builds(cli.Namespace()).Get("simple-example-1", metav1.GetOptions{})
+		build, err := cli.BuildClient().BuildV1().Builds(cli.Namespace()).Get("simple-example-1", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -101,11 +101,9 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "builder")
+			// Tests that push to an ImageStreamTag need to wait for the internal registry hostname
+			// HACK - wait for OpenShift namespace imagestreams to ensure apiserver has right hostname
+			err := exutil.WaitForOpenShiftNamespaceImageStreams(cli)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = cli.Run("create").Args("-f", templatefixture).Execute()
@@ -175,7 +173,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		g.It("should report failed soon after an annotated objects has failed", func() {
 			var err error
 
-			secret, err := cli.KubeClient().Core().Secrets(cli.Namespace()).Create(&v1.Secret{
+			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "secret",
 				},

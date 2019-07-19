@@ -37,7 +37,7 @@ func (ExtensionsConfiguration) SwaggerDoc() map[string]string {
 }
 
 var map_FeaturesConfiguration = map[string]string{
-	"": "FeaturesConfiguration defines various feature gates for the web console",
+	"":                                "FeaturesConfiguration defines various feature gates for the web console",
 	"inactivityTimeoutMinutes":        "InactivityTimeoutMinutes is the number of minutes of inactivity before you are automatically logged out of the web console (optional). If set to 0, inactivity timeout is disabled.",
 	"clusterResourceOverridesEnabled": "ClusterResourceOverridesEnabled indicates that the cluster is configured for overcommit. When set to true, the web console will hide the CPU request, CPU limit, and memory request fields in its editors and skip validation on those fields. The memory limit field will still be displayed.",
 }

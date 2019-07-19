@@ -191,9 +191,11 @@ func TestUpdateNeutron(t *testing.T) {
 		ProjectID:       "16e1ab15c35a457e9c2b2aa189f544e1",
 	}
 
+	name := "net_my2"
+	description := "new description"
 	options := sharenetworks.UpdateOpts{
-		Name:            "net_my2",
-		Description:     "new description",
+		Name:            &name,
+		Description:     &description,
 		NeutronNetID:    "new-neutron-id",
 		NeutronSubnetID: "new-neutron-subnet-id",
 	}
@@ -226,9 +228,11 @@ func TestUpdateNova(t *testing.T) {
 		ProjectID:       "16e1ab15c35a457e9c2b2aa189f544e1",
 	}
 
+	name := "net_my2"
+	description := "new description"
 	options := sharenetworks.UpdateOpts{
-		Name:        "net_my2",
-		Description: "new description",
+		Name:        &name,
+		Description: &description,
 		NovaNetID:   "new-nova-id",
 	}
 

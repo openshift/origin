@@ -193,28 +193,28 @@ func (p *untypedParamBinder) Bind(request *http.Request, routeParams RouteParams
 		}
 
 		if mt == "multipart/form-data" {
-			if err := request.ParseMultipartForm(defaultMaxMemory); err != nil {
+			if err = request.ParseMultipartForm(defaultMaxMemory); err != nil {
 				return errors.NewParseError(p.Name, p.parameter.In, "", err)
 			}
 		}
 
-		if err := request.ParseForm(); err != nil {
+		if err = request.ParseForm(); err != nil {
 			return errors.NewParseError(p.Name, p.parameter.In, "", err)
 		}
 
 		if p.parameter.Type == "file" {
-			file, header, err := request.FormFile(p.parameter.Name)
-			if err != nil {
-				return errors.NewParseError(p.Name, p.parameter.In, "", err)
+			file, header, ffErr := request.FormFile(p.parameter.Name)
+			if ffErr != nil {
+				return errors.NewParseError(p.Name, p.parameter.In, "", ffErr)
 			}
 			target.Set(reflect.ValueOf(runtime.File{Data: file, Header: header}))
 			return nil
 		}
 
 		if request.MultipartForm != nil {
-			data, custom, hasKey, err := p.readValue(runtime.Values(request.MultipartForm.Value), target)
-			if err != nil {
-				return err
+			data, custom, hasKey, rvErr := p.readValue(runtime.Values(request.MultipartForm.Value), target)
+			if rvErr != nil {
+				return rvErr
 			}
 			if custom {
 				return nil
@@ -330,7 +330,8 @@ func (p *untypedParamBinder) setFieldValue(target reflect.Value, defaultValue in
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if data == "" {
 			if target.CanSet() {
-				target.SetInt(defVal.Int())
+				rd := defVal.Convert(reflect.TypeOf(int64(0)))
+				target.SetInt(rd.Int())
 			}
 			return nil
 		}
@@ -348,7 +349,8 @@ func (p *untypedParamBinder) setFieldValue(target reflect.Value, defaultValue in
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if data == "" {
 			if target.CanSet() {
-				target.SetUint(defVal.Uint())
+				rd := defVal.Convert(reflect.TypeOf(uint64(0)))
+				target.SetUint(rd.Uint())
 			}
 			return nil
 		}
@@ -366,7 +368,8 @@ func (p *untypedParamBinder) setFieldValue(target reflect.Value, defaultValue in
 	case reflect.Float32, reflect.Float64:
 		if data == "" {
 			if target.CanSet() {
-				target.SetFloat(defVal.Float())
+				rd := defVal.Convert(reflect.TypeOf(float64(0)))
+				target.SetFloat(rd.Float())
 			}
 			return nil
 		}

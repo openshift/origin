@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/version"
@@ -37,7 +37,7 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 
 	switch {
 	case mode == "crash":
-		glog.Infof("Process will terminate as soon as a panic occurs.")
+		klog.Infof("Process will terminate as soon as a panic occurs.")
 		utilruntime.ReallyCrash = true
 		return doNothing
 
@@ -45,11 +45,11 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 		delayDurationString := strings.TrimPrefix(mode, "crash-after-delay:")
 		delayDuration, err := time.ParseDuration(delayDurationString)
 		if err != nil {
-			glog.Errorf("Unable to start crash-after-delay.  Crashing immediately instead: %v", err)
+			klog.Errorf("Unable to start crash-after-delay.  Crashing immediately instead: %v", err)
 			utilruntime.ReallyCrash = true
 			return doNothing
 		}
-		glog.Infof("Process will terminate %v after a panic occurs.", delayDurationString)
+		klog.Infof("Process will terminate %v after a panic occurs.", delayDurationString)
 		utilruntime.ReallyCrash = false
 		utilruntime.PanicHandlers = append(utilruntime.PanicHandlers, crashOnDelay(delayDuration, delayDurationString))
 		return doNothing
@@ -58,10 +58,10 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 		url := strings.TrimPrefix(mode, "sentry:")
 		m, err := NewSentryMonitor(url, productVersion)
 		if err != nil {
-			glog.Errorf("Unable to start Sentry for panic tracing: %v", err)
+			klog.Errorf("Unable to start Sentry for panic tracing: %v", err)
 			return doNothing
 		}
-		glog.Infof("Process will log all panics and errors to Sentry.")
+		klog.Infof("Process will log all panics and errors to Sentry.")
 		utilruntime.ReallyCrash = false
 		utilruntime.PanicHandlers = append(utilruntime.PanicHandlers, m.CapturePanic)
 		utilruntime.ErrorHandlers = append(utilruntime.ErrorHandlers, m.CaptureError)
@@ -77,7 +77,7 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 		return doNothing
 
 	default:
-		glog.Errorf("Unrecognized panic behavior")
+		klog.Errorf("Unrecognized panic behavior")
 		return doNothing
 	}
 }
@@ -85,7 +85,7 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 func crashOnDelay(delay time.Duration, delayString string) func(interface{}) {
 	return func(in interface{}) {
 		go func() {
-			glog.Errorf("Panic happened.  Process will crash in %v.", delayString)
+			klog.Errorf("Panic happened.  Process will crash in %v.", delayString)
 			time.Sleep(delay)
 			panic(in)
 		}()

@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
+	projectv1 "github.com/openshift/api/project/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -104,7 +105,7 @@ func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contNa
 
 func waitForEndpoint(c kclientset.Interface, ns, name string) error {
 	for t := time.Now(); time.Since(t) < 3*time.Minute; time.Sleep(poll) {
-		endpoint, err := c.Core().Endpoints(ns).Get(name, metav1.GetOptions{})
+		endpoint, err := c.CoreV1().Endpoints(ns).Get(name, metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
 			continue
@@ -175,10 +176,10 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	})
 	defer func() {
 		e2e.Logf("Cleaning up the exec pod")
-		err := f.ClientSet.Core().Pods(f.Namespace.Name).Delete(execPodName, nil)
+		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(execPodName, nil)
 		Expect(err).NotTo(HaveOccurred())
 	}()
-	execPod, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(execPodName, metav1.GetOptions{})
+	execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(execPodName, metav1.GetOptions{})
 	e2e.ExpectNoError(err)
 
 	var stdout string
@@ -227,10 +228,10 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 		pod.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{Privileged: &privileged}
 	})
 	defer func() {
-		err := f.ClientSet.Core().Pods(f.Namespace.Name).Delete(debugPodName, nil)
+		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(debugPodName, nil)
 		Expect(err).NotTo(HaveOccurred())
 	}()
-	debugPod, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(debugPodName, metav1.GetOptions{})
+	debugPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(debugPodName, metav1.GetOptions{})
 	e2e.ExpectNoError(err)
 
 	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ovs-ofctl -O OpenFlow13 dump-flows br0")
@@ -279,14 +280,14 @@ func pluginIsolatesNamespaces() bool {
 		return true
 	}
 	// Assume that only the OpenShift SDN "multitenant" plugin isolates by default
-	return networkPluginName() == network.MultiTenantPluginName
+	return networkPluginName() == networkutils.MultiTenantPluginName
 }
 
 func pluginImplementsNetworkPolicy() bool {
 	switch {
 	case os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true":
 		return true
-	case networkPluginName() == network.NetworkPolicyPluginName:
+	case networkPluginName() == networkutils.NetworkPolicyPluginName:
 		return true
 	default:
 		// If we can't detect the plugin, we assume it doesn't support
@@ -315,7 +316,7 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 		if ns.Annotations == nil {
 			ns.Annotations = make(map[string]string)
 		}
-		ns.Annotations["openshift.io/node-selector"] = ""
+		ns.Annotations[projectv1.ProjectNodeSelector] = ""
 		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
 		if err == nil {
 			return

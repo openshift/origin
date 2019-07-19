@@ -16,6 +16,8 @@ type ConsoleExpansion interface{}
 
 type DNSExpansion interface{}
 
+type FeatureGateExpansion interface{}
+
 type ImageExpansion interface{}
 
 type InfrastructureExpansion interface{}
@@ -30,4 +32,4 @@ type ProjectExpansion interface{}
 
 type ProxyExpansion interface{}
 
-type SchedulingExpansion interface{}
+type SchedulerExpansion interface{}

@@ -30,6 +30,19 @@
         {"shape":"RequestChangedException"}
       ]
     },
+    "GetCostForecast":{
+      "name":"GetCostForecast",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetCostForecastRequest"},
+      "output":{"shape":"GetCostForecastResponse"},
+      "errors":[
+        {"shape":"LimitExceededException"},
+        {"shape":"DataUnavailableException"}
+      ]
+    },
     "GetDimensionValues":{
       "name":"GetDimensionValues",
       "http":{
@@ -108,7 +121,10 @@
   "shapes":{
     "AccountScope":{
       "type":"string",
-      "enum":["PAYER"]
+      "enum":[
+        "PAYER",
+        "LINKED"
+      ]
     },
     "AmortizedRecurringFee":{"type":"string"},
     "AmortizedUpfrontFee":{"type":"string"},
@@ -136,7 +152,9 @@
     "Coverage":{
       "type":"structure",
       "members":{
-        "CoverageHours":{"shape":"CoverageHours"}
+        "CoverageHours":{"shape":"CoverageHours"},
+        "CoverageNormalizedUnits":{"shape":"CoverageNormalizedUnits"},
+        "CoverageCost":{"shape":"CoverageCost"}
       }
     },
     "CoverageByTime":{
@@ -145,6 +163,12 @@
         "TimePeriod":{"shape":"DateInterval"},
         "Groups":{"shape":"ReservationCoverageGroups"},
         "Total":{"shape":"Coverage"}
+      }
+    },
+    "CoverageCost":{
+      "type":"structure",
+      "members":{
+        "OnDemandCost":{"shape":"OnDemandCost"}
       }
     },
     "CoverageHours":{
@@ -157,6 +181,16 @@
       }
     },
     "CoverageHoursPercentage":{"type":"string"},
+    "CoverageNormalizedUnits":{
+      "type":"structure",
+      "members":{
+        "OnDemandNormalizedUnits":{"shape":"OnDemandNormalizedUnits"},
+        "ReservedNormalizedUnits":{"shape":"ReservedNormalizedUnits"},
+        "TotalRunningNormalizedUnits":{"shape":"TotalRunningNormalizedUnits"},
+        "CoverageNormalizedUnitsPercentage":{"shape":"CoverageNormalizedUnitsPercentage"}
+      }
+    },
+    "CoverageNormalizedUnitsPercentage":{"type":"string"},
     "CoveragesByTime":{
       "type":"list",
       "member":{"shape":"CoverageByTime"}
@@ -201,7 +235,9 @@
         "DEPLOYMENT_OPTION",
         "DATABASE_ENGINE",
         "CACHE_ENGINE",
-        "INSTANCE_TYPE_FAMILY"
+        "INSTANCE_TYPE_FAMILY",
+        "BILLING_ENTITY",
+        "RESERVATION_ID"
       ]
     },
     "DimensionValues":{
@@ -241,6 +277,27 @@
         "OfferingClass":{"shape":"OfferingClass"}
       }
     },
+    "ESInstanceDetails":{
+      "type":"structure",
+      "members":{
+        "InstanceClass":{"shape":"GenericString"},
+        "InstanceSize":{"shape":"GenericString"},
+        "Region":{"shape":"GenericString"},
+        "CurrentGeneration":{"shape":"GenericBoolean"},
+        "SizeFlexEligible":{"shape":"GenericBoolean"}
+      }
+    },
+    "ElastiCacheInstanceDetails":{
+      "type":"structure",
+      "members":{
+        "Family":{"shape":"GenericString"},
+        "NodeType":{"shape":"GenericString"},
+        "Region":{"shape":"GenericString"},
+        "ProductDescription":{"shape":"GenericString"},
+        "CurrentGeneration":{"shape":"GenericBoolean"},
+        "SizeFlexEligible":{"shape":"GenericBoolean"}
+      }
+    },
     "Entity":{"type":"string"},
     "ErrorMessage":{"type":"string"},
     "Estimated":{"type":"boolean"},
@@ -257,6 +314,19 @@
     "Expressions":{
       "type":"list",
       "member":{"shape":"Expression"}
+    },
+    "ForecastResult":{
+      "type":"structure",
+      "members":{
+        "TimePeriod":{"shape":"DateInterval"},
+        "MeanValue":{"shape":"GenericString"},
+        "PredictionIntervalLowerBound":{"shape":"GenericString"},
+        "PredictionIntervalUpperBound":{"shape":"GenericString"}
+      }
+    },
+    "ForecastResultsByTime":{
+      "type":"list",
+      "member":{"shape":"ForecastResult"}
     },
     "GenericBoolean":{"type":"boolean"},
     "GenericString":{"type":"string"},
@@ -277,6 +347,28 @@
         "NextPageToken":{"shape":"NextPageToken"},
         "GroupDefinitions":{"shape":"GroupDefinitions"},
         "ResultsByTime":{"shape":"ResultsByTime"}
+      }
+    },
+    "GetCostForecastRequest":{
+      "type":"structure",
+      "required":[
+        "TimePeriod",
+        "Metric",
+        "Granularity"
+      ],
+      "members":{
+        "TimePeriod":{"shape":"DateInterval"},
+        "Metric":{"shape":"Metric"},
+        "Granularity":{"shape":"Granularity"},
+        "Filter":{"shape":"Expression"},
+        "PredictionIntervalLevel":{"shape":"PredictionIntervalLevel"}
+      }
+    },
+    "GetCostForecastResponse":{
+      "type":"structure",
+      "members":{
+        "Total":{"shape":"MetricValue"},
+        "ForecastResultsByTime":{"shape":"ForecastResultsByTime"}
       }
     },
     "GetDimensionValuesRequest":{
@@ -315,6 +407,7 @@
         "GroupBy":{"shape":"GroupDefinitions"},
         "Granularity":{"shape":"Granularity"},
         "Filter":{"shape":"Expression"},
+        "Metrics":{"shape":"MetricNames"},
         "NextPageToken":{"shape":"NextPageToken"}
       }
     },
@@ -398,7 +491,8 @@
       "type":"string",
       "enum":[
         "DAILY",
-        "MONTHLY"
+        "MONTHLY",
+        "HOURLY"
       ]
     },
     "Group":{
@@ -435,7 +529,10 @@
       "type":"structure",
       "members":{
         "EC2InstanceDetails":{"shape":"EC2InstanceDetails"},
-        "RDSInstanceDetails":{"shape":"RDSInstanceDetails"}
+        "RDSInstanceDetails":{"shape":"RDSInstanceDetails"},
+        "RedshiftInstanceDetails":{"shape":"RedshiftInstanceDetails"},
+        "ElastiCacheInstanceDetails":{"shape":"ElastiCacheInstanceDetails"},
+        "ESInstanceDetails":{"shape":"ESInstanceDetails"}
       }
     },
     "InvalidNextTokenException":{
@@ -463,6 +560,18 @@
         "SEVEN_DAYS",
         "THIRTY_DAYS",
         "SIXTY_DAYS"
+      ]
+    },
+    "Metric":{
+      "type":"string",
+      "enum":[
+        "BLENDED_COST",
+        "UNBLENDED_COST",
+        "AMORTIZED_COST",
+        "NET_UNBLENDED_COST",
+        "NET_AMORTIZED_COST",
+        "USAGE_QUANTITY",
+        "NORMALIZED_USAGE_AMOUNT"
       ]
     },
     "MetricAmount":{"type":"string"},
@@ -497,18 +606,29 @@
         "CONVERTIBLE"
       ]
     },
+    "OnDemandCost":{"type":"string"},
     "OnDemandCostOfRIHoursUsed":{"type":"string"},
     "OnDemandHours":{"type":"string"},
+    "OnDemandNormalizedUnits":{"type":"string"},
     "PageSize":{"type":"integer"},
     "PaymentOption":{
       "type":"string",
       "enum":[
         "NO_UPFRONT",
         "PARTIAL_UPFRONT",
-        "ALL_UPFRONT"
+        "ALL_UPFRONT",
+        "LIGHT_UTILIZATION",
+        "MEDIUM_UTILIZATION",
+        "HEAVY_UTILIZATION"
       ]
     },
+    "PredictionIntervalLevel":{
+      "type":"integer",
+      "max":99,
+      "min":51
+    },
     "PurchasedHours":{"type":"string"},
+    "PurchasedUnits":{"type":"string"},
     "RDSInstanceDetails":{
       "type":"structure",
       "members":{
@@ -516,8 +636,19 @@
         "InstanceType":{"shape":"GenericString"},
         "Region":{"shape":"GenericString"},
         "DatabaseEngine":{"shape":"GenericString"},
+        "DatabaseEdition":{"shape":"GenericString"},
         "DeploymentOption":{"shape":"GenericString"},
         "LicenseModel":{"shape":"GenericString"},
+        "CurrentGeneration":{"shape":"GenericBoolean"},
+        "SizeFlexEligible":{"shape":"GenericBoolean"}
+      }
+    },
+    "RedshiftInstanceDetails":{
+      "type":"structure",
+      "members":{
+        "Family":{"shape":"GenericString"},
+        "NodeType":{"shape":"GenericString"},
+        "Region":{"shape":"GenericString"},
         "CurrentGeneration":{"shape":"GenericBoolean"},
         "SizeFlexEligible":{"shape":"GenericBoolean"}
       }
@@ -533,9 +664,13 @@
       "type":"structure",
       "members":{
         "UtilizationPercentage":{"shape":"UtilizationPercentage"},
+        "UtilizationPercentageInUnits":{"shape":"UtilizationPercentageInUnits"},
         "PurchasedHours":{"shape":"PurchasedHours"},
+        "PurchasedUnits":{"shape":"PurchasedUnits"},
         "TotalActualHours":{"shape":"TotalActualHours"},
+        "TotalActualUnits":{"shape":"TotalActualUnits"},
         "UnusedHours":{"shape":"UnusedHours"},
+        "UnusedUnits":{"shape":"UnusedUnits"},
         "OnDemandCostOfRIHoursUsed":{"shape":"OnDemandCostOfRIHoursUsed"},
         "NetRISavings":{"shape":"NetRISavings"},
         "TotalPotentialRISavings":{"shape":"TotalPotentialRISavings"},
@@ -572,6 +707,7 @@
     "ReservationPurchaseRecommendationDetail":{
       "type":"structure",
       "members":{
+        "AccountId":{"shape":"GenericString"},
         "InstanceDetails":{"shape":"InstanceDetails"},
         "RecommendedNumberOfInstancesToPurchase":{"shape":"GenericString"},
         "RecommendedNormalizedUnitsToPurchase":{"shape":"GenericString"},
@@ -629,6 +765,7 @@
       "member":{"shape":"ReservationUtilizationGroup"}
     },
     "ReservedHours":{"type":"string"},
+    "ReservedNormalizedUnits":{"type":"string"},
     "ResultByTime":{
       "type":"structure",
       "members":{
@@ -669,10 +806,13 @@
       ]
     },
     "TotalActualHours":{"type":"string"},
+    "TotalActualUnits":{"type":"string"},
     "TotalAmortizedFee":{"type":"string"},
     "TotalPotentialRISavings":{"type":"string"},
     "TotalRunningHours":{"type":"string"},
+    "TotalRunningNormalizedUnits":{"type":"string"},
     "UnusedHours":{"type":"string"},
+    "UnusedUnits":{"type":"string"},
     "UtilizationByTime":{
       "type":"structure",
       "members":{
@@ -682,6 +822,7 @@
       }
     },
     "UtilizationPercentage":{"type":"string"},
+    "UtilizationPercentageInUnits":{"type":"string"},
     "UtilizationsByTime":{
       "type":"list",
       "member":{"shape":"UtilizationByTime"}
@@ -693,7 +834,7 @@
     },
     "YearMonthDay":{
       "type":"string",
-      "pattern":"\\d{4}-\\d{2}-\\d{2}"
+      "pattern":"(\\d{4}-\\d{2}-\\d{2})(T\\d{2}:\\d{2}:\\d{2}Z)?"
     }
   }
 }

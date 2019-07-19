@@ -11,14 +11,16 @@ import (
 
 // e2e tests of the build controller configuration.
 // These are tagged [Serial] because each test modifies the cluster-wide build controller config.
-var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster configuration", func() {
+var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture           = exutil.FixturePath("testdata", "builds", "test-build.yaml")
-		defaultConfigFixture   = exutil.FixturePath("testdata", "builds", "cluster-config.yaml")
-		blacklistConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-blacklist.yaml")
-		whitelistConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-whitelist.yaml")
-		oc                     = exutil.NewCLI("build-cluster-config", exutil.KubeConfigPath())
+		buildFixture              = exutil.FixturePath("testdata", "builds", "test-build.yaml")
+		defaultConfigFixture      = exutil.FixturePath("testdata", "builds", "cluster-config.yaml")
+		defaultbuildConfigFixture = exutil.FixturePath("testdata", "builds", "build-cluster-config.yaml")
+		blacklistConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-blacklist.yaml")
+		whitelistConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-whitelist.yaml")
+		invalidproxyConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "invalid-build-cluster-config.yaml")
+		oc                        = exutil.NewCLI("build-cluster-config", exutil.KubeConfigPath())
 	)
 
 	g.Context("", func() {
@@ -29,10 +31,10 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+			err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
+			err = exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "builder")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			oc.Run("create").Args("-f", buildFixture).Execute()
 		})
@@ -44,11 +46,13 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 				exutil.DumpConfigMapStates(oc)
 			}
 			oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
+			oc.AsAdmin().Run("apply").Args("-f", defaultbuildConfigFixture).Execute()
 		})
 
 		g.Context("registries config context", func() {
 
 			g.It("should default registry search to docker.io for image pulls", func() {
+				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply default cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -66,6 +70,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 			})
 
 			g.It("should allow registries to be blacklisted", func() {
+				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply blacklist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", blacklistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -82,6 +87,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 			})
 
 			g.It("should allow registries to be whitelisted", func() {
+				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply whitelist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", whitelistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -95,6 +101,42 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("Source image rejected"))
+			})
+
+		})
+
+		g.Context("build config context", func() {
+
+			g.It("Apply default proxy configuration to source build pod through env vars", func() {
+				g.By("apply proxy cluster configuration")
+				err := oc.AsAdmin().Run("apply").Args("-f", invalidproxyConfigFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("waiting 10s for daemonset/controller-manager to rollout")
+				time.Sleep(10 * time.Second)
+				g.By("starting build sample-verbose-build and waiting for failure")
+				br, err := exutil.StartBuildAndWait(oc, "sample-verbose-build")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertFailure()
+				g.By("expecting the build logs to indicate invalid proxy")
+				buildLog, err := br.LogsNoTimestamp()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(buildLog).To(o.ContainSubstring("Get https://registry-1.docker.io/v2/: proxyconnect tcp: dial tcp: lookup invalid.proxy.redhat.com"))
+			})
+
+			g.It("Apply default proxy configuration to docker build pod through env vars", func() {
+				g.By("apply proxy cluster configuration")
+				err := oc.AsAdmin().Run("apply").Args("-f", invalidproxyConfigFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("waiting 10s for daemonset/controller-manager to rollout")
+				time.Sleep(10 * time.Second)
+				g.By("starting build simple-docker-build and waiting for failure")
+				br, err := exutil.StartBuildAndWait(oc, "simple-docker-build")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertFailure()
+				g.By("expecting the build logs to indicate invalid proxy")
+				buildLog, err := br.LogsNoTimestamp()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(buildLog).To(o.ContainSubstring("Could not resolve proxy: invalid.proxy.redhat.com; Unknown error"))
 			})
 
 		})

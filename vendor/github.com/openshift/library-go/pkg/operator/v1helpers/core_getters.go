@@ -4,17 +4,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
 type combinedConfigMapGetter struct {
-	client  kubernetes.Interface
+	client  corev1client.ConfigMapsGetter
 	listers KubeInformersForNamespaces
 }
 
-func CachedConfigMapGetter(client kubernetes.Interface, listers KubeInformersForNamespaces) corev1client.ConfigMapsGetter {
+func CachedConfigMapGetter(client corev1client.ConfigMapsGetter, listers KubeInformersForNamespaces) corev1client.ConfigMapsGetter {
 	return &combinedConfigMapGetter{
 		client:  client,
 		listers: listers,
@@ -29,7 +28,7 @@ type combinedConfigMapInterface struct {
 
 func (g combinedConfigMapGetter) ConfigMaps(namespace string) corev1client.ConfigMapInterface {
 	return combinedConfigMapInterface{
-		ConfigMapInterface: g.client.CoreV1().ConfigMaps(namespace),
+		ConfigMapInterface: g.client.ConfigMaps(namespace),
 		lister:             g.listers.InformersFor(namespace).Core().V1().ConfigMaps().Lister().ConfigMaps(namespace),
 		namespace:          namespace,
 	}
@@ -56,11 +55,11 @@ func (g combinedConfigMapInterface) List(opts metav1.ListOptions) (*corev1.Confi
 }
 
 type combinedSecretGetter struct {
-	client  kubernetes.Interface
+	client  corev1client.SecretsGetter
 	listers KubeInformersForNamespaces
 }
 
-func CachedSecretGetter(client kubernetes.Interface, listers KubeInformersForNamespaces) corev1client.SecretsGetter {
+func CachedSecretGetter(client corev1client.SecretsGetter, listers KubeInformersForNamespaces) corev1client.SecretsGetter {
 	return &combinedSecretGetter{
 		client:  client,
 		listers: listers,
@@ -75,7 +74,7 @@ type combinedSecretInterface struct {
 
 func (g combinedSecretGetter) Secrets(namespace string) corev1client.SecretInterface {
 	return combinedSecretInterface{
-		SecretInterface: g.client.CoreV1().Secrets(namespace),
+		SecretInterface: g.client.Secrets(namespace),
 		lister:          g.listers.InformersFor(namespace).Core().V1().Secrets().Lister().Secrets(namespace),
 		namespace:       namespace,
 	}

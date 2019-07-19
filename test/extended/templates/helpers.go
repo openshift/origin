@@ -9,23 +9,23 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/controller"
-	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userv1 "github.com/openshift/api/user/v1"
+	"github.com/openshift/openshift-controller-manager/pkg/template/controller"
+	osbclient "github.com/openshift/origin/test/extended/templates/openservicebroker/client"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func createUser(cli *exutil.CLI, name, role string) *userapi.User {
+func createUser(cli *exutil.CLI, name, role string) *userv1.User {
 	name = cli.Namespace() + "-" + name
 
-	user, err := cli.AdminUserClient().User().Users().Create(&userapi.User{
+	user, err := cli.AdminUserClient().UserV1().Users().Create(&userv1.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -33,16 +33,16 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if role != "" {
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(cli.Namespace()).Create(&authorizationv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-%s-binding", name, role),
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: role,
 			},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.UserKind,
+					Kind: authorizationv1.UserKind,
 					Name: name,
 				},
 			},
@@ -53,10 +53,10 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	return user
 }
 
-func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
+func createGroup(cli *exutil.CLI, name, role string) *userv1.Group {
 	name = cli.Namespace() + "-" + name
 
-	group, err := cli.AdminUserClient().User().Groups().Create(&userapi.Group{
+	group, err := cli.AdminUserClient().UserV1().Groups().Create(&userv1.Group{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -64,16 +64,16 @@ func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if role != "" {
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().AuthorizationV1().RoleBindings(cli.Namespace()).Create(&authorizationv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-%s-binding", name, role),
 			},
-			RoleRef: kapi.ObjectReference{
+			RoleRef: corev1.ObjectReference{
 				Name: role,
 			},
-			Subjects: []kapi.ObjectReference{
+			Subjects: []corev1.ObjectReference{
 				{
-					Kind: authorizationapi.GroupKind,
+					Kind: authorizationv1.GroupKind,
 					Name: name,
 				},
 			},
@@ -85,27 +85,27 @@ func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
 }
 
 func addUserToGroup(cli *exutil.CLI, username, groupname string) {
-	group, err := cli.AdminUserClient().User().Groups().Get(groupname, metav1.GetOptions{})
+	group, err := cli.AdminUserClient().UserV1().Groups().Get(groupname, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if group != nil {
 		group.Users = append(group.Users, username)
-		_, err = cli.AdminUserClient().User().Groups().Update(group)
+		_, err = cli.AdminUserClient().UserV1().Groups().Update(group)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 }
 
-func deleteGroup(cli *exutil.CLI, group *userapi.Group) {
-	err := cli.AdminUserClient().User().Groups().Delete(group.Name, nil)
+func deleteGroup(cli *exutil.CLI, group *userv1.Group) {
+	err := cli.AdminUserClient().UserV1().Groups().Delete(group.Name, nil)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func deleteUser(cli *exutil.CLI, user *userapi.User) {
-	err := cli.AdminUserClient().User().Users().Delete(user.Name, nil)
+func deleteUser(cli *exutil.CLI, user *userv1.User) {
+	err := cli.AdminUserClient().UserV1().Users().Delete(user.Name, nil)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func setUser(cli *exutil.CLI, user *userapi.User) {
+func setUser(cli *exutil.CLI, user *userv1.User) {
 	if user == nil {
 		g.By("testing as system:admin user")
 		*cli = *cli.AsAdmin()
@@ -117,7 +117,7 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 
 // TSBClient returns a client to the running template service broker
 func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
-	svc, err := oc.AdminKubeClient().Core().Services("openshift-template-service-broker").Get("apiserver", metav1.GetOptions{})
+	svc, err := oc.AdminKubeClient().CoreV1().Services("openshift-template-service-broker").Get("apiserver", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
 				InsecureSkipVerify: true,
 			},
 		},
-	}, "https://"+svc.Spec.ClusterIP+templateapi.ServiceBrokerRoot), nil
+	}, "https://"+svc.Spec.ClusterIP+"/brokers/template.openshift.io"), nil
 }
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateInstance) error {
@@ -155,7 +155,7 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templatev1.TemplateIn
 			return kerrors.NewNotFound(mapping.Resource.GroupResource(), object.Ref.Name)
 		}
 
-		if strings.ToLower(obj.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+		if strings.ToLower(obj.GetAnnotations()[templatev1.WaitForReadyAnnotation]) != "true" {
 			continue
 		}
 

@@ -21,6 +21,7 @@
       "input":{"shape":"DeleteRuleRequest"},
       "errors":[
         {"shape":"ConcurrentModificationException"},
+        {"shape":"ManagedRuleException"},
         {"shape":"InternalException"}
       ]
     },
@@ -60,6 +61,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"ConcurrentModificationException"},
+        {"shape":"ManagedRuleException"},
         {"shape":"InternalException"}
       ]
     },
@@ -73,6 +75,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"ConcurrentModificationException"},
+        {"shape":"ManagedRuleException"},
         {"shape":"InternalException"}
       ]
     },
@@ -151,6 +154,7 @@
         {"shape":"InvalidEventPatternException"},
         {"shape":"LimitExceededException"},
         {"shape":"ConcurrentModificationException"},
+        {"shape":"ManagedRuleException"},
         {"shape":"InternalException"}
       ]
     },
@@ -166,6 +170,7 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"ConcurrentModificationException"},
         {"shape":"LimitExceededException"},
+        {"shape":"ManagedRuleException"},
         {"shape":"InternalException"}
       ]
     },
@@ -193,6 +198,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"ConcurrentModificationException"},
+        {"shape":"ManagedRuleException"},
         {"shape":"InternalException"}
       ]
     },
@@ -221,6 +227,22 @@
       "type":"string",
       "max":1600,
       "min":1
+    },
+    "AssignPublicIp":{
+      "type":"string",
+      "enum":[
+        "ENABLED",
+        "DISABLED"
+      ]
+    },
+    "AwsVpcConfiguration":{
+      "type":"structure",
+      "required":["Subnets"],
+      "members":{
+        "Subnets":{"shape":"StringList"},
+        "SecurityGroups":{"shape":"StringList"},
+        "AssignPublicIp":{"shape":"AssignPublicIp"}
+      }
     },
     "BatchArrayProperties":{
       "type":"structure",
@@ -254,11 +276,25 @@
       },
       "exception":true
     },
+    "Condition":{
+      "type":"structure",
+      "required":[
+        "Type",
+        "Key",
+        "Value"
+      ],
+      "members":{
+        "Type":{"shape":"String"},
+        "Key":{"shape":"String"},
+        "Value":{"shape":"String"}
+      }
+    },
     "DeleteRuleRequest":{
       "type":"structure",
       "required":["Name"],
       "members":{
-        "Name":{"shape":"RuleName"}
+        "Name":{"shape":"RuleName"},
+        "Force":{"shape":"Boolean"}
       }
     },
     "DescribeEventBusRequest":{
@@ -290,7 +326,8 @@
         "ScheduleExpression":{"shape":"ScheduleExpression"},
         "State":{"shape":"RuleState"},
         "Description":{"shape":"RuleDescription"},
-        "RoleArn":{"shape":"RoleArn"}
+        "RoleArn":{"shape":"RoleArn"},
+        "ManagedBy":{"shape":"ManagedBy"}
       }
     },
     "DisableRuleRequest":{
@@ -305,7 +342,11 @@
       "required":["TaskDefinitionArn"],
       "members":{
         "TaskDefinitionArn":{"shape":"Arn"},
-        "TaskCount":{"shape":"LimitMin1"}
+        "TaskCount":{"shape":"LimitMin1"},
+        "LaunchType":{"shape":"LaunchType"},
+        "NetworkConfiguration":{"shape":"NetworkConfiguration"},
+        "PlatformVersion":{"shape":"String"},
+        "Group":{"shape":"String"}
       }
     },
     "EnableRuleRequest":{
@@ -359,6 +400,13 @@
       "members":{
         "PartitionKeyPath":{"shape":"TargetPartitionKeyPath"}
       }
+    },
+    "LaunchType":{
+      "type":"string",
+      "enum":[
+        "EC2",
+        "FARGATE"
+      ]
     },
     "LimitExceededException":{
       "type":"structure",
@@ -422,7 +470,24 @@
         "NextToken":{"shape":"NextToken"}
       }
     },
+    "ManagedBy":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "ManagedRuleException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "MessageGroupId":{"type":"string"},
+    "NetworkConfiguration":{
+      "type":"structure",
+      "members":{
+        "awsvpcConfiguration":{"shape":"AwsVpcConfiguration"}
+      }
+    },
     "NextToken":{
       "type":"string",
       "max":2048,
@@ -492,7 +557,8 @@
       "members":{
         "Action":{"shape":"Action"},
         "Principal":{"shape":"Principal"},
-        "StatementId":{"shape":"StatementId"}
+        "StatementId":{"shape":"StatementId"},
+        "Condition":{"shape":"Condition"}
       }
     },
     "PutRuleRequest":{
@@ -558,7 +624,8 @@
       ],
       "members":{
         "Rule":{"shape":"RuleName"},
-        "Ids":{"shape":"TargetIdList"}
+        "Ids":{"shape":"TargetIdList"},
+        "Force":{"shape":"Boolean"}
       }
     },
     "RemoveTargetsResponse":{
@@ -600,7 +667,8 @@
         "State":{"shape":"RuleState"},
         "Description":{"shape":"RuleDescription"},
         "ScheduleExpression":{"shape":"ScheduleExpression"},
-        "RoleArn":{"shape":"RoleArn"}
+        "RoleArn":{"shape":"RoleArn"},
+        "ManagedBy":{"shape":"ManagedBy"}
       }
     },
     "RuleArn":{
@@ -691,6 +759,10 @@
       "pattern":"[a-zA-Z0-9-_]+"
     },
     "String":{"type":"string"},
+    "StringList":{
+      "type":"list",
+      "member":{"shape":"String"}
+    },
     "Target":{
       "type":"structure",
       "required":[

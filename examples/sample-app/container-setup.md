@@ -5,7 +5,7 @@ things to get it going.
 
 ## Download and Run OpenShift Origin
 If you have not already, perform the following to (download and) run the Origin
-Docker container:
+container:
 
     $ docker run -d --name "openshift-origin" --net=host --privileged \
     -v /var/run/docker.sock:/var/run/docker.sock \
@@ -28,11 +28,11 @@ running the pullimages.sh script like so:
     $ sh <(curl \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/pullimages.sh)
 
-This will fetch several Docker images that are used as part of the Sample
+This will fetch several container images that are used as part of the Sample
 Application.
 
 Next, be sure to follow the **Setup** instructions for the Sample Application
-regarding an "insecure" Docker registry.
+regarding an "insecure" container image registry.
 
 ## Connect to the OpenShift Container
 Once the container is started, you need to attach to it in order to execute
@@ -46,7 +46,7 @@ you know where you are:
     $ PS1="openshift-dock: [\u@\h \W]\$ "
 
 ## Get the Sample Application Code
-Inside the OpenShift Docker container, you'll need to fetch some of the code
+Inside the OpenShift container, you'll need to fetch some of the code
 bits that are used in the sample app.
 
     $ cd /var/lib/openshift
@@ -63,7 +63,7 @@ For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
 step #3.
 
-## Deploy the private docker registry
+## Deploy the private container image registry
 
     $ oc adm registry
     $ cd examples/sample-app

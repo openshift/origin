@@ -33,11 +33,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-	watcherapi "k8s.io/kubernetes/pkg/kubelet/apis/pluginregistration/v1alpha1"
+	watcherapi "k8s.io/kubernetes/pkg/kubelet/apis/pluginregistration/v1"
 	"k8s.io/kubernetes/pkg/kubelet/checkpointmanager"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/util/pluginwatcher"
-	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
+	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
 const (
@@ -248,7 +248,7 @@ func setupDevicePlugin(t *testing.T, devs []*pluginapi.Device, pluginSocketName 
 }
 
 func setupPluginWatcher(pluginSocketName string, m Manager) *pluginwatcher.Watcher {
-	w := pluginwatcher.NewWatcher(filepath.Dir(pluginSocketName))
+	w := pluginwatcher.NewWatcher(filepath.Dir(pluginSocketName), "" /* deprecatedSockDir */)
 	w.AddHandler(watcherapi.DevicePlugin, m.GetWatcherHandler())
 	w.Start()
 
@@ -635,13 +635,13 @@ func getTestManager(tmpDir string, activePods ActivePodsFunc, testRes []TestReso
 	return testManager, nil
 }
 
-func getTestNodeInfo(allocatable v1.ResourceList) *schedulercache.NodeInfo {
+func getTestNodeInfo(allocatable v1.ResourceList) *schedulernodeinfo.NodeInfo {
 	cachedNode := &v1.Node{
 		Status: v1.NodeStatus{
 			Allocatable: allocatable,
 		},
 	}
-	nodeInfo := &schedulercache.NodeInfo{}
+	nodeInfo := &schedulernodeinfo.NodeInfo{}
 	nodeInfo.SetNode(cachedNode)
 	return nodeInfo
 }
@@ -701,7 +701,7 @@ func TestPodContainerDeviceAllocation(t *testing.T) {
 			expectedContainerOptsLen:  []int{3, 2, 2},
 			expectedAllocatedResName1: 2,
 			expectedAllocatedResName2: 1,
-			expErr: nil,
+			expErr:                    nil,
 		},
 		{
 			description:               "Requesting to create a pod without enough resources should fail",
@@ -709,7 +709,7 @@ func TestPodContainerDeviceAllocation(t *testing.T) {
 			expectedContainerOptsLen:  nil,
 			expectedAllocatedResName1: 2,
 			expectedAllocatedResName2: 1,
-			expErr: fmt.Errorf("requested number of devices unavailable for domain1.com/resource1. Requested: 1, Available: 0"),
+			expErr:                    fmt.Errorf("requested number of devices unavailable for domain1.com/resource1. Requested: 1, Available: 0"),
 		},
 		{
 			description:               "Successful allocation of all available Res1 resources and Res2 resources",
@@ -717,7 +717,7 @@ func TestPodContainerDeviceAllocation(t *testing.T) {
 			expectedContainerOptsLen:  []int{0, 0, 1},
 			expectedAllocatedResName1: 2,
 			expectedAllocatedResName2: 2,
-			expErr: nil,
+			expErr:                    nil,
 		},
 	}
 	activePods := []*v1.Pod{}
@@ -875,7 +875,7 @@ func TestSanitizeNodeAllocatable(t *testing.T) {
 			},
 		},
 	}
-	nodeInfo := &schedulercache.NodeInfo{}
+	nodeInfo := &schedulernodeinfo.NodeInfo{}
 	nodeInfo.SetNode(cachedNode)
 
 	testManager.sanitizeNodeAllocatable(nodeInfo)

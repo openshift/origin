@@ -47,31 +47,31 @@ func (f *ControllerFlags) AddFlags(cmd *cobra.Command) {
 
 // ToConfigObj given completed flags, returns a config object for the flag that was specified.
 // TODO versions goes away in 1.11
-func (f *ControllerFlags) ToConfigObj() (*unstructured.Unstructured, error) {
+func (f *ControllerFlags) ToConfigObj() ([]byte, *unstructured.Unstructured, error) {
 	// no file means empty, not err
 	if len(f.ConfigFile) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	content, err := ioutil.ReadFile(f.ConfigFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// empty file means empty, not err
 	if len(content) == 0 {
-		return nil, nil
+		return nil, nil, err
 	}
 
 	data, err := kyaml.ToJSON(content)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	uncastObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, data)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return uncastObj.(*unstructured.Unstructured), nil
+	return content, uncastObj.(*unstructured.Unstructured), nil
 }
 
 // ToClientConfig given completed flags, returns a rest.Config.  overrides are optional

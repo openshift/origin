@@ -9,10 +9,10 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/constants"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // DockerIgnorer ignores files based on the contents of the .s2iignore file
 type DockerIgnorer struct{}
@@ -31,7 +31,7 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 		5) del files
 		 1 to 4 is in getListOfFilesToIgnore
 	*/
-	filesToDel, lerr := getListOfFilesToIgnore(config.WorkingSourceDir)
+	filesToDel, lerr := b.GetListOfFilesToIgnore(config.WorkingSourceDir)
 	if lerr != nil {
 		return lerr
 	}
@@ -42,10 +42,10 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 
 	// delete compiled list of files
 	for _, fileToDel := range filesToDel {
-		glog.V(5).Infof("attempting to remove file %s \n", fileToDel)
+		log.V(5).Infof("attempting to remove file %s \n", fileToDel)
 		rerr := os.RemoveAll(fileToDel)
 		if rerr != nil {
-			glog.Errorf("error removing file %s because of %v \n", fileToDel, rerr)
+			log.Errorf("error removing file %s because of %v \n", fileToDel, rerr)
 			return rerr
 		}
 	}
@@ -53,15 +53,17 @@ func (b *DockerIgnorer) Ignore(config *api.Config) error {
 	return nil
 }
 
-func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
+// GetListOfFilesToIgnore returns list of files from the workspace based on the contents of the
+// .s2iignore file
+func (b *DockerIgnorer) GetListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 	path := filepath.Join(workingDir, constants.IgnoreFile)
 	file, err := os.Open(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			glog.Errorf("Ignore processing, problem opening %s because of %v\n", path, err)
+			log.Errorf("Ignore processing, problem opening %s because of %v\n", path, err)
 			return nil, err
 		}
-		glog.V(4).Info(".s2iignore file does not exist")
+		log.V(4).Info(".s2iignore file does not exist")
 		return nil, nil
 	}
 	defer file.Close()
@@ -79,7 +81,7 @@ func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 			continue
 		}
 
-		glog.V(4).Infof(".s2iignore lists a file spec of %s \n", filespec)
+		log.V(4).Infof(".s2iignore lists a file spec of %s \n", filespec)
 
 		if strings.HasPrefix(filespec, "!") {
 			//remove any existing files to del that the override covers
@@ -93,13 +95,13 @@ func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 			dontDel := []string{}
 			for candidate := range filesToDel {
 				compare := filepath.Join(workingDir, filespec)
-				glog.V(5).Infof("For %s  and %s see if it matches the spec  %s which means that we leave in\n", filespec, candidate, compare)
+				log.V(5).Infof("For %s  and %s see if it matches the spec  %s which means that we leave in\n", filespec, candidate, compare)
 				leaveIn, _ := filepath.Match(compare, candidate)
 				if leaveIn {
-					glog.V(5).Infof("Not removing %s \n", candidate)
+					log.V(5).Infof("Not removing %s \n", candidate)
 					dontDel = append(dontDel, candidate)
 				} else {
-					glog.V(5).Infof("No match for %s and %s \n", filespec, candidate)
+					log.V(5).Infof("No match for %s and %s \n", filespec, candidate)
 				}
 			}
 
@@ -111,13 +113,13 @@ func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 		}
 
 		globspec := filepath.Join(workingDir, filespec)
-		glog.V(4).Infof("using globspec %s \n", globspec)
+		log.V(4).Infof("using globspec %s \n", globspec)
 		list, gerr := filepath.Glob(globspec)
 		if gerr != nil {
-			glog.V(4).Infof("Glob failed with %v \n", gerr)
+			log.V(4).Infof("Glob failed with %v \n", gerr)
 		} else {
 			for _, globresult := range list {
-				glog.V(5).Infof("Glob result %s \n", globresult)
+				log.V(5).Infof("Glob result %s \n", globresult)
 				filesToDel[globresult] = globresult
 
 			}
@@ -126,7 +128,7 @@ func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 	}
 
 	if err := scanner.Err(); err != nil && err != io.EOF {
-		glog.Errorf("Problem processing .s2iignore %v \n", err)
+		log.Errorf("Problem processing .s2iignore %v \n", err)
 		return nil, err
 	}
 

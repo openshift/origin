@@ -13,8 +13,11 @@ type Authentication struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
+	// +required
 	Spec AuthenticationSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
+	// +optional
 	Status AuthenticationStatus `json:"status"`
 }
 
@@ -45,7 +48,7 @@ type AuthenticationSpec struct {
 	// honor bearer tokens that are provisioned by an external authentication service.
 	// The namespace for these secrets is openshift-config.
 	// +optional
-	WebhookTokenAuthenticators []WebhookTokenAuthenticator `json:"webhookTokenAuthenticators"`
+	WebhookTokenAuthenticators []WebhookTokenAuthenticator `json:"webhookTokenAuthenticators,omitempty"`
 }
 
 type AuthenticationStatus struct {
@@ -73,7 +76,7 @@ type AuthenticationStatus struct {
 type AuthenticationList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	Items []Authentication `json:"items"`
 }

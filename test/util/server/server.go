@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -15,8 +16,14 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/kubernetes/cmd/kube-apiserver/app"
+
+	"github.com/openshift/library-go/pkg/config/helpers"
+
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
-	"github.com/golang/glog"
+	"github.com/openshift/library-go/pkg/assets/create"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,33 +40,35 @@ import (
 	apiregistrationv1client "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 	kube_controller_manager "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	oauthclientv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	"github.com/openshift/origin/pkg/cmd/server/start"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/configconversion"
-	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
-	"github.com/openshift/origin/test/util"
 
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	newproject "github.com/openshift/oc/pkg/cli/admin/project"
+	"github.com/openshift/openshift-apiserver/pkg/api/legacy"
+	openshiftapiserver "github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver"
+	openshiftcontrollermanager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
+	"github.com/openshift/origin/test/util"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/configconversion"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedcerts"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd/etcdserver"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/iputil"
+	openshift_controller_manager "github.com/openshift/origin/test/util/server/deprecated_openshift/openshift-controller-manager"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/start"
+
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+
+	// install all APIs
+	_ "github.com/openshift/openshift-apiserver/pkg/api/install"
 )
 
 var (
@@ -67,8 +76,6 @@ var (
 	startLock sync.Mutex
 	// startedMaster is true if the master has already been started in process
 	startedMaster bool
-	// startedNode is true if the node has already been started in process
-	startedNode bool
 
 	openshiftGVs = []schema.GroupVersion{
 		{Group: "apps.openshift.io", Version: "v1"},
@@ -95,16 +102,6 @@ func guardMaster() {
 	startedMaster = true
 }
 
-// guardMaster prevents multiple master processes from being started at once
-func guardNode() {
-	startLock.Lock()
-	defer startLock.Unlock()
-	if startedNode {
-		panic("the node has already been started once in this process - run only a single test, or use the sub-shell")
-	}
-	startedNode = true
-}
-
 // ServiceAccountWaitTimeout is used to determine how long to wait for the service account
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
@@ -119,7 +116,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	if highPort < lowPort {
 		return "", errors.New("lowPort must be <= highPort")
 	}
-	ip, err := cmdutil.DefaultLocalIP4()
+	ip, err := iputil.DefaultLocalIP4()
 	if err != nil {
 		return "", err
 	}
@@ -145,7 +142,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
-func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
+func setupStartOptions() *start.MasterArgs {
 	masterArgs := start.NewDefaultMasterArgs()
 
 	basedir := util.GetBaseDir()
@@ -159,24 +156,22 @@ func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
 	masterArgs.EtcdDir = etcdDir
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
 
-	if !useDefaultPort {
-		// don't wait for nodes to come up
-		masterAddr := os.Getenv("OS_MASTER_ADDR")
-		if len(masterAddr) == 0 {
-			if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
-				glog.Fatalf("Couldn't find free address for master: %v", err)
-			} else {
-				masterAddr = addr
-			}
+	// don't wait for nodes to come up
+	masterAddr := os.Getenv("OS_MASTER_ADDR")
+	if len(masterAddr) == 0 {
+		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
+			klog.Fatalf("Couldn't find free address for master: %v", err)
+		} else {
+			masterAddr = addr
 		}
-		masterArgs.MasterAddr.Set(masterAddr)
-		masterArgs.ListenArg.ListenAddr.Set(masterAddr)
 	}
+	masterArgs.MasterAddr.Set(masterAddr)
+	masterArgs.ListenArg.ListenAddr.Set(masterAddr)
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
 		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
-			glog.Fatalf("Couldn't find free address for DNS: %v", err)
+			klog.Fatalf("Couldn't find free address for DNS: %v", err)
 		} else {
 			dnsAddr = addr
 		}
@@ -187,11 +182,11 @@ func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
-	return DefaultMasterOptionsWithTweaks(false)
+	return DefaultMasterOptionsWithTweaks()
 }
 
-func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfig, error) {
-	masterArgs := setupStartOptions(useDefaultPort)
+func DefaultMasterOptionsWithTweaks() (*configapi.MasterConfig, error) {
+	masterArgs := setupStartOptions()
 	if !masterArgs.ConfigDir.Provided() {
 		masterArgs.ConfigDir.Default("openshift.local.config/master")
 	}
@@ -210,6 +205,7 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
 		masterConfig.AdmissionConfig.PluginConfig = make(map[string]*configapi.AdmissionPluginConfig)
 	}
+	masterConfig.KubernetesMasterConfig.APIServerArguments = map[string][]string{}
 
 	if masterConfig.EtcdConfig != nil {
 		addr, err := FindAvailableBindAddress(10000, 29999)
@@ -254,7 +250,7 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
-	glog.Infof("Starting integration server from master %s", masterArgs.ConfigDir.Value())
+	klog.Infof("Starting integration server from master %s", masterArgs.ConfigDir.Value())
 
 	return masterConfig, nil
 }
@@ -273,9 +269,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		return err
 	}
 
-	createMasterCerts := admin.CreateMasterCertsOptions{
+	createMasterCerts := deprecatedcerts.CreateMasterCertsOptions{
 		CertDir:    masterArgs.ConfigDir.Value(),
-		SignerName: admin.DefaultSignerName(),
+		SignerName: deprecatedcerts.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
 
 		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
@@ -342,6 +338,9 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 		return "", err
 	}
 
+	// SCCs are required for OpenShift apiserver bootstrap process
+	util.WaitForSecurityContextConstraintsCRDAvailable(clientConfig)
+
 	if err := startOpenShiftAPIServer(masterConfig, clientConfig, stopCh); err != nil {
 		return "", err
 	}
@@ -387,6 +386,13 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 		return "", fmt.Errorf("Waiting for roles failed with: %v", err)
 	}
 
+	// the openshift controller manager creates its lease object in this
+	// namespace, so we have to ensure it exists.
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	ns := &corev1.Namespace{}
+	ns.Name = "openshift-controller-manager"
+	kubeClient.CoreV1().Namespaces().Create(ns)
+
 	return adminKubeConfigFile, nil
 }
 
@@ -417,11 +423,20 @@ var configGroupVersioner = schema.GroupVersions([]schema.GroupVersion{
 
 func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config, stopCh <-chan struct{}) error {
 	// TODO: replace this with a default which produces the new configs
-	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
+	uncastExternalMasterConfig, err := configconversion.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
 	if err != nil {
 		return err
 	}
-	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	legacyConfigCodec := configconversion.Codecs.LegacyCodec(
+		legacyconfigv1.LegacySchemeGroupVersion,
+		schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
+	)
 	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 	if err != nil {
 		return err
@@ -440,16 +455,41 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
+	json, err := helpers.WriteYAML(kubeAPIServerConfig, kubecontrolplanev1.Install)
+	if err != nil {
+		return err
+	}
+	configFile, err := ioutil.TempFile("", "kube-apiserver-config-*.yaml")
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(configFile.Name(), json, 0644); err != nil {
+		return err
+	}
+
+	command := app.NewAPIServerCommand(stopCh)
+	if err := command.ParseFlags([]string{"--openshift-config=" + configFile.Name()}); err != nil {
+		return err
+	}
 	go func() {
-		if err := openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh); err != nil {
-			glog.Errorf("openshift-kube-apiserver terminated: %v", err)
-		} else {
-			glog.Info("openshift-kube-apiserver terminated cleanly")
-		}
+		command.RunE(command, nil)
 	}()
 
-	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
-	if err := waitForServerHealthy(url); err != nil {
+	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	defer cancel()
+
+	crdManifestsDir := "../../hack/local-up-master/kube-apiserver-manifests"
+	if _, err := os.Stat(crdManifestsDir); os.IsNotExist(err) {
+		return fmt.Errorf("directory with CRD manifests %q not found", crdManifestsDir)
+	}
+	if err := create.EnsureManifestsCreated(ctx, crdManifestsDir, clientConfig, create.CreateOptions{
+		Verbose: true,
+	}); err != nil {
+		return err
+	}
+
+	serverURL, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
+	if err := waitForServerHealthy(serverURL); err != nil {
 		return fmt.Errorf("Waiting for Kubernetes API /healthz failed with: %v", err)
 	}
 
@@ -458,11 +498,20 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 
 func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config, stopCh <-chan struct{}) error {
 	// TODO: replace this with a default which produces the new configs
-	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
+	uncastExternalMasterConfig, err := configconversion.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
 	if err != nil {
 		return err
 	}
-	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	legacyConfigCodec := configconversion.Codecs.LegacyCodec(
+		legacyconfigv1.LegacySchemeGroupVersion,
+		schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
+	)
 	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 	if err != nil {
 		return err
@@ -484,10 +533,10 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
 	go func() {
-		if err := openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh); err != nil {
-			glog.Errorf("openshift-apiserver terminated: %v", err)
+		if err := openshiftapiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh); err != nil {
+			klog.Errorf("openshift-apiserver terminated: %v", err)
 		} else {
-			glog.Info("openshift-apiserver terminated cleanly")
+			klog.Info("openshift-apiserver terminated cleanly")
 		}
 	}()
 
@@ -495,11 +544,8 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	if err != nil {
 		return err
 	}
-	if err := waitForServerHealthy(openshiftAddr); err != nil {
-		return fmt.Errorf("Waiting for OpenShift API /healthz failed with: %v", err)
-	}
-
 	targetPort := intstr.Parse(openshiftAddr.Port())
+
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
@@ -578,17 +624,38 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		}
 	}
 
-	err = wait.Poll(time.Second, 3*time.Minute, func() (bool, error) {
-		discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
-		if err != nil {
-			return false, err
-		}
+	if err := waitForServerHealthy(openshiftAddr); err != nil {
+		return fmt.Errorf("Waiting for OpenShift API /healthz failed with: %v", err)
+	}
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
 		// wait for openshift APIs
 		for _, gv := range openshiftGVs {
 			if _, err := discoveryClient.RESTClient().Get().AbsPath("/apis/" + gv.Group).DoRaw(); err != nil {
 				return false, nil
 			}
 		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("Waiting for OpenShift APIs failed with: %v", err)
+	}
+
+	err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
+		if err := createOAuthClients(clientConfig, fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress)); err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to create the OAuthClient objects: %v", err)
+	}
+
+	err = wait.Poll(time.Second, 1*time.Minute, func() (bool, error) {
 		// and /oauth/token/request
 		if masterConfig.OAuthConfig != nil {
 			if _, err := discoveryClient.RESTClient().Get().AbsPath("/oauth/token/request").DoRaw(); err != nil {
@@ -598,7 +665,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return true, nil
 	})
 	if err != nil {
-		return fmt.Errorf("Waiting for OpenShift APIs failed with: %v", err)
+		return fmt.Errorf("Waiting for OAuth endpoint failed with: %v", err)
 	}
 
 	return nil
@@ -649,9 +716,9 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	}
 
 	go func() {
-		cmd := kube_controller_manager.NewControllerManagerCommand()
+		cmd := kube_controller_manager.NewControllerManagerCommand(wait.NeverStop)
 		if err := cmd.ParseFlags(args); err != nil {
-			glog.Errorf("kube-controller-manager failed to parse flags: %v", err)
+			klog.Errorf("kube-controller-manager failed to parse flags: %v", err)
 			return
 		}
 		cmd.Run(cmd, nil)
@@ -666,17 +733,26 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 }
 
 func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
-	privilegedLoopbackConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	privilegedLoopbackConfig, err := deprecatedclient.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return err
 	}
 
 	// TODO: replace this with a default which produces the new configs
-	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
+	uncastExternalMasterConfig, err := configconversion.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
 	if err != nil {
 		return err
 	}
-	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	legacyConfigCodec := configconversion.Codecs.LegacyCodec(
+		legacyconfigv1.LegacySchemeGroupVersion,
+		schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
+	)
 	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 	if err != nil {
 		return err
@@ -695,8 +771,8 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 	}
 	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
 	go func() {
-		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
-			glog.Errorf("openshift-controller-manager terminated: %v", err)
+		if err := openshiftcontrollermanager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
+			klog.Errorf("openshift-controller-manager terminated: %v", err)
 		}
 		// TODO: stop openshift-controller-manager on exit of the test
 	}()
@@ -713,7 +789,7 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 }
 
 func waitForServerHealthy(url *url.URL) error {
-	if err := cmdutil.WaitForSuccessfulDial(url.Scheme == "https", "tcp", url.Host, 100*time.Millisecond, 1*time.Second, 60); err != nil {
+	if err := waitForSuccessfulDial(url.Scheme == "https", "tcp", url.Host, 100*time.Millisecond, 1*time.Second, 60); err != nil {
 		return err
 	}
 	var healthzResponse string
@@ -727,6 +803,30 @@ func waitForServerHealthy(url *url.URL) error {
 	})
 	if err == wait.ErrWaitTimeout {
 		return fmt.Errorf("server did not become healthy: %v", healthzResponse)
+	}
+	return err
+}
+
+// waitForSuccessfulDial attempts to connect to the given address, closing and returning nil on the first successful connection.
+func waitForSuccessfulDial(https bool, network, address string, timeout, interval time.Duration, retries int) error {
+	var (
+		conn net.Conn
+		err  error
+	)
+	for i := 0; i <= retries; i++ {
+		dialer := net.Dialer{Timeout: timeout}
+		if https {
+			conn, err = tls.DialWithDialer(&dialer, network, address, &tls.Config{InsecureSkipVerify: true})
+		} else {
+			conn, err = dialer.Dial(network, address)
+		}
+		if err != nil {
+			klog.V(5).Infof("Got error %#v, trying again: %#v\n", err, address)
+			time.Sleep(interval)
+			continue
+		}
+		conn.Close()
+		return nil
 	}
 	return err
 }
@@ -753,7 +853,7 @@ func isServerPathHealthy(url url.URL, path string, code int) (bool, string, erro
 
 // serviceAccountSecretsExist checks whether the given service account has at least a token and a dockercfg
 // secret associated with it.
-func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string, sa *kapi.ServiceAccount) bool {
+func serviceAccountSecretsExist(clientset kubernetes.Interface, namespace string, sa *corev1.ServiceAccount) bool {
 	foundTokenSecret := false
 	foundDockercfgSecret := false
 	for _, secret := range sa.Secrets {
@@ -761,12 +861,12 @@ func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string
 		if len(secret.Namespace) > 0 {
 			ns = secret.Namespace
 		}
-		secret, err := clientset.Core().Secrets(ns).Get(secret.Name, metav1.GetOptions{})
+		secret, err := clientset.CoreV1().Secrets(ns).Get(secret.Name, metav1.GetOptions{})
 		if err == nil {
 			switch secret.Type {
-			case kapi.SecretTypeServiceAccountToken:
+			case corev1.SecretTypeServiceAccountToken:
 				foundTokenSecret = true
-			case kapi.SecretTypeDockercfg:
+			case corev1.SecretTypeDockercfg:
 				foundDockercfgSecret = true
 			}
 		}
@@ -777,14 +877,14 @@ func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string
 // WaitForPodCreationServiceAccounts ensures that the service account needed for pod creation exists
 // and that the cache for the admission control that checks for pod tokens has caught up to allow
 // pod creation.
-func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace string) error {
-	if err := WaitForServiceAccounts(clientset, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+func WaitForPodCreationServiceAccounts(clientset kubernetes.Interface, namespace string) error {
+	if err := WaitForServiceAccounts(clientset, namespace, []string{"default"}); err != nil {
 		return err
 	}
 
-	testPod := &kapi.Pod{}
+	testPod := &corev1.Pod{}
 	testPod.GenerateName = "test"
-	testPod.Spec.Containers = []kapi.Container{
+	testPod.Spec.Containers = []corev1.Container{
 		{
 			Name:  "container",
 			Image: "openshift/origin-pod:latest",
@@ -792,12 +892,12 @@ func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace
 	}
 
 	return wait.PollImmediate(time.Second, PodCreationWaitTimeout, func() (bool, error) {
-		pod, err := clientset.Core().Pods(namespace).Create(testPod)
+		pod, err := clientset.CoreV1().Pods(namespace).Create(testPod)
 		if err != nil {
-			glog.Warningf("Error attempting to create test pod: %v", err)
+			klog.Warningf("Error attempting to create test pod: %v", err)
 			return false, nil
 		}
-		err = clientset.Core().Pods(namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
+		err = clientset.CoreV1().Pods(namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 		if err != nil {
 			return false, err
 		}
@@ -807,8 +907,8 @@ func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace
 
 // WaitForServiceAccounts ensures the service accounts needed by build pods exist in the namespace
 // The extra controllers tend to starve the service account controller
-func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, accounts []string) error {
-	serviceAccounts := clientset.Core().ServiceAccounts(namespace)
+func WaitForServiceAccounts(clientset kubernetes.Interface, namespace string, accounts []string) error {
+	serviceAccounts := clientset.CoreV1().ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {
 			sa, err := serviceAccounts.Get(account, metav1.GetOptions{})
@@ -825,7 +925,7 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser string) (kclientset.Interface, *restclient.Config, error) {
+func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser string) (kubernetes.Interface, *restclient.Config, error) {
 	projectClient, err := projectv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, nil, err
@@ -844,7 +944,7 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 		RbacClient:      kubeExternalClient.RbacV1(),
 		SARClient:       authorizationClient.SubjectAccessReviews(),
 		ProjectName:     projectName,
-		AdminRole:       bootstrappolicy.AdminRoleName,
+		AdminRole:       "admin",
 		AdminUser:       adminUser,
 		UseNodeSelector: false,
 		IOStreams:       genericclioptions.NewTestIOStreamsDiscard(),
@@ -856,4 +956,50 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 
 	kubeClient, config, err := util.GetClientForUser(clientConfig, adminUser)
 	return kubeClient, config, err
+}
+
+func createOAuthClients(config *restclient.Config, masterURL string) error {
+	const browserSecretBitLen = 256
+	oauthClient, err := oauthclientv1.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	oauthClientsClient := oauthClient.OAuthClients()
+	// create the browser client
+	_, err = oauthClientsClient.Create(&oauthv1.OAuthClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-browser-client",
+		},
+		GrantMethod:  oauthv1.GrantHandlerAuto,
+		Secret:       string(randomBits(browserSecretBitLen)),
+		RedirectURIs: []string{oauthdiscovery.OpenShiftOAuthTokenDisplayURL(masterURL)},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create the browser oauthclient: %v", err)
+	}
+
+	_, err = oauthClientsClient.Create(&oauthv1.OAuthClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-challenging-client",
+		},
+		RespondWithChallenges: true,
+		RedirectURIs:          []string{oauthdiscovery.OpenShiftOAuthTokenImplicitURL(masterURL)},
+		GrantMethod:           oauthv1.GrantHandlerAuto,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create the challenging oauthclient: %v", err)
+	}
+
+	return nil
+}
+
+// RandomBits returns a random byte slice with at least the requested bits of entropy.
+// Callers should avoid using a value less than 256 unless they have a very good reason.
+func randomBits(bits int) []byte {
+	size := (bits + 7) / 8
+	b := make([]byte, size)
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // rand should never fail
+	}
+	return b
 }

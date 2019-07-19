@@ -16,11 +16,11 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oc/cli/login"
-	"github.com/openshift/origin/pkg/oc/cli/whoami"
+	"github.com/openshift/oc/pkg/cli/login"
+	"github.com/openshift/oc/pkg/cli/whoami"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 // TestOAuthOIDC checks CLI password login against an OIDC provider

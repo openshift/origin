@@ -8,8 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
-	apiserverflag "k8s.io/apiserver/pkg/util/flag"
-	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
+	"k8s.io/component-base/cli/flag"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 )
 
@@ -30,7 +29,7 @@ func getOpenShiftConfig(configFile string) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerManagerOptions, controllerManager *config.Config, openshiftConfig map[string]interface{}) error {
+func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {
 	if err := applyOpenShiftConfigControllerArgs(controllerManagerOptions, openshiftConfig); err != nil {
 		return err
 	}
@@ -40,7 +39,7 @@ func applyOpenShiftConfigFlags(controllerManagerOptions *options.KubeControllerM
 	if err := applyOpenShiftConfigKubeDefaultProjectSelector(controllerManagerOptions, openshiftConfig); err != nil {
 		return err
 	}
-	return controllerManagerOptions.ApplyTo(controllerManager)
+	return nil
 }
 
 func applyOpenShiftConfigDefaultProjectSelector(controllerManagerOptions *options.KubeControllerManagerOptions, openshiftConfig map[string]interface{}) error {
@@ -99,7 +98,7 @@ func applyOpenShiftConfigControllerArgs(controllerManagerOptions *options.KubeCo
 
 // applyFlags stores the provided arguments onto a flag set, reporting any errors
 // encountered during the process.
-func applyFlags(args map[string][]string, flags apiserverflag.NamedFlagSets) []error {
+func applyFlags(args map[string][]string, flags flag.NamedFlagSets) []error {
 	var errs []error
 	for key, value := range args {
 		found := false

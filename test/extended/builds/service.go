@@ -26,15 +26,6 @@ RUN curl -vvv hello-openshift:8080
 			exutil.PreTestDump()
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -60,7 +51,7 @@ RUN curl -vvv hello-openshift:8080
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the build is in Complete phase")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "centos-1", nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "centos-1", nil, nil, nil)
 				//debug for failures
 				if err != nil {
 					exutil.DumpBuildLogs("centos", oc)

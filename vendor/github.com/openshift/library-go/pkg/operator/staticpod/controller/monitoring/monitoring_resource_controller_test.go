@@ -58,16 +58,13 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 		{
 			name: "create when not exists",
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
 					},
 				},
 				&operatorv1.StaticPodOperatorStatus{},
+				nil,
 				nil,
 			),
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
@@ -94,16 +91,13 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 		{
 			name: "skip when exists",
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
 					},
 				},
 				&operatorv1.StaticPodOperatorStatus{},
+				nil,
 				nil,
 			),
 			startingDynamicObjects: []runtime.Object{mustAssetServiceMonitor("target-namespace")},

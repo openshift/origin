@@ -31,13 +31,8 @@ type TrainClient struct {
 }
 
 // NewTrainClient creates an instance of the TrainClient client.
-func NewTrainClient() TrainClient {
-	return NewTrainClientWithBaseURI(DefaultBaseURI)
-}
-
-// NewTrainClientWithBaseURI creates an instance of the TrainClient client.
-func NewTrainClientWithBaseURI(baseURI string) TrainClient {
-	return TrainClient{NewWithBaseURI(baseURI)}
+func NewTrainClient(endpoint string) TrainClient {
+	return TrainClient{New(endpoint)}
 }
 
 // GetStatus gets the training status of all models (intents and entities) for the specified LUIS app. You must call
@@ -70,6 +65,10 @@ func (client TrainClient) GetStatus(ctx context.Context, appID uuid.UUID, versio
 
 // GetStatusPreparer prepares the GetStatus request.
 func (client TrainClient) GetStatusPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -77,7 +76,7 @@ func (client TrainClient) GetStatusPreparer(ctx context.Context, appID uuid.UUID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/train", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -134,6 +133,10 @@ func (client TrainClient) TrainVersion(ctx context.Context, appID uuid.UUID, ver
 
 // TrainVersionPreparer prepares the TrainVersion request.
 func (client TrainClient) TrainVersionPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -141,7 +144,7 @@ func (client TrainClient) TrainVersionPreparer(ctx context.Context, appID uuid.U
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/train", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }

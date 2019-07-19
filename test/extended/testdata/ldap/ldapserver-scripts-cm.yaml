@@ -1,0 +1,102 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scripts
+data:
+  run-openldap.sh: |
+    #!/bin/bash -x
+    # This script is the entrypoint for the openldap container. It configures and runs slapd.
+    # Modified slightly from https://raw.githubusercontent.com/openshift/openldap/master/2.4.41/run-openldap.sh
+
+    # Reduce maximum number of number of open file descriptors to 1024
+    # otherwise slapd consumes two orders of magnitude more of RAM
+    # see https://github.com/docker/docker/issues/8231
+    ulimit -n 1024
+
+    OPENLDAP_ROOT_PASSWORD=${OPENLDAP_ROOT_PASSWORD:-admin}
+    OPENLDAP_ROOT_DN_PREFIX=${OPENLDAP_ROOT_DN_PREFIX:-'cn=Manager'}
+    OPENLDAP_ROOT_DN_SUFFIX=${OPENLDAP_ROOT_DN_SUFFIX:-'dc=example,dc=com'}
+    OPENLDAP_DEBUG_LEVEL=${OPENLDAP_DEBUG_LEVEL:-256}
+
+    # Only run if no config has happened fully before
+    if [ ! -f /etc/openldap/CONFIGURED ]; then
+        user=`id | grep -Po "(?<=uid=)\d+"`
+        if (( user == 0 ))
+        then
+            # We are root, we can use user input!
+            # Bring in default databse config
+            cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+
+            # start the daemon in another process and make config changes
+            slapd -h "ldap:/// ldaps:/// ldapi:///" -d $OPENLDAP_DEBUG_LEVEL &
+            for ((i=30; i>0; i--))
+            do
+                ping_result=`ldapsearch 2>&1 | grep "Can.t contact LDAP server"`
+                if [ -z "$ping_result" ]
+                then
+                    break
+                fi
+                sleep 1
+            done
+            if [ $i -eq 0 ]
+            then
+                echo "slapd did not start correctly"
+                exit 1
+            fi
+
+            # add useful schemas
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/openldap/testPerson.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # domain and TLS setup
+            ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/domain_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/tls_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # base and groupsync data
+            ldapadd -x -D cn=Manager,dc=example,dc=com -w admin -f /usr/local/etc/ldapconf/base_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -x -D cn=Manager,dc=example,dc=com -w admin -f /usr/local/etc/ldapconf/groupsync.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # stop the daemon
+            pid=$(ps -A | grep slapd | awk '{print $1}')
+            kill -2 $pid || echo $?
+
+            # ensure the daemon stopped
+            for ((i=30; i>0; i--))
+            do
+                exists=$(ps -A | grep $pid)
+                if [ -z "${exists}" ]
+                then
+                    break
+                fi
+                sleep 1
+            done
+            if [ $i -eq 0 ]
+            then
+                echo "slapd did not stop correctly"
+                exit 1
+            fi
+        else
+            # Something has gone wrong with our image build
+            echo "FAILURE: Need to run pod as root"
+            exit 1
+        fi
+
+        # copy in ldap.conf
+        cp /usr/local/etc/ldapconf/*.conf /etc/openldap/
+
+        # Test configuration files, log checksum errors. Errors may be tolerated and repaired by slapd so don't exit
+        LOG=`slaptest 2>&1`
+        CHECKSUM_ERR=$(echo "${LOG}" | grep -Po "(?<=ldif_read_file: checksum error on \").+(?=\")")
+        for err in $CHECKSUM_ERR
+        do
+            echo "The file ${err} has a checksum error. Ensure that this file is not edited manually, or re-calculate the checksum."
+        done
+
+        touch /etc/openldap/CONFIGURED
+    fi
+
+    # Start the slapd service
+    exec slapd -h "ldap:///${HOSTNAME} ldapi:/// ldaps:///${HOSTNAME}" -d $OPENLDAP_DEBUG_LEVEL

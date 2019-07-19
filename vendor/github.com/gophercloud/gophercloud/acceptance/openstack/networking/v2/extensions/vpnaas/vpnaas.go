@@ -10,6 +10,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/ipsecpolicies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/services"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/siteconnections"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateService will create a Service with a random name and a specified router ID
@@ -31,6 +32,8 @@ func CreateService(t *testing.T, client *gophercloud.ServiceClient, routerID str
 	}
 
 	t.Logf("Successfully created service %s", serviceName)
+
+	th.AssertEquals(t, service.Name, serviceName)
 
 	return service, nil
 }
@@ -67,6 +70,8 @@ func CreateIPSecPolicy(t *testing.T, client *gophercloud.ServiceClient) (*ipsecp
 
 	t.Logf("Successfully created IPSec policy %s", policyName)
 
+	th.AssertEquals(t, policy.Name, policyName)
+
 	return policy, nil
 }
 
@@ -89,6 +94,8 @@ func CreateIKEPolicy(t *testing.T, client *gophercloud.ServiceClient) (*ikepolic
 	}
 
 	t.Logf("Successfully created IKE policy %s", policyName)
+
+	th.AssertEquals(t, policy.Name, policyName)
 
 	return policy, nil
 }
@@ -143,6 +150,8 @@ func CreateEndpointGroup(t *testing.T, client *gophercloud.ServiceClient) (*endp
 
 	t.Logf("Successfully created group %s", groupName)
 
+	th.AssertEquals(t, group.Name, groupName)
+
 	return group, nil
 }
 
@@ -167,6 +176,8 @@ func CreateEndpointGroupWithCIDR(t *testing.T, client *gophercloud.ServiceClient
 
 	t.Logf("Successfully created group %s", groupName)
 	t.Logf("%v", group)
+
+	th.AssertEquals(t, group.Name, groupName)
 
 	return group, nil
 }
@@ -207,6 +218,8 @@ func CreateEndpointGroupWithSubnet(t *testing.T, client *gophercloud.ServiceClie
 
 	t.Logf("Successfully created group %s", groupName)
 
+	th.AssertEquals(t, group.Name, groupName)
+
 	return group, nil
 }
 
@@ -239,6 +252,8 @@ func CreateSiteConnection(t *testing.T, client *gophercloud.ServiceClient, ikepo
 
 	t.Logf("Successfully created IPSec Site Connection %s", connectionName)
 
+	th.AssertEquals(t, connection.Name, connectionName)
+
 	return connection, nil
 }
 
@@ -254,5 +269,4 @@ func DeleteSiteConnection(t *testing.T, client *gophercloud.ServiceClient, siteC
 	}
 
 	t.Logf("Deleted site connection: %s", siteConnectionID)
-
 }

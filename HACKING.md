@@ -8,7 +8,7 @@ system with Docker, which will create a build environment image and then
 execute a cross-platform Go build within it. The build output will be copied
 to `_output/releases` as a set of tars containing each version. It will also
 build the `openshift/origin-base` image which is the common parent image for all
-OpenShift Docker images.
+OpenShift container images.
 
     $ make release
 
@@ -45,9 +45,9 @@ use:
 
     $ hack/env ${COMMAND}
 
-For instance, to build the `oc` binary:
+For instance, to build the `openshift-tests` binary:
 
-    $ hack/env make build WHAT=cmd/oc
+    $ hack/env make build WHAT=cmd/openshift-tests
 
 The release container works by streaming a copy of the repository into a volume,
 sharing that volume with the container as its working directory, executing the
@@ -68,7 +68,7 @@ for a full release of OpenShift, it is also possible to build individual
 binaries. Binary entry points are kept under the `cmd/` directory and can be
 specified to build with the `WHAT` parameter, for instance, to build just `oc`:
 
-    $ make build WHAT=cmd/oc
+    $ make build WHAT=cmd/openshift-tests
 
 ### Building Individual Images
 
@@ -200,7 +200,7 @@ costly setup those components should be tested in isolation.
 
 We break integration tests into two categories, those that use Docker and those
 that do not.  In general, high-level components that depend on the behavior of code
-running inside a Docker container should have at least one or two integration tests
+running inside a container should have at least one or two integration tests
 that test all the way down to Docker, but those should be part of their own
 test suite.  Testing the API and high-level API functions should generally
 not depend on calling into Docker. They are denoted by special test tags and
@@ -262,35 +262,12 @@ in detail. The project
 examples should be driven by e2e tests. e2e tests can also test external
 components working together.
 
-The end-to-end suite is currently implemented primarily in Bash, but will be
-folded into the extended suite (located in test/extended) over time.
-The extended suite is closer to the upstream Kubernetes e2e suite and
-tests the full behavior of a running system.
+All e2e tests are compiled into the `openshift-tests` binary.
+To build the test binary, run `make build-extended-test`.
 
-Run the end to end tests with:
-
-    $ hack/test-end-to-end.sh
-
-Run the extended tests with:
-
-    $ test/extended/core.sh
-
-This suite comprises many smaller suites, which are found under `test/extended`
-and can be run individually by specifying `--ginkgo.focus` and a regex filter:
-
-    $ test/extended/core.sh --ginkgo.focus=<regex>
-
-In addition, the extended tests can be run against an existing OpenShift
-cluster:
-
-    $ KUBECONFIG=/path/to/admin.kubeconfig TEST_ONLY=true test/extended/core.sh --ginkgo.focus=<regex>
-
-Extended tests should be Go tests in the `test/extended` directory that use
-the Ginkgo library. They must be able to be run remotely, and cannot depend on
-any local interaction with the filesystem or Docker.
-
-More information about running extended tests can be found in
-[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
+To run a specific test, or an entire suite of tests, read
+[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md)
+for more information.
 
 ## Changing API
 
@@ -445,21 +422,15 @@ command is run. You can also specify a commit range directly with:
 
 All upstream commits should have a commit message where the first line is:
 
-    UPSTREAM: <PR number|drop|carry>: <short description>
+    UPSTREAM: <PR number|drop|carry|00000>: <short description>
 
 `drop` indicates the commit should be removed during the next
 rebase. `carry` means that the change cannot go into upstream, and we
 should continue to use it during the next rebase. `PR number` means
 that the commit will be dropped during a rebase, as long as that
-rebase includes the given PR number.
-
-You can also target repositories other than Kube by setting `UPSTREAM_REPO` and
-`UPSTREAM_PACKAGE` env vars.  `UPSTREAM_REPO` should be the full name of the Git
-repo as Go sees it, i.e. `github.com/coreos/etcd`, and `UPSTREAM_PACKAGE` must be
-a package inside that repo that is currently part of the Godeps.json file.  Example:
-
-    $ UPSTREAM_REPO=github.com/coreos/etcd UPSTREAM_PACKAGE=store
-hack/cherry-pick.sh <pr_number>
+rebase includes the given PR number. `00000` means that the master team
+has opted into carrying the debt until the next rebase when we will attempt
+to gather them and create upstream patches.
 
 By default `hack/cherry-pick.sh` uses git remote named `origin` to fetch
 kubernetes repository, if your git configuration is different, you can pass the git
@@ -730,7 +701,7 @@ On OS X, you can obtain header files via Homebrew:
 
 Once dependencies are in place, build with the `gssapi` tag:
 
-    $ hack/build-go.sh cmd/oc -tags=gssapi
+    $ hack/build-go.sh vendor/github.com/openshift/oc/cmd/oc -tags=gssapi
 
 Verify that the GSSAPI feature is enabled with `oc version`:
 

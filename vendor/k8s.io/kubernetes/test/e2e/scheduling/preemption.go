@@ -23,21 +23,21 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	_ "github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
-	schedulerapi "k8s.io/api/scheduling/v1beta1"
+	schedulerapi "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
+	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/test/e2e/framework"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	_ "github.com/stretchr/testify/assert"
 )
 
 type priorityPair struct {
@@ -63,7 +63,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 
 	AfterEach(func() {
 		for _, pair := range priorityPairs {
-			cs.SchedulingV1beta1().PriorityClasses().Delete(pair.name, metav1.NewDeleteOptions(0))
+			cs.SchedulingV1().PriorityClasses().Delete(pair.name, metav1.NewDeleteOptions(0))
 		}
 	})
 
@@ -72,7 +72,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		ns = f.Namespace.Name
 		nodeList = &v1.NodeList{}
 		for _, pair := range priorityPairs {
-			_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&schedulerapi.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pair.name}, Value: pair.value})
+			_, err := f.ClientSet.SchedulingV1().PriorityClasses().Create(&schedulerapi.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pair.name}, Value: pair.value})
 			Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 		}
 
@@ -91,13 +91,20 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		// Create one pod per node that uses a lot of the node's resources.
 		By("Create pods that use 60% of node resources.")
 		pods := make([]*v1.Pod, len(nodeList.Items))
+		allPods, err := cs.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
 		for i, node := range nodeList.Items {
-			cpuAllocatable, found := node.Status.Allocatable["cpu"]
+			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
+			framework.Logf("Current cpu and memory usage %v, %v", currentCpuUsage, currentMemUsage)
+			currentNode, err := cs.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
+			framework.ExpectNoError(err)
+			cpuAllocatable, found := currentNode.Status.Allocatable["cpu"]
 			Expect(found).To(Equal(true))
-			milliCPU := cpuAllocatable.MilliValue() * 40 / 100
-			memAllocatable, found := node.Status.Allocatable["memory"]
+			milliCPU := cpuAllocatable.MilliValue()
+			milliCPU = milliCPU * 40 / 100
+			memAllocatable, found := currentNode.Status.Allocatable["memory"]
 			Expect(found).To(Equal(true))
-			memory := memAllocatable.Value() * 60 / 100
+			memory := memAllocatable.Value()
+			memory = memory * 60 / 100
 			podRes = v1.ResourceList{}
 			podRes[v1.ResourceCPU] = *resource.NewMilliQuantity(int64(milliCPU), resource.DecimalSI)
 			podRes[v1.ResourceMemory] = *resource.NewQuantity(int64(memory), resource.BinarySI)
@@ -151,13 +158,20 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		// Create one pod per node that uses a lot of the node's resources.
 		By("Create pods that use 60% of node resources.")
 		pods := make([]*v1.Pod, len(nodeList.Items))
+		allPods, err := cs.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
 		for i, node := range nodeList.Items {
-			cpuAllocatable, found := node.Status.Allocatable["cpu"]
+			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
+			framework.Logf("Current cpu usage and memory usage is %v, %v", currentCpuUsage, currentMemUsage)
+			currentNode, err := cs.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
+			framework.ExpectNoError(err)
+			cpuAllocatable, found := currentNode.Status.Allocatable["cpu"]
 			Expect(found).To(Equal(true))
-			milliCPU := cpuAllocatable.MilliValue() * 40 / 100
-			memAllocatable, found := node.Status.Allocatable["memory"]
+			milliCPU := cpuAllocatable.MilliValue()
+			milliCPU = milliCPU * 40 / 100
+			memAllocatable, found := currentNode.Status.Allocatable["memory"]
 			Expect(found).To(Equal(true))
-			memory := memAllocatable.Value() * 60 / 100
+			memory := memAllocatable.Value()
+			memory = memory * 60 / 100
 			podRes = v1.ResourceList{}
 			podRes[v1.ResourceCPU] = *resource.NewMilliQuantity(int64(milliCPU), resource.DecimalSI)
 			podRes[v1.ResourceMemory] = *resource.NewQuantity(int64(memory), resource.BinarySI)
@@ -193,6 +207,11 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		})
 		// Make sure that the lowest priority pod is deleted.
 		preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
+		defer func() {
+			// Clean-up the critical pod
+			err := f.ClientSet.CoreV1().Pods(metav1.NamespaceSystem).Delete("critical-pod", metav1.NewDeleteOptions(0))
+			framework.ExpectNoError(err)
+		}()
 		podDeleted := (err != nil && errors.IsNotFound(err)) ||
 			(err == nil && preemptedPod.DeletionTimestamp != nil)
 		Expect(podDeleted).To(BeTrue())
@@ -202,9 +221,6 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 			framework.ExpectNoError(err)
 			Expect(livePod.DeletionTimestamp).To(BeNil())
 		}
-		// Clean-up the critical pod
-		err = f.ClientSet.CoreV1().Pods(metav1.NamespaceSystem).Delete("critical-pod", metav1.NewDeleteOptions(0))
-		framework.ExpectNoError(err)
 	})
 
 	// This test verifies that when a high priority pod is pending and its
@@ -221,14 +237,21 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 			numPods = len(nodeList.Items)
 		}
 		pods := make([]*v1.Pod, numPods)
+		allPods, err := cs.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
 		for i := 0; i < numPods; i++ {
 			node := nodeList.Items[i]
-			cpuAllocatable, found := node.Status.Allocatable["cpu"]
+			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
+			framework.Logf("Current cpu usage and memory usage is %v, %v", currentCpuUsage, currentMemUsage)
+			currentNode, err := cs.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
+			framework.ExpectNoError(err)
+			cpuAllocatable, found := currentNode.Status.Allocatable["cpu"]
+			Expect(found).To(Equal(true))
+			milliCPU := cpuAllocatable.MilliValue()
+			milliCPU = milliCPU * 10 / 100
+			memAllocatable, found := currentNode.Status.Allocatable["memory"]
 			Expect(found).To(BeTrue())
-			milliCPU := cpuAllocatable.MilliValue() * 10 / 100
-			memAllocatable, found := node.Status.Allocatable["memory"]
-			Expect(found).To(BeTrue())
-			memory := memAllocatable.Value() * 10 / 100
+			memory := memAllocatable.Value()
+			memory = memory * 10 / 100
 			podRes = v1.ResourceList{}
 			podRes[v1.ResourceCPU] = *resource.NewMilliQuantity(int64(milliCPU), resource.DecimalSI)
 			podRes[v1.ResourceMemory] = *resource.NewQuantity(int64(memory), resource.BinarySI)
@@ -359,11 +382,13 @@ var _ = SIGDescribe("PodPriorityResolution [Serial]", func() {
 				Namespace:         metav1.NamespaceSystem,
 				PriorityClassName: spc,
 			})
+			defer func() {
+				// Clean-up the pod.
+				err := f.ClientSet.CoreV1().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
+				framework.ExpectNoError(err)
+			}()
 			Expect(pod.Spec.Priority).NotTo(BeNil())
 			framework.Logf("Created pod: %v", pod.Name)
-			// Clean-up the pod.
-			err := f.ClientSet.CoreV1().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
-			framework.ExpectNoError(err)
 		}
 	})
 })
@@ -381,6 +406,20 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 	priorityPairs := make([]priorityPair, 0)
 
 	AfterEach(func() {
+		// print out additional info if tests failed
+		if CurrentGinkgoTestDescription().Failed {
+			// list existing priorities
+			priorityList, err := cs.SchedulingV1().PriorityClasses().List(metav1.ListOptions{})
+			if err != nil {
+				framework.Logf("Unable to list priorities: %v", err)
+			} else {
+				framework.Logf("List existing priorities:")
+				for _, p := range priorityList.Items {
+					framework.Logf("%v/%v created at %v", p.Name, p.Value, p.CreationTimestamp)
+				}
+			}
+		}
+
 		if node != nil {
 			nodeCopy := node.DeepCopy()
 			// force it to update
@@ -390,7 +429,7 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 			framework.ExpectNoError(err)
 		}
 		for _, pair := range priorityPairs {
-			cs.SchedulingV1beta1().PriorityClasses().Delete(pair.name, metav1.NewDeleteOptions(0))
+			cs.SchedulingV1().PriorityClasses().Delete(pair.name, metav1.NewDeleteOptions(0))
 		}
 	})
 
@@ -423,7 +462,11 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 			priorityName := fmt.Sprintf("p%d", i)
 			priorityVal := int32(i)
 			priorityPairs = append(priorityPairs, priorityPair{name: priorityName, value: priorityVal})
-			_, err := cs.SchedulingV1beta1().PriorityClasses().Create(&schedulerapi.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: priorityName}, Value: priorityVal})
+			_, err := cs.SchedulingV1().PriorityClasses().Create(&schedulerapi.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: priorityName}, Value: priorityVal})
+			if err != nil {
+				framework.Logf("Failed to create priority '%v/%v': %v", priorityName, priorityVal, err)
+				framework.Logf("Reason: %v. Msg: %v", errors.ReasonForError(err), err)
+			}
 			Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 		}
 	})
@@ -553,7 +596,6 @@ var _ = SIGDescribe("PreemptionExecutionPath", func() {
 			}
 		}
 	})
-
 })
 
 type pauseRSConfig struct {
@@ -596,4 +638,20 @@ func runPauseRS(f *framework.Framework, conf pauseRSConfig) *appsv1.ReplicaSet {
 	rs := createPauseRS(f, conf)
 	framework.ExpectNoError(framework.WaitForReplicaSetTargetAvailableReplicas(f.ClientSet, rs, conf.Replicas))
 	return rs
+}
+
+func getCurrentPodUsageOnTheNode(nodeName string, pods []v1.Pod, resource *v1.ResourceRequirements) (int64, int64) {
+	totalRequestedCpuResource := resource.Requests.Cpu().MilliValue()
+	totalRequestedMemResource := resource.Requests.Memory().Value()
+	for _, pod := range pods {
+		if pod.Spec.NodeName == nodeName {
+			if v1qos.GetPodQOS(&pod) == v1.PodQOSBestEffort {
+				continue
+			}
+		}
+		result := getNonZeroRequests(&pod)
+		totalRequestedCpuResource += result.MilliCPU
+		totalRequestedMemResource += result.Memory
+	}
+	return totalRequestedCpuResource, totalRequestedMemResource
 }

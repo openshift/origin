@@ -7,7 +7,7 @@ import (
 
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -26,7 +26,7 @@ var _ = Describe("[Area:Networking] multicast", func() {
 	// plugins should implement multicast in the way that we test. For third-party
 	// plugins, the behavior is unspecified and we should not run either test.
 
-	InPluginContext([]string{network.SingleTenantPluginName},
+	InPluginContext([]string{networkutils.SingleTenantPluginName},
 		func() {
 			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 			f := oc.KubeFramework()
@@ -37,7 +37,7 @@ var _ = Describe("[Area:Networking] multicast", func() {
 		},
 	)
 
-	InPluginContext([]string{network.MultiTenantPluginName, network.NetworkPolicyPluginName},
+	InPluginContext([]string{networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName},
 		func() {
 			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 			f := oc.KubeFramework()

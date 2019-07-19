@@ -1,12 +1,26 @@
 package status
 
-import "sync"
+import (
+	"os"
+	"sync"
+
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/openshift/library-go/pkg/operator/events"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 type versionGetter struct {
 	lock                 sync.Mutex
 	versions             map[string]string
 	notificationChannels []chan struct{}
 }
+
+const (
+	operandImageVersionEnvVarName  = "OPERAND_IMAGE_VERSION"
+	operatorImageVersionEnvVarName = "OPERATOR_IMAGE_VERSION"
+)
 
 func NewVersionGetter() VersionGetter {
 	return &versionGetter{
@@ -47,4 +61,30 @@ func (v *versionGetter) VersionChangedChannel() <-chan struct{} {
 	channel := make(chan struct{}, 50)
 	v.notificationChannels = append(v.notificationChannels, channel)
 	return channel
+}
+
+func VersionForOperandFromEnv() string {
+	return os.Getenv(operandImageVersionEnvVarName)
+}
+
+func VersionForOperatorFromEnv() string {
+	return os.Getenv(operatorImageVersionEnvVarName)
+}
+
+func VersionForOperand(namespace, imagePullSpec string, configMapGetter corev1client.ConfigMapsGetter, eventRecorder events.Recorder) string {
+	versionMap := map[string]string{}
+	versionMapping, err := configMapGetter.ConfigMaps(namespace).Get("version-mapping", metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		eventRecorder.Warningf("VersionMappingFailure", "unable to get version mapping: %v", err)
+		return ""
+	}
+	if versionMapping != nil {
+		for version, image := range versionMapping.Data {
+			versionMap[image] = version
+		}
+	}
+
+	// we have the actual daemonset and we need the pull spec
+	operandVersion := versionMap[imagePullSpec]
+	return operandVersion
 }

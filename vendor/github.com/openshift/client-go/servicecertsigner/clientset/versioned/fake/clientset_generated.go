@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) ServicecertsignerV1alpha1() servicecertsignerv1alpha1.ServicecertsignerV1alpha1Interface {
 	return &fakeservicecertsignerv1alpha1.FakeServicecertsignerV1alpha1{Fake: &c.Fake}
 }
-
-// Servicecertsigner retrieves the ServicecertsignerV1alpha1Client
-func (c *Clientset) Servicecertsigner() servicecertsignerv1alpha1.ServicecertsignerV1alpha1Interface {
-	return &fakeservicecertsignerv1alpha1.FakeServicecertsignerV1alpha1{Fake: &c.Fake}
-}

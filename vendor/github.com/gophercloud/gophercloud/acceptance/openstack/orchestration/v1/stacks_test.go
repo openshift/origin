@@ -5,149 +5,47 @@ package v1
 import (
 	"testing"
 
-	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/acceptance/clients"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/orchestration/v1/stacks"
-	"github.com/gophercloud/gophercloud/pagination"
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
-func TestStacks(t *testing.T) {
-	// Create a provider client for making the HTTP requests.
-	// See common.go in this directory for more information.
-	client := newClient(t)
-
-	stackName1 := "gophercloud-test-stack-2"
-	createOpts := stacks.CreateOpts{
-		Name:     stackName1,
-		Template: template,
-		Timeout:  5,
-	}
-	stack, err := stacks.Create(client, createOpts).Extract()
+func TestStacksCRUD(t *testing.T) {
+	client, err := clients.NewOrchestrationV1Client()
 	th.AssertNoErr(t, err)
-	t.Logf("Created stack: %+v\n", stack)
-	defer func() {
-		err := stacks.Delete(client, stackName1, stack.ID).ExtractErr()
-		th.AssertNoErr(t, err)
-		t.Logf("Deleted stack (%s)", stackName1)
-	}()
-	err = gophercloud.WaitFor(60, func() (bool, error) {
-		getStack, err := stacks.Get(client, stackName1, stack.ID).Extract()
-		if err != nil {
-			return false, err
-		}
-		if getStack.Status == "CREATE_COMPLETE" {
-			return true, nil
-		}
-		return false, nil
-	})
 
+	createdStack, err := CreateStack(t, client)
+	th.AssertNoErr(t, err)
+	defer DeleteStack(t, client, createdStack.Name, createdStack.ID)
+
+	tools.PrintResource(t, createdStack)
+	tools.PrintResource(t, createdStack.CreationTime)
+
+	template := new(stacks.Template)
+	template.Bin = []byte(basicTemplate)
 	updateOpts := stacks.UpdateOpts{
-		Template: template,
-		Timeout:  20,
-	}
-	err = stacks.Update(client, stackName1, stack.ID, updateOpts).ExtractErr()
-	th.AssertNoErr(t, err)
-	err = gophercloud.WaitFor(60, func() (bool, error) {
-		getStack, err := stacks.Get(client, stackName1, stack.ID).Extract()
-		if err != nil {
-			return false, err
-		}
-		if getStack.Status == "UPDATE_COMPLETE" {
-			return true, nil
-		}
-		return false, nil
-	})
-
-	t.Logf("Updated stack")
-
-	err = stacks.List(client, nil).EachPage(func(page pagination.Page) (bool, error) {
-		stackList, err := stacks.ExtractStacks(page)
-		th.AssertNoErr(t, err)
-
-		t.Logf("Got stack list: %+v\n", stackList)
-
-		return true, nil
-	})
-	th.AssertNoErr(t, err)
-
-	getStack, err := stacks.Get(client, stackName1, stack.ID).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Got stack: %+v\n", getStack)
-
-	abandonedStack, err := stacks.Abandon(client, stackName1, stack.ID).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Abandonded stack %+v\n", abandonedStack)
-	th.AssertNoErr(t, err)
-}
-
-// Test using the updated interface
-func TestStacksNewTemplateFormat(t *testing.T) {
-	// Create a provider client for making the HTTP requests.
-	// See common.go in this directory for more information.
-	client := newClient(t)
-
-	stackName1 := "gophercloud-test-stack-2"
-	templateOpts := new(osStacks.Template)
-	templateOpts.Bin = []byte(template)
-	createOpts := osStacks.CreateOpts{
-		Name:         stackName1,
-		TemplateOpts: templateOpts,
-		Timeout:      5,
-	}
-	stack, err := stacks.Create(client, createOpts).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Created stack: %+v\n", stack)
-	defer func() {
-		err := stacks.Delete(client, stackName1, stack.ID).ExtractErr()
-		th.AssertNoErr(t, err)
-		t.Logf("Deleted stack (%s)", stackName1)
-	}()
-	err = gophercloud.WaitFor(60, func() (bool, error) {
-		getStack, err := stacks.Get(client, stackName1, stack.ID).Extract()
-		if err != nil {
-			return false, err
-		}
-		if getStack.Status == "CREATE_COMPLETE" {
-			return true, nil
-		}
-		return false, nil
-	})
-
-	updateOpts := osStacks.UpdateOpts{
-		TemplateOpts: templateOpts,
+		TemplateOpts: template,
 		Timeout:      20,
 	}
-	err = stacks.Update(client, stackName1, stack.ID, updateOpts).ExtractErr()
+
+	err = stacks.Update(client, createdStack.Name, createdStack.ID, updateOpts).ExtractErr()
 	th.AssertNoErr(t, err)
-	err = gophercloud.WaitFor(60, func() (bool, error) {
-		getStack, err := stacks.Get(client, stackName1, stack.ID).Extract()
-		if err != nil {
-			return false, err
+
+	err = WaitForStackStatus(client, createdStack.Name, createdStack.ID, "UPDATE_COMPLETE")
+	th.AssertNoErr(t, err)
+
+	var found bool
+	allPages, err := stacks.List(client, nil).AllPages()
+	th.AssertNoErr(t, err)
+	allStacks, err := stacks.ExtractStacks(allPages)
+	th.AssertNoErr(t, err)
+
+	for _, v := range allStacks {
+		if v.ID == createdStack.ID {
+			found = true
 		}
-		if getStack.Status == "UPDATE_COMPLETE" {
-			return true, nil
-		}
-		return false, nil
-	})
+	}
 
-	t.Logf("Updated stack")
-
-	err = stacks.List(client, nil).EachPage(func(page pagination.Page) (bool, error) {
-		stackList, err := osStacks.ExtractStacks(page)
-		th.AssertNoErr(t, err)
-
-		t.Logf("Got stack list: %+v\n", stackList)
-
-		return true, nil
-	})
-	th.AssertNoErr(t, err)
-
-	getStack, err := stacks.Get(client, stackName1, stack.ID).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Got stack: %+v\n", getStack)
-
-	abandonedStack, err := stacks.Abandon(client, stackName1, stack.ID).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Abandonded stack %+v\n", abandonedStack)
-	th.AssertNoErr(t, err)
+	th.AssertEquals(t, found, true)
 }

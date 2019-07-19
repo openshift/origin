@@ -25,15 +25,16 @@ type ContextType struct {
 
 // ClusterLoaderType struct only used for Cluster Loader test config
 type ClusterLoaderType struct {
-	Number     int `mapstructure:"num" yaml:"num"`
-	Basename   string
-	IfExists   string                    `json:"ifexists"`
-	Labels     map[string]string         `yaml:",omitempty"`
-	Tuning     string                    `yaml:",omitempty"`
-	Configmaps map[string]interface{}    `yaml:",omitempty"`
-	Secrets    map[string]interface{}    `yaml:",omitempty"`
-	Pods       []ClusterLoaderObjectType `yaml:",omitempty"`
-	Templates  []ClusterLoaderObjectType `yaml:",omitempty"`
+	Number       int `mapstructure:"num" yaml:"num"`
+	Basename     string
+	IfExists     string                    `json:"ifexists"`
+	Labels       map[string]string         `yaml:",omitempty"`
+	NodeSelector string                    `yaml:",omitempty"`
+	Tuning       string                    `yaml:",omitempty"`
+	Configmaps   map[string]interface{}    `yaml:",omitempty"`
+	Secrets      map[string]interface{}    `yaml:",omitempty"`
+	Pods         []ClusterLoaderObjectType `yaml:",omitempty"`
+	Templates    []ClusterLoaderObjectType `yaml:",omitempty"`
 }
 
 // ClusterLoaderObjectType is nested object type for cluster loader struct
@@ -98,13 +99,13 @@ type ServiceInfo struct {
 // ParseConfig will complete flag parsing as well as viper tasks
 func ParseConfig(config string, isFixture bool) error {
 	// This must be done after common flags are registered, since Viper is a flag option.
-	if isFixture {
+	if filepath.IsAbs(config) || isFixture {
 		dir, file := filepath.Split(config)
 		s := strings.Split(file, ".")
 		viper.SetConfigName(s[0])
 		viper.AddConfigPath(dir)
 	} else {
-		viper.SetConfigName(config)
+		viper.SetConfigName(cleanConfigName(config))
 		viper.AddConfigPath(".")
 	}
 	err := viper.ReadInConfig()
@@ -113,4 +114,13 @@ func ParseConfig(config string, isFixture bool) error {
 	}
 	viper.Unmarshal(&ConfigContext)
 	return nil
+}
+
+func cleanConfigName(filename string) string {
+	extension := filepath.Ext(filename)
+	if extension != "" {
+		return strings.TrimSuffix(filename, extension)
+	}
+
+	return filename
 }

@@ -13,5 +13,7 @@ approvers:
   - mfojtik
   - pweil-
   - sjenning
+  - soltysh
+  - sttts
   - smarterclayton
   - tbielawa # also for build and automated release tooling changes

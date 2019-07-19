@@ -6,18 +6,17 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatev1 "github.com/openshift/api/template/v1"
 )
 
 const additionalAllowedRegistriesEnvVar = "ADDITIONAL_ALLOWED_REGISTRIES"
 
-func GetTemplateFixture(filename string) (*templateapi.Template, error) {
+func GetTemplateFixture(filename string) (*templatev1.Template, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -26,27 +25,13 @@ func GetTemplateFixture(filename string) (*templateapi.Template, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
-	if err != nil {
-		return nil, err
-	}
-	return obj.(*templateapi.Template), nil
-}
 
-func GetImageFixture(filename string) (*imageapi.Image, error) {
-	data, err := ioutil.ReadFile(filename)
+	_, codecFactory := apitesting.SchemeForOrDie(templatev1.Install)
+	obj, err := runtime.Decode(codecFactory.UniversalDeserializer(), jsonData)
 	if err != nil {
 		return nil, err
 	}
-	jsonData, err := kyaml.ToJSON(data)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
-	if err != nil {
-		return nil, err
-	}
-	return obj.(*imageapi.Image), nil
+	return obj.(*templatev1.Template), nil
 }
 
 func SetAdditionalAllowedRegistries(hostPortGlobs ...string) {

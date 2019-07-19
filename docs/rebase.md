@@ -83,7 +83,7 @@ If you do not have necessary access rights ask for that branch to be created for
 For this step to be easily manageable it is required to run `hack/sync-forks.sh`
 script mentioned in the prerequisites. This script will sync all `UPSTREAM` commits
 to the current kubernetes version. This in turn helps to get the list of needed
-upstream cherry picks you need to apply. There are 3 possible commit t ypes:
+upstream cherry picks you need to apply. There are 3 possible commit types:
 
 - `carry` - we need this, otherwise the entire world will collapse
 - `12345` - specific PR number indicating that we picked something that was introduced

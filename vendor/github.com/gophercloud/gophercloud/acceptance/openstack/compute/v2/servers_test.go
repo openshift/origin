@@ -14,6 +14,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedstatus"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/lockunlock"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/pauseunpause"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/serverusage"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/suspendresume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -88,6 +89,7 @@ func TestServersWithExtensionsCreateDestroy(t *testing.T) {
 		servers.Server
 		availabilityzones.ServerAvailabilityZoneExt
 		extendedstatus.ServerExtendedStatusExt
+		serverusage.UsageExt
 	}
 
 	client, err := clients.NewComputeV2Client()
@@ -105,6 +107,8 @@ func TestServersWithExtensionsCreateDestroy(t *testing.T) {
 	th.AssertEquals(t, int(extendedServer.PowerState), extendedstatus.RUNNING)
 	th.AssertEquals(t, extendedServer.TaskState, "")
 	th.AssertEquals(t, extendedServer.VmState, "active")
+	th.AssertEquals(t, extendedServer.LaunchedAt.IsZero(), false)
+	th.AssertEquals(t, extendedServer.TerminatedAt.IsZero(), true)
 }
 
 func TestServersWithoutImageRef(t *testing.T) {
@@ -271,7 +275,7 @@ func TestServersActionReboot(t *testing.T) {
 	th.AssertNoErr(t, err)
 	defer DeleteServer(t, client, server)
 
-	rebootOpts := &servers.RebootOpts{
+	rebootOpts := servers.RebootOpts{
 		Type: servers.SoftReboot,
 	}
 
@@ -435,6 +439,7 @@ func TestServersActionSuspend(t *testing.T) {
 
 func TestServersActionLock(t *testing.T) {
 	clients.RequireLong(t)
+	clients.RequireNonAdmin(t)
 
 	client, err := clients.NewComputeV2Client()
 	th.AssertNoErr(t, err)
@@ -447,12 +452,38 @@ func TestServersActionLock(t *testing.T) {
 	err = lockunlock.Lock(client, server.ID).ExtractErr()
 	th.AssertNoErr(t, err)
 
+	t.Logf("Attempting to delete locked server %s", server.ID)
 	err = servers.Delete(client, server.ID).ExtractErr()
-	th.AssertNoErr(t, err)
+	th.AssertEquals(t, err != nil, true)
 
+	t.Logf("Attempting to unlock server %s", server.ID)
 	err = lockunlock.Unlock(client, server.ID).ExtractErr()
 	th.AssertNoErr(t, err)
 
 	err = WaitForComputeStatus(client, server, "ACTIVE")
 	th.AssertNoErr(t, err)
+}
+
+func TestServersConsoleOutput(t *testing.T) {
+	client, err := clients.NewComputeV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a compute client: %v", err)
+	}
+
+	server, err := CreateServer(t, client)
+	if err != nil {
+		t.Fatalf("Unable to create server: %v", err)
+	}
+
+	defer DeleteServer(t, client, server)
+
+	outputOpts := &servers.ShowConsoleOutputOpts{
+		Length: 4,
+	}
+	output, err := servers.ShowConsoleOutput(client, server.ID, outputOpts).Extract()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tools.PrintResource(t, output)
 }

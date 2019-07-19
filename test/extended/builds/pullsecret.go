@@ -21,12 +21,6 @@ var _ = g.Describe("[Feature:Builds][Slow] using pull secrets in a build", func(
 			exutil.PreTestDump()
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for builder service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.Context("start-build test context", func() {
 			g.AfterEach(func() {
 				if g.CurrentGinkgoTestDescription().Failed {
@@ -37,9 +31,6 @@ var _ = g.Describe("[Feature:Builds][Slow] using pull secrets in a build", func(
 
 			g.Describe("binary builds", func() {
 				g.It("should be able to run a build that is implicitly pulling from the internal registry", func() {
-					if !exutil.IsClusterOperated(oc) {
-						g.Skip("Skipping on non-installer cluster because this test expects image-registry, not docker-registry")
-					}
 					g.By("creating a build")
 					err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=docker").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())

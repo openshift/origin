@@ -14,8 +14,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
-	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/spf13/cobra"
 )
@@ -29,15 +29,53 @@ const (
 var jsonConfigFile string
 
 // Config file
+type ConfigFileDeviceOptions struct {
+	api.Device
+	DestroyData bool `json:"destroydata,omitempty"`
+}
+
+type ConfigFileDevice struct {
+	ConfigFileDeviceOptions
+}
 type ConfigFileNode struct {
-	Devices []string           `json:"devices"`
-	Node    api.NodeAddRequest `json:"node"`
+	Devices []*ConfigFileDevice `json:"devices"`
+	Node    api.NodeAddRequest  `json:"node"`
 }
 type ConfigFileCluster struct {
 	Nodes []ConfigFileNode `json:"nodes"`
+	Block *bool            `json:"block,omitempty"`
+	File  *bool            `json:"file,omitempty"`
 }
 type ConfigFile struct {
 	Clusters []ConfigFileCluster `json:"clusters"`
+}
+
+// UnmarshalJSON is implemented on the ConfigFileDevice so that older
+// topology files that use strings in the device list can be used
+// with newer versions of heketi. If the json object is a string,
+// it is assigned to the device name and all other values ignored.
+// Otherwise we assume that the object matches the device and
+// that is decoded into our local wrapper type.
+func (device *ConfigFileDevice) UnmarshalJSON(b []byte) error {
+	var s string
+	err := json.Unmarshal(b, &s)
+	if err == nil {
+		device.Name = s
+		return nil
+	}
+
+	// ConfigFileDevice embeds the ConfigFileDeviceOptions struct which has
+	// additional members compared to the standard api.Device. Structuring
+	// it this way, prevents a recursive call to UnmarshalJSON().
+	var d ConfigFileDeviceOptions
+	err = json.Unmarshal(b, &d)
+	if err != nil {
+		return err
+	}
+	device.Name = d.Name
+	device.Tags = d.Tags
+	device.DestroyData = d.DestroyData
+	return nil
 }
 
 func init() {
@@ -115,7 +153,10 @@ var topologyLoadCommand = &cobra.Command{
 		}
 
 		// Create client
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// Load current topolgy
 		heketiTopology, err := heketi.TopologyInfo()
@@ -147,11 +188,32 @@ var topologyLoadCommand = &cobra.Command{
 					// See if we need to create a cluster
 					if clusterInfo == nil {
 						fmt.Fprintf(stdout, "Creating cluster ... ")
-						clusterInfo, err = heketi.ClusterCreate()
+						req := &api.ClusterCreateRequest{}
+
+						if cluster.File == nil {
+							req.File = true
+						} else {
+							req.File = *cluster.File
+						}
+
+						if cluster.Block == nil {
+							req.Block = true
+						} else {
+							req.Block = *cluster.Block
+						}
+
+						clusterInfo, err = heketi.ClusterCreate(req)
 						if err != nil {
 							return err
 						}
 						fmt.Fprintf(stdout, "ID: %v\n", clusterInfo.Id)
+
+						if req.File {
+							fmt.Fprintf(stdout, "\tAllowing file volumes on cluster.\n")
+						}
+						if req.Block {
+							fmt.Fprintf(stdout, "\tAllowing block volumes on cluster.\n")
+						}
 
 						// Create a cleanup function in case no
 						// nodes or devices are created
@@ -184,15 +246,17 @@ var topologyLoadCommand = &cobra.Command{
 				for _, device := range node.Devices {
 					deviceInfo := getDeviceIdFromHeketiTopology(heketiTopology,
 						nodeInfo.Hostnames.Manage[0],
-						device)
+						device.Name)
 					if deviceInfo != nil {
-						fmt.Fprintf(stdout, "\t\tFound device %v\n", device)
+						fmt.Fprintf(stdout, "\t\tFound device %v\n", device.Name)
 					} else {
-						fmt.Fprintf(stdout, "\t\tAdding device %v ... ", device)
+						fmt.Fprintf(stdout, "\t\tAdding device %v ... ", device.Name)
 
 						req := &api.DeviceAddRequest{}
-						req.Name = device
+						req.Name = device.Name
 						req.NodeId = nodeInfo.Id
+						req.Tags = device.Tags
+						req.DestroyData = device.DestroyData
 						err := heketi.DeviceAdd(req)
 						if err != nil {
 							fmt.Fprintf(stdout, "Unable to add device: %v\n", err)
@@ -209,13 +273,16 @@ var topologyLoadCommand = &cobra.Command{
 
 var topologyInfoCommand = &cobra.Command{
 	Use:     "info",
-	Short:   "Retreives information about the current Topology",
-	Long:    "Retreives information about the current Topology",
+	Short:   "Retrieves information about the current Topology",
+	Long:    "Retrieves information about the current Topology",
 	Example: " $ heketi-cli topology info",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// Create a client to talk to Heketi
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// Create Topology
 		topoinfo, err := heketi.TopologyInfo()
@@ -235,6 +302,8 @@ var topologyInfoCommand = &cobra.Command{
 			// Get the cluster list and iterate over
 			for i, _ := range topoinfo.ClusterList {
 				fmt.Fprintf(stdout, "\nCluster Id: %v\n", topoinfo.ClusterList[i].Id)
+				fmt.Fprintf(stdout, "\n    File:  %v\n", topoinfo.ClusterList[i].File)
+				fmt.Fprintf(stdout, "    Block: %v\n", topoinfo.ClusterList[i].Block)
 				fmt.Fprintf(stdout, "\n    %s\n", "Volumes:")
 				for k, _ := range topoinfo.ClusterList[i].Volumes {
 
@@ -296,14 +365,14 @@ var topologyInfoCommand = &cobra.Command{
 						"\tState: %v\n"+
 						"\tCluster Id: %v\n"+
 						"\tZone: %v\n"+
-						"\tManagement Hostname: %v\n"+
-						"\tStorage Hostname: %v\n",
+						"\tManagement Hostnames: %v\n"+
+						"\tStorage Hostnames: %v\n",
 						info.Id,
 						info.State,
 						info.ClusterId,
 						info.Zone,
-						info.Hostnames.Manage[0],
-						info.Hostnames.Storage[0])
+						strings.Join(info.Hostnames.Manage, ", "),
+						strings.Join(info.Hostnames.Storage, ", "))
 					fmt.Fprintf(stdout, "\tDevices:\n")
 
 					// format and print the device info

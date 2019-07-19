@@ -8,6 +8,7 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestVolumesList(t *testing.T) {
@@ -49,4 +50,20 @@ func TestVolumesCreateDestroy(t *testing.T) {
 	}
 
 	tools.PrintResource(t, newVolume)
+	th.AssertEquals(t, volume.Name, newVolume.Name)
+	th.AssertEquals(t, volume.Description, newVolume.Description)
+
+	// Update volume
+	updatedVolumeName := ""
+	updatedVolumeDescription := ""
+	updateOpts := volumes.UpdateOpts{
+		Name:        &updatedVolumeName,
+		Description: &updatedVolumeDescription,
+	}
+	updatedVolume, err := volumes.Update(client, volume.ID, updateOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, updatedVolume)
+	th.AssertEquals(t, updatedVolume.Name, updatedVolumeName)
+	th.AssertEquals(t, updatedVolume.Description, updatedVolumeDescription)
 }

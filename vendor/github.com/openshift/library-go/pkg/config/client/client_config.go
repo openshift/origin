@@ -8,6 +8,8 @@ import (
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // GetKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
@@ -21,8 +23,14 @@ func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *ClientConn
 	if err != nil {
 		return nil, err
 	}
+
 	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = defaultClientTransport
+
+	t := ClientTransportOverrides{WrapTransport: clientConfig.WrapTransport}
+	if overrides != nil {
+		t.MaxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
+	}
+	clientConfig.WrapTransport = t.DefaultClientTransport
 
 	return clientConfig, nil
 }
@@ -33,23 +41,21 @@ func GetClientConfig(kubeConfigFile string, overrides *ClientConnectionOverrides
 	if err != nil {
 		return nil, err
 	}
-	// TODO after 1.11 rebase, restore this
-	//kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
-	//if err != nil {
-	//	return nil, err
-	//}
-	config, err := clientcmd.Load(kubeConfigBytes)
+	kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
 	if err != nil {
 		return nil, err
 	}
-	kubeConfig := clientcmd.NewNonInteractiveClientConfig(*config, "", &clientcmd.ConfigOverrides{}, nil)
-
 	clientConfig, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = defaultClientTransport
+
+	t := ClientTransportOverrides{WrapTransport: clientConfig.WrapTransport}
+	if overrides != nil {
+		t.MaxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
+	}
+	clientConfig.WrapTransport = t.DefaultClientTransport
 
 	return clientConfig, nil
 }
@@ -72,47 +78,54 @@ func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeCo
 		kubeConfig.ContentConfig.ContentType = overrides.ContentType
 	}
 
+	// TODO both of these default values look wrong
 	// if we have no preferences at this point, claim that we accept both proto and json.  We will get proto if the server supports it.
 	// this is a slightly niggly thing.  If the server has proto and our client does not (possible, but not super likely) then this fails.
 	if len(kubeConfig.ContentConfig.AcceptContentTypes) == 0 {
 		kubeConfig.ContentConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
 	}
 	if len(kubeConfig.ContentConfig.ContentType) == 0 {
-		kubeConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf,application/json"
+		kubeConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
 	}
 }
 
+type ClientTransportOverrides struct {
+	WrapTransport       func(rt http.RoundTripper) http.RoundTripper
+	MaxIdleConnsPerHost int
+}
+
 // defaultClientTransport sets defaults for a client Transport that are suitable for use by infrastructure components.
-func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
+func (c ClientTransportOverrides) DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	transport, ok := rt.(*http.Transport)
 	if !ok {
 		return rt
 	}
 
-	// TODO: this should be configured by the caller, not in this method.
-	dialer := &net.Dialer{
+	transport.DialContext = (&net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-	}
-	transport.Dial = dialer.Dial
+	}).DialContext
+
 	// Hold open more internal idle connections
-	// TODO: this should be configured by the caller, not in this method.
 	transport.MaxIdleConnsPerHost = 100
-	return transport
+	if c.MaxIdleConnsPerHost > 0 {
+		transport.MaxIdleConnsPerHost = c.MaxIdleConnsPerHost
+	}
+
+	if c.WrapTransport == nil {
+		return transport
+
+	}
+	return c.WrapTransport(transport)
 }
 
 // ClientConnectionOverrides allows overriding values for rest.Config not held in a kubeconfig.  Most commonly used
 // for QPS.  Empty values are not used.
 type ClientConnectionOverrides struct {
-	// AcceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
-	// default value of 'application/json'. This field will control all connections to the server used by a particular
-	// client.
-	AcceptContentTypes string
-	// ContentType is the content type used when sending data to the server from this client.
-	ContentType string
+	configv1.ClientConnectionOverrides
 
-	// QPS controls the number of queries per second allowed for this connection.
-	QPS float32
-	// Burst allows extra queries to accumulate when a client is exceeding its rate.
-	Burst int32
+	// MaxIdleConnsPerHost, if non-zero, controls the maximum idle (keep-alive) connections to keep per-host:port.
+	// If zero, DefaultMaxIdleConnsPerHost is used.
+	// TODO roll this into the connection overrides in api
+	MaxIdleConnsPerHost int
 }

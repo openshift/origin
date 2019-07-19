@@ -21,9 +21,9 @@ func TestRun(t *testing.T) {
 		{
 			name: "only deletes non-protected revisions of the specified pod",
 			o: PruneOptions{
-				MaxEligibleRevisionID: 3,
-				ProtectedRevisionIDs:  []int{3, 2},
-				StaticPodName:         "test",
+				MaxEligibleRevision: 3,
+				ProtectedRevisions:  []int{3, 2},
+				StaticPodName:       "test",
 			},
 			files:    []string{"test-1", "test-2", "test-3", "othertest-4"},
 			expected: []string{"test-2", "test-3", "othertest-4"},
@@ -31,9 +31,9 @@ func TestRun(t *testing.T) {
 		{
 			name: "doesn't delete anything higher than highest eligible revision",
 			o: PruneOptions{
-				MaxEligibleRevisionID: 2,
-				ProtectedRevisionIDs:  []int{2},
-				StaticPodName:         "test",
+				MaxEligibleRevision: 2,
+				ProtectedRevisions:  []int{2},
+				StaticPodName:       "test",
 			},
 			files:    []string{"test-1", "test-2", "test-3"},
 			expected: []string{"test-2", "test-3"},
@@ -41,9 +41,9 @@ func TestRun(t *testing.T) {
 		{
 			name: "revision numbers do not conflict between pods when detecting protected IDs",
 			o: PruneOptions{
-				MaxEligibleRevisionID: 2,
-				ProtectedRevisionIDs:  []int{2},
-				StaticPodName:         "test",
+				MaxEligibleRevision: 2,
+				ProtectedRevisions:  []int{2},
+				StaticPodName:       "test",
 			},
 			files:    []string{"test-1", "test-2", "othertest-1", "othertest-2"},
 			expected: []string{"test-2", "othertest-1", "othertest-2"},

@@ -27,9 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
-	utilnet "k8s.io/kubernetes/pkg/util/net"
+	utilnet "k8s.io/utils/net"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -109,12 +109,12 @@ func IsLocalIP(ip string) (bool, error) {
 func ShouldSkipService(svcName types.NamespacedName, service *v1.Service) bool {
 	// if ClusterIP is "None" or empty, skip proxying
 	if !helper.IsServiceIPSet(service) {
-		glog.V(3).Infof("Skipping service %s due to clusterIP = %q", svcName, service.Spec.ClusterIP)
+		klog.V(3).Infof("Skipping service %s due to clusterIP = %q", svcName, service.Spec.ClusterIP)
 		return true
 	}
 	// Even if ClusterIP is set, ServiceTypeExternalName services don't get proxied
 	if service.Spec.Type == v1.ServiceTypeExternalName {
-		glog.V(3).Infof("Skipping service %s due to Type=ExternalName", svcName)
+		klog.V(3).Infof("Skipping service %s due to Type=ExternalName", svcName)
 		return true
 	}
 	return false
@@ -181,7 +181,7 @@ func GetNodeAddresses(cidrs []string, nw NetworkInterfacer) (sets.String, error)
 // LogAndEmitIncorrectIPVersionEvent logs and emits incorrect IP version event.
 func LogAndEmitIncorrectIPVersionEvent(recorder record.EventRecorder, fieldName, fieldValue, svcNamespace, svcName string, svcUID types.UID) {
 	errMsg := fmt.Sprintf("%s in %s has incorrect IP version", fieldValue, fieldName)
-	glog.Errorf("%s (service %s/%s).", errMsg, svcNamespace, svcName)
+	klog.Errorf("%s (service %s/%s).", errMsg, svcNamespace, svcName)
 	if recorder != nil {
 		recorder.Eventf(
 			&v1.ObjectReference{
@@ -191,4 +191,26 @@ func LogAndEmitIncorrectIPVersionEvent(recorder record.EventRecorder, fieldName,
 				UID:       svcUID,
 			}, v1.EventTypeWarning, "KubeProxyIncorrectIPVersion", errMsg)
 	}
+}
+
+// FilterIncorrectIPVersion filters out the incorrect IP version case from a slice of IP strings.
+func FilterIncorrectIPVersion(ipStrings []string, isIPv6Mode bool) ([]string, []string) {
+	return filterWithCondition(ipStrings, isIPv6Mode, utilnet.IsIPv6String)
+}
+
+// FilterIncorrectCIDRVersion filters out the incorrect IP version case from a slice of CIDR strings.
+func FilterIncorrectCIDRVersion(ipStrings []string, isIPv6Mode bool) ([]string, []string) {
+	return filterWithCondition(ipStrings, isIPv6Mode, utilnet.IsIPv6CIDRString)
+}
+
+func filterWithCondition(strs []string, expectedCondition bool, conditionFunc func(string) bool) ([]string, []string) {
+	var corrects, incorrects []string
+	for _, str := range strs {
+		if conditionFunc(str) != expectedCondition {
+			incorrects = append(incorrects, str)
+		} else {
+			corrects = append(corrects, str)
+		}
+	}
+	return corrects, incorrects
 }

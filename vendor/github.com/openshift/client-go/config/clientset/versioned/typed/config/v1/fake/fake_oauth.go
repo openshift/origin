@@ -3,7 +3,7 @@
 package fake
 
 import (
-	config_v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var oauthsResource = schema.GroupVersionResource{Group: "config.openshift.io", V
 var oauthsKind = schema.GroupVersionKind{Group: "config.openshift.io", Version: "v1", Kind: "OAuth"}
 
 // Get takes name of the oAuth, and returns the corresponding oAuth object, and an error if there is any.
-func (c *FakeOAuths) Get(name string, options v1.GetOptions) (result *config_v1.OAuth, err error) {
+func (c *FakeOAuths) Get(name string, options v1.GetOptions) (result *configv1.OAuth, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(oauthsResource, name), &config_v1.OAuth{})
+		Invokes(testing.NewRootGetAction(oauthsResource, name), &configv1.OAuth{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.OAuth), err
+	return obj.(*configv1.OAuth), err
 }
 
 // List takes label and field selectors, and returns the list of OAuths that match those selectors.
-func (c *FakeOAuths) List(opts v1.ListOptions) (result *config_v1.OAuthList, err error) {
+func (c *FakeOAuths) List(opts v1.ListOptions) (result *configv1.OAuthList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(oauthsResource, oauthsKind, opts), &config_v1.OAuthList{})
+		Invokes(testing.NewRootListAction(oauthsResource, oauthsKind, opts), &configv1.OAuthList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeOAuths) List(opts v1.ListOptions) (result *config_v1.OAuthList, err
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &config_v1.OAuthList{ListMeta: obj.(*config_v1.OAuthList).ListMeta}
-	for _, item := range obj.(*config_v1.OAuthList).Items {
+	list := &configv1.OAuthList{ListMeta: obj.(*configv1.OAuthList).ListMeta}
+	for _, item := range obj.(*configv1.OAuthList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,40 +59,40 @@ func (c *FakeOAuths) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a oAuth and creates it.  Returns the server's representation of the oAuth, and an error, if there is any.
-func (c *FakeOAuths) Create(oAuth *config_v1.OAuth) (result *config_v1.OAuth, err error) {
+func (c *FakeOAuths) Create(oAuth *configv1.OAuth) (result *configv1.OAuth, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(oauthsResource, oAuth), &config_v1.OAuth{})
+		Invokes(testing.NewRootCreateAction(oauthsResource, oAuth), &configv1.OAuth{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.OAuth), err
+	return obj.(*configv1.OAuth), err
 }
 
 // Update takes the representation of a oAuth and updates it. Returns the server's representation of the oAuth, and an error, if there is any.
-func (c *FakeOAuths) Update(oAuth *config_v1.OAuth) (result *config_v1.OAuth, err error) {
+func (c *FakeOAuths) Update(oAuth *configv1.OAuth) (result *configv1.OAuth, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(oauthsResource, oAuth), &config_v1.OAuth{})
+		Invokes(testing.NewRootUpdateAction(oauthsResource, oAuth), &configv1.OAuth{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.OAuth), err
+	return obj.(*configv1.OAuth), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeOAuths) UpdateStatus(oAuth *config_v1.OAuth) (*config_v1.OAuth, error) {
+func (c *FakeOAuths) UpdateStatus(oAuth *configv1.OAuth) (*configv1.OAuth, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(oauthsResource, "status", oAuth), &config_v1.OAuth{})
+		Invokes(testing.NewRootUpdateSubresourceAction(oauthsResource, "status", oAuth), &configv1.OAuth{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.OAuth), err
+	return obj.(*configv1.OAuth), err
 }
 
 // Delete takes name of the oAuth and deletes it. Returns an error if one occurs.
 func (c *FakeOAuths) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(oauthsResource, name), &config_v1.OAuth{})
+		Invokes(testing.NewRootDeleteAction(oauthsResource, name), &configv1.OAuth{})
 	return err
 }
 
@@ -100,16 +100,16 @@ func (c *FakeOAuths) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeOAuths) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(oauthsResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &config_v1.OAuthList{})
+	_, err := c.Fake.Invokes(action, &configv1.OAuthList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched oAuth.
-func (c *FakeOAuths) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *config_v1.OAuth, err error) {
+func (c *FakeOAuths) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *configv1.OAuth, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(oauthsResource, name, data, subresources...), &config_v1.OAuth{})
+		Invokes(testing.NewRootPatchSubresourceAction(oauthsResource, name, pt, data, subresources...), &configv1.OAuth{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.OAuth), err
+	return obj.(*configv1.OAuth), err
 }

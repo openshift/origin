@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -22,11 +21,10 @@ import (
 )
 
 func TestContainerName(t *testing.T) {
-	rand.Seed(0)
 	got := containerName("sub.domain.com:5000/repo:tag@sha256:ffffff")
-	want := "s2i_sub_domain_com_5000_repo_tag_sha256_ffffff_f1f85ff5"
-	if got != want {
-		t.Errorf("got %v, want %v", got, want)
+	want := "s2i_sub_domain_com_5000_repo_tag_sha256_ffffff"
+	if !strings.Contains(got, want) {
+		t.Errorf("want %v is not substring of got %v", want, got)
 	}
 }
 

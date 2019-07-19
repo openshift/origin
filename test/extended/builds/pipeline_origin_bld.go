@@ -15,7 +15,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
@@ -34,7 +34,7 @@ const (
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
-var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
+var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -91,7 +91,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			exutil.PreTestDump()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
-			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
+			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a container image that extends
 			// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
 			// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
 			// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
@@ -187,13 +187,6 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
 			}
-
-			g.By("waiting for default service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		debugAnyJenkinsFailure = func(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -354,6 +347,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("verify job is in jenkins")
 				_, err = j.WaitForContent("", 200, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By(fmt.Sprintf("delete pipeline strategy bc %q", origPipelinePath))
@@ -362,6 +358,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("verify job is not in jenkins")
 				_, err = j.WaitForContent("", 404, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify bc is still deleted")
@@ -392,24 +391,36 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				// NOTE, for the credential URL in Jenkins
 				// it returns rc 200 with no output if credential exists and a 404 if it does not exists
 				_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify credential deleted when label removed")
 				err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"-").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify credential added when label added")
 				err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"=true").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify credential deleted when secret deleted")
 				err = oc.Run("delete").Args("secret", secretName).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// no need to clean up, last operation above deleted the secret
@@ -608,7 +619,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					br.AssertSuccess()
 				}
 
-				buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
+				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("successful-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
@@ -617,7 +628,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
@@ -649,14 +660,14 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					br.AssertFailure()
 				}
 
-				buildConfig, err = oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
+				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("failed-pipeline", metav1.GetOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				}
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err

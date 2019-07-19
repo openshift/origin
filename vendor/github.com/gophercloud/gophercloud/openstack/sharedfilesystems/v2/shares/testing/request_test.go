@@ -24,6 +24,28 @@ func TestCreate(t *testing.T) {
 	th.AssertEquals(t, n.ShareProto, "NFS")
 }
 
+func TestUpdate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockUpdateResponse(t)
+
+	name := "my_new_test_share"
+	description := ""
+	iFalse := false
+	options := &shares.UpdateOpts{
+		DisplayName:        &name,
+		DisplayDescription: &description,
+		IsPublic:           &iFalse,
+	}
+	n, err := shares.Update(client.ServiceClient(), shareID, options).Extract()
+
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, n.Name, "my_new_test_share")
+	th.AssertEquals(t, n.Description, "")
+	th.AssertEquals(t, n.IsPublic, false)
+}
+
 func TestDelete(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -83,6 +105,62 @@ func TestGet(t *testing.T) {
 	})
 }
 
+func TestListDetail(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockListDetailResponse(t)
+
+	allPages, err := shares.ListDetail(client.ServiceClient(), &shares.ListOpts{}).AllPages()
+
+	th.AssertNoErr(t, err)
+
+	actual, err := shares.ExtractShares(allPages)
+	th.AssertNoErr(t, err)
+
+	th.AssertDeepEquals(t, actual, []shares.Share{
+		shares.Share{
+			AvailabilityZone:   "nova",
+			ShareNetworkID:     "713df749-aac0-4a54-af52-10f6c991e80c",
+			ShareServerID:      "e268f4aa-d571-43dd-9ab3-f49ad06ffaef",
+			SnapshotID:         "",
+			ID:                 shareID,
+			Size:               1,
+			ShareType:          "25747776-08e5-494f-ab40-a64b9d20d8f7",
+			ShareTypeName:      "default",
+			ConsistencyGroupID: "9397c191-8427-4661-a2e8-b23820dc01d4",
+			ProjectID:          "16e1ab15c35a457e9c2b2aa189f544e1",
+			Metadata: map[string]string{
+				"project": "my_app",
+				"aim":     "doc",
+			},
+			Status:                   "available",
+			Description:              "My custom share London",
+			Host:                     "manila2@generic1#GENERIC1",
+			HasReplicas:              false,
+			ReplicationType:          "",
+			TaskState:                "",
+			SnapshotSupport:          true,
+			Name:                     "my_test_share",
+			CreatedAt:                time.Date(2015, time.September, 18, 10, 25, 24, 0, time.UTC),
+			ShareProto:               "NFS",
+			VolumeType:               "default",
+			SourceCgsnapshotMemberID: "",
+			IsPublic:                 true,
+			Links: []map[string]string{
+				{
+					"href": "http://172.18.198.54:8786/v2/16e1ab15c35a457e9c2b2aa189f544e1/shares/011d21e2-fbc3-4e4a-9993-9ea223f73264",
+					"rel":  "self",
+				},
+				{
+					"href": "http://172.18.198.54:8786/16e1ab15c35a457e9c2b2aa189f544e1/shares/011d21e2-fbc3-4e4a-9993-9ea223f73264",
+					"rel":  "bookmark",
+				},
+			},
+		},
+	})
+}
+
 func TestGetExportLocationsSuccess(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -134,4 +212,74 @@ func TestGrantAcessSuccess(t *testing.T) {
 		State:       "new",
 		ID:          "a2f226a5-cee8-430b-8a03-78a59bd84ee8",
 	})
+}
+
+func TestRevokeAccessSuccess(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockRevokeAccessResponse(t)
+
+	c := client.ServiceClient()
+	// Client c must have Microversion set; minimum supported microversion for Revoke Access is 2.7
+	c.Microversion = "2.7"
+
+	options := &shares.RevokeAccessOpts{AccessID: "a2f226a5-cee8-430b-8a03-78a59bd84ee8"}
+
+	err := shares.RevokeAccess(c, shareID, options).ExtractErr()
+	th.AssertNoErr(t, err)
+}
+
+func TestListAccessRightsSuccess(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockListAccessRightsResponse(t)
+
+	c := client.ServiceClient()
+	// Client c must have Microversion set; minimum supported microversion for Grant Access is 2.7
+	c.Microversion = "2.7"
+
+	s, err := shares.ListAccessRights(c, shareID).Extract()
+
+	th.AssertNoErr(t, err)
+	th.AssertDeepEquals(t, s, []shares.AccessRight{
+		{
+			ShareID:     "011d21e2-fbc3-4e4a-9993-9ea223f73264",
+			AccessType:  "ip",
+			AccessTo:    "0.0.0.0/0",
+			AccessKey:   "",
+			AccessLevel: "rw",
+			State:       "new",
+			ID:          "a2f226a5-cee8-430b-8a03-78a59bd84ee8",
+		},
+	})
+}
+
+func TestExtendSuccess(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockExtendResponse(t)
+
+	c := client.ServiceClient()
+	// Client c must have Microversion set; minimum supported microversion for Grant Access is 2.7
+	c.Microversion = "2.7"
+
+	err := shares.Extend(c, shareID, &shares.ExtendOpts{NewSize: 2}).ExtractErr()
+	th.AssertNoErr(t, err)
+}
+
+func TestShrinkSuccess(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockShrinkResponse(t)
+
+	c := client.ServiceClient()
+	// Client c must have Microversion set; minimum supported microversion for Grant Access is 2.7
+	c.Microversion = "2.7"
+
+	err := shares.Shrink(c, shareID, &shares.ShrinkOpts{NewSize: 1}).ExtractErr()
+	th.AssertNoErr(t, err)
 }

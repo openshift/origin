@@ -39,6 +39,29 @@ func TestCreateStack(t *testing.T) {
 	th.AssertDeepEquals(t, expected, actual)
 }
 
+func TestCreateStackMissingRequiredInOpts(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleCreateSuccessfully(t, CreateOutput)
+	template := new(stacks.Template)
+	template.Bin = []byte(`
+		{
+			"heat_template_version": "2013-05-23",
+			"description": "Simple template to test heat commands",
+			"parameters": {
+				"flavor": {
+					"default": "m1.tiny",
+					"type": "string"
+				}
+			}
+		}`)
+	createOpts := stacks.CreateOpts{
+		DisableRollback: gophercloud.Disabled,
+	}
+	r := stacks.Create(fake.ServiceClient(), createOpts)
+	th.AssertEquals(t, "Missing input for argument [Name]", r.Err.Error())
+}
+
 func TestAdoptStack(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -116,6 +139,18 @@ func TestGetStack(t *testing.T) {
 	th.AssertDeepEquals(t, expected, actual)
 }
 
+func TestFindStack(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleFindSuccessfully(t, GetOutput)
+
+	actual, err := stacks.Find(fake.ServiceClient(), "16ef0584-4458-41eb-87c8-0dc8d5f66c87").Extract()
+	th.AssertNoErr(t, err)
+
+	expected := GetExpected
+	th.AssertDeepEquals(t, expected, actual)
+}
+
 func TestUpdateStack(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -133,10 +168,42 @@ func TestUpdateStack(t *testing.T) {
 				}
 			}
 		}`)
-	updateOpts := stacks.UpdateOpts{
+	updateOpts := &stacks.UpdateOpts{
 		TemplateOpts: template,
 	}
 	err := stacks.Update(fake.ServiceClient(), "gophercloud-test-stack-2", "db6977b2-27aa-4775-9ae7-6213212d4ada", updateOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+}
+
+func TestUpdateStackNoTemplate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleUpdateSuccessfully(t)
+
+	parameters := make(map[string]interface{})
+	parameters["flavor"] = "m1.tiny"
+
+	updateOpts := &stacks.UpdateOpts{
+		Parameters: parameters,
+	}
+	expected := stacks.ErrTemplateRequired{}
+
+	err := stacks.Update(fake.ServiceClient(), "gophercloud-test-stack-2", "db6977b2-27aa-4775-9ae7-6213212d4ada", updateOpts).ExtractErr()
+	th.AssertEquals(t, expected, err)
+}
+
+func TestUpdatePatchStack(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleUpdatePatchSuccessfully(t)
+
+	parameters := make(map[string]interface{})
+	parameters["flavor"] = "m1.tiny"
+
+	updateOpts := &stacks.UpdateOpts{
+		Parameters: parameters,
+	}
+	err := stacks.UpdatePatch(fake.ServiceClient(), "gophercloud-test-stack-2", "db6977b2-27aa-4775-9ae7-6213212d4ada", updateOpts).ExtractErr()
 	th.AssertNoErr(t, err)
 }
 

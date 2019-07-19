@@ -58,7 +58,7 @@ func main() {
 		doc.GenMarkdownTree(apiserver, outDir)
 	case "kube-controller-manager":
 		// generate docs for kube-controller-manager
-		controllermanager := cmapp.NewControllerManagerCommand()
+		controllermanager := cmapp.NewControllerManagerCommand(server.SetupSignalHandler())
 		doc.GenMarkdownTree(controllermanager, outDir)
 	case "cloud-controller-manager":
 		// generate docs for cloud-controller-manager
@@ -70,7 +70,7 @@ func main() {
 		doc.GenMarkdownTree(proxy, outDir)
 	case "kube-scheduler":
 		// generate docs for kube-scheduler
-		scheduler := schapp.NewSchedulerCommand()
+		scheduler := schapp.NewSchedulerCommand(server.SetupSignalHandler())
 		doc.GenMarkdownTree(scheduler, outDir)
 	case "kubelet":
 		// generate docs for kubelet
@@ -79,7 +79,6 @@ func main() {
 	case "kubeadm":
 		// resets global flags created by kubelet or other commands e.g.
 		// --azure-container-registry-config from pkg/credentialprovider/azure
-		// --google-json-key from pkg/credentialprovider/gcp
 		// --version pkg/version/verflag
 		pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This is needed to build the executable on an x86 machine for RPi
 
@@ -7,19 +7,19 @@ fail() {
     exit 1
 }
 
-DOCKERFILEDIR=`pwd`
+DOCKERFILEDIR=$(pwd)
 compile() {
-    cd ../../..
+    cd ../../.. || fail "Unable to 'cd ../../../'."
     env GOOS=linux GOARCH=arm make || fail "Unable to create build"
-    cp heketi $DOCKERFILEDIR
-    cp client/cli/go/heketi-cli $DOCKERFILEDIR
+    cp heketi "$DOCKERFILEDIR"
+    cp client/cli/go/heketi-cli "$DOCKERFILEDIR"
     make clean
-    cd $DOCKERFILEDIR
+    cd "$DOCKERFILEDIR" || fail "Unable to 'cd $DOCKERFILEDIR'."
 }
 
-build() {
+docker_build() {
     sudo docker build --rm --tag heketi/heketi-rpi:latest .
 }
 
 compile
-build
+docker_build

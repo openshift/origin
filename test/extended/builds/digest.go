@@ -23,15 +23,9 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test imagestream")
-			err = oc.Run("create").Args("-f", imageStreamFixture).Execute()
+			err := oc.Run("create").Args("-f", imageStreamFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -80,7 +74,7 @@ func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
 		g.By("checking that the image digest has been saved to the build status")
 		o.Expect(br.Build.Status.Output.To).NotTo(o.BeNil())
 
-		ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("test:latest", v1.GetOptions{})
+		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("test:latest", v1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(br.Build.Status.Output.To.ImageDigest).To(o.Equal(ist.Image.Name))
 	})

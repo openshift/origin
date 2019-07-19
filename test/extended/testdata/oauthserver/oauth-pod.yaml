@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test-oauth-server
+  name: test-oauth-server
+spec:
+  containers:
+  - command:
+    - oauth-server
+    - osinserver
+    - --config=/var/config/system/configmaps/oauth-config/oauth.conf
+    - --v=100
+    image: quay.io/openshift/origin-oauth-server:latest
+    imagePullPolicy: IfNotPresent
+    name: oauth-server
+    ports:
+    - containerPort: 6443
+      name: https
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /healthz
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+    securityContext:
+      capabilities:
+        drop:
+        - MKNOD
+      procMount: Default
+    volumeMounts:
+    - mountPath: /var/config/system/secrets/session-secret
+      name: session-secret
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/oauth-config
+      name: oauth-config
+      readOnly: true
+    - mountPath: /var/config/system/secrets/serving-cert
+      name: serving-cert
+      readOnly: true
+    - mountPath: /var/config/system/secrets/router-certs
+      name: router-certs
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/service-ca
+      name: service-ca
+      readOnly: true
+  serviceAccountName: e2e-oauth
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: oauth.conf
+        path: oauth.conf
+      name: oauth-config
+    name: oauth-config
+  - name: session-secret
+    secret:
+      defaultMode: 420
+      items:
+      - key: session
+        path: session
+      secretName: session-secret
+  - name: serving-cert
+    secret:
+      defaultMode: 420
+      items:
+      - key: tls.crt
+        path: tls.crt
+      - key: tls.key
+        path: tls.key
+      secretName: serving-cert
+  - name: router-certs
+    secret:
+      defaultMode: 420
+      secretName: router-certs
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: service-ca.crt
+        path: service-ca.crt
+      name: service-ca
+    name: service-ca
+

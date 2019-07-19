@@ -113,7 +113,7 @@ func (OperatorStatus) SwaggerDoc() map[string]string {
 }
 
 var map_StaticPodOperatorStatus = map[string]string{
-	"": "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
+	"":                                    "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
 	"latestAvailableDeploymentGeneration": "latestAvailableDeploymentGeneration is the deploymentID of the most recent deployment",
 	"nodeStatuses":                        "nodeStatuses track the deployment values and errors across individual nodes",
 }
@@ -133,6 +133,43 @@ var map_VersionAvailability = map[string]string{
 
 func (VersionAvailability) SwaggerDoc() map[string]string {
 	return map_VersionAvailability
+}
+
+var map_ImageContentSourcePolicy = map[string]string{
+	"":         "ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules. When multple policies are defined, the outcome of the behavior is defined on each field.",
+	"metadata": "Standard object's metadata.",
+	"spec":     "spec holds user settable values for configuration",
+}
+
+func (ImageContentSourcePolicy) SwaggerDoc() map[string]string {
+	return map_ImageContentSourcePolicy
+}
+
+var map_ImageContentSourcePolicyList = map[string]string{
+	"":         "ImageContentSourcePolicyList lists the items in the ImageContentSourcePolicy CRD.",
+	"metadata": "Standard object's metadata.",
+}
+
+func (ImageContentSourcePolicyList) SwaggerDoc() map[string]string {
+	return map_ImageContentSourcePolicyList
+}
+
+var map_ImageContentSourcePolicySpec = map[string]string{
+	"":                        "ImageContentSourcePolicySpec is the specification of the ImageContentSourcePolicy CRD.",
+	"repositoryDigestMirrors": "repositoryDigestMirrors allows images referenced by image digests in pods to be pulled from alternative mirrored repository locations. The image pull specification provided to the pod will be compared to the source locations described in RepositoryDigestMirrors and the image may be pulled down from any of the repositories in the list instead of the specified repository allowing administrators to choose a potentially faster mirror. Only image pull specifications that have an image disgest will have this behavior applied to them - tags will continue to be pulled from the specified repository in the pull spec. When multiple policies are defined, any overlaps found will be merged together when the mirror rules are written to `/etc/containers/registries.conf`. For example, if policy A has sources `a, b, c` and policy B has sources `c, d, e`. Then the mirror rule written to `registries.conf` will be `a, b, c, d, e` where the duplicate `c` is removed.",
+}
+
+func (ImageContentSourcePolicySpec) SwaggerDoc() map[string]string {
+	return map_ImageContentSourcePolicySpec
+}
+
+var map_RepositoryDigestMirrors = map[string]string{
+	"":        "RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config. Note: the mirrors only work when pulling the images that are reference by their digests.",
+	"sources": "sources are repositories that are mirrors of each other.",
+}
+
+func (RepositoryDigestMirrors) SwaggerDoc() map[string]string {
+	return map_RepositoryDigestMirrors
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

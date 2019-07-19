@@ -171,21 +171,48 @@ func PossibleReceiverStatusValues() []ReceiverStatus {
 	return []ReceiverStatus{Disabled, Enabled, NotSpecified}
 }
 
+// RecurrenceFrequency enumerates the values for recurrence frequency.
+type RecurrenceFrequency string
+
+const (
+	// Day ...
+	Day RecurrenceFrequency = "Day"
+	// Hour ...
+	Hour RecurrenceFrequency = "Hour"
+	// Minute ...
+	Minute RecurrenceFrequency = "Minute"
+	// Month ...
+	Month RecurrenceFrequency = "Month"
+	// None ...
+	None RecurrenceFrequency = "None"
+	// Second ...
+	Second RecurrenceFrequency = "Second"
+	// Week ...
+	Week RecurrenceFrequency = "Week"
+	// Year ...
+	Year RecurrenceFrequency = "Year"
+)
+
+// PossibleRecurrenceFrequencyValues returns an array of possible values for the RecurrenceFrequency const type.
+func PossibleRecurrenceFrequencyValues() []RecurrenceFrequency {
+	return []RecurrenceFrequency{Day, Hour, Minute, Month, None, Second, Week, Year}
+}
+
 // ScaleDirection enumerates the values for scale direction.
 type ScaleDirection string
 
 const (
-	// Decrease ...
-	Decrease ScaleDirection = "Decrease"
-	// Increase ...
-	Increase ScaleDirection = "Increase"
-	// None ...
-	None ScaleDirection = "None"
+	// ScaleDirectionDecrease ...
+	ScaleDirectionDecrease ScaleDirection = "Decrease"
+	// ScaleDirectionIncrease ...
+	ScaleDirectionIncrease ScaleDirection = "Increase"
+	// ScaleDirectionNone ...
+	ScaleDirectionNone ScaleDirection = "None"
 )
 
 // PossibleScaleDirectionValues returns an array of possible values for the ScaleDirection const type.
 func PossibleScaleDirectionValues() []ScaleDirection {
-	return []ScaleDirection{Decrease, Increase, None}
+	return []ScaleDirection{ScaleDirectionDecrease, ScaleDirectionIncrease, ScaleDirectionNone}
 }
 
 // ScaleType enumerates the values for scale type.
@@ -234,6 +261,8 @@ const (
 	TimeAggregationTypeAverage TimeAggregationType = "Average"
 	// TimeAggregationTypeCount ...
 	TimeAggregationTypeCount TimeAggregationType = "Count"
+	// TimeAggregationTypeLast ...
+	TimeAggregationTypeLast TimeAggregationType = "Last"
 	// TimeAggregationTypeMaximum ...
 	TimeAggregationTypeMaximum TimeAggregationType = "Maximum"
 	// TimeAggregationTypeMinimum ...
@@ -244,7 +273,7 @@ const (
 
 // PossibleTimeAggregationTypeValues returns an array of possible values for the TimeAggregationType const type.
 func PossibleTimeAggregationTypeValues() []TimeAggregationType {
-	return []TimeAggregationType{TimeAggregationTypeAverage, TimeAggregationTypeCount, TimeAggregationTypeMaximum, TimeAggregationTypeMinimum, TimeAggregationTypeTotal}
+	return []TimeAggregationType{TimeAggregationTypeAverage, TimeAggregationTypeCount, TimeAggregationTypeLast, TimeAggregationTypeMaximum, TimeAggregationTypeMinimum, TimeAggregationTypeTotal}
 }
 
 // ActionGroup an Azure action group.
@@ -1954,7 +1983,7 @@ type MetricTrigger struct {
 	Statistic MetricStatisticType `json:"statistic,omitempty"`
 	// TimeWindow - the range of time in which instance data is collected. This value must be greater than the delay in metric collection, which can vary from resource-to-resource. Must be between 12 hours and 5 minutes.
 	TimeWindow *string `json:"timeWindow,omitempty"`
-	// TimeAggregation - time aggregation type. How the data that is collected should be combined over time. The default value is Average. Possible values include: 'TimeAggregationTypeAverage', 'TimeAggregationTypeMinimum', 'TimeAggregationTypeMaximum', 'TimeAggregationTypeTotal', 'TimeAggregationTypeCount'
+	// TimeAggregation - time aggregation type. How the data that is collected should be combined over time. The default value is Average. Possible values include: 'TimeAggregationTypeAverage', 'TimeAggregationTypeMinimum', 'TimeAggregationTypeMaximum', 'TimeAggregationTypeTotal', 'TimeAggregationTypeCount', 'TimeAggregationTypeLast'
 	TimeAggregation TimeAggregationType `json:"timeAggregation,omitempty"`
 	// Operator - the operator that is used to compare the metric data and the threshold. Possible values include: 'Equals', 'NotEquals', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual'
 	Operator ComparisonOperationType `json:"operator,omitempty"`
@@ -2003,8 +2032,8 @@ type ProxyOnlyResource struct {
 // Recurrence the repeating times at which this profile begins. This element is not used if the FixedDate element
 // is used.
 type Recurrence struct {
-	// Frequency - the recurrence frequency. How often the schedule profile should take effect. This value must be Week, meaning each week will have the same set of profiles. For example, to set a daily schedule, set **schedule** to every day of the week. The frequency property specifies that the schedule is repeated weekly.
-	Frequency *string `json:"frequency,omitempty"`
+	// Frequency - the recurrence frequency. How often the schedule profile should take effect. This value must be Week, meaning each week will have the same set of profiles. For example, to set a daily schedule, set **schedule** to every day of the week. The frequency property specifies that the schedule is repeated weekly. Possible values include: 'None', 'Second', 'Minute', 'Hour', 'Day', 'Week', 'Month', 'Year'
+	Frequency RecurrenceFrequency `json:"frequency,omitempty"`
 	// Schedule - the scheduling constraints for when the profile begins.
 	Schedule *RecurrentSchedule `json:"schedule,omitempty"`
 }
@@ -2604,7 +2633,7 @@ func (rwa RuleWebhookAction) AsBasicRuleAction() (BasicRuleAction, bool) {
 
 // ScaleAction the parameters for the scaling action.
 type ScaleAction struct {
-	// Direction - the scale direction. Whether the scaling action increases or decreases the number of instances. Possible values include: 'None', 'Increase', 'Decrease'
+	// Direction - the scale direction. Whether the scaling action increases or decreases the number of instances. Possible values include: 'ScaleDirectionNone', 'ScaleDirectionIncrease', 'ScaleDirectionDecrease'
 	Direction ScaleDirection `json:"direction,omitempty"`
 	// Type - the type of action that should occur when the scale rule fires. Possible values include: 'ChangeCount', 'PercentChangeCount', 'ExactCount'
 	Type ScaleType `json:"type,omitempty"`

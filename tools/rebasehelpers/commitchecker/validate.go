@@ -42,6 +42,22 @@ var AllValidators = []func([]util.Commit) error{
 	ValidateUpstreamCommitsWithoutGodepsChanges,
 	ValidateUpstreamCommitModifiesOnlyGodeps,
 	ValidateUpstreamCommitModifiesOnlyKubernetes,
+	ValidateCommitAuthorEmail,
+}
+
+func ValidateCommitAuthorEmail(commits []util.Commit) error {
+	problemCommits := []util.Commit{}
+	for _, commit := range commits {
+		if strings.HasPrefix(commit.Email, "root@") {
+			fmt.Printf("Invalid email in commit %s: %q\n", commit.Sha, commit.Email)
+			problemCommits = append(problemCommits, commit)
+		}
+	}
+	if len(problemCommits) > 0 {
+		label := "Found commits with invalid commit author"
+		return fmt.Errorf(label)
+	}
+	return nil
 }
 
 // ValidateUpstreamCommitsWithoutGodepsChanges returns an error if any

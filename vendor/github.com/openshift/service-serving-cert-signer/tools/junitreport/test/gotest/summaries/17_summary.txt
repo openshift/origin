@@ -1,6 +1,0 @@
-Of 4 tests executed in 764.718s, 3 succeeded, 1 failed, and 0 were skipped.
-
-In suite "github.com/openshift/origin/test/integration/runner", test case "TestIntegration/TestRegistryClientRegistryNotFound" failed:
-runner_test.go:175: blah
-
-

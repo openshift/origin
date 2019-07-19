@@ -230,11 +230,13 @@ func TestRouter_Lookup(t *testing.T) {
 		{"/networks/:owner/:repo/events", "testroute0"},
 		{"/orgs/:org/events", "testroute1"},
 		{"/notifications/threads/:id", "testroute2"},
+		{"/mypathisgreat/:thing-id", "testroute3"},
 	}
 	testcases = []testcase{
 		{"/networks/:owner/:repo/events", "testroute0", []denco.Param{{"owner", ":owner"}, {"repo", ":repo"}}, true},
 		{"/orgs/:org/events", "testroute1", []denco.Param{{"org", ":org"}}, true},
 		{"/notifications/threads/:id", "testroute2", []denco.Param{{"id", ":id"}}, true},
+		{"/mypathisgreat/:thing-id", "testroute3", []denco.Param{{"thing-id", ":thing-id"}}, true},
 	}
 	runLookupTest(t, records, testcases)
 

@@ -7,6 +7,8 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
+// test/extended/testdata/builds/application-template-custombuild.json
+// test/extended/testdata/builds/build-cluster-config.yaml
 // test/extended/testdata/builds/build-postcommit/docker.yaml
 // test/extended/testdata/builds/build-postcommit/imagestreams.yaml
 // test/extended/testdata/builds/build-postcommit/sti.yaml
@@ -40,9 +42,11 @@
 // test/extended/testdata/builds/build-timing/test-docker-build.json
 // test/extended/testdata/builds/build-timing/test-is.json
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml
 // test/extended/testdata/builds/cluster-config/registry-blacklist.yaml
 // test/extended/testdata/builds/cluster-config/registry-whitelist.yaml
 // test/extended/testdata/builds/cluster-config.yaml
+// test/extended/testdata/builds/docker-add/Dockerfile
 // test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
@@ -93,7 +97,26 @@
 // test/extended/testdata/builds/valuefrom/test-configmap.yaml
 // test/extended/testdata/builds/valuefrom/test-is.json
 // test/extended/testdata/builds/valuefrom/test-secret.yaml
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json
+// test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json
+// test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json
+// test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json
+// test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml
+// test/extended/testdata/builds/webhook/generic/testdata/push-generic.json
+// test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json
+// test/extended/testdata/builds/webhook/github/testdata/pingevent.json
+// test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json
+// test/extended/testdata/builds/webhook/github/testdata/pushevent.json
+// test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json
+// test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json
 // test/extended/testdata/cluster/master-vert.yaml
+// test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
+// test/extended/testdata/cluster/quickstarts/dancer-mysql.json
+// test/extended/testdata/cluster/quickstarts/django-postgresql.json
+// test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json
+// test/extended/testdata/cluster/quickstarts/rails-postgresql.json
 // test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
@@ -143,6 +166,7 @@
 // test/extended/testdata/idling-echo-server-rc.yaml
 // test/extended/testdata/idling-echo-server.yaml
 // test/extended/testdata/image/deployment-with-annotation-trigger.yaml
+// test/extended/testdata/image/test-image.json
 // test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml
@@ -153,7 +177,6 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
 // test/extended/testdata/imagestream-jenkins-slave-pods.yaml
 // test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
-// test/extended/testdata/ingress.yaml
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
 // test/extended/testdata/jenkins-plugin/build-job.xml
@@ -170,17 +193,19 @@
 // test/extended/testdata/jenkins-plugin/shared-resources-template.json
 // test/extended/testdata/jenkins-slave-template.yaml
 // test/extended/testdata/jobs/v1.yaml
-// test/extended/testdata/ldap/ldapserver-buildconfig.json
-// test/extended/testdata/ldap/ldapserver-deploymentconfig.json
-// test/extended/testdata/ldap/ldapserver-imagestream-testenv.json
-// test/extended/testdata/ldap/ldapserver-imagestream.json
-// test/extended/testdata/ldap/ldapserver-service.json
+// test/extended/testdata/ldap/ldapserver-config-cm.yaml
+// test/extended/testdata/ldap/ldapserver-deployment.yaml
+// test/extended/testdata/ldap/ldapserver-scripts-cm.yaml
+// test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
+// test/extended/testdata/oauthserver/cabundle-cm.yaml
+// test/extended/testdata/oauthserver/oauth-network.yaml
+// test/extended/testdata/oauthserver/oauth-pod.yaml
+// test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
-// test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
 // test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
@@ -189,13 +214,16 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
-// test/extended/testdata/router-common.yaml
-// test/extended/testdata/router-config-manager.yaml
-// test/extended/testdata/router-http-echo-server.yaml
-// test/extended/testdata/router-metrics.yaml
-// test/extended/testdata/router-override-domains.yaml
-// test/extended/testdata/router-override.yaml
-// test/extended/testdata/router-scoped.yaml
+// test/extended/testdata/router/ingress.yaml
+// test/extended/testdata/router/reencrypt-serving-cert.yaml
+// test/extended/testdata/router/router-common.yaml
+// test/extended/testdata/router/router-config-manager.yaml
+// test/extended/testdata/router/router-http-echo-server.yaml
+// test/extended/testdata/router/router-metrics.yaml
+// test/extended/testdata/router/router-override-domains.yaml
+// test/extended/testdata/router/router-override.yaml
+// test/extended/testdata/router/router-scoped.yaml
+// test/extended/testdata/router/weighted-router.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
@@ -207,21 +235,21 @@
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
+// test/extended/testdata/templates/crunchydata-pod.json
+// test/extended/testdata/templates/guestbook.json
+// test/extended/testdata/templates/guestbook_list.json
 // test/extended/testdata/templates/templateinstance_badobject.yaml
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
 // test/extended/testdata/templates/templateinstance_readiness.yaml
 // test/extended/testdata/templates/templateservicebroker_bind.yaml
 // test/extended/testdata/test-cli-debug.yaml
 // test/extended/testdata/test-env-pod.json
-// test/extended/testdata/test-gitserver-tokenauth.yaml
 // test/extended/testdata/test-gitserver.yaml
 // test/extended/testdata/test-secret.json
-// test/extended/testdata/weighted-router.yaml
 // test/integration/testdata/project-request-template-with-quota.yaml
 // test/integration/testdata/test-buildcli-beta2.json
 // test/integration/testdata/test-buildcli.json
 // test/integration/testdata/test-deployment-config.yaml
-// test/integration/testdata/test-egress-network-policy.json
 // test/integration/testdata/test-image-stream-mapping.json
 // test/integration/testdata/test-image-stream.json
 // test/integration/testdata/test-image.json
@@ -241,7 +269,6 @@
 // examples/db-templates/redis-persistent-template.json
 // examples/image-streams/image-streams-centos7.json
 // examples/image-streams/image-streams-rhel7.json
-// examples/sample-app/application-template-custombuild.json
 // examples/sample-app/application-template-dockerbuild.json
 // examples/sample-app/application-template-pullspecbuild.json
 // examples/sample-app/application-template-stibuild.json
@@ -527,6 +554,536 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/aggregator/sample-apiserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-custom-docker-builder"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/origin-custom-docker-builder"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "labels": {
+          "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101",
+              "allowEnv": true
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Custom",
+          "customStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "origin-custom-docker-builder:latest"
+            },
+            "env": [
+              {
+                "name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+                "value": "openshift/origin-custom-docker-builder"
+              }
+            ],
+            "exposeDockerSocket": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "script": "bundle exec rake test"
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "rollingParams": {
+            "updatePeriodSeconds": 1,
+            "intervalSeconds": 1,
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "origin-ruby-sample:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 2,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "centos/mysql-57-centos7:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-custombuild"
+  }
+}
+`)
+
+func testExtendedTestdataBuildsApplicationTemplateCustombuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsApplicationTemplateCustombuildJson, nil
+}
+
+func testExtendedTestdataBuildsApplicationTemplateCustombuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsApplicationTemplateCustombuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/application-template-custombuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsBuildClusterConfigYaml = []byte(`kind: Build
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec: {}
+`)
+
+func testExtendedTestdataBuildsBuildClusterConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildClusterConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsBuildClusterConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildClusterConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -1789,13 +2346,39 @@ func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml = []byte(`kind: Build
+var _testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml = []byte(`kind: Build
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster
 spec:
   buildDefaults:
-    registriesConfig:
+    defaultProxy:
+       httpProxy: http://invalid.proxy.redhat.com:3288
+       httpsProxy: http://invalid.proxy.redhat.com:3288
+       noProxy: image-registry.openshift-image-registry.svc:5000
+`)
+
+func testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml = []byte(`kind: Image
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec:
+  registrySources:
       blockedRegistries:
       - docker.io
       - quay.io
@@ -1816,13 +2399,12 @@ func testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml = []byte(`kind: Build
+var _testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml = []byte(`kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster
 spec:
-  buildDefaults:
-    registriesConfig:
+  registrySources:
       allowedRegistries:
       - quay.io
 `)
@@ -1842,7 +2424,7 @@ func testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsClusterConfigYaml = []byte(`kind: Build
+var _testExtendedTestdataBuildsClusterConfigYaml = []byte(`kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster
@@ -1860,6 +2442,25 @@ func testExtendedTestdataBuildsClusterConfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM centos:7
+ADD no-exist-file .
+`)
+
+func testExtendedTestdataBuildsDockerAddDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsDockerAddDockerfile, nil
+}
+
+func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsDockerAddDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/docker-add/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -1913,7 +2514,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "internal-image",
+        "name": "incremental-image",
         "creationTimestamp": null
       },
       "spec": {}
@@ -1922,10 +2523,10 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "initial-build",
+        "name": "incremental-build",
         "creationTimestamp": null,
         "labels": {
-          "name": "initial-build"
+          "name": "incremental-build"
         }
       },
       "spec": {
@@ -1947,50 +2548,6 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7:latest"
-            }
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "internal-image:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "internal-build",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "internal-build"
-        }
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/incremental-app.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              {
-                "name": "BUILD_LOGLEVEL",
-                "value": "5"
-              }
-            ],
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "internal-image:latest"
             },
             "incremental": true
           }
@@ -1998,7 +2555,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
         "output": {
           "to": {
             "kind": "ImageStreamTag",
-            "name": "internal-image:latest"
+            "name": "incremental-image:latest"
           }
         }
       }
@@ -2298,7 +2855,7 @@ metadata:
 spec:
   resources:
     limits:
-      memory: 10Mi
+      memory: 50Mi
   source:
     git:
       uri: "https://github.com/openshift/ruby-hello-world"
@@ -2308,6 +2865,7 @@ spec:
       from:
         kind: DockerImage
         name: centos/ruby-23-centos7:latest
+      forcePull: true
 `)
 
 func testExtendedTestdataBuildsStatusfailOomkilledYamlBytes() ([]byte, error) {
@@ -3050,6 +3608,22 @@ items:
     nodeSelector: 
   status:
     lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: simple-docker-build
+    creationTimestamp:
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: docker.io/centos/ruby-22-centos7
 `)
 
 func testExtendedTestdataBuildsTestBuildYamlBytes() ([]byte, error) {
@@ -3976,7 +4550,11 @@ items:
         kind: ImageStreamTag
         name: inputimage:latest
     source:
-      dockerfile: "FROM foo"
+      dockerfile: |-
+        # Bug 1694859: ensure symlinks are followed
+        FROM ruby
+        RUN mkdir -p /opt/app-root/test-links && \
+            ln -s ../../rh/rh-ruby22/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
         from: 
@@ -4002,7 +4580,10 @@ items:
           kind: ImageStreamTag
           name: inputimage:latest
         paths:
-        - destinationDir: injected/dir
+        # Bug 1698152: ensure image source copy behavior is correct
+        - destinationDir: injected/opt/app-root/test-links
+          sourcePath: /opt/app-root/test-links/.
+        - destinationDir: injected/opt/rh/rh-ruby-22/root/usr/bin
           sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       sourceStrategy:
@@ -4029,7 +4610,10 @@ items:
           kind: ImageStreamTag
           name: inputimage:latest
         paths:
-        - destinationDir: injected/dir
+        # Bug 1698152: ensure image source copy behavior is correct
+        - destinationDir: injected/opt/app-root/test-links
+          sourcePath: /opt/app-root/test-links/.
+        - destinationDir: injected/opt/rh/rh-ruby-22/root/usr/bin
           sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
     strategy:
       dockerStrategy: {}
@@ -4777,9 +5361,1421 @@ func testExtendedTestdataBuildsValuefromTestSecretYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson = []byte(`{
+	"actor": {
+		"type": "user",
+		"username": "emmap1",
+		"display_name": "Emma",
+		"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/emmap1"
+			},
+			"avatar": {
+				"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+			}
+		}
+	},
+	"repository": {
+		"type": "repository",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/repositories/bitbucket/bitbucket"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/bitbucket/bitbucket"
+			},
+			"avatar": {
+				"href": "https://api-staging-assetroot.s3.amazonaws.com/c/photos/2014/Aug/01/bitbucket-logo-2629490769-3_avatar.png"
+			}
+		},
+		"uuid": "{673a6070-3421-46c9-9d48-90745f7bfe8e}",
+		"project": {
+			"type": "project",
+			"project": "Untitled project",
+			"uuid": "{3b7898dc-6891-4225-ae60-24613bb83080}",
+			"links": {
+				"html": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj"
+				},
+				"avatar": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj/avatar/32"
+				}
+			},
+			"key": "proj"
+		},
+		"full_name": "team_name/repo_name",
+		"name": "repo_name",
+		"website": "https://mywebsite.com/",
+		"owner": {
+			"type": "user",
+			"username": "emmap1",
+			"display_name": "Emma",
+			"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+			"links": {
+				"self": {
+					"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+				},
+				"html": {
+					"href": "https://api.bitbucket.org/emmap1"
+				},
+				"avatar": {
+					"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+				}
+			}
+		},
+		"scm": "git",
+		"is_private": true
+	},
+	"push": {
+		"changes": [
+			{
+				"new": {
+					"type": "branch",
+					"name": "this-is-not-master",
+					"target": {
+						"type": "commit",
+						"hash": "709d658dc5b6d6afcd46049c2f332ee3f515a67d",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "new commit message\n",
+						"date": "2015-06-09T03:34:49+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/8cbbd65829c7ad834a97841e0defc965718036a0"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/8cbbd65829c7ad834a97841e0defc965718036a0"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"old": {
+					"type": "branch",
+					"name": "this-is-not-master",
+					"target": {
+						"type": "commit",
+						"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "old commit message\n",
+						"date": "2015-06-08T21:34:56+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "e0d0c2041e09746be5ce4b55067d5a8e3098c843",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"links": {
+					"html": {
+						"href": "https://bitbucket.org/user_name/repo_name/branches/compare/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"diff": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/diff/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"commits": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits?include=c4b2b7914156a878aa7c9da452a09fb50c2091f2&exclude=b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					}
+				},
+				"created": false,
+				"forced": false,
+				"closed": false,
+				"commits": [
+					{
+						"hash": "03f4a7270240708834de475bcf21532d6134777e",
+						"type": "commit",
+						"message": "First commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					},
+					{
+						"hash": "ffffffffffffffffffffffffffffffffffffffff",
+						"type": "commit",
+						"message": "Second commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					}
+				],
+				"truncated": false
+			}
+		]
+	}
+}
+`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson = []byte(`{
+	"actor": {
+		"type": "user",
+		"username": "emmap1",
+		"display_name": "Emma",
+		"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/emmap1"
+			},
+			"avatar": {
+				"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+			}
+		}
+	},
+	"repository": {
+		"type": "repository",
+		"links": {
+			"self": {
+				"href": "https://api.bitbucket.org/api/2.0/repositories/bitbucket/bitbucket"
+			},
+			"html": {
+				"href": "https://api.bitbucket.org/bitbucket/bitbucket"
+			},
+			"avatar": {
+				"href": "https://api-staging-assetroot.s3.amazonaws.com/c/photos/2014/Aug/01/bitbucket-logo-2629490769-3_avatar.png"
+			}
+		},
+		"uuid": "{673a6070-3421-46c9-9d48-90745f7bfe8e}",
+		"project": {
+			"type": "project",
+			"project": "Untitled project",
+			"uuid": "{3b7898dc-6891-4225-ae60-24613bb83080}",
+			"links": {
+				"html": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj"
+				},
+				"avatar": {
+					"href": "https://bitbucket.org/account/user/teamawesome/projects/proj/avatar/32"
+				}
+			},
+			"key": "proj"
+		},
+		"full_name": "team_name/repo_name",
+		"name": "repo_name",
+		"website": "https://mywebsite.com/",
+		"owner": {
+			"type": "user",
+			"username": "emmap1",
+			"display_name": "Emma",
+			"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+			"links": {
+				"self": {
+					"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+				},
+				"html": {
+					"href": "https://api.bitbucket.org/emmap1"
+				},
+				"avatar": {
+					"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+				}
+			}
+		},
+		"scm": "git",
+		"is_private": true
+	},
+	"push": {
+		"changes": [
+			{
+				"new": {
+					"type": "branch",
+					"name": "master",
+					"target": {
+						"type": "commit",
+						"hash": "709d658dc5b6d6afcd46049c2f332ee3f515a67d",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "new commit message\n",
+						"date": "2015-06-09T03:34:49+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/8cbbd65829c7ad834a97841e0defc965718036a0"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/8cbbd65829c7ad834a97841e0defc965718036a0"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/c4b2b7914156a878aa7c9da452a09fb50c2091f2"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"old": {
+					"type": "branch",
+					"name": "master",
+					"target": {
+						"type": "commit",
+						"hash": "1e65c05c1d5171631d92438a13901ca7dae9618c",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"message": "old commit message\n",
+						"date": "2015-06-08T21:34:56+00:00",
+						"parents": [
+							{
+								"type": "commit",
+								"hash": "e0d0c2041e09746be5ce4b55067d5a8e3098c843",
+								"links": {
+									"self": {
+										"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									},
+									"html": {
+										"href": "https://bitbucket.org/user_name/repo_name/commits/9c4a3452da3bc4f37af5a6bb9c784246f44406f7"
+									}
+								}
+							}
+						],
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commit/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user_name/repo_name/commits/b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+							}
+						}
+					},
+					"links": {
+						"self": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/refs/branches/master"
+						},
+						"commits": {
+							"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits/master"
+						},
+						"html": {
+							"href": "https://bitbucket.org/user_name/repo_name/branch/master"
+						}
+					}
+				},
+				"links": {
+					"html": {
+						"href": "https://bitbucket.org/user_name/repo_name/branches/compare/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"diff": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/diff/c4b2b7914156a878aa7c9da452a09fb50c2091f2..b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					},
+					"commits": {
+						"href": "https://api.bitbucket.org/2.0/repositories/user_name/repo_name/commits?include=c4b2b7914156a878aa7c9da452a09fb50c2091f2&exclude=b99ea6dad8f416e57c5ca78c1ccef590600d841b"
+					}
+				},
+				"created": false,
+				"forced": false,
+				"closed": false,
+				"commits": [
+					{
+						"hash": "03f4a7270240708834de475bcf21532d6134777e",
+						"type": "commit",
+						"message": "First commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					},
+					{
+						"hash": "ffffffffffffffffffffffffffffffffffffffff",
+						"type": "commit",
+						"message": "Second commit",
+						"author": {
+							"type": "user",
+							"username": "emmap1",
+							"display_name": "Emma",
+							"uuid": "{a54f16da-24e9-4d7f-a3a7-b1ba2cd98aa3}",
+							"links": {
+								"self": {
+									"href": "https://api.bitbucket.org/api/2.0/users/emmap1"
+								},
+								"html": {
+									"href": "https://api.bitbucket.org/emmap1"
+								},
+								"avatar": {
+									"href": "https://bitbucket-api-assetroot.s3.amazonaws.com/c/photos/2015/Feb/26/3613917261-0-emmap1-avatar_avatar.png"
+								}
+							}
+						},
+						"links": {
+							"self": {
+								"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+							},
+							"html": {
+								"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+							}
+						}
+					}
+				],
+				"truncated": false
+			}
+		]
+	}
+}
+`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson = []byte(`{  
+  "eventKey":"repo:refs_changed",
+  "date":"2017-09-19T09:45:32+1000",
+  "actor":{  
+    "name":"admin",
+    "emailAddress":"admin@example.com",
+    "id":1,
+    "displayName":"Administrator",
+    "active":true,
+    "slug":"admin",
+    "type":"NORMAL"
+  },
+  "repository":{  
+    "slug":"repository",
+    "id":84,
+    "name":"repository",
+    "scmId":"git",
+    "state":"AVAILABLE",
+    "statusMessage":"Available",
+    "forkable":true,
+    "project":{  
+      "key":"PROJ",
+      "id":84,
+      "name":"project",
+      "public":false,
+      "type":"NORMAL"
+    },
+    "public":false
+  },
+  "changes":[  
+    {  
+      "ref":{  
+        "id":"refs/heads/other",
+        "displayId":"other",
+        "type":"BRANCH"
+      },
+      "refId":"refs/heads/other",
+      "fromHash":"ecddabb624f6f5ba43816f5926e580a5f680a932",
+      "toHash":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+      "type":"UPDATE"
+    }
+  ]
+}`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(`{  
+  "eventKey":"repo:refs_changed",
+  "date":"2017-09-19T09:45:32+1000",
+  "actor":{  
+    "name":"admin",
+    "emailAddress":"admin@example.com",
+    "id":1,
+    "displayName":"Administrator",
+    "active":true,
+    "slug":"admin",
+    "type":"NORMAL"
+  },
+  "repository":{  
+    "slug":"repository",
+    "id":84,
+    "name":"repository",
+    "scmId":"git",
+    "state":"AVAILABLE",
+    "statusMessage":"Available",
+    "forkable":true,
+    "project":{  
+      "key":"PROJ",
+      "id":84,
+      "name":"project",
+      "public":false,
+      "type":"NORMAL"
+    },
+    "public":false
+  },
+  "changes":[  
+    {  
+      "ref":{  
+        "id":"refs/heads/master",
+        "displayId":"master",
+        "type":"BRANCH"
+      },
+      "refId":"refs/heads/master",
+      "fromHash":"ecddabb624f6f5ba43816f5926e580a5f680a932",
+      "toHash":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+      "type":"UPDATE"
+    }
+  ]
+}`)
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54JsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json, nil
+}
+
+func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54JsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson = []byte(`{
+  "type": "Git",
+  "git": {
+    "author": {},
+    "committer": {},
+    "refs": [
+      {
+        "ref": "refs/heads/master",
+        "commit": "2602ace61490de0513dfbd7c7de949356cf9bd17",
+        "author": {
+          "name": "Joe Smith",
+          "email": "joe.smith@gmail.com"
+        },
+        "committer": {
+          "name": "Joe Smith",
+          "email": "joe.smith@gmail.com"
+        },
+        "message": "Merge pull request #31 from mnagy/prepare_for_new_mysql_image\n\nPrepare for new centos/mysql-56-centos7 image"
+      }
+    ]
+  }
+}`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson = []byte(`{
+  "type" : "Git",
+  "git" : {
+    "uri" : "git://mygitserver/myrepo.git",
+    "ref" : "refs/heads/master",
+    "commit" : "9bdc3a26ff933b32f3e558636b58aea86a69f051",
+    "message" : "Random act of kindness",
+    "author" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    },
+    "committer" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    }
+  },
+  "env": [
+      {
+          "name": "EXAMPLE",
+          "value": "sample-app"
+      }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml = []byte(`---
+  type: "Git"
+  git: 
+    uri: "git://mygitserver/myrepo.git"
+    ref: "refs/heads/master"
+    commit: "9bdc3a26ff933b32f3e558636b58aea86a69f051"
+    message: "Random act of kindness"
+    author: 
+      name: "Jon Doe"
+      email: "jondoe@email.com"
+    committer: 
+      name: "Jon Doe"
+      email: "jondoe@email.com"
+  env: 
+    - 
+      name: "EXAMPLE"
+      value: "sample-app"
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson = []byte(`{
+  "type" : "Git",
+  "git" : {
+    "uri" : "git://mygitserver/myrepo.git",
+    "ref" : "refs/heads/master",
+    "commit" : "9bdc3a26ff933b32f3e558636b58aea86a69f051",
+    "message" : "Random act of kindness",
+    "author" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    },
+    "committer" : {
+      "name" : "Jon Doe",
+      "email" : "jondoe@email.com"
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-generic.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson = []byte(`{
+  "object_kind":"push",
+  "before":"cf1fa898d2a78685ccde72f14b4922b474f73cd1",
+  "after":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+  "ref":"refs/heads/master",
+  "checkout_sha":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+  "message":null,
+  "user_id":12345,
+  "user_name":"Jon Doe",
+  "user_email":"jondoe@email.com",
+  "project_id":12345,
+  "repository":{
+    "name":"ruby-hello-world",
+    "url":"git@gitlab.com:jondoe/repo.git",
+    "description":"",
+    "homepage":"https://gitlab.com/jondoe/repo",
+    "git_http_url":"https://gitlab.com/jondoe/repo",
+    "git_ssh_url":"git@gitlab.com:jondoe/repo",
+    "visibility_level":20
+  },
+  "commits":[
+    {
+      "id":"2602ace61490de0513dfbd7c7de949356cf9bd17",
+      "message":"Random act of kindness",
+      "timestamp":"2015-03-17T09:23:58+01:00",
+      "url":"https://gitlab.com/jondoe/repo/commit/2602ace61490de0513dfbd7c7de949356cf9bd17",
+      "author":{
+        "name":"Jon Doe",
+        "email":"jondoe@email.com"
+      }
+    }
+  ],
+  "total_commits_count":3
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson = []byte(`{
+   "zen":"Encourage flow.",
+   "hook":{
+      "url":"https://api.github.com/repos/anonUser/anonRepo/hooks/2896466",
+      "test_url":"https://api.github.com/repos/anonUser/anonRepo/hooks/2896466/test",
+      "id":2896466,
+      "name":"web",
+      "active":true,
+      "events":[
+         "push"
+      ],
+      "config":{
+         "secret":"",
+         "url":"http://example.com/gitwebhook",
+         "content_type":"json",
+         "insecure_ssl":"0"
+      },
+      "last_response":{
+         "code":null,
+         "status":"unused",
+         "message":null
+      },
+      "updated_at":"2014-08-28T14:25:47Z",
+      "created_at":"2014-08-28T14:25:47Z"
+   },
+   "hook_id":2896466
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPingeventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGithubTestdataPingeventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/github/testdata/pingevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson = []byte(`{
+   "ref":"refs/heads/my_other_branch",
+   "after":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+   "before":"0000000000000000000000000000000000000000",
+   "created":true,
+   "deleted":false,
+   "forced":true,
+   "compare":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff93",
+   "commits":[
+      {
+         "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "distinct":true,
+         "message":"Added license",
+         "timestamp":"2014-08-28T16:55:36+02:00",
+         "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "author":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "committer":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "added":[
+            "LICENSE"
+         ],
+         "removed":[
+
+         ],
+         "modified":[
+
+         ]
+      }
+   ],
+   "head_commit":{
+      "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "distinct":true,
+      "message":"Added license",
+      "timestamp":"2014-08-28T16:55:36+02:00",
+      "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "author":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "committer":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "added":[
+         "LICENSE"
+      ],
+      "removed":[
+
+      ],
+      "modified":[
+
+      ]
+   },
+   "repository":{
+      "id":23354788,
+      "name":"anonRepo",
+      "full_name":"anonUser/anonRepo",
+      "owner":{
+         "name":"anonUser",
+         "email":"anonUser@example.com"
+      },
+      "private":false,
+      "html_url":"https://github.com/anonUser/anonRepo",
+      "description":"Git webhook implementation in Go.",
+      "fork":false,
+      "url":"https://github.com/anonUser/anonRepo",
+      "forks_url":"https://api.github.com/repos/anonUser/anonRepo/forks",
+      "keys_url":"https://api.github.com/repos/anonUser/anonRepo/keys{/key_id}",
+      "collaborators_url":"https://api.github.com/repos/anonUser/anonRepo/collaborators{/collaborator}",
+      "teams_url":"https://api.github.com/repos/anonUser/anonRepo/teams",
+      "hooks_url":"https://api.github.com/repos/anonUser/anonRepo/hooks",
+      "issue_events_url":"https://api.github.com/repos/anonUser/anonRepo/issues/events{/number}",
+      "events_url":"https://api.github.com/repos/anonUser/anonRepo/events",
+      "assignees_url":"https://api.github.com/repos/anonUser/anonRepo/assignees{/user}",
+      "branches_url":"https://api.github.com/repos/anonUser/anonRepo/branches{/branch}",
+      "tags_url":"https://api.github.com/repos/anonUser/anonRepo/tags",
+      "blobs_url":"https://api.github.com/repos/anonUser/anonRepo/git/blobs{/sha}",
+      "git_tags_url":"https://api.github.com/repos/anonUser/anonRepo/git/tags{/sha}",
+      "git_refs_url":"https://api.github.com/repos/anonUser/anonRepo/git/refs{/sha}",
+      "trees_url":"https://api.github.com/repos/anonUser/anonRepo/git/trees{/sha}",
+      "statuses_url":"https://api.github.com/repos/anonUser/anonRepo/statuses/{sha}",
+      "languages_url":"https://api.github.com/repos/anonUser/anonRepo/languages",
+      "stargazers_url":"https://api.github.com/repos/anonUser/anonRepo/stargazers",
+      "contributors_url":"https://api.github.com/repos/anonUser/anonRepo/contributors",
+      "subscribers_url":"https://api.github.com/repos/anonUser/anonRepo/subscribers",
+      "subscription_url":"https://api.github.com/repos/anonUser/anonRepo/subscription",
+      "commits_url":"https://api.github.com/repos/anonUser/anonRepo/commits{/sha}",
+      "git_commits_url":"https://api.github.com/repos/anonUser/anonRepo/git/commits{/sha}",
+      "comments_url":"https://api.github.com/repos/anonUser/anonRepo/comments{/number}",
+      "issue_comment_url":"https://api.github.com/repos/anonUser/anonRepo/issues/comments/{number}",
+      "contents_url":"https://api.github.com/repos/anonUser/anonRepo/contents/{+path}",
+      "compare_url":"https://api.github.com/repos/anonUser/anonRepo/compare/{base}...{head}",
+      "merges_url":"https://api.github.com/repos/anonUser/anonRepo/merges",
+      "archive_url":"https://api.github.com/repos/anonUser/anonRepo/{archive_format}{/ref}",
+      "downloads_url":"https://api.github.com/repos/anonUser/anonRepo/downloads",
+      "issues_url":"https://api.github.com/repos/anonUser/anonRepo/issues{/number}",
+      "pulls_url":"https://api.github.com/repos/anonUser/anonRepo/pulls{/number}",
+      "milestones_url":"https://api.github.com/repos/anonUser/anonRepo/milestones{/number}",
+      "notifications_url":"https://api.github.com/repos/anonUser/anonRepo/notifications{?since,all,participating}",
+      "labels_url":"https://api.github.com/repos/anonUser/anonRepo/labels{/name}",
+      "releases_url":"https://api.github.com/repos/anonUser/anonRepo/releases{/id}",
+      "created_at":1409063699,
+      "updated_at":"2014-08-26T14:34:59Z",
+      "pushed_at":1409238007,
+      "git_url":"git://github.com/anonUser/anonRepo.git",
+      "ssh_url":"git@github.com:anonUser/anonRepo.git",
+      "clone_url":"https://github.com/anonUser/anonRepo.git",
+      "svn_url":"https://github.com/anonUser/anonRepo",
+      "homepage":null,
+      "size":0,
+      "stargazers_count":0,
+      "watchers_count":0,
+      "language":null,
+      "has_issues":true,
+      "has_downloads":true,
+      "has_wiki":true,
+      "forks_count":0,
+      "mirror_url":null,
+      "open_issues_count":0,
+      "forks":0,
+      "open_issues":0,
+      "watchers":0,
+      "default_branch":"master",
+      "stargazers":0,
+      "master_branch":"master"
+   },
+   "pusher":{
+      "name":"anonUser",
+      "email":"anonUser@example.com"
+   }
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson = []byte(`{
+   "ref":"refs/heads/master",
+   "after":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+   "before":"0000000000000000000000000000000000000000",
+   "created":true,
+   "deleted":false,
+   "forced":true,
+   "compare":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff93",
+   "commits":[
+      {
+         "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "distinct":true,
+         "message":"Added license",
+         "timestamp":"2014-08-28T16:55:36+02:00",
+         "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+         "author":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "committer":{
+            "name":"Anonymous User",
+            "email":"anonUser@example.com"
+         },
+         "added":[
+            "LICENSE"
+         ],
+         "removed":[
+
+         ],
+         "modified":[
+
+         ]
+      }
+   ],
+   "head_commit":{
+      "id":"9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "distinct":true,
+      "message":"Added license",
+      "timestamp":"2014-08-28T16:55:36+02:00",
+      "url":"https://github.com/anonUser/anonRepo/commit/9bdc3a26ff933b32f3e558636b58aea86a69f051",
+      "author":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "committer":{
+         "name":"Anonymous User",
+         "email":"anonUser@example.com"
+      },
+      "added":[
+         "LICENSE"
+      ],
+      "removed":[
+
+      ],
+      "modified":[
+
+      ]
+   },
+   "repository":{
+      "id":23354788,
+      "name":"anonRepo",
+      "full_name":"anonUser/anonRepo",
+      "owner":{
+         "name":"anonUser",
+         "email":"anonUser@example.com"
+      },
+      "private":false,
+      "html_url":"https://github.com/anonUser/anonRepo",
+      "description":"Git webhook implementation in Go.",
+      "fork":false,
+      "url":"https://github.com/anonUser/anonRepo",
+      "forks_url":"https://api.github.com/repos/anonUser/anonRepo/forks",
+      "keys_url":"https://api.github.com/repos/anonUser/anonRepo/keys{/key_id}",
+      "collaborators_url":"https://api.github.com/repos/anonUser/anonRepo/collaborators{/collaborator}",
+      "teams_url":"https://api.github.com/repos/anonUser/anonRepo/teams",
+      "hooks_url":"https://api.github.com/repos/anonUser/anonRepo/hooks",
+      "issue_events_url":"https://api.github.com/repos/anonUser/anonRepo/issues/events{/number}",
+      "events_url":"https://api.github.com/repos/anonUser/anonRepo/events",
+      "assignees_url":"https://api.github.com/repos/anonUser/anonRepo/assignees{/user}",
+      "branches_url":"https://api.github.com/repos/anonUser/anonRepo/branches{/branch}",
+      "tags_url":"https://api.github.com/repos/anonUser/anonRepo/tags",
+      "blobs_url":"https://api.github.com/repos/anonUser/anonRepo/git/blobs{/sha}",
+      "git_tags_url":"https://api.github.com/repos/anonUser/anonRepo/git/tags{/sha}",
+      "git_refs_url":"https://api.github.com/repos/anonUser/anonRepo/git/refs{/sha}",
+      "trees_url":"https://api.github.com/repos/anonUser/anonRepo/git/trees{/sha}",
+      "statuses_url":"https://api.github.com/repos/anonUser/anonRepo/statuses/{sha}",
+      "languages_url":"https://api.github.com/repos/anonUser/anonRepo/languages",
+      "stargazers_url":"https://api.github.com/repos/anonUser/anonRepo/stargazers",
+      "contributors_url":"https://api.github.com/repos/anonUser/anonRepo/contributors",
+      "subscribers_url":"https://api.github.com/repos/anonUser/anonRepo/subscribers",
+      "subscription_url":"https://api.github.com/repos/anonUser/anonRepo/subscription",
+      "commits_url":"https://api.github.com/repos/anonUser/anonRepo/commits{/sha}",
+      "git_commits_url":"https://api.github.com/repos/anonUser/anonRepo/git/commits{/sha}",
+      "comments_url":"https://api.github.com/repos/anonUser/anonRepo/comments{/number}",
+      "issue_comment_url":"https://api.github.com/repos/anonUser/anonRepo/issues/comments/{number}",
+      "contents_url":"https://api.github.com/repos/anonUser/anonRepo/contents/{+path}",
+      "compare_url":"https://api.github.com/repos/anonUser/anonRepo/compare/{base}...{head}",
+      "merges_url":"https://api.github.com/repos/anonUser/anonRepo/merges",
+      "archive_url":"https://api.github.com/repos/anonUser/anonRepo/{archive_format}{/ref}",
+      "downloads_url":"https://api.github.com/repos/anonUser/anonRepo/downloads",
+      "issues_url":"https://api.github.com/repos/anonUser/anonRepo/issues{/number}",
+      "pulls_url":"https://api.github.com/repos/anonUser/anonRepo/pulls{/number}",
+      "milestones_url":"https://api.github.com/repos/anonUser/anonRepo/milestones{/number}",
+      "notifications_url":"https://api.github.com/repos/anonUser/anonRepo/notifications{?since,all,participating}",
+      "labels_url":"https://api.github.com/repos/anonUser/anonRepo/labels{/name}",
+      "releases_url":"https://api.github.com/repos/anonUser/anonRepo/releases{/id}",
+      "created_at":1409063699,
+      "updated_at":"2014-08-26T14:34:59Z",
+      "pushed_at":1409238007,
+      "git_url":"git://github.com/anonUser/anonRepo.git",
+      "ssh_url":"git@github.com:anonUser/anonRepo.git",
+      "clone_url":"https://github.com/anonUser/anonRepo.git",
+      "svn_url":"https://github.com/anonUser/anonRepo",
+      "homepage":null,
+      "size":0,
+      "stargazers_count":0,
+      "watchers_count":0,
+      "language":null,
+      "has_issues":true,
+      "has_downloads":true,
+      "has_wiki":true,
+      "forks_count":0,
+      "mirror_url":null,
+      "open_issues_count":0,
+      "forks":0,
+      "open_issues":0,
+      "watchers":0,
+      "default_branch":"master",
+      "stargazers":0,
+      "master_branch":"master"
+   },
+   "pusher":{
+      "name":"anonUser",
+      "email":"anonUser@example.com"
+   }
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGithubTestdataPusheventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/github/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson = []byte(`{
+  "object_kind": "push",
+  "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
+  "after": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "ref": "refs/heads/my_other_branch",
+  "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "user_id": 4,
+  "user_name": "John Smith",
+  "user_email": "john@example.com",
+  "user_avatar": "https://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=8://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=80",
+  "project_id": 15,
+  "project":{
+    "name":"Diaspora",
+    "description":"",
+    "web_url":"http://example.com/mike/diaspora",
+    "avatar_url":null,
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "namespace":"Mike",
+    "visibility_level":0,
+    "path_with_namespace":"mike/diaspora",
+    "default_branch":"master",
+    "homepage":"http://example.com/mike/diaspora",
+    "url":"git@example.com:mike/diaspora.git",
+    "ssh_url":"git@example.com:mike/diaspora.git",
+    "http_url":"http://example.com/mike/diaspora.git"
+  },
+  "repository":{
+    "name": "Diaspora",
+    "url": "git@example.com:mike/diaspora.git",
+    "description": "",
+    "homepage": "http://example.com/mike/diaspora",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "visibility_level":0
+  },
+  "commits": [
+    {
+      "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "message": "Update Catalan translation to e38cb41.",
+      "timestamp": "2011-12-12T14:27:31+02:00",
+      "url": "http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "author": {
+        "name": "Jordi Mallach",
+        "email": "jordi@softcatala.org"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    },
+    {
+      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "message": "fixed readme",
+      "timestamp": "2012-01-03T23:36:29+02:00",
+      "url": "http://example.com/mike/diaspora/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "author": {
+        "name": "GitLab dev user",
+        "email": "gitlabdev@dv6700.(none)"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 4
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson = []byte(`{
+  "object_kind": "push",
+  "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
+  "after": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "ref": "refs/heads/master",
+  "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+  "user_id": 4,
+  "user_name": "John Smith",
+  "user_email": "john@example.com",
+  "user_avatar": "https://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=8://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=80",
+  "project_id": 15,
+  "project":{
+    "name":"Diaspora",
+    "description":"",
+    "web_url":"http://example.com/mike/diaspora",
+    "avatar_url":null,
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "namespace":"Mike",
+    "visibility_level":0,
+    "path_with_namespace":"mike/diaspora",
+    "default_branch":"master",
+    "homepage":"http://example.com/mike/diaspora",
+    "url":"git@example.com:mike/diaspora.git",
+    "ssh_url":"git@example.com:mike/diaspora.git",
+    "http_url":"http://example.com/mike/diaspora.git"
+  },
+  "repository":{
+    "name": "Diaspora",
+    "url": "git@example.com:mike/diaspora.git",
+    "description": "",
+    "homepage": "http://example.com/mike/diaspora",
+    "git_http_url":"http://example.com/mike/diaspora.git",
+    "git_ssh_url":"git@example.com:mike/diaspora.git",
+    "visibility_level":0
+  },
+  "commits": [
+    {
+      "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "message": "Update Catalan translation to e38cb41.",
+      "timestamp": "2011-12-12T14:27:31+02:00",
+      "url": "http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "author": {
+        "name": "Jordi Mallach",
+        "email": "jordi@softcatala.org"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    },
+    {
+      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "message": "fixed readme",
+      "timestamp": "2012-01-03T23:36:29+02:00",
+      "url": "http://example.com/mike/diaspora/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "author": {
+        "name": "GitLab dev user",
+        "email": "gitlabdev@dv6700.(none)"
+      },
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 4
+}
+`)
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson, nil
+}
+
+func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataClusterMasterVertYaml = []byte(`provider: local
 ClusterLoader:
   cleanup: true
+  ifexists: delete
   projects:
     - num: 1
       basename: clusterloader-cakephp-mysql
@@ -4787,7 +6783,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/cakephp-mysql.json
+          file: ./test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
   
     - num: 1
       basename: clusterloader-dancer-mysql
@@ -4795,7 +6791,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/dancer-mysql.json
+          file: ./test/extended/testdata/cluster/quickstarts/dancer-mysql.json
   
     - num: 1
       basename: clusterloader-django-postgresql
@@ -4803,7 +6799,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/django-postgresql.json
+          file: ./test/extended/testdata/cluster/quickstarts/django-postgresql.json
   
     - num: 1
       basename: clusterloader-nodejs-mongodb
@@ -4811,7 +6807,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/nodejs-mongodb.json
+          file: ./test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json
   
     - num: 1
       basename: clusterloader-rails-postgresql
@@ -4819,7 +6815,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/rails-postgresql.json
+          file: ./test/extended/testdata/cluster/quickstarts/rails-postgresql.json
   
   tuningsets:
     - name: default
@@ -4842,6 +6838,2565 @@ func testExtendedTestdataClusterMasterVertYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cluster/master-vert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "cakephp-mysql-example",
+    "annotations": {
+      "description": "An example CakePHP application with a MySQL database",
+      "source": "https://github.com/openshift/online/blob/master/templates/examples/cakephp-mysql.json",
+      "tags": "quickstart,php,cakephp,mysql",
+      "iconClass": "icon-php"
+    }
+  },
+  "labels": {
+    "template": "cakephp-mysql-example"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "cakephp-mysql-example",
+        "annotations": {
+          "description": "Exposes and load balances the application pods"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "cakephp-mysql-example"
+        }
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "cakephp-mysql-example"
+      },
+      "spec": {
+        "host": "${APPLICATION_DOMAIN}",
+        "to": {
+          "kind": "Service",
+          "name": "cakephp-mysql-example"
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "cakephp-mysql-example",
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "cakephp-mysql-example",
+        "annotations": {
+          "description": "Defines how to build the application"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "${SOURCE_REPOSITORY_URL}",
+            "ref": "${SOURCE_REPOSITORY_REF}"
+          },
+          "contextDir": "${CONTEXT_DIR}"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "php:5.6"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "cakephp-mysql-example:latest"
+          }
+        },
+        "triggers": [
+          {
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "${GITHUB_WEBHOOK_SECRET}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "cakephp-mysql-example",
+        "annotations": {
+          "description": "Defines how to deploy the application server"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Retry",
+              "execNewPod": {
+                "command": [
+                  "./migrate-database.sh"
+                ],
+                "containerName": "cakephp-mysql-example"
+              }
+            }
+          }
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "cakephp-mysql-example"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "cakephp-mysql-example:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "cakephp-mysql-example"
+        },
+        "template": {
+          "metadata": {
+            "name": "cakephp-mysql-example",
+            "labels": {
+              "name": "cakephp-mysql-example"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "cakephp-mysql-example",
+                "image": "cakephp-mysql-example",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/health.php",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080
+                  }
+                },
+                "env": [
+                  {
+                    "name": "DATABASE_SERVICE_NAME",
+                    "value": "${DATABASE_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "DATABASE_ENGINE",
+                    "value": "${DATABASE_ENGINE}"
+                  },
+                  {
+                    "name": "DATABASE_NAME",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "DATABASE_USER",
+                    "value": "${DATABASE_USER}"
+                  },
+                  {
+                    "name": "DATABASE_PASSWORD",
+                    "value": "${DATABASE_PASSWORD}"
+                  },
+                  {
+                    "name": "CAKEPHP_SECRET_TOKEN",
+                    "value": "${CAKEPHP_SECRET_TOKEN}"
+                  },
+                  {
+                    "name": "CAKEPHP_SECURITY_SALT",
+                    "value": "${CAKEPHP_SECURITY_SALT}"
+                  },
+                  {
+                    "name": "CAKEPHP_SECURITY_CIPHER_SEED",
+                    "value": "${CAKEPHP_SECURITY_CIPHER_SEED}"
+                  },
+                  {
+                    "name": "OPCACHE_REVALIDATE_FREQ",
+                    "value": "${OPCACHE_REVALIDATE_FREQ}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Exposes the database server"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mysql",
+            "port": 3306,
+            "targetPort": 3306
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Defines how to deploy the database"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mysql"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "openshift",
+                "name": "mysql:5.6"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${DATABASE_SERVICE_NAME}",
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "mysql",
+                "image": "mysql",
+                "ports": [
+                  {
+                    "containerPort": 3306
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [
+                      "/bin/sh",
+                      "-i",
+                      "-c",
+                      "MYSQL_PWD='${DATABASE_PASSWORD}' mysql -h 127.0.0.1 -u ${DATABASE_USER} -D ${DATABASE_NAME} -e 'SELECT 1'"
+                    ]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
+                },
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${DATABASE_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${DATABASE_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_MYSQL_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the CakePHP container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "MEMORY_MYSQL_LIMIT",
+      "displayName": "Memory Limit (MySQL)",
+      "description": "Maximum amount of memory the MySQL container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Git Repository URL",
+      "description": "The URL of the repository with your application source code.",
+      "value": "https://github.com/redhat-performance/cakephp-ex.git"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Git Reference",
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+    },
+    {
+      "name": "CONTEXT_DIR",
+      "displayName": "Context Directory",
+      "description": "Set this to the relative path to your project if it is not in the root of your repository."
+    },
+    {
+      "name": "APPLICATION_DOMAIN",
+      "displayName": "Application Hostname",
+      "description": "The exposed hostname that will route to the CakePHP service, if left blank a value will be defaulted.",
+      "value": ""
+    },
+    {
+      "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub Webhook Secret",
+      "description": "A secret string used to configure the GitHub webhook.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{40}"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "value": "mysql"
+    },
+    {
+      "name": "DATABASE_ENGINE",
+      "displayName": "Database Engine",
+      "description": "Database engine: postgresql, mysql or sqlite (default).",
+      "value": "mysql"
+    },
+    {
+      "name": "DATABASE_NAME",
+      "displayName": "Database Name",
+      "value": "default"
+    },
+    {
+      "name": "DATABASE_USER",
+      "displayName": "Database User",
+      "value": "cakephp"
+    },
+    {
+      "name": "DATABASE_PASSWORD",
+      "displayName": "Database Password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}"
+    },
+    {
+      "name": "CAKEPHP_SECRET_TOKEN",
+      "displayName": "CakePHP secret token",
+      "description": "Set this to a long random string.",
+      "generate": "expression",
+      "from": "[\\w]{50}"
+    },
+    {
+      "name": "CAKEPHP_SECURITY_SALT",
+      "displayName": "CakePHP Security Salt",
+      "description": "Security salt for session hash.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{40}"
+    },
+    {
+      "name": "CAKEPHP_SECURITY_CIPHER_SEED",
+      "displayName": "CakePHP Security Cipher Seed",
+      "description": "Security cipher seed for session hash.",
+      "generate": "expression",
+      "from": "[0-9]{30}"
+    },
+    {
+      "name": "OPCACHE_REVALIDATE_FREQ",
+      "displayName": "OPcache Revalidation Frequency",
+      "description": "How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.",
+      "value": "2"
+    },
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataClusterQuickstartsCakephpMysqlJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterQuickstartsCakephpMysqlJson, nil
+}
+
+func testExtendedTestdataClusterQuickstartsCakephpMysqlJson() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterQuickstartsCakephpMysqlJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/cakephp-mysql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
+  "apiVersion": "template.openshift.io/v1",
+  "kind": "Template",
+  "labels": {
+    "app": "dancer-mysql-example",
+    "template": "dancer-mysql-example"
+  },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
+  "metadata": {
+    "annotations": {
+      "description": "An example Dancer application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "iconClass": "icon-perl",
+      "openshift.io/display-name": "Dancer + MySQL (Ephemeral)",
+      "openshift.io/documentation-url": "https://github.com/openshift/dancer-ex",
+      "openshift.io/long-description": "This template defines resources needed to develop a Dancer based application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
+      "openshift.io/provider-display-name": "Red Hat, Inc.",
+      "openshift.io/support-url": "https://access.redhat.com",
+      "tags": "quickstart,perl,dancer,mysql",
+      "template.openshift.io/bindable": "false"
+    },
+    "name": "dancer-mysql-example"
+  },
+  "objects": [
+    {
+      "apiVersion": "v1",
+      "kind": "Secret",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData": {
+        "database-password": "${DATABASE_PASSWORD}",
+        "database-user": "${DATABASE_USER}",
+        "keybase": "${SECRET_KEY_BASE}"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
+        },
+        "name": "${NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Route",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "host": "${APPLICATION_DOMAIN}",
+        "to": {
+          "kind": "Service",
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        },
+        "name": "${NAME}"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "BuildConfig",
+      "metadata": {
+        "annotations": {
+          "description": "Defines how to build the application",
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        },
+        "name": "${NAME}"
+      },
+      "spec": {
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "${NAME}:latest"
+          }
+        },
+        "postCommit": {
+          "script": "perl -I extlib/lib/perl5 -I lib t/*"
+        },
+        "source": {
+          "contextDir": "${CONTEXT_DIR}",
+          "git": {
+            "ref": "${SOURCE_REPOSITORY_REF}",
+            "uri": "${SOURCE_REPOSITORY_URL}"
+          },
+          "type": "Git"
+        },
+        "strategy": {
+          "sourceStrategy": {
+            "env": [
+              {
+                "name": "CPAN_MIRROR",
+                "value": "${CPAN_MIRROR}"
+              }
+            ],
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "perl:5.24",
+              "namespace": "${NAMESPACE}"
+            }
+          },
+          "type": "Source"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "github": {
+              "secret": "${GITHUB_WEBHOOK_SECRET}"
+            },
+            "type": "GitHub"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "annotations": {
+          "description": "Defines how to deploy the application server",
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        },
+        "name": "${NAME}"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "name": "${NAME}"
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${NAME}"
+            },
+            "name": "${NAME}"
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "DATABASE_SERVICE_NAME",
+                    "value": "${DATABASE_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "database-user",
+                        "name": "${NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "database-password",
+                        "name": "${NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "SECRET_KEY_BASE",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "keybase",
+                        "name": "${NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PERL_APACHE2_RELOAD",
+                    "value": "${PERL_APACHE2_RELOAD}"
+                  }
+                ],
+                "image": " ",
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  },
+                  "initialDelaySeconds": 30,
+                  "timeoutSeconds": 3
+                },
+                "name": "dancer-mysql-example",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  },
+                  "initialDelaySeconds": 3,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "triggers": [
+          {
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "dancer-mysql-example"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${NAME}:latest"
+              }
+            },
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "description": "Exposes the database server"
+        },
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mysql",
+            "port": 3306,
+            "targetPort": 3306
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "annotations": {
+          "description": "Defines how to deploy the database",
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        },
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            },
+            "name": "${DATABASE_SERVICE_NAME}"
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "database-user",
+                        "name": "${NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "database-password",
+                        "name": "${NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  }
+                ],
+                "image": " ",
+                "livenessProbe": {
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  },
+                  "timeoutSeconds": 1
+                },
+                "name": "mysql",
+                "ports": [
+                  {
+                    "containerPort": 3306
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "/bin/sh",
+                      "-i",
+                      "-c",
+                      "MYSQL_PWD='${DATABASE_PASSWORD}' mysql -h 127.0.0.1 -u ${DATABASE_USER} -D ${DATABASE_NAME} -e 'SELECT 1'"
+                    ]
+                  },
+                  "initialDelaySeconds": 5,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_MYSQL_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "mountPath": "/var/lib/mysql/data",
+                    "name": "data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "data"
+              }
+            ]
+          }
+        },
+        "triggers": [
+          {
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mysql"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mysql:5.7",
+                "namespace": "${NAMESPACE}"
+              }
+            },
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ]
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "displayName": "Name",
+      "name": "NAME",
+      "required": true,
+      "value": "dancer-mysql-example"
+    },
+    {
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "displayName": "Namespace",
+      "name": "NAMESPACE",
+      "required": true,
+      "value": "openshift"
+    },
+    {
+      "description": "Maximum amount of memory the Perl Dancer container can use.",
+      "displayName": "Memory Limit",
+      "name": "MEMORY_LIMIT",
+      "required": true,
+      "value": "512Mi"
+    },
+    {
+      "description": "Maximum amount of memory the MySQL container can use.",
+      "displayName": "Memory Limit (MySQL)",
+      "name": "MEMORY_MYSQL_LIMIT",
+      "required": true,
+      "value": "512Mi"
+    },
+    {
+      "description": "The URL of the repository with your application source code.",
+      "displayName": "Git Repository URL",
+      "name": "SOURCE_REPOSITORY_URL",
+      "required": true,
+      "value": "https://github.com/openshift/dancer-ex.git"
+    },
+    {
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+      "displayName": "Git Reference",
+      "name": "SOURCE_REPOSITORY_REF"
+    },
+    {
+      "description": "Set this to the relative path to your project if it is not in the root of your repository.",
+      "displayName": "Context Directory",
+      "name": "CONTEXT_DIR"
+    },
+    {
+      "description": "The exposed hostname that will route to the Dancer service, if left blank a value will be defaulted.",
+      "displayName": "Application Hostname",
+      "name": "APPLICATION_DOMAIN"
+    },
+    {
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
+      "displayName": "GitHub Webhook Secret",
+      "from": "[a-zA-Z0-9]{40}",
+      "generate": "expression",
+      "name": "GITHUB_WEBHOOK_SECRET"
+    },
+    {
+      "displayName": "Database Service Name",
+      "name": "DATABASE_SERVICE_NAME",
+      "required": true,
+      "value": "database"
+    },
+    {
+      "displayName": "Database Username",
+      "from": "user[A-Z0-9]{3}",
+      "generate": "expression",
+      "name": "DATABASE_USER"
+    },
+    {
+      "displayName": "Database Password",
+      "from": "[a-zA-Z0-9]{8}",
+      "generate": "expression",
+      "name": "DATABASE_PASSWORD"
+    },
+    {
+      "displayName": "Database Name",
+      "name": "DATABASE_NAME",
+      "required": true,
+      "value": "sampledb"
+    },
+    {
+      "description": "Set this to \"true\" to enable automatic reloading of modified Perl modules.",
+      "displayName": "Perl Module Reload",
+      "name": "PERL_APACHE2_RELOAD"
+    },
+    {
+      "description": "Your secret key for verifying the integrity of signed cookies.",
+      "displayName": "Secret Key",
+      "from": "[a-z0-9]{127}",
+      "generate": "expression",
+      "name": "SECRET_KEY_BASE"
+    },
+    {
+      "description": "The custom CPAN mirror URL",
+      "displayName": "Custom CPAN Mirror URL",
+      "name": "CPAN_MIRROR"
+    },
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataClusterQuickstartsDancerMysqlJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterQuickstartsDancerMysqlJson, nil
+}
+
+func testExtendedTestdataClusterQuickstartsDancerMysqlJson() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterQuickstartsDancerMysqlJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/dancer-mysql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "django-psql-example",
+    "annotations": {
+      "openshift.io/display-name": "Django + PostgreSQL (Ephemeral)",
+      "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,python,django",
+      "iconClass": "icon-python",
+      "openshift.io/long-description": "This template defines resources needed to develop a Django based application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
+      "openshift.io/provider-display-name": "Red Hat, Inc.",
+      "openshift.io/documentation-url": "https://github.com/sclorg/django-ex",
+      "openshift.io/support-url": "https://access.redhat.com",
+      "template.openshift.io/bindable": "false"
+    }
+  },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/django-ex/blob/master/README.md.",
+  "labels": {
+    "template": "django-psql-example",
+    "app": "django-psql-example"
+  },
+  "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "stringData": {
+        "database-user": "${DATABASE_USER}",
+        "database-password": "${DATABASE_PASSWORD}",
+        "django-secret-key": "${DJANGO_SECRET_KEY}"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "host": "${APPLICATION_DOMAIN}",
+        "to": {
+          "kind": "Service",
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Defines how to build the application",
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "${SOURCE_REPOSITORY_URL}",
+            "ref": "${SOURCE_REPOSITORY_REF}"
+          },
+          "contextDir": "${CONTEXT_DIR}"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "${NAMESPACE}",
+              "name": "python:${PYTHON_VERSION}"
+            },
+            "env": [
+              {
+                "name": "PIP_INDEX_URL",
+                "value": "${PIP_INDEX_URL}"
+              }
+            ]
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "${NAME}:latest"
+          }
+        },
+        "triggers": [
+          {
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "${GITHUB_WEBHOOK_SECRET}"
+            }
+          }
+        ],
+        "postCommit": {
+          "script": "./manage.py test"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Defines how to deploy the application server",
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "django-psql-example"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${NAME}:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${NAME}",
+            "labels": {
+              "name": "${NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "django-psql-example",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  }
+                },
+                "env": [
+                  {
+                    "name": "DATABASE_SERVICE_NAME",
+                    "value": "${DATABASE_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "DATABASE_ENGINE",
+                    "value": "${DATABASE_ENGINE}"
+                  },
+                  {
+                    "name": "DATABASE_NAME",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "DATABASE_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "${NAME}",
+                        "key": "database-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DATABASE_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "${NAME}",
+                        "key": "database-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "APP_CONFIG",
+                    "value": "${APP_CONFIG}"
+                  },
+                  {
+                    "name": "DJANGO_SECRET_KEY",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "${NAME}",
+                        "key": "django-secret-key"
+                      }
+                    }
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Exposes the database server"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "postgresql",
+            "port": 5432,
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Defines how to deploy the database",
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "postgresql"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "${NAMESPACE}",
+                "name": "postgresql:${POSTGRESQL_VERSION}"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${DATABASE_SERVICE_NAME}",
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ],
+            "containers": [
+              {
+                "name": "postgresql",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 5432
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "POSTGRESQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "${NAME}",
+                        "key": "database-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "POSTGRESQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "${NAME}",
+                        "key": "database-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "POSTGRESQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/pgsql/data"
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [
+                      "/usr/libexec/check-container"
+                    ]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 10,
+                  "initialDelaySeconds": 120,
+                  "exec": {
+                    "command": [
+                      "/usr/libexec/check-container",
+                      "--live"
+                    ]
+                  }
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_POSTGRESQL_LIMIT}"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "django-psql-example"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "required": true,
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "PYTHON_VERSION",
+      "displayName": "Version of Python Image",
+      "description": "Version of Python image to be used (3.6 or latest).",
+      "value": "3.6",
+      "required": true
+    },
+    {
+      "name": "POSTGRESQL_VERSION",
+      "displayName": "Version of PostgreSQL Image",
+      "description": "Version of PostgreSQL image to be used (10 or latest).",
+      "value": "10",
+      "required": true
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "required": true,
+      "description": "Maximum amount of memory the Django container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "MEMORY_POSTGRESQL_LIMIT",
+      "displayName": "Memory Limit (PostgreSQL)",
+      "required": true,
+      "description": "Maximum amount of memory the PostgreSQL container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Git Repository URL",
+      "required": true,
+      "description": "The URL of the repository with your application source code.",
+      "value": "https://github.com/sclorg/django-ex.git"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Git Reference",
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+    },
+    {
+      "name": "CONTEXT_DIR",
+      "displayName": "Context Directory",
+      "description": "Set this to the relative path to your project if it is not in the root of your repository."
+    },
+    {
+      "name": "APPLICATION_DOMAIN",
+      "displayName": "Application Hostname",
+      "description": "The exposed hostname that will route to the Django service, if left blank a value will be defaulted.",
+      "value": ""
+    },
+    {
+      "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub Webhook Secret",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{40}"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "required": true,
+      "value": "postgresql"
+    },
+    {
+      "name": "DATABASE_ENGINE",
+      "displayName": "Database Engine",
+      "required": true,
+      "description": "Database engine: postgresql, mysql or sqlite (default).",
+      "value": "postgresql"
+    },
+    {
+      "name": "DATABASE_NAME",
+      "displayName": "Database Name",
+      "required": true,
+      "value": "default"
+    },
+    {
+      "name": "DATABASE_USER",
+      "displayName": "Database Username",
+      "required": true,
+      "value": "django"
+    },
+    {
+      "name": "DATABASE_PASSWORD",
+      "displayName": "Database User Password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}"
+    },
+    {
+      "name": "APP_CONFIG",
+      "displayName": "Application Configuration File Path",
+      "description": "Relative path to Gunicorn configuration file (optional)."
+    },
+    {
+      "name": "DJANGO_SECRET_KEY",
+      "displayName": "Django Secret Key",
+      "description": "Set this to a long random string.",
+      "generate": "expression",
+      "from": "[\\w]{50}"
+    },
+    {
+      "name": "PIP_INDEX_URL",
+      "displayName": "Custom PyPi Index URL",
+      "description": "The custom PyPi index URL",
+      "value": ""
+    },
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataClusterQuickstartsDjangoPostgresqlJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson, nil
+}
+
+func testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterQuickstartsDjangoPostgresqlJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/django-postgresql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterQuickstartsNodejsMongodbJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "nodejs-mongodb-example",
+    "annotations": {
+      "description": "An example Node.js application with a MongoDB database",
+      "tags": "quickstart,nodejs,mongodb",
+      "iconClass": "icon-nodejs",
+      "source": "https://github.com/openshift/online/blob/master/templates/examples/nodejs-mongodb.json"
+    }
+  },
+  "labels": {
+    "template": "nodejs-mongodb-example"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nodejs-mongodb-example",
+        "annotations": {
+          "description": "Exposes and load balances the application pods"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "nodejs-mongodb-example"
+        }
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nodejs-mongodb-example"
+      },
+      "spec": {
+        "host": "${APPLICATION_DOMAIN}",
+        "to": {
+          "kind": "Service",
+          "name": "nodejs-mongodb-example"
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nodejs-mongodb-example",
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nodejs-mongodb-example",
+        "annotations": {
+          "description": "Defines how to build the application"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "${SOURCE_REPOSITORY_URL}",
+            "ref": "${SOURCE_REPOSITORY_REF}"
+          },
+          "contextDir": "${CONTEXT_DIR}"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "nodejs:0.10"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "nodejs-mongodb-example:latest"
+          }
+        },
+        "triggers": [
+          {
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "${GITHUB_WEBHOOK_SECRET}"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "${GENERIC_WEBHOOK_SECRET}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nodejs-mongodb-example",
+        "annotations": {
+          "description": "Defines how to deploy the application server"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "nodejs-mongodb-example"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "nodejs-mongodb-example:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "nodejs-mongodb-example"
+        },
+        "template": {
+          "metadata": {
+            "name": "nodejs-mongodb-example",
+            "labels": {
+              "name": "nodejs-mongodb-example"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "nodejs-mongodb-example",
+                "image": "nodejs-mongodb-example",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "DATABASE_SERVICE_NAME",
+                    "value": "${DATABASE_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "MONGODB_USER",
+                    "value": "${DATABASE_USER}"
+                  },
+                  {
+                    "name": "MONGODB_PASSWORD",
+                    "value": "${DATABASE_PASSWORD}"
+                  },
+                  {
+                    "name": "MONGODB_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "MONGODB_ADMIN_PASSWORD",
+                    "value": "${DATABASE_ADMIN_PASSWORD}"
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/pagecount",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 30,
+                  "httpGet": {
+                    "path": "/pagecount",
+                    "port": 8080
+                  }
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Exposes the database server"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mongodb",
+            "port": 27017,
+            "targetPort": 27017
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Defines how to deploy the database"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mongodb"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "openshift",
+                "name": "mongodb:2.6"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${DATABASE_SERVICE_NAME}",
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "mongodb",
+                "image": "mongodb",
+                "ports": [
+                  {
+                    "containerPort": 27017
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MONGODB_USER",
+                    "value": "${DATABASE_USER}"
+                  },
+                  {
+                    "name": "MONGODB_PASSWORD",
+                    "value": "${DATABASE_PASSWORD}"
+                  },
+                  {
+                    "name": "MONGODB_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "MONGODB_ADMIN_PASSWORD",
+                    "value": "${DATABASE_ADMIN_PASSWORD}"
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 3,
+                  "exec": {
+                    "command": [
+                      "/bin/sh",
+                      "-i",
+                      "-c",
+                      "mongostat --host 127.0.0.1 -u admin -p ${DATABASE_ADMIN_PASSWORD} -n 1 --noheaders"
+                    ]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 27017
+                  }
+                },
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_MONGODB_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/mongodb/data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the Node.js container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "MEMORY_MONGODB_LIMIT",
+      "displayName": "Memory Limit (MongoDB)",
+      "description": "Maximum amount of memory the MongoDB container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Git Repository URL",
+      "description": "The URL of the repository with your application source code.",
+      "value": "https://github.com/openshift/nodejs-ex.git"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Git Reference",
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+    },
+    {
+      "name": "CONTEXT_DIR",
+      "displayName": "Context Directory",
+      "description": "Set this to the relative path to your project if it is not in the root of your repository."
+    },
+    {
+      "name": "APPLICATION_DOMAIN",
+      "displayName": "Application Hostname",
+      "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
+      "value": ""
+    },
+    {
+      "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub Webhook Secret",
+      "description": "A secret string used to configure the GitHub webhook.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{40}"
+    },
+    {
+      "name": "GENERIC_WEBHOOK_SECRET",
+      "displayName": "Generic Webhook Secret",
+      "description": "A secret string used to configure the Generic webhook.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{40}"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "value": "mongodb"
+    },
+    {
+      "name": "DATABASE_USER",
+      "displayName": "MongoDB Username",
+      "description": "Username for MongoDB user that will be used for accessing the database.",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}"
+    },
+    {
+      "name": "DATABASE_PASSWORD",
+      "displayName": "MongoDB Password",
+      "description": "Password for the MongoDB user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}"
+    },
+    {
+      "name": "DATABASE_NAME",
+      "displayName": "Database Name",
+      "value": "sampledb"
+    },
+    {
+      "name": "DATABASE_ADMIN_PASSWORD",
+      "displayName": "Database Administrator Password",
+      "description": "Password for the database admin user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}"
+    },
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataClusterQuickstartsNodejsMongodbJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterQuickstartsNodejsMongodbJson, nil
+}
+
+func testExtendedTestdataClusterQuickstartsNodejsMongodbJson() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterQuickstartsNodejsMongodbJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "rails-postgresql-example",
+    "annotations": {
+      "description": "An example Rails application with a PostgreSQL database",
+      "source": "https://github.com/openshift/online/blob/master/templates/examples/rails-postgresql.json",
+      "tags": "quickstart,ruby,rails,postgresql",
+      "iconClass": "icon-ruby"
+    }
+  },
+  "labels": {
+    "template": "rails-postgresql-example"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "rails-postgresql-example",
+        "annotations": {
+          "description": "Exposes and load balances the application pods"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "rails-postgresql-example"
+        }
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "rails-postgresql-example"
+      },
+      "spec": {
+        "host": "${APPLICATION_DOMAIN}",
+        "to": {
+          "kind": "Service",
+          "name": "rails-postgresql-example"
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "rails-postgresql-example",
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "rails-postgresql-example",
+        "annotations": {
+          "description": "Defines how to build the application"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "${SOURCE_REPOSITORY_URL}",
+            "ref": "${SOURCE_REPOSITORY_REF}"
+          },
+          "contextDir": "${CONTEXT_DIR}"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "ruby:2.3"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "rails-postgresql-example:latest"
+          }
+        },
+        "triggers": [
+          {
+            "type": "ImageChange"
+          },
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "${GITHUB_WEBHOOK_SECRET}"
+            }
+          }
+        ],
+        "postCommit": {
+          "script": "bundle exec rake test"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "rails-postgresql-example",
+        "annotations": {
+          "description": "Defines how to deploy the application server"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "./migrate-database.sh"
+                ],
+                "containerName": "rails-postgresql-example"
+              }
+            }
+          }
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "rails-postgresql-example"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "rails-postgresql-example:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "rails-postgresql-example"
+        },
+        "template": {
+          "metadata": {
+            "name": "rails-postgresql-example",
+            "labels": {
+              "name": "rails-postgresql-example"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "rails-postgresql-example",
+                "image": "rails-postgresql-example",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 5,
+                  "httpGet": {
+                    "path": "/articles",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 10,
+                  "httpGet": {
+                    "path": "/articles",
+                    "port": 8080
+                  }
+                },
+                "env": [
+                  {
+                    "name": "DATABASE_SERVICE_NAME",
+                    "value": "${DATABASE_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "POSTGRESQL_USER",
+                    "value": "${DATABASE_USER}"
+                  },
+                  {
+                    "name": "POSTGRESQL_PASSWORD",
+                    "value": "${DATABASE_PASSWORD}"
+                  },
+                  {
+                    "name": "POSTGRESQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "SECRET_KEY_BASE",
+                    "value": "${SECRET_KEY_BASE}"
+                  },
+                  {
+                    "name": "POSTGRESQL_MAX_CONNECTIONS",
+                    "value": "${POSTGRESQL_MAX_CONNECTIONS}"
+                  },
+                  {
+                    "name": "POSTGRESQL_SHARED_BUFFERS",
+                    "value": "${POSTGRESQL_SHARED_BUFFERS}"
+                  },
+                  {
+                    "name": "APPLICATION_DOMAIN",
+                    "value": "${APPLICATION_DOMAIN}"
+                  },
+                  {
+                    "name": "APPLICATION_USER",
+                    "value": "${APPLICATION_USER}"
+                  },
+                  {
+                    "name": "APPLICATION_PASSWORD",
+                    "value": "${APPLICATION_PASSWORD}"
+                  },
+                  {
+                    "name": "RAILS_ENV",
+                    "value": "${RAILS_ENV}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Exposes the database server"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "postgresql",
+            "port": 5432,
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "description": "Defines how to deploy the database"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "postgresql"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "openshift",
+                "name": "postgresql:9.5"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${DATABASE_SERVICE_NAME}",
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "postgresql",
+                "image": "postgresql",
+                "ports": [
+                  {
+                    "containerPort": 5432
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [
+                      "/bin/sh",
+                      "-i",
+                      "-c",
+                      "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
+                    ]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 5432
+                  }
+                },
+                "env": [
+                  {
+                    "name": "POSTGRESQL_USER",
+                    "value": "${DATABASE_USER}"
+                  },
+                  {
+                    "name": "POSTGRESQL_PASSWORD",
+                    "value": "${DATABASE_PASSWORD}"
+                  },
+                  {
+                    "name": "POSTGRESQL_DATABASE",
+                    "value": "${DATABASE_NAME}"
+                  },
+                  {
+                    "name": "POSTGRESQL_MAX_CONNECTIONS",
+                    "value": "${POSTGRESQL_MAX_CONNECTIONS}"
+                  },
+                  {
+                    "name": "POSTGRESQL_SHARED_BUFFERS",
+                    "value": "${POSTGRESQL_SHARED_BUFFERS}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_POSTGRESQL_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/pgsql/data"
+                  }
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "emptyDir": {}
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the Rails container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "MEMORY_POSTGRESQL_LIMIT",
+      "displayName": "Memory Limit (PostgreSQL)",
+      "description": "Maximum amount of memory the PostgreSQL container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_URL",
+      "displayName": "Git Repository URL",
+      "description": "The URL of the repository with your application source code.",
+      "value": "https://github.com/openshift/rails-ex.git"
+    },
+    {
+      "name": "SOURCE_REPOSITORY_REF",
+      "displayName": "Git Reference",
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+    },
+    {
+      "name": "CONTEXT_DIR",
+      "displayName": "Context Directory",
+      "description": "Set this to the relative path to your project if it is not in the root of your repository."
+    },
+    {
+      "name": "APPLICATION_DOMAIN",
+      "displayName": "Application Hostname",
+      "description": "The exposed hostname that will route to the Rails service, if left blank a value will be defaulted.",
+      "value": ""
+    },
+    {
+      "name": "GITHUB_WEBHOOK_SECRET",
+      "displayName": "GitHub Webhook Secret",
+      "description": "A secret string used to configure the GitHub webhook.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{40}"
+    },
+    {
+      "name": "SECRET_KEY_BASE",
+      "displayName": "Secret Key",
+      "description": "Your secret key for verifying the integrity of signed cookies.",
+      "generate": "expression",
+      "from": "[a-z0-9]{127}"
+    },
+    {
+      "name": "APPLICATION_USER",
+      "displayName": "Application Username",
+      "description": "The application user that is used within the sample application to authorize access on pages.",
+      "value": "openshift"
+    },
+    {
+      "name": "APPLICATION_PASSWORD",
+      "displayName": "Application Password",
+      "description": "The application password that is used within the sample application to authorize access on pages.",
+      "value": "secret"
+    },
+    {
+      "name": "RAILS_ENV",
+      "displayName": "Rails Environment",
+      "description": "Environment under which the sample application will run. Could be set to production, development or test.",
+      "value": "production"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "value": "postgresql"
+    },
+    {
+      "name": "DATABASE_USER",
+      "displayName": "Database Username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}"
+    },
+    {
+      "name": "DATABASE_PASSWORD",
+      "displayName": "Database Password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "DATABASE_NAME",
+      "displayName": "Database Name",
+      "value": "root"
+    },
+    {
+      "name": "POSTGRESQL_MAX_CONNECTIONS",
+      "displayName": "Maximum Database Connections",
+      "value": "100"
+    },
+    {
+      "name": "POSTGRESQL_SHARED_BUFFERS",
+      "displayName": "Shared Buffer Amount",
+      "value": "12MB"
+    },
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataClusterQuickstartsRailsPostgresqlJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson, nil
+}
+
+func testExtendedTestdataClusterQuickstartsRailsPostgresqlJson() (*asset, error) {
+	bytes, err := testExtendedTestdataClusterQuickstartsRailsPostgresqlJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/rails-postgresql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -5005,6 +9560,8 @@ spec:
         failurePolicy: Abort
         execNewPod:
           containerName: myapp
+          volumes:
+          - non-existing-volume
           command:
           - /bin/echo
           - test pre hook executed
@@ -7352,6 +11909,41 @@ func testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml() (*asset, err
 	return a, nil
 }
 
+var _testExtendedTestdataImageTestImageJson = []byte(`{
+  "kind": "Image",
+  "apiVersion": "image.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null
+  },
+  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageMetadata": {
+    "kind": "DockerImage",
+    "apiVersion": "1.0",
+    "Id": "",
+    "Created": null,
+    "ContainerConfig": {},
+    "Config": {}
+  },
+  "dockerImageMetadataVersion": "1.0"
+}
+`)
+
+func testExtendedTestdataImageTestImageJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataImageTestImageJson, nil
+}
+
+func testExtendedTestdataImageTestImageJson() (*asset, error) {
+	bytes, err := testExtendedTestdataImageTestImageJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/image/test-image.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml = []byte(`kind: Template
 apiVersion: v1
 metadata:
@@ -7831,127 +12423,6 @@ func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataIngressYaml = []byte(`kind: List
-apiVersion: v1
-items:
-# an ingress that should be captured as individual routes
-- apiVersion: extensions/v1beta1
-  kind: Ingress
-  metadata:
-    name: test
-  spec:
-    tls:
-    - hosts:
-      - 3.ingress-test.com
-      secretName: ingress-endpoint-secret
-    rules:
-    - host: 1.ingress-test.com
-      http:
-        paths:
-        - path: /test
-          backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
-        - path: /other
-          backend:
-            serviceName: ingress-endpoint-2
-            servicePort: 80
-    - host: 2.ingress-test.com
-      http:
-        paths:
-        - path: /
-          backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
-    - host: 3.ingress-test.com
-      http:
-        paths:
-        - path: /
-          backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
-# an empty secret
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: ingress-endpoint-secret
-  type: kubernetes.io/tls
-  stringData:
-    tls.key: ""
-    tls.crt: ""
-# a service to be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: ingress-endpoint-1
-  spec:
-    selector:
-      app: ingress-endpoint-1
-    ports:
-    - port: 80
-      targetPort: 8080
-# a service to be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: ingress-endpoint-2
-  spec:
-    selector:
-      app: ingress-endpoint-2
-    ports:
-    - port: 80
-      targetPort: 8080
-# a pod that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: ingress-endpoint-1
-    labels:
-      app: ingress-endpoint-1
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-# a pod that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: ingress-endpoint-2
-    labels:
-      app: ingress-endpoint-2
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-`)
-
-func testExtendedTestdataIngressYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataIngressYaml, nil
-}
-
-func testExtendedTestdataIngressYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataIngressYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/ingress.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -9286,260 +13757,612 @@ func testExtendedTestdataJobsV1Yaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverBuildconfigJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "openldap"
-    }
-  },
-  "spec": {
-    "source": {
-      "type": "Binary"
-    },
-    "strategy": {
-      "type": "Docker",
-      "dockerStrategy": {
-        "from": {
-          "kind": "ImageStreamTag",
-          "name": "openldap:latest"
-        }
-      }
-    },
-    "output": {
-      "to": {
-        "kind": "ImageStreamTag",
-        "name": "openldap-testenv:latest"
-      }
-    },
-    "resources": {}
-  },
-  "status": {
-    "lastVersion": 0
-  }
-}
+var _testExtendedTestdataLdapLdapserverConfigCmYaml = []byte(`---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ldap-config
+data:
+  ldap.conf: |
+    TLS_CACERTDIR   /usr/local/etc/ldapcert
+    TLS_CACERT      /usr/local/etc/ldapcert/ca.crt
+
+  tls_conf.ldif: |
+    # Configures the TLS certs for slapd
+    dn: cn=config
+    changetype: modify
+    add: olcTLSCACertificateFile
+    olcTLSCACertificateFile: /usr/local/etc/ldapcert/ca.crt
+    -
+    replace: olcTLSCertificateFile
+    olcTLSCertificateFile: /usr/local/etc/ldapcert/tls.crt
+    -
+    replace: olcTLSCertificateKeyFile
+    olcTLSCertificateKeyFile: /usr/local/etc/ldapcert/tls.key
+
+  base_conf.ldif: |
+    # The base LDIF data
+    dn: dc=example,dc=com
+    objectClass: top
+    objectClass: dcObject
+    objectclass: organization
+    o: Example Com
+    dc: Example
+
+    dn: cn=Manager,dc=example,dc=com
+    objectClass: organizationalRole
+    cn: Manager
+    description: LDAP Directory Manager
+
+    dn: ou=People,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: People
+
+    dn: ou=Group,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: Group
+
+  domain_conf.ldif: |
+    # Domain setup
+    dn: olcDatabase={1}monitor,cn=config
+    changetype: modify
+    replace: olcAccess
+    olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth"
+      read by dn.base="cn=Manager,dc=example,dc=com" read by * none
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    replace: olcSuffix
+    olcSuffix: dc=example,dc=com
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    replace: olcRootDN
+    olcRootDN: cn=Manager,dc=example,dc=com
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    add: olcRootPW
+    olcRootPW: admin
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    add: olcAccess
+    olcAccess: {0}to attrs=userPassword,shadowLastChange by
+      dn="cn=Manager,dc=example,dc=com" write by anonymous auth by self write by * none
+    olcAccess: {1}to dn.base="" by * read
+    olcAccess: {2}to * by dn="cn=Manager,dc=example,dc=com" write by * read
+
+
+  groupsync.ldif: |
+    # Groupsync LDIF data
+    dn: ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: rfc2307
+    description: RFC2307-style Entries
+
+    dn: ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: User Groups
+
+    dn: ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: Users
+
+    dn: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+
+    dn: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+
+    dn: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+
+    dn: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+
+    dn: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person5
+    displayName: person5smith
+    mail: person5smith@example.com
+
+    dn: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group1
+    owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group2
+    owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person2's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group3
+    owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person3's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: ou=ad,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: ad
+    description: Active Directory-style Entries
+
+    dn: ou=people,ou=ad,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: AD-style users
+
+    dn: cn=Person1,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+    testMemberOf: group3
+
+    dn: cn=Person2,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+
+    dn: cn=Person3,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+
+    dn: cn=Person4,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+    testMemberOf: group1
+
+    dn: cn=Person5,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person5
+    displayName: person5smith
+    mail: person5smith@example.com
+    testMemberOf: group1
+    testMemberOf: group3
+
+    dn: ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: adextended
+    description: AD-style Entries with Group Entries
+
+    dn: ou=people,ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: AD-style users
+
+    dn: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person4,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person5,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: person5smith
+    displayName: person5smith
+    mail: person5smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: Group entries with metadata
+
+    dn: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group1
+    owner: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group2
+    owner: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+    description: Person2's Group
+    member: cn=fake
+
+    dn: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group3
+    owner: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+    description: Person3's Group
+    member: cn=fake
+
+    dn: ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: incomplete-rfc2307
+    description: OrganizationalUnit to hold malformed entries
+
+    dn: ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: Group entries with member lists containing missing members
+
+    dn: cn=group1,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group1
+    owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group2
+    owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person2's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+
+    dn: cn=group3,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group3
+    owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person3's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+
 `)
 
-func testExtendedTestdataLdapLdapserverBuildconfigJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverBuildconfigJson, nil
+func testExtendedTestdataLdapLdapserverConfigCmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverConfigCmYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverBuildconfigJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverBuildconfigJsonBytes()
+func testExtendedTestdataLdapLdapserverConfigCmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverConfigCmYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-buildconfig.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-config-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverDeploymentconfigJson = []byte(`{
-  "kind": "DeploymentConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap-server",
-    "creationTimestamp": null
-  },
-  "spec": {
-    "strategy": {
-      "type": "Recreate",
-      "resources": {}
-    },
-    "triggers": [
-      {
-        "type": "ImageChange",
-        "imageChangeParams": {
-          "automatic": true,
-          "containerNames": [
-            "openldap-server"
-          ],
-          "from": {
-            "kind": "ImageStreamTag",
-            "name": "openldap-testenv:latest"
-          },
-          "lastTriggeredImage": ""
-        }
-      },
-      {
-        "type": "ConfigChange"
-      }
-    ],
-    "replicas": 1,
-    "selector": {
-      "name": "openldap-server"
-    },
-    "template": {
-      "metadata": {
-        "creationTimestamp": null,
-        "labels": {
-          "name": "openldap-server"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "name": "openldap-server",
-            "image": "openldap-testenv",
-            "ports": [
-              {
-                "containerPort": 389,
-                "protocol": "TCP"
-              }
-            ],
-            "resources": {},
-            "terminationMessagePath": "/dev/termination-log",
-            "imagePullPolicy": "IfNotPresent",
-            "capabilities": {},
-            "securityContext": {
-              "capabilities": {},
-              "privileged": false
-            },
-            "readinessProbe": {
-              "exec": {
-                "command": ["ldapsearch", "-x", "-b", "dc=example,dc=com"]
-              },
-              "initialDelaySeconds": 5,
-              "timeoutSeconds": 1
-            }            
-          }
-        ],
-        "restartPolicy": "Always",
-        "dnsPolicy": "ClusterFirst",
-        "serviceAccount": ""
-      }
-    }
-  },
-  "status": {}
-}`)
+var _testExtendedTestdataLdapLdapserverDeploymentYaml = []byte(`---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: openldap-server
+  labels:
+    app: openldap-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openldap-server
+  template:
+    metadata:
+      name: openldap-server
+      labels:
+        app: openldap-server
+    spec:
+      serviceAccountName: ldap
+      containers:
+      - name: openldap-server
+        securityContext:
+          privileged: true
+        # This image is built from the images/openldap directory. Temporary repo location.
+        image: docker.io/mrogers950/origin-openldap-test:fedora29
+        ports:
+        # StartTLS works over 389
+        - containerPort: 389
+          protocol: TCP
+        terminationMessagePath: "/dev/termination-log"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: ldap-config
+          # Configs get copied to /etc/openldap by container run script.
+          mountPath: /usr/local/etc/ldapconf
+        - name: scripts
+          mountPath: /usr/local/bin
+        - name: ldap-cert
+          mountPath: /usr/local/etc/ldapcert
+      volumes:
+      - name: ldap-cert
+        secret:
+          secretName: ldap-cert
+      - name: ldap-config
+        configMap:
+          name: ldap-config
+      - name: scripts
+        configMap:
+          name: scripts
+          defaultMode: 0777
+      restartPolicy: Always
+`)
 
-func testExtendedTestdataLdapLdapserverDeploymentconfigJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverDeploymentconfigJson, nil
+func testExtendedTestdataLdapLdapserverDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverDeploymentYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverDeploymentconfigJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverDeploymentconfigJsonBytes()
+func testExtendedTestdataLdapLdapserverDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverDeploymentYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-deploymentconfig.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverImagestreamTestenvJson = []byte(`{
-  "kind": "ImageStream",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap-testenv",
-    "creationTimestamp": null
-  },
-  "spec": {},
-  "status": {
-    "dockerImageRepository": ""
-  }
-}`)
+var _testExtendedTestdataLdapLdapserverScriptsCmYaml = []byte(`---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scripts
+data:
+  run-openldap.sh: |
+    #!/bin/bash -x
+    # This script is the entrypoint for the openldap container. It configures and runs slapd.
+    # Modified slightly from https://raw.githubusercontent.com/openshift/openldap/master/2.4.41/run-openldap.sh
 
-func testExtendedTestdataLdapLdapserverImagestreamTestenvJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverImagestreamTestenvJson, nil
+    # Reduce maximum number of number of open file descriptors to 1024
+    # otherwise slapd consumes two orders of magnitude more of RAM
+    # see https://github.com/docker/docker/issues/8231
+    ulimit -n 1024
+
+    OPENLDAP_ROOT_PASSWORD=${OPENLDAP_ROOT_PASSWORD:-admin}
+    OPENLDAP_ROOT_DN_PREFIX=${OPENLDAP_ROOT_DN_PREFIX:-'cn=Manager'}
+    OPENLDAP_ROOT_DN_SUFFIX=${OPENLDAP_ROOT_DN_SUFFIX:-'dc=example,dc=com'}
+    OPENLDAP_DEBUG_LEVEL=${OPENLDAP_DEBUG_LEVEL:-256}
+
+    # Only run if no config has happened fully before
+    if [ ! -f /etc/openldap/CONFIGURED ]; then
+        user=`+"`"+`id | grep -Po "(?<=uid=)\d+"`+"`"+`
+        if (( user == 0 ))
+        then
+            # We are root, we can use user input!
+            # Bring in default databse config
+            cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+
+            # start the daemon in another process and make config changes
+            slapd -h "ldap:/// ldaps:/// ldapi:///" -d $OPENLDAP_DEBUG_LEVEL &
+            for ((i=30; i>0; i--))
+            do
+                ping_result=`+"`"+`ldapsearch 2>&1 | grep "Can.t contact LDAP server"`+"`"+`
+                if [ -z "$ping_result" ]
+                then
+                    break
+                fi
+                sleep 1
+            done
+            if [ $i -eq 0 ]
+            then
+                echo "slapd did not start correctly"
+                exit 1
+            fi
+
+            # add useful schemas
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/openldap/testPerson.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # domain and TLS setup
+            ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/domain_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapmodify -Y EXTERNAL -H ldapi:/// -f /usr/local/etc/ldapconf/tls_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # base and groupsync data
+            ldapadd -x -D cn=Manager,dc=example,dc=com -w admin -f /usr/local/etc/ldapconf/base_conf.ldif -d $OPENLDAP_DEBUG_LEVEL
+            ldapadd -x -D cn=Manager,dc=example,dc=com -w admin -f /usr/local/etc/ldapconf/groupsync.ldif -d $OPENLDAP_DEBUG_LEVEL
+
+            # stop the daemon
+            pid=$(ps -A | grep slapd | awk '{print $1}')
+            kill -2 $pid || echo $?
+
+            # ensure the daemon stopped
+            for ((i=30; i>0; i--))
+            do
+                exists=$(ps -A | grep $pid)
+                if [ -z "${exists}" ]
+                then
+                    break
+                fi
+                sleep 1
+            done
+            if [ $i -eq 0 ]
+            then
+                echo "slapd did not stop correctly"
+                exit 1
+            fi
+        else
+            # Something has gone wrong with our image build
+            echo "FAILURE: Need to run pod as root"
+            exit 1
+        fi
+
+        # copy in ldap.conf
+        cp /usr/local/etc/ldapconf/*.conf /etc/openldap/
+
+        # Test configuration files, log checksum errors. Errors may be tolerated and repaired by slapd so don't exit
+        LOG=`+"`"+`slaptest 2>&1`+"`"+`
+        CHECKSUM_ERR=$(echo "${LOG}" | grep -Po "(?<=ldif_read_file: checksum error on \").+(?=\")")
+        for err in $CHECKSUM_ERR
+        do
+            echo "The file ${err} has a checksum error. Ensure that this file is not edited manually, or re-calculate the checksum."
+        done
+
+        touch /etc/openldap/CONFIGURED
+    fi
+
+    # Start the slapd service
+    exec slapd -h "ldap:///${HOSTNAME} ldapi:/// ldaps:///${HOSTNAME}" -d $OPENLDAP_DEBUG_LEVEL
+`)
+
+func testExtendedTestdataLdapLdapserverScriptsCmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverScriptsCmYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverImagestreamTestenvJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverImagestreamTestenvJsonBytes()
+func testExtendedTestdataLdapLdapserverScriptsCmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverScriptsCmYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-imagestream-testenv.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-scripts-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataLdapLdapserverImagestreamJson = []byte(`{
-  "kind": "ImageStream",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap",
-    "creationTimestamp": null
-  },
-  "spec": {
-    "dockerImageRepository": "openshift/openldap-2441-centos7",
-    "tags": [
-      {
-        "tag": "latest",
-        "annotations": {
-          "description": "Provides OpenLDAP v2.4.41",
-          "iconClass": "fa-server",
-          "tags": "server,openldap",
-          "version": "2.4.41"
-        }
-      }
-    ]
-  },
-  "status": {
-    "dockerImageRepository": ""
-  }
-}`)
+var _testExtendedTestdataLdapLdapserverServiceYaml = []byte(`---
+kind: Service
+apiVersion: v1
+metadata:
+  name: openldap-server
+spec:
+  ports:
+  - name: ldap
+    protocol: TCP
+    port: 389
+    targetPort: 389
+  selector:
+    app: openldap-server
+  type: ClusterIP
+`)
 
-func testExtendedTestdataLdapLdapserverImagestreamJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverImagestreamJson, nil
+func testExtendedTestdataLdapLdapserverServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapLdapserverServiceYaml, nil
 }
 
-func testExtendedTestdataLdapLdapserverImagestreamJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverImagestreamJsonBytes()
+func testExtendedTestdataLdapLdapserverServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapLdapserverServiceYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-imagestream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataLdapLdapserverServiceJson = []byte(`{
-  "kind": "Service",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "openldap-server",
-    "creationTimestamp": null
-  },
-  "spec": {
-    "ports": [
-      {
-        "name": "ldap",
-        "protocol": "TCP",
-        "port": 389,
-        "targetPort": 389,
-        "nodePort": 0
-      }
-    ],
-    "selector": {
-      "name": "openldap-server"
-    },
-    "type": "ClusterIP",
-    "sessionAffinity": "None"
-  },
-  "status": {
-    "loadBalancer": {}
-  }
-}`)
-
-func testExtendedTestdataLdapLdapserverServiceJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapLdapserverServiceJson, nil
-}
-
-func testExtendedTestdataLdapLdapserverServiceJson() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapLdapserverServiceJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-service.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/ldapserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -9948,6 +14771,218 @@ func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+  labels:
+    app: test-oauth-server
+  name: service-ca
+`)
+
+func testExtendedTestdataOauthserverCabundleCmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverCabundleCmYaml, nil
+}
+
+func testExtendedTestdataOauthserverCabundleCmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverCabundleCmYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/cabundle-cm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverOauthNetworkYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  labels:
+    app: test-oauth-server
+  name: test-oauth-svc
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 6443
+  selector:
+    app: test-oauth-server
+  type: ClusterIP
+  serviceAffinitiy: None
+---
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: test-oauth-server
+  name: test-oauth-route
+spec:
+  port:
+    targetPort: 6443
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: passthrough
+  to:
+    kind: Service
+    name: test-oauth-svc
+    weight: 100
+  wildcardPolicy: None
+
+`)
+
+func testExtendedTestdataOauthserverOauthNetworkYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverOauthNetworkYaml, nil
+}
+
+func testExtendedTestdataOauthserverOauthNetworkYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverOauthNetworkYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/oauth-network.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverOauthPodYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test-oauth-server
+  name: test-oauth-server
+spec:
+  containers:
+  - command:
+    - oauth-server
+    - osinserver
+    - --config=/var/config/system/configmaps/oauth-config/oauth.conf
+    - --v=100
+    image: quay.io/openshift/origin-oauth-server:latest
+    imagePullPolicy: IfNotPresent
+    name: oauth-server
+    ports:
+    - containerPort: 6443
+      name: https
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /healthz
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+    securityContext:
+      capabilities:
+        drop:
+        - MKNOD
+      procMount: Default
+    volumeMounts:
+    - mountPath: /var/config/system/secrets/session-secret
+      name: session-secret
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/oauth-config
+      name: oauth-config
+      readOnly: true
+    - mountPath: /var/config/system/secrets/serving-cert
+      name: serving-cert
+      readOnly: true
+    - mountPath: /var/config/system/secrets/router-certs
+      name: router-certs
+      readOnly: true
+    - mountPath: /var/config/system/configmaps/service-ca
+      name: service-ca
+      readOnly: true
+  serviceAccountName: e2e-oauth
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: oauth.conf
+        path: oauth.conf
+      name: oauth-config
+    name: oauth-config
+  - name: session-secret
+    secret:
+      defaultMode: 420
+      items:
+      - key: session
+        path: session
+      secretName: session-secret
+  - name: serving-cert
+    secret:
+      defaultMode: 420
+      items:
+      - key: tls.crt
+        path: tls.crt
+      - key: tls.key
+        path: tls.key
+      secretName: serving-cert
+  - name: router-certs
+    secret:
+      defaultMode: 420
+      secretName: router-certs
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: service-ca.crt
+        path: service-ca.crt
+      name: service-ca
+    name: service-ca
+
+`)
+
+func testExtendedTestdataOauthserverOauthPodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverOauthPodYaml, nil
+}
+
+func testExtendedTestdataOauthserverOauthPodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverOauthPodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/oauth-pod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOauthserverOauthSaYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: e2e-oauth
+  labels:
+    app: test-oauth-server
+`)
+
+func testExtendedTestdataOauthserverOauthSaYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOauthserverOauthSaYaml, nil
+}
+
+func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOauthserverOauthSaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/oauthserver/oauth-sa.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml = []byte(`apiVersion: v1
 data:
   password: c2VjcmV0Y3JlZHN5bmMK
@@ -9971,114 +15006,6 @@ func testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml() (*asset, error
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/openshift-secret-to-jenkins-credential.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataReencryptServingCertYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: serving-cert
-    labels:
-      app: serving-cert
-  spec:
-    containers:
-    - image: nginx:1.15.3
-      name: serve
-      command:
-        - /usr/sbin/nginx
-      args:
-        - -c
-        - /etc/nginx/nginx.conf
-      ports:
-      - containerPort: 8443
-        protocol: TCP
-      volumeMounts:
-      - name: cert
-        mountPath: /etc/serving-cert
-      - name: conf
-        mountPath: /etc/nginx
-      - name: tmp
-        mountPath: /var/cache/nginx
-      - name: tmp
-        mountPath: /var/run
-    volumes:
-    - name: conf
-      configMap:
-        name: serving-cert
-    - name: cert
-      secret:
-        secretName: serving-cert
-    - name: tmp
-      emptyDir: {}
-    - name: tmp2
-      emptyDir: {}
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: serving-cert
-  data:
-    nginx.conf: |
-      daemon off;
-      events { }
-      http {
-        server {
-            listen 8443;
-            ssl    on;
-            ssl_certificate     /etc/serving-cert/tls.crt;
-            ssl_certificate_key    /etc/serving-cert/tls.key;
-            server_name  "*.svc";
-            location / {
-                root   /usr/share/nginx/html;
-                index  index.html index.htm;
-            }
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   /usr/share/nginx/html;
-            }
-        }
-      }
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: serving-cert
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
-  spec:
-    selector:
-      app: serving-cert
-    ports:
-      - port: 443
-        name: https
-        targetPort: 8443
-        protocol: TCP
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: serving-cert
-  spec:
-    tls:
-      termination: Reencrypt
-      # no destination CA certificate needed
-    to:
-      kind: Service
-      name: serving-cert
-`)
-
-func testExtendedTestdataReencryptServingCertYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataReencryptServingCertYaml, nil
-}
-
-func testExtendedTestdataReencryptServingCertYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataReencryptServingCertYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -10396,7 +15323,236 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterCommonYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterIngressYaml = []byte(`kind: List
+apiVersion: v1
+items:
+# an ingress that should be captured as individual routes
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    name: test
+  spec:
+    tls:
+    - hosts:
+      - 3.ingress-test.com
+      secretName: ingress-endpoint-secret
+    rules:
+    - host: 1.ingress-test.com
+      http:
+        paths:
+        - path: /test
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+        - path: /other
+          backend:
+            serviceName: ingress-endpoint-2
+            servicePort: 80
+    - host: 2.ingress-test.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+    - host: 3.ingress-test.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+# an empty secret
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ingress-endpoint-secret
+  type: kubernetes.io/tls
+  stringData:
+    tls.key: ""
+    tls.crt: ""
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-1
+  spec:
+    selector:
+      app: ingress-endpoint-1
+    ports:
+    - port: 80
+      targetPort: 8080
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-2
+  spec:
+    selector:
+      app: ingress-endpoint-2
+    ports:
+    - port: 80
+      targetPort: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-1
+    labels:
+      app: ingress-endpoint-1
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-2
+    labels:
+      app: ingress-endpoint-2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterIngressYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterIngressYaml, nil
+}
+
+func testExtendedTestdataRouterIngressYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterIngressYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/ingress.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterReencryptServingCertYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: serving-cert
+    labels:
+      app: serving-cert
+  spec:
+    containers:
+    - image: nginx:1.15.3
+      name: serve
+      command:
+        - /usr/sbin/nginx
+      args:
+        - -c
+        - /etc/nginx/nginx.conf
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      volumeMounts:
+      - name: cert
+        mountPath: /etc/serving-cert
+      - name: conf
+        mountPath: /etc/nginx
+      - name: tmp
+        mountPath: /var/cache/nginx
+      - name: tmp
+        mountPath: /var/run
+    volumes:
+    - name: conf
+      configMap:
+        name: serving-cert
+    - name: cert
+      secret:
+        secretName: serving-cert
+    - name: tmp
+      emptyDir: {}
+    - name: tmp2
+      emptyDir: {}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: serving-cert
+  data:
+    nginx.conf: |
+      daemon off;
+      events { }
+      http {
+        server {
+            listen 8443;
+            ssl    on;
+            ssl_certificate     /etc/serving-cert/tls.crt;
+            ssl_certificate_key    /etc/serving-cert/tls.key;
+            server_name  "*.svc";
+            location / {
+                root   /usr/share/nginx/html;
+                index  index.html index.htm;
+            }
+            error_page   500 502 503 504  /50x.html;
+            location = /50x.html {
+                root   /usr/share/nginx/html;
+            }
+        }
+      }
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: serving-cert
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  spec:
+    selector:
+      app: serving-cert
+    ports:
+      - port: 443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: serving-cert
+  spec:
+    tls:
+      termination: Reencrypt
+      # no destination CA certificate needed
+    to:
+      kind: Service
+      name: serving-cert
+`)
+
+func testExtendedTestdataRouterReencryptServingCertYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterReencryptServingCertYaml, nil
+}
+
+func testExtendedTestdataRouterReencryptServingCertYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterReencryptServingCertYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterCommonYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 objects:
@@ -10506,22 +15662,22 @@ objects:
         protocol: UDP
 `)
 
-func testExtendedTestdataRouterCommonYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterCommonYaml, nil
+func testExtendedTestdataRouterRouterCommonYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterCommonYaml, nil
 }
 
-func testExtendedTestdataRouterCommonYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterCommonYamlBytes()
+func testExtendedTestdataRouterRouterCommonYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterCommonYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-common.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-common.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterConfigManagerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterConfigManagerYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -10797,22 +15953,22 @@ objects:
       kind: Service
 `)
 
-func testExtendedTestdataRouterConfigManagerYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterConfigManagerYaml, nil
+func testExtendedTestdataRouterRouterConfigManagerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterConfigManagerYaml, nil
 }
 
-func testExtendedTestdataRouterConfigManagerYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterConfigManagerYamlBytes()
+func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterConfigManagerYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-config-manager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-config-manager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterHttpEchoServerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterHttpEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
@@ -10870,22 +16026,22 @@ items:
       name: router-http-echo
 `)
 
-func testExtendedTestdataRouterHttpEchoServerYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterHttpEchoServerYaml, nil
+func testExtendedTestdataRouterRouterHttpEchoServerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterHttpEchoServerYaml, nil
 }
 
-func testExtendedTestdataRouterHttpEchoServerYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterHttpEchoServerYamlBytes()
+func testExtendedTestdataRouterRouterHttpEchoServerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterHttpEchoServerYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-http-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-http-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterMetricsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterMetricsYaml = []byte(`apiVersion: v1
 kind: List
 items:
 # a route that has multiple weighted services that it points to
@@ -10992,22 +16148,22 @@ items:
         protocol: UDP
 `)
 
-func testExtendedTestdataRouterMetricsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterMetricsYaml, nil
+func testExtendedTestdataRouterRouterMetricsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterMetricsYaml, nil
 }
 
-func testExtendedTestdataRouterMetricsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterMetricsYamlBytes()
+func testExtendedTestdataRouterRouterMetricsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterMetricsYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-metrics.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-metrics.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterOverrideDomainsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterOverrideDomainsYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -11050,22 +16206,22 @@ objects:
     serviceAccountName: default
 `)
 
-func testExtendedTestdataRouterOverrideDomainsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterOverrideDomainsYaml, nil
+func testExtendedTestdataRouterRouterOverrideDomainsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterOverrideDomainsYaml, nil
 }
 
-func testExtendedTestdataRouterOverrideDomainsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterOverrideDomainsYamlBytes()
+func testExtendedTestdataRouterRouterOverrideDomainsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterOverrideDomainsYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-override-domains.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-override-domains.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterOverrideYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterOverrideYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -11108,22 +16264,22 @@ objects:
     serviceAccountName: default
 `)
 
-func testExtendedTestdataRouterOverrideYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterOverrideYaml, nil
+func testExtendedTestdataRouterRouterOverrideYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterOverrideYaml, nil
 }
 
-func testExtendedTestdataRouterOverrideYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterOverrideYamlBytes()
+func testExtendedTestdataRouterRouterOverrideYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterOverrideYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataRouterScopedYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterScopedYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -11165,17 +16321,198 @@ objects:
     serviceAccountName: default
 `)
 
-func testExtendedTestdataRouterScopedYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterScopedYaml, nil
+func testExtendedTestdataRouterRouterScopedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterScopedYaml, nil
 }
 
-func testExtendedTestdataRouterScopedYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterScopedYamlBytes()
+func testExtendedTestdataRouterRouterScopedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterScopedYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterWeightedRouterYaml = []byte(`apiVersion: v1
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+objects:
+# a weighted router
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: weighted-router
+    labels:
+      test: weighted-router
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: system-router
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: system:router
+
+# a route that has multiple weighted services that it points to
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: weightedroute
+    labels:
+      test: router
+      select: weighted
+  spec:
+    host: weighted.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 90
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 10
+    ports:
+    - targetPort: 8080
+
+# a route that has multiple services but all weights are zero
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: zeroweightroute
+    labels:
+      test: router
+      select: weighted
+  spec:
+    host: zeroweight.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 0
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 0
+    ports:
+    - targetPort: 8080
+
+# two services that can be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints1
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+    ports:
+    - port: 8080
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints2
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+    ports:
+    - port: 8080
+# two pods that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-2
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-3
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataRouterWeightedRouterYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterWeightedRouterYaml, nil
+}
+
+func testExtendedTestdataRouterWeightedRouterYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterWeightedRouterYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/weighted-router.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -11675,6 +17012,747 @@ func testExtendedTestdataSignerBuildconfigYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/signer-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesCrunchydataPodJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "node-example",
+    "creationTimestamp": null
+  },
+  "objects": [
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "pg-standalone-1",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "crunchy-node"
+        }
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "pgdata",
+            "hostPath": {
+              "path": "/var/lib/pgsql/exampleuser"
+            },
+            "rbd": null
+          }
+        ],
+        "containers": [
+          {
+            "name": "master",
+            "image": "registry:5000/crunchy-node",
+            "ports": [
+              {
+                "hostPort": 9000,
+                "containerPort": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "PG_USERNAME",
+                "value": "exampleuser"
+              },
+              {
+                "name": "PG_PASSWORD",
+                "value": "example"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "pgdata",
+                "mountPath": "/pgdata"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataTemplatesCrunchydataPodJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesCrunchydataPodJson, nil
+}
+
+func testExtendedTestdataTemplatesCrunchydataPodJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesCrunchydataPodJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/crunchydata-pod.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesGuestbookJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "guestbook-example",
+    "creationTimestamp": null,
+    "annotations": {
+      "openshift.io/display-name": "Guestbook Example",
+      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+    }
+  },
+  "message": "Your admin credentials are ${ADMIN_USERNAME}:${ADMIN_PASSWORD}",
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-route",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "host": "guestbook.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend-service"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-service",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 5432,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend-service"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10000,
+            "targetPort": 10000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "redis-master"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10001,
+            "targetPort": 10001,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "redis-master"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "master",
+            "image": "dockerfile/redis",
+            "ports": [
+              {
+                "containerPort": 6379,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "REDIS_PASSWORD",
+                "value": "${REDIS_PASSWORD}"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "guestbook",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "frontend-service"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend-service"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend-service"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "php-redis",
+                "image": "brendanburns/php-redis",
+                "ports": [
+                  {
+                    "hostPort": 8000,
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        }
+      },
+      "spec": {
+        "replicas": 2,
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${SLAVE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "slave",
+                "image": "brendanburns/${SLAVE_SERVICE_NAME}",
+                "ports": [
+                  {
+                    "hostPort": 6380,
+                    "containerPort": 6379,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "Guestbook administrator username",
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "Guestbook administrator password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "REDIS_PASSWORD",
+      "description": "Redis password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "SLAVE_SERVICE_NAME",
+      "description": "Slave Service name",
+      "value": "redis-slave"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataTemplatesGuestbookJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesGuestbookJson, nil
+}
+
+func testExtendedTestdataTemplatesGuestbookJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesGuestbookJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/guestbook.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesGuestbook_listJson = []byte(`{
+    "kind": "Template",
+    "apiVersion": "template.openshift.io/v1",
+    "metadata": {
+        "name": "guestbook-example",
+        "creationTimestamp": null,
+        "annotations": {
+            "openshift.io/display-name": "Guestbook Example",
+            "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+        }
+    },
+    "message": "Your admin credentials are adminQ3H:dwNJiJwW",
+    "objects": [
+        {
+            "apiVersion": "route.openshift.io/v1",
+            "kind": "Route",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "frontend-route"
+            },
+            "spec": {
+                "host": "guestbook.example.com",
+                "to": {
+                    "kind": "Service",
+                    "name": "frontend-service"
+                }
+            },
+            "status": {}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "frontend-service"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 5432,
+                        "protocol": "TCP",
+                        "targetPort": 5432
+                    }
+                ],
+                "selector": {
+                    "name": "frontend-service"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "redis-master"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 10000,
+                        "protocol": "TCP",
+                        "targetPort": 10000
+                    }
+                ],
+                "selector": {
+                    "name": "redis-master"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "redis-slave"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 10001,
+                        "protocol": "TCP",
+                        "targetPort": 10001
+                    }
+                ],
+                "selector": {
+                    "name": "redis-slave"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "redis-master"
+                },
+                "name": "redis-master"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "capabilities": {},
+                        "env": [
+                            {
+                                "name": "REDIS_PASSWORD",
+                                "value": "P8vxbV4C"
+                            }
+                        ],
+                        "image": "dockerfile/redis",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "master",
+                        "ports": [
+                            {
+                                "containerPort": 6379,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {},
+                        "securityContext": {
+                            "capabilities": {},
+                            "privileged": false
+                        },
+                        "terminationMessagePath": "/dev/termination-log"
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "serviceAccount": ""
+            },
+            "status": {}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "frontend-service"
+                },
+                "name": "guestbook"
+            },
+            "spec": {
+                "replicas": 3,
+                "selector": {
+                    "name": "frontend-service"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "name": "frontend-service"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "ADMIN_USERNAME",
+                                        "value": "adminQ3H"
+                                    },
+                                    {
+                                        "name": "ADMIN_PASSWORD",
+                                        "value": "dwNJiJwW"
+                                    },
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "value": "P8vxbV4C"
+                                    }
+                                ],
+                                "image": "brendanburns/php-redis",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "php-redis",
+                                "ports": [
+                                    {
+                                        "containerPort": 80,
+                                        "hostPort": 8000,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccount": ""
+                    }
+                }
+            },
+            "status": {
+                "replicas": 0
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "redis-slave"
+                },
+                "name": "redis-slave"
+            },
+            "spec": {
+                "replicas": 2,
+                "selector": {
+                    "name": "redis-slave"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "name": "redis-slave"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "value": "P8vxbV4C"
+                                    }
+                                ],
+                                "image": "brendanburns/redis-slave",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "slave",
+                                "ports": [
+                                    {
+                                        "containerPort": 6379,
+                                        "hostPort": 6380,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccount": ""
+                    }
+                }
+            },
+            "status": {
+                "replicas": 0
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "name": "ADMIN_USERNAME",
+            "description": "Guestbook administrator username",
+            "value": "adminQ3H",
+            "generate": "expression",
+            "from": "admin[A-Z0-9]{3}"
+        },
+        {
+            "name": "ADMIN_PASSWORD",
+            "description": "Guestbook administrator password",
+            "value": "dwNJiJwW",
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
+        },
+        {
+            "name": "REDIS_PASSWORD",
+            "description": "Redis password",
+            "value": "P8vxbV4C",
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
+        },
+        {
+            "name": "SLAVE_SERVICE_NAME",
+            "description": "Slave Service name",
+            "value": "redis-slave"
+        },
+        {
+            "name": "CUSTOM_PARAM1",
+            "value": "1"
+        }
+    ]
+}
+`)
+
+func testExtendedTestdataTemplatesGuestbook_listJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesGuestbook_listJson, nil
+}
+
+func testExtendedTestdataTemplatesGuestbook_listJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesGuestbook_listJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/guestbook_list.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -12235,201 +18313,6 @@ func testExtendedTestdataTestEnvPodJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTestGitserverTokenauthYaml = []byte(`apiVersion: v1
-kind: Template
-labels:
-  template: gitserver
-metadata:
-  name: gitserver
-objects:
-# The gitserver is deployed as a singleton pod and uses a very small amount
-# of resources. It can host or transiently serve Git repositories, as well
-# as automatically integrate with builds in a namespace.
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    name: gitserver
-    labels:
-      app: gitserver
-  spec:
-    replicas: 1 # the gitserver is not HA and should not be scaled past 1
-    selector:
-      run-container: gitserver
-    template:
-      metadata:
-        labels:
-          run-container: gitserver
-      spec:
-        containers:
-        - name: gitserver
-          image: openshift/origin-gitserver
-          readinessProbe:
-            tcpSocket:
-              port: 8080
-          ports:
-          - containerPort: 8080
-
-          env:
-          # Each environment variable matching GIT_INITIAL_CLONE_* will
-          # be cloned when the process starts; failures will be logged.
-          # <name> must be [A-Z0-9_\-\.], the cloned directory name will
-          # be lowercased. If the name is invalid the pod will halt. If
-          # the repository already exists on disk, it will be updated
-          # from the remote.
-          #
-          - name: GIT_INITIAL_CLONE_1
-            value: https://github.com/openshift/ruby-hello-world.git;ruby-hello-world
-
-
-          # The namespace of the pod is required for implicit config
-          # (passing '-' to AUTOLINK_KUBECONFIG or REQUIRE_SERVER_AUTH)
-          # and can also be used to target a specific namespace.
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-
-          # The URL that builds must use to access the Git repositories
-          # stored in this app.
-          # TODO: support HTTPS
-          - name: PUBLIC_URL
-            value: http://gitserver-tokenauth.$(POD_NAMESPACE).svc.cluster.local:8080
-          # The directory to store Git repositories in. If not backed
-          # by a persistent volume, repositories will be lost when
-          # deployments occur. Use INITIAL_GIT_CLONE and AUTOLINK_*
-          # to remove the need to use a persistent volume.
-          - name: GIT_HOME
-            value: /var/lib/git
-          # The directory to use as the default hook directory for any
-          # cloned or autolinked directories.
-          - name: HOOK_PATH
-            value: /var/lib/git-hooks
-
-          # Authentication and authorization
-
-          # If 'yes', clients may push to the server with git push.
-          - name: ALLOW_GIT_PUSH
-            value: "yes"
-          # If 'yes', clients may set hooks via the API. However, unless
-          # the Git home is backed by a persistent volume, any deployment
-          # will result in the hooks being lost.
-          - name: ALLOW_GIT_HOOKS
-            value: "yes"
-          # If 'yes', clients can create new git repositories on demand
-          # by pushing. If the data on disk is not backed by a persistent
-          # volume, the Git repo will be deleted if the deployment is
-          # updated.
-          - name: ALLOW_LAZY_CREATE
-            value: "yes"
-          # If 'yes', clients can pull without being authenticated.
-          - name: ALLOW_ANON_GIT_PULL
-
-          # Provides the path to a kubeconfig file in the image that
-          # should be used to authorize against the server. The value
-          # '-' will use the pod's service account.
-          # May not be used in combination with REQUIRE_GIT_AUTH
-          - name: REQUIRE_SERVER_AUTH
-            value: "-"
-          
-          # The namespace to check authorization against when
-          # REQUIRE_SERVICE_AUTH is used. Users must have 'get' on
-          # 'pods' to pull and 'create' on 'pods' to push.
-          - name: AUTH_NAMESPACE
-            value: $(POD_NAMESPACE)
-          # Require BASIC authentication with a username and password
-          # to push or pull.
-          # May not be used in combination with REQUIRE_SERVER_AUTH
-          #- name: REQUIRE_GIT_AUTH
-          #  value: gituser:gituserpassword
-
-          # Autolinking:
-          #
-          # The gitserver can automatically clone Git repositories
-          # associated with a build config and replace the URL with
-          # a link to the repo on PUBLIC_URL. The default post-receive
-          # hook on the cloned repo will then trigger a build. You
-          # may customize the hook with AUTOLINK_HOOK (path to hook).
-          # To autolink, the account the pod runs under must have 'edit'
-          # on the AUTOLINK_NAMESPACE:
-          #
-          #    oc policy add-role-to-user \
-          #      system:serviceaccount:${namespace}:gitserver edit
-          #
-          # Links are checked every time the pod starts.
-
-          # The location to read auth configuration from for autolinking.
-          # If '-', use the service account token to link. The account
-          # represented by this config must have the edit role on the
-          # namespace.
-          #- name: AUTOLINK_KUBECONFIG
-          #  value: "-"
-
-          # The namespace to autolink
-          #- name: AUTOLINK_NAMESPACE
-          #  value: $(POD_NAMESPACE)
-
-          # The path to a script in the image to use as the default
-          # post-receive hook - only set during link, so has no effect
-          # on cloned repositories. See the "hooks" directory in the
-          # image for examples.
-          #- name: AUTOLINK_HOOK
-
-          # The master service host is not signed with the service IP
-          # so we override with the consistent DNS name. Required for
-          # connections to the server.
-          - name: KUBERNETES_SERVICE_HOST
-            value: kubernetes.default
-
-          volumeMounts:
-          - mountPath: /var/lib/git/
-            name: git
-        volumes:
-        - name: git
-    triggers:
-    - type: ConfigChange
-
-# The gitserver service is required for DNS resolution
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: gitserver-tokenauth
-    labels:
-      app: gitserver
-  spec:
-    ports:
-    - port: 8080
-      targetPort: 8080
-    selector:
-      run-container: gitserver
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: gitserver-tokenauth
-    labels:
-      app: gitserver
-  spec:
-    tls:
-      termination: edge
-    to:
-      kind: Service
-      name: gitserver-tokenauth
-`)
-
-func testExtendedTestdataTestGitserverTokenauthYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestGitserverTokenauthYaml, nil
-}
-
-func testExtendedTestdataTestGitserverTokenauthYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestGitserverTokenauthYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-gitserver-tokenauth.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataTestGitserverYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
@@ -12653,188 +18536,7 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataWeightedRouterYaml = []byte(`apiVersion: v1
-kind: Template
-parameters:
-- name: IMAGE
-  value: openshift/origin-haproxy-router:latest
-objects:
-# a weighted router
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: weighted-router
-    labels:
-      test: weighted-router
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: router
-      image: ${IMAGE}
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
-      hostNetwork: false
-      ports:
-      - containerPort: 80
-      - containerPort: 443
-      - containerPort: 1936
-        name: stats
-        protocol: TCP
-    serviceAccountName: default
-
-# ensure the router can access routes and endpoints
-- apiVersion: v1
-  kind: RoleBinding
-  metadata:
-    name: system-router
-  subjects:
-  - kind: ServiceAccount
-    name: default
-  roleRef:
-    name: system:router
-
-# a route that has multiple weighted services that it points to
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: weightedroute
-    labels:
-      test: router
-      select: weighted
-  spec:
-    host: weighted.example.com
-    to:
-      name: weightedendpoints1
-      kind: Service
-      weight: 90
-    alternateBackends:
-    - name: weightedendpoints2
-      kind: Service
-      weight: 10
-    ports:
-    - targetPort: 8080
-
-# a route that has multiple services but all weights are zero
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: zeroweightroute
-    labels:
-      test: router
-      select: weighted
-  spec:
-    host: zeroweight.example.com
-    to:
-      name: weightedendpoints1
-      kind: Service
-      weight: 0
-    alternateBackends:
-    - name: weightedendpoints2
-      kind: Service
-      weight: 0
-    ports:
-    - targetPort: 8080
-
-# two services that can be routed to
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: weightedendpoints1
-    labels:
-      test: router
-  spec:
-    selector:
-      test: weightedrouter1
-      endpoints: weightedrouter1
-    ports:
-    - port: 8080
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: weightedendpoints2
-    labels:
-      test: router
-  spec:
-    selector:
-      test: weightedrouter2
-      endpoints: weightedrouter2
-    ports:
-    - port: 8080
-# two pods that serves a response
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-1
-    labels:
-      test: weightedrouter1
-      endpoints: weightedrouter1
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-2
-    labels:
-      test: weightedrouter2
-      endpoints: weightedrouter2
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: endpoint-3
-    labels:
-      test: weightedrouter2
-      endpoints: weightedrouter2
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: test
-      image: openshift/hello-openshift
-      ports:
-      - containerPort: 8080
-        name: http
-      - containerPort: 100
-        protocol: UDP
-`)
-
-func testExtendedTestdataWeightedRouterYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataWeightedRouterYaml, nil
-}
-
-func testExtendedTestdataWeightedRouterYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataWeightedRouterYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/weighted-router.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataProjectRequestTemplateWithQuotaYaml = []byte(`apiVersion: v1
+var _testIntegrationTestdataProjectRequestTemplateWithQuotaYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   creationTimestamp: 2015-10-24T18:25:22Z
@@ -12948,7 +18650,8 @@ parameters:
 - name: PROJECT_NAME
 - name: PROJECT_DISPLAYNAME
 - name: PROJECT_DESCRIPTION
-- name: PROJECT_ADMIN_USER`)
+- name: PROJECT_ADMIN_USER
+`)
 
 func testIntegrationTestdataProjectRequestTemplateWithQuotaYamlBytes() ([]byte, error) {
 	return _testIntegrationTestdataProjectRequestTemplateWithQuotaYaml, nil
@@ -13279,46 +18982,6 @@ func testIntegrationTestdataTestDeploymentConfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testIntegrationTestdataTestEgressNetworkPolicyJson = []byte(`{
-    "kind": "EgressNetworkPolicy",
-    "apiVersion": "v1",
-    "metadata": {
-	"name": "default"
-    },
-    "spec": {
-	"egress": [
-	    {
-		"type": "Allow",
-		"to": {
-		    "cidrSelector": "192.168.0.0/16"
-		}
-	    },
-	    {
-		"type": "Deny",
-		"to": {
-		    "cidrSelector": "0.0.0.0/0"
-		}
-	    }
-	]
-    }
-}
-`)
-
-func testIntegrationTestdataTestEgressNetworkPolicyJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestEgressNetworkPolicyJson, nil
-}
-
-func testIntegrationTestdataTestEgressNetworkPolicyJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestEgressNetworkPolicyJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-egress-network-policy.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testIntegrationTestdataTestImageStreamMappingJson = []byte(`{
   "kind": "ImageStreamMapping",
   "apiVersion": "v1",
@@ -13394,7 +19057,7 @@ func testIntegrationTestdataTestImageStreamJson() (*asset, error) {
 
 var _testIntegrationTestdataTestImageJson = []byte(`{
   "kind": "Image",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test",
     "creationTimestamp": null
@@ -13409,7 +19072,8 @@ var _testIntegrationTestdataTestImageJson = []byte(`{
     "Config": {}
   },
   "dockerImageMetadataVersion": "1.0"
-}`)
+}
+`)
 
 func testIntegrationTestdataTestImageJsonBytes() ([]byte, error) {
 	return _testIntegrationTestdataTestImageJson, nil
@@ -16503,7 +22167,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "sampleRef": "dotnetcore-2.0",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
               "supports": "dotnet:2.0,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "tags": "hidden,builder,.net,dotnet,dotnetcore,rh-dotnet20",
               "version": "2.0"
             },
             "from": {
@@ -16598,24 +22262,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Provides a Jenkins 1.X server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
-              "iconClass": "icon-jenkins",
-              "openshift.io/display-name": "Jenkins 1.X",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "hidden,jenkins",
-              "version": "1.x"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/jenkins-1-centos7:latest"
-            },
-            "name": "1",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
               "description": "Provides a Jenkins v2.x server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
               "openshift.io/display-name": "Jenkins 2.X",
@@ -16625,7 +22271,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/openshift/jenkins-2-centos7:v4.0"
+              "name": "quay.io/openshift/origin-jenkins:v4.0"
             },
             "name": "2",
             "referencePolicy": {
@@ -17024,7 +22670,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "10"
+              "name": "11"
             },
             "name": "latest",
             "referencePolicy": {
@@ -17144,6 +22790,25 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "name": "docker.io/nodeshift/centos7-s2i-nodejs:10.x"
             },
             "name": "10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 11 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 11",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "11"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:11.x"
+            },
+            "name": "11",
             "referencePolicy": {
               "type": "Local"
             }
@@ -17836,7 +23501,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "14.0"
+              "name": "15.0"
             },
             "name": "latest",
             "referencePolicy": {
@@ -18002,6 +23667,26 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 15 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 15",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:15,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "15.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-150-centos7:latest"
+            },
+            "name": "15.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
           }
         ]
       }
@@ -18042,20 +23727,41 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
         "tags": [
           {
             "annotations": {
-              "description": "Build and run .NET Core applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "description": "Build and run .NET Core applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.2/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
               "iconClass": "icon-dotnet",
               "openshift.io/display-name": ".NET Core (Latest)",
               "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-2.1",
+              "sampleRef": "dotnetcore-2.2",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
               "supports": "dotnet",
               "tags": "builder,.net,dotnet,dotnetcore"
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.1"
+              "name": "2.2"
             },
             "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 2.2 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.2/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.2",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.2",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.2,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet22",
+              "version": "2.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnet-22-rhel7:2.2"
+            },
+            "name": "2.2",
             "referencePolicy": {
               "type": "Local"
             }
@@ -18090,7 +23796,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "sampleRef": "dotnetcore-2.0",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
               "supports": "dotnet:2.0,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "tags": "hidden,builder,.net,dotnet,dotnetcore,rh-dotnet20",
               "version": "2.0"
             },
             "from": {
@@ -18230,24 +23936,6 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Provides a Jenkins 1.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
-              "iconClass": "icon-jenkins",
-              "openshift.io/display-name": "Jenkins 1.X",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "hidden,jenkins",
-              "version": "1.x"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.redhat.io/openshift3/jenkins-1-rhel7:latest"
-            },
-            "name": "1",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
               "description": "Provides a Jenkins 2.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
               "openshift.io/display-name": "Jenkins 2.X",
@@ -18257,7 +23945,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/openshift3/jenkins-2-rhel7:v4.0"
+              "name": "registry.redhat.io/openshift/jenkins-2-rhel7:v4.0"
             },
             "name": "2",
             "referencePolicy": {
@@ -19460,514 +25148,6 @@ func examplesImageStreamsImageStreamsRhel7Json() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "examples/image-streams/image-streams-rhel7.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
-  "kind": "Template",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "ruby-helloworld-sample",
-    "annotations": {
-      "description": "This example shows how to create a simple ruby application in openshift origin v3",
-      "iconClass": "icon-ruby",
-      "tags": "instant-app,ruby,mysql"
-    }
-  },
-  "objects": [
-    {
-      "kind": "Secret",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "dbsecret"
-      },
-      "stringData" : {
-        "mysql-user" : "${MYSQL_USER}",
-        "mysql-password" : "${MYSQL_PASSWORD}"
-      }
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend"
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "web",
-            "protocol": "TCP",
-            "port": 5432,
-            "targetPort": 8080,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "frontend"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    },
-    {
-      "kind": "Route",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "route-edge",
-        "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
-        }
-      },
-      "spec": {
-        "host": "www.example.com",
-        "to": {
-          "kind": "Service",
-          "name": "frontend"
-        },
-        "tls": {
-          "termination": "edge"
-        }
-      },
-      "status": {}
-    },
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-ruby-sample"
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-custom-docker-builder"
-      },
-      "spec": {
-        "dockerImageRepository": "openshift/origin-custom-docker-builder"
-      },
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-sample-build",
-        "labels": {
-          "name": "ruby-sample-build"
-        },
-        "annotations": {
-          "template.alpha.openshift.io/wait-for-ready": "true"
-        }
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "GitHub",
-            "github": {
-              "secret": "secret101"
-            }
-          },
-          {
-            "type": "Generic",
-            "generic": {
-              "secret": "secret101",
-              "allowEnv": true
-            }
-          },
-          {
-            "type": "ImageChange",
-            "imageChange": {}
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Custom",
-          "customStrategy": {
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "origin-custom-docker-builder:latest"
-            },
-            "env": [
-              {
-                "name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
-                "value": "openshift/origin-custom-docker-builder"
-              }
-            ],
-            "exposeDockerSocket": true
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "origin-ruby-sample:latest"
-          }
-        },
-        "postCommit": {
-          "script": "bundle exec rake test"
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend",
-        "annotations": {
-          "template.alpha.openshift.io/wait-for-ready": "true"
-        }
-      },
-      "spec": {
-        "strategy": {
-          "type": "Rolling",
-          "rollingParams": {
-            "updatePeriodSeconds": 1,
-            "intervalSeconds": 1,
-            "timeoutSeconds": 120,
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            }
-          },
-          "resources": {}
-        },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "ruby-helloworld"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "origin-ruby-sample:latest"
-              }
-            }
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
-        "replicas": 2,
-        "selector": {
-          "name": "frontend"
-        },
-        "template": {
-          "metadata": {
-            "labels": {
-              "name": "frontend"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld",
-                "image": "origin-ruby-sample",
-                "ports": [
-                  {
-                    "containerPort": 8080,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "MYSQL_USER",
-                    "valueFrom": {
-                      "secretKeyRef" : {
-                        "name" : "dbsecret",
-                        "key" : "mysql-user"
-                      }
-                    }
-                  },
-                  {
-                    "name": "MYSQL_PASSWORD",
-                    "valueFrom": {
-                      "secretKeyRef" : {
-                        "name" : "dbsecret",
-                        "key" : "mysql-password"
-                      }
-                    }
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
-                  }
-                ],
-                "resources": {},
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
-        }
-      },
-      "status": {}
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database"
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "db",
-            "protocol": "TCP",
-            "port": 5434,
-            "targetPort": 3306,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "database"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    },
-    {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database",
-        "annotations": {
-          "template.alpha.openshift.io/wait-for-ready": "true"
-        }
-      },
-      "spec": {
-        "strategy": {
-          "type": "Recreate",
-          "recreateParams": {
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "mid": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            }
-          },
-          "resources": {}
-        },
-        "triggers": [
-          {
-            "type": "ConfigChange"
-          }
-        ],
-        "replicas": 1,
-        "selector": {
-          "name": "database"
-        },
-        "template": {
-          "metadata": {
-            "labels": {
-              "name": "database"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
-                "ports": [
-                  {
-                    "containerPort": 3306,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "MYSQL_USER",
-                    "valueFrom": {
-                      "secretKeyRef" : {
-                        "name" : "dbsecret",
-                        "key" : "mysql-user"
-                      }
-                    }
-                  },
-                  {
-                    "name": "MYSQL_PASSWORD",
-                    "valueFrom": {
-                      "secretKeyRef" : {
-                        "name" : "dbsecret",
-                        "key" : "mysql-password"
-                      }
-                    }
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
-                  }
-                ],
-                "resources": {},
-                "volumeMounts": [
-                  {
-                    "name": "ruby-helloworld-data",
-                    "mountPath": "/var/lib/mysql/data"
-                  }
-                ],
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "Always",
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "volumes": [
-              {
-                "name": "ruby-helloworld-data",
-                "emptyDir": {
-                  "medium": ""
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
-        }
-      },
-      "status": {}
-    }
-  ],
-  "parameters": [
-    {
-      "name": "MYSQL_USER",
-      "description": "database username",
-      "generate": "expression",
-      "from": "user[A-Z0-9]{3}",
-      "required": true
-    },
-    {
-      "name": "MYSQL_PASSWORD",
-      "description": "database password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}",
-      "required": true
-    },
-    {
-      "name": "MYSQL_DATABASE",
-      "description": "database name",
-      "value": "root",
-      "required": true
-    }
-  ],
-  "labels": {
-    "template": "application-template-custombuild"
-  }
-}
-`)
-
-func examplesSampleAppApplicationTemplateCustombuildJsonBytes() ([]byte, error) {
-	return _examplesSampleAppApplicationTemplateCustombuildJson, nil
-}
-
-func examplesSampleAppApplicationTemplateCustombuildJson() (*asset, error) {
-	bytes, err := examplesSampleAppApplicationTemplateCustombuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "examples/sample-app/application-template-custombuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -21438,7 +26618,7 @@ var _examplesSampleAppCleanupSh = []byte(`#!/bin/sh
 echo "Killing openshift all-in-one server ..."
 sudo pkill -x openshift
 
-echo "Stopping all k8s docker containers on host ..."
+echo "Stopping all k8s containers on host ..."
 sudo docker ps --format='{{.Names}}' | grep -E '^k8s_' | xargs -l -r sudo docker stop
 
 echo "Unmounting openshift local volumes ..."
@@ -25358,18 +30538,6 @@ var _examplesQuickstartsDotnetPgsqlPersistentJson = []byte(`{
                                         "containerPort": 5432
                                     }
                                 ],
-                                "readinessProbe": {
-                                    "exec": {
-                                        "command": [
-                                            "/bin/sh",
-                                            "-i",
-                                            "-c",
-                                            "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
-                                        ]
-                                    },
-                                    "initialDelaySeconds": 5,
-                                    "timeoutSeconds": 1
-                                },
                                 "resources": {
                                     "limits": {
                                         "memory": "${MEMORY_POSTGRESQL_LIMIT}"
@@ -25839,7 +31007,7 @@ var _examplesQuickstartsDotnetJson = []byte(`{
             "displayName": ".NET builder",
             "name": "DOTNET_IMAGE_STREAM_TAG",
             "required": true,
-            "value": "dotnet:2.1"
+            "value": "dotnet:2.2"
         },
         {
             "description": "The OpenShift Namespace where the ImageStream resides.",
@@ -25859,7 +31027,7 @@ var _examplesQuickstartsDotnetJson = []byte(`{
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
             "displayName": "Git Reference",
             "name": "SOURCE_REPOSITORY_REF",
-            "value": "dotnetcore-2.1"
+            "value": "dotnetcore-2.2"
         },
         {
             "description": "Set this to use a subdirectory of the source code repository",
@@ -32794,6 +37962,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml": testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml": testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/builds/application-template-custombuild.json": testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
+	"test/extended/testdata/builds/build-cluster-config.yaml": testExtendedTestdataBuildsBuildClusterConfigYaml,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml": testExtendedTestdataBuildsBuildPostcommitDockerYaml,
 	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml": testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
 	"test/extended/testdata/builds/build-postcommit/sti.yaml": testExtendedTestdataBuildsBuildPostcommitStiYaml,
@@ -32827,9 +37997,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-docker-build.json": testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/cluster-config/invalid-build-cluster-config.yaml": testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml,
 	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml": testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
 	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml": testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
 	"test/extended/testdata/builds/cluster-config.yaml": testExtendedTestdataBuildsClusterConfigYaml,
+	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
 	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment": testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
@@ -32880,7 +38052,26 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/valuefrom/test-configmap.yaml": testExtendedTestdataBuildsValuefromTestConfigmapYaml,
 	"test/extended/testdata/builds/valuefrom/test-is.json": testExtendedTestdataBuildsValuefromTestIsJson,
 	"test/extended/testdata/builds/valuefrom/test-secret.yaml": testExtendedTestdataBuildsValuefromTestSecretYaml,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson,
+	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54.json": testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json,
+	"test/extended/testdata/builds/webhook/generic/testdata/post-receive-git.json": testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.json": testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic-envs.yaml": testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-generic.json": testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson,
+	"test/extended/testdata/builds/webhook/generic/testdata/push-gitlab.json": testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pingevent.json": testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pushevent-not-master-branch.json": testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson,
+	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json": testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json": testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
+	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json": testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
 	"test/extended/testdata/cluster/master-vert.yaml": testExtendedTestdataClusterMasterVertYaml,
+	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json": testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
+	"test/extended/testdata/cluster/quickstarts/dancer-mysql.json": testExtendedTestdataClusterQuickstartsDancerMysqlJson,
+	"test/extended/testdata/cluster/quickstarts/django-postgresql.json": testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson,
+	"test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json": testExtendedTestdataClusterQuickstartsNodejsMongodbJson,
+	"test/extended/testdata/cluster/quickstarts/rails-postgresql.json": testExtendedTestdataClusterQuickstartsRailsPostgresqlJson,
 	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
@@ -32930,6 +38121,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/idling-echo-server-rc.yaml": testExtendedTestdataIdlingEchoServerRcYaml,
 	"test/extended/testdata/idling-echo-server.yaml": testExtendedTestdataIdlingEchoServerYaml,
 	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml": testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
+	"test/extended/testdata/image/test-image.json": testExtendedTestdataImageTestImageJson,
 	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
@@ -32940,7 +38132,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json": testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
 	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
 	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
-	"test/extended/testdata/ingress.yaml": testExtendedTestdataIngressYaml,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
 	"test/extended/testdata/jenkins-plugin/build-job.xml": testExtendedTestdataJenkinsPluginBuildJobXml,
@@ -32957,17 +38148,19 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/jenkins-plugin/shared-resources-template.json": testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
 	"test/extended/testdata/jenkins-slave-template.yaml": testExtendedTestdataJenkinsSlaveTemplateYaml,
 	"test/extended/testdata/jobs/v1.yaml": testExtendedTestdataJobsV1Yaml,
-	"test/extended/testdata/ldap/ldapserver-buildconfig.json": testExtendedTestdataLdapLdapserverBuildconfigJson,
-	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json": testExtendedTestdataLdapLdapserverDeploymentconfigJson,
-	"test/extended/testdata/ldap/ldapserver-imagestream-testenv.json": testExtendedTestdataLdapLdapserverImagestreamTestenvJson,
-	"test/extended/testdata/ldap/ldapserver-imagestream.json": testExtendedTestdataLdapLdapserverImagestreamJson,
-	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
+	"test/extended/testdata/ldap/ldapserver-config-cm.yaml": testExtendedTestdataLdapLdapserverConfigCmYaml,
+	"test/extended/testdata/ldap/ldapserver-deployment.yaml": testExtendedTestdataLdapLdapserverDeploymentYaml,
+	"test/extended/testdata/ldap/ldapserver-scripts-cm.yaml": testExtendedTestdataLdapLdapserverScriptsCmYaml,
+	"test/extended/testdata/ldap/ldapserver-service.yaml": testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
+	"test/extended/testdata/oauthserver/oauth-network.yaml": testExtendedTestdataOauthserverOauthNetworkYaml,
+	"test/extended/testdata/oauthserver/oauth-pod.yaml": testExtendedTestdataOauthserverOauthPodYaml,
+	"test/extended/testdata/oauthserver/oauth-sa.yaml": testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
-	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references": testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml": testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
 	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml": testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
@@ -32976,13 +38169,16 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
-	"test/extended/testdata/router-common.yaml": testExtendedTestdataRouterCommonYaml,
-	"test/extended/testdata/router-config-manager.yaml": testExtendedTestdataRouterConfigManagerYaml,
-	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
-	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
-	"test/extended/testdata/router-override-domains.yaml": testExtendedTestdataRouterOverrideDomainsYaml,
-	"test/extended/testdata/router-override.yaml": testExtendedTestdataRouterOverrideYaml,
-	"test/extended/testdata/router-scoped.yaml": testExtendedTestdataRouterScopedYaml,
+	"test/extended/testdata/router/ingress.yaml": testExtendedTestdataRouterIngressYaml,
+	"test/extended/testdata/router/reencrypt-serving-cert.yaml": testExtendedTestdataRouterReencryptServingCertYaml,
+	"test/extended/testdata/router/router-common.yaml": testExtendedTestdataRouterRouterCommonYaml,
+	"test/extended/testdata/router/router-config-manager.yaml": testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-http-echo-server.yaml": testExtendedTestdataRouterRouterHttpEchoServerYaml,
+	"test/extended/testdata/router/router-metrics.yaml": testExtendedTestdataRouterRouterMetricsYaml,
+	"test/extended/testdata/router/router-override-domains.yaml": testExtendedTestdataRouterRouterOverrideDomainsYaml,
+	"test/extended/testdata/router/router-override.yaml": testExtendedTestdataRouterRouterOverrideYaml,
+	"test/extended/testdata/router/router-scoped.yaml": testExtendedTestdataRouterRouterScopedYaml,
+	"test/extended/testdata/router/weighted-router.yaml": testExtendedTestdataRouterWeightedRouterYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
@@ -32994,21 +38190,21 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
+	"test/extended/testdata/templates/crunchydata-pod.json": testExtendedTestdataTemplatesCrunchydataPodJson,
+	"test/extended/testdata/templates/guestbook.json": testExtendedTestdataTemplatesGuestbookJson,
+	"test/extended/testdata/templates/guestbook_list.json": testExtendedTestdataTemplatesGuestbook_listJson,
 	"test/extended/testdata/templates/templateinstance_badobject.yaml": testExtendedTestdataTemplatesTemplateinstance_badobjectYaml,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
 	"test/extended/testdata/templates/templateinstance_readiness.yaml": testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
 	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
 	"test/extended/testdata/test-cli-debug.yaml": testExtendedTestdataTestCliDebugYaml,
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
-	"test/extended/testdata/test-gitserver-tokenauth.yaml": testExtendedTestdataTestGitserverTokenauthYaml,
 	"test/extended/testdata/test-gitserver.yaml": testExtendedTestdataTestGitserverYaml,
 	"test/extended/testdata/test-secret.json": testExtendedTestdataTestSecretJson,
-	"test/extended/testdata/weighted-router.yaml": testExtendedTestdataWeightedRouterYaml,
 	"test/integration/testdata/project-request-template-with-quota.yaml": testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
 	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
 	"test/integration/testdata/test-buildcli.json": testIntegrationTestdataTestBuildcliJson,
 	"test/integration/testdata/test-deployment-config.yaml": testIntegrationTestdataTestDeploymentConfigYaml,
-	"test/integration/testdata/test-egress-network-policy.json": testIntegrationTestdataTestEgressNetworkPolicyJson,
 	"test/integration/testdata/test-image-stream-mapping.json": testIntegrationTestdataTestImageStreamMappingJson,
 	"test/integration/testdata/test-image-stream.json": testIntegrationTestdataTestImageStreamJson,
 	"test/integration/testdata/test-image.json": testIntegrationTestdataTestImageJson,
@@ -33028,7 +38224,6 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/db-templates/redis-persistent-template.json": examplesDbTemplatesRedisPersistentTemplateJson,
 	"examples/image-streams/image-streams-centos7.json": examplesImageStreamsImageStreamsCentos7Json,
 	"examples/image-streams/image-streams-rhel7.json": examplesImageStreamsImageStreamsRhel7Json,
-	"examples/sample-app/application-template-custombuild.json": examplesSampleAppApplicationTemplateCustombuildJson,
 	"examples/sample-app/application-template-dockerbuild.json": examplesSampleAppApplicationTemplateDockerbuildJson,
 	"examples/sample-app/application-template-pullspecbuild.json": examplesSampleAppApplicationTemplatePullspecbuildJson,
 	"examples/sample-app/application-template-stibuild.json": examplesSampleAppApplicationTemplateStibuildJson,
@@ -33160,7 +38355,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
 		}},
 		"sample-app": &bintree{nil, map[string]*bintree{
-			"application-template-custombuild.json": &bintree{examplesSampleAppApplicationTemplateCustombuildJson, map[string]*bintree{}},
 			"application-template-dockerbuild.json": &bintree{examplesSampleAppApplicationTemplateDockerbuildJson, map[string]*bintree{}},
 			"application-template-pullspecbuild.json": &bintree{examplesSampleAppApplicationTemplatePullspecbuildJson, map[string]*bintree{}},
 			"application-template-stibuild.json": &bintree{examplesSampleAppApplicationTemplateStibuildJson, map[string]*bintree{}},
@@ -33186,6 +38380,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-service.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
 				"builds": &bintree{nil, map[string]*bintree{
+					"application-template-custombuild.json": &bintree{testExtendedTestdataBuildsApplicationTemplateCustombuildJson, map[string]*bintree{}},
+					"build-cluster-config.yaml": &bintree{testExtendedTestdataBuildsBuildClusterConfigYaml, map[string]*bintree{}},
 					"build-postcommit": &bintree{nil, map[string]*bintree{
 						"docker.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitDockerYaml, map[string]*bintree{}},
 						"imagestreams.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml, map[string]*bintree{}},
@@ -33246,10 +38442,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
 					"cluster-config": &bintree{nil, map[string]*bintree{
+						"invalid-build-cluster-config.yaml": &bintree{testExtendedTestdataBuildsClusterConfigInvalidBuildClusterConfigYaml, map[string]*bintree{}},
 						"registry-blacklist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml, map[string]*bintree{}},
 						"registry-whitelist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, map[string]*bintree{}},
 					}},
 					"cluster-config.yaml": &bintree{testExtendedTestdataBuildsClusterConfigYaml, map[string]*bintree{}},
+					"docker-add": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
+					}},
 					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"s2i-environment-build-app": &bintree{nil, map[string]*bintree{
@@ -33316,9 +38516,48 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-is.json": &bintree{testExtendedTestdataBuildsValuefromTestIsJson, map[string]*bintree{}},
 						"test-secret.yaml": &bintree{testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
 					}},
+					"webhook": &bintree{nil, map[string]*bintree{
+						"bitbucket": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"pushevent-not-master.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson, map[string]*bintree{}},
+								"pushevent.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson, map[string]*bintree{}},
+								"pushevent54-not-master.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson, map[string]*bintree{}},
+								"pushevent54.json": &bintree{testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json, map[string]*bintree{}},
+							}},
+						}},
+						"generic": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"post-receive-git.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPostReceiveGitJson, map[string]*bintree{}},
+								"push-generic-envs.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson, map[string]*bintree{}},
+								"push-generic-envs.yaml": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml, map[string]*bintree{}},
+								"push-generic.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGenericJson, map[string]*bintree{}},
+								"push-gitlab.json": &bintree{testExtendedTestdataBuildsWebhookGenericTestdataPushGitlabJson, map[string]*bintree{}},
+							}},
+						}},
+						"github": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"pingevent.json": &bintree{testExtendedTestdataBuildsWebhookGithubTestdataPingeventJson, map[string]*bintree{}},
+								"pushevent-not-master-branch.json": &bintree{testExtendedTestdataBuildsWebhookGithubTestdataPusheventNotMasterBranchJson, map[string]*bintree{}},
+								"pushevent.json": &bintree{testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson, map[string]*bintree{}},
+							}},
+						}},
+						"gitlab": &bintree{nil, map[string]*bintree{
+							"testdata": &bintree{nil, map[string]*bintree{
+								"pushevent-not-master-branch.json": &bintree{testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson, map[string]*bintree{}},
+								"pushevent.json": &bintree{testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson, map[string]*bintree{}},
+							}},
+						}},
+					}},
 				}},
 				"cluster": &bintree{nil, map[string]*bintree{
 					"master-vert.yaml": &bintree{testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
+					"quickstarts": &bintree{nil, map[string]*bintree{
+						"cakephp-mysql.json": &bintree{testExtendedTestdataClusterQuickstartsCakephpMysqlJson, map[string]*bintree{}},
+						"dancer-mysql.json": &bintree{testExtendedTestdataClusterQuickstartsDancerMysqlJson, map[string]*bintree{}},
+						"django-postgresql.json": &bintree{testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
+						"nodejs-mongodb.json": &bintree{testExtendedTestdataClusterQuickstartsNodejsMongodbJson, map[string]*bintree{}},
+						"rails-postgresql.json": &bintree{testExtendedTestdataClusterQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+					}},
 				}},
 				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{
@@ -33402,6 +38641,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"idling-echo-server.yaml": &bintree{testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
 				"image": &bintree{nil, map[string]*bintree{
 					"deployment-with-annotation-trigger.yaml": &bintree{testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},
+					"test-image.json": &bintree{testExtendedTestdataImageTestImageJson, map[string]*bintree{}},
 				}},
 				"image-pull-secrets": &bintree{nil, map[string]*bintree{
 					"dc-with-new-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml, map[string]*bintree{}},
@@ -33423,7 +38663,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
-				"ingress.yaml": &bintree{testExtendedTestdataIngressYaml, map[string]*bintree{}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
 					"build-job-slave.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
@@ -33445,11 +38684,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"v1.yaml": &bintree{testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
 				"ldap": &bintree{nil, map[string]*bintree{
-					"ldapserver-buildconfig.json": &bintree{testExtendedTestdataLdapLdapserverBuildconfigJson, map[string]*bintree{}},
-					"ldapserver-deploymentconfig.json": &bintree{testExtendedTestdataLdapLdapserverDeploymentconfigJson, map[string]*bintree{}},
-					"ldapserver-imagestream-testenv.json": &bintree{testExtendedTestdataLdapLdapserverImagestreamTestenvJson, map[string]*bintree{}},
-					"ldapserver-imagestream.json": &bintree{testExtendedTestdataLdapLdapserverImagestreamJson, map[string]*bintree{}},
-					"ldapserver-service.json": &bintree{testExtendedTestdataLdapLdapserverServiceJson, map[string]*bintree{}},
+					"ldapserver-config-cm.yaml": &bintree{testExtendedTestdataLdapLdapserverConfigCmYaml, map[string]*bintree{}},
+					"ldapserver-deployment.yaml": &bintree{testExtendedTestdataLdapLdapserverDeploymentYaml, map[string]*bintree{}},
+					"ldapserver-scripts-cm.yaml": &bintree{testExtendedTestdataLdapLdapserverScriptsCmYaml, map[string]*bintree{}},
+					"ldapserver-service.yaml": &bintree{testExtendedTestdataLdapLdapserverServiceYaml, map[string]*bintree{}},
 				}},
 				"long_names": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
@@ -33457,8 +38695,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"oauthserver": &bintree{nil, map[string]*bintree{
+					"cabundle-cm.yaml": &bintree{testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
+					"oauth-network.yaml": &bintree{testExtendedTestdataOauthserverOauthNetworkYaml, map[string]*bintree{}},
+					"oauth-pod.yaml": &bintree{testExtendedTestdataOauthserverOauthPodYaml, map[string]*bintree{}},
+					"oauth-sa.yaml": &bintree{testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
+				}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
-				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"releases": &bintree{nil, map[string]*bintree{
 					"payload-1": &bintree{nil, map[string]*bintree{
 						"etcd-operator": &bintree{nil, map[string]*bintree{
@@ -33477,13 +38720,18 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
-				"router-common.yaml": &bintree{testExtendedTestdataRouterCommonYaml, map[string]*bintree{}},
-				"router-config-manager.yaml": &bintree{testExtendedTestdataRouterConfigManagerYaml, map[string]*bintree{}},
-				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
-				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
-				"router-override-domains.yaml": &bintree{testExtendedTestdataRouterOverrideDomainsYaml, map[string]*bintree{}},
-				"router-override.yaml": &bintree{testExtendedTestdataRouterOverrideYaml, map[string]*bintree{}},
-				"router-scoped.yaml": &bintree{testExtendedTestdataRouterScopedYaml, map[string]*bintree{}},
+				"router": &bintree{nil, map[string]*bintree{
+					"ingress.yaml": &bintree{testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
+					"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
+					"router-common.yaml": &bintree{testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
+					"router-config-manager.yaml": &bintree{testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-metrics.yaml": &bintree{testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
+					"router-override-domains.yaml": &bintree{testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
+					"router-override.yaml": &bintree{testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
+					"router-scoped.yaml": &bintree{testExtendedTestdataRouterRouterScopedYaml, map[string]*bintree{}},
+					"weighted-router.yaml": &bintree{testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
+				}},
 				"run_policy": &bintree{nil, map[string]*bintree{
 					"parallel-bc.yaml": &bintree{testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
@@ -33504,6 +38752,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"templates": &bintree{nil, map[string]*bintree{
+					"crunchydata-pod.json": &bintree{testExtendedTestdataTemplatesCrunchydataPodJson, map[string]*bintree{}},
+					"guestbook.json": &bintree{testExtendedTestdataTemplatesGuestbookJson, map[string]*bintree{}},
+					"guestbook_list.json": &bintree{testExtendedTestdataTemplatesGuestbook_listJson, map[string]*bintree{}},
 					"templateinstance_badobject.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_badobjectYaml, map[string]*bintree{}},
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
 					"templateinstance_readiness.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_readinessYaml, map[string]*bintree{}},
@@ -33511,10 +38762,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"test-cli-debug.yaml": &bintree{testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
 				"test-env-pod.json": &bintree{testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
-				"test-gitserver-tokenauth.yaml": &bintree{testExtendedTestdataTestGitserverTokenauthYaml, map[string]*bintree{}},
 				"test-gitserver.yaml": &bintree{testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
 				"test-secret.json": &bintree{testExtendedTestdataTestSecretJson, map[string]*bintree{}},
-				"weighted-router.yaml": &bintree{testExtendedTestdataWeightedRouterYaml, map[string]*bintree{}},
 			}},
 		}},
 		"integration": &bintree{nil, map[string]*bintree{
@@ -33523,7 +38772,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-buildcli-beta2.json": &bintree{testIntegrationTestdataTestBuildcliBeta2Json, map[string]*bintree{}},
 				"test-buildcli.json": &bintree{testIntegrationTestdataTestBuildcliJson, map[string]*bintree{}},
 				"test-deployment-config.yaml": &bintree{testIntegrationTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
-				"test-egress-network-policy.json": &bintree{testIntegrationTestdataTestEgressNetworkPolicyJson, map[string]*bintree{}},
 				"test-image-stream-mapping.json": &bintree{testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
 				"test-image-stream.json": &bintree{testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
 				"test-image.json": &bintree{testIntegrationTestdataTestImageJson, map[string]*bintree{}},

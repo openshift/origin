@@ -15,7 +15,7 @@ FAILURE=false
 test_dirs=$(s2i::util::find_files | cut -d '/' -f 1-2 | sort -u)
 for test_dir in $test_dirs
 do
-  if ! go tool vet -shadow=false -composites=false $test_dir
+  if ! go vet $test_dir
   then
     FAILURE=true
   fi

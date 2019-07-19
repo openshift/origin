@@ -105,7 +105,7 @@ type UpdateOptsBuilder interface {
 // UpdateOpts provides options for updating a region.
 type UpdateOpts struct {
 	// Description is a description of the region.
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 
 	// ParentRegionID is the ID of the parent region.
 	ParentRegionID string `json:"parent_region_id,omitempty"`

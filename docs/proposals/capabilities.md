@@ -60,7 +60,7 @@ Policy should never check capabilities on a project or account.  If something ne
 Both policy and admission control will check globally configured capabilities.
 
 ## Other types of config
-Global configuration for blacklists / whitelists (blacklisting namespaces / docker registries / etc) will not be considered capabilities and will not be surfaced through the API.  It will be the job of the admission controller to check these configurations and throw reasonable errors when something is rejected due to blacklisting/whitelisting.
+Global configuration for blacklists / whitelists (blacklisting namespaces / container image registries / etc) will not be considered capabilities and will not be surfaced through the API.  It will be the job of the admission controller to check these configurations and throw reasonable errors when something is rejected due to blacklisting/whitelisting.
 
 ## APIs to retrieve capabilities
 

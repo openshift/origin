@@ -28,15 +28,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		})
 
 		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-
 			g.By("waiting for openshift namespace imagestreams")
-			err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+			err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -52,11 +45,11 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 
 		g.It("should succeed with a --name of 58 characters", func() {
 			g.By("calling oc new-app")
-			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58).Execute()
+			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58, "--build-env=BUILD_LOGLEVEL=5").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs(a58, oc)
 			}

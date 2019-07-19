@@ -26,15 +26,6 @@ var _ = g.Describe("[Feature:Builds] result image should have proper labels set"
 			exutil.PreTestDump()
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -58,11 +49,11 @@ var _ = g.Describe("[Feature:Builds] result image should have proper labels set"
 				br, err := exutil.StartBuildAndWait(oc, "test")
 				br.AssertSuccess()
 
-				g.By("getting the Docker image reference from ImageStream")
-				imageRef, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
+				g.By("getting the container image reference from ImageStream")
+				imageRef, err := exutil.GetDockerImageReference(oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()), "test", "latest")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				imageLabels, err := eximages.GetImageLabels(oc.ImageClient().Image().ImageStreamImages(oc.Namespace()), "test", imageRef)
+				imageLabels, err := eximages.GetImageLabels(oc.ImageClient().ImageV1().ImageStreamImages(oc.Namespace()), "test", imageRef)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("inspecting the new image for proper Docker labels")
@@ -86,11 +77,11 @@ var _ = g.Describe("[Feature:Builds] result image should have proper labels set"
 				br, err := exutil.StartBuildAndWait(oc, "test")
 				br.AssertSuccess()
 
-				g.By("getting the Docker image reference from ImageStream")
-				imageRef, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
+				g.By("getting the container image reference from ImageStream")
+				imageRef, err := exutil.GetDockerImageReference(oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()), "test", "latest")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				imageLabels, err := eximages.GetImageLabels(oc.ImageClient().Image().ImageStreamImages(oc.Namespace()), "test", imageRef)
+				imageLabels, err := eximages.GetImageLabels(oc.ImageClient().ImageV1().ImageStreamImages(oc.Namespace()), "test", imageRef)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("inspecting the new image for proper Docker labels")
@@ -101,7 +92,7 @@ var _ = g.Describe("[Feature:Builds] result image should have proper labels set"
 	})
 })
 
-// ExpectOpenShiftLabels tests if built Docker image contains appropriate
+// ExpectOpenShiftLabels tests if built container image contains appropriate
 // labels.
 func ExpectOpenShiftLabels(labels map[string]string) error {
 	ExpectedLabels := []string{
@@ -116,7 +107,7 @@ func ExpectOpenShiftLabels(labels map[string]string) error {
 
 	for _, label := range ExpectedLabels {
 		if labels[label] == "" {
-			return fmt.Errorf("Built image doesn't contain proper Docker image labels. Missing %q label", label)
+			return fmt.Errorf("Built image doesn't contain proper container image labels. Missing %q label", label)
 		}
 	}
 	if labels["io.k8s.display-name"] != "overridden" {

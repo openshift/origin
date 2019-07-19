@@ -71,7 +71,7 @@ message Build {
 }
 
 // Build configurations define a build process for new container images. There are three types of builds possible - a container image build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary container images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the container image registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
-// 
+//
 // Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
 message BuildConfig {
   // metadata for BuildConfig.
@@ -110,11 +110,13 @@ message BuildConfigSpec {
   optional CommonSpec commonSpec = 3;
 
   // successfulBuildsHistoryLimit is the number of old successful builds to retain.
-  // If not specified, all successful builds are retained.
+  // When a BuildConfig is created, the 5 most recent successful builds are retained unless this value is set.
+  // If removed after the BuildConfig has been created, all successful builds are retained.
   optional int32 successfulBuildsHistoryLimit = 4;
 
   // failedBuildsHistoryLimit is the number of old failed builds to retain.
-  // If not specified, all failed builds are retained.
+  // When a BuildConfig is created, the 5 most recent failed builds are retained unless this value is set.
+  // If removed after the BuildConfig has been created, all failed builds are retained.
   optional int32 failedBuildsHistoryLimit = 5;
 }
 
@@ -208,64 +210,64 @@ message BuildOutput {
 // immediately after the last layer of the image is committed and before the
 // image is pushed to a registry. The command is executed with the current
 // working directory ($PWD) set to the image's WORKDIR.
-// 
+//
 // The build will be marked as failed if the hook execution fails. It will fail
 // if the script or command return a non-zero exit code, or if there is any
 // other error related to starting the temporary container.
-// 
+//
 // There are five different ways to configure the hook. As an example, all forms
 // below are equivalent and will execute `rake test --verbose`.
-// 
+//
 // 1. Shell script:
-// 
+//
 //        "postCommit": {
 //          "script": "rake test --verbose",
 //        }
-// 
+//
 //     The above is a convenient form which is equivalent to:
-// 
+//
 //        "postCommit": {
 //          "command": ["/bin/sh", "-ic"],
 //          "args":    ["rake test --verbose"]
 //        }
-// 
+//
 // 2. A command as the image entrypoint:
-// 
+//
 //        "postCommit": {
 //          "commit": ["rake", "test", "--verbose"]
 //        }
-// 
+//
 //     Command overrides the image entrypoint in the exec form, as documented in
 //     Docker: https://docs.docker.com/engine/reference/builder/#entrypoint.
-// 
+//
 // 3. Pass arguments to the default entrypoint:
-// 
+//
 //        "postCommit": {
 // 		      "args": ["rake", "test", "--verbose"]
 // 	      }
-// 
+//
 //     This form is only useful if the image entrypoint can handle arguments.
-// 
+//
 // 4. Shell script with arguments:
-// 
+//
 //        "postCommit": {
 //          "script": "rake test $1",
 //          "args":   ["--verbose"]
 //        }
-// 
+//
 //     This form is useful if you need to pass arguments that would otherwise be
 //     hard to quote properly in the shell script. In the script, $0 will be
 //     "/bin/sh" and $1, $2, etc, are the positional arguments from Args.
-// 
+//
 // 5. Command with arguments:
-// 
+//
 //        "postCommit": {
 //          "command": ["rake", "test"],
 //          "args":    ["--verbose"]
 //        }
-// 
+//
 //     This form is equivalent to appending the arguments to the Command slice.
-// 
+//
 // It is invalid to provide both Script and Command simultaneously. If none of
 // the fields are specified, the hook is not executed.
 message BuildPostCommitSpec {
@@ -451,7 +453,7 @@ message BuildStatusOutput {
 message BuildStatusOutputTo {
   // imageDigest is the digest of the built container image. The digest uniquely
   // identifies the image in the registry to which it was pushed.
-  // 
+  //
   // Please note that this field may not always be set even if the push
   // completes successfully - e.g. when the registry returns no digest or
   // returns it in a format that the builder doesn't understand.

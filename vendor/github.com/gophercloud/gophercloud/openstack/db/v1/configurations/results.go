@@ -10,8 +10,8 @@ import (
 
 // Config represents a configuration group API resource.
 type Config struct {
-	Created              time.Time `json:"created"`
-	Updated              time.Time `json:"updated"`
+	Created              time.Time `json:"-"`
+	Updated              time.Time `json:"-"`
 	DatastoreName        string    `json:"datastore_name"`
 	DatastoreVersionID   string    `json:"datastore_version_id"`
 	DatastoreVersionName string    `json:"datastore_version_name"`

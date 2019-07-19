@@ -8,23 +8,18 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/vpnaas/endpointgroups"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestGroupList(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allPages, err := endpointgroups.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list endpoint groups: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allGroups, err := endpointgroups.ExtractEndpointGroups(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract endpoint groups: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	for _, group := range allGroups {
 		tools.PrintResource(t, group)
@@ -33,21 +28,15 @@ func TestGroupList(t *testing.T) {
 
 func TestGroupCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	group, err := CreateEndpointGroup(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create Endpoint group: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteEndpointGroup(t, client, group.ID)
 	tools.PrintResource(t, group)
 
 	newGroup, err := endpointgroups.Get(client, group.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to retrieve Endpoint group: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	tools.PrintResource(t, newGroup)
 
 	updatedName := "updatedname"
@@ -57,9 +46,6 @@ func TestGroupCRUD(t *testing.T) {
 		Description: &updatedDescription,
 	}
 	updatedGroup, err := endpointgroups.Update(client, group.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update endpoint group: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	tools.PrintResource(t, updatedGroup)
-
 }

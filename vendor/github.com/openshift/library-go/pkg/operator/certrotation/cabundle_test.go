@@ -49,7 +49,7 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
+				if !actions[0].Matches("get", "configmaps") {
 					t.Error(actions[0])
 				}
 				if !actions[1].Matches("create", "configmaps") {
@@ -57,6 +57,9 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 				}
 
 				actual := actions[1].(clienttesting.CreateAction).GetObject().(*corev1.ConfigMap)
+				if certType, _ := CertificateTypeFromObject(actual); certType != CertificateTypeCABundle {
+					t.Errorf("expected certificate type 'ca-bundle', got: %v", certType)
+				}
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
 				}
@@ -85,17 +88,20 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
+				}
+				if certType, _ := CertificateTypeFromObject(actual); certType != CertificateTypeCABundle {
+					t.Errorf("expected certificate type 'ca-bundle', got: %v", certType)
 				}
 				result, err := cert.ParseCertsPEM([]byte(actual.Data["ca-bundle.crt"]))
 				if err != nil {
@@ -129,17 +135,20 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
+				}
+				if certType, _ := CertificateTypeFromObject(actual); certType != CertificateTypeCABundle {
+					t.Errorf("expected certificate type 'ca-bundle', got: %v", certType)
 				}
 				result, err := cert.ParseCertsPEM([]byte(actual.Data["ca-bundle.crt"]))
 				if err != nil {
@@ -177,17 +186,20 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
+				}
+				if certType, _ := CertificateTypeFromObject(actual); certType != CertificateTypeCABundle {
+					t.Errorf("expected certificate type 'ca-bundle', got: %v", certType)
 				}
 				result, err := cert.ParseCertsPEM([]byte(actual.Data["ca-bundle.crt"]))
 				if err != nil {
@@ -256,7 +268,7 @@ func newTestCACertificate(subject pkix.Name, serialNumber int64, validity metav1
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
-		IsCA: true,
+		IsCA:                  true,
 	}
 
 	cert, err := signCertificate(caCert, caPublicKey, caCert, caPrivateKey)

@@ -95,10 +95,6 @@ func (client VpnConnectionsClient) CreateOrUpdateSender(req *http.Request) (futu
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -165,10 +161,6 @@ func (client VpnConnectionsClient) DeleteSender(req *http.Request) (future VpnCo
 	var resp *http.Response
 	resp, err = autorest.SendWithSender(client, req,
 		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -259,10 +251,11 @@ func (client VpnConnectionsClient) GetResponder(resp *http.Response) (result Vpn
 
 // ListByVpnGateway retrieves all vpn connections for a particular virtual wan vpn gateway.
 // Parameters:
+// resourceGroupName - the resource group name of the VpnGateway.
 // gatewayName - the name of the gateway.
-func (client VpnConnectionsClient) ListByVpnGateway(ctx context.Context, gatewayName string) (result ListVpnConnectionsResultPage, err error) {
+func (client VpnConnectionsClient) ListByVpnGateway(ctx context.Context, resourceGroupName string, gatewayName string) (result ListVpnConnectionsResultPage, err error) {
 	result.fn = client.listByVpnGatewayNextResults
-	req, err := client.ListByVpnGatewayPreparer(ctx, gatewayName)
+	req, err := client.ListByVpnGatewayPreparer(ctx, resourceGroupName, gatewayName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "network.VpnConnectionsClient", "ListByVpnGateway", nil, "Failure preparing request")
 		return
@@ -284,10 +277,11 @@ func (client VpnConnectionsClient) ListByVpnGateway(ctx context.Context, gateway
 }
 
 // ListByVpnGatewayPreparer prepares the ListByVpnGateway request.
-func (client VpnConnectionsClient) ListByVpnGatewayPreparer(ctx context.Context, gatewayName string) (*http.Request, error) {
+func (client VpnConnectionsClient) ListByVpnGatewayPreparer(ctx context.Context, resourceGroupName string, gatewayName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
-		"gatewayName":    autorest.Encode("path", gatewayName),
-		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
+		"gatewayName":       autorest.Encode("path", gatewayName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
 	const APIVersion = "2018-04-01"
@@ -298,7 +292,7 @@ func (client VpnConnectionsClient) ListByVpnGatewayPreparer(ctx context.Context,
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.Network/vpnGateways/{gatewayName}/vpnConnections", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/vpnGateways/{gatewayName}/vpnConnections", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -345,7 +339,7 @@ func (client VpnConnectionsClient) listByVpnGatewayNextResults(lastResults ListV
 }
 
 // ListByVpnGatewayComplete enumerates all values, automatically crossing page boundaries as required.
-func (client VpnConnectionsClient) ListByVpnGatewayComplete(ctx context.Context, gatewayName string) (result ListVpnConnectionsResultIterator, err error) {
-	result.page, err = client.ListByVpnGateway(ctx, gatewayName)
+func (client VpnConnectionsClient) ListByVpnGatewayComplete(ctx context.Context, resourceGroupName string, gatewayName string) (result ListVpnConnectionsResultIterator, err error) {
+	result.page, err = client.ListByVpnGateway(ctx, resourceGroupName, gatewayName)
 	return
 }

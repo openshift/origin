@@ -1,5 +1,0 @@
-Of 2 tests executed in 0.150s, 1 succeeded, 0 failed, and 1 was skipped.
-
-In suite "package/name", test case "TestOne" was skipped:
-file_test.go:11: Skip message
-

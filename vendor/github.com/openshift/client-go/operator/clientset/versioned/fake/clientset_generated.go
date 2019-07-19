@@ -6,6 +6,8 @@ import (
 	clientset "github.com/openshift/client-go/operator/clientset/versioned"
 	operatorv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	fakeoperatorv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1/fake"
+	operatorv1alpha1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1"
+	fakeoperatorv1alpha1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -60,7 +62,7 @@ func (c *Clientset) OperatorV1() operatorv1.OperatorV1Interface {
 	return &fakeoperatorv1.FakeOperatorV1{Fake: &c.Fake}
 }
 
-// Operator retrieves the OperatorV1Client
-func (c *Clientset) Operator() operatorv1.OperatorV1Interface {
-	return &fakeoperatorv1.FakeOperatorV1{Fake: &c.Fake}
+// OperatorV1alpha1 retrieves the OperatorV1alpha1Client
+func (c *Clientset) OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface {
+	return &fakeoperatorv1alpha1.FakeOperatorV1alpha1{Fake: &c.Fake}
 }

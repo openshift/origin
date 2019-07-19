@@ -3,7 +3,6 @@ package deployments
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"sort"
 	"strings"
@@ -18,13 +17,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
@@ -33,8 +29,8 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	"github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -426,7 +422,7 @@ func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 		return "", err
 	}
 	podName := appsutil.DeployerPodNameForDeployment(rc.Name)
-	if err := deploylog.WaitForRunningDeployerPod(oc.KubeClient().CoreV1(), rc, timeout); err != nil {
+	if err := appsutil.WaitForRunningDeployerPod(oc.KubeClient().CoreV1(), rc, timeout); err != nil {
 		return "", err
 	}
 	output, err := oc.Run("logs").Args("-f", "pods/"+podName).Output()
@@ -519,11 +515,12 @@ func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeou
 }
 
 func createDeploymentConfig(oc *exutil.CLI, fixture string) (*appsv1.DeploymentConfig, error) {
-	dcFixture, err := readDCFixture(fixture)
+	obj, err := exutil.ReadFixture(fixture)
 	if err != nil {
 		return nil, err
 	}
-	dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Create(dcFixture)
+	dc := obj.(*appsv1.DeploymentConfig)
+	dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Create(dc)
 	if err != nil {
 		return nil, err
 	}
@@ -644,25 +641,6 @@ func HasValidDCControllerRef(dc metav1.Object, controllee metav1.Object) bool {
 		ref.Name == dc.GetName()
 }
 
-func readDCFixture(path string) (*appsv1.DeploymentConfig, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	content, err := kyaml.ToJSON(data)
-	if err != nil {
-		return nil, err
-	}
-	appsScheme := runtime.NewScheme()
-	appsCodecs := serializer.NewCodecFactory(appsScheme)
-	appsv1.AddToScheme(appsScheme)
-	obj, err := runtime.Decode(appsCodecs.UniversalDecoder(appsv1.GroupVersion), content)
-	if err != nil {
-		return nil, err
-	}
-	return obj.(*appsv1.DeploymentConfig), err
-}
-
 type deployerPodInvariantChecker struct {
 	ctx       context.Context
 	wg        sync.WaitGroup
@@ -765,7 +743,9 @@ func (d *deployerPodInvariantChecker) doChecking() {
 		select {
 		case <-d.ctx.Done():
 			return
-		case event := <-watcher.ResultChan():
+		case event, ok := <-watcher.ResultChan():
+			o.Expect(ok).To(o.BeEquivalentTo(true), "watch closed unexpectedly")
+
 			t := event.Type
 			if t != watch.Added && t != watch.Modified && t != watch.Deleted {
 				o.Expect(fmt.Errorf("unexpected event: %#v", event)).NotTo(o.HaveOccurred())

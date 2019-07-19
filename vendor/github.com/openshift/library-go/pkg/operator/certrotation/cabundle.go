@@ -13,9 +13,12 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/cert"
+	"k8s.io/klog"
 
+	"github.com/openshift/library-go/pkg/certs"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 )
 
 // CABundleRotation maintains a CA bundle config map, but adding new CA certs and removing expired old ones.
@@ -41,21 +44,22 @@ func (c CABundleRotation) ensureConfigMapCABundle(signingCertKeyPair *crypto.CA)
 		// create an empty one
 		caBundleConfigMap = &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: c.Namespace, Name: c.Name}}
 	}
-	if err := manageCABundleConfigMap(caBundleConfigMap, signingCertKeyPair.Config.Certs[0]); err != nil {
+	updatedCerts, err := manageCABundleConfigMap(caBundleConfigMap, signingCertKeyPair.Config.Certs[0])
+	if err != nil {
 		return nil, err
 	}
 	if originalCABundleConfigMap == nil || originalCABundleConfigMap.Data == nil || !equality.Semantic.DeepEqual(originalCABundleConfigMap.Data, caBundleConfigMap.Data) {
 		c.EventRecorder.Eventf("CABundleUpdateRequired", "%q in %q requires a new cert", c.Name, c.Namespace)
-		actualCABundleConfigMap, err := c.Client.ConfigMaps(c.Namespace).Update(caBundleConfigMap)
-		if apierrors.IsNotFound(err) {
-			actualCABundleConfigMap, err = c.Client.ConfigMaps(c.Namespace).Create(caBundleConfigMap)
-			if err != nil {
-				return nil, err
-			}
-		}
+		LabelAsManagedConfigMap(caBundleConfigMap, CertificateTypeCABundle)
+
+		actualCABundleConfigMap, modified, err := resourceapply.ApplyConfigMap(c.Client, c.EventRecorder, caBundleConfigMap)
 		if err != nil {
 			return nil, err
 		}
+		if modified {
+			klog.V(2).Infof("Updated ca-bundle.crt configmap %s/%s with:\n%s", certs.CertificateBundleToString(updatedCerts), caBundleConfigMap.Namespace, caBundleConfigMap.Name)
+		}
+
 		caBundleConfigMap = actualCABundleConfigMap
 	}
 
@@ -73,7 +77,7 @@ func (c CABundleRotation) ensureConfigMapCABundle(signingCertKeyPair *crypto.CA)
 
 // manageCABundleConfigMap adds the new certificate to the list of cabundles, eliminates duplicates, and prunes the list of expired
 // certs to trust as signers
-func manageCABundleConfigMap(caBundleConfigMap *corev1.ConfigMap, currentSigner *x509.Certificate) error {
+func manageCABundleConfigMap(caBundleConfigMap *corev1.ConfigMap, currentSigner *x509.Certificate) ([]*x509.Certificate, error) {
 	if caBundleConfigMap.Data == nil {
 		caBundleConfigMap.Data = map[string]string{}
 	}
@@ -84,7 +88,7 @@ func manageCABundleConfigMap(caBundleConfigMap *corev1.ConfigMap, currentSigner 
 		var err error
 		certificates, err = cert.ParseCertsPEM([]byte(caBundle))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	certificates = append([]*x509.Certificate{currentSigner}, certificates...)
@@ -107,9 +111,10 @@ func manageCABundleConfigMap(caBundleConfigMap *corev1.ConfigMap, currentSigner 
 
 	caBytes, err := crypto.EncodeCertificates(finalCertificates...)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	caBundleConfigMap.Data["ca-bundle.crt"] = string(caBytes)
 
-	return nil
+	return finalCertificates, nil
 }

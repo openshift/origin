@@ -301,18 +301,25 @@ const (
 	VsoTfvc SourceType = original.VsoTfvc
 )
 
-type StartType = original.StartType
-
-const (
-	AutoSync   StartType = original.AutoSync
-	ManualSync StartType = original.ManualSync
-)
-
 type StreamType = original.StreamType
 
 const (
 	StreamTypeError  StreamType = original.StreamTypeError
 	StreamTypeOutput StreamType = original.StreamTypeOutput
+)
+
+type SyncType = original.SyncType
+
+const (
+	FullSync    SyncType = original.FullSync
+	PartialSync SyncType = original.PartialSync
+)
+
+type TokenType = original.TokenType
+
+const (
+	Oauth               TokenType = original.Oauth
+	PersonalAccessToken TokenType = original.PersonalAccessToken
 )
 
 type WindowsUpdateClasses = original.WindowsUpdateClasses
@@ -525,6 +532,7 @@ type SourceControlListResult = original.SourceControlListResult
 type SourceControlListResultIterator = original.SourceControlListResultIterator
 type SourceControlListResultPage = original.SourceControlListResultPage
 type SourceControlProperties = original.SourceControlProperties
+type SourceControlSecurityTokenProperties = original.SourceControlSecurityTokenProperties
 type SourceControlSyncJob = original.SourceControlSyncJob
 type SourceControlSyncJobByID = original.SourceControlSyncJobByID
 type SourceControlSyncJobByIDProperties = original.SourceControlSyncJobByIDProperties
@@ -785,11 +793,14 @@ func PossibleSkuNameEnumValues() []SkuNameEnum {
 func PossibleSourceTypeValues() []SourceType {
 	return original.PossibleSourceTypeValues()
 }
-func PossibleStartTypeValues() []StartType {
-	return original.PossibleStartTypeValues()
-}
 func PossibleStreamTypeValues() []StreamType {
 	return original.PossibleStreamTypeValues()
+}
+func PossibleSyncTypeValues() []SyncType {
+	return original.PossibleSyncTypeValues()
+}
+func PossibleTokenTypeValues() []TokenType {
+	return original.PossibleTokenTypeValues()
 }
 func PossibleWindowsUpdateClassesValues() []WindowsUpdateClasses {
 	return original.PossibleWindowsUpdateClassesValues()

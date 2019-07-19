@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,9 +17,9 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/service/controller/ingressip"
+	"github.com/openshift/openshift-controller-manager/pkg/route/ingressip"
 	testserver "github.com/openshift/origin/test/util/server"
+	configapi "github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config"
 )
 
 const sentinelName = "sentinel"
@@ -38,7 +40,7 @@ func TestIngressIPAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	clientConfig, err := configapi.GetClientConfig(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
+	clientConfig, err := deprecatedclient.GetClientConfig(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
 		QPS:   20,
 		Burst: 50,
 	})
@@ -57,10 +59,10 @@ func TestIngressIPAllocation(t *testing.T) {
 	_, informerController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return kc.Core().Services(metav1.NamespaceAll).List(options)
+				return kc.CoreV1().Services(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return kc.Core().Services(metav1.NamespaceAll).Watch(options)
+				return kc.CoreV1().Services(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&v1.Service{},
@@ -95,7 +97,7 @@ func TestIngressIPAllocation(t *testing.T) {
 
 	// Validate that all services of type load balancer have a unique
 	// ingress ip and corresponding external ip.
-	services, err := kc.Core().Services(metav1.NamespaceDefault).List(metav1.ListOptions{})
+	services, err := kc.CoreV1().Services(metav1.NamespaceDefault).List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -158,7 +160,7 @@ func generateServiceEvents(t *testing.T, kc kclientset.Interface) {
 		case updateOp:
 			targetIndex := rand.Intn(len(services))
 			name := services[targetIndex].Name
-			s, err := kc.Core().Services(metav1.NamespaceDefault).Get(name, metav1.GetOptions{})
+			s, err := kc.CoreV1().Services(metav1.NamespaceDefault).Get(name, metav1.GetOptions{})
 			if err != nil {
 				continue
 			}
@@ -169,7 +171,7 @@ func generateServiceEvents(t *testing.T, kc kclientset.Interface) {
 			} else {
 				s.Spec.Type = v1.ServiceTypeLoadBalancer
 			}
-			s, err = kc.Core().Services(metav1.NamespaceDefault).Update(s)
+			s, err = kc.CoreV1().Services(metav1.NamespaceDefault).Update(s)
 			if err != nil {
 				continue
 			}
@@ -177,7 +179,7 @@ func generateServiceEvents(t *testing.T, kc kclientset.Interface) {
 		case deleteOp:
 			targetIndex := rand.Intn(len(services))
 			name := services[targetIndex].Name
-			err := kc.Core().Services(metav1.NamespaceDefault).Delete(name, nil)
+			err := kc.CoreV1().Services(metav1.NamespaceDefault).Delete(name, nil)
 			if err != nil {
 				continue
 			}
@@ -217,5 +219,5 @@ func createService(kc kclientset.Interface, name string, typeLoadBalancer bool) 
 			}},
 		},
 	}
-	return kc.Core().Services(metav1.NamespaceDefault).Create(service)
+	return kc.CoreV1().Services(metav1.NamespaceDefault).Create(service)
 }

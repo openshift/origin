@@ -95,7 +95,7 @@ function localup::healthcheck() {
 }
 
 function localup::warning_log() {
-  os::log::info/warning/error/fatal "$1" "W$(date "+%m%d %H:%M:%S")]" 1
+  os::log::warning "$1" "W$(date "+%m%d %H:%M:%S")]" 1
 }
 
 
@@ -202,10 +202,10 @@ function localup::start_kubeapiserver() {
     fi
 
     KUBE_APISERVER_LOG=${LOG_DIR}/kube-apiserver.log
-    hypershift openshift-kube-apiserver \
+    hyperkube kube-apiserver \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
-      --config=${LOCALUP_CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
+      --openshift-config=${LOCALUP_CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
     KUBE_APISERVER_PID=$!
 
     # Wait for kube-apiserver to come up before launching the rest of the components.
@@ -216,6 +216,15 @@ function localup::start_kubeapiserver() {
     # Create kubeconfigs for all components, using client certs
     kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CERT_DIR}" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" admin
     chown "${USER:-$(id -u)}" "${CERT_DIR}/client-admin.key" # make readable for kubectl
+
+    for filename in ${OS_ROOT}/hack/local-up-master/kube-apiserver-manifests/*.yaml; do
+       oc --config=${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig apply -f ${filename}
+    done
+
+    NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
+    for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
+        sed "s/NON_LOOPBACK_HOST/${NON_LOOPBACK_IPV4}/g" ${filename} | oc --config=${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig apply -f -
+    done
 }
 
 function localup::start_kubecontrollermanager() {
@@ -239,6 +248,17 @@ function localup::start_kubecontrollermanager() {
     os::log::debug "Waiting for kube-controller-manager to come up"
     kube::util::wait_for_url "http://localhost:10252/healthz" "kube-controller-manager: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check kube-controller-manager logs: ${KUBE_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
+
+    # we need SCCs as they are part of the OpenShift apiserver bootstrap process
+    echo "Waiting for the SCCs to appear"
+    tstamp=$(date +%s)
+    set +e
+    while (( $(date +%s) - $tstamp < 160 )); do
+        oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /apis/security.openshift.io/v1/securitycontextconstraints 2>/dev/null 1>&2 && break
+        sleep 0.25
+    done
+    set -e
+    oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /apis/security.openshift.io/v1/securitycontextconstraints 1>&2 2>/dev/null || { os::log::error "SCCs did not come up" ; exit 1 ; }
 }
 
 function localup::start_openshiftapiserver() {
@@ -260,10 +280,7 @@ function localup::start_openshiftapiserver() {
     kube::util::wait_for_url "https://${API_HOST_IP}:8444/healthz" "openshift-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check kube-apiserver logs: ${OPENSHIFT_APISERVER_LOG}" ; exit 1 ; }
 
-    NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
-    for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
-        sed "s/NON_LOOPBACK_HOST/${NON_LOOPBACK_IPV4}/g" ${filename} | oc --config=${LOCALUP_CONFIG}/openshift-apiserver/openshift-apiserver.kubeconfig apply -f -
-    done
+    localup::create_oauthclients
 }
 
 function localup::start_openshiftcontrollermanager() {
@@ -281,6 +298,40 @@ function localup::start_openshiftcontrollermanager() {
     os::log::debug "Waiting for openshift-controller-manager to come up"
     kube::util::wait_for_url "https://localhost:8445/healthz" "openshift-controller-manager: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check openshift-controller-manager logs: ${OPENSHIFT_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
+}
+
+function localup::create_oauthclients {
+    local RANDOMBYTES=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -1)
+
+    oc create --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" -f - <<EOF
+{
+  "apiVersion": "oauth.openshift.io/v1",
+  "kind": "OAuthClient",
+  "metadata": {
+    "name": "openshift-browser-client"
+  },
+  "grantMethod":  "auto",
+  "secret":      "${RANDOMBYTES}",
+  "redirectURIs": ["https://${API_HOST_IP}:${API_SECURE_PORT}/oauth/token/display"]
+}
+EOF
+
+    test "$?" -eq 0 || { os::log::error "unable to create the browser oauthclient" ; exit 1 ; }
+
+    oc create --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" -f - <<EOF
+{
+  "apiVersion": "oauth.openshift.io/v1",
+  "kind": "OAuthClient",
+  "metadata": {
+    "name": "openshift-challenging-client"
+  },
+  "grantMethod":  "auto",
+  "redirectURIs": ["https://${API_HOST_IP}:${API_SECURE_PORT}/oauth/token/implicit"],
+  "respondWithChallenges": true
+}
+EOF
+
+    test "$?" -eq 0 || { os::log::error "unable to create the challenging oauthclient" ; exit 1 ; }
 }
 
 function localup::init_master() {

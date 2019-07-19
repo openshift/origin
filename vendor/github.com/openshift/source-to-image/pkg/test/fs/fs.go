@@ -32,6 +32,8 @@ type FakeFileSystem struct {
 	CopyDest   string
 	CopyError  error
 
+	FilesToIgnore map[string]string
+
 	RemoveDirName  string
 	RemoveDirError error
 
@@ -159,16 +161,18 @@ func (f *FakeFileSystem) Exists(file string) bool {
 }
 
 // Copy copies files on the fake filesystem
-func (f *FakeFileSystem) Copy(sourcePath, targetPath string) error {
+func (f *FakeFileSystem) Copy(sourcePath, targetPath string, filesToIgnore map[string]string) error {
 	f.CopySource = sourcePath
 	f.CopyDest = targetPath
+	f.FilesToIgnore = filesToIgnore
 	return f.CopyError
 }
 
 // CopyContents copies directory contents on the fake filesystem
-func (f *FakeFileSystem) CopyContents(sourcePath, targetPath string) error {
+func (f *FakeFileSystem) CopyContents(sourcePath, targetPath string, filesToIgnore map[string]string) error {
 	f.CopySource = sourcePath
 	f.CopyDest = targetPath
+	f.FilesToIgnore = filesToIgnore
 	return f.CopyError
 }
 

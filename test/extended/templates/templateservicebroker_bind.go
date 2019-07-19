@@ -9,17 +9,17 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	"github.com/openshift/origin/test/extended/templates/openservicebroker/api"
+	"github.com/openshift/origin/test/extended/templates/openservicebroker/client"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -32,7 +32,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 		bindingID          = uuid.NewRandom().String()
 		serviceID          = "d261a5c9-db37-40b5-ac0f-5709e0e3aac4"
 		fixture            = exutil.FixturePath("testdata", "templates", "templateservicebroker_bind.yaml")
-		clusterrolebinding *authorizationapi.ClusterRoleBinding
+		clusterrolebinding *authorizationv1.ClusterRoleBinding
 		brokercli          client.Client
 		cliUser            user.Info
 	)
@@ -49,17 +49,17 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 			cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
 			// enable unauthenticated access to the service broker
-			clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+			clusterrolebinding, err = cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Create(&authorizationv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: cli.Namespace() + "templateservicebroker-client",
 				},
-				RoleRef: kapi.ObjectReference{
-					Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,
+				RoleRef: corev1.ObjectReference{
+					Name: "system:openshift:templateservicebroker-client",
 				},
-				Subjects: []kapi.ObjectReference{
+				Subjects: []corev1.ObjectReference{
 					{
-						Kind: authorizationapi.GroupKind,
-						Name: bootstrappolicy.UnauthenticatedGroup,
+						Kind: authorizationv1.GroupKind,
+						Name: "system:unauthenticated",
 					},
 				},
 			})
@@ -70,16 +70,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 
 			// wait for templateinstance controller to do its thing
 			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-				templateinstance, err := cli.InternalTemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+				templateinstance, err := cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
 
 				for _, c := range templateinstance.Status.Conditions {
-					if c.Reason == "Failed" && c.Status == kapi.ConditionTrue {
+					if c.Reason == "Failed" && c.Status == corev1.ConditionTrue {
 						return false, fmt.Errorf("failed condition: %s", c.Message)
 					}
-					if c.Reason == "Created" && c.Status == kapi.ConditionTrue {
+					if c.Reason == "Created" && c.Status == corev1.ConditionTrue {
 						return true, nil
 					}
 				}
@@ -98,15 +98,15 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 				cli.SetNamespace(ns)
 			}
 
-			err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+			err := cli.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.AdminInternalTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
+			err = cli.AdminTemplateClient().TemplateV1().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.It("should pass bind tests", func() {
-			svc, err := cli.KubeClient().Core().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
+			svc, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			bind, err := brokercli.Bind(context.Background(), cliUser, instanceID, bindingID, &api.BindRequest{

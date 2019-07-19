@@ -19,32 +19,39 @@ package apiserver
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	_ "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset"
+	_ "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
+	_ "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	internalinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	"k8s.io/apiextensions-apiserver/pkg/controller/establish"
+	"k8s.io/apiextensions-apiserver/pkg/controller/finalizer"
+	openapicontroller "k8s.io/apiextensions-apiserver/pkg/controller/openapi"
+	"k8s.io/apiextensions-apiserver/pkg/controller/status"
+	apiextensionsfeatures "k8s.io/apiextensions-apiserver/pkg/features"
+	"k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
-
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset"
-	internalinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
-	"k8s.io/apiextensions-apiserver/pkg/controller/establish"
-	"k8s.io/apiextensions-apiserver/pkg/controller/finalizer"
-	"k8s.io/apiextensions-apiserver/pkg/controller/status"
-	"k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition"
-
-	_ "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	_ "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
-	_ "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/apiserver/pkg/util/webhook"
+	"k8s.io/klog"
 )
 
 var (
@@ -78,6 +85,11 @@ type ExtraConfig struct {
 	// MasterCount is used to detect whether cluster is HA, and if it is
 	// the CRD Establishing will be hold by 5 seconds.
 	MasterCount int
+
+	// ServiceResolver is used in CR webhook converters to resolve webhook's service names
+	ServiceResolver webhook.ServiceResolver
+	// AuthResolverWrapper is used in CR webhook converters
+	AuthResolverWrapper webhook.AuthenticationInfoResolverWrapper
 }
 
 type Config struct {
@@ -167,7 +179,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		delegate:  delegateHandler,
 	}
 	establishingController := establish.NewEstablishingController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(), crdClient.Apiextensions())
-	crdHandler := NewCustomResourceDefinitionHandler(
+	crdHandler, err := NewCustomResourceDefinitionHandler(
 		versionDiscoveryHandler,
 		groupDiscoveryHandler,
 		s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
@@ -175,8 +187,15 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		c.ExtraConfig.CRDRESTOptionsGetter,
 		c.GenericConfig.AdmissionControl,
 		establishingController,
+		c.ExtraConfig.ServiceResolver,
+		c.ExtraConfig.AuthResolverWrapper,
 		c.ExtraConfig.MasterCount,
+		s.GenericAPIServer.Authorizer,
+		c.GenericConfig.RequestTimeout,
 	)
+	if err != nil {
+		return nil, err
+	}
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle("/apis", crdHandler)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.HandlePrefix("/apis/", crdHandler)
 
@@ -187,20 +206,98 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		crdClient.Apiextensions(),
 		crdHandler,
 	)
+	var openapiController *openapicontroller.Controller
+	if utilfeature.DefaultFeatureGate.Enabled(apiextensionsfeatures.CustomResourcePublishOpenAPI) {
+		openapiController = openapicontroller.NewController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions())
+	}
 
-	s.GenericAPIServer.AddPostStartHook("start-apiextensions-informers", func(context genericapiserver.PostStartHookContext) error {
+	s.GenericAPIServer.AddPostStartHookOrDie("start-apiextensions-informers", func(context genericapiserver.PostStartHookContext) error {
 		s.Informers.Start(context.StopCh)
 		return nil
 	})
-	s.GenericAPIServer.AddPostStartHook("start-apiextensions-controllers", func(context genericapiserver.PostStartHookContext) error {
+	s.GenericAPIServer.AddPostStartHookOrDie("start-apiextensions-controllers", func(context genericapiserver.PostStartHookContext) error {
+		if utilfeature.DefaultFeatureGate.Enabled(apiextensionsfeatures.CustomResourcePublishOpenAPI) {
+			go openapiController.Run(s.GenericAPIServer.StaticOpenAPISpec, s.GenericAPIServer.OpenAPIVersionedService, context.StopCh)
+		}
+
 		go crdController.Run(context.StopCh)
 		go namingController.Run(context.StopCh)
 		go establishingController.Run(context.StopCh)
 		go finalizingController.Run(5, context.StopCh)
 		return nil
 	})
+	s.GenericAPIServer.AddPostStartHookOrDie("crd-discovery-available", func(context genericapiserver.PostStartHookContext) error {
+		if true {
+			return nil
+		}
+		return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
+			// only check if we have a valid list for a given resourceversion
+			if !s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced() {
+				return false, nil
+			}
+
+			// The returned group and resource lists might be non-nil with partial results even in the
+			// case of non-nil error.  If API aggregation fails, we still want our other discovery information because the CRDs
+			// may all be present.
+			_, serverGroupsAndResources, discoveryErr := crdClient.Discovery().ServerGroupsAndResources()
+			if discoveryErr != nil {
+				klog.V(2).Info(discoveryErr)
+			}
+
+			serverCRDs, err := s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Lister().List(labels.Everything())
+			if err != nil {
+				return false, err
+			}
+			crdGroupsAndResources := sets.NewString()
+			for _, crd := range serverCRDs {
+				// Skip not active CRD
+				if !apiextensions.IsCRDConditionTrue(crd, apiextensions.Established) {
+					continue
+				}
+				for _, version := range crd.Spec.Versions {
+					// Skip versions that are not served
+					if !version.Served {
+						continue
+					}
+					crdGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", crd.Spec.Names.Plural, version.Name, crd.Spec.Group))
+				}
+			}
+
+			discoveryGroupsAndResources := sets.NewString()
+			for _, resourceList := range serverGroupsAndResources {
+				for _, apiResource := range resourceList.APIResources {
+					group, version := splitGroupVersion(resourceList.GroupVersion)
+					discoveryGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", apiResource.Name, version, group))
+				}
+			}
+			if !discoveryGroupsAndResources.HasAll(crdGroupsAndResources.List()...) {
+				klog.Infof("waiting for CRD resources in discovery: %#v", crdGroupsAndResources.Difference(discoveryGroupsAndResources))
+				return false, nil
+			}
+			return true, nil
+		}, context.StopCh)
+	})
+
+	// we don't want to report healthy until we can handle all CRDs that have already been registered.  Waiting for the informer
+	// to sync makes sure that the lister will be valid before we begin.  There may still be races for CRDs added after startup,
+	// but we won't go healthy until we can handle the ones already present.
+	s.GenericAPIServer.AddPostStartHookOrDie("crd-informer-synced", func(context genericapiserver.PostStartHookContext) error {
+		return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
+			return s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced(), nil
+		}, context.StopCh)
+	})
 
 	return s, nil
+}
+
+func splitGroupVersion(gv string) (group string, version string) {
+	ss := strings.SplitN(gv, "/", 2)
+	if len(ss) == 1 {
+		version = ss[0]
+	} else {
+		group, version = ss[0], ss[1]
+	}
+	return
 }
 
 func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {

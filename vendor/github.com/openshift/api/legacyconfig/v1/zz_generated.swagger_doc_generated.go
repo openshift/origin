@@ -100,11 +100,11 @@ func (BasicAuthPasswordIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_BuildDefaultsConfig = map[string]string{
-	"":              "BuildDefaultsConfig controls the default information for Builds",
-	"gitHTTPProxy":  "gitHTTPProxy is the location of the HTTPProxy for Git source",
-	"gitHTTPSProxy": "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
-	"gitNoProxy":    "gitNoProxy is the list of domains for which the proxy should not be used",
-	"env":           "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
+	"":                       "BuildDefaultsConfig controls the default information for Builds",
+	"gitHTTPProxy":           "gitHTTPProxy is the location of the HTTPProxy for Git source",
+	"gitHTTPSProxy":          "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
+	"gitNoProxy":             "gitNoProxy is the list of domains for which the proxy should not be used",
+	"env":                    "env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
 	"sourceStrategyDefaults": "sourceStrategyDefaults are default values that apply to builds using the source strategy.",
 	"imageLabels":            "imageLabels is a list of labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
 	"nodeSelector":           "nodeSelector is a selector which must be true for the build pod to fit on a node",
@@ -246,7 +246,7 @@ func (EtcdConnectionInfo) SwaggerDoc() map[string]string {
 }
 
 var map_EtcdStorageConfig = map[string]string{
-	"": "EtcdStorageConfig holds the necessary configuration options for the etcd storage underlying OpenShift and Kubernetes",
+	"":                         "EtcdStorageConfig holds the necessary configuration options for the etcd storage underlying OpenShift and Kubernetes",
 	"kubernetesStorageVersion": "KubernetesStorageVersion is the API version that Kube resources in etcd should be serialized to. This value should *not* be advanced until all clients in the cluster that read from etcd have code that allows them to read the new version.",
 	"kubernetesStoragePrefix":  "KubernetesStoragePrefix is the path within etcd that the Kubernetes resources will be rooted under. This value, if changed, will mean existing objects in etcd will no longer be located. The default value is 'kubernetes.io'.",
 	"openShiftStorageVersion":  "OpenShiftStorageVersion is the API version that OS resources in etcd should be serialized to. This value should *not* be advanced until all clients in the cluster that read from etcd have code that allows them to read the new version.",
@@ -325,7 +325,7 @@ func (HTPasswdPasswordIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_HTTPServingInfo = map[string]string{
-	"": "HTTPServingInfo holds configuration for serving HTTP",
+	"":                      "HTTPServingInfo holds configuration for serving HTTP",
 	"maxRequestsInFlight":   "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
 	"requestTimeoutSeconds": "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
 }
@@ -358,9 +358,9 @@ func (ImageConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ImagePolicyConfig = map[string]string{
-	"": "ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images",
-	"maxImagesBulkImportedPerRepository":         "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a container repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
-	"disableScheduledImport":                     "DisableScheduledImport allows scheduled background import of images to be disabled.",
+	"":                                   "ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images",
+	"maxImagesBulkImportedPerRepository": "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a container repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
+	"disableScheduledImport":             "DisableScheduledImport allows scheduled background import of images to be disabled.",
 	"scheduledImageImportMinimumIntervalSeconds": "ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
 	"maxScheduledImageImportsPerMinute":          "MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
 	"allowedRegistriesForImport":                 "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
@@ -374,7 +374,7 @@ func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 }
 
 var map_JenkinsPipelineConfig = map[string]string{
-	"": "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"":                     "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
 	"autoProvisionEnabled": "AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
 	"templateNamespace":    "TemplateNamespace contains the namespace name where the Jenkins template is stored",
 	"templateName":         "TemplateName is the name of the default Jenkins template",
@@ -467,12 +467,12 @@ func (LDAPQuery) SwaggerDoc() map[string]string {
 }
 
 var map_LDAPSyncConfig = map[string]string{
-	"":             "LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync",
-	"url":          "Host is the scheme, host and port of the LDAP server to connect to: scheme://host:port",
-	"bindDN":       "BindDN is an optional DN to bind to the LDAP server with",
-	"bindPassword": "BindPassword is an optional password to bind with during the search phase.",
-	"insecure":     "Insecure, if true, indicates the connection should not use TLS. Cannot be set to true with a URL scheme of \"ldaps://\" If false, \"ldaps://\" URLs connect using TLS, and \"ldap://\" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830",
-	"ca":           "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
+	"":                         "LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync",
+	"url":                      "Host is the scheme, host and port of the LDAP server to connect to: scheme://host:port",
+	"bindDN":                   "BindDN is an optional DN to bind to the LDAP server with",
+	"bindPassword":             "BindPassword is an optional password to bind with during the search phase.",
+	"insecure":                 "Insecure, if true, indicates the connection should not use TLS. Cannot be set to true with a URL scheme of \"ldaps://\" If false, \"ldaps://\" URLs connect using TLS, and \"ldap://\" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830",
+	"ca":                       "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
 	"groupUIDNameMapping":      "LDAPGroupUIDToOpenShiftGroupNameMapping is an optional direct mapping of LDAP group UIDs to OpenShift Group names",
 	"rfc2307":                  "RFC2307Config holds the configuration for extracting data from an LDAP server set up in a fashion similar to RFC2307: first-class group and user entries, with group membership determined by a multi-valued attribute on the group entry listing its members",
 	"activeDirectory":          "ActiveDirectoryConfig holds the configuration for extracting data from an LDAP server set up in a fashion similar to that used in Active Directory: first-class user entries, with group membership determined by a multi-valued attribute on members listing groups they are a member of",
@@ -504,8 +504,8 @@ func (MasterAuthConfig) SwaggerDoc() map[string]string {
 }
 
 var map_MasterClients = map[string]string{
-	"": "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
-	"openshiftLoopbackKubeConfig":                "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
+	"":                            "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
+	"openshiftLoopbackKubeConfig": "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
 	"openshiftLoopbackClientConnectionOverrides": "OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.",
 }
 
@@ -565,7 +565,7 @@ func (MasterNetworkConfig) SwaggerDoc() map[string]string {
 }
 
 var map_MasterVolumeConfig = map[string]string{
-	"": "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"":                           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
 	"dynamicProvisioningEnabled": "DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true",
 }
 
@@ -583,7 +583,7 @@ func (NamedCertificate) SwaggerDoc() map[string]string {
 }
 
 var map_NodeAuthConfig = map[string]string{
-	"": "NodeAuthConfig holds authn/authz configuration options",
+	"":                        "NodeAuthConfig holds authn/authz configuration options",
 	"authenticationCacheTTL":  "AuthenticationCacheTTL indicates how long an authentication result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get the default timeout. If zero (e.g. \"0m\"), caching is disabled",
 	"authenticationCacheSize": "AuthenticationCacheSize indicates how many authentication results should be cached. If 0, the default cache size is used.",
 	"authorizationCacheTTL":   "AuthorizationCacheTTL indicates how long an authorization result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get the default timeout. If zero (e.g. \"0m\"), caching is disabled",
@@ -692,8 +692,8 @@ var map_OpenIDIdentityProvider = map[string]string{
 	"clientSecret":             "ClientSecret is the oauth client secret",
 	"extraScopes":              "ExtraScopes are any scopes to request in addition to the standard \"openid\" scope.",
 	"extraAuthorizeParameters": "ExtraAuthorizeParameters are any custom parameters to add to the authorize request.",
-	"urls":   "URLs to use to authenticate",
-	"claims": "Claims mappings",
+	"urls":                     "URLs to use to authenticate",
+	"claims":                   "Claims mappings",
 }
 
 func (OpenIDIdentityProvider) SwaggerDoc() map[string]string {
@@ -712,8 +712,8 @@ func (OpenIDURLs) SwaggerDoc() map[string]string {
 }
 
 var map_PodManifestConfig = map[string]string{
-	"":     "PodManifestConfig holds the necessary configuration options for using pod manifests",
-	"path": "Path specifies the path for the pod manifest file or directory If its a directory, its expected to contain on or more manifest files This is used by the Kubelet to create pods on the node",
+	"":                         "PodManifestConfig holds the necessary configuration options for using pod manifests",
+	"path":                     "Path specifies the path for the pod manifest file or directory If its a directory, its expected to contain on or more manifest files This is used by the Kubelet to create pods on the node",
 	"fileCheckIntervalSeconds": "FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data The interval needs to be a positive value",
 }
 
@@ -722,7 +722,7 @@ func (PodManifestConfig) SwaggerDoc() map[string]string {
 }
 
 var map_PolicyConfig = map[string]string{
-	"": "\n holds the necessary configuration options for",
+	"":                        "\n holds the necessary configuration options for",
 	"userAgentMatchingConfig": "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 }
 
@@ -731,7 +731,7 @@ func (PolicyConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ProjectConfig = map[string]string{
-	"": "\n holds the necessary configuration options for",
+	"":                       "\n holds the necessary configuration options for",
 	"defaultNodeSelector":    "DefaultNodeSelector holds default project node label selector",
 	"projectRequestMessage":  "ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint",
 	"projectRequestTemplate": "ProjectRequestTemplate is the template to use for creating projects in response to projectrequest. It is in the format namespace/template and it is optional. If it is not specified, a default template is used.",
@@ -924,7 +924,7 @@ func (StringSourceSpec) SwaggerDoc() map[string]string {
 }
 
 var map_TokenConfig = map[string]string{
-	"": "TokenConfig holds the necessary configuration options for authorization and access tokens",
+	"":                                    "TokenConfig holds the necessary configuration options for authorization and access tokens",
 	"authorizeTokenMaxAgeSeconds":         "AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens",
 	"accessTokenMaxAgeSeconds":            "AccessTokenMaxAgeSeconds defines the maximum age of access tokens",
 	"accessTokenInactivityTimeoutSeconds": "AccessTokenInactivityTimeoutSeconds defined the default token inactivity timeout for tokens granted by any client. Setting it to nil means the feature is completely disabled (default) The default setting can be overriden on OAuthClient basis. The value represents the maximum amount of time that can occur between consecutive uses of the token. Tokens become invalid if they are not used within this temporal window. The user will need to acquire a new token to regain access once a token times out. Valid values are: - 0: Tokens never time out - X: Tokens time out if there is no activity for X seconds The current minimum allowed value for X is 300 (5 minutes)",

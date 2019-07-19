@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -40,6 +39,9 @@ var clientCertificateExpirationHistogram = prometheus.NewHistogram(
 		Help:      "Distribution of the remaining lifetime on the certificate used to authenticate a request.",
 		Buckets: []float64{
 			0,
+			(30 * time.Minute).Seconds(),
+			(1 * time.Hour).Seconds(),
+			(2 * time.Hour).Seconds(),
 			(6 * time.Hour).Seconds(),
 			(12 * time.Hour).Seconds(),
 			(24 * time.Hour).Seconds(),
@@ -60,37 +62,51 @@ func init() {
 
 // UserConversion defines an interface for extracting user info from a client certificate chain
 type UserConversion interface {
-	User(chain []*x509.Certificate) (user.Info, bool, error)
+	User(chain []*x509.Certificate) (*authenticator.Response, bool, error)
 }
 
 // UserConversionFunc is a function that implements the UserConversion interface.
-type UserConversionFunc func(chain []*x509.Certificate) (user.Info, bool, error)
+type UserConversionFunc func(chain []*x509.Certificate) (*authenticator.Response, bool, error)
 
 // User implements x509.UserConversion
-func (f UserConversionFunc) User(chain []*x509.Certificate) (user.Info, bool, error) {
+func (f UserConversionFunc) User(chain []*x509.Certificate) (*authenticator.Response, bool, error) {
 	return f(chain)
+}
+
+type VerifyOptionFunc func() x509.VerifyOptions
+
+func StaticVerifierFn(opts x509.VerifyOptions) VerifyOptionFunc {
+	return func() x509.VerifyOptions {
+		return opts
+	}
 }
 
 // Authenticator implements request.Authenticator by extracting user info from verified client certificates
 type Authenticator struct {
-	opts x509.VerifyOptions
-	user UserConversion
+	verifyOptionsFn VerifyOptionFunc
+	user            UserConversion
 }
 
 // New returns a request.Authenticator that verifies client certificates using the provided
 // VerifyOptions, and converts valid certificate chains into user.Info using the provided UserConversion
 func New(opts x509.VerifyOptions, user UserConversion) *Authenticator {
-	return &Authenticator{opts, user}
+	return NewDynamic(StaticVerifierFn(opts), user)
+}
+
+// New returns a request.Authenticator that verifies client certificates using the provided
+// VerifyOptions, and converts valid certificate chains into user.Info using the provided UserConversion
+func NewDynamic(verifyOptionsFn VerifyOptionFunc, user UserConversion) *Authenticator {
+	return &Authenticator{verifyOptionsFn, user}
 }
 
 // AuthenticateRequest authenticates the request using presented client certificates
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	if req.TLS == nil || len(req.TLS.PeerCertificates) == 0 {
 		return nil, false, nil
 	}
 
 	// Use intermediates, if provided
-	optsCopy := a.opts
+	optsCopy := a.verifyOptionsFn()
 	if optsCopy.Intermediates == nil && len(req.TLS.PeerCertificates) > 1 {
 		optsCopy.Intermediates = x509.NewCertPool()
 		for _, intermediate := range req.TLS.PeerCertificates[1:] {
@@ -122,8 +138,8 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 
 // Verifier implements request.Authenticator by verifying a client cert on the request, then delegating to the wrapped auth
 type Verifier struct {
-	opts x509.VerifyOptions
-	auth authenticator.Request
+	verifyOptionsFn VerifyOptionFunc
+	auth            authenticator.Request
 
 	// allowedCommonNames contains the common names which a verified certificate is allowed to have.
 	// If empty, all verified certificates are allowed.
@@ -132,17 +148,22 @@ type Verifier struct {
 
 // NewVerifier create a request.Authenticator by verifying a client cert on the request, then delegating to the wrapped auth
 func NewVerifier(opts x509.VerifyOptions, auth authenticator.Request, allowedCommonNames sets.String) authenticator.Request {
-	return &Verifier{opts, auth, allowedCommonNames}
+	return NewDynamicVerifier(StaticVerifierFn(opts), auth, allowedCommonNames)
+}
+
+// NewVerifier create a request.Authenticator by verifying a client cert on the request, then delegating to the wrapped auth
+func NewDynamicVerifier(verifyOptionsFn VerifyOptionFunc, auth authenticator.Request, allowedCommonNames sets.String) authenticator.Request {
+	return &Verifier{verifyOptionsFn, auth, allowedCommonNames}
 }
 
 // AuthenticateRequest verifies the presented client certificate, then delegates to the wrapped auth
-func (a *Verifier) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (a *Verifier) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	if req.TLS == nil || len(req.TLS.PeerCertificates) == 0 {
 		return nil, false, nil
 	}
 
 	// Use intermediates, if provided
-	optsCopy := a.opts
+	optsCopy := a.verifyOptionsFn()
 	if optsCopy.Intermediates == nil && len(req.TLS.PeerCertificates) > 1 {
 		optsCopy.Intermediates = x509.NewCertPool()
 		for _, intermediate := range req.TLS.PeerCertificates[1:] {
@@ -168,8 +189,7 @@ func (a *Verifier) verifySubject(subject pkix.Name) error {
 	if a.allowedCommonNames.Has(subject.CommonName) {
 		return nil
 	}
-	glog.Warningf("x509: subject with cn=%s is not in the allowed list: %v", subject.CommonName, a.allowedCommonNames.List())
-	return fmt.Errorf("x509: subject with cn=%s is not allowed", subject.CommonName)
+	return fmt.Errorf("x509: subject with cn=%s is not in the allowed list", subject.CommonName)
 }
 
 // DefaultVerifyOptions returns VerifyOptions that use the system root certificates, current time,
@@ -181,12 +201,14 @@ func DefaultVerifyOptions() x509.VerifyOptions {
 }
 
 // CommonNameUserConversion builds user info from a certificate chain using the subject's CommonName
-var CommonNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (user.Info, bool, error) {
+var CommonNameUserConversion = UserConversionFunc(func(chain []*x509.Certificate) (*authenticator.Response, bool, error) {
 	if len(chain[0].Subject.CommonName) == 0 {
 		return nil, false, nil
 	}
-	return &user.DefaultInfo{
-		Name:   chain[0].Subject.CommonName,
-		Groups: chain[0].Subject.Organization,
+	return &authenticator.Response{
+		User: &user.DefaultInfo{
+			Name:   chain[0].Subject.CommonName,
+			Groups: chain[0].Subject.Organization,
+		},
 	}, true, nil
 })

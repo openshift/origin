@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This starts a Docker container using the release image (openshift/origin-release:golang-1.8)
+# This starts a container using the release image (openshift/origin-release:golang-1.8)
 # and syncs the local directory into that image. The default mode performs a 'git archive' of
 # the current HEAD, so you get a reproducible environment. You can also set
 # OS_BUILD_ENV_REUSE_VOLUME to a docker volume name to rsync (or docker cp) the contents of

@@ -39,6 +39,7 @@ const (
 	CreateModeDefault                   CreateMode = original.CreateModeDefault
 	CreateModeGeoRestore                CreateMode = original.CreateModeGeoRestore
 	CreateModePointInTimeRestore        CreateMode = original.CreateModePointInTimeRestore
+	CreateModeReplica                   CreateMode = original.CreateModeReplica
 	CreateModeServerPropertiesForCreate CreateMode = original.CreateModeServerPropertiesForCreate
 )
 
@@ -55,6 +56,13 @@ const (
 	NotSpecified OperationOrigin = original.NotSpecified
 	System       OperationOrigin = original.System
 	User         OperationOrigin = original.User
+)
+
+type ServerSecurityAlertPolicyState = original.ServerSecurityAlertPolicyState
+
+const (
+	ServerSecurityAlertPolicyStateDisabled ServerSecurityAlertPolicyState = original.ServerSecurityAlertPolicyStateDisabled
+	ServerSecurityAlertPolicyStateEnabled  ServerSecurityAlertPolicyState = original.ServerSecurityAlertPolicyStateEnabled
 )
 
 type ServerState = original.ServerState
@@ -123,6 +131,7 @@ type PerformanceTierListResult = original.PerformanceTierListResult
 type PerformanceTierProperties = original.PerformanceTierProperties
 type PerformanceTierServiceLevelObjectives = original.PerformanceTierServiceLevelObjectives
 type ProxyResource = original.ProxyResource
+type SecurityAlertPolicyProperties = original.SecurityAlertPolicyProperties
 type Server = original.Server
 type ServerForCreate = original.ServerForCreate
 type ServerListResult = original.ServerListResult
@@ -131,9 +140,12 @@ type BasicServerPropertiesForCreate = original.BasicServerPropertiesForCreate
 type ServerPropertiesForCreate = original.ServerPropertiesForCreate
 type ServerPropertiesForDefaultCreate = original.ServerPropertiesForDefaultCreate
 type ServerPropertiesForGeoRestore = original.ServerPropertiesForGeoRestore
+type ServerPropertiesForReplica = original.ServerPropertiesForReplica
 type ServerPropertiesForRestore = original.ServerPropertiesForRestore
 type ServersCreateFuture = original.ServersCreateFuture
 type ServersDeleteFuture = original.ServersDeleteFuture
+type ServerSecurityAlertPoliciesCreateOrUpdateFuture = original.ServerSecurityAlertPoliciesCreateOrUpdateFuture
+type ServerSecurityAlertPolicy = original.ServerSecurityAlertPolicy
 type ServersUpdateFuture = original.ServersUpdateFuture
 type ServerUpdateParameters = original.ServerUpdateParameters
 type ServerUpdateParametersProperties = original.ServerUpdateParametersProperties
@@ -148,7 +160,9 @@ type VirtualNetworkRuleProperties = original.VirtualNetworkRuleProperties
 type VirtualNetworkRulesCreateOrUpdateFuture = original.VirtualNetworkRulesCreateOrUpdateFuture
 type VirtualNetworkRulesDeleteFuture = original.VirtualNetworkRulesDeleteFuture
 type OperationsClient = original.OperationsClient
+type ReplicasClient = original.ReplicasClient
 type ServersClient = original.ServersClient
+type ServerSecurityAlertPoliciesClient = original.ServerSecurityAlertPoliciesClient
 type VirtualNetworkRulesClient = original.VirtualNetworkRulesClient
 
 func NewCheckNameAvailabilityClient(subscriptionID string) CheckNameAvailabilityClient {
@@ -202,6 +216,9 @@ func PossibleGeoRedundantBackupValues() []GeoRedundantBackup {
 func PossibleOperationOriginValues() []OperationOrigin {
 	return original.PossibleOperationOriginValues()
 }
+func PossibleServerSecurityAlertPolicyStateValues() []ServerSecurityAlertPolicyState {
+	return original.PossibleServerSecurityAlertPolicyStateValues()
+}
 func PossibleServerStateValues() []ServerState {
 	return original.PossibleServerStateValues()
 }
@@ -223,11 +240,23 @@ func NewOperationsClient(subscriptionID string) OperationsClient {
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewReplicasClient(subscriptionID string) ReplicasClient {
+	return original.NewReplicasClient(subscriptionID)
+}
+func NewReplicasClientWithBaseURI(baseURI string, subscriptionID string) ReplicasClient {
+	return original.NewReplicasClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewServersClient(subscriptionID string) ServersClient {
 	return original.NewServersClient(subscriptionID)
 }
 func NewServersClientWithBaseURI(baseURI string, subscriptionID string) ServersClient {
 	return original.NewServersClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewServerSecurityAlertPoliciesClient(subscriptionID string) ServerSecurityAlertPoliciesClient {
+	return original.NewServerSecurityAlertPoliciesClient(subscriptionID)
+}
+func NewServerSecurityAlertPoliciesClientWithBaseURI(baseURI string, subscriptionID string) ServerSecurityAlertPoliciesClient {
+	return original.NewServerSecurityAlertPoliciesClientWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/latest"

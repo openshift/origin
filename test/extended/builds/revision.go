@@ -24,13 +24,6 @@ var _ = g.Describe("[Feature:Builds] build have source revision metadata", func(
 		})
 
 		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-
 			oc.Run("create").Args("-f", buildFixture).Execute()
 		})
 
@@ -49,7 +42,7 @@ var _ = g.Describe("[Feature:Builds] build have source revision metadata", func(
 				br.AssertSuccess()
 
 				g.By(fmt.Sprintf("verifying the status of %q", br.BuildPath))
-				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Spec.Revision).NotTo(o.BeNil())
 				o.Expect(build.Spec.Revision.Git).NotTo(o.BeNil())

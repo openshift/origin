@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	user_v1 "github.com/openshift/api/user/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	versioned "github.com/openshift/client-go/user/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/user/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/user/listers/user/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewIdentityInformer(client versioned.Interface, resyncPeriod time.Duration,
 func NewFilteredIdentityInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.UserV1().Identities().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.UserV1().Identities().Watch(options)
 			},
 		},
-		&user_v1.Identity{},
+		&userv1.Identity{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *identityInformer) defaultInformer(client versioned.Interface, resyncPer
 }
 
 func (f *identityInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&user_v1.Identity{}, f.defaultInformer)
+	return f.factory.InformerFor(&userv1.Identity{}, f.defaultInformer)
 }
 
 func (f *identityInformer) Lister() v1.IdentityLister {

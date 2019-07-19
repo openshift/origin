@@ -11,15 +11,45 @@ import (
 
 type OperatorV1Interface interface {
 	RESTClient() rest.Interface
+	AuthenticationsGetter
+	ConsolesGetter
+	DNSesGetter
+	EtcdsGetter
+	IngressControllersGetter
 	KubeAPIServersGetter
 	KubeControllerManagersGetter
+	KubeSchedulersGetter
+	NetworksGetter
 	OpenShiftAPIServersGetter
 	OpenShiftControllerManagersGetter
+	ServiceCAsGetter
+	ServiceCatalogAPIServersGetter
+	ServiceCatalogControllerManagersGetter
 }
 
 // OperatorV1Client is used to interact with features provided by the operator.openshift.io group.
 type OperatorV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *OperatorV1Client) Authentications() AuthenticationInterface {
+	return newAuthentications(c)
+}
+
+func (c *OperatorV1Client) Consoles() ConsoleInterface {
+	return newConsoles(c)
+}
+
+func (c *OperatorV1Client) DNSes() DNSInterface {
+	return newDNSes(c)
+}
+
+func (c *OperatorV1Client) Etcds() EtcdInterface {
+	return newEtcds(c)
+}
+
+func (c *OperatorV1Client) IngressControllers(namespace string) IngressControllerInterface {
+	return newIngressControllers(c, namespace)
 }
 
 func (c *OperatorV1Client) KubeAPIServers() KubeAPIServerInterface {
@@ -30,12 +60,32 @@ func (c *OperatorV1Client) KubeControllerManagers() KubeControllerManagerInterfa
 	return newKubeControllerManagers(c)
 }
 
+func (c *OperatorV1Client) KubeSchedulers() KubeSchedulerInterface {
+	return newKubeSchedulers(c)
+}
+
+func (c *OperatorV1Client) Networks() NetworkInterface {
+	return newNetworks(c)
+}
+
 func (c *OperatorV1Client) OpenShiftAPIServers() OpenShiftAPIServerInterface {
 	return newOpenShiftAPIServers(c)
 }
 
 func (c *OperatorV1Client) OpenShiftControllerManagers() OpenShiftControllerManagerInterface {
 	return newOpenShiftControllerManagers(c)
+}
+
+func (c *OperatorV1Client) ServiceCAs() ServiceCAInterface {
+	return newServiceCAs(c)
+}
+
+func (c *OperatorV1Client) ServiceCatalogAPIServers() ServiceCatalogAPIServerInterface {
+	return newServiceCatalogAPIServers(c)
+}
+
+func (c *OperatorV1Client) ServiceCatalogControllerManagers() ServiceCatalogControllerManagerInterface {
+	return newServiceCatalogControllerManagers(c)
 }
 
 // NewForConfig creates a new OperatorV1Client for the given config.

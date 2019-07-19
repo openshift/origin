@@ -6,8 +6,6 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
-  oc delete sa/router -n default
-  oc delete node/fake-node
   oc delete groups/shortoutputgroup
   oc delete groups/group1
   oc delete groups/cascaded-group
@@ -30,57 +28,10 @@ os::test::junit::declare_suite_start "cmd/admin"
 os::test::junit::declare_suite_start "cmd/admin/start"
 # Check failure modes of various system commands
 
-os::test::junit::declare_suite_start "cmd/admin/manage-node"
-# Test admin manage-node operations
-os::cmd::expect_success_and_text 'oc adm manage-node --help' 'Manage nodes'
-
-# create a node object to mess with
-os::cmd::expect_success "echo 'apiVersion: v1
-kind: Node
-metadata:
-  labels:
-      kubernetes.io/hostname: fake-node
-  name: fake-node
-spec:
-  externalID: fake-node
-status:
-  conditions:
-  - lastHeartbeatTime: 2015-09-08T16:58:02Z
-    lastTransitionTime: 2015-09-04T11:49:06Z
-    reason: kubelet is posting ready status
-    status: \"True\"
-    type: Ready
-  allocatable:
-    cpu: \"4\"
-    memory: 8010948Ki
-    pods: \"110\"
-  capacity:
-    cpu: \"4\"
-    memory: 8010948Ki
-    pods: \"110\"
-' | oc create -f -"
-
-os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=true' 'marked schedulable'
-os::cmd::expect_success_and_not_text 'oc adm manage-node --selector= --schedulable=true' 'marked unschedulable'
-os::cmd::expect_success_and_not_text 'oc get node -o yaml' 'unschedulable: true'
-os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=false' 'marked unschedulable'
-os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
-# ensure correct serialization of podList output
-os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
-os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector=" 'NAMESPACE'
-
-echo "manage-node: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/admin/certs"
-# check create-master-certs validation
-os::cmd::expect_failure_and_text 'oc adm ca create-master-certs --hostnames=example.com --master='                                                'master must be provided'
-os::cmd::expect_failure_and_text 'oc adm ca create-master-certs --hostnames=example.com --master=example.com'                                     'master must be a valid URL'
-os::cmd::expect_failure_and_text 'oc adm ca create-master-certs --hostnames=example.com --master=https://example.com --public-master=example.com' 'public master must be a valid URL'
-
 # check encrypt/decrypt of plain text
 os::cmd::expect_success          "echo -n 'secret data 1' | oc adm ca encrypt --genkey='${ARTIFACT_DIR}/secret.key' --out='${ARTIFACT_DIR}/secret.encrypted'"
-os::cmd::expect_success_and_text "oc adm ca decrypt --in='${ARTIFACT_DIR}/secret.encrypted' --key='${ARTIFACT_DIR}/secret.key'" '^secret data 1$'
+os::cmd::expect_success_and_text "oc adm ca decrypt --in='${ARTIFACT_DIR}/secret.encrypted' --key='${ARTIFACT_DIR}/secret.key'" 'secret data 1'
 # create a file with trailing whitespace
 echo "data with newline" > "${ARTIFACT_DIR}/secret.whitespace.data"
 os::cmd::expect_success_and_text "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.whitespace.data'      --out='${ARTIFACT_DIR}/secret.whitespace.encrypted'" 'Warning.*whitespace'
@@ -194,17 +145,17 @@ os::test::junit::declare_suite_start "cmd/admin/role-reapers"
 os::cmd::expect_success "oc process -f test/extended/testdata/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
 os::cmd::expect_success "oc get rolebinding/basic-users"
 os::cmd::expect_success "oc adm prune auth role/basic-user"
-os::cmd::expect_failure "oc get rolebinding/basic-users"
+os::cmd::try_until_failure "oc get rolebinding/basic-users"
 os::cmd::expect_success "oc delete role/basic-user"
 os::cmd::expect_success "oc create -f test/extended/testdata/roles/policy-clusterroles.yaml"
 os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
 os::cmd::expect_success "oc adm prune auth clusterrole/basic-user2"
-os::cmd::expect_failure "oc get clusterrolebinding/basic-users2"
+os::cmd::try_until_failure "oc get clusterrolebinding/basic-users2"
 os::cmd::expect_success "oc delete clusterrole/basic-user2"
 os::cmd::expect_success "oc policy add-role-to-user edit foo"
 os::cmd::expect_success "oc get rolebinding/edit"
 os::cmd::expect_success "oc adm prune auth clusterrole/edit"
-os::cmd::expect_failure "oc get rolebinding/edit"
+os::cmd::try_until_failure "oc get rolebinding/edit"
 os::cmd::expect_success "oc delete clusterrole/edit"
 os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
 
@@ -258,17 +209,6 @@ os::cmd::expect_success_and_text "oc get rolebinding admin -n recreated-project 
 echo "new-project: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/router"
-# Test running a router
-os::cmd::expect_failure_and_text 'oc adm router --dry-run' 'does not exist'
-os::cmd::expect_success "oc adm policy add-scc-to-user privileged system:serviceaccount:default:router"
-os::cmd::expect_success_and_text "oc adm router -o yaml --service-account=router -n default" 'image:.*\-haproxy\-router:'
-os::cmd::expect_success "oc adm router --images='${USE_IMAGES}' --service-account=router -n default"
-os::cmd::expect_success_and_text 'oc adm router -n default' 'service exists'
-os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
-echo "router: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/admin/build-chain"
 # Test building a dependency tree
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
@@ -291,44 +231,6 @@ os::cmd::expect_success 'oc status'
 os::cmd::expect_success_and_text 'oc status -o dot' '"example"'
 echo "complex-scenarios: ok"
 os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/reconcile-security-context-constraints"
-# Test reconciling SCCs
-os::cmd::expect_success 'oc delete scc/restricted'
-os::cmd::expect_failure 'oc get scc/restricted'
-os::cmd::expect_success 'oc adm policy reconcile-sccs'
-os::cmd::expect_failure 'oc get scc/restricted'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success 'oc get scc/restricted'
-
-os::cmd::expect_success 'oc adm policy add-scc-to-user restricted my-restricted-user'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
-
-os::cmd::expect_success 'oc adm policy remove-scc-from-group restricted system:authenticated'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'system:authenticated'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'system:authenticated'
-
-os::cmd::expect_success 'oc label scc/restricted foo=bar'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=true'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=false'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'foo: bar'
-
-os::cmd::expect_success 'oc annotate scc/restricted topic="my-foo-bar"'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=true'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=false'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-echo "reconcile-scc: ok"
-os::test::junit::declare_suite_end
-
-# cleanup the fake node that has been created so that it doesn't confuse other test-cmd scripts
-os::cmd::expect_success "oc delete node/fake-node"
 
 os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
 # Admin can bind local roles without cluster-admin permissions
@@ -448,6 +350,11 @@ os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-au
 os::cmd::expect_success_and_text "oc adm prune images" "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 
 echo "images: ok"
+os::test::junit::declare_suite_end
+
+# oc adm must-gather
+os::test::junit::declare_suite_start "cmd/admin/must-gather"
+os::cmd::expect_success "oc adm must-gather --help"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end

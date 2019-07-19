@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/evanphx/json-patch"
-
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,11 +38,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/apis/example"
 	examplev1 "k8s.io/apiserver/pkg/apis/example/v1"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	utiltrace "k8s.io/apiserver/pkg/util/trace"
+	utiltrace "k8s.io/utils/trace"
 )
 
 var (
@@ -102,7 +102,7 @@ func TestPatchAnonymousField(t *testing.T) {
 	}
 }
 
-func TestPatchInvalid(t *testing.T) {
+func TestStrategicMergePatchInvalid(t *testing.T) {
 	testGV := schema.GroupVersion{Group: "", Version: "v"}
 	scheme.AddKnownTypes(testGV, &testPatchType{})
 	defaulter := runtime.ObjectDefaulter(scheme)
@@ -121,6 +121,61 @@ func TestPatchInvalid(t *testing.T) {
 	}
 	if err.Error() != expectedError {
 		t.Errorf("expected %#v, got %#v", expectedError, err.Error())
+	}
+}
+
+func TestJSONPatch(t *testing.T) {
+	for _, test := range []struct {
+		name              string
+		patch             string
+		expectedError     string
+		expectedErrorType metav1.StatusReason
+	}{
+		{
+			name:  "valid",
+			patch: `[{"op": "test", "value": "podA", "path": "/metadata/name"}]`,
+		},
+		{
+			name:              "invalid-syntax",
+			patch:             `invalid json patch`,
+			expectedError:     "invalid character 'i' looking for beginning of value",
+			expectedErrorType: metav1.StatusReasonBadRequest,
+		},
+		{
+			name:              "invalid-semantics",
+			patch:             `[{"op": "test", "value": "podA", "path": "/invalid/path"}]`,
+			expectedError:     "the server rejected our request due to an error in our request",
+			expectedErrorType: metav1.StatusReasonInvalid,
+		},
+	} {
+		p := &patcher{
+			patchType:  types.JSONPatchType,
+			patchBytes: []byte(test.patch),
+		}
+		jp := jsonPatcher{patcher: p}
+		codec := codecs.LegacyCodec(examplev1.SchemeGroupVersion)
+		pod := &examplev1.Pod{}
+		pod.Name = "podA"
+		versionedJS, err := runtime.Encode(codec, pod)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		_, err = jp.applyJSPatch(versionedJS)
+		if err != nil {
+			if len(test.expectedError) == 0 {
+				t.Errorf("%s: expect no error when applying json patch, but got %v", test.name, err)
+				continue
+			}
+			if err.Error() != test.expectedError {
+				t.Errorf("%s: expected error %v, but got %v", test.name, test.expectedError, err)
+			}
+			if test.expectedErrorType != apierrors.ReasonForError(err) {
+				t.Errorf("%s: expected error type %v, but got %v", test.name, test.expectedErrorType, apierrors.ReasonForError(err))
+			}
+		} else if len(test.expectedError) > 0 {
+			t.Errorf("%s: expected err %s", test.name, test.expectedError)
+		}
 	}
 }
 
@@ -310,9 +365,11 @@ func (tc *patchTestCase) Run(t *testing.T) {
 	creater := runtime.ObjectCreater(scheme)
 	defaulter := runtime.ObjectDefaulter(scheme)
 	convertor := runtime.UnsafeObjectConvertor(scheme)
+	objectInterfaces := &admission.SchemeBasedObjectInterfaces{scheme}
 	kind := examplev1.SchemeGroupVersion.WithKind("Pod")
 	resource := examplev1.SchemeGroupVersion.WithResource("pods")
 	schemaReferenceObj := &examplev1.Pod{}
+	hubVersion := example.SchemeGroupVersion
 
 	for _, patchType := range []types.PatchType{types.JSONPatchType, types.MergePatchType, types.StrategicMergePatchType} {
 		// This needs to be reset on each iteration.
@@ -385,6 +442,10 @@ func (tc *patchTestCase) Run(t *testing.T) {
 			kind:            kind,
 			resource:        resource,
 
+			objectInterfaces: objectInterfaces,
+
+			hubGroupVersion: hubVersion,
+
 			createValidation: rest.ValidateAllObjectFunc,
 			updateValidation: admissionValidation,
 			admissionCheck:   admissionMutation,
@@ -396,12 +457,12 @@ func (tc *patchTestCase) Run(t *testing.T) {
 			restPatcher: testPatcher,
 			name:        name,
 			patchType:   patchType,
-			patchJS:     patch,
+			patchBytes:  patch,
 
 			trace: utiltrace.New("Patch" + name),
 		}
 
-		resultObj, err := p.patchResource(ctx)
+		resultObj, _, err := p.patchResource(ctx, RequestScope{})
 		if len(tc.expectedError) != 0 {
 			if err == nil || err.Error() != tc.expectedError {
 				t.Errorf("%s: expected error %v, but got %v", tc.name, tc.expectedError, err)
@@ -761,10 +822,10 @@ func TestHasUID(t *testing.T) {
 }
 
 func TestParseTimeout(t *testing.T) {
-	if d := parseTimeout(""); d != 30*time.Second {
+	if d := parseTimeout(""); d != 34*time.Second {
 		t.Errorf("blank timeout produces %v", d)
 	}
-	if d := parseTimeout("not a timeout"); d != 30*time.Second {
+	if d := parseTimeout("not a timeout"); d != 34*time.Second {
 		t.Errorf("bad timeout produces %v", d)
 	}
 	if d := parseTimeout("10s"); d != 10*time.Second {
@@ -826,7 +887,6 @@ func TestFinishRequest(t *testing.T) {
 			timeout: time.Second,
 			fn: func() (runtime.Object, error) {
 				panic("my panic")
-				return nil, nil
 			},
 			expectedObj:   nil,
 			expectedErr:   nil,
@@ -837,7 +897,6 @@ func TestFinishRequest(t *testing.T) {
 			timeout: time.Second,
 			fn: func() (runtime.Object, error) {
 				panic("my panic")
-				return nil, nil
 			},
 			expectedObj:   nil,
 			expectedErr:   nil,
@@ -882,4 +941,12 @@ func setTcPod(tcPod *example.Pod, name string, namespace string, uid types.UID, 
 	if len(nodeName) != 0 {
 		tcPod.Spec.NodeName = nodeName
 	}
+}
+
+func (f mutateObjectUpdateFunc) Handles(operation admission.Operation) bool {
+	return true
+}
+
+func (f mutateObjectUpdateFunc) Admit(a admission.Attributes, o admission.ObjectInterfaces) (err error) {
+	return f(a.GetObject(), a.GetOldObject())
 }

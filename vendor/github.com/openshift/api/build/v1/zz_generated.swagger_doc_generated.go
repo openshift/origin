@@ -80,8 +80,8 @@ var map_BuildConfigSpec = map[string]string{
 	"":                             "BuildConfigSpec describes when and how builds are created",
 	"triggers":                     "triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation.",
 	"runPolicy":                    "RunPolicy describes how the new build created from this build configuration will be scheduled for execution. This is optional, if not specified we default to \"Serial\".",
-	"successfulBuildsHistoryLimit": "successfulBuildsHistoryLimit is the number of old successful builds to retain. If not specified, all successful builds are retained.",
-	"failedBuildsHistoryLimit":     "failedBuildsHistoryLimit is the number of old failed builds to retain. If not specified, all failed builds are retained.",
+	"successfulBuildsHistoryLimit": "successfulBuildsHistoryLimit is the number of old successful builds to retain. When a BuildConfig is created, the 5 most recent successful builds are retained unless this value is set. If removed after the BuildConfig has been created, all successful builds are retained.",
+	"failedBuildsHistoryLimit":     "failedBuildsHistoryLimit is the number of old failed builds to retain. When a BuildConfig is created, the 5 most recent failed builds are retained unless this value is set. If removed after the BuildConfig has been created, all failed builds are retained.",
 }
 
 func (BuildConfigSpec) SwaggerDoc() map[string]string {
@@ -367,10 +367,10 @@ func (GenericWebHookCause) SwaggerDoc() map[string]string {
 }
 
 var map_GenericWebHookEvent = map[string]string{
-	"":     "GenericWebHookEvent is the payload expected for a generic webhook post",
-	"type": "type is the type of source repository",
-	"git":  "git is the git information if the Type is BuildSourceGit",
-	"env":  "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+	"":                      "GenericWebHookEvent is the payload expected for a generic webhook post",
+	"type":                  "type is the type of source repository",
+	"git":                   "git is the git information if the Type is BuildSourceGit",
+	"env":                   "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 	"dockerStrategyOptions": "DockerStrategyOptions contains additional docker-strategy specific options for the build",
 }
 
@@ -446,7 +446,7 @@ func (ImageChangeCause) SwaggerDoc() map[string]string {
 }
 
 var map_ImageChangeTrigger = map[string]string{
-	"": "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
+	"":                     "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
 	"lastTriggeredImageID": "lastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build",
 	"from":                 "from is a reference to an ImageStreamTag that will trigger a build when updated It is optional. If no From is specified, the From image from the build strategy will be used. Only one ImageChangeTrigger with an empty From reference is allowed in a build configuration.",
 	"paused":               "paused is true if this trigger is temporarily disabled. Optional.",

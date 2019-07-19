@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -39,7 +39,7 @@ func ToConfigMapLeaderElection(clientConfig *rest.Config, config configv1.Leader
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events("")})
 	eventRecorder := eventBroadcaster.NewRecorder(clientgoscheme.Scheme, corev1.EventSource{Component: component})
 	rl, err := resourcelock.New(
@@ -47,6 +47,7 @@ func ToConfigMapLeaderElection(clientConfig *rest.Config, config configv1.Leader
 		config.Namespace,
 		config.Name,
 		kubeClient.CoreV1(),
+		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      identity,
 			EventRecorder: eventRecorder,
@@ -62,7 +63,7 @@ func ToConfigMapLeaderElection(clientConfig *rest.Config, config configv1.Leader
 		RetryPeriod:   config.RetryPeriod.Duration,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStoppedLeading: func() {
-				glog.Fatalf("leaderelection lost")
+				klog.Fatalf("leaderelection lost")
 			},
 		},
 	}, nil
@@ -75,13 +76,13 @@ func LeaderElectionDefaulting(config configv1.LeaderElection, defaultNamespace, 
 	ret := *(&config).DeepCopy()
 
 	if ret.LeaseDuration.Duration == 0 {
-		ret.LeaseDuration.Duration = 15 * time.Second
+		ret.LeaseDuration.Duration = 60 * time.Second
 	}
 	if ret.RenewDeadline.Duration == 0 {
-		ret.RenewDeadline.Duration = 10 * time.Second
+		ret.RenewDeadline.Duration = 35 * time.Second
 	}
 	if ret.RetryPeriod.Duration == 0 {
-		ret.RetryPeriod.Duration = 2 * time.Second
+		ret.RetryPeriod.Duration = 10 * time.Second
 	}
 	if len(ret.Namespace) == 0 {
 		if len(defaultNamespace) > 0 {

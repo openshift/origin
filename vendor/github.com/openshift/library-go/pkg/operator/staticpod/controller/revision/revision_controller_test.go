@@ -49,19 +49,59 @@ func TestRevisionController(t *testing.T) {
 		expectSyncError         string
 	}{
 		{
+			testName:        "set-latest-revision-by-configmap",
+			targetNamespace: targetNamespace,
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 0,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+				nil,
+			),
+			testConfigs: []RevisionResource{{Name: "test-config"}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}},
+			startingObjects: []runtime.Object{
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: targetNamespace}},
+				&v1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: targetNamespace},
+					Data:       map[string]string{"revision": "1"},
+				},
+				&v1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: targetNamespace},
+					Data:       map[string]string{"revision": "2"},
+				},
+			},
+			validateStatus: func(t *testing.T, status *operatorv1.StaticPodOperatorStatus) {
+				if status.LatestAvailableRevision != 2 {
+					t.Errorf("expected status LatestAvailableRevision to be 2, got %v", status.LatestAvailableRevision)
+				}
+			},
+		},
+		{
 			testName:        "operator-unmanaged",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Unmanaged,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Unmanaged,
 					},
 				},
 				&operatorv1.StaticPodOperatorStatus{},
+				nil,
 				nil,
 			),
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
@@ -75,10 +115,6 @@ func TestRevisionController(t *testing.T) {
 			testName:        "missing-source-resources",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -95,12 +131,13 @@ func TestRevisionController(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			testConfigs:     []RevisionResource{{Name: "test-config"}},
 			testSecrets:     []RevisionResource{{Name: "test-secret"}},
 			expectSyncError: "synthetic requeue request",
 			validateStatus: func(t *testing.T, status *operatorv1.StaticPodOperatorStatus) {
-				if status.Conditions[0].Type != "RevisionControllerFailing" {
+				if status.Conditions[0].Type != "RevisionControllerDegraded" {
 					t.Errorf("expected status condition to be 'RevisionControllerFailing', got %v", status.Conditions[0].Type)
 				}
 				if status.Conditions[0].Reason != "ContentCreationError" {
@@ -115,10 +152,6 @@ func TestRevisionController(t *testing.T) {
 			testName:        "copy-resources",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -134,6 +167,7 @@ func TestRevisionController(t *testing.T) {
 						},
 					},
 				},
+				nil,
 				nil,
 			),
 			startingObjects: []runtime.Object{
@@ -166,7 +200,7 @@ func TestRevisionController(t *testing.T) {
 					t.Errorf("expected config to have name 'test-config-1', got %q", config.Name)
 				}
 				if len(config.OwnerReferences) != 1 {
-					t.Errorf("expected config to have ownerreferences set, got %q", config.OwnerReferences)
+					t.Errorf("expected config to have ownerreferences set, got %+v", config.OwnerReferences)
 				}
 				secret, hasSecret := createdObjects[2].(*v1.Secret)
 				if !hasSecret {
@@ -177,7 +211,7 @@ func TestRevisionController(t *testing.T) {
 					t.Errorf("expected secret to have name 'test-secret-1', got %q", secret.Name)
 				}
 				if len(secret.OwnerReferences) != 1 {
-					t.Errorf("expected secret to have ownerreferences set, got %q", secret.OwnerReferences)
+					t.Errorf("expected secret to have ownerreferences set, got %+v", secret.OwnerReferences)
 				}
 			},
 		},
@@ -185,10 +219,6 @@ func TestRevisionController(t *testing.T) {
 			testName:        "copy-resources-opt",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -204,6 +234,7 @@ func TestRevisionController(t *testing.T) {
 						},
 					},
 				},
+				nil,
 				nil,
 			),
 			startingObjects: []runtime.Object{
@@ -267,10 +298,6 @@ func TestRevisionController(t *testing.T) {
 			testName:        "copy-resources-opt-missing",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -286,6 +313,7 @@ func TestRevisionController(t *testing.T) {
 						},
 					},
 				},
+				nil,
 				nil,
 			),
 			startingObjects: []runtime.Object{
@@ -331,10 +359,6 @@ func TestRevisionController(t *testing.T) {
 			testName:        "latest-revision-current",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -350,6 +374,7 @@ func TestRevisionController(t *testing.T) {
 						},
 					},
 				},
+				nil,
 				nil,
 			),
 			startingObjects: []runtime.Object{
@@ -372,10 +397,6 @@ func TestRevisionController(t *testing.T) {
 			testName:        "latest-revision-current-optionals-missing",
 			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -391,6 +412,7 @@ func TestRevisionController(t *testing.T) {
 						},
 					},
 				},
+				nil,
 				nil,
 			),
 			startingObjects: []runtime.Object{

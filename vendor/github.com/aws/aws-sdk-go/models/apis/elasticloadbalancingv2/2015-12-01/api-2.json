@@ -633,7 +633,9 @@
         "TargetGroupArn":{"shape":"TargetGroupArn"},
         "AuthenticateOidcConfig":{"shape":"AuthenticateOidcActionConfig"},
         "AuthenticateCognitoConfig":{"shape":"AuthenticateCognitoActionConfig"},
-        "Order":{"shape":"ActionOrder"}
+        "Order":{"shape":"ActionOrder"},
+        "RedirectConfig":{"shape":"RedirectActionConfig"},
+        "FixedResponseConfig":{"shape":"FixedResponseActionConfig"}
       }
     },
     "ActionOrder":{
@@ -646,7 +648,9 @@
       "enum":[
         "forward",
         "authenticate-oidc",
-        "authenticate-cognito"
+        "authenticate-cognito",
+        "redirect",
+        "fixed-response"
       ]
     },
     "Actions":{
@@ -915,12 +919,7 @@
     },
     "CreateTargetGroupInput":{
       "type":"structure",
-      "required":[
-        "Name",
-        "Protocol",
-        "Port",
-        "VpcId"
-      ],
+      "required":["Name"],
       "members":{
         "Name":{"shape":"TargetGroupName"},
         "Protocol":{"shape":"ProtocolEnum"},
@@ -928,6 +927,7 @@
         "VpcId":{"shape":"VpcId"},
         "HealthCheckProtocol":{"shape":"ProtocolEnum"},
         "HealthCheckPort":{"shape":"HealthCheckPort"},
+        "HealthCheckEnabled":{"shape":"HealthCheckEnabled"},
         "HealthCheckPath":{"shape":"Path"},
         "HealthCheckIntervalSeconds":{"shape":"HealthCheckIntervalSeconds"},
         "HealthCheckTimeoutSeconds":{"shape":"HealthCheckTimeoutSeconds"},
@@ -1218,6 +1218,30 @@
       },
       "exception":true
     },
+    "FixedResponseActionConfig":{
+      "type":"structure",
+      "required":["StatusCode"],
+      "members":{
+        "MessageBody":{"shape":"FixedResponseActionMessage"},
+        "StatusCode":{"shape":"FixedResponseActionStatusCode"},
+        "ContentType":{"shape":"FixedResponseActionContentType"}
+      }
+    },
+    "FixedResponseActionContentType":{
+      "type":"string",
+      "max":32,
+      "min":0
+    },
+    "FixedResponseActionMessage":{
+      "type":"string",
+      "max":1024,
+      "min":0
+    },
+    "FixedResponseActionStatusCode":{
+      "type":"string",
+      "pattern":"^(2|4|5)\\d\\d$"
+    },
+    "HealthCheckEnabled":{"type":"boolean"},
     "HealthCheckIntervalSeconds":{
       "type":"integer",
       "max":300,
@@ -1231,7 +1255,7 @@
     },
     "HealthCheckTimeoutSeconds":{
       "type":"integer",
-      "max":60,
+      "max":120,
       "min":2
     },
     "HealthUnavailableException":{
@@ -1566,6 +1590,7 @@
         "HealthCheckProtocol":{"shape":"ProtocolEnum"},
         "HealthCheckPort":{"shape":"HealthCheckPort"},
         "HealthCheckPath":{"shape":"Path"},
+        "HealthCheckEnabled":{"shape":"HealthCheckEnabled"},
         "HealthCheckIntervalSeconds":{"shape":"HealthCheckIntervalSeconds"},
         "HealthCheckTimeoutSeconds":{"shape":"HealthCheckTimeoutSeconds"},
         "HealthyThresholdCount":{"shape":"HealthCheckThresholdCount"},
@@ -1622,7 +1647,47 @@
       "enum":[
         "HTTP",
         "HTTPS",
-        "TCP"
+        "TCP",
+        "TLS"
+      ]
+    },
+    "RedirectActionConfig":{
+      "type":"structure",
+      "required":["StatusCode"],
+      "members":{
+        "Protocol":{"shape":"RedirectActionProtocol"},
+        "Port":{"shape":"RedirectActionPort"},
+        "Host":{"shape":"RedirectActionHost"},
+        "Path":{"shape":"RedirectActionPath"},
+        "Query":{"shape":"RedirectActionQuery"},
+        "StatusCode":{"shape":"RedirectActionStatusCodeEnum"}
+      }
+    },
+    "RedirectActionHost":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "RedirectActionPath":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "RedirectActionPort":{"type":"string"},
+    "RedirectActionProtocol":{
+      "type":"string",
+      "pattern":"^(HTTPS?|#\\{protocol\\})$"
+    },
+    "RedirectActionQuery":{
+      "type":"string",
+      "max":128,
+      "min":0
+    },
+    "RedirectActionStatusCodeEnum":{
+      "type":"string",
+      "enum":[
+        "HTTP_301",
+        "HTTP_302"
       ]
     },
     "RegisterTargetsInput":{
@@ -1939,6 +2004,7 @@
         "VpcId":{"shape":"VpcId"},
         "HealthCheckProtocol":{"shape":"ProtocolEnum"},
         "HealthCheckPort":{"shape":"HealthCheckPort"},
+        "HealthCheckEnabled":{"shape":"HealthCheckEnabled"},
         "HealthCheckIntervalSeconds":{"shape":"HealthCheckIntervalSeconds"},
         "HealthCheckTimeoutSeconds":{"shape":"HealthCheckTimeoutSeconds"},
         "HealthyThresholdCount":{"shape":"HealthCheckThresholdCount"},
@@ -2035,6 +2101,7 @@
         "Target.DeregistrationInProgress",
         "Target.InvalidState",
         "Target.IpUnusable",
+        "Target.HealthCheckDisabled",
         "Elb.InternalError"
       ]
     },
@@ -2054,7 +2121,8 @@
       "type":"string",
       "enum":[
         "instance",
-        "ip"
+        "ip",
+        "lambda"
       ]
     },
     "TooManyActionsException":{

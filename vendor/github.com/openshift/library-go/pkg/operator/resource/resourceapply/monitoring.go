@@ -5,6 +5,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -75,13 +76,19 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, ser
 		return true, nil
 	}
 
-	updated, endpointsModified, err := ensureServiceMonitorSpec(required, existing)
+	existingCopy := existing.DeepCopy()
+
+	updated, endpointsModified, err := ensureServiceMonitorSpec(required, existingCopy)
 	if err != nil {
 		return false, err
 	}
 
 	if !endpointsModified {
 		return false, nil
+	}
+
+	if klog.V(4) {
+		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatch(existing, existingCopy))
 	}
 
 	if _, err = client.Resource(serviceMonitorGVR).Namespace(namespace).Update(updated, metav1.UpdateOptions{}); err != nil {

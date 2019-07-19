@@ -15,8 +15,10 @@ type OAuth struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +kubebuilder:validation:Required
+	// +required
 	Spec OAuthSpec `json:"spec"`
-
+	// +optional
 	Status OAuthStatus `json:"status"`
 }
 
@@ -89,7 +91,7 @@ type OAuthTemplates struct {
 	// If unspecified, the default login page is used.
 	// The namespace for this secret is openshift-config.
 	// +optional
-	Login SecretNameReference `json:"login,omitempty"`
+	Login SecretNameReference `json:"login"`
 
 	// providerSelection is the name of a secret that specifies a go template to use to render
 	// the provider selection page.
@@ -99,7 +101,7 @@ type OAuthTemplates struct {
 	// If unspecified, the default provider selection page is used.
 	// The namespace for this secret is openshift-config.
 	// +optional
-	ProviderSelection SecretNameReference `json:"providerSelection,omitempty"`
+	ProviderSelection SecretNameReference `json:"providerSelection"`
 
 	// error is the name of a secret that specifies a go template to use to render error pages
 	// during the authentication or grant flow.
@@ -109,7 +111,7 @@ type OAuthTemplates struct {
 	// If unspecified, the default error page is used.
 	// The namespace for this secret is openshift-config.
 	// +optional
-	Error SecretNameReference `json:"error,omitempty"`
+	Error SecretNameReference `json:"error"`
 }
 
 // IdentityProvider provides identities for users authenticating using credentials
@@ -120,16 +122,10 @@ type IdentityProvider struct {
 	//   Ref: https://godoc.org/github.com/openshift/origin/pkg/user/apis/user/validation#ValidateIdentityProviderName
 	Name string `json:"name"`
 
-	// challenge indicates whether to issue WWW-Authenticate challenges for this provider
-	UseAsChallenger bool `json:"challenge"`
-
-	// login indicates whether to use this identity provider for unauthenticated browsers to login against
-	UseAsLogin bool `json:"login"`
-
 	// mappingMethod determines how identities from this provider are mapped to users
 	// Defaults to "claim"
 	// +optional
-	MappingMethod MappingMethodType `json:"mappingMethod"`
+	MappingMethod MappingMethodType `json:"mappingMethod,omitempty"`
 
 	IdentityProviderConfig `json:",inline"`
 }
@@ -332,18 +328,18 @@ type LDAPAttributeMapping struct {
 	// preferredUsername is the list of attributes whose values should be used as the preferred username.
 	// LDAP standard login attribute is "uid"
 	// +optional
-	PreferredUsername []string `json:"preferredUsername"`
+	PreferredUsername []string `json:"preferredUsername,omitempty"`
 
 	// name is the list of attributes whose values should be used as the display name. Optional.
 	// If unspecified, no display name is set for the identity
 	// LDAP standard display name attribute is "cn"
 	// +optional
-	Name []string `json:"name"`
+	Name []string `json:"name,omitempty"`
 
 	// email is the list of attributes whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	// +optional
-	Email []string `json:"email"`
+	Email []string `json:"email,omitempty"`
 }
 
 // KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials
@@ -394,7 +390,7 @@ type RequestHeaderIdentityProvider struct {
 	// clientCommonNames is an optional list of common names to require a match from. If empty, any
 	// client certificate validated against the clientCA bundle is considered authoritative.
 	// +optional
-	ClientCommonNames []string `json:"clientCommonNames"`
+	ClientCommonNames []string `json:"clientCommonNames,omitempty"`
 
 	// headers is the set of headers to check for identity information
 	Headers []string `json:"headers"`
@@ -422,11 +418,11 @@ type GitHubIdentityProvider struct {
 
 	// organizations optionally restricts which organizations are allowed to log in
 	// +optional
-	Organizations []string `json:"organizations"`
+	Organizations []string `json:"organizations,omitempty"`
 
 	// teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
 	// +optional
-	Teams []string `json:"teams"`
+	Teams []string `json:"teams,omitempty"`
 
 	// hostname is the optional domain (e.g. "mycompany.com") for use with a hosted instance of
 	// GitHub Enterprise.
@@ -510,32 +506,18 @@ type OpenIDIdentityProvider struct {
 
 	// extraScopes are any scopes to request in addition to the standard "openid" scope.
 	// +optional
-	ExtraScopes []string `json:"extraScopes"`
+	ExtraScopes []string `json:"extraScopes,omitempty"`
 
 	// extraAuthorizeParameters are any custom parameters to add to the authorize request.
 	// +optional
-	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters"`
+	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters,omitempty"`
 
-	// urls to use to authenticate
-	URLs OpenIDURLs `json:"urls"`
+	// issuer is the URL that the OpenID Provider asserts as its Issuer Identifier.
+	// It must use the https scheme with no query or fragment component.
+	Issuer string `json:"issuer"`
 
 	// claims mappings
 	Claims OpenIDClaims `json:"claims"`
-}
-
-// OpenIDURLs are URLs to use when authenticating with an OpenID identity provider
-type OpenIDURLs struct {
-	// authorize is the oauth authorization URL
-	Authorize string `json:"authorize"`
-
-	// token is the oauth token granting URL
-	Token string `json:"token"`
-
-	// userInfo is the optional userinfo URL.
-	// If present, a granted access_token is used to request claims
-	// If empty, a granted id_token is parsed for claims
-	// +optional
-	UserInfo string `json:"userInfo"`
 }
 
 // UserIDClaim is the claim used to provide a stable identifier for OIDC identities.
@@ -552,24 +534,24 @@ type OpenIDClaims struct {
 	// preferredUsername is the list of claims whose values should be used as the preferred username.
 	// If unspecified, the preferred username is determined from the value of the sub claim
 	// +optional
-	PreferredUsername []string `json:"preferredUsername"`
+	PreferredUsername []string `json:"preferredUsername,omitempty"`
 
 	// name is the list of claims whose values should be used as the display name. Optional.
 	// If unspecified, no display name is set for the identity
 	// +optional
-	Name []string `json:"name"`
+	Name []string `json:"name,omitempty"`
 
 	// email is the list of claims whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	// +optional
-	Email []string `json:"email"`
+	Email []string `json:"email,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	Items []OAuth `json:"items"`
 }

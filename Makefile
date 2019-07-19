@@ -9,13 +9,9 @@
 #   clean: Clean up.
 
 OUT_DIR = _output
-OS_OUTPUT_GOPATH ?= 1
 
 export GOFLAGS
 export TESTFLAGS
-# If set to 1, create an isolated GOPATH inside _output using symlinks to avoid
-# other packages being accidentally included. Defaults to on.
-export OS_OUTPUT_GOPATH
 # May be used to set additional arguments passed to the image build commands for
 # mounting secrets specific to a build environment.
 export OS_BUILD_IMAGE_ARGS
@@ -37,11 +33,22 @@ JUNIT_REPORT ?= true
 # Example:
 #   make
 #   make all
-#   make all WHAT=cmd/oc GOFLAGS=-v
+#   make all WHAT=cmd/openshift-tests GOFLAGS=-v
 #   make all GOGCFLAGS="-N -l"
 all build:
 	hack/build-go.sh $(WHAT) $(GOFLAGS)
 .PHONY: all build
+
+# Build all binaries.
+#
+# Example:
+#   make build-all
+build-all:
+	hack/build-go.sh cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube vendor/github.com/openshift/oc/cmd/oc vendor/github.com/openshift/sdn/cmd/openshift-sdn vendor/github.com/openshift/oauth-server/cmd/oauth-server\
+	 vendor/github.com/openshift/openshift-apiserver/cmd/openshift-apiserver\
+	 vendor/github.com/openshift/openshift-controller-manager/cmd/openshift-controller-manager\
+	 cmd/openshift-tests
+.PHONY: build-all
 
 # Build the test binaries.
 #
@@ -51,7 +58,7 @@ build-tests: build-extended-test build-integration-test
 .PHONY: build-tests
 
 build-network:
-	hack/build-go.sh cmd/openshift-sdn cmd/sdn-cni-plugin vendor/github.com/containernetworking/plugins/plugins/ipam/host-local vendor/github.com/containernetworking/plugins/plugins/main/loopback
+	hack/build-go.sh vendor/github.com/openshift/sdn/cmd/openshift-sdn vendor/github.com/openshift/sdn/cmd/sdn-cni-plugin vendor/github.com/containernetworking/plugins/plugins/ipam/host-local vendor/github.com/containernetworking/plugins/plugins/main/loopback
 .PHONY: build-network
 
 build-extended-test:
@@ -85,16 +92,14 @@ check: | build verify
 verify: build
 	# build-tests task has been disabled until we can determine why memory usage is so high
 	{ \
+	hack/verify-generated-versions.sh ||r=1;\
 	hack/verify-gofmt.sh ||r=1;\
 	hack/verify-govet.sh ||r=1;\
 	hack/verify-imports.sh ||r=1;\
 	hack/verify-generated-bindata.sh ||r=1;\
 	hack/verify-generated-conversions.sh ||r=1;\
-	hack/verify-generated-clientsets.sh ||r=1;\
 	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-defaulters.sh ||r=1;\
-	hack/verify-generated-listers.sh ||r=1;\
-	hack/verify-generated-informers.sh ||r=1;\
 	hack/verify-generated-openapi.sh ||r=1;\
 	hack/verify-generated-completions.sh ||r=1;\
 	hack/verify-cli-conventions.sh ||r=1;\
@@ -118,13 +123,11 @@ verify-commits:
 # Example:
 #   make update
 update:
+	hack/update-generated-versions.sh
 	hack/update-generated-bindata.sh
 	hack/update-generated-conversions.sh
-	hack/update-generated-clientsets.sh
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-defaulters.sh
-	hack/update-generated-listers.sh
-	hack/update-generated-informers.sh
 	hack/update-generated-openapi.sh
 	$(MAKE) build
 	hack/update-generated-completions.sh

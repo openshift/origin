@@ -15,6 +15,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/utils"
 )
@@ -25,6 +26,13 @@ func (a *App) NodeAdd(w http.ResponseWriter, r *http.Request) {
 	err := utils.GetJsonFromRequest(r, &msg)
 	if err != nil {
 		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
+
+	err = msg.Validate()
+	if err != nil {
+		http.Error(w, "validation failed: "+err.Error(), http.StatusBadRequest)
+		logger.LogError("validation failed: " + err.Error())
 		return
 	}
 
@@ -57,9 +65,9 @@ func (a *App) NodeAdd(w http.ResponseWriter, r *http.Request) {
 	// Create a node entry
 	node := NewNodeEntryFromRequest(&msg)
 
-	// Get cluster and peer node
+	// Get cluster and peer node hostname
 	var cluster *ClusterEntry
-	var peer_node *NodeEntry
+	var peer_node_hostname string
 	err = a.db.Update(func(tx *bolt.Tx) error {
 		var err error
 		cluster, err = NewClusterEntryFromId(tx, msg.ClusterId)
@@ -77,21 +85,30 @@ func (a *App) NodeAdd(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return err
 		}
-
-		// Get a node in the cluster to execute the Gluster peer command
-		// only if there is more than one node
-		if len(cluster.Info.Nodes) > 0 {
-			peer_node, err = cluster.NodeEntryFromClusterIndex(tx, 0)
-			if err != nil {
-				logger.Err(err)
-				return err
-			}
-		}
-
 		return nil
 	})
 	if err != nil {
 		return
+	}
+
+	// Get a node's hostname in the cluster to execute the Gluster peer command
+	// only if there is more than one node
+	if len(cluster.Info.Nodes) > 0 {
+		peer_node_hostname, err = GetVerifiedManageHostname(a.db, a.executor, cluster.Info.Id)
+		if err != nil {
+			logger.Err(err)
+			err := logger.LogError("None of the nodes in cluster has glusterd running")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		err := a.executor.GlusterdCheck(node.ManageHostName())
+		if err != nil {
+			logger.Err(err)
+			err := logger.LogError("New Node doesn't have glusterd running")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Add node
@@ -110,8 +127,9 @@ func (a *App) NodeAdd(w http.ResponseWriter, r *http.Request) {
 
 		// Peer probe if there is at least one other node
 		// TODO: What happens if the peer_node is not responding.. we need to choose another.
-		if peer_node != nil {
-			err := a.executor.PeerProbe(peer_node.ManageHostName(), node.StorageHostName())
+		// It will only choose the working one now. Hence done.
+		if peer_node_hostname != "" {
+			err := a.executor.PeerProbe(peer_node_hostname, node.StorageHostName())
 			if err != nil {
 				return "", err
 			}
@@ -272,7 +290,6 @@ func (a *App) NodeDelete(w http.ResponseWriter, r *http.Request) {
 
 		// Remove from db
 		err = a.db.Update(func(tx *bolt.Tx) error {
-
 			// Get Cluster
 			cluster, err := NewClusterEntryFromId(tx, node.Info.ClusterId)
 			if err == ErrNotFound {
@@ -303,6 +320,11 @@ func (a *App) NodeDelete(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 
+			err = refreshVolumeNodes(tx, node)
+			if err != nil {
+				logger.Err(err)
+				return err
+			}
 			return nil
 
 		})
@@ -317,6 +339,57 @@ func (a *App) NodeDelete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func refreshVolumeNodes(tx *bolt.Tx, node *NodeEntry) error {
+	clusterID := node.Info.ClusterId
+	deletedNodeHostName := node.StorageHostName()
+	txdb := wdb.WrapTx(tx)
+	// Get Cluster
+	cluster, err := NewClusterEntryFromId(tx, clusterID)
+	if err != nil {
+		logger.Critical("Cluster id %v is expected be in db. Pointed to by node %v",
+			clusterID,
+			clusterID)
+		return err
+	}
+
+	hosts, err := getHostsFromCluster(txdb, clusterID)
+	if err != nil {
+		return err
+	}
+	for _, volID := range cluster.Info.Volumes {
+		volEntry, err := NewVolumeEntryFromId(tx, volID)
+		if err != nil {
+			logger.LogError("Get volume entry for ID %s Failed with error %s", volID, err.Error())
+			continue
+		}
+		if volEntry.Info.Block {
+			for _, id := range volEntry.Info.BlockInfo.BlockVolumes {
+
+				blockEntry, err := NewBlockVolumeEntryFromId(tx, id)
+				if err != nil {
+					logger.LogError("Get block volume entry for ID %s Failed with error %s", id, err.Error())
+					continue
+				}
+
+				blockEntry.updateHosts(hosts)
+
+				if err := blockEntry.Save(tx); err != nil {
+					logger.LogError("Save block entry for ID %s Failed with error %s", id, err.Error())
+					continue
+				}
+			}
+		}
+		//update mountpoint info
+		volEntry.updateHostandMountPoint(hosts, deletedNodeHostName)
+
+		if err = volEntry.Save(tx); err != nil {
+			logger.LogError("Save volume entry for ID  %s Failed with error %s", volEntry.Info.Id, err.Error())
+			continue
+		}
+	}
+
+	return nil
+}
 func (a *App) NodeSetState(w http.ResponseWriter, r *http.Request) {
 	// Get the id from the URL
 	vars := mux.Vars(r)
@@ -328,6 +401,12 @@ func (a *App) NodeSetState(w http.ResponseWriter, r *http.Request) {
 	err := utils.GetJsonFromRequest(r, &msg)
 	if err != nil {
 		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
+	err = msg.Validate()
+	if err != nil {
+		http.Error(w, "validation failed: "+err.Error(), http.StatusBadRequest)
+		logger.LogError("validation failed: " + err.Error())
 		return
 	}
 
@@ -344,10 +423,29 @@ func (a *App) NodeSetState(w http.ResponseWriter, r *http.Request) {
 
 		return nil
 	})
+	if err != nil {
+		return
+	}
+
+	// Setting the state to failed can involve long running operations
+	// and thus needs to be checked for operations throttle
+	// However, we don't want to block "cheap" changes like setting
+	// the item offline
+	if msg.State == api.EntryStateFailed {
+		if a.opcounter.ThrottleOrInc() {
+			OperationHttpErrorf(w, ErrTooManyOperations, "")
+			return
+		}
+	}
 
 	// Set state
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (string, error) {
-		err = node.SetState(a.db, a.executor, a.allocator, msg.State)
+		defer func() {
+			if msg.State == api.EntryStateFailed {
+				a.opcounter.Dec()
+			}
+		}()
+		err = node.SetState(a.db, a.executor, msg.State)
 		if err != nil {
 			return "", err
 		}
@@ -355,4 +453,52 @@ func (a *App) NodeSetState(w http.ResponseWriter, r *http.Request) {
 
 	})
 
+}
+
+func (a *App) NodeSetTags(w http.ResponseWriter, r *http.Request) {
+	// Get the id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+	var node *NodeEntry
+
+	// Unmarshal JSON
+	var msg api.TagsChangeRequest
+	err := utils.GetJsonFromRequest(r, &msg)
+	if err != nil {
+		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
+
+	err = msg.Validate()
+	if err != nil {
+		http.Error(w, "validation failed: "+err.Error(), http.StatusBadRequest)
+		logger.LogError("validation failed: " + err.Error())
+		return
+	}
+
+	err = a.db.Update(func(tx *bolt.Tx) error {
+		node, err = NewNodeEntryFromId(tx, id)
+		if err == ErrNotFound {
+			http.Error(w, "Id not found", http.StatusNotFound)
+			return err
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return err
+		}
+		ApplyTags(node, msg)
+		if err := node.Save(tx); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Err(err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(node.AllTags()); err != nil {
+		panic(err)
+	}
 }

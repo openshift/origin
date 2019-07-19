@@ -7,16 +7,55 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type OsinServerConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// provides the standard apiserver configuration
+	configv1.GenericAPIServerConfig `json:",inline"`
+
+	// oauthConfig holds the necessary configuration options for OAuth authentication
+	OAuthConfig OAuthConfig `json:"oauthConfig"`
+}
+
 // OAuthConfig holds the necessary configuration options for OAuth authentication
 type OAuthConfig struct {
 	// masterCA is the CA for verifying the TLS connection back to the MasterURL.
+	// This field is deprecated and will be removed in a future release.
+	// See loginURL for details.
+	// Deprecated
 	MasterCA *string `json:"masterCA"`
 
 	// masterURL is used for making server-to-server calls to exchange authorization codes for access tokens
+	// This field is deprecated and will be removed in a future release.
+	// See loginURL for details.
+	// Deprecated
 	MasterURL string `json:"masterURL"`
 
 	// masterPublicURL is used for building valid client redirect URLs for internal and external access
+	// This field is deprecated and will be removed in a future release.
+	// See loginURL for details.
+	// Deprecated
 	MasterPublicURL string `json:"masterPublicURL"`
+
+	// loginURL, along with masterCA, masterURL and masterPublicURL have distinct
+	// meanings depending on how the OAuth server is run.  The two states are:
+	// 1. embedded in the kube api server (all 3.x releases)
+	// 2. as a standalone external process (all 4.x releases)
+	// in the embedded configuration, loginURL is equivalent to masterPublicURL
+	// and the other fields have functionality that matches their docs.
+	// in the standalone configuration, the fields are used as:
+	// loginURL is the URL required to login to the cluster:
+	// oc login --server=<loginURL>
+	// masterPublicURL is the issuer URL
+	// it is accessible from inside (service network) and outside (ingress) of the cluster
+	// masterURL is the loopback variation of the token_endpoint URL with no path component
+	// it is only accessible from inside (service network) of the cluster
+	// masterCA is used to perform TLS verification for connections made to masterURL
+	// For further details, see the IETF Draft:
+	// https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	LoginURL string `json:"loginURL"`
 
 	// assetPublicURL is used for building valid client redirect URLs for external access
 	AssetPublicURL string `json:"assetPublicURL"`
@@ -368,4 +407,24 @@ type TokenConfig struct {
 	// - X: Tokens time out if there is no activity for X seconds
 	// The current minimum allowed value for X is 300 (5 minutes)
 	AccessTokenInactivityTimeoutSeconds *int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
+type SessionSecrets struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// Secrets is a list of secrets
+	// New sessions are signed and encrypted using the first secret.
+	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
+	Secrets []SessionSecret `json:"secrets"`
+}
+
+// SessionSecret is a secret used to authenticate/decrypt cookie-based sessions
+type SessionSecret struct {
+	// Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
+	Authentication string `json:"authentication"`
+	// Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-
+	Encryption string `json:"encryption"`
 }

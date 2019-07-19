@@ -33,6 +33,13 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 		}
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStatesInNamespace("openshift-monitoring", oc)
+			exutil.DumpPodLogsStartingWithInNamespace("prometheus-k8s", "openshift-monitoring", oc)
+		}
+	})
+
 	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
 			const (
@@ -43,7 +50,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
 
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *corev1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
 			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
@@ -161,15 +168,8 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 }
 
 func startOpenShiftBuild(oc *exutil.CLI, appTemplate string) *exutil.BuildResult {
-	g.By("waiting for default service account")
-	err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	g.By("waiting for builder service account")
-	err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-	o.Expect(err).NotTo(o.HaveOccurred())
-
 	g.By(fmt.Sprintf("calling oc create -f %s ", appTemplate))
-	err = oc.Run("create").Args("-f", appTemplate).Execute()
+	err := oc.Run("create").Args("-f", appTemplate).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	g.By("start build")
 	br, err := exutil.StartBuildResult(oc, "myphp")

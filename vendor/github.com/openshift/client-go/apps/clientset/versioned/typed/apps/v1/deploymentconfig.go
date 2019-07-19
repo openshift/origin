@@ -3,10 +3,12 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/apps/v1"
 	scheme "github.com/openshift/client-go/apps/clientset/versioned/scheme"
 	v1beta1 "k8s.io/api/extensions/v1beta1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -23,15 +25,15 @@ type DeploymentConfigInterface interface {
 	Create(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
 	Update(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
 	UpdateStatus(*v1.DeploymentConfig) (*v1.DeploymentConfig, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.DeploymentConfig, error)
-	List(opts meta_v1.ListOptions) (*v1.DeploymentConfigList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.DeploymentConfig, error)
+	List(opts metav1.ListOptions) (*v1.DeploymentConfigList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DeploymentConfig, err error)
 	Instantiate(deploymentConfigName string, deploymentRequest *v1.DeploymentRequest) (*v1.DeploymentConfig, error)
 	Rollback(deploymentConfigName string, deploymentConfigRollback *v1.DeploymentConfigRollback) (*v1.DeploymentConfig, error)
-	GetScale(deploymentConfigName string, options meta_v1.GetOptions) (*v1beta1.Scale, error)
+	GetScale(deploymentConfigName string, options metav1.GetOptions) (*v1beta1.Scale, error)
 	UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (*v1beta1.Scale, error)
 
 	DeploymentConfigExpansion
@@ -52,7 +54,7 @@ func newDeploymentConfigs(c *AppsV1Client, namespace string) *deploymentConfigs 
 }
 
 // Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
-func (c *deploymentConfigs) Get(name string, options meta_v1.GetOptions) (result *v1.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Get(name string, options metav1.GetOptions) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -65,24 +67,34 @@ func (c *deploymentConfigs) Get(name string, options meta_v1.GetOptions) (result
 }
 
 // List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
-func (c *deploymentConfigs) List(opts meta_v1.ListOptions) (result *v1.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts metav1.ListOptions) (result *v1.DeploymentConfigList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.DeploymentConfigList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -128,7 +140,7 @@ func (c *deploymentConfigs) UpdateStatus(deploymentConfig *v1.DeploymentConfig) 
 }
 
 // Delete takes name of the deploymentConfig and deletes it. Returns an error if one occurs.
-func (c *deploymentConfigs) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *deploymentConfigs) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
@@ -139,11 +151,16 @@ func (c *deploymentConfigs) Delete(name string, options *meta_v1.DeleteOptions) 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *deploymentConfigs) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *deploymentConfigs) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
@@ -192,7 +209,7 @@ func (c *deploymentConfigs) Rollback(deploymentConfigName string, deploymentConf
 }
 
 // GetScale takes name of the deploymentConfig, and returns the corresponding v1beta1.Scale object, and an error if there is any.
-func (c *deploymentConfigs) GetScale(deploymentConfigName string, options meta_v1.GetOptions) (result *v1beta1.Scale, err error) {
+func (c *deploymentConfigs) GetScale(deploymentConfigName string, options metav1.GetOptions) (result *v1beta1.Scale, err error) {
 	result = &v1beta1.Scale{}
 	err = c.client.Get().
 		Namespace(c.ns).

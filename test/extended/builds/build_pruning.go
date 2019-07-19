@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -39,15 +38,8 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		})
 
 		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-
 			g.By("waiting for openshift namespace imagestreams")
-			err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+			err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test image stream")
@@ -76,7 +68,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 				br.AssertSuccess()
 			}
 
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -85,7 +77,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -121,7 +113,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 				br.AssertFailure()
 			}
 
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -130,7 +122,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -160,13 +152,13 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("starting and canceling three test builds")
-			for i := 1; i < 4; i++ {
+			g.By("starting and canceling four test builds")
+			for i := 1; i < 5; i++ {
 				_, _, _ = exutil.StartBuild(oc, "myphp")
 				err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
 			}
 
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -175,7 +167,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -211,7 +203,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 				br.AssertFailure()
 			}
 
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -220,7 +212,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -262,7 +254,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			g.By("patching the build config to leave 1 build")
 			err = oc.Run("patch").Args("bc/myphp", "-p", `{"spec":{"failedBuildsHistoryLimit": 1}}`).Execute()
 
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
@@ -271,7 +263,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 			g.By("waiting up to one minute for pruning to complete")
 			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "%v", err)
 					return false, err
@@ -301,15 +293,15 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			err := oc.Run("create").Args("-f", groupBuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 			}
 			o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default successful history limit set")
 			o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default failed history limit set")
-			o.Expect(*buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.Equal(buildutil.DefaultSuccessfulBuildsHistoryLimit),
+			o.Expect(*buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.Equal(int32(5)),
 				"the buildconfig should have the default successful history limit set")
-			o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(buildutil.DefaultFailedBuildsHistoryLimit),
+			o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(int32(5)),
 				"the buildconfig should have the default failed history limit set")
 		})
 	})
