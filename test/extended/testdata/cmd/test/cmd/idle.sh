@@ -22,8 +22,8 @@ setup_idling_resources() {
     os::cmd::expect_success 'oc delete all --all'
 
     # set up resources for the idle command
-    os::cmd::expect_success 'oc create -f test/testdata/idling-svc-route.yaml'
-    dc_name=$(basename $(oc create -f test/testdata/idling-dc.yaml -o name))  # `basename type/name` --> name
+    os::cmd::expect_success 'oc create -f ${TEST_DATA}/idling-svc-route.yaml'
+    dc_name=$(basename $(oc create -f ${TEST_DATA}/idling-dc.yaml -o name))  # `basename type/name` --> name
     os::cmd::expect_success "oc describe deploymentconfigs '${dc_name}'"
     os::cmd::try_until_success 'oc describe endpoints idling-echo'
     local endpoints_json

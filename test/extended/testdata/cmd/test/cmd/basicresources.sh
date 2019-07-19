@@ -68,7 +68,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/resource-builder"
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
-os::cmd::expect_success 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/resource-builder/directory -f ${TEST_DATA}/resource-builder/json-no-extension -f ${TEST_DATA}/resource-builder/yml-no-extension'
 # Explicitly specified extensionless files
 os::cmd::expect_success 'oc get secret json-no-extension yml-no-extension'
 # Scanned files with extensions inside directories
@@ -80,14 +80,14 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/pods"
 os::cmd::expect_success 'oc get pods --match-server-version'
-os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
+os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
 os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'
 echo "pods: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/label"
-os::cmd::expect_success_and_text 'oc create -f examples/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
+os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
 os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
 os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
@@ -106,7 +106,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/services"
 os::cmd::expect_success 'oc get services'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
 os::cmd::expect_success 'oc delete services frontend'
 # TODO: reenable with a permission check
 # os::cmd::expect_failure_and_text 'oc create -f test/integration/testdata/test-service-with-finalizer.json' "finalizers are disabled"
@@ -115,14 +115,14 @@ os::test::junit::declare_suite_end
 
 # TODO rewrite the yaml for this test to actually work
 os::test::junit::declare_suite_start "cmd/basicresources/list-version-conversion"
-os::cmd::expect_success 'oc create   -f test/testdata/mixed-api-versions.yaml'
-os::cmd::expect_success 'oc get      -f test/testdata/mixed-api-versions.yaml -o yaml'
-os::cmd::expect_success 'oc label    -f test/testdata/mixed-api-versions.yaml mylabel=a'
-os::cmd::expect_success 'oc annotate -f test/testdata/mixed-api-versions.yaml myannotation=b'
+os::cmd::expect_success 'oc create   -f ${TEST_DATA}/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc get      -f ${TEST_DATA}/mixed-api-versions.yaml -o yaml'
+os::cmd::expect_success 'oc label    -f ${TEST_DATA}/mixed-api-versions.yaml mylabel=a'
+os::cmd::expect_success 'oc annotate -f ${TEST_DATA}/mixed-api-versions.yaml myannotation=b'
 # Make sure all six resources, with different API versions, got labeled and annotated
-os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a$'
-os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b$'
-os::cmd::expect_success 'oc delete   -f test/testdata/mixed-api-versions.yaml'
+os::cmd::expect_success_and_text 'oc get -f ${TEST_DATA}/mixed-api-versions.yaml --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a$'
+os::cmd::expect_success_and_text 'oc get -f ${TEST_DATA}/mixed-api-versions.yaml --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b$'
+os::cmd::expect_success 'oc delete   -f ${TEST_DATA}/mixed-api-versions.yaml'
 echo "list version conversion: ok"
 os::test::junit::declare_suite_end
 
@@ -147,17 +147,17 @@ echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
-os::cmd::expect_success 'oc create -f test/testdata/statefulset.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/statefulset.yaml'
 os::cmd::try_until_success 'oc get pods testapp-0'
 os::cmd::expect_success_and_text 'oc describe statefulset testapp' 'app=testapp'
-os::cmd::expect_success 'oc delete -f test/testdata/statefulset.yaml'
+os::cmd::expect_success 'oc delete -f ${TEST_DATA}/statefulset.yaml'
 echo "statefulsets: ok"
 os::test::junit::declare_suite_end
 
 
 os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
-arg="-f examples/hello-openshift/hello-pod.json"
+arg="-f ${TEST_DATA}/hello-openshift/hello-pod.json"
 os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
 os::cmd::expect_failure_and_text "oc set probe ${arg}" "error: you must specify one of --readiness, --liveness or both"
 os::cmd::expect_failure_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1/path" "port must be specified as part of a url"
@@ -179,7 +179,7 @@ os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness
 os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=http://127.0.0.1:port/path" "scheme: HTTP"
 os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "host: 127.0.0.1"
 os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
-os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set probe dc/test-deployment-config --liveness" "Required value: must specify a handler type"
 os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --open-tcp=8080" "updated"
 os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --open-tcp=8080 --v=1" "was not changed"
@@ -207,8 +207,8 @@ echo "set probe: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/setenv"
-os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
-os::cmd::expect_success "oc create -f test/integration/testdata/test-buildcli.json"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-buildcli.json"
 os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=1st" "updated"
 os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=2nd" "updated"
 os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar --overwrite" "updated"
@@ -242,7 +242,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/expose"
 # Expose service as a route
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
 os::cmd::expect_failure 'oc expose service frontend --port=40 --type=NodePort'
 os::cmd::expect_success 'oc expose service frontend --path=/test'
@@ -251,20 +251,20 @@ os::cmd::expect_success_and_text "oc get route.v1.route.openshift.io frontend --
 os::cmd::expect_success_and_text "oc get route.v1.route.openshift.io frontend --template='{{.spec.port.targetPort}}'" ""
 os::cmd::expect_success 'oc delete svc,route -l name=frontend'
 # Test that external services are exposable
-os::cmd::expect_success 'oc create -f test/testdata/external-service.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/external-service.yaml'
 os::cmd::expect_success 'oc expose svc/external'
 os::cmd::expect_success_and_text 'oc get route external' 'external'
 os::cmd::expect_success 'oc delete route external'
 os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route
-os::cmd::expect_success 'oc create -f test/testdata/multiport-service.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}'" "web"
 echo "expose: ok"
 os::test::junit::declare_suite_end
 
 # Test OAuth access token describer
-os::cmd::expect_success 'oc create -f test/testdata/oauthaccesstoken.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/oauthaccesstoken.yaml'
 os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
 echo "OAuth descriptor: ok"
 
@@ -296,7 +296,7 @@ os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --gen
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deployment/v1beta1'  'deployment.extensions/foo'
 
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world'
 os::cmd::expect_success 'oc get dc/ruby-hello-world'

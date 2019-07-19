@@ -71,7 +71,7 @@ os::cmd::expect_success_and_not_text 'oc get bc/centos -o=jsonpath="{.spec.outpu
 os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
 
 os::cmd::expect_success 'oc delete all --all'
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::expect_success 'oc get buildConfigs'
 os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
@@ -119,7 +119,7 @@ echo "buildConfig: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/start-build"
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-buildcli.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-buildcli.json'
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
 # Use basename to transform "build/build-name" into "build-name"
@@ -131,7 +131,7 @@ os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag -
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 # --incremental flag should override Spec.Strategy.SourceStrategy.Incremental
-os::cmd::expect_success 'oc create -f test/extended/testdata/builds/test-s2i-build.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-s2i-build.json'
 build_name="$(oc start-build -o=name test)"
 os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
 build_name="$(oc start-build -o=name --incremental test)"
@@ -150,7 +150,7 @@ os::cmd::expect_failure_and_text "oc start-build test --no-cache" 'Cannot specif
 os::cmd::expect_failure_and_text "oc start-build test --build-arg=a=b" 'Cannot specify Docker build specific options'
 os::cmd::expect_success 'oc delete all --selector="name=test"'
 # --no-cache flag should override Spec.Strategy.SourceStrategy.NoCache
-os::cmd::expect_success 'oc create -f test/extended/testdata/builds/test-docker-build.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-docker-build.json'
 build_name="$(oc start-build -o=name test)"
 os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
 build_name="$(oc start-build -o=name --no-cache test)"
@@ -176,7 +176,7 @@ os::test::junit::declare_suite_start "cmd/builds/cancel-build"
 os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "build.build.openshift.io/${started} restarted"
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc delete secret dbsecret'
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
 os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build.build.openshift.io/ruby-sample-build-1 cancelled'

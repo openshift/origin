@@ -184,7 +184,7 @@ echo "admin-role-reapers: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/role-selectors"
-os::cmd::expect_success "oc create -f test/extended/testdata/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
 os::cmd::expect_success "oc get clusterrole/basic-user2"
 os::cmd::expect_success "oc label clusterrole/basic-user2 foo=bar"
 os::cmd::expect_success_and_not_text "oc get clusterroles --selector=foo=bar" "No resources found"
@@ -221,7 +221,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/build-chain"
 # Test building a dependency tree
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l build=sti | oc create -f -'
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
 os::cmd::expect_success_and_text 'oc adm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
@@ -232,11 +232,11 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/complex-scenarios"
 # Make sure no one commits data with allocated values that could flake
-os::cmd::expect_failure 'grep -r "clusterIP.*172" test/testdata/app-scenarios'
+os::cmd::expect_failure 'grep -r "clusterIP.*172" ${TEST_DATA}/app-scenarios'
 os::cmd::expect_success 'oc adm new-project example --admin="createuser"'
 os::cmd::expect_success 'oc project example'
 os::cmd::try_until_success 'oc get serviceaccount default'
-os::cmd::expect_success 'oc create -f test/testdata/app-scenarios'
+#os::cmd::expect_success 'oc create -f ${TEST_DATA}/app-scenarios'
 os::cmd::expect_success 'oc status'
 os::cmd::expect_success_and_text 'oc status -o dot' '"example"'
 echo "complex-scenarios: ok"
@@ -349,7 +349,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/admin/images"
 
 # import image and check its information
-os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/stable-busybox.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/stable-busybox.yaml"
 os::cmd::expect_success_and_text "oc adm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+<none>\W+<none>\W+yes\W+653\.4KiB"
 os::cmd::expect_success_and_text "oc adm top imagestreams" "default/busybox\W+653\.4KiB\W+1\W+1"
 os::cmd::expect_success "oc delete is/busybox -n default"

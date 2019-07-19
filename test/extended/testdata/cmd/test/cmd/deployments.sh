@@ -15,13 +15,13 @@ os::test::junit::declare_suite_start "cmd/deployments"
 
 os::cmd::expect_success 'oc get deploymentConfigs'
 os::cmd::expect_success 'oc get dc'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
 os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
 os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys docker.io/openshift/origin-pod:latest'
-os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
 os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs openshift/hello-openshift'
 
 os::test::junit::declare_suite_start "cmd/deployments/env"
@@ -45,7 +45,7 @@ os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo
 os::cmd::expect_success_and_text 'echo OTHER=foo | oc set env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success_and_not_text 'echo #OTHER=foo | oc set env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success 'oc set env dc/test-deployment-config TEST=bar OTHER=baz BAR-'
-os::cmd::expect_success_and_text 'oc set env -f test/integration/testdata/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1'
+os::cmd::expect_success_and_text 'oc set env -f ${TEST_DATA}/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1'
 os::cmd::expect_success 'oc set env dc/test-deployment-config A=a B=b C=c D=d E=e F=f G=g'
 os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'A=a'
 os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'B=b'
@@ -81,7 +81,7 @@ os::cmd::expect_success 'oc delete all --all'
 sleep 1
 os::cmd::expect_success 'oc delete all --all'
 
-os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
 os::cmd::try_until_success 'oc get rc/database-1'
 
 os::test::junit::declare_suite_start "cmd/deployments/get"
@@ -89,7 +89,7 @@ os::cmd::expect_success_and_text "oc get dc --show-labels" "app=dockerbuild,temp
 os::cmd::expect_success_and_text "oc get dc frontend --show-labels" "app=dockerbuild,template=application-template-dockerbuild"
 os::cmd::expect_success_and_not_text "oc get dc" "app=dockerbuild,template=application-template-dockerbuild"
 os::cmd::expect_success_and_not_text "oc get dc frontend" "app=dockerbuild,template=application-template-dockerbuild"
-os::cmd::expect_success "oc process -f test/testdata/old-template.json | oc create -f -"
+os::cmd::expect_success "oc process -f ${TEST_DATA}/old-template.json | oc create -f -"
 os::cmd::expect_success_and_text "oc get dc/eap-app -o yaml" ":latest"
 echo "get: ok"
 os::test::junit::declare_suite_end
@@ -101,7 +101,7 @@ os::cmd::try_until_success 'oc rollout resume dc/database'
 os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "<no value>"
 # create a replication controller and attempt to perform `oc rollout cancel` on it.
 # expect an error about the resource type, rather than a panic or a success.
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-replication-controller.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-replication-controller.yaml'
 os::cmd::expect_failure_and_text 'oc rollout cancel rc/test-replication-controller' 'expected deployment configuration, got replicationcontrollers'
 
 echo "rollout: ok"
@@ -139,7 +139,7 @@ echo "stop: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/autoscale"
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc autoscale dc/test-deployment-config --max 5'
 os::cmd::expect_success_and_text "oc get hpa/test-deployment-config --template='{{.spec.maxReplicas}}'" "5"
 os::cmd::expect_success_and_text "oc get hpa/test-deployment-config -o jsonpath='{.spec.scaleTargetRef.apiVersion}'" "apps.openshift.io/v1"
@@ -149,7 +149,7 @@ echo "autoscale: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/setimage"
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=myshinynewimage --source=docker'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" "myshinynewimage"
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
@@ -158,7 +158,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
 # Validate the set deployment-hook command
-arg="-f test/integration/testdata/test-deployment-config.yaml"
+arg="-f ${TEST_DATA}/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set deployment-hook" "error: one or more deployment configs"
 os::cmd::expect_failure_and_text "oc set deployment-hook ${arg}" "error: you must specify one of --pre, --mid, or --post"
 os::cmd::expect_failure_and_text "oc set deployment-hook ${arg} -o yaml --pre -- mycmd" 'deploymentconfigs.apps.openshift.io "test-deployment-config" not found'
@@ -186,7 +186,7 @@ os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --volumes=vol1 -o yaml -- echo 'hello world'" 'does not have a volume named'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=vol1 -o yaml -- echo 'hello world'" '\- vol1'
 # Server object tests
-os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set deployment-hook dc/test-deployment-config --pre" "you must specify a command"
 os::cmd::expect_success_and_text "oc set deployment-hook test-deployment-config --pre -- echo 'hello world'" "updated"
 os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --loglevel=1 --pre -- echo 'hello world'" "was not changed"

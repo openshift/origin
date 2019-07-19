@@ -19,11 +19,11 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/convert"
 # This test validates the convert command
 
-os::cmd::expect_success "oc convert -f test/testdata/convert/job-v1.yaml | grep 'apiVersion: batch/v1'"
-os::cmd::expect_success "oc convert -f test/testdata/convert/job-v2.json | grep 'apiVersion: batch/v1beta1'"
+os::cmd::expect_success "oc convert -f ${TEST_DATA}/convert/job-v1.yaml | grep 'apiVersion: batch/v1'"
+os::cmd::expect_success "oc convert -f ${TEST_DATA}/convert/job-v2.json | grep 'apiVersion: batch/v1beta1'"
 
-os::cmd::expect_success_and_text "oc convert -f test/testdata/convert | oc create --dry-run -f -" 'job.batch/pi created'
-os::cmd::expect_success_and_text "oc convert -f test/testdata/convert | oc create --dry-run -f -" 'cronjob.batch/hello created'
+os::cmd::expect_success_and_text "oc convert -f ${TEST_DATA}/convert | oc create --dry-run -f -" 'job.batch/pi created'
+os::cmd::expect_success_and_text "oc convert -f ${TEST_DATA}/convert | oc create --dry-run -f -" 'cronjob.batch/hello created'
 
 echo "convert: ok"
 os::test::junit::declare_suite_end
