@@ -1507,6 +1507,11 @@ func (in *OpenShiftSDNConfig) DeepCopyInto(out *OpenShiftSDNConfig) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.EnableUnidling != nil {
+		in, out := &in.EnableUnidling, &out.EnableUnidling
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

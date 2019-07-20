@@ -221,6 +221,10 @@ type OpenShiftSDNConfig struct {
 	// it will be provided separately. If set, you must provide it yourself.
 	// +optional
 	UseExternalOpenvswitch *bool `json:"useExternalOpenvswitch,omitempty"`
+
+	// enableUnidling controls whether or not the service proxy will support idling
+	// and unidling of services. By default, unidling is enabled.
+	EnableUnidling *bool `json:"enableUnidling,omitempty"`
 }
 
 // KuryrConfig configures the Kuryr-Kubernetes SDN

@@ -1,5 +1,5 @@
 hash: dac4fb4e99b9debe92777c26c64ab25de44f4e8c71c4d1d8f2786744562fc709
-updated: 2019-07-17T16:54:11.546753118-04:00
+updated: 2019-07-18T09:31:21.632608924-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -213,18 +213,12 @@ imports:
   subpackages:
   - libcni
   - pkg/invoke
-  - pkg/skel
   - pkg/types
   - pkg/types/020
   - pkg/types/current
   - pkg/version
 - name: github.com/containernetworking/plugins
   version: 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
-  subpackages:
-  - pkg/ip
-  - pkg/ipam
-  - pkg/ns
-  - pkg/utils/hwaddr
 - name: github.com/containers/image
   version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
   repo: https://github.com/openshift/containers-image.git
@@ -322,10 +316,6 @@ imports:
   - version
   - wal
   - wal/walpb
-- name: github.com/coreos/go-iptables
-  version: 259c8e6a4275d497442c721fa52204d7a58bde8b
-  subpackages:
-  - iptables
 - name: github.com/coreos/go-oidc
   version: 065b426bd41667456c1a924468f507673629c46b
 - name: github.com/coreos/go-semver
@@ -931,7 +921,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 0390d1e77d6496df897e3a9d48b32d8827425320
+  version: 3fb334864749eacd019c24e50e9a0628b628cfbe
   subpackages:
   - annotations
   - apps
@@ -1176,7 +1166,6 @@ imports:
   - pkg/authenticator/request/basicauthrequest
   - pkg/authenticator/request/headerrequest
   - pkg/authenticator/tokens
-  - pkg/cmd/oauth-server
   - pkg/config
   - pkg/oauth/external
   - pkg/oauth/external/github
@@ -1534,7 +1523,7 @@ imports:
   - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: 00d1c150f485b38906ab6a71d7f2f67f064a0621
+  version: 2081b8ed64c87164ba4e45572e43a3cf90c0ba76
   subpackages:
   - pkg/apps/appstest
   - pkg/apps/deployer
@@ -1578,22 +1567,13 @@ imports:
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/sdn
-  version: 399ad59149a9ad46b67ce945ca79fb16993a5d06
+  version: 02f8eaa37e149d895ca0fda1714cc3efac6105d6
   subpackages:
   - pkg/network
   - pkg/network/common
   - pkg/network/master
   - pkg/network/master/netid
-  - pkg/network/node
-  - pkg/network/node/cniserver
-  - pkg/network/node/ovs
-  - pkg/network/node/ovs/ovsclient
-  - pkg/network/proxy
-  - pkg/network/proxyimpl/hybrid
-  - pkg/network/proxyimpl/unidler
   - pkg/openshift-network-controller
-  - pkg/openshift-sdn
-  - pkg/version
 - name: github.com/openshift/source-to-image
   version: 2a579ecd66dfaf9ee21bbc860fcde8e4d1d12301
   subpackages:
@@ -1610,7 +1590,7 @@ imports:
   - pkg/util/status
   - pkg/util/user
 - name: github.com/openshift/template-service-broker
-  version: 040dfe33ea57a789592374e46691446efdea8f33
+  version: 05590d70cdfe32895624c61f91d7f7aec4184586
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
@@ -2531,7 +2511,6 @@ imports:
   - util/jsonpath
   - util/keyutil
   - util/retry
-  - util/testing
   - util/workqueue
 - name: k8s.io/cloud-provider
   version: c892ea32361a3655e7bd8c06f2d02dd8ce73dd78
@@ -2639,7 +2618,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 633890629565205dd78bad77de2977033bbbc03a
+  version: a45281f7de40f996f67d0ee7b886add59e7b5e8d
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -3581,7 +3560,6 @@ imports:
   - clock
   - diff
   - exec
-  - exec/testing
   - field
   - integer
   - io
