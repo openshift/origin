@@ -24,7 +24,7 @@ const checkDeleteProjectTimeout = 3 * time.Minute
 const checkPodRunningTimeout = 5 * time.Minute
 
 // TODO sjug: pass label via config
-var podLabels = map[string]string{"purpose": "test"}
+var podLabelMap = map[string]string{"purpose": "test"}
 var rootDir string
 
 var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
@@ -167,7 +167,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 							_ = c.CoreV1().ConfigMaps(nsName).Delete(configMapName, nil)
 						}()
 					}
-					err = pod.CreatePods(c, nsName, podLabels, config.Spec, tuning)
+					err = pod.CreatePods(c, nsName, podLabelMap, config.Spec, tuning)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 			}
@@ -219,14 +219,15 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				}
 			}
 
-			podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{})
+			podLabels := exutil.ParseLabelsOrDie(mapToString(podLabelMap))
+			podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: podLabels.String()})
 			if err != nil {
 				e2e.Failf("Error listing pods: %v", err)
 			}
 			podCount := len(podList.Items)
 			if podCount > 0 {
 				e2e.Logf("Waiting for %d pods in namespace %s", podCount, ns)
-				pods, err := exutil.WaitForPods(c.CoreV1().Pods(ns), exutil.ParseLabelsOrDie(mapToString(podLabels)), exutil.CheckPodIsRunning, podCount, checkPodRunningTimeout)
+				pods, err := exutil.WaitForPods(c.CoreV1().Pods(ns), podLabels, exutil.CheckPodIsRunning, podCount, checkPodRunningTimeout)
 				if err != nil {
 					e2e.Failf("Error in pod wait: %v", err)
 				} else if len(pods) < podCount {
