@@ -22,7 +22,6 @@ os::cmd::expect_failure "egrep -r '\"github.com/openshift/origin/[^\"]+\"$' vend
 os::cmd::expect_failure "egrep -r '\"github.com/openshift/openshift-apiserver/[^\"]+\"$' vendor/k8s.io/kubernetes"
 os::cmd::expect_failure "egrep -r '\"github.com/openshift/openshift-controller-manager/[^\"]+\"$' vendor/k8s.io/kubernetes"
 os::cmd::expect_failure "egrep -r '\"github.com/openshift/oc/[^\"]+\"$' vendor/k8s.io/kubernetes"
-os::cmd::expect_failure "egrep -r '\"github.com/openshift/sdn/[^\"]+\"$' vendor/k8s.io/kubernetes"
 os::cmd::expect_failure "egrep -r '\"github.com/openshift/template-service-broker/[^\"]+\"$' vendor/k8s.io/kubernetes"
 
 # quick and dirty check that nothing under origin staging imports from openshift/origin
@@ -103,16 +102,6 @@ print_forbidden_imports openshift-controller-manager k8s.io/kubernetes/cmd/contr
   k8s.io/kubernetes/pkg/quota/v1 \
   k8s.io/kubernetes/pkg/registry/core/secret \
   k8s.io/kubernetes/pkg/registry/core/service || RC=1
-print_forbidden_imports sdn k8s.io/kubernetes/cmd/kube-proxy/app \
-  k8s.io/kubernetes/pkg/api/legacyscheme \
-  k8s.io/kubernetes/pkg/apis \
-  k8s.io/kubernetes/pkg/client/metrics/prometheus \
-  k8s.io/kubernetes/pkg/kubectl/cmd/util \
-  k8s.io/kubernetes/pkg/kubectl/util/templates \
-  k8s.io/kubernetes/pkg/kubelet \
-  k8s.io/kubernetes/pkg/proxy \
-  k8s.io/kubernetes/pkg/registry/core/service/allocator \
-  k8s.io/kubernetes/pkg/util || RC=1
 print_forbidden_imports template-service-broker k8s.io/kubernetes/pkg/apis k8s.io/kubernetes/pkg/api k8s.io/kubernetes/pkg/kubectl k8s.io/kubernetes/pkg/controller || RC=1
 if [ ${RC} != 0 ]; then
     exit ${RC}

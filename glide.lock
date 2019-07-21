@@ -1549,14 +1549,6 @@ imports:
   - pkg/template/controller
   - pkg/unidling/controller
   - pkg/version
-- name: github.com/openshift/sdn
-  version: ca6e3b021765f96e4069eae15318e82df4b3d63f
-  subpackages:
-  - pkg/network
-  - pkg/network/common
-  - pkg/network/master
-  - pkg/network/master/netid
-  - pkg/openshift-network-controller
 - name: github.com/openshift/source-to-image
   version: 2a579ecd66dfaf9ee21bbc860fcde8e4d1d12301
   subpackages:

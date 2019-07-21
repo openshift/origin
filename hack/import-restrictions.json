@@ -97,9 +97,6 @@
     "ignoredSubTrees": [
       "github.com/openshift/origin/cmd/hypershift"
     ],
-    "forbiddenImportPackageRoots": [
-      "vendor/github.com/openshift/sdn"
-    ],
     "allowedImportPackageRoots": [
       "vendor"
     ]
