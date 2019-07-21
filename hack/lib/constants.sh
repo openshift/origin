@@ -113,13 +113,6 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
 
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.buildDate" "${buildDate}"))
-
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
@@ -335,7 +328,6 @@ readonly OS_ALL_IMAGES=(
   origin-docker-builder
   origin-recycler
   origin-tests
-  origin-oauth-server
 )
 
 # os::build::check_binaries ensures that binary sizes do not grow without approval.
@@ -395,7 +387,6 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
   ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
   ( os::build::image "${tag_prefix}-sdn"                     images/sdn ) &
-  ( os::build::image "${tag_prefix}-oauth-server"            images/oauth-server ) &
 
   for i in `jobs -p`; do wait $i; done
 
