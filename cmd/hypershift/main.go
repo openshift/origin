@@ -18,8 +18,6 @@ import (
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/openshift-apiserver/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/sdn/pkg/openshift-network-controller"
-
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -66,9 +64,6 @@ func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 	startOpenShiftControllerManager.Deprecated = "will be removed in 4.2"
 	startOpenShiftControllerManager.Hidden = true
 	cmd.AddCommand(startOpenShiftControllerManager)
-
-	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
-	cmd.AddCommand(startOpenShiftNetworkController)
 
 	return cmd
 }
