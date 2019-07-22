@@ -24,6 +24,34 @@ import (
 
 var allCanRunPerms int32 = 0777
 
+var blacklist = sets.NewString(
+	"images.sh",
+	"login.sh",
+	"migrate.sh",
+	"newapp.sh",
+	"observe.sh",
+	"policy-storage-admin.sh",
+	"policy.sh",
+	"printer.sh",
+	"projects.sh",
+	"quota.sh",
+	"registry.sh",
+	"routes.sh",
+	"rsync.sh",
+	"run.sh",
+	"secrets.sh",
+	"services.sh",
+	"set-image.sh",
+	"set-liveness-probe.sh",
+	"setbuildhook.sh",
+	"setbuildsecret.sh",
+	"status.sh",
+	"templates.sh",
+	"timeout.sh",
+	"triggers.sh",
+	"volumes.sh",
+)
+
 var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", func() {
 	hacklibDir := exutil.FixturePath("testdata", "cmd", "hack")
 	testsDir := exutil.FixturePath("testdata", "cmd", "test", "cmd")
@@ -37,6 +65,10 @@ var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", f
 			continue
 		}
 		currFilename := filename
+		if blacklist.Has(currFilename) {
+			continue
+		}
+
 		g.It("test/cmd/"+currFilename, func() {
 			oc.AddExplicitResourceToDelete(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}, "", "cmd-"+currFilename[0:len(currFilename)-3])
 
