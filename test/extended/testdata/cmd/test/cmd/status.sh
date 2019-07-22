@@ -89,7 +89,7 @@ os::cmd::expect_success "oc run pi --image=perl --restart=OnFailure -- perl -Mbi
 os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
 
 # logout
-os::cmd::expect_success "oc logout"
+#os::cmd::expect_success "oc logout"
 
 echo "status: ok"
 os::test::junit::declare_suite_end
