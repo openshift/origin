@@ -137,6 +137,10 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	if err != nil {
 		return err
 	}
+	_, serviceIPNet, err := net.ParseCIDR(config.ServiceNetworkCIDR)
+	if err != nil {
+		return fmt.Errorf("failed to parse ServiceNetworkCIDR: %v", err)
+	}
 
 	var hostVeth, contVeth net.Interface
 	err = ns.WithNetNSPath(args.Netns, func(hostNS ns.NetNS) error {
@@ -194,6 +198,7 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			return fmt.Errorf("failed to configure container loopback: %v", err)
 		}
 
+		var dsts []*net.IPNet
 		// Set up macvlan0 (if it exists)
 		link, err = netlink.LinkByName("macvlan0")
 		if err == nil {
@@ -222,26 +227,19 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			if err != nil {
 				return fmt.Errorf("failed to configure macvlan device: %v", err)
 			}
-
-			var dsts []*net.IPNet
 			for _, addr := range addrs {
 				dsts = append(dsts, &net.IPNet{IP: addr.IP, Mask: net.CIDRMask(32, 32)})
 			}
+		}
 
-			_, serviceIPNet, err := net.ParseCIDR(config.ServiceNetworkCIDR)
-			if err != nil {
-				return fmt.Errorf("failed to parse ServiceNetworkCIDR: %v", err)
+		dsts = append(dsts, serviceIPNet)
+		for _, dst := range dsts {
+			route := &netlink.Route{
+				Dst: dst,
+				Gw:  defaultGW,
 			}
-			dsts = append(dsts, serviceIPNet)
-
-			for _, dst := range dsts {
-				route := &netlink.Route{
-					Dst: dst,
-					Gw:  defaultGW,
-				}
-				if err := netlink.RouteAdd(route); err != nil && !os.IsExist(err) {
-					return fmt.Errorf("failed to add route to dst: %v via SDN: %v", dst, err)
-				}
+			if err := netlink.RouteAdd(route); err != nil && !os.IsExist(err) {
+				return fmt.Errorf("failed to add route to dst: %v via SDN: %v", dst, err)
 			}
 		}
 

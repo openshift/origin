@@ -79,7 +79,7 @@ zyx = 42`)
 	if err == nil {
 		t.Error("Error should have been returned.")
 	}
-	if err.Error() != "(1, 4): parsing error: keys cannot contain ] character" {
+	if err.Error() != "(1, 4): unexpected token" {
 		t.Error("Bad error message:", err.Error())
 	}
 }
@@ -581,7 +581,7 @@ func TestDuplicateKeys(t *testing.T) {
 
 func TestEmptyIntermediateTable(t *testing.T) {
 	_, err := Load("[foo..bar]")
-	if err.Error() != "(1, 2): invalid table array key: expecting key part after dot" {
+	if err.Error() != "(1, 2): invalid table array key: empty table key" {
 		t.Error("Bad error message:", err.Error())
 	}
 }
@@ -895,45 +895,5 @@ func TestInvalidFloatParsing(t *testing.T) {
 	_, err = Load("a=_1_2")
 	if err.Error() != "(1, 3): cannot start number with underscore" {
 		t.Error("Bad error message:", err.Error())
-	}
-}
-
-func TestMapKeyIsNum(t *testing.T) {
-	_, err := Load("table={2018=1,2019=2}")
-	if err != nil {
-		t.Error("should be passed")
-	}
-	_, err = Load(`table={"2018"=1,"2019"=2}`)
-	if err != nil {
-		t.Error("should be passed")
-	}
-}
-
-func TestDottedKeys(t *testing.T) {
-	tree, err := Load(`
-name = "Orange"
-physical.color = "orange"
-physical.shape = "round"
-site."google.com" = true`)
-
-	assertTree(t, tree, err, map[string]interface{}{
-		"name": "Orange",
-		"physical": map[string]interface{}{
-			"color": "orange",
-			"shape": "round",
-		},
-		"site": map[string]interface{}{
-			"google.com": true,
-		},
-	})
-}
-
-func TestInvalidDottedKeyEmptyGroup(t *testing.T) {
-	_, err := Load(`a..b = true`)
-	if err == nil {
-		t.Fatal("should return an error")
-	}
-	if err.Error() != "(1, 1): invalid key: expecting key part after dot" {
-		t.Fatalf("invalid error message: %s", err)
 	}
 }
