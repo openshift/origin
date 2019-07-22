@@ -136,7 +136,7 @@ func (VersionAvailability) SwaggerDoc() map[string]string {
 }
 
 var map_ImageContentSourcePolicy = map[string]string{
-	"":         "ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules. When multple policies are defined, the outcome of the behavior is defined on each field.",
+	"":         "ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules. When multiple policies are defined, the outcome of the behavior is defined on each field.",
 	"metadata": "Standard object's metadata.",
 	"spec":     "spec holds user settable values for configuration",
 }
@@ -156,7 +156,7 @@ func (ImageContentSourcePolicyList) SwaggerDoc() map[string]string {
 
 var map_ImageContentSourcePolicySpec = map[string]string{
 	"":                        "ImageContentSourcePolicySpec is the specification of the ImageContentSourcePolicy CRD.",
-	"repositoryDigestMirrors": "repositoryDigestMirrors allows images referenced by image digests in pods to be pulled from alternative mirrored repository locations. The image pull specification provided to the pod will be compared to the source locations described in RepositoryDigestMirrors and the image may be pulled down from any of the repositories in the list instead of the specified repository allowing administrators to choose a potentially faster mirror. Only image pull specifications that have an image disgest will have this behavior applied to them - tags will continue to be pulled from the specified repository in the pull spec. When multiple policies are defined, any overlaps found will be merged together when the mirror rules are written to `/etc/containers/registries.conf`. For example, if policy A has sources `a, b, c` and policy B has sources `c, d, e`. Then the mirror rule written to `registries.conf` will be `a, b, c, d, e` where the duplicate `c` is removed.",
+	"repositoryDigestMirrors": "repositoryDigestMirrors allows images referenced by image digests in pods to be pulled from alternative mirrored repository locations. The image pull specification provided to the pod will be compared to the source locations described in RepositoryDigestMirrors and the image may be pulled down from any of the mirrors in the list instead of the specified repository allowing administrators to choose a potentially faster mirror. Only image pull specifications that have an image disgest will have this behavior applied to them - tags will continue to be pulled from the specified repository in the pull spec.\n\nEach “source” repository is treated independently; configurations for different “source” repositories don’t interact.\n\nWhen multiple policies are defined for the same “source” repository, the sets of defined mirrors will be merged together, preserving the relative order of the mirrors, if possible. For example, if policy A has mirrors `a, b, c` and policy B has mirrors `c, d, e`, the mirrors will be used in the order `a, b, c, d, e`.  If the orders of mirror entries conflict (e.g. `a, b` vs. `b, a`) the configuration is not rejected but the resulting order is unspecified.",
 }
 
 func (ImageContentSourcePolicySpec) SwaggerDoc() map[string]string {
@@ -164,8 +164,9 @@ func (ImageContentSourcePolicySpec) SwaggerDoc() map[string]string {
 }
 
 var map_RepositoryDigestMirrors = map[string]string{
-	"":        "RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config. Note: the mirrors only work when pulling the images that are reference by their digests.",
-	"sources": "sources are repositories that are mirrors of each other.",
+	"":        "RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config. Note: the mirrors only work when pulling the images that are referenced by their digests.",
+	"source":  "source is the repository that users refer to, e.g. in image pull specifications.",
+	"mirrors": "mirrors is one or more repositories that may also contain the same images. The order of mirrors in this list is treated as the user's desired priority, while source is by default considered lower priority than all mirrors. Other cluster configuration, including (but not limited to) other repositoryDigestMirrors objects, may impact the exact order mirrors are contacted in, or some mirrors may be contacted in parallel, so this should be considered a preference rather than a guarantee of ordering.",
 }
 
 func (RepositoryDigestMirrors) SwaggerDoc() map[string]string {

@@ -7,7 +7,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules.
-// When multple policies are defined, the outcome of the behavior is defined on each field.
+// When multiple policies are defined, the outcome of the behavior is defined on each field.
 type ImageContentSourcePolicy struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -24,14 +24,19 @@ type ImageContentSourcePolicySpec struct {
 	// repositoryDigestMirrors allows images referenced by image digests in pods to be
 	// pulled from alternative mirrored repository locations. The image pull specification
 	// provided to the pod will be compared to the source locations described in RepositoryDigestMirrors
-	// and the image may be pulled down from any of the repositories in the list instead of the
+	// and the image may be pulled down from any of the mirrors in the list instead of the
 	// specified repository allowing administrators to choose a potentially faster mirror.
 	// Only image pull specifications that have an image disgest will have this behavior applied
 	// to them - tags will continue to be pulled from the specified repository in the pull spec.
-	// When multiple policies are defined, any overlaps found will be merged together when the mirror
-	// rules are written to `/etc/containers/registries.conf`. For example, if policy A has sources `a, b, c`
-	// and policy B has sources `c, d, e`. Then the mirror rule written to `registries.conf` will be `a, b, c, d, e`
-	// where the duplicate `c` is removed.
+	//
+	// Each “source” repository is treated independently; configurations for different “source”
+	// repositories don’t interact.
+	//
+	// When multiple policies are defined for the same “source” repository, the sets of defined
+	// mirrors will be merged together, preserving the relative order of the mirrors, if possible.
+	// For example, if policy A has mirrors `a, b, c` and policy B has mirrors `c, d, e`, the
+	// mirrors will be used in the order `a, b, c, d, e`.  If the orders of mirror entries conflict
+	// (e.g. `a, b` vs. `b, a`) the configuration is not rejected but the resulting order is unspecified.
 	// +optional
 	RepositoryDigestMirrors []RepositoryDigestMirrors `json:"repositoryDigestMirrors"`
 }
@@ -47,9 +52,17 @@ type ImageContentSourcePolicyList struct {
 }
 
 // RepositoryDigestMirrors holds cluster-wide information about how to handle mirros in the registries config.
-// Note: the mirrors only work when pulling the images that are reference by their digests.
+// Note: the mirrors only work when pulling the images that are referenced by their digests.
 type RepositoryDigestMirrors struct {
-	// sources are repositories that are mirrors of each other.
+	// source is the repository that users refer to, e.g. in image pull specifications.
+	// +required
+	Source string `json:"source"`
+	// mirrors is one or more repositories that may also contain the same images.
+	// The order of mirrors in this list is treated as the user's desired priority, while source
+	// is by default considered lower priority than all mirrors. Other cluster configuration,
+	// including (but not limited to) other repositoryDigestMirrors objects,
+	// may impact the exact order mirrors are contacted in, or some mirrors may be contacted
+	// in parallel, so this should be considered a preference rather than a guarantee of ordering.
 	// +optional
-	Sources []string `json:"sources,omitempty"`
+	Mirrors []string `json:"mirrors"`
 }
