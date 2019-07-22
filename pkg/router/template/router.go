@@ -615,8 +615,8 @@ func (r *templateRouter) dynamicallyAddRoute(backendKey string, route *routev1.R
 	newWeights := r.calculateServiceWeights(backend.ServiceUnits)
 	for key := range backend.ServiceUnits {
 		if service, ok := r.findMatchingServiceUnit(key); ok {
-			newEndpoints := service.EndpointTable
-			glog.V(4).Infof("For new route backend %s, replacing endpoints for service %s: %+v", backendKey, key, service.EndpointTable)
+			newEndpoints := endpointsForAlias(*backend, service)
+			glog.V(4).Infof("For new route backend %s, replacing endpoints for service %s: %+v", backendKey, key, newEndpoints)
 
 			weight, ok := newWeights[key]
 			if !ok {
@@ -662,7 +662,6 @@ func (r *templateRouter) dynamicallyReplaceEndpoints(id string, service ServiceU
 	}
 
 	glog.V(4).Infof("Replacing endpoints dynamically for service %s", id)
-	newEndpoints := service.EndpointTable
 
 	// Update each of the routes that reference this service unit.
 	for backendKey := range service.ServiceAliasAssociations {
@@ -671,6 +670,8 @@ func (r *templateRouter) dynamicallyReplaceEndpoints(id string, service ServiceU
 			glog.V(4).Infof("Associated service alias %s not found in state, ignoring ...", backendKey)
 			continue
 		}
+
+		newEndpoints := endpointsForAlias(cfg, service)
 
 		// As the endpoints have changed, recalculate the weights.
 		newWeights := r.calculateServiceWeights(cfg.ServiceUnits)
@@ -681,7 +682,7 @@ func (r *templateRouter) dynamicallyReplaceEndpoints(id string, service ServiceU
 			weight = 0
 		}
 
-		glog.V(4).Infof("Dynamically replacing endpoints for associated backend %s", backendKey)
+		glog.V(4).Infof("Dynamically replacing endpoints for associated backend %s: %+v", backendKey, newEndpoints)
 		if err := r.dynamicConfigManager.ReplaceRouteEndpoints(backendKey, oldEndpoints, newEndpoints, weight); err != nil {
 			// Error dynamically modifying the config, so return false to cause a reload to happen.
 			glog.V(4).Infof("Router will reload as the ConfigManager could not dynamically replace endpoints for service id %s (backend=%s, weight=%v): %v", id, backendKey, weight, err)
