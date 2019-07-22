@@ -23,7 +23,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
         incremental: true
       type: Source
     triggers:
@@ -34,7 +34,7 @@ items:
         secret: secret101
       type: generic
     - imageChange:
-        lastTriggeredImageID: centos/ruby-22-centos7:latest
+        lastTriggeredImageID: centos/ruby-25-centos7:latest
       type: imageChange
   status:
     lastVersion: 1
@@ -62,7 +62,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7:latest
+          name: centos/ruby-25-centos7:latest
         incremental: true
       type: Source
   status:
