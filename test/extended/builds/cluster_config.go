@@ -56,7 +56,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				g.By("waiting 1s for build controller configuration to propagate")
 				time.Sleep(1 * time.Second)
 				g.By("starting build sample-build and waiting for success")
-				// Image used by sample-build (centos/ruby-22-centos7) is only available on docker.io
+				// Image used by sample-build (centos/ruby-25-centos7) is only available on docker.io
 				br, err := exutil.StartBuildAndWait(oc, "sample-build")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
