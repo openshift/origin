@@ -21,7 +21,7 @@ os::util::environment::setup_time_vars
 os::test::junit::declare_suite_start "cmd/newapp"
 
 default_project=$(oc project -q)
-os::cmd::expect_success 'git clone https://github.com/openshift/ruby-hello-world.git ./test/testdata/testapp'
+#os::cmd::expect_success 'git clone https://github.com/openshift/ruby-hello-world.git ./test/testdata/testapp'
 
 # imagestream/tag creation and reuse
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json -n openshift'
