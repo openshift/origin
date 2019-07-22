@@ -2,6 +2,19 @@
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete namespace test4
+  oc delete namespace test5
+  oc delete namespace test6
+  oc wait --for=delete namespace test4 --timeout=60s || true
+  oc wait --for=delete namespace test5 --timeout=60s || true
+  oc wait --for=delete namespace test6 --timeout=60s || true
+  exit 0
+) &>/dev/null
+
+
 os::test::junit::declare_suite_start "cmd/projects"
 
 os::test::junit::declare_suite_start "cmd/projects/lifecycle"

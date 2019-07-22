@@ -3,8 +3,8 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
-#(
-#  set +e
+(
+  set +e
   oc delete project/example project/ui-test-project project/recreated-project &>/dev/null || true
   oc delete groups/shortoutputgroup &>/dev/null || true
   oc delete groups/group1 &>/dev/null || true
@@ -25,7 +25,8 @@ trap os::test::junit::reconcile_output EXIT
   oc delete -n default imagestreams.image.openshift.io/busybox &>/dev/null || true
   oc wait --for=delete namespace/example --timeout=60s || true
 #  oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
-#) &>/dev/null
+  exit 0
+) &>/dev/null
 
 project="$( oc project -q )"
 

@@ -13,6 +13,7 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
   oc delete project project-bar
+  oc delete project project-status
   exit 0
 ) &>/dev/null
 

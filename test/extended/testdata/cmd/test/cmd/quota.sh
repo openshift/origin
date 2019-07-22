@@ -7,7 +7,12 @@ os::test::junit::declare_suite_start "cmd/quota"
 # Cleanup cluster resources created by this test suite
 (
   set +e
-  oc delete project quota-{foo,bar,asmail,images}
+  oc delete namespace quota-{foo,bar,asmail,images}
+  oc wait --for=delete namespace quota-{foo,bar,asmail,images} --timeout=60s || true
+  oc delete clusterresourcequotas.quota.openshift.io "for-deads"
+  oc delete clusterresourcequotas.quota.openshift.io "for-deads-by-annotation"
+  oc delete clusterresourcequotas.quota.openshift.io "for-deads-email-by-annotation"
+  oc delete clusterresourcequotas.quota.openshift.io "annotation-value-with-commas"
   exit 0
 ) &>/dev/null
 
