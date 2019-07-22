@@ -33,8 +33,8 @@ os::test::junit::declare_suite_end
 
 os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
 # log in as a test user and expect no projects
-os::cmd::expect_success 'oc login -u test -p test'
-os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
+#os::cmd::expect_success 'oc login -u test -p test'
+#os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
 # add a project and expect text for a single project
 os::cmd::expect_success_and_text 'oc new-project test4' 'Now using project "test4" on server '
 os::cmd::try_until_text 'oc projects' 'Using project "test4" on server'
