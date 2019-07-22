@@ -295,8 +295,7 @@ func pluginImplementsNetworkPolicy() bool {
 	}
 }
 
-func makeNamespaceGlobal(ns *corev1.Namespace) {
-	oc := testexutil.NewCLI("ns-global", testexutil.KubeConfigPath())
+func makeNamespaceGlobal(oc *testexutil.CLI, ns *corev1.Namespace) {
 	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})

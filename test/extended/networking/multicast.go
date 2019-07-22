@@ -21,6 +21,8 @@ import (
 )
 
 var _ = Describe("[Area:Networking] multicast", func() {
+	oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+
 	// The subnet plugin should block all multicast. The multitenant and networkpolicy
 	// plugins should implement multicast in the way that we test. For third-party
 	// plugins, the behavior is unspecified and we should not run either test.
@@ -38,22 +40,20 @@ var _ = Describe("[Area:Networking] multicast", func() {
 
 	InPluginContext([]string{networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName},
 		func() {
-			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 			f := oc.KubeFramework()
 
 			It("should block multicast traffic in namespaces where it is disabled", func() {
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
 			})
 			It("should allow multicast traffic in namespaces where it is enabled", func() {
-				makeNamespaceMulticastEnabled(f.Namespace)
+				makeNamespaceMulticastEnabled(oc, f.Namespace)
 				Expect(testMulticast(f, oc)).To(Succeed())
 			})
 		},
 	)
 })
 
-func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
-	oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
 	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	var netns *networkapi.NetNamespace
