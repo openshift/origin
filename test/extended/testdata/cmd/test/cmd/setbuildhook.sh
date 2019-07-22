@@ -12,14 +12,14 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/builds/setbuildhook"
 # Validate the set build-hook command
-arg="-f test/testdata/test-bc.yaml"
+arg="-f ${TEST_DATA}/test-bc.yaml"
 os::cmd::expect_failure_and_text "oc set build-hook" "error: one or more build configs"
 os::cmd::expect_failure_and_text "oc set build-hook ${arg}" "error: you must specify a type of hook"
 os::cmd::expect_failure_and_text "oc set build-hook ${arg} --local --post-commit -o yaml -- echo 'hello world'" 'you must specify either a script or command for the build hook'
 os::cmd::expect_success_and_text "oc set build-hook ${arg} --local --post-commit --command -o yaml -- echo 'hello world'" 'command:'
 os::cmd::expect_success_and_text "oc set build-hook ${arg} --local --post-commit -o yaml --script='echo \"hello world\"'" 'script: echo \"hello world\"'
 # Server object tests
-os::cmd::expect_success "oc create -f test/testdata/test-bc.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-bc.yaml"
 # Must specify --command or --script
 os::cmd::expect_failure_and_text "oc set build-hook bc/test-buildconfig --post-commit" "you must specify either a script or command"
 # Setting args for the default entrypoint is not supported

@@ -11,7 +11,7 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/builds/setbuildsecret"
 # Validate the set build-secret command
-arg="-f test/testdata/test-bc.yaml"
+arg="-f ${TEST_DATA}/test-bc.yaml"
 os::cmd::expect_failure_and_text "oc set build-secret" "error: a secret name must be specified"
 os::cmd::expect_failure_and_text "oc set build-secret ${arg}" "error: a secret name must be specified"
 os::cmd::expect_failure_and_text "oc set build-secret ${arg} mysecret" "error: specify the type of secret"
@@ -25,7 +25,7 @@ os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --push
 os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --pull --local -o yaml | oc set build-secret --local -f - --remove --pull -o yaml" 'pullSecret:'
 os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --push --local -o yaml | oc set build-secret --local -f - --remove --source -o yaml" 'sourceSecret:'
 # Server object tests
-os::cmd::expect_success "oc create -f test/testdata/test-bc.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-bc.yaml"
 os::cmd::expect_success_and_text "oc set build-secret test-buildconfig mysecret --push" "updated"
 os::cmd::expect_success_and_text "oc set build-secret bc/test-buildconfig mysecret --push --v=1" "was not changed"
 os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "pushSecret:"

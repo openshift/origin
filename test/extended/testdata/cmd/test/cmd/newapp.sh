@@ -24,7 +24,7 @@ default_project=$(oc project -q)
 os::cmd::expect_success 'git clone https://github.com/openshift/ruby-hello-world.git ./test/testdata/testapp'
 
 # imagestream/tag creation and reuse
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json -n openshift'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json -n openshift'
 os::cmd::expect_success 'oc delete istag php:latest -n openshift'
 os::cmd::expect_success 'oc new-project test-imagestreams'
 os::cmd::try_until_failure 'oc get istag php:latest -n openshift'
@@ -87,7 +87,7 @@ os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.7" for "my
 # test deployments are created with the boolean flag and printed in the UI
 os::cmd::expect_success_and_text 'oc new-app mysql --dry-run --as-test' 'This image will be test deployed'
 os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: true'
-os::cmd::expect_success_and_text 'oc new-app test/testdata/template-minimal-expose.json --as-test' 'Access your application via route'
+os::cmd::expect_success_and_text 'oc new-app ${TEST_DATA}/new-app/template-minimal-expose.json --as-test' 'Access your application via route'
 os::cmd::expect_success 'oc delete all -l app=expose-output'
 os::cmd::expect_success_and_text 'oc new-app mysql --as-test' 'Application is not exposed'
 os::cmd::expect_success 'oc delete all -l app=mysql'
@@ -98,17 +98,17 @@ os::cmd::expect_success_and_not_text 'oc describe bc/ruby-ex' 'BuildConfigInstan
 os::cmd::expect_success 'oc delete all -l app=ruby-ex'
 
 # Ensure that an invalid build strategy in a template does not throw a segmentation fault
-os::cmd::expect_success_and_not_text 'oc new-app --file test/testdata/invalid-build-strategy.yaml --dry-run' 'invalid memory address or nil pointer dereference'
+os::cmd::expect_success_and_not_text 'oc new-app --file ${TEST_DATA}/new-app/invalid-build-strategy.yaml --dry-run' 'invalid memory address or nil pointer dereference'
 
 # test that imagestream references across imagestreams do not cause an error
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
-os::cmd::expect_success 'oc create -f test/testdata/newapp/imagestream-ref.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/imagestream-ref.yaml'
 os::cmd::try_until_success 'oc get imagestreamtags myruby:latest'
 os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hello-world.git --dry-run'
 os::cmd::expect_success 'oc delete is myruby'
 
 # Ensure clear error message wrt templates container CRDs and new-app appears
-os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/newapp/template-with-crd.yaml' 'error: The template contained an object type unknown to '
+os::cmd::expect_failure_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-crd.yaml' 'error: The template contained an object type unknown to '
 
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/nodejs-ex --strategy=docker' 'No Dockerfile was found'
@@ -156,24 +156,24 @@ os::cmd::expect_success 'oc new-app php mysql'
 os::cmd::expect_success 'oc delete all -l app=php'
 os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
 
 # check object namespace handling
 # hardcoded values should be stripped
-os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"stripped\")].metadata.namespace}"' 'STRIPPED'
+os::cmd::expect_success_and_not_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"stripped\")].metadata.namespace}"' 'STRIPPED'
 # normal parameterized values should be substituted and retained
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-substituted\")].metadata.namespace}"' 'substituted'
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-substituted\")].metadata.namespace}"' 'prefix-substituted'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-substituted\")].metadata.namespace}"' 'substituted'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-substituted\")].metadata.namespace}"' 'prefix-substituted'
 # non-string parameterized values should be stripped
-os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-refstripped\")].metadata.namespace}"' 'namespace is not found'
-os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-refstripped\")].metadata.namespace}"' 'namespace is not found'
+os::cmd::expect_failure_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-refstripped\")].metadata.namespace}"' 'namespace is not found'
+os::cmd::expect_failure_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-refstripped\")].metadata.namespace}"' 'namespace is not found'
 # ensure --build-env environment variables get added to the buildconfig
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json --build-env FOO=bar -o yaml' 'FOO'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-app-label.json --build-env FOO=bar -o yaml' 'FOO'
 # ensure the objects can actually get created with a namespace specified
 os::cmd::expect_success 'oc new-project template-substitute'
 os::cmd::expect_success 'oc new-project prefix-template-substitute'
 os::cmd::expect_success 'oc project ${default_project}'
-os::cmd::expect_success 'oc new-app -f test/testdata/template-with-namespaces.json -p SUBSTITUTED=template-substitute'
+os::cmd::expect_success 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -p SUBSTITUTED=template-substitute'
 os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
@@ -191,7 +191,7 @@ os::cmd::expect_success_and_text  'oc new-app -e FOO=BAR -f examples/jenkins/jen
 os::cmd::expect_success_and_text  'oc new-app -e OPENSHIFT_ENABLE_OAUTH=false -f examples/jenkins/jenkins-ephemeral-template.json -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"OPENSHIFT_ENABLE_OAUTH\")].value}" ' 'false'
 
 # check that multiple resource groups are printed with their respective external version
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml' 'apiVersion: apps/v1'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template_multiple_resource_gvs.yaml -o yaml' 'apiVersion: apps/v1'
 
 # check that an error is produced when using --context-dir with a template
 os::cmd::expect_failure_and_text 'oc new-app -f examples/sample-app/application-template-stibuild.json --context-dir=example' '\-\-context-dir is not supported when using a template'
@@ -214,14 +214,14 @@ os::cmd::expect_success_and_text 'oc new-app php PASS=one,two=three -o yaml' 'va
 os::cmd::expect_success_and_not_text 'oc new-app php PASS=one,two=three -o yaml' 'no longer accepts comma-separated list'
 
 # check that we can populate template parameters from file
-param_file="${OS_ROOT}/test/testdata/test-cmd-newapp-params.env"
+param_file="${TEST_DATA}/new-app/test-cmd-newapp-params.env"
 os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_DATABASE\")].value}'" 'thisisadatabase'
 os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} --param MYSQL_DATABASE=otherdatabase -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_DATABASE\")].value}'" 'otherdatabase'
 os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} --param MYSQL_DATABASE=otherdatabase -o yaml" 'ignoring value from file'
 os::cmd::expect_success_and_text "cat ${param_file} | oc new-app ruby-helloworld-sample --param-file - -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_DATABASE\")].value}'" 'thisisadatabase'
 
 os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file does/not/exist" 'no such file or directory'
-os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file test/testdata"  'is a directory'
+os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file ${TEST_DATA}"  'is a directory'
 os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/null -o yaml"
 os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/null --param-file ${param_file} -o yaml"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
@@ -231,14 +231,14 @@ os::cmd::expect_failure_and_text 'oc new-app ruby-helloworld-sample --param ABSE
 os::cmd::expect_success 'oc new-app ruby-helloworld-sample --param ABSENT_PARAMETER=absent -o yaml --ignore-unknown-parameters'
 
 # check that we can set environment variables from env file
-env_file="${OS_ROOT}/test/testdata/test-cmd-newapp-env.env"
+env_file="${TEST_DATA}/new-app/test-cmd-newapp-env.env"
 os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
 os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} --env SOME_VAR=fromcmdline -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'fromcmdline'
 os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} --env SOME_VAR=fromcmdline -o yaml" 'ignoring value from file'
 os::cmd::expect_success_and_text "cat ${env_file} | oc new-app php --env-file - -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
 
 os::cmd::expect_failure_and_text "oc new-app php --env-file does/not/exist" 'no such file or directory'
-os::cmd::expect_failure_and_text "oc new-app php --env-file test/testdata"  'is a directory'
+os::cmd::expect_failure_and_text "oc new-app php --env-file ${TEST_DATA}/new-app"  'is a directory'
 os::cmd::expect_success "oc new-app php --env-file /dev/null -o yaml"
 os::cmd::expect_success "oc new-app php --env-file /dev/null --env-file ${env_file} -o yaml"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app php --env-file -" 'invalid parameter assignment'
@@ -259,17 +259,17 @@ os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_fil
 os::cmd::expect_success_and_text "cat ${env_file} | oc new-build --binary php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
 
 os::cmd::expect_failure_and_text "oc new-build --binary php --env-file does/not/exist" 'no such file or directory'
-os::cmd::expect_failure_and_text "oc new-build --binary php --env-file test/testdata"  'is a directory'
+os::cmd::expect_failure_and_text "oc new-build --binary php --env-file ${TEST_DATA}/new-app"  'is a directory'
 os::cmd::expect_success "oc new-build --binary php --env-file /dev/null -o yaml"
 os::cmd::expect_success "oc new-build --binary php --env-file /dev/null --env-file ${env_file} -o yaml"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --env-file -" 'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --env-file -" 'invalid parameter assignment'
 
 # check that we can set environment variables from build-env file
-build_env_file="${OS_ROOT}/test/testdata/test-cmd-newapp-build-env.env"
+build_env_file="${TEST_DATA}/new-app/test-cmd-newapp-build-env.env"
 
 os::cmd::expect_failure_and_text "oc new-app php --build-env-file does/not/exist" 'no such file or directory'
-os::cmd::expect_failure_and_text "oc new-app php --build-env-file test/testdata"  'is a directory'
+os::cmd::expect_failure_and_text "oc new-app php --build-env-file ${TEST_DATA}/new-app"  'is a directory'
 os::cmd::expect_success "oc new-app php --build-env-file /dev/null -o yaml"
 os::cmd::expect_success "oc new-app php --build-env-file /dev/null --build-env-file ${build_env_file} -o yaml"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app php --build-env-file -" 'invalid parameter assignment'
@@ -290,14 +290,14 @@ os::cmd::expect_success_and_text "oc new-build --binary php --build-env-file ${b
 os::cmd::expect_success_and_text "cat ${build_env_file} | oc new-build --binary php --build-env-file - -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'buildenvvarfromfile'
 
 os::cmd::expect_failure_and_text "oc new-build --binary php --build-env-file does/not/exist" 'no such file or directory'
-os::cmd::expect_failure_and_text "oc new-build --binary php --build-env-file test/testdata"  'is a directory'
+os::cmd::expect_failure_and_text "oc new-build --binary php --build-env-file ${TEST_DATA}/new-app"  'is a directory'
 os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null -o yaml"
 os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null --env-file ${build_env_file} -o yaml"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 
 # new-build - check that we can set build args in DockerStrategy
-os::cmd::expect_success_and_text "oc new-build ${OS_ROOT}/test/testdata/build-arg-dockerfile --build-arg 'foo=bar' --to 'test' -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.dockerStrategy.buildArgs[?(@.name==\"foo\")].value}'" 'bar'
+os::cmd::expect_success_and_text "oc new-build ${TEST_DATA}/new-app/build-arg-dockerfile --build-arg 'foo=bar' --to 'test' -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.dockerStrategy.buildArgs[?(@.name==\"foo\")].value}'" 'bar'
 
 # check that we cannot set build args in a non-DockerStrategy build
 os::cmd::expect_failure_and_text "oc new-build https://github.com/openshift/ruby-hello-world --strategy=source --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
@@ -306,12 +306,12 @@ os::cmd::expect_failure_and_text "oc new-build https://github.com/sclorg/ruby-ex
 #
 # verify we can create from a template when some objects in the template declare an app label
 # the app label will not be applied to any objects in the template.
-os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+os::cmd::expect_success_and_not_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
 # verify the existing app label on an object is not overridden by new-app
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-app-label.json -o yaml' 'app: myapp'
 
 # verify that a template can be passed in stdin
-os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
+os::cmd::expect_success 'cat ${TEST_DATA}/application-template-stibuild.json | oc new-app -o yaml -f -'
 
 # check search
 os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.7, latest"
@@ -498,7 +498,7 @@ os::cmd::expect_success_and_text 'oc new-app mysql --name=db' 'db'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby'
 os::cmd::expect_success 'oc delete all -l app=ruby'
 # check for error when template JSON file has errors
-jsonfile="${OS_ROOT}/test/testdata/invalid.json"
+jsonfile="${TEST_DATA}/new-app/invalid.json"
 os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": error parsing ${jsonfile}: json: line 0: invalid character '}' after object key"
 
 # check new-build
@@ -518,17 +518,17 @@ os::cmd::expect_failure_and_text 'oc new-build mysql --source-image centos' 'err
 os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'error: --source-image must be specified when --source-image-path is specified.'
 
 # ensure circular ref flagged but allowed for template
-os::cmd::expect_success 'oc create -f test/testdata/circular-is.yaml'
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/circular.yaml' 'should be different than input'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/circular-is.yaml'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/circular.yaml' 'should be different than input'
 # ensure circular does not choke on image stream image
-os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/bc-from-imagestreamimage.json --dry-run' 'Unable to follow reference type'
+os::cmd::expect_success_and_not_text 'oc new-app -f ${TEST_DATA}/new-app/bc-from-imagestreamimage.json --dry-run' 'Unable to follow reference type'
 
 # do not allow use of non-existent image (should fail)
 os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "unable to locate any"
 # allow use of non-existent image (should succeed)
 os::cmd::expect_success 'oc new-app openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images'
 
-os::cmd::expect_success 'oc create -f test/testdata/installable-stream.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/installable-stream.yaml'
 
 os::cmd::expect_success 'oc policy add-role-to-user edit test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'

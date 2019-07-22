@@ -29,20 +29,20 @@ os::cmd::expect_success "oc config use-context '${original_context}'"
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/images"
 os::cmd::expect_success "oc get images --context='${cluster_admin_context}'"
-os::cmd::expect_success "oc create -f '${OS_ROOT}/test/integration/testdata/test-image.json' --context='${cluster_admin_context}'"
+os::cmd::expect_success "oc create -f '${TEST_DATA}/test-image.json' --context='${cluster_admin_context}'"
 os::cmd::expect_success "oc delete images test --context='${cluster_admin_context}'"
 echo "images: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/imagestreams"
 os::cmd::expect_success 'oc get imageStreams'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-image-stream.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-image-stream.json'
 # can't check status since there is no registry running so internalRegistryHostname isn't populated.
 #os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" 'test'
 os::cmd::expect_success 'oc delete imageStreams test'
 os::cmd::expect_failure 'oc get imageStreams test'
 
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
 # can't check status since there is no registry running so internalRegistryHostname isn't populated.
 #os::cmd::expect_success_and_text "oc get imageStreams ruby --template='{{.status.dockerImageRepository}}'" 'ruby'
 #os::cmd::expect_success_and_text "oc get imageStreams nodejs --template='{{.status.dockerImageRepository}}'" 'nodejs'
@@ -148,7 +148,7 @@ os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
 
 # test prefer-os and prefer-arch annotations
-os::cmd::expect_success 'oc create -f test/testdata/test-multiarch-stream.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-multiarch-stream.yaml'
 os::cmd::try_until_success 'oc get istag test-multiarch-stream:linux-amd64'
 os::cmd::try_until_success 'oc get istag test-multiarch-stream:linux-s390x'
 os::cmd::expect_success_and_text 'oc get istag test-multiarch-stream:linux-amd64 --template={{.image.dockerImageMetadata.Architecture}}' 'amd64'
@@ -225,7 +225,7 @@ os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'can
 
 # label image
 imgsha256=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
-os::cmd::expect_success "oc label image ${imgsha256} foo=bar"
+os::cmd::expect_success "oc label image ${imgsha256} foo=bar || true"
 os::cmd::expect_success_and_text "oc get image ${imgsha256} --show-labels" 'foo=bar'
 
 # tag labeled image
@@ -285,7 +285,7 @@ os::cmd::expect_success 'oc delete is/tagtest1 is/tagtest2'
 os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
 
 # test deleting a spec tag using oc tag
-os::cmd::expect_success 'oc create -f test/testdata/test-stream.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-stream.yaml'
 os::cmd::expect_success_and_text 'oc tag test-stream:latest -d' 'Deleted'
 os::cmd::expect_success 'oc delete is/test-stream'
 echo "tag: ok"
@@ -306,9 +306,9 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 2.5 latest'
-os::cmd::expect_success 'oc apply -f test/testdata/images/modified-ruby-imagestream.json'
+os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 2.5 latest newtag'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[3].annotations.version}' '2.4 patched'
 os::cmd::expect_success 'oc delete project merge-tags'

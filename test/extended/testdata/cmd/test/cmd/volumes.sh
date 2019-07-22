@@ -13,8 +13,8 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/volumes"
 # This test validates the 'volume' command
 
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
-os::cmd::expect_success 'oc create -f test/testdata/rollingupdate-daemonset.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/rollingupdate-daemonset.yaml'
 
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list' 'vol1'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol0 -m /opt5'

@@ -18,7 +18,7 @@ os::test::junit::declare_suite_start "cmd/templates"
 
 os::test::junit::declare_suite_start "cmd/templates/basic"
 os::cmd::expect_success 'oc get templates'
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json'
 os::cmd::expect_success 'oc get templates'
 os::cmd::expect_success 'oc get templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get template ruby-helloworld-sample -o json | oc process -f -'
@@ -42,7 +42,7 @@ echo "templates: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/config"
-guestbook_template="${OS_ROOT}/test/templates/testdata/guestbook.json"
+guestbook_template="${TEST_DATA}/templates/guestbook.json"
 os::cmd::expect_success "oc process -f '${guestbook_template}' -l app=guestbook | oc create -f -"
 os::cmd::expect_success_and_text 'oc status' 'frontend-service'
 echo "template+config: ok"
@@ -61,7 +61,7 @@ echo "template+config+local: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/parameters"
-guestbook_params="${OS_ROOT}/test/templates/testdata/guestbook.env"
+guestbook_params="${TEST_DATA}/templates/guestbook.env"
 # Individually specified parameter values are honored
 os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword" '"myuser"'
 os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword" '"mypassword"'
@@ -69,7 +69,7 @@ os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN
 os::cmd::expect_success_and_text "oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f '${guestbook_template}'"       '"myuser"'
 os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword"       '"mypassword"'
 # Argument values with commas are honored
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-stibuild.json'
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s'        '"myself"'
 os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'        '"my,1%pa=s"'
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s'  '"myself"'
@@ -88,15 +88,15 @@ os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-
 os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_PASSWORD=mypassword" '"mypassword"'
 os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p REDIS_PASSWORD=rrr"        '"rrr"'
 # Set template parameters from parameter file with multiline values
-os::cmd::expect_success_and_text "oc process -f test/testdata/template_required_params.yaml --param-file=test/testdata/template_required_params.env -o yaml" 'first$'
+os::cmd::expect_success_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=${TEST_DATA}/templates/template_required_params.env -o yaml" 'first$'
 os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
 # Parameter file failure cases
-os::cmd::expect_failure_and_text "oc process -f test/testdata/template_required_params.yaml --param-file=does/not/exist"  'no such file or directory'
-os::cmd::expect_failure_and_text "oc process -f test/testdata/template_required_params.yaml --param-file=test/testdata"   'is a directory'
-os::cmd::expect_failure_and_text "oc process -f test/testdata/template_required_params.yaml --param-file=/dev/null"       'parameter required_param is required and must be specified'
+os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=does/not/exist"  'no such file or directory'
+os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=${TEST_DATA}"   'is a directory'
+os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=/dev/null"       'parameter required_param is required and must be specified'
 os::cmd::expect_success "oc process -f '${guestbook_template}' --param-file=/dev/null --param-file='${guestbook_params}'"
-os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc process -f test/testdata/template_required_params.yaml --param-file=-"        'invalid parameter assignment'
-os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc process -f test/testdata/template_required_params.yaml --param-file=-" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=-"        'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=-" 'invalid parameter assignment'
 # Handle absent parameter
 os::cmd::expect_failure_and_text "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent" 'unknown parameter name'
 os::cmd::expect_success "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent --ignore-unknown-parameters"
@@ -106,7 +106,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/templates/data-precision"
 # Run as cluster-admin to allow choosing any supplemental groups we want
 # Ensure large integers survive unstructured JSON creation
-os::cmd::expect_success 'oc create -f test/testdata/template-type-precision.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/templates/template-type-precision.json'
 # ... and processing
 os::cmd::expect_success_and_text 'oc process template-type-precision' '1000030003'
 os::cmd::expect_success_and_text 'oc process template-type-precision' '2147483647'
@@ -128,7 +128,7 @@ echo "template data precision: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/different-namespaces"
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json -n openshift'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json -n openshift'
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 new="$(mktemp -d)/tempconfig"
 os::cmd::expect_success "oc config view --raw > ${new}"
@@ -138,7 +138,7 @@ os::cmd::expect_success 'oc login -u test-user -p password'
 os::cmd::expect_success 'oc new-project test-template-project'
 # make sure the permissions on the new project are set up
 os::cmd::try_until_success 'oc get templates'
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-dockerbuild.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json'
 os::cmd::expect_success 'oc process template/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process templates/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process openshift//ruby-helloworld-sample'
@@ -170,9 +170,9 @@ os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 
 os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --param=key=value --param=other=baz' 'provided more than once: key, other'
-required_params="${OS_ROOT}/test/testdata/template_required_params.yaml"
+required_params="${TEST_DATA}/templates/template_required_params.yaml"
 # providing something other than a template is not OK
-os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/testdata/basic-users-binding.json'" 'not a valid Template but'
+os::cmd::expect_failure_and_text "oc process -f '${TEST_DATA}/templates/basic-users-binding.json'" 'not a valid Template but'
 # not providing required parameter should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'
 # not providing an optional param is OK
@@ -202,7 +202,7 @@ os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param
 # warning is not printed for template values passed as positional arguments
 os::cmd::expect_success_and_not_text "oc process -f '${required_params}' required_param=a,b=c,d" 'no longer accepts comma-separated list'
 # set template parameter to contents of file
-os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param='`cat ${OS_ROOT}/test/testdata/multiline.txt`'" 'also,with=commas'
+os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param='`cat ${TEST_DATA}/templates/multiline.txt`'" 'also,with=commas'
 echo "process: ok"
 os::test::junit::declare_suite_end
 
