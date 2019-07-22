@@ -227,6 +227,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("crd-discovery-available", func(context genericapiserver.PostStartHookContext) error {
+		// Ignore these as they are installed later by the config operator.
+		ignoreGroupsAndResources := sets.NewString(
+			"clusterresourcequotas.v1.quota.openshift.io",
+			"rolebindingrestrictions.v1.authorization.openshift.io",
+			"securitycontextconstraints.v1.security.openshift.io",
+			)
 		return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
 			// only check if we have a valid list for a given resourceversion
 			if !s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced() {
@@ -256,7 +262,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 					if !version.Served {
 						continue
 					}
-					crdGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", crd.Spec.Names.Plural, version.Name, crd.Spec.Group))
+					name := fmt.Sprintf("%s.%s.%s", crd.Spec.Names.Plural, version.Name, crd.Spec.Group)
+					// Skip CRD's that are going to be available later
+					if ignoreGroupsAndResources.Has(name) {
+						continue
+					}
+					crdGroupsAndResources.Insert(name)
 				}
 			}
 
