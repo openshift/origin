@@ -269,7 +269,7 @@ function localup::start_openshiftapiserver() {
     fi
 
     OPENSHIFT_APISERVER_LOG=${LOG_DIR}/openshift-apiserver.log
-    hypershift openshift-apiserver \
+    openshift-apiserver start \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
       --config=${LOCALUP_CONFIG}/openshift-apiserver/openshift-apiserver.yaml >"${OPENSHIFT_APISERVER_LOG}" 2>&1 &
@@ -289,7 +289,7 @@ function localup::start_openshiftcontrollermanager() {
     localup::generate_openshiftcontrollermanager_certs
 
     OPENSHIFT_CONTROLLER_MANAGER_LOG=${LOG_DIR}/openshift-controller-manager.log
-    hypershift openshift-controller-manager \
+    openshift-controller-manager start \
       --v=${LOG_LEVEL} \
       --vmodule="${LOG_SPEC}" \
       --config=${LOCALUP_CONFIG}/openshift-controller-manager/openshift-controller-manager.yaml >"${OPENSHIFT_CONTROLLER_MANAGER_LOG}" 2>&1 &
