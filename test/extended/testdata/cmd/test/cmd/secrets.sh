@@ -12,6 +12,7 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/secrets"
 # This test validates secret interaction
+touch Makefile
 os::cmd::expect_failure_and_text 'oc secrets new foo --type=blah makefile=Makefile' 'error: unknown secret type "blah"'
 os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --confirm'
 os::cmd::expect_success_and_text 'oc get secrets/foo -o jsonpath={.type}' 'blah'
@@ -53,8 +54,8 @@ os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/dockerc
 
 GIT_CONFIG_PATH="${ARTIFACT_DIR}/.gitconfig"
 touch "${GIT_CONFIG_PATH}"
-git config --file "${GIT_CONFIG_PATH}" user.name sample-user
-git config --file "${GIT_CONFIG_PATH}" user.token password
+#git config --file "${GIT_CONFIG_PATH}" user.name sample-user
+#git config --file "${GIT_CONFIG_PATH}" user.token password
 
 function create_valid_file() {
 	echo test_data > "${ARTIFACT_DIR}/${1}"

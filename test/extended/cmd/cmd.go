@@ -25,31 +25,11 @@ import (
 var allCanRunPerms int32 = 0777
 
 var blacklist = sets.NewString(
-	"images.sh",
-	"login.sh",
-	"migrate.sh",
-	"newapp.sh",
-	"observe.sh",
-	"policy-storage-admin.sh",
-	"policy.sh",
-	"printer.sh",
-	"projects.sh",
-	"quota.sh",
-	"registry.sh",
-	"routes.sh",
-	"rsync.sh",
-	"run.sh",
-	"secrets.sh",
-	"services.sh",
-	"set-image.sh",
-	"set-liveness-probe.sh",
-	"setbuildhook.sh",
-	"setbuildsecret.sh",
-	"status.sh",
-	"templates.sh",
-	"timeout.sh",
-	"triggers.sh",
-	"volumes.sh",
+	"login.sh",    // fails because so much depends on `oc login`
+	"migrate.sh",  // seems unnecessary since we never run it
+	"newapp.sh",   // our image is missing git, so a lot of it doesn't work
+	"policy.sh",   // fails because so much depends on `oc login`
+	"registry.sh", // this was dead before we made this switch
 )
 
 var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", func() {
