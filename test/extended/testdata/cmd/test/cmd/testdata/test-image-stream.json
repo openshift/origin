@@ -1,0 +1,15 @@
+{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null,
+    "labels": {
+      "color": "blue"
+    }
+  },
+  "spec": {},
+  "status": {
+    "dockerImageRepository": ""
+  }
+}

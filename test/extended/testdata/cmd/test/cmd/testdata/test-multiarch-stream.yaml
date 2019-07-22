@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: test-multiarch-stream
+spec:
+  tags:
+  - name: linux-amd64
+    from:
+      kind: DockerImage
+      name: bparees/multiplatformtest:latest
+    annotations:
+      importer.image.openshift.io/prefer-os: linux
+      importer.image.openshift.io/prefer-arch: amd64
+  - name: linux-s390x
+    from:
+      kind: DockerImage
+      name: bparees/multiplatformtest:latest
+    annotations:
+      importer.image.openshift.io/prefer-os: linux
+      importer.image.openshift.io/prefer-arch: s390x
