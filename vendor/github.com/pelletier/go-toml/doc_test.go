@@ -16,14 +16,13 @@ func Example_tree() {
 		fmt.Println("Error ", err.Error())
 	} else {
 		// retrieve data directly
-		directUser := config.Get("postgres.user").(string)
-		directPassword := config.Get("postgres.password").(string)
-		fmt.Println("User is", directUser, " and password is", directPassword)
+		user := config.Get("postgres.user").(string)
+		password := config.Get("postgres.password").(string)
 
 		// or using an intermediate object
 		configTree := config.Get("postgres").(*toml.Tree)
-		user := configTree.Get("user").(string)
-		password := configTree.Get("password").(string)
+		user = configTree.Get("user").(string)
+		password = configTree.Get("password").(string)
 		fmt.Println("User is", user, " and password is", password)
 
 		// show where elements are in the file
