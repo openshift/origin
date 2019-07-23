@@ -17,7 +17,6 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -160,7 +159,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			e2e.Logf("Selected: %#v, All: %#v", ingress, r.Status.Ingress)
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-1", ns)))
-			status, condition := routedisplayhelpers.IngressConditionStatus(ingress, routev1.RouteAdmitted)
+			status, condition := IngressConditionStatus(ingress, routev1.RouteAdmitted)
 			o.Expect(status).To(o.Equal(corev1.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
@@ -224,7 +223,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			ingress := ingressForName(r, "test-override-domains")
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-override-domain-2", ns)))
-			status, condition := routedisplayhelpers.IngressConditionStatus(ingress, routev1.RouteAdmitted)
+			status, condition := IngressConditionStatus(ingress, routev1.RouteAdmitted)
 			o.Expect(status).To(o.Equal(corev1.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})

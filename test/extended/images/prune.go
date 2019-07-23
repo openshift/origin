@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -261,7 +260,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		o.Expect(output).To(o.ContainSubstring(imgPrune.DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 	}
 	for _, layer := range imgPrune.DockerImageLayers {
-		if layer.Name == dockerlayer.GzippedEmptyLayerDigest {
+		if layer.Name == GzippedEmptyLayerDigest {
 			// Schema 1 manifests are known to have the widespread layer.
 			continue
 		}
@@ -293,7 +292,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		o.Expect(output).To(o.ContainSubstring(imgPrune.DockerImageMetadata.Object.(*docker10.DockerImage).ID))
 	}
 	for _, layer := range imgPrune.DockerImageLayers {
-		if layer.Name == dockerlayer.GzippedEmptyLayerDigest {
+		if layer.Name == GzippedEmptyLayerDigest {
 			// Schema 1 manifests are known to have the widespread layer.
 			continue
 		}

@@ -9,7 +9,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 
-	"github.com/openshift/oc/pkg/cli/admin/release"
 	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,7 +47,7 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 			e2e.Logf("unable to read release payload with error: %v", err)
 			return
 		}
-		releaseInfo := &release.ReleaseInfo{}
+		releaseInfo := &ReleaseInfo{}
 		if err := json.Unmarshal([]byte(out), &releaseInfo); err != nil {
 			e2e.Failf("unable to decode release payload with error: %v", err)
 		}

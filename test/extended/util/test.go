@@ -18,11 +18,10 @@ import (
 	"k8s.io/klog"
 
 	kapiv1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/printers"
 	kclientset "k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -37,7 +36,6 @@ import (
 
 	projectv1 "github.com/openshift/api/project/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
-	"github.com/openshift/oc/pkg/cli/admin/policy"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -586,17 +584,17 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if isE2ENamespace(ns.Name) && ns.Status.Phase != kapiv1.NamespaceTerminating {
-				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
-				addRole := &policy.RoleModificationOptions{
-					RoleBindingNamespace: ns.Name,
-					RoleKind:             "ClusterRole",
-					RoleName:             roleName,
-					RbacClient:           rbacClient,
-					Users:                []string{sa},
-					PrintFlags:           genericclioptions.NewPrintFlags(""),
-					ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
-				}
-				if err := addRole.AddRole(); err != nil {
+				_, err := rbacClient.RoleBindings(ns.Name).Create(&rbacv1.RoleBinding{
+					ObjectMeta: metav1.ObjectMeta{GenerateName: "default-" + roleName, Namespace: ns.Name},
+					RoleRef: rbacv1.RoleRef{
+						Kind: "ClusterRole",
+						Name: roleName,
+					},
+					Subjects: []rbacv1.Subject{
+						{Name: "default", Namespace: ns.Name, Kind: rbacv1.ServiceAccountKind},
+					},
+				})
+				if err != nil {
 					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)
 				}
 			}

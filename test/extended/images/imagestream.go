@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	stratsupport "github.com/openshift/oc/pkg/cli/deployer/strategy/support"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -310,7 +309,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	coreClient := oc.AdminKubeClient()
 
 	// can tag to a stream that exists
-	exec := stratsupport.NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
+	exec := NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
 	err := exec.Execute(
 		&appsv1.LifecycleHook{
 			TagImages: []appsv1.TagImageHook{
@@ -349,7 +348,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 
 	// can execute a second time the same tag and it should work
-	exec = stratsupport.NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
+	exec = NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
 	err = exec.Execute(
 		&appsv1.LifecycleHook{
 			TagImages: []appsv1.TagImageHook{
@@ -381,7 +380,7 @@ func TestImageStreamTagLifecycleHook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 
 	// can lifecycle tag a new image stream
-	exec = stratsupport.NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
+	exec = NewHookExecutor(coreClient, imageClientset.ImageV1(), os.Stdout)
 	err = exec.Execute(
 		&appsv1.LifecycleHook{
 			TagImages: []appsv1.TagImageHook{
