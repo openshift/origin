@@ -18,6 +18,7 @@ import (
 	ingressadmission "k8s.io/kubernetes/openshift-kube-apiserver/admission/route"
 	projectnodeenv "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	schedulerpodnodeconstraints "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
+	schedulerpodtolerationsrestriction "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/podtolerationsrestriction"
 )
 
 func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
@@ -33,6 +34,7 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	sccadmission.RegisterSCCExecRestrictions(plugins)
 	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
+	schedulerpodtolerationsrestriction.Register(plugins)
 }
 
 var (
@@ -62,6 +64,7 @@ var (
 		"security.openshift.io/SCCExecRestrictions",
 		"route.openshift.io/IngressAdmission",
 		"quota.openshift.io/ClusterResourceQuota",
+		"scheduling.openshift.io/RestrictPodTolerations",
 	}
 
 	// additionalDefaultOnPlugins is a list of plugins we turn on by default that core kube does not.
