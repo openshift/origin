@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[Feature:Platform] OLM should", func() {
@@ -70,4 +71,25 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 			}
 		})
 	}
+})
+
+var _ = g.Describe("[Feature:Platform] OLM component should set", func() {
+	defer g.GinkgoRecover()
+
+	var oc = exutil.NewCLIWithoutNamespace("")
+
+	//OCP-24028:[BZ-1685330] OLM components need to set priorityClassName as system-cluster-critical
+	//author: chuo@redhat.com
+	g.It("[ocp-24028]priorityClassName:system-cluster-critical", func() {
+		var deploymentResource = [3]string{"catalog-operator", "olm-operator", "packageserver"}
+		for _, v := range deploymentResource {
+			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-operator-lifecycle-manager", "deployment", v, "-o=jsonpath={.spec.template.spec.priorityClassName}").Output()
+			e2e.Logf("%s.priorityClassName:%s", v, msg)
+			if err != nil {
+				e2e.Failf("Unable to get %s, error:%v", msg, err)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(msg).To(o.Equal("system-cluster-critical"))
+		}
+	})
 })
