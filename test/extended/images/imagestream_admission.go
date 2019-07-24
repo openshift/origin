@@ -69,9 +69,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 			Tag:   tag,
 			Image: *image,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	limit := corev1.ResourceList{imagev1.ResourceImageStreamTags: resource.MustParse("0")}
@@ -272,9 +270,7 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			Tag:   tag,
 			Image: *image,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	limit := corev1.ResourceList{
@@ -404,7 +400,9 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 		oc.AddExplicitResourceToDelete(imagev1.GroupVersion.WithResource("images"), "", name)
 		_, err := client.ImageV1().Images().Create(image)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 	}
 
 	limit := corev1.ResourceList{
