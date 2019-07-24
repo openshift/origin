@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/klog"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/klog"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
@@ -67,9 +67,8 @@ func (p *podTolerations) validatePodTolerations(attr admission.Attributes, podSp
 	return nil
 }
 
-func (p *podTolerations) IsAuthorized(podSAName string, attr admission.Attributes, toleration coreapi.Toleration) bool{
-	var saInfo user.Info
-	saInfo = serviceaccount.UserInfo(attr.GetNamespace(), podSAName, "")
+func (p *podTolerations) IsAuthorized(podSAName string, attr admission.Attributes, toleration coreapi.Toleration) bool {
+	saInfo := serviceaccount.UserInfo(attr.GetNamespace(), podSAName, "")
 	// check for hard-coded serviceaccount groups
 	SAInNamespace := serviceaccount.UserInfo(attr.GetNamespace(), "system:serviceaccounts:"+attr.GetNamespace(), "")
 	SAAcrossAllNamespace := serviceaccount.UserInfo("", "system:serviceaccounts", "")
@@ -87,14 +86,13 @@ func buildTolerationsAuthorizationAttributes(info user.Info, namespace string, t
 		User:            info,
 		Verb:            string(verb),
 		Namespace:       namespace,
-		Resource:        "tolerations",
+		Resource:        tolerationKey,
 		APIGroup:        "toleration.scheduling.openshift.io",
 		ResourceRequest: true,
-		Name:            tolerationKey,
+		Name:            string(toleration.Effect) + ":" + toleration.Value,
 	}
 	return authzAttr
 }
-
 
 // checkPodTolerationAccess checks if pods are allowed to have a particular toleration. In this case, we're focusing
 // on master tolerations. For example,
@@ -107,9 +105,9 @@ tolerations:
 are converted to
 
 apiGroup: toleration.scheduling.openshift.io
-Resource: toleration
-resourceName: <empty_string>/NoSchedule
-verbs: ["Exists"]
+Resource: node-role.kubernetes.io/master
+resourceName: NoSchedule:<empty_string>(effect:value)
+verbs: ["Exists"] (Operator)
 
 A cluster role to access toleration resources should have rbac rules like this
 
@@ -119,7 +117,7 @@ metadata:
   name: tolerations-creator
 rules:
 - apiGroups: ["toleration.scheduling.openshift.io"]
-  resources: ["tolerations"]
+  resources: ["node-role.kubernetes.io/master", "node-role.kubernetes.io/worker",...]
   verbs: ["Exists", "Equal"] This can also be verbs:["*"]
 
 If we want to be much more specific, for example we want to have something like master taint be allowed only, the
@@ -130,16 +128,16 @@ kind: ClusterRole
 metadata:
   name: tolerations-creator
 rules:
-- apiGroups: ["toleration.scheduling.openshift.io"]
-  resources: ["tolerations"]
-  resourceNames: ["node-role.kubernetes.io/master"]
+- apiGroups: "toleration.scheduling.openshift.io"
+  resources: ["node-role.kubernetes.io/master"]
+  resourceNames: NoSchedule:<value_of_toleration>
   verbs: ["Exists", "Equal"]
 */
 func (p *podTolerations) checkPodTolerationAccess(userInfo user.Info, attr admission.Attributes, toleration coreapi.Toleration) bool {
 	authzAttr := buildTolerationsAuthorizationAttributes(userInfo, attr.GetNamespace(), toleration)
 	authorized, reason, err := p.authorizer.Authorize(authzAttr)
 	if err != nil {
-		klog.V(4).Infof("cannot authorize for the toleration: %v %v",reason, err)
+		klog.V(4).Infof("cannot authorize for the toleration: %v %v", reason, err)
 	}
 	return authorized == authorizer.DecisionAllow
 }

@@ -107,25 +107,40 @@ func TestBuildAuthorizationAttributes(t *testing.T) {
 				User:            serviceaccount.UserInfo("default", "ravi", ""),
 				Verb:            "Exists",
 				Namespace:       "default",
-				Resource:        "tolerations",
+				Resource:        "node-role.kubernetes.io/master",
 				APIGroup:        "toleration.scheduling.openshift.io",
 				ResourceRequest: true,
-				Name:            "node-role.kubernetes.io/master",
+				Name:            ":",
 			},
 		},
-		// Empty key with exists maps to all tolerations, so we should disable it as well
+		// Empty key with exists maps to all tolerations, so it should get master tolerations.
 		{
-			tolerations: coreapi.Toleration{Key: "", Value: "", Operator: coreapi.TolerationOpExists},
+			tolerations: coreapi.Toleration{Key: "", Value: "", Operator: coreapi.TolerationOpExists, Effect: "NoSchedule"},
 			userInfo:    serviceaccount.UserInfo("default", "ravi", ""),
 			namespace:   "default",
 			expectedAttr: authorizer.AttributesRecord{
 				User:            serviceaccount.UserInfo("default", "ravi", ""),
 				Verb:            "Exists",
 				Namespace:       "default",
-				Resource:        "tolerations",
+				Resource:        "node-role.kubernetes.io/master",
 				APIGroup:        "toleration.scheduling.openshift.io",
 				ResourceRequest: true,
-				Name:            masterToleration,
+				Name:            "NoSchedule:",
+			},
+		},
+		// Empty key with exists maps to all tolerations, so it should get master tolerations.
+		{
+			tolerations: coreapi.Toleration{Key: "test", Value: "value", Operator: coreapi.TolerationOpExists, Effect: "NoSchedule"},
+			userInfo:    serviceaccount.UserInfo("default", "ravi", ""),
+			namespace:   "default",
+			expectedAttr: authorizer.AttributesRecord{
+				User:            serviceaccount.UserInfo("default", "ravi", ""),
+				Verb:            "Exists",
+				Namespace:       "default",
+				Resource:        "test",
+				APIGroup:        "toleration.scheduling.openshift.io",
+				ResourceRequest: true,
+				Name:            "NoSchedule:value",
 			},
 		},
 	}
