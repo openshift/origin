@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"mime"
-	"net/http"
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	g "github.com/onsi/ginkgo"
 	"golang.org/x/net/context"
@@ -17,23 +14,22 @@ import (
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	discocache "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	etcdv3 "github.com/coreos/etcd/clientv3"
-	"github.com/openshift/openshift-apiserver/pkg/api/install"
 )
 
 // Etcd data for all persisted OpenShift objects.
@@ -230,9 +226,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	var tt *testing.T // will cause nil panics that make it easy enough to find where things went wrong
 
-	install.InstallInternalOpenShift(legacyscheme.Scheme)
-	install.InstallInternalKube(legacyscheme.Scheme)
-
 	kubeConfig = restclient.CopyConfig(kubeConfig)
 	kubeConfig.QPS = 99999
 	kubeConfig.Burst = 9999
@@ -257,10 +250,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
 
-	client, err := newClient(*kubeConfig)
-	if err != nil {
-		t.Fatalf("error creating client: %#v", err)
-	}
+	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
 	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
@@ -538,8 +528,8 @@ func (obj *metaObject) DeepCopyObject() runtime.Object {
 type empty struct{}
 
 type cleanupData struct {
-	obj     runtime.Object
-	mapping *meta.RESTMapping
+	obj      *unstructured.Unstructured
+	resource schema.GroupVersionResource
 }
 
 func gvr(g, v, r string) schema.GroupVersionResource {
@@ -577,67 +567,31 @@ func keyStringer(i interface{}) string {
 }
 
 type allClient struct {
-	client  *http.Client
-	config  *restclient.Config
-	backoff restclient.BackoffManager
-}
-
-func (c *allClient) verb(verb string, gvk schema.GroupVersionKind) (*restclient.Request, error) {
-	apiPath := "/apis"
-	switch {
-	case gvk.Group == kapi.GroupName:
-		apiPath = "/api"
-	}
-	baseURL, versionedAPIPath, err := restclient.DefaultServerURL(c.config.Host, apiPath, gvk.GroupVersion(), true)
-	if err != nil {
-		return nil, err
-	}
-	contentConfig := c.config.ContentConfig
-	gv := gvk.GroupVersion()
-	contentConfig.GroupVersion = &gv
-	serializers, err := createSerializers(contentConfig)
-	if err != nil {
-		return nil, err
-	}
-	return restclient.NewRequest(c.client, verb, baseURL, versionedAPIPath, contentConfig, *serializers, c.backoff, c.config.RateLimiter, 0), nil
+	dynamicClient dynamic.Interface
 }
 
 func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cleanupData) error {
-	req, err := c.verb("POST", mapping.GroupVersionKind)
+	resourceClient, obj, err := JSONToUnstructured(stub, ns, mapping, c.dynamicClient)
 	if err != nil {
 		return err
 	}
-	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	output, err := req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource.Resource).Body(strings.NewReader(stub)).Do().Get()
-	if err != nil {
-		if runtime.IsNotRegisteredError(err) {
-			return nil // just ignore cleanup of CRDs for now, this is better fixed by moving to the dynamic client
-		}
-		return err
-	}
-	*all = append(*all, cleanupData{output, mapping})
-	return nil
-}
 
-func (c *allClient) destroy(obj runtime.Object, mapping *meta.RESTMapping) error {
-	req, err := c.verb("DELETE", mapping.GroupVersionKind)
+	actual, err := resourceClient.Create(obj, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
-	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
-	metadata, err := meta.Accessor(obj)
-	if err != nil {
-		return err
-	}
-	return req.NamespaceIfScoped(metadata.GetNamespace(), namespaced).Resource(mapping.Resource.Resource).Name(metadata.GetName()).Do().Error()
+
+	*all = append(*all, cleanupData{obj: actual, resource: mapping.Resource})
+
+	return nil
 }
 
 func (c *allClient) cleanup(all *[]cleanupData) error {
 	for i := len(*all) - 1; i >= 0; i-- { // delete in reverse order in case creation order mattered
 		obj := (*all)[i].obj
-		mapping := (*all)[i].mapping
+		gvr := (*all)[i].resource
 
-		if err := c.destroy(obj, mapping); err != nil {
+		if err := c.dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Delete(obj.GetName(), nil); err != nil {
 			return err
 		}
 	}
@@ -661,79 +615,23 @@ func (c *allClient) createPrerequisites(mapper meta.RESTMapper, ns string, prere
 	return nil
 }
 
-func newClient(config restclient.Config) (*allClient, error) {
-	config.ContentConfig.NegotiatedSerializer = legacyscheme.Codecs
-	config.ContentConfig.ContentType = "application/json"
-	config.Timeout = 30 * time.Second
-	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(9999, 9999)
-
-	transport, err := restclient.TransportFor(&config)
-	if err != nil {
-		return nil, err
+// JSONToUnstructured converts a JSON stub to unstructured.Unstructured and
+// returns a dynamic resource client that can be used to interact with it
+func JSONToUnstructured(stub, namespace string, mapping *meta.RESTMapping, dynamicClient dynamic.Interface) (dynamic.ResourceInterface, *unstructured.Unstructured, error) {
+	typeMetaAdder := map[string]interface{}{}
+	if err := json.Unmarshal([]byte(stub), &typeMetaAdder); err != nil {
+		return nil, nil, err
 	}
 
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   config.Timeout,
+	// we don't require GVK on the data we provide, so we fill it in here.  We could, but that seems extraneous.
+	typeMetaAdder["apiVersion"] = mapping.GroupVersionKind.GroupVersion().String()
+	typeMetaAdder["kind"] = mapping.GroupVersionKind.Kind
+
+	if mapping.Scope == meta.RESTScopeRoot {
+		namespace = ""
 	}
 
-	backoff := &restclient.URLBackoff{
-		Backoff: flowcontrol.NewBackOff(1*time.Second, 10*time.Second),
-	}
-
-	return &allClient{
-		client:  client,
-		config:  &config,
-		backoff: backoff,
-	}, nil
-}
-
-// copied from restclient
-func createSerializers(config restclient.ContentConfig) (*restclient.Serializers, error) {
-	mediaTypes := config.NegotiatedSerializer.SupportedMediaTypes()
-	contentType := config.ContentType
-	mediaType, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		return nil, fmt.Errorf("the content type specified in the client configuration is not recognized: %v", err)
-	}
-	info, ok := runtime.SerializerInfoForMediaType(mediaTypes, mediaType)
-	if !ok {
-		if len(contentType) != 0 || len(mediaTypes) == 0 {
-			return nil, fmt.Errorf("no serializers registered for %s", contentType)
-		}
-		info = mediaTypes[0]
-	}
-
-	internalGV := schema.GroupVersions{
-		{
-			Group:   config.GroupVersion.Group,
-			Version: runtime.APIVersionInternal,
-		},
-		// always include the legacy group as a decoding target to handle non-error `Status` return types
-		{
-			Group:   "",
-			Version: runtime.APIVersionInternal,
-		},
-	}
-
-	s := &restclient.Serializers{
-		Encoder: config.NegotiatedSerializer.EncoderForVersion(info.Serializer, *config.GroupVersion),
-		Decoder: config.NegotiatedSerializer.DecoderToVersion(info.Serializer, internalGV),
-
-		RenegotiatedDecoder: func(contentType string, params map[string]string) (runtime.Decoder, error) {
-			info, ok := runtime.SerializerInfoForMediaType(mediaTypes, contentType)
-			if !ok {
-				return nil, fmt.Errorf("serializer for %s not registered", contentType)
-			}
-			return config.NegotiatedSerializer.DecoderToVersion(info.Serializer, internalGV), nil
-		},
-	}
-	if info.StreamSerializer != nil {
-		s.StreamingSerializer = info.StreamSerializer.Serializer
-		s.Framer = info.StreamSerializer.Framer
-	}
-
-	return s, nil
+	return dynamicClient.Resource(mapping.Resource).Namespace(namespace), &unstructured.Unstructured{Object: typeMetaAdder}, nil
 }
 
 var protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
