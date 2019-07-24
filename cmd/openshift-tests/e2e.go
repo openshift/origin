@@ -143,6 +143,14 @@ var staticSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool { return strings.Contains(name, "[Suite:openshift/test-cmd]") },
 	},
 	{
+		Name: "openshift/csi",
+		Description: templates.LongDesc(`
+		Run tests for an installed CSI driver. TEST_CSI_DRIVER_FILES env. variable must be set and it must be a comma separated list of CSI driver definition files.
+        See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the files.
+		`),
+		Matches: func(name string) bool { return strings.Contains(name, "[Suite:openshift/csi") },
+	},
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.
