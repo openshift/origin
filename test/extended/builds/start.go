@@ -20,7 +20,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -309,8 +308,8 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					err := exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseCancelled))
-					exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), build, buildutil.BuildCancelledEventReason,
-						buildutil.BuildCancelledEventMessage)
+					exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), build, BuildCancelledEventReason,
+						BuildCancelledEventMessage)
 				})
 			})
 
@@ -350,8 +349,8 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					err = oc.Run("cancel-build").Args(buildName).Execute()
 					o.Expect(err).ToNot(o.HaveOccurred())
 					wg.Wait()
-					exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), build, buildutil.BuildCancelledEventReason,
-						buildutil.BuildCancelledEventMessage)
+					exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), build, BuildCancelledEventReason,
+						BuildCancelledEventMessage)
 
 				})
 

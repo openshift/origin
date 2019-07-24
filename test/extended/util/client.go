@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,6 +26,7 @@ import (
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,11 +62,6 @@ import (
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/oc/pkg/helpers/kubeconfig"
-	"github.com/openshift/openshift-controller-manager/pkg/authorization/defaultrolebindings"
-
-	testutil "github.com/openshift/origin/test/util"
-
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -152,14 +150,7 @@ func (c *CLI) AsAdmin() *CLI {
 
 // ChangeUser changes the user used by the current CLI session.
 func (c *CLI) ChangeUser(name string) *CLI {
-	adminClientConfig, err := testutil.GetClusterAdminClientConfig(c.adminConfigPath)
-	if err != nil {
-		FatalErr(err)
-	}
-	_, clientConfig, err := testutil.GetClientForUser(adminClientConfig, name)
-	if err != nil {
-		FatalErr(err)
-	}
+	clientConfig := c.GetClientConfigForUser(name)
 
 	kubeConfig, err := kubeconfig.CreateConfig(c.Namespace(), clientConfig)
 	if err != nil {
@@ -242,27 +233,24 @@ func (c *CLI) SetupProject() {
 	cancel := func() {}
 	defer cancel()
 	// Wait for default role bindings for those SAs
-	defaultRoleBindings := defaultrolebindings.GetBootstrapServiceAccountProjectRoleBindings(newNamespace)
-	for _, rb := range defaultRoleBindings {
-		o.Expect(rb.Namespace).To(o.BeEquivalentTo(newNamespace))
-
-		e2e.Logf("Waiting for RoleBinding %q to be provisioned...", rb)
+	for _, name := range []string{"system:image-pullers", "system:image-builders", "system:deployers"} {
+		e2e.Logf("Waiting for RoleBinding %q to be provisioned...", name)
 
 		ctx, cancel = watchtools.ContextWithOptionalTimeout(context.Background(), 3*time.Minute)
 
-		fieldSelector := fields.OneTermEqualSelector("metadata.name", rb.Name).String()
+		fieldSelector := fields.OneTermEqualSelector("metadata.name", name).String()
 		lw := &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(rb.Namespace).List(options)
+				return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(rb.Namespace).Watch(options)
+				return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(options)
 			},
 		}
 
-		_, err := watchtools.UntilWithSync(ctx, lw, &rb, nil, func(event watch.Event) (b bool, e error) {
+		_, err := watchtools.UntilWithSync(ctx, lw, &rbacv1.RoleBinding{}, nil, func(event watch.Event) (b bool, e error) {
 			switch t := event.Type; t {
 			case watch.Added, watch.Modified:
 				return true, nil
@@ -444,7 +432,7 @@ func (c *CLI) AdminDynamicClient() dynamic.Interface {
 }
 
 func (c *CLI) UserConfig() *rest.Config {
-	clientConfig, err := deprecatedclient.GetClientConfig(c.configPath, nil)
+	clientConfig, err := getClientConfig(c.configPath)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -452,7 +440,7 @@ func (c *CLI) UserConfig() *rest.Config {
 }
 
 func (c *CLI) AdminConfig() *rest.Config {
-	clientConfig, err := deprecatedclient.GetClientConfig(c.adminConfigPath, nil)
+	clientConfig, err := getClientConfig(c.adminConfigPath)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -780,4 +768,42 @@ func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizati
 		return response.Status.Allowed == allowed, nil
 	})
 	return err
+}
+
+func getClientConfig(kubeConfigFile string) (*rest.Config, error) {
+	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
+	if err != nil {
+		return nil, err
+	}
+	clientConfig, err := kubeConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientConfig.WrapTransport = defaultClientTransport
+
+	return clientConfig, nil
+}
+
+// defaultClientTransport sets defaults for a client Transport that are suitable
+// for use by infrastructure components.
+func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
+	transport, ok := rt.(*http.Transport)
+	if !ok {
+		return rt
+	}
+
+	// TODO: this should be configured by the caller, not in this method.
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport.Dial = dialer.Dial
+	// Hold open more internal idle connections
+	// TODO: this should be configured by the caller, not in this method.
+	transport.MaxIdleConnsPerHost = 100
+	return transport
 }

@@ -11,7 +11,6 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	testexutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -296,10 +295,9 @@ func pluginImplementsNetworkPolicy() bool {
 	}
 }
 
-func makeNamespaceGlobal(ns *corev1.Namespace) {
-	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
+func makeNamespaceGlobal(oc *testexutil.CLI, ns *corev1.Namespace) {
+	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
-	expectNoError(err)
 	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	netns.NetID = 0

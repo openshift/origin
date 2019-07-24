@@ -11,11 +11,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildutil "github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
@@ -629,7 +630,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
@@ -668,7 +669,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 
 				g.By("waiting up to one minute for pruning to complete")
 				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector("successful-pipeline").String()})
+					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
 					if err != nil {
 						fmt.Fprintf(g.GinkgoWriter, "%v", err)
 						return false, err
@@ -703,3 +704,19 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 	})
 
 })
+
+// BuildConfigSelector returns a label Selector which can be used to find all
+// builds for a BuildConfig.
+func BuildConfigSelector(name string) labels.Selector {
+	return labels.Set{buildv1.BuildConfigLabel: LabelValue(name)}.AsSelector()
+}
+
+// LabelValue returns a string to use as a value for the Build
+// label in a pod. If the length of the string parameter exceeds
+// the maximum label length, the value will be truncated.
+func LabelValue(name string) string {
+	if len(name) <= validation.DNS1123LabelMaxLength {
+		return name
+	}
+	return name[:validation.DNS1123LabelMaxLength]
+}

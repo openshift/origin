@@ -39,7 +39,6 @@ import (
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/oc/pkg/cli/admin/policy"
 	"github.com/openshift/origin/pkg/version"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 var (
@@ -283,7 +282,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 	// Add anyuid and privileged permissions for upstream tests
 	if (isKubernetesE2ETest() && !skipTestNamespaceCustomization()) || isOriginUpgradeTest() {
-		clientConfig, err := testutil.GetClusterAdminClientConfig(KubeConfigPath())
+		clientConfig, err := getClientConfig(KubeConfigPath())
 		if err != nil {
 			return ns, err
 		}
