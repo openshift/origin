@@ -1,4 +1,4 @@
-// +build !windows
+// +build !windows,!solaris
 
 package mount
 
@@ -11,7 +11,7 @@ import (
 func TestMountOptionsParsing(t *testing.T) {
 	options := "noatime,ro,size=10k"
 
-	flag, data := parseOptions(options)
+	flag, data := ParseOptions(options)
 
 	if data != "size=10k" {
 		t.Fatalf("Expected size=10 got %s", data)

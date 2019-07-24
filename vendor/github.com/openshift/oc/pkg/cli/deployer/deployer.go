@@ -29,7 +29,6 @@ import (
 	"github.com/openshift/oc/pkg/cli/deployer/strategy"
 	"github.com/openshift/oc/pkg/cli/deployer/strategy/recreate"
 	"github.com/openshift/oc/pkg/cli/deployer/strategy/rolling"
-	cmdversion "github.com/openshift/oc/pkg/cli/version"
 	"github.com/openshift/oc/pkg/version"
 )
 
@@ -86,7 +85,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(cmdversion.NewCmdVersion(name, version.Get(), os.Stdout))
+	cmd.AddCommand(NewCmdVersion(name, version.Get(), os.Stdout))
 
 	flag := cmd.Flags()
 	flag.StringVar(&cfg.rcName, "deployment", os.Getenv("OPENSHIFT_DEPLOYMENT_NAME"), "The deployment name to start")

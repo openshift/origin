@@ -39,7 +39,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/run"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/scale"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/version"
 	kwait "k8s.io/kubernetes/pkg/kubectl/cmd/wait"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -474,8 +473,4 @@ func NewCmdApiResources(fullName string, f kcmdutil.Factory, streams genericclio
 
 func NewCmdApiVersions(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(apiresources.NewCmdAPIVersions(f, streams)))
-}
-
-func NewCmdVersion(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(version.NewCmdVersion(f, streams)))
 }

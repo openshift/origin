@@ -77,6 +77,7 @@ func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configo
 		return observedConfig, errs
 	}
 	if err != nil {
+		errs = append(errs, err)
 		return previouslyObservedConfig, errs
 	}
 

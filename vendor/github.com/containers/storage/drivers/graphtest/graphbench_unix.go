@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/stringid"
 )
 
@@ -19,7 +20,7 @@ func DriverBenchExists(b *testing.B, drivername string, driveroptions ...string)
 
 	base := stringid.GenerateRandomID()
 
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -38,13 +39,13 @@ func DriverBenchGetEmpty(b *testing.B, drivername string, driveroptions ...strin
 
 	base := stringid.GenerateRandomID()
 
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := driver.Get(base, "")
+		_, err := driver.Get(base, graphdriver.MountOpts{})
 		b.StopTimer()
 		if err != nil {
 			b.Fatalf("Error getting mount: %s", err)
@@ -62,8 +63,7 @@ func DriverBenchDiffBase(b *testing.B, drivername string, driveroptions ...strin
 	defer PutDriver(b)
 
 	base := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -73,7 +73,7 @@ func DriverBenchDiffBase(b *testing.B, drivername string, driveroptions ...strin
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		arch, err := driver.Diff(base, "")
+		arch, err := driver.Diff(base, nil, "", nil, "")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -92,8 +92,7 @@ func DriverBenchDiffN(b *testing.B, bottom, top int, drivername string, driverop
 	defer PutDriver(b)
 	base := stringid.GenerateRandomID()
 	upper := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -101,7 +100,7 @@ func DriverBenchDiffN(b *testing.B, bottom, top int, drivername string, driverop
 		b.Fatal(err)
 	}
 
-	if err := driver.Create(upper, base, "", nil); err != nil {
+	if err := driver.Create(upper, base, nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -110,7 +109,7 @@ func DriverBenchDiffN(b *testing.B, bottom, top int, drivername string, driverop
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		arch, err := driver.Diff(upper, "")
+		arch, err := driver.Diff(upper, nil, "", nil, "")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -128,8 +127,7 @@ func DriverBenchDiffApplyN(b *testing.B, fileCount int, drivername string, drive
 	defer PutDriver(b)
 	base := stringid.GenerateRandomID()
 	upper := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -137,14 +135,14 @@ func DriverBenchDiffApplyN(b *testing.B, fileCount int, drivername string, drive
 		b.Fatal(err)
 	}
 
-	if err := driver.Create(upper, base, "", nil); err != nil {
+	if err := driver.Create(upper, base, nil); err != nil {
 		b.Fatal(err)
 	}
 
 	if err := addManyFiles(driver, upper, fileCount, 6); err != nil {
 		b.Fatal(err)
 	}
-	diffSize, err := driver.DiffSize(upper, "")
+	diffSize, err := driver.DiffSize(upper, nil, "", nil, "")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -152,7 +150,7 @@ func DriverBenchDiffApplyN(b *testing.B, fileCount int, drivername string, drive
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
 		diff := stringid.GenerateRandomID()
-		if err := driver.Create(diff, base, "", nil); err != nil {
+		if err := driver.Create(diff, base, nil); err != nil {
 			b.Fatal(err)
 		}
 
@@ -162,12 +160,12 @@ func DriverBenchDiffApplyN(b *testing.B, fileCount int, drivername string, drive
 
 		b.StartTimer()
 
-		arch, err := driver.Diff(upper, "")
+		arch, err := driver.Diff(upper, nil, "", nil, "")
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		applyDiffSize, err := driver.ApplyDiff(diff, "", arch)
+		applyDiffSize, err := driver.ApplyDiff(diff, nil, "", "", arch)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -191,8 +189,7 @@ func DriverBenchDeepLayerDiff(b *testing.B, layerCount int, drivername string, d
 	defer PutDriver(b)
 
 	base := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -207,7 +204,7 @@ func DriverBenchDeepLayerDiff(b *testing.B, layerCount int, drivername string, d
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		arch, err := driver.Diff(topLayer, "")
+		arch, err := driver.Diff(topLayer, nil, "", nil, "")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -225,8 +222,7 @@ func DriverBenchDeepLayerRead(b *testing.B, layerCount int, drivername string, d
 	defer PutDriver(b)
 
 	base := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		b.Fatal(err)
 	}
 
@@ -240,7 +236,7 @@ func DriverBenchDeepLayerRead(b *testing.B, layerCount int, drivername string, d
 		b.Fatal(err)
 	}
 
-	root, err := driver.Get(topLayer, "")
+	root, err := driver.Get(topLayer, graphdriver.MountOpts{})
 	if err != nil {
 		b.Fatal(err)
 	}

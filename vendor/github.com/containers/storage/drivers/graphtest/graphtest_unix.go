@@ -1,22 +1,27 @@
-// +build linux freebsd
+// +build linux freebsd solaris
 
 package graphtest
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
-	"syscall"
 	"testing"
 	"unsafe"
 
 	"github.com/containers/storage/drivers"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -29,20 +34,18 @@ var (
 type Driver struct {
 	graphdriver.Driver
 	root     string
+	runroot  string
 	refCount int
 }
 
 func newDriver(t testing.TB, name string, options []string) *Driver {
 	root, err := ioutil.TempDir("", "storage-graphtest-")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	runroot, err := ioutil.TempDir("", "storage-graphtest-")
+	require.NoError(t, err)
 
-	if err := os.MkdirAll(root, 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	d, err := graphdriver.GetDriver(name, root, options, nil, nil)
+	require.NoError(t, os.MkdirAll(root, 0755))
+	d, err := graphdriver.GetDriver(name, graphdriver.Options{DriverOptions: options, Root: root, RunRoot: runroot})
 	if err != nil {
 		t.Logf("graphdriver: %v\n", err)
 		cause := errors.Cause(err)
@@ -51,13 +54,14 @@ func newDriver(t testing.TB, name string, options []string) *Driver {
 		}
 		t.Fatal(err)
 	}
-	return &Driver{d, root, 1}
+	return &Driver{d, root, runroot, 1}
 }
 
 func cleanup(t testing.TB, d *Driver) {
 	if err := drv.Cleanup(); err != nil {
 		t.Fatal(err)
 	}
+	os.RemoveAll(d.runroot)
 	os.RemoveAll(d.root)
 }
 
@@ -88,36 +92,26 @@ func DriverTestCreateEmpty(t testing.TB, drivername string, driverOptions ...str
 	driver := GetDriver(t, drivername, driverOptions...)
 	defer PutDriver(t)
 
-	if err := driver.Create("empty", "", "", nil); err != nil {
-		t.Fatal(err)
-	}
+	err := driver.Create("empty", "", nil)
+	require.NoError(t, err)
 
 	defer func() {
-		if err := driver.Remove("empty"); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, driver.Remove("empty"))
 	}()
 
 	if !driver.Exists("empty") {
 		t.Fatal("Newly created image doesn't exist")
 	}
 
-	dir, err := driver.Get("empty", "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir, err := driver.Get("empty", graphdriver.MountOpts{})
+	require.NoError(t, err)
 
 	verifyFile(t, dir, 0755|os.ModeDir, 0, 0)
 
 	// Verify that the directory is empty
 	fis, err := readDir(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(fis) != 0 {
-		t.Fatal("New directory not empty")
-	}
+	require.NoError(t, err)
+	assert.Len(t, fis, 0)
 
 	driver.Put("empty")
 }
@@ -129,9 +123,7 @@ func DriverTestCreateBase(t testing.TB, drivername string, driverOptions ...stri
 
 	createBase(t, driver, "Base")
 	defer func() {
-		if err := driver.Remove("Base"); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, driver.Remove("Base"))
 	}()
 	verifyBase(t, driver, "Base")
 }
@@ -142,24 +134,111 @@ func DriverTestCreateSnap(t testing.TB, drivername string, driverOptions ...stri
 	defer PutDriver(t)
 
 	createBase(t, driver, "Base")
-
 	defer func() {
-		if err := driver.Remove("Base"); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, driver.Remove("Base"))
 	}()
 
-	if err := driver.Create("Snap", "Base", "", nil); err != nil {
-		t.Fatal(err)
-	}
-
+	err := driver.Create("Snap", "Base", nil)
+	require.NoError(t, err)
 	defer func() {
-		if err := driver.Remove("Snap"); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, driver.Remove("Snap"))
 	}()
 
 	verifyBase(t, driver, "Snap")
+}
+
+// DriverTestCreateFromTemplate Create a driver and template of a snap and verifies its
+// contents.
+func DriverTestCreateFromTemplate(t testing.TB, drivername string, driverOptions ...string) {
+	driver := GetDriver(t, drivername, driverOptions...)
+	defer PutDriver(t)
+
+	createBase(t, driver, "Base")
+	defer func() {
+		require.NoError(t, driver.Remove("Base"))
+	}()
+
+	err := driver.Create("Snap", "Base", nil)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, driver.Remove("Snap"))
+	}()
+
+	content := []byte("test content")
+	if err := addFile(driver, "Snap", "testfile.txt", content); err != nil {
+		t.Fatal(err)
+	}
+
+	err = driver.CreateFromTemplate("FromTemplate", "Snap", nil, "Base", nil, nil, true)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, driver.Remove("FromTemplate"))
+	}()
+
+	err = driver.CreateFromTemplate("ROFromTemplate", "Snap", nil, "Base", nil, nil, false)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, driver.Remove("ROFromTemplate"))
+	}()
+
+	noChanges := []archive.Change{}
+
+	changes, err := driver.Changes("FromTemplate", nil, "Snap", nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = checkChanges(noChanges, changes); err != nil {
+		t.Fatal(err)
+	}
+
+	changes, err = driver.Changes("ROFromTemplate", nil, "Snap", nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = checkChanges(noChanges, changes); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkFile(driver, "FromTemplate", "testfile.txt", content); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkFile(driver, "ROFromTemplate", "testfile.txt", content); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkFile(driver, "Snap", "testfile.txt", content); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedChanges := []archive.Change{{
+		Path: "/testfile.txt",
+		Kind: archive.ChangeAdd,
+	}}
+
+	changes, err = driver.Changes("Snap", nil, "Base", nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = checkChanges(expectedChanges, changes); err != nil {
+		t.Fatal(err)
+	}
+
+	changes, err = driver.Changes("FromTemplate", nil, "Base", nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = checkChanges(expectedChanges, changes); err != nil {
+		t.Fatal(err)
+	}
+
+	changes, err = driver.Changes("ROFromTemplate", nil, "Base", nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = checkChanges(expectedChanges, changes); err != nil {
+		t.Fatal(err)
+	}
+
+	verifyBase(t, driver, "Base")
 }
 
 // DriverTestDeepLayerRead reads a file from a lower layer under a given number of layers
@@ -168,8 +247,7 @@ func DriverTestDeepLayerRead(t testing.TB, layerCount int, drivername string, dr
 	defer PutDriver(t)
 
 	base := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -201,8 +279,9 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 	upper := stringid.GenerateRandomID()
 	deleteFile := "file-remove.txt"
 	deleteFileContent := []byte("This file should get removed in upper!")
+	deleteDir := "var/lib"
 
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -214,7 +293,11 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	if err := driver.Create(upper, base, "", nil); err != nil {
+	if err := addDirectory(driver, base, deleteDir); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := driver.Create(upper, base, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -222,17 +305,17 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	if err := removeFile(driver, upper, deleteFile); err != nil {
+	if err := removeAll(driver, upper, deleteFile, deleteDir); err != nil {
 		t.Fatal(err)
 	}
 
-	diffSize, err := driver.DiffSize(upper, "")
+	diffSize, err := driver.DiffSize(upper, nil, "", nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	diff := stringid.GenerateRandomID()
-	if err := driver.Create(diff, base, "", nil); err != nil {
+	if err := driver.Create(diff, base, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -244,7 +327,7 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	arch, err := driver.Diff(upper, base)
+	arch, err := driver.Diff(upper, nil, base, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +340,7 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	applyDiffSize, err := driver.ApplyDiff(diff, base, bytes.NewReader(buf.Bytes()))
+	applyDiffSize, err := driver.ApplyDiff(diff, nil, base, "", bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,6 +356,10 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 	if err := checkFileRemoved(driver, diff, deleteFile); err != nil {
 		t.Fatal(err)
 	}
+
+	if err := checkFileRemoved(driver, diff, deleteDir); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // DriverTestChanges tests computed changes on a layer matches changes made
@@ -281,8 +368,7 @@ func DriverTestChanges(t testing.TB, drivername string, driverOptions ...string)
 	defer PutDriver(t)
 	base := stringid.GenerateRandomID()
 	upper := stringid.GenerateRandomID()
-
-	if err := driver.Create(base, "", "", nil); err != nil {
+	if err := driver.Create(base, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -290,7 +376,7 @@ func DriverTestChanges(t testing.TB, drivername string, driverOptions ...string)
 		t.Fatal(err)
 	}
 
-	if err := driver.Create(upper, base, "", nil); err != nil {
+	if err := driver.Create(upper, base, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -299,7 +385,7 @@ func DriverTestChanges(t testing.TB, drivername string, driverOptions ...string)
 		t.Fatal(err)
 	}
 
-	changes, err := driver.Changes(upper, base)
+	changes, err := driver.Changes(upper, nil, base, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,21 +418,143 @@ func DriverTestSetQuota(t *testing.T, drivername string) {
 	defer PutDriver(t)
 
 	createBase(t, driver, "Base")
-	storageOpt := make(map[string]string, 1)
-	storageOpt["size"] = "50M"
-	if err := driver.Create("zfsTest", "Base", "", storageOpt); err != nil {
+	createOpts := &graphdriver.CreateOpts{}
+	createOpts.StorageOpt = make(map[string]string, 1)
+	createOpts.StorageOpt["size"] = "50M"
+	if err := driver.Create("zfsTest", "Base", createOpts); err != nil {
 		t.Fatal(err)
 	}
 
-	mountPath, err := driver.Get("zfsTest", "")
+	mountPath, err := driver.Get("zfsTest", graphdriver.MountOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	quota := uint64(50 * units.MiB)
 	err = writeRandomFile(path.Join(mountPath, "file"), quota*2)
-	if pathError, ok := err.(*os.PathError); ok && pathError.Err != syscall.EDQUOT {
-		t.Fatalf("expect write() to fail with %v, got %v", syscall.EDQUOT, err)
+	if pathError, ok := err.(*os.PathError); ok && pathError.Err != unix.EDQUOT {
+		t.Fatalf("expect write() to fail with %v, got %v", unix.EDQUOT, err)
 	}
 
+}
+
+// DriverTestEcho tests that we can diff a layer correctly, focusing on trouble spots that NaiveDiff doesn't have
+func DriverTestEcho(t testing.TB, drivername string, driverOptions ...string) {
+	driver := GetDriver(t, drivername, driverOptions...)
+	defer PutDriver(t)
+	var err error
+	var root string
+	components := 10
+
+	for depth := 0; depth < components; depth++ {
+		base := stringid.GenerateRandomID()
+		second := stringid.GenerateRandomID()
+		third := stringid.GenerateRandomID()
+
+		if err := driver.Create(base, "", nil); err != nil {
+			t.Fatal(err)
+		}
+
+		if root, err = driver.Get(base, graphdriver.MountOpts{}); err != nil {
+			t.Fatal(err)
+		}
+
+		paths := []string{}
+		path := "/"
+		expectedChanges := []archive.Change{}
+		for i := 0; i < components-1; i++ {
+			path = filepath.Join(path, fmt.Sprintf("subdir%d", i+1))
+			paths = append(paths, path)
+			if err = os.Mkdir(filepath.Join(root, path), 0700); err != nil {
+				t.Fatal(err)
+			}
+			expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeAdd, Path: path})
+		}
+		path = filepath.Join(path, "file")
+		paths = append(paths, path)
+		if err = ioutil.WriteFile(filepath.Join(root, path), randomContent(128, int64(depth)), 0600); err != nil {
+			t.Fatal(err)
+		}
+		expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeAdd, Path: path})
+
+		changes, err := driver.Changes(base, nil, "", nil, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err = checkChanges(expectedChanges, changes); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := driver.Create(second, base, nil); err != nil {
+			t.Fatal(err)
+		}
+
+		if root, err = driver.Get(second, graphdriver.MountOpts{}); err != nil {
+			t.Fatal(err)
+		}
+
+		if err = os.RemoveAll(filepath.Join(root, paths[depth])); err != nil {
+			t.Fatal(err)
+		}
+		expectedChanges = []archive.Change{}
+		for i := 0; i < depth; i++ {
+			expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeModify, Path: paths[i]})
+		}
+		expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeDelete, Path: paths[depth]})
+
+		changes, err = driver.Changes(second, nil, base, nil, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err = checkChanges(expectedChanges, changes); err != nil {
+			t.Fatal(err)
+		}
+
+		if err = driver.Create(third, second, nil); err != nil {
+			t.Fatal(err)
+		}
+
+		if root, err = driver.Get(third, graphdriver.MountOpts{}); err != nil {
+			t.Fatal(err)
+		}
+
+		expectedChanges = []archive.Change{}
+		for i := 0; i < depth; i++ {
+			expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeModify, Path: paths[i]})
+		}
+		for i := depth; i < components-1; i++ {
+			if err = os.Mkdir(filepath.Join(root, paths[i]), 0700); err != nil {
+				t.Fatal(err)
+			}
+			expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeAdd, Path: paths[i]})
+		}
+		if err = ioutil.WriteFile(filepath.Join(root, paths[len(paths)-1]), randomContent(128, int64(depth)), 0600); err != nil {
+			t.Fatal(err)
+		}
+		expectedChanges = append(expectedChanges, archive.Change{Kind: archive.ChangeAdd, Path: paths[len(paths)-1]})
+
+		changes, err = driver.Changes(third, nil, second, nil, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err = checkChanges(expectedChanges, changes); err != nil {
+			t.Fatal(err)
+		}
+
+		err = driver.Put(third)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = driver.Put(second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = driver.Put(base)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

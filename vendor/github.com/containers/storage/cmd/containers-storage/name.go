@@ -10,18 +10,42 @@ import (
 	"github.com/containers/storage/pkg/mflag"
 )
 
+func getNames(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
+	if len(args) < 1 {
+		return 1
+	}
+	id, err := m.Lookup(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		return 1
+	}
+	names, err := m.Names(id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		return 1
+	}
+	if jsonOutput {
+		json.NewEncoder(os.Stdout).Encode(append([]string{}, names...))
+	} else {
+		for _, name := range names {
+			fmt.Printf("%s\n", name)
+		}
+	}
+	return 0
+}
+
 func addNames(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
 	if len(args) < 1 {
 		return 1
 	}
 	id, err := m.Lookup(args[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	oldnames, err := m.Names(id)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	newNames := []string{}
@@ -32,12 +56,12 @@ func addNames(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 		newNames = append(newNames, paramNames...)
 	}
 	if err := m.SetNames(id, newNames); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	names, err := m.Names(id)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	if jsonOutput {
@@ -52,16 +76,16 @@ func setNames(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 	}
 	id, err := m.Lookup(args[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	if err := m.SetNames(id, paramNames); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	names, err := m.Names(id)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	if jsonOutput {
@@ -71,6 +95,16 @@ func setNames(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 }
 
 func init() {
+	commands = append(commands, command{
+		names:       []string{"get-names", "getnames"},
+		optionsHelp: "[options [...]] imageOrContainerNameOrID",
+		usage:       "Get layer, image, or container name or names",
+		minArgs:     1,
+		action:      getNames,
+		addFlags: func(flags *mflag.FlagSet, cmd *command) {
+			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
+		},
+	})
 	commands = append(commands, command{
 		names:       []string{"add-names", "addnames"},
 		optionsHelp: "[options [...]] imageOrContainerNameOrID",

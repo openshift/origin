@@ -12,7 +12,7 @@ import (
 func version(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
 	version, err := m.Version()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "version: %v\n", err)
+		fmt.Fprintf(os.Stderr, "version: %+v\n", err)
 		return 1
 	}
 	if jsonOutput {

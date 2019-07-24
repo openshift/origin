@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lestrrat/go-jsschema"
-	"github.com/lestrrat/go-jsschema/validator"
+	"github.com/lestrrat-go/jsschema"
+	"github.com/lestrrat-go/jsschema/validator"
 	"github.com/stretchr/testify/assert"
 )
 

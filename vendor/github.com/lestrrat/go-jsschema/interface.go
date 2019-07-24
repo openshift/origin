@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/lestrrat/go-jsref"
+	"github.com/lestrrat-go/jsref"
 )
 
 const (

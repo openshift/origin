@@ -2669,6 +2669,7 @@ func (in *ProxySpec) DeepCopyInto(out *ProxySpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	out.TrustedCA = in.TrustedCA
 	return
 }
 

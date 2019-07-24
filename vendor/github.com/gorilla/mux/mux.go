@@ -111,10 +111,8 @@ func copyRouteConf(r routeConf) routeConf {
 		c.regexp.queries = append(c.regexp.queries, copyRouteRegexp(q))
 	}
 
-	c.matchers = make([]matcher, 0, len(r.matchers))
-	for _, m := range r.matchers {
-		c.matchers = append(c.matchers, m)
-	}
+	c.matchers = make([]matcher, len(r.matchers))
+	copy(c.matchers, r.matchers)
 
 	return c
 }
@@ -281,6 +279,12 @@ func (r *Router) NewRoute() *Route {
 	route := &Route{routeConf: copyRouteConf(r.routeConf), namedRoutes: r.namedRoutes}
 	r.routes = append(r.routes, route)
 	return route
+}
+
+// Name registers a new route with a name.
+// See Route.Name().
+func (r *Router) Name(name string) *Route {
+	return r.NewRoute().Name(name)
 }
 
 // Handle registers a new route with a matcher for the URL path.

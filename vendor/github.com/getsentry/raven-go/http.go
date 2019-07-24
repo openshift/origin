@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// NewHttp creates new HTTP object that follows Sentry's HTTP interface spec and will be attached to the Packet
 func NewHttp(req *http.Request) *Http {
 	proto := "http"
 	if req.TLS != nil || req.Header.Get("X-Forwarded-Proto") == "https" {
@@ -28,6 +29,7 @@ func NewHttp(req *http.Request) *Http {
 	for k, v := range req.Header {
 		h.Headers[k] = strings.Join(v, ",")
 	}
+	h.Headers["Host"] = req.Host
 	return h
 }
 
@@ -44,7 +46,7 @@ func sanitizeQuery(query url.Values) url.Values {
 	return query
 }
 
-// https://docs.getsentry.com/hosted/clientdev/interfaces/#context-interfaces
+// Http defines Sentry's spec compliant interface holding Request information - https://docs.sentry.io/development/sdk-dev/interfaces/http/
 type Http struct {
 	// Required
 	URL    string `json:"url"`
@@ -60,25 +62,40 @@ type Http struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
+// Class provides name of implemented Sentry's interface
 func (h *Http) Class() string { return "request" }
 
-// Recovery handler to wrap the stdlib net/http Mux.
+// RecoveryHandler uses Recoverer to wrap the stdlib net/http Mux.
 // Example:
 //	http.HandleFunc("/", raven.RecoveryHandler(func(w http.ResponseWriter, r *http.Request) {
 //		...
 //	}))
 func RecoveryHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return Recoverer(http.HandlerFunc(handler)).ServeHTTP
+}
+
+// Recoverer wraps the stdlib net/http Mux.
+// Example:
+//  mux := http.NewServeMux
+//  ...
+//	http.Handle("/", raven.Recoverer(mux))
+func Recoverer(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rval := recover(); rval != nil {
 				debug.PrintStack()
 				rvalStr := fmt.Sprint(rval)
-				packet := NewPacket(rvalStr, NewException(errors.New(rvalStr), GetOrNewStacktrace(rval.(error), 2, 3, nil)), NewHttp(r))
+				var packet *Packet
+				if err, ok := rval.(error); ok {
+					packet = NewPacket(rvalStr, NewException(errors.New(rvalStr), GetOrNewStacktrace(err, 2, 3, nil)), NewHttp(r))
+				} else {
+					packet = NewPacket(rvalStr, NewException(errors.New(rvalStr), NewStacktrace(2, 3, nil)), NewHttp(r))
+				}
 				Capture(packet, nil)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}()
 
-		handler(w, r)
-	}
+		handler.ServeHTTP(w, r)
+	})
 }

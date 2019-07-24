@@ -51,11 +51,15 @@ func unmount(flags *mflag.FlagSet, action string, m storage.Store, args []string
 	mes := []mountPointError{}
 	errors := false
 	for _, arg := range args {
-		err := m.Unmount(arg)
+		mounted, err := m.Unmount(arg, force)
 		errText := ""
 		if err != nil {
 			errText = fmt.Sprintf("%v", err)
 			errors = true
+		} else {
+			if !mounted {
+				fmt.Printf("%s mountpoint unmounted\n", arg)
+			}
 		}
 		mes = append(mes, mountPointError{arg, errText})
 	}
@@ -74,6 +78,37 @@ func unmount(flags *mflag.FlagSet, action string, m storage.Store, args []string
 	return 0
 }
 
+func mounted(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
+	mes := []mountPointError{}
+	errors := false
+	for _, arg := range args {
+		mounted, err := m.Mounted(arg)
+		errText := ""
+		if err != nil {
+			errText = fmt.Sprintf("%v", err)
+			errors = true
+		} else {
+			if mounted > 0 {
+				fmt.Printf("%s mounted\n", arg)
+			}
+		}
+		mes = append(mes, mountPointError{arg, errText})
+	}
+	if jsonOutput {
+		json.NewEncoder(os.Stdout).Encode(mes)
+	} else {
+		for _, me := range mes {
+			if me.Error != "" {
+				fmt.Fprintf(os.Stderr, "%s checking if %s is mounted\n", me.Error, me.ID)
+			}
+		}
+	}
+	if errors {
+		return 1
+	}
+	return 0
+}
+
 func init() {
 	commands = append(commands, command{
 		names:       []string{"mount"},
@@ -82,6 +117,7 @@ func init() {
 		minArgs:     1,
 		action:      mount,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
+			flags.StringVar(&paramMountOptions, []string{"-opt", "o"}, "", "Mount Options")
 			flags.StringVar(&paramMountLabel, []string{"-label", "l"}, "", "Mount Label")
 			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
 		},
@@ -92,6 +128,17 @@ func init() {
 		usage:       "Unmount a layer or container",
 		minArgs:     1,
 		action:      unmount,
+		addFlags: func(flags *mflag.FlagSet, cmd *command) {
+			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
+			flags.BoolVar(&force, []string{"-force", "f"}, jsonOutput, "Force the umount")
+		},
+	})
+	commands = append(commands, command{
+		names:       []string{"mounted"},
+		optionsHelp: "LayerOrContainerNameOrID",
+		usage:       "Check if a file system is mounted",
+		minArgs:     1,
+		action:      mounted,
 		addFlags: func(flags *mflag.FlagSet, cmd *command) {
 			flags.BoolVar(&jsonOutput, []string{"-json", "j"}, jsonOutput, "Prefer JSON output")
 		},
