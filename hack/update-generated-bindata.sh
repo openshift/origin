@@ -25,16 +25,7 @@ pushd "${OS_ROOT}" > /dev/null
     -ignore "prometheus-standalone.yaml" \
     -ignore "node-exporter.yaml" \
     test/extended/testdata/... \
-    test/integration/testdata \
-    examples/db-templates \
-    examples/image-streams \
-    examples/sample-app \
-    examples/quickstarts/... \
-    examples/prometheus/... \
-    examples/hello-openshift \
-    examples/jenkins/... \
-    examples/quickstarts/cakephp-mysql.json \
-    install/...
+    test/integration/testdata
 
 popd > /dev/null
 

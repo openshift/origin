@@ -88,25 +88,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"ldapserver-scripts-cm": &corev1.ConfigMap{},
 			"ldapserver-service":    &corev1.Service{},
 		},
-		"../test/integration/testdata": {
-			// TODO fix this test to  handle json and yaml
-			"project-request-template-with-quota": nil, // skip a yaml file
-			"test-replication-controller":         nil, // skip &api.ReplicationController
-			"test-deployment-config":              &appsv1.DeploymentConfig{},
-			"test-image":                          &imagev1.Image{},
-			"test-image-stream":                   &imagev1.ImageStream{},
-			"test-image-stream-mapping":           nil, // skip &imagev1.ImageStreamMapping{},
-			"test-route":                          &routev1.Route{},
-			"test-service":                        &corev1.Service{},
-			"test-service-with-finalizer":         &corev1.Service{},
-			"test-buildcli":                       &corev1.List{},
-			"test-buildcli-beta2":                 &corev1.List{},
-		},
-		"../test/templates/testdata": {
-			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
-			"guestbook_list":  &templatev1.Template{},
-			"guestbook":       &templatev1.Template{},
-		},
 	}
 
 	_, codecs := apitesting.SchemeForOrDie(

@@ -32,10 +32,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
-	testutil "github.com/openshift/origin/test/util"
-
-	// install all APIs
-
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/openshift/openshift-apiserver/pkg/api/install"
 )
@@ -257,16 +253,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	}()
 
 	crds := getCRDs(t, crdClient)
-
-	// wait for cluster resource quota CRD to be available
-	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(kubeConfig); err != nil {
-		t.Fatal(err)
-	}
-
-	// wait for RoleBindingRestriction CRD to be available
-	if err := testutil.WaitForRoleBindingRestrictionCRDAvailable(kubeConfig); err != nil {
-		t.Fatal(err)
-	}
 
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
