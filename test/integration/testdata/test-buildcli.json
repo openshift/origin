@@ -11,7 +11,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7",
+        "dockerImageRepository": "centos/ruby-25-centos7",
         "tags": [
           {
             "name": "valid"
@@ -47,7 +47,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -89,7 +89,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }

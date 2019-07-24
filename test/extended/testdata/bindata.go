@@ -2019,7 +2019,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/centos/ruby-22-centos7"
+          "name": "docker.io/centos/ruby-25-centos7"
         },
         "env": [
           {
@@ -2115,7 +2115,7 @@ func testExtendedTestdataBuildsBuildSecretsTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-25-centos7
 
 USER root
 `)
@@ -2547,7 +2547,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7:latest"
+              "name": "centos/ruby-25-centos7:latest"
             },
             "incremental": true
           }
@@ -3083,14 +3083,14 @@ func testExtendedTestdataBuildsTestBcWithPrRefYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-25-centos7
 USER default
 EXPOSE 8080
 ENV RACK_ENV production
 ENV RAILS_ENV production
 COPY . /opt/app-root/src/
-RUN scl enable rh-ruby22 "bundle install"
-CMD ["scl", "enable", "rh-ruby22", "./run.sh"]
+RUN scl enable rh-ruby25 "bundle install"
+CMD ["scl", "enable", "rh-ruby25", "./run.sh"]
 
 USER default
 `)
@@ -3306,6 +3306,7 @@ items:
       type: Docker
       dockerStrategy:
         from:
+          # TODO: use ruby 2.5 image
           kind: DockerImage
           name: docker.io/centos/ruby-22-centos7
         env:
@@ -3433,7 +3434,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -3462,7 +3463,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -3490,7 +3491,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -3519,7 +3520,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -3547,7 +3548,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -3565,7 +3566,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM centos/ruby-22-centos7
+        FROM centos/ruby-25-centos7
         ARG foo
         RUN echo $foo
     strategy:
@@ -3591,7 +3592,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM centos/ruby-22-centos7
+        FROM centos/ruby-25-centos7
         ARG foo
         RUN echo $foo
     strategy:
@@ -3623,7 +3624,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: docker.io/centos/ruby-22-centos7
+          name: docker.io/centos/ruby-25-centos7
 `)
 
 func testExtendedTestdataBuildsTestBuildYamlBytes() ([]byte, error) {
@@ -4257,7 +4258,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
+          "name":"centos/ruby-25-centos7"
         }
       }
     },
@@ -4417,7 +4418,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       customStrategy:
         from:
@@ -4464,7 +4465,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       dockerStrategy:
         from:
@@ -4511,7 +4512,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -4554,12 +4555,12 @@ items:
         # Bug 1694859: ensure symlinks are followed
         FROM ruby
         RUN mkdir -p /opt/app-root/test-links && \
-            ln -s ../../rh/rh-ruby22/root/usr/bin /opt/app-root/test-links/bin
+            ln -s ../../rh/rh-ruby25/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
         from: 
           kind: ImageStreamTag
-          name: ruby:2.2
+          name: ruby:2.5
           namespace: openshift
 - apiVersion: v1
   kind: BuildConfig
@@ -4583,8 +4584,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-22/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+        - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -4613,8 +4614,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-22/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+        - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       dockerStrategy: {}
 
@@ -8973,7 +8974,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "openshift",
-              "name": "ruby:2.3"
+              "name": "ruby:2.5"
             }
           }
         },
@@ -9519,7 +9520,7 @@ run Proc.new { |env|
 EOF
 
 cat > Dockerfile <<- EOF
-FROM centos/ruby-22-centos7
+FROM centos/ruby-25-centos7
 ENV SECRET_FILE /opt/openshift/src/dockercfg
 COPY dockercfg ./
 COPY config.ru ./
@@ -10497,7 +10498,7 @@ var _testExtendedTestdataForcepullTestJson = []byte(`{
 						"from": {
 							"kind": "ImageStreamTag",
 						        "namespace": "openshift",
-							"name": "ruby:2.2"
+							"name": "ruby:latest"
 						},
 						"env": [
 							{
@@ -13273,7 +13274,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         ]
@@ -13291,7 +13292,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         ]
@@ -13309,7 +13310,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         ]
@@ -14367,7 +14368,7 @@ func testExtendedTestdataLdapLdapserverServiceYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM centos/ruby-25-centos7
 
 CMD ["/bin/sh", "-c", "echo", "hello"]
 `)
@@ -14415,7 +14416,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "centos/ruby-22-centos7"
+                            "name": "centos/ruby-25-centos7"
                         }
                     }
                 }
@@ -14444,7 +14445,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "centos/ruby-22-centos7"
+                            "name": "centos/ruby-25-centos7"
                         }
                     }
                 }
@@ -16551,7 +16552,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
         resources: {}
       status: 
         lastVersion: 0
@@ -16598,7 +16599,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
     - 
       kind: "BuildConfig"
       apiVersion: "v1"
@@ -16619,7 +16620,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -16662,7 +16663,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
         resources: {}
       status: 
         lastVersion: 0
@@ -16737,7 +16738,7 @@ func testExtendedTestdataS2iDropcapsRootAccessBuildYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-22-centos7:latest
+var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-25-centos7:latest
 USER root
 RUN yum -y install expect
 RUN echo "root:redhat" | chpasswd
@@ -18808,7 +18809,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7",
+        "dockerImageRepository": "centos/ruby-25-centos7",
         "tags": [
           {
             "name": "valid"
@@ -18844,7 +18845,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -18886,7 +18887,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             },
             "incremental": true
           }
@@ -23377,86 +23378,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run Ruby 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.0",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.0,ruby",
-              "tags": "hidden,builder,ruby",
-              "version": "2.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/ruby-20-centos7:latest"
-            },
-            "name": "2.0",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.2",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.2,ruby",
-              "tags": "hidden,builder,ruby",
-              "version": "2.2"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-22-centos7:latest"
-            },
-            "name": "2.2",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.3",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.3,ruby",
-              "tags": "builder,ruby",
-              "version": "2.3"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-23-centos7:latest"
-            },
-            "name": "2.3",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.4",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.4,ruby",
-              "tags": "builder,ruby",
-              "version": "2.4"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-24-centos7:latest"
-            },
-            "name": "2.4",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
               "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby 2.5",
@@ -25237,10 +25158,10 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -25292,7 +25213,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
           "dockerStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
@@ -25694,10 +25615,10 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -25745,7 +25666,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7:latest"
+              "name": "centos/ruby-25-centos7:latest"
             }
           }
         },
@@ -26191,10 +26112,10 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7"
+        "name": "ruby-25-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos7"
+        "dockerImageRepository": "centos/ruby-25-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -26246,7 +26167,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-22-centos7:latest"
+              "name": "ruby-25-centos7:latest"
             },
             "env": [
               {
