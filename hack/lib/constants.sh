@@ -320,13 +320,7 @@ readonly -f os::build::clean_windows_versioninfo
 
 # OS_ALL_IMAGES is the list of images built by os::build::images.
 readonly OS_ALL_IMAGES=(
-  origin-cli
-  origin-hypershift
   origin-hyperkube
-  origin-sdn
-  origin-deployer
-  origin-docker-builder
-  origin-recycler
   origin-tests
 )
 
@@ -383,17 +377,12 @@ function os::build::images() {
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
   # images that depend on "${tag_prefix}-source" or "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
   ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
-  ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
-  ( os::build::image "${tag_prefix}-sdn"                     images/sdn ) &
 
   for i in `jobs -p`; do wait $i; done
 
   # images that depend on "${tag_prefix}-cli" or hyperkube
   ( os::build::image "${tag_prefix}-tests"          images/tests ) &
-  ( os::build::image "${tag_prefix}-deployer"       images/deployer ) &
-  ( os::build::image "${tag_prefix}-recycler"       images/recycler ) &
 
   for i in `jobs -p`; do wait $i; done
 }
