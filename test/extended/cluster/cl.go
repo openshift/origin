@@ -70,6 +70,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 
 		var namespaces []string
+		var steps []metrics.StepDuration
 		//totalPods := 0 // Keep track of how many pods for stepping
 		// TODO sjug: add concurrency
 		testStartTime := time.Now()
@@ -139,7 +140,18 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 				// Create templates as defined
 				for _, template := range p.Templates {
-					err := CreateTemplates(oc, c, nsName, reale2e.GetViperConfig(), template, tuning)
+					var rateDelay, stepPause time.Duration
+					if tuning != nil {
+						if tuning.Templates.RateLimit.Delay != 0 {
+							rateDelay = tuning.Templates.RateLimit.Delay
+						}
+						if tuning.Templates.Stepping.Pause != 0 {
+							stepPause = tuning.Templates.Stepping.Pause
+						}
+					}
+					step := metrics.NewTemplateStepDuration(rateDelay, stepPause)
+					err := CreateTemplates(oc, c, nsName, reale2e.GetViperConfig(), template, tuning, &step)
+					steps = append(steps, step)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
@@ -167,7 +179,20 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 							_ = c.CoreV1().ConfigMaps(nsName).Delete(configMapName, nil)
 						}()
 					}
-					err = pod.CreatePods(c, nsName, podLabelMap, config.Spec, tuning)
+					// TODO sjug: pass label via config
+					podLabelMap := map[string]string{"purpose": "test"}
+					var rateDelay, stepPause time.Duration
+					if tuning != nil {
+						if tuning.Pods.RateLimit.Delay != 0 {
+							rateDelay = tuning.Pods.RateLimit.Delay
+						}
+						if tuning.Pods.Stepping.Pause != 0 {
+							stepPause = tuning.Pods.Stepping.Pause
+						}
+					}
+					step := metrics.NewPodStepDuration(rateDelay, stepPause)
+					err = pod.CreatePods(c, nsName, podLabelMap, config.Spec, tuning, &step)
+					steps = append(steps, step)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 			}
@@ -269,7 +294,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 
 		// Calculate and log test duration
-		m := []metrics.Metrics{metrics.NewTestDuration("cluster-loader-test", testStartTime, time.Since(testStartTime))}
+		m := []metrics.Metrics{metrics.NewTestDuration("cluster-loader-test", testStartTime, time.Since(testStartTime), steps)}
 		err := metrics.LogMetrics(m)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
