@@ -21,7 +21,7 @@ import (
 
 const (
 	// This image is used for both client and server pods. Temporary repo location.
-	openldapTestImage = "docker.io/mrogers950/origin-openldap-test:fedora29"
+	OpenLDAPTestImage = "docker.io/mrogers950/origin-openldap-test:fedora29"
 	caCertFilename    = "ca.crt"
 	caKeyFilename     = "ca.key"
 	caName            = "ldap CA"
@@ -40,7 +40,7 @@ const (
 // CreateLDAPTestServer deploys an LDAP server on the service network and then confirms StartTLS connectivity with an
 // ldapsearch against it. It returns the ldapserver host and the ldap CA, or an error.
 func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
-	deploy, ldapService, ldif, scripts := readLDAPServerTestData()
+	deploy, ldapService, ldif, scripts := ReadLDAPServerTestData()
 	certDir, err := ioutil.TempDir("", "testca")
 	if err != nil {
 		return "", nil, err
@@ -175,37 +175,8 @@ func checkLDAPConn(oc *CLI, host string) error {
 
 // Run an ldapsearch in a pod against host.
 func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
-	mounts := []corev1.VolumeMount{
-		{
-			Name:      configMountName,
-			MountPath: configMountPath,
-		},
-		{
-			Name:      certMountName,
-			MountPath: certMountPath,
-		},
-	}
-	volumes := []corev1.Volume{
-		{
-			Name: certMountName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: certMountName,
-				},
-			},
-		},
-		{
-			Name: configMountName,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configMountName,
-					},
-				},
-			},
-		},
-	}
-	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", openldapTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts,
+	mounts, volumes := LDAPClientMounts()
+	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", OpenLDAPTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts,
 		volumes, nil, 5*time.Minute)
 	if len(errs) != 0 {
 		return output, fmt.Errorf("errours encountered trying to run ldapsearch pod: %v", errs)
@@ -213,7 +184,7 @@ func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 	return output, nil
 }
 
-func readLDAPServerTestData() (*app.Deployment, *corev1.Service, *corev1.ConfigMap, *corev1.ConfigMap) {
+func ReadLDAPServerTestData() (*app.Deployment, *corev1.Service, *corev1.ConfigMap, *corev1.ConfigMap) {
 	return resourceread.ReadDeploymentV1OrDie(testdata.MustAsset(
 			"test/extended/testdata/ldap/ldapserver-deployment.yaml")),
 		resourceread.ReadServiceV1OrDie(testdata.MustAsset(
@@ -222,4 +193,36 @@ func readLDAPServerTestData() (*app.Deployment, *corev1.Service, *corev1.ConfigM
 			"test/extended/testdata/ldap/ldapserver-config-cm.yaml")),
 		resourceread.ReadConfigMapV1OrDie(testdata.MustAsset(
 			"test/extended/testdata/ldap/ldapserver-scripts-cm.yaml"))
+}
+
+func LDAPClientMounts() ([]corev1.VolumeMount, []corev1.Volume) {
+	return []corev1.VolumeMount{
+			{
+				Name:      configMountName,
+				MountPath: configMountPath,
+			},
+			{
+				Name:      certMountName,
+				MountPath: certMountPath,
+			},
+		}, []corev1.Volume{
+			{
+				Name: certMountName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: certMountName,
+					},
+				},
+			},
+			{
+				Name: configMountName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: configMountName,
+						},
+					},
+				},
+			},
+		}
 }
