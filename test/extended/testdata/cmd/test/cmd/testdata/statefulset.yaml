@@ -1,0 +1,18 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: testapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: testapp
+    spec:
+      containers:
+      - name: testapp
+        image: centos/ruby-22-centos7:latest
+        command:
+        - /bin/sleep
+        args:
+        - infinity

@@ -1,0 +1,297 @@
+{
+    "apiVersion": "v1",
+    "kind": "Template",
+    "labels": {
+        "app": "jenkins-ephemeral",
+        "template": "jenkins-ephemeral-template"
+    },
+    "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+    "metadata": {
+        "annotations": {
+            "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "iconClass": "icon-jenkins",
+            "openshift.io/display-name": "Jenkins (Ephemeral)",
+            "openshift.io/documentation-url": "https://docs.okd.io/latest/using_images/other_images/jenkins.html",
+            "openshift.io/long-description": "This template deploys a Jenkins server capable of managing OpenShift Pipeline builds and supporting OpenShift-based oauth login.  The Jenkins configuration is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
+            "openshift.io/provider-display-name": "Red Hat, Inc.",
+            "openshift.io/support-url": "https://access.redhat.com",
+            "tags": "instant-app,jenkins"
+        },
+        "name": "jenkins-ephemeral"
+    },
+    "objects": [
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "annotations": {
+                    "haproxy.router.openshift.io/timeout": "4m",
+                    "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            },
+            "spec": {
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "${JENKINS_SERVICE_NAME}"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "annotations": {
+                    "template.alpha.openshift.io/wait-for-ready": "true"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "name": "${JENKINS_SERVICE_NAME}"
+                },
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "name": "${JENKINS_SERVICE_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "OPENSHIFT_ENABLE_OAUTH",
+                                        "value": "${ENABLE_OAUTH}"
+                                    },
+                                    {
+                                        "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                                        "value": "true"
+                                    },
+                                    {
+                                        "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+                                        "value": "${DISABLE_ADMINISTRATIVE_MONITORS}"
+                                    },
+                                    {
+                                        "name": "KUBERNETES_MASTER",
+                                        "value": "https://kubernetes.default:443"
+                                    },
+                                    {
+                                        "name": "KUBERNETES_TRUST_CERTIFICATES",
+                                        "value": "true"
+                                    },
+                                    {
+                                        "name": "JENKINS_SERVICE_NAME",
+                                        "value": "${JENKINS_SERVICE_NAME}"
+                                    },
+                                    {
+                                        "name": "JNLP_SERVICE_NAME",
+                                        "value": "${JNLP_SERVICE_NAME}"
+                                    }
+                                ],
+                                "image": " ",
+                                "imagePullPolicy": "IfNotPresent",
+                                "livenessProbe": {
+                                    "failureThreshold": 2,
+                                    "httpGet": {
+                                        "path": "/login",
+                                        "port": 8080
+                                    },
+                                    "initialDelaySeconds": 420,
+                                    "periodSeconds": 360,
+                                    "timeoutSeconds": 240
+                                },
+                                "name": "jenkins",
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/login",
+                                        "port": 8080
+                                    },
+                                    "initialDelaySeconds": 3,
+                                    "timeoutSeconds": 240
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "memory": "${MEMORY_LIMIT}"
+                                    }
+                                },
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/var/lib/jenkins",
+                                        "name": "${JENKINS_SERVICE_NAME}-data"
+                                    }
+                                ]
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccountName": "${JENKINS_SERVICE_NAME}",
+                        "volumes": [
+                            {
+                                "emptyDir": {
+                                    "medium": ""
+                                },
+                                "name": "${JENKINS_SERVICE_NAME}-data"
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "jenkins"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                                "namespace": "${NAMESPACE}"
+                            },
+                            "lastTriggeredImage": ""
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "metadata": {
+                "annotations": {
+                    "serviceaccounts.openshift.io/oauth-redirectreference.jenkins": "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "groupNames": null,
+            "kind": "RoleBinding",
+            "metadata": {
+                "name": "${JENKINS_SERVICE_NAME}_edit"
+            },
+            "roleRef": {
+                "name": "edit"
+            },
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "${JENKINS_SERVICE_NAME}"
+                }
+            ]
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "name": "${JNLP_SERVICE_NAME}"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "agent",
+                        "nodePort": 0,
+                        "port": 50000,
+                        "protocol": "TCP",
+                        "targetPort": 50000
+                    }
+                ],
+                "selector": {
+                    "name": "${JENKINS_SERVICE_NAME}"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+                    "service.openshift.io/infrastructure": "true"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "web",
+                        "nodePort": 0,
+                        "port": 80,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "name": "${JENKINS_SERVICE_NAME}"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "description": "The name of the OpenShift Service exposed for the Jenkins container.",
+            "displayName": "Jenkins Service Name",
+            "name": "JENKINS_SERVICE_NAME",
+            "value": "jenkins"
+        },
+        {
+            "description": "The name of the service used for master/slave communication.",
+            "displayName": "Jenkins JNLP Service Name",
+            "name": "JNLP_SERVICE_NAME",
+            "value": "jenkins-jnlp"
+        },
+        {
+            "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
+            "displayName": "Enable OAuth in Jenkins",
+            "name": "ENABLE_OAUTH",
+            "value": "true"
+        },
+        {
+            "description": "Maximum amount of memory the container can use.",
+            "displayName": "Memory Limit",
+            "name": "MEMORY_LIMIT",
+            "value": "512Mi"
+        },
+        {
+            "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+            "displayName": "Jenkins ImageStream Namespace",
+            "name": "NAMESPACE",
+            "value": "openshift"
+        },
+        {
+            "description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
+            "displayName": "Disable memory intensive administrative monitors",
+            "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+            "value": "false"
+        },
+        {
+            "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+            "displayName": "Jenkins ImageStreamTag",
+            "name": "JENKINS_IMAGE_STREAM_TAG",
+            "value": "jenkins:2"
+        }
+    ]
+}

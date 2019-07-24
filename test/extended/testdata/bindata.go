@@ -117,6 +117,147 @@
 // test/extended/testdata/cluster/quickstarts/django-postgresql.json
 // test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json
 // test/extended/testdata/cluster/quickstarts/rails-postgresql.json
+// test/extended/testdata/cmd/hack/lib/cmd.sh
+// test/extended/testdata/cmd/hack/lib/compress.awk
+// test/extended/testdata/cmd/hack/lib/constants.sh
+// test/extended/testdata/cmd/hack/lib/init.sh
+// test/extended/testdata/cmd/hack/lib/log/output.sh
+// test/extended/testdata/cmd/hack/lib/log/stacktrace.sh
+// test/extended/testdata/cmd/hack/lib/log/system.sh
+// test/extended/testdata/cmd/hack/lib/test/junit.sh
+// test/extended/testdata/cmd/hack/lib/util/environment.sh
+// test/extended/testdata/cmd/hack/lib/util/misc.sh
+// test/extended/testdata/cmd/hack/lib/util/text.sh
+// test/extended/testdata/cmd/hack/lib/util/trap.sh
+// test/extended/testdata/cmd/test/cmd/admin.sh
+// test/extended/testdata/cmd/test/cmd/annotations.sh
+// test/extended/testdata/cmd/test/cmd/apiresources.sh
+// test/extended/testdata/cmd/test/cmd/authentication.sh
+// test/extended/testdata/cmd/test/cmd/basicresources.sh
+// test/extended/testdata/cmd/test/cmd/builds.sh
+// test/extended/testdata/cmd/test/cmd/completions.sh
+// test/extended/testdata/cmd/test/cmd/config.sh
+// test/extended/testdata/cmd/test/cmd/convert.sh
+// test/extended/testdata/cmd/test/cmd/create.sh
+// test/extended/testdata/cmd/test/cmd/debug.sh
+// test/extended/testdata/cmd/test/cmd/deployments.sh
+// test/extended/testdata/cmd/test/cmd/describer.sh
+// test/extended/testdata/cmd/test/cmd/edit.sh
+// test/extended/testdata/cmd/test/cmd/env.sh
+// test/extended/testdata/cmd/test/cmd/framework-test.sh
+// test/extended/testdata/cmd/test/cmd/get.sh
+// test/extended/testdata/cmd/test/cmd/help.sh
+// test/extended/testdata/cmd/test/cmd/idle.sh
+// test/extended/testdata/cmd/test/cmd/image-lookup.sh
+// test/extended/testdata/cmd/test/cmd/images.sh
+// test/extended/testdata/cmd/test/cmd/login.sh
+// test/extended/testdata/cmd/test/cmd/migrate.sh
+// test/extended/testdata/cmd/test/cmd/newapp.sh
+// test/extended/testdata/cmd/test/cmd/observe.sh
+// test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh
+// test/extended/testdata/cmd/test/cmd/policy.sh
+// test/extended/testdata/cmd/test/cmd/printer.sh
+// test/extended/testdata/cmd/test/cmd/projects.sh
+// test/extended/testdata/cmd/test/cmd/quota.sh
+// test/extended/testdata/cmd/test/cmd/registry.sh
+// test/extended/testdata/cmd/test/cmd/routes.sh
+// test/extended/testdata/cmd/test/cmd/rsync.sh
+// test/extended/testdata/cmd/test/cmd/run.sh
+// test/extended/testdata/cmd/test/cmd/secrets.sh
+// test/extended/testdata/cmd/test/cmd/services.sh
+// test/extended/testdata/cmd/test/cmd/set-image.sh
+// test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh
+// test/extended/testdata/cmd/test/cmd/setbuildhook.sh
+// test/extended/testdata/cmd/test/cmd/setbuildsecret.sh
+// test/extended/testdata/cmd/test/cmd/status.sh
+// test/extended/testdata/cmd/test/cmd/templates.sh
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/app/Dockerfile
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.generated.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.yml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/nginx/Dockerfile
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-lonely-pod.json
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-sample-app.json
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-pod-no-rc.json
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-with-nothing.json
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-unserviced-rc.json
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-deployed-app.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-no-build.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-one-build.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-two-deployment-configs.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/petset.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
+// test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
+// test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
+// test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json
+// test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json
+// test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json
+// test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json
+// test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json
+// test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/circular.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/imagestream-ref.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/installable-stream.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid-build-strategy.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env
+// test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/old-template.json
+// test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory
+// test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json
+// test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/non-api-file
+// test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/yml-with-extension.yml
+// test/extended/testdata/cmd/test/cmd/testdata/resource-builder/json-no-extension
+// test/extended/testdata/cmd/test/cmd/testdata/resource-builder/yml-no-extension
+// test/extended/testdata/cmd/test/cmd/testdata/roles/empty-role.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/roles/policy-clusterroles.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/roles/policy-roles.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/rollingupdate-daemonset.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/services.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/stable-busybox.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/statefulset.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/templateinstance_objectkinds.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/templates/basic-users-binding.json
+// test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.env
+// test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.json
+// test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook_list.json
+// test/extended/testdata/cmd/test/cmd/testdata/templates/multiline.txt
+// test/extended/testdata/cmd/test/cmd/testdata/templates/template-type-precision.json
+// test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.env
+// test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-image.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-multiarch-stream.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/test-replication-controller.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/test-route.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-service.json
+// test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml
+// test/extended/testdata/cmd/test/cmd/timeout.sh
+// test/extended/testdata/cmd/test/cmd/triggers.sh
+// test/extended/testdata/cmd/test/cmd/volumes.sh
+// test/extended/testdata/cmd/test/cmd/whoami.sh
 // test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
@@ -9398,6 +9539,19069 @@ func testExtendedTestdataClusterQuickstartsRailsPostgresqlJson() (*asset, error)
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cluster/quickstarts/rails-postgresql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibCmdSh = []byte(`#!/usr/bin/env bash
+# This utility file contains functions that wrap commands to be tested. All wrapper functions run commands
+# in a sub-shell and redirect all output. Tests in test-cmd *must* use these functions for testing.
+
+# expect_success runs the cmd and expects an exit code of 0
+function os::cmd::expect_success() {
+	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argument, got $#"; return 1; fi
+	local cmd=$1
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}"
+}
+readonly -f os::cmd::expect_success
+
+# expect_failure runs the cmd and expects a non-zero exit code
+function os::cmd::expect_failure() {
+	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_failure expects only one argument, got $#"; return 1; fi
+	local cmd=$1
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func"
+}
+readonly -f os::cmd::expect_failure
+
+# expect_success_and_text runs the cmd and expects an exit code of 0
+# as well as running a grep test to find the given string in the output
+function os::cmd::expect_success_and_text() {
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_text expects two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_text=$2
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::success_func" "${expected_text}"
+}
+readonly -f os::cmd::expect_success_and_text
+
+# expect_failure_and_text runs the cmd and expects a non-zero exit code
+# as well as running a grep test to find the given string in the output
+function os::cmd::expect_failure_and_text() {
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_text expects two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_text=$2
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func" "${expected_text}"
+}
+readonly -f os::cmd::expect_failure_and_text
+
+# expect_success_and_not_text runs the cmd and expects an exit code of 0
+# as well as running a grep test to ensure the given string is not in the output
+function os::cmd::expect_success_and_not_text() {
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_not_text expects two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_text=$2
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::success_func" "${expected_text}" "os::cmd::internal::failure_func"
+}
+readonly -f os::cmd::expect_success_and_not_text
+
+# expect_failure_and_not_text runs the cmd and expects a non-zero exit code
+# as well as running a grep test to ensure the given string is not in the output
+function os::cmd::expect_failure_and_not_text() {
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_not_text expects two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_text=$2
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func" "${expected_text}" "os::cmd::internal::failure_func"
+}
+readonly -f os::cmd::expect_failure_and_not_text
+
+# expect_code runs the cmd and expects a given exit code
+function os::cmd::expect_code() {
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_code expects two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_cmd_code=$2
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}"
+}
+readonly -f os::cmd::expect_code
+
+# expect_code_and_text runs the cmd and expects the given exit code
+# as well as running a grep test to find the given string in the output
+function os::cmd::expect_code_and_text() {
+	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_text expects three arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_cmd_code=$2
+	local expected_text=$3
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}" "${expected_text}"
+}
+readonly -f os::cmd::expect_code_and_text
+
+# expect_code_and_not_text runs the cmd and expects the given exit code
+# as well as running a grep test to ensure the given string is not in the output
+function os::cmd::expect_code_and_not_text() {
+	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_not_text expects three arguments, got $#"; return 1; fi
+	local cmd=$1
+	local expected_cmd_code=$2
+	local expected_text=$3
+
+	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::specific_code_func ${expected_cmd_code}" "${expected_text}" "os::cmd::internal::failure_func"
+}
+readonly -f os::cmd::expect_code_and_not_text
+
+millisecond=1
+second=$(( 1000 * millisecond ))
+minute=$(( 60 * second ))
+
+# os::cmd::try_until_success runs the cmd in a small interval until either the command succeeds or times out
+# the default time-out for os::cmd::try_until_success is 60 seconds.
+# the default interval for os::cmd::try_until_success is 200ms
+function os::cmd::try_until_success() {
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one arguments, got $#"; return 1; fi
+	local cmd=$1
+	local duration=${2:-$minute}
+	local interval=${3:-0.2}
+
+	os::cmd::internal::run_until_exit_code "${cmd}" "os::cmd::internal::success_func" "${duration}" "${interval}"
+}
+readonly -f os::cmd::try_until_success
+
+# os::cmd::try_until_failure runs the cmd until either the command fails or times out
+# the default time-out for os::cmd::try_until_failure is 60 seconds.
+function os::cmd::try_until_failure() {
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_failure expects at least one argument, got $#"; return 1; fi
+	local cmd=$1
+	local duration=${2:-$minute}
+	local interval=${3:-0.2}
+
+	os::cmd::internal::run_until_exit_code "${cmd}" "os::cmd::internal::failure_func" "${duration}" "${interval}"
+}
+readonly -f os::cmd::try_until_failure
+
+# os::cmd::try_until_text runs the cmd until either the command outputs the desired text or times out
+# the default time-out for os::cmd::try_until_text is 60 seconds.
+function os::cmd::try_until_text() {
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_text expects at least two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local text=$2
+	local duration=${3:-$minute}
+	local interval=${4:-0.2}
+
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "os::cmd::internal::success_func" "${duration}" "${interval}"
+}
+readonly -f os::cmd::try_until_text
+
+# os::cmd::try_until_not_text runs the cmd until either the command doesnot output the text or times out
+# the default time-out for os::cmd::try_until_not_text is 60 seconds.
+function os::cmd::try_until_not_text() {
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_not_text expects at least two arguments, got $#"; return 1; fi
+	local cmd=$1
+	local text=$2
+	local duration=${3:-$minute}
+	local interval=${4:-0.2}
+
+	os::cmd::internal::run_until_text "${cmd}" "${text}" "os::cmd::internal::failure_func" "${duration}" "${interval}"
+}
+readonly -f os::cmd::try_until_text
+
+# Functions in the os::cmd::internal namespace are discouraged from being used outside of os::cmd
+
+# In order to harvest stderr and stdout at the same time into different buckets, we need to stick them into files
+# in an intermediate step
+os_cmd_internal_tmpdir="${TMPDIR:-"/tmp"}/cmd"
+os_cmd_internal_tmpout="${os_cmd_internal_tmpdir}/tmp_stdout.log"
+os_cmd_internal_tmperr="${os_cmd_internal_tmpdir}/tmp_stderr.log"
+
+# os::cmd::internal::expect_exit_code_run_grep runs the provided test command and expects a specific
+# exit code from that command as well as the success of a specified `+"`"+`grep`+"`"+` invocation. Output from the
+# command to be tested is suppressed unless either `+"`"+`VERBOSE=1`+"`"+` or the test fails. This function bypasses
+# any error exiting settings or traps set by upstream callers by masking the return code of the command
+# with the return code of setting the result variable on failure.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - VERBOSE
+# Arguments:
+#  - 1: the command to run
+#  - 2: command evaluation assertion to use
+#  - 3: text to test for
+#  - 4: text assertion to use
+# Returns:
+#  - 0: if all assertions met
+#  - 1: if any assertions fail
+function os::cmd::internal::expect_exit_code_run_grep() {
+	local cmd=$1
+	# default expected cmd code to 0 for success
+	local cmd_eval_func=${2:-os::cmd::internal::success_func}
+	# default to nothing
+	local grep_args=${3:-}
+	# default expected test code to 0 for success
+	local test_eval_func=${4:-os::cmd::internal::success_func}
+
+	local -a junit_log
+
+	os::cmd::internal::init_tempdir
+	os::test::junit::declare_test_start
+
+	local name=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}" "${grep_args}" "${test_eval_func}")
+	local preamble="Running ${name}..."
+	echo "${preamble}"
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
+	junit_log+=( "${name//$'\n'/;}" )
+
+	local start_time=$(os::cmd::internal::seconds_since_epoch)
+
+	local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
+	local cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
+
+	local test_result=0
+	if [[ -n "${grep_args}" ]]; then
+		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${grep_args}" <(os::cmd::internal::get_results)'; echo $? )
+	fi
+	local test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
+
+	local end_time=$(os::cmd::internal::seconds_since_epoch)
+	local time_elapsed=$(echo $(( ${end_time} - ${start_time} )) | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+
+	# clear the preamble so we can print out the success or error message
+	os::text::clear_string "${preamble}"
+
+	local return_code
+	if (( cmd_succeeded && test_succeeded )); then
+		os::text::print_green "SUCCESS after ${time_elapsed}s: ${name}"
+		junit_log+=( "SUCCESS after ${time_elapsed}s: ${name//$'\n'/;}" )
+
+		if [[ -n ${VERBOSE-} ]]; then
+			os::cmd::internal::print_results
+		fi
+		return_code=0
+	else
+		local cause=$(os::cmd::internal::assemble_causes "${cmd_succeeded}" "${test_succeeded}")
+
+		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${name}: ${cause}"
+		junit_log+=( "FAILURE after ${time_elapsed}s: ${name//$'\n'/;}: ${cause}" )
+
+		os::text::print_red "$(os::cmd::internal::print_results)"
+		return_code=1
+	fi
+
+	junit_log+=( "$(os::cmd::internal::print_results)" )
+	# append inside of a subshell so that IFS doesn't get propagated out
+	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
+	os::test::junit::declare_test_end
+	return "${return_code}"
+}
+readonly -f os::cmd::internal::expect_exit_code_run_grep
+
+# os::cmd::internal::init_tempdir initializes the temporary directory
+function os::cmd::internal::init_tempdir() {
+	mkdir -p "${os_cmd_internal_tmpdir}"
+	rm -f "${os_cmd_internal_tmpdir}"/tmp_std{out,err}.log
+}
+readonly -f os::cmd::internal::init_tempdir
+
+# os::cmd::internal::describe_call determines the file:line of the latest function call made
+# from outside of this file in the call stack, and the name of the function being called from
+# that line, returning a string describing the call
+function os::cmd::internal::describe_call() {
+	local cmd=$1
+	local cmd_eval_func=$2
+	local grep_args=${3:-}
+	local test_eval_func=${4:-}
+
+	local caller_id=$(os::cmd::internal::determine_caller)
+	local full_name="${caller_id}: executing '${cmd}'"
+
+	local cmd_expectation=$(os::cmd::internal::describe_expectation "${cmd_eval_func}")
+	local full_name="${full_name} expecting ${cmd_expectation}"
+
+	if [[ -n "${grep_args}" ]]; then
+		local text_expecting=
+		case "${test_eval_func}" in
+		"os::cmd::internal::success_func")
+			text_expecting="text" ;;
+		"os::cmd::internal::failure_func")
+			text_expecting="not text" ;;
+		esac
+		full_name="${full_name} and ${text_expecting} '${grep_args}'"
+	fi
+
+	echo "${full_name}"
+}
+readonly -f os::cmd::internal::describe_call
+
+# os::cmd::internal::determine_caller determines the file relative to the OpenShift Origin root directory
+# and line number of the function call to the outer os::cmd wrapper function
+function os::cmd::internal::determine_caller() {
+	local call_depth=
+	local len_sources="${#BASH_SOURCE[@]}"
+	for (( i=0; i<${len_sources}; i++ )); do
+		if [ ! $(echo "${BASH_SOURCE[i]}" | grep "hack/lib/cmd\.sh$") ]; then
+			call_depth=i
+			break
+		fi
+	done
+
+	local caller_file="${BASH_SOURCE[${call_depth}]}"
+    caller_file="$( os::util::repository_relative_path "${caller_file}" )"
+	local caller_line="${BASH_LINENO[${call_depth}-1]}"
+	echo "${caller_file}:${caller_line}"
+}
+readonly -f os::cmd::internal::determine_caller
+
+# os::cmd::internal::describe_expectation describes a command return code evaluation function
+function os::cmd::internal::describe_expectation() {
+	local func=$1
+	case "${func}" in
+	"os::cmd::internal::success_func")
+		echo "success" ;;
+	"os::cmd::internal::failure_func")
+		echo "failure" ;;
+	"os::cmd::internal::specific_code_func"*[0-9])
+		local code=$(echo "${func}" | grep -Eo "[0-9]+$")
+		echo "exit code ${code}" ;;
+	"")
+		echo "any result"
+	esac
+}
+readonly -f os::cmd::internal::describe_expectation
+
+# os::cmd::internal::seconds_since_epoch returns the number of seconds elapsed since the epoch
+# with milli-second precision
+function os::cmd::internal::seconds_since_epoch() {
+	local ns=$(date +%s%N)
+	# if `+"`"+`date`+"`"+` doesn't support nanoseconds, return second precision
+	if [[ "$ns" == *N ]]; then
+		date "+%s.000"
+		return
+	fi
+	echo $(( ${ns}/1000000000 ))
+}
+readonly -f os::cmd::internal::seconds_since_epoch
+
+# os::cmd::internal::run_collecting_output runs the command given, piping stdout and stderr into
+# the given files, and returning the exit code of the command
+function os::cmd::internal::run_collecting_output() {
+	local cmd=$1
+
+	local result=
+	$( eval "${cmd}" 1>>"${os_cmd_internal_tmpout}" 2>>"${os_cmd_internal_tmperr}" ) || result=$?
+	local result=${result:-0} # if we haven't set result yet, the command succeeded
+
+	return "${result}"
+}
+readonly -f os::cmd::internal::run_collecting_output
+
+# os::cmd::internal::success_func determines if the input exit code denotes success
+# this function returns 0 for false and 1 for true to be compatible with arithmetic tests
+function os::cmd::internal::success_func() {
+	local exit_code=$1
+
+	# use a negated test to get output correct for (( ))
+	[[ "${exit_code}" -ne "0" ]]
+	return $?
+}
+readonly -f os::cmd::internal::success_func
+
+# os::cmd::internal::failure_func determines if the input exit code denotes failure
+# this function returns 0 for false and 1 for true to be compatible with arithmetic tests
+function os::cmd::internal::failure_func() {
+	local exit_code=$1
+
+	# use a negated test to get output correct for (( ))
+	[[ "${exit_code}" -eq "0" ]]
+	return $?
+}
+readonly -f os::cmd::internal::failure_func
+
+# os::cmd::internal::specific_code_func determines if the input exit code matches the given code
+# this function returns 0 for false and 1 for true to be compatible with arithmetic tests
+function os::cmd::internal::specific_code_func() {
+	local expected_code=$1
+	local exit_code=$2
+
+	# use a negated test to get output correct for (( ))
+	[[ "${exit_code}" -ne "${expected_code}" ]]
+	return $?
+}
+readonly -f os::cmd::internal::specific_code_func
+
+# os::cmd::internal::get_results prints the stderr and stdout files
+function os::cmd::internal::get_results() {
+	cat "${os_cmd_internal_tmpout}" "${os_cmd_internal_tmperr}"
+}
+readonly -f os::cmd::internal::get_results
+
+# os::cmd::internal::get_last_results prints the stderr and stdout from the last attempt
+function os::cmd::internal::get_last_results() {
+	cat "${os_cmd_internal_tmpout}" | awk 'BEGIN { RS = "\x1e" } END { print $0 }'
+	cat "${os_cmd_internal_tmperr}" | awk 'BEGIN { RS = "\x1e" } END { print $0 }'
+}
+readonly -f os::cmd::internal::get_last_results
+
+# os::cmd::internal::mark_attempt marks the end of an attempt in the stdout and stderr log files
+# this is used to make the try_until_* output more concise
+function os::cmd::internal::mark_attempt() {
+	echo -e '\x1e' >> "${os_cmd_internal_tmpout}"
+	echo -e '\x1e' >> "${os_cmd_internal_tmperr}"
+}
+readonly -f os::cmd::internal::mark_attempt
+
+# os::cmd::internal::compress_output compresses an output file into timeline representation
+function os::cmd::internal::compress_output() {
+	local logfile=$1
+
+	awk -f ${OS_ROOT}/hack/lib/compress.awk $logfile
+}
+readonly -f os::cmd::internal::compress_output
+
+# os::cmd::internal::print_results pretty-prints the stderr and stdout files. If attempt separators
+# are present, this function returns a concise view of the stdout and stderr output files using a
+# timeline format, where consecutive output lines that are the same are condensed into one line
+# with a counter
+function os::cmd::internal::print_results() {
+	if [[ -s "${os_cmd_internal_tmpout}" ]]; then
+		echo "Standard output from the command:"
+		if grep -q $'\x1e' "${os_cmd_internal_tmpout}"; then
+			os::cmd::internal::compress_output "${os_cmd_internal_tmpout}"
+		else
+			cat "${os_cmd_internal_tmpout}"; echo
+		fi
+	else
+		echo "There was no output from the command."
+	fi
+
+	if [[ -s "${os_cmd_internal_tmperr}" ]]; then
+		echo "Standard error from the command:"
+		if grep -q $'\x1e' "${os_cmd_internal_tmperr}"; then
+			os::cmd::internal::compress_output "${os_cmd_internal_tmperr}"
+		else
+			cat "${os_cmd_internal_tmperr}"; echo
+		fi
+	else
+		echo "There was no error output from the command."
+	fi
+}
+readonly -f os::cmd::internal::print_results
+
+# os::cmd::internal::assemble_causes determines from the two input booleans which part of the test
+# failed and generates a nice delimited list of failure causes
+function os::cmd::internal::assemble_causes() {
+	local cmd_succeeded=$1
+	local test_succeeded=$2
+
+	local causes=()
+	if (( ! cmd_succeeded )); then
+		causes+=("the command returned the wrong error code")
+	fi
+	if (( ! test_succeeded )); then
+		causes+=("the output content test failed")
+	fi
+
+	local list=$(printf '; %s' "${causes[@]}")
+	echo "${list:2}"
+}
+readonly -f os::cmd::internal::assemble_causes
+
+# os::cmd::internal::run_until_exit_code runs the provided command until the exit code test given
+# succeeds or the timeout given runs out. Output from the command to be tested is suppressed unless
+# either `+"`"+`VERBOSE=1`+"`"+` or the test fails. This function bypasses any error exiting settings or traps
+# set by upstream callers by masking the return code of the command with the return code of setting
+# the result variable on failure.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - VERBOSE
+# Arguments:
+#  - 1: the command to run
+#  - 2: command evaluation assertion to use
+#  - 3: timeout duration
+#  - 4: interval duration
+# Returns:
+#  - 0: if all assertions met before timeout
+#  - 1: if timeout occurs
+function os::cmd::internal::run_until_exit_code() {
+	local cmd=$1
+	local cmd_eval_func=$2
+	local duration=$3
+	local interval=$4
+
+	local -a junit_log
+
+	os::cmd::internal::init_tempdir
+	os::test::junit::declare_test_start
+
+	local description=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}")
+	local duration_seconds=`+"`"+`echo $(( $(( duration )) / 1000 )) | xargs printf '%5.3f')`+"`"+`
+	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
+	local preamble="Running ${description}..."
+	echo "${preamble}"
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
+	junit_log+=( "${description//$'\n'/;}" )
+
+	local start_time=$(os::cmd::internal::seconds_since_epoch)
+
+	local deadline=$(( $(date +%s000) + $duration ))
+	local cmd_succeeded=0
+	while [ $(date +%s000) -lt $deadline ]; do
+		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
+		cmd_succeeded=$( ${cmd_eval_func} "${cmd_result}"; echo $? )
+		if (( cmd_succeeded )); then
+			break
+		fi
+		sleep "${interval}"
+		os::cmd::internal::mark_attempt
+	done
+
+	local end_time=$(os::cmd::internal::seconds_since_epoch)
+	local time_elapsed=$(echo $(( ${end_time} - ${start_time} )) | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+
+	# clear the preamble so we can print out the success or error message
+	os::text::clear_string "${preamble}"
+
+	local return_code
+	if (( cmd_succeeded )); then
+		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
+
+		if [[ -n ${VERBOSE-} ]]; then
+			os::cmd::internal::print_results
+		fi
+		return_code=0
+	else
+		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
+
+		os::text::print_red "$(os::cmd::internal::print_results)"
+		return_code=1
+	fi
+
+	junit_log+=( "$(os::cmd::internal::print_results)" )
+	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
+	os::test::junit::declare_test_end
+	return "${return_code}"
+}
+readonly -f os::cmd::internal::run_until_exit_code
+
+# os::cmd::internal::run_until_text runs the provided command until the assertion function succeeds with
+# the given text on the command output or the timeout given runs out. This can be used to run until the
+# output does or does not contain some text. Output from the command to be tested is suppressed unless
+# either `+"`"+`VERBOSE=1`+"`"+` or the test fails. This function bypasses any error exiting settings or traps
+# set by upstream callers by masking the return code of the command with the return code of setting
+# the result variable on failure.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - VERBOSE
+# Arguments:
+#  - 1: the command to run
+#  - 2: text to test for
+#  - 3: text assertion to use
+#  - 4: timeout duration
+#  - 5: interval duration
+# Returns:
+#  - 0: if all assertions met before timeout
+#  - 1: if timeout occurs
+function os::cmd::internal::run_until_text() {
+	local cmd=$1
+	local text=$2
+	local test_eval_func=${3:-os::cmd::internal::success_func}
+	local duration=$4
+	local interval=$5
+
+	local -a junit_log
+
+	os::cmd::internal::init_tempdir
+	os::test::junit::declare_test_start
+
+	local description=$(os::cmd::internal::describe_call "${cmd}" "" "${text}" "${test_eval_func}")
+	local duration_seconds=$(echo $(( $(( duration )) / 1000)) | xargs printf '%5.3f')
+	local description="${description}; re-trying every ${interval}s until completion or ${duration_seconds}s"
+	local preamble="Running ${description}..."
+	echo "${preamble}"
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
+	junit_log+=( "${description//$'\n'/;}" )
+
+	local start_time=$(os::cmd::internal::seconds_since_epoch)
+
+	local deadline=$(( $(date +%s000) + $duration ))
+	local test_succeeded=0
+	while [ $(date +%s000) -lt $deadline ]; do
+		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
+		local test_result
+		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_last_results)'; echo $? )
+		test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
+
+		if (( test_succeeded )); then
+			break
+		fi
+		sleep "${interval}"
+		os::cmd::internal::mark_attempt
+	done
+
+	local end_time=$(os::cmd::internal::seconds_since_epoch)
+	local time_elapsed=$(echo $(( ${end_time} - ${start_time} )) | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+
+    # clear the preamble so we can print out the success or error message
+    os::text::clear_string "${preamble}"
+
+	local return_code
+	if (( test_succeeded )); then
+		os::text::print_green "SUCCESS after ${time_elapsed}s: ${description}"
+		junit_log+=( "SUCCESS after ${time_elapsed}s: ${description//$'\n'/;}" )
+
+		if [[ -n ${VERBOSE-} ]]; then
+			os::cmd::internal::print_results
+		fi
+		return_code=0
+	else
+		os::text::print_red_bold "FAILURE after ${time_elapsed}s: ${description}: the command timed out"
+		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
+
+		os::text::print_red "$(os::cmd::internal::print_results)"
+		return_code=1
+	fi
+
+	junit_log+=( "$(os::cmd::internal::print_results)" )
+	( IFS=$'\n'; echo "${junit_log[*]}" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}" )
+	os::test::junit::declare_test_end
+	return "${return_code}"
+}
+readonly -f os::cmd::internal::run_until_text
+`)
+
+func testExtendedTestdataCmdHackLibCmdShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibCmdSh, nil
+}
+
+func testExtendedTestdataCmdHackLibCmdSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibCmdShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/cmd.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibCompressAwk = []byte(`# Helper functions
+function trim(s) {
+	gsub(/^[ \t\r\n]+|[ \t\r\n]+$/, "", s);
+	return s;
+}
+
+function printRecordAndCount(record, count) {
+	print record;
+	if (count > 1) {
+		printf("... repeated %d times\n", count)
+	}
+}
+
+BEGIN {
+	# Before processing, set the record separator to the ASCII record separator character \x1e
+	RS = "\x1e";
+}
+
+# This action is executed for each record
+{
+	# Build our current var from the trimmed record
+	current = trim($0);
+
+	# Bump the count of times we have seen it
+	seen[current]++;
+
+	# Print the previous record and its count (if it is not identical to the current record)
+	if (previous && previous != current) {
+		printRecordAndCount(previous, seen[previous]);
+	}
+
+	# Store the current record as the previous record
+	previous = current;
+}
+
+END {
+	# After processing, print the last record and count if it is non-empty
+	if (previous) {
+		printRecordAndCount(previous, seen[previous]);
+	}
+}`)
+
+func testExtendedTestdataCmdHackLibCompressAwkBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibCompressAwk, nil
+}
+
+func testExtendedTestdataCmdHackLibCompressAwk() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibCompressAwkBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/compress.awk", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibConstantsSh = []byte(`#!/usr/bin/env bash
+
+readonly OS_OUTPUT_BASEPATH="${OS_OUTPUT_BASEPATH:-_output}"
+readonly OS_BASE_OUTPUT="${OS_ROOT}/${OS_OUTPUT_BASEPATH}"
+readonly OS_OUTPUT_SCRIPTPATH="${OS_OUTPUT_SCRIPTPATH:-"${OS_BASE_OUTPUT}/scripts"}"
+`)
+
+func testExtendedTestdataCmdHackLibConstantsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibConstantsSh, nil
+}
+
+func testExtendedTestdataCmdHackLibConstantsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibConstantsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/constants.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibInitSh = []byte(`#!/usr/bin/env bash
+
+# This script is meant to be the entrypoint for OpenShift Bash scripts to import all of the support
+# libraries at once in order to make Bash script preambles as minimal as possible. This script recur-
+# sively `+"`"+`source`+"`"+`s *.sh files in this directory tree. As such, no files should be `+"`"+`source`+"`"+`ed outside
+# of this script to ensure that we do not attempt to overwrite read-only variables.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_SCRIPT_START_TIME="$( date +%s )"; export OS_SCRIPT_START_TIME
+
+# os::util::absolute_path returns the absolute path to the directory provided
+function os::util::absolute_path() {
+	local relative_path="$1"
+	local absolute_path
+
+	pushd "${relative_path}" >/dev/null
+	relative_path="$( pwd )"
+	if [[ -h "${relative_path}" ]]; then
+		absolute_path="$( readlink "${relative_path}" )"
+	else
+		absolute_path="${relative_path}"
+	fi
+	popd >/dev/null
+
+	echo "${absolute_path}"
+}
+readonly -f os::util::absolute_path
+
+# find the absolute path to the root of the Origin source tree
+init_source="$( dirname "${BASH_SOURCE[0]}" )/../.."
+OS_ROOT="$( os::util::absolute_path "${init_source}" )"
+export OS_ROOT
+cd "${OS_ROOT}"
+
+source "${OS_ROOT}/hack/lib/constants.sh"
+source "${OS_ROOT}/hack/lib/cmd.sh"
+
+for library_file in $( find "${OS_ROOT}/hack/lib/log" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ); do
+	source "${library_file}"
+done
+for library_file in $( find "${OS_ROOT}/hack/lib/test" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ); do
+	source "${library_file}"
+done
+for library_file in $( find "${OS_ROOT}/hack/lib/util" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ); do
+	source "${library_file}"
+done
+
+unset library_files library_file init_source
+
+# all of our Bash scripts need to have the stacktrace
+# handler installed to deal with errors
+os::log::stacktrace::install
+
+# All of our Bash scripts need to have access to the
+# binaries that we build so we don't have to find
+# them before every invocation.
+os::util::environment::update_path_var
+
+if [[ -z "${OS_TMP_ENV_SET-}" ]]; then
+	# if this file is run via 'source', then $0 will be "-bash" and won't work with basename
+	if [[ "${0}" =~ .*\.sh ]]; then
+		os::util::environment::setup_tmpdir_vars "$( basename "${0}" ".sh" )"
+	else
+		os::util::environment::setup_tmpdir_vars "shell"
+	fi
+fi
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+  export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi
+
+
+cp ${KUBECONFIG_TESTS} /kubeconfig
+chmod 644 /kubeconfig
+export KUBECONFIG=/kubeconfig
+
+namespace="cmd-${TEST_NAME}"
+oc new-project "${namespace}"
+`)
+
+func testExtendedTestdataCmdHackLibInitShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibInitSh, nil
+}
+
+func testExtendedTestdataCmdHackLibInitSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibInitShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/init.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibLogOutputSh = []byte(`#!/usr/bin/env bash
+
+# This file contains functions used for writing log messages
+# to stdout and stderr from scripts while they run.
+
+# os::log::info writes the message to stdout.
+#
+# Arguments:
+#  - all: message to write
+function os::log::info() {
+	local message; message="$( os::log::internal::prefix_lines "[INFO]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	echo "${message}"
+}
+readonly -f os::log::info
+
+# os::log::warning writes the message to stderr.
+# A warning indicates something went wrong but
+# not so wrong that we cannot recover.
+#
+# Arguments:
+#  - all: message to write
+function os::log::warning() {
+	local message; message="$( os::log::internal::prefix_lines "[WARNING]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	os::text::print_yellow "${message}" 1>&2
+}
+readonly -f os::log::warning
+
+# os::log::error writes the message to stderr.
+# An error indicates that something went wrong
+# and we will most likely fail after this.
+#
+# Arguments:
+#  - all: message to write
+function os::log::error() {
+	local message; message="$( os::log::internal::prefix_lines "[ERROR]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	os::text::print_red "${message}" 1>&2
+}
+readonly -f os::log::error
+
+# os::log::fatal writes the message to stderr and
+# returns a non-zero code to force a process exit.
+# A fatal error indicates that there is no chance
+# of recovery.
+#
+# Arguments:
+#  - all: message to write
+function os::log::fatal() {
+	local message; message="$( os::log::internal::prefix_lines "[FATAL]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	os::text::print_red "${message}" 1>&2
+	exit 1
+}
+readonly -f os::log::fatal
+
+# os::log::debug writes the message to stderr if
+# the ${OS_DEBUG} variable is set.
+#
+# Globals:
+#  - OS_DEBUG
+# Arguments:
+#  - all: message to write
+function os::log::debug() {
+	local message; message="$( os::log::internal::prefix_lines "[DEBUG]" "$*" )"
+	os::log::internal::to_logfile "${message}"
+	if [[ -n "${OS_DEBUG:-}" ]]; then
+		os::text::print_blue "${message}" 1>&2
+	fi
+}
+readonly -f os::log::debug
+
+# os::log::internal::to_logfile makes a best-effort
+# attempt to write the message to the script logfile
+#
+# Globals:
+#  - LOG_DIR
+# Arguments:
+#  - all: message to write
+function os::log::internal::to_logfile() {
+	if [[ -n "${LOG_DIR:-}" && -d "${LOG_DIR-}" ]]; then
+		echo "$*" >>"${LOG_DIR}/scripts.log"
+	fi
+}
+
+# os::log::internal::prefix_lines prints out the
+# original content with the given prefix at the
+# start of every line.
+#
+# Arguments:
+#  - 1: prefix for lines
+#  - 2: content to prefix
+function os::log::internal::prefix_lines() {
+	local prefix="$1"
+	local content="$2"
+
+	local old_ifs="${IFS}"
+	IFS=$'\n'
+	for line in ${content}; do
+		echo "${prefix} ${line}"
+	done
+	IFS="${old_ifs}"
+}`)
+
+func testExtendedTestdataCmdHackLibLogOutputShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibLogOutputSh, nil
+}
+
+func testExtendedTestdataCmdHackLibLogOutputSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibLogOutputShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/log/output.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibLogStacktraceSh = []byte(`#!/usr/bin/env bash
+#
+# This library contains an implementation of a stack trace for Bash scripts.
+
+# os::log::stacktrace::install installs the stacktrace as a handler for the ERR signal if one
+# has not already been installed and sets `+"`"+`set -o errtrace`+"`"+` in order to propagate the handler
+# If the ERR trap is not initialized, installing this plugin will initialize it.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_USE_STACKTRACE
+function os::log::stacktrace::install() {
+    # setting 'errtrace' propagates our ERR handler to functions, expansions and subshells
+    set -o errtrace
+
+    # OS_USE_STACKTRACE is read by os::util::trap at runtime to request a stacktrace
+    export OS_USE_STACKTRACE=true
+
+    os::util::trap::init_err
+}
+readonly -f os::log::stacktrace::install
+
+# os::log::stacktrace::print prints the stacktrace and exits with the return code from the script that
+# called for a stack trace. This function will always return 0 if it is not handling the signal, and if it
+# is handling the signal, this function will always `+"`"+`exit`+"`"+`, not return, the return code it receives as
+# its first argument.
+#
+# Globals:
+#  - BASH_SOURCE
+#  - BASH_LINENO
+#  - FUNCNAME
+# Arguments:
+#  - 1: the return code of the command in the script that generated the ERR signal
+#  - 2: the last command that ran before handlers were invoked
+#  - 3: whether or not `+"`"+`set -o errexit`+"`"+` was set in the script that generated the ERR signal
+# Returns:
+#  None
+function os::log::stacktrace::print() {
+    local return_code=$1
+    local last_command=$2
+    local errexit_set=${3:-}
+
+    if [[ "${return_code}" = "0" ]]; then
+        # we're not supposed to respond when no error has occurred
+        return 0
+    fi
+
+    if [[ -z "${errexit_set}" ]]; then
+        # if errexit wasn't set in the shell when the ERR signal was issued, then we can ignore the signal
+        # as this is not cause for failure
+        return 0
+    fi
+
+    # dump the entire stack for debugging purposes
+    os::log::debug "$( os::util::repository_relative_path "${BASH_SOURCE[0]}:${LINENO}: ${BASH_COMMAND}" )"
+    for (( i = 0; i < ${#BASH_LINENO[@]}; i++ )); do
+        os::log::debug "$( os::util::repository_relative_path "${BASH_SOURCE[$i+1]:-"$( os::util::repository_relative_path "$0" )"}" ):${BASH_LINENO[$i]}: ${FUNCNAME[$i]}"
+    done
+
+    # iterate backwards through the stack until we leave library files, so we can be sure we start logging
+    # actual script code and not this handler's call
+    local stack_begin_index
+    for (( stack_begin_index = 0; stack_begin_index < ${#BASH_SOURCE[@]}; stack_begin_index++ )); do
+        if [[ ! "${BASH_SOURCE[${stack_begin_index}]}" =~ hack/lib/(log/stacktrace|util/trap)\.sh ]]; then
+            break
+        fi
+    done
+
+    local preamble_finished
+    local stack_index=1
+    local i
+    for (( i = stack_begin_index; i < ${#BASH_SOURCE[@]}; i++ )); do
+        local bash_source
+        bash_source="$( os::util::repository_relative_path "${BASH_SOURCE[$i]}" )"
+        if [[ -z "${preamble_finished:-}" ]]; then
+            preamble_finished=true
+            os::log::error "${bash_source}:${BASH_LINENO[$i-1]}: \`+"`"+`${last_command}\`+"`"+` exited with status ${return_code}." >&2
+            exit "${return_code}"
+        fi
+        stack_index=$(( stack_index + 1 ))
+    done
+
+    # we know we're the privileged handler in this chain, so we can safely exit the shell without
+    # starving another handler of the privilege of reacting to this signal
+    os::log::info "  Exiting with code ${return_code}." >&2
+    exit "${return_code}"
+}
+readonly -f os::log::stacktrace::print
+`)
+
+func testExtendedTestdataCmdHackLibLogStacktraceShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibLogStacktraceSh, nil
+}
+
+func testExtendedTestdataCmdHackLibLogStacktraceSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibLogStacktraceShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/log/stacktrace.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibLogSystemSh = []byte(`#!/usr/bin/env bash
+#
+# This library holds all of the system logging functions for OpenShift bash scripts.
+
+# os::log::system::install_cleanup installs os::log::system::clean_up as a trap on exit.
+# If any traps are currently set for these signals, os::log::system::clean_up is prefixed.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::log::system::install_cleanup() {
+    trap "os::log::system::clean_up; $(trap -p EXIT | awk -F"'" '{print $2}')" EXIT
+}
+readonly -f os::log::system::install_cleanup
+
+# os::log::system::clean_up should be trapped so that it can stop the logging utility once the script that
+# installed it is finished.
+# This function stops logging and generates plots of data for easy consumption.
+#
+# Globals:
+#  - LOG_DIR
+#  - LOGGER_PID
+#  - SAR_LOGFILE
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::log::system::clean_up() {
+    local return_code=$?
+
+    # we don't want failures in this logger to
+    set +o errexit
+
+    if jobs -pr | grep -q "${LOGGER_PID}"; then
+        kill -SIGTERM "${LOGGER_PID}"
+        # give logger ten seconds to gracefully exit before killing it
+        for (( i = 0; i < 10; i++ )); do
+            if ! jobs -pr | grep -q "${LOGGER_PID}"; then
+                # the logger has shutdown, we don't need to wait on it any longer
+                break
+            fi
+        done
+
+        if jobs -pr | grep -q "${LOGGER_PID}"; then
+            # the logger has not shutdown, so kill it
+            kill -SIGKILL "${LOGGER_PID}"
+        fi
+    fi
+
+    if ! which sadf  >/dev/null 2>&1; then
+        os::log::warning "System logger data could not be unpacked and graphed, 'sadf' binary not found in this environment."
+        return 0
+    fi
+
+    if [[ ! -s "${SAR_LOGFILE:-}" ]]; then
+        os::log::warning "No system logger data could be found, log file missing."
+        return 0
+    fi
+
+    local log_subset_flags=( "-b" "-B" "-u ALL" "-q" "-r" )
+
+    local log_subset_names=( "iops" "paging" "cpu" "queue" "memory" )
+
+    local log_subset_file
+    local i
+    for (( i = 0; i < "${#log_subset_flags[@]}"; i++ )); do
+        log_subset_file="${LOG_DIR}/${log_subset_names[$i]}.txt"
+        # use sadf utility to extract data into easily-parseable format
+        sadf -d "${SAR_LOGFILE}" -- ${log_subset_flags[$i]} > "${log_subset_file}"
+
+        local ignored_columns="hostname,interval,"
+
+        # special cases for special output from SAR, because the tool often gives us columns full of baloney
+        if [[ "${log_subset_names[$i]}" == "cpu" ]]; then
+            ignored_columns="${ignored_columns}CPU,"
+        fi
+
+        os::log::system::internal::prune_datafile "${log_subset_file}" "${ignored_columns}"
+        os::log::system::internal::plot "${log_subset_file}"
+    done
+
+    # remove the `+"`"+`sar`+"`"+` log file for space constraints
+    rm -f "${SAR_LOGFILE}"
+
+    return "${return_code}"
+}
+readonly -f os::log::system::clean_up
+
+# os::log::system::internal::prune_datafile removes the given columns from a datafile created by 'sadf -d'
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: datafile
+#  - 2: comma-delimited columns to remove, with trailing comma
+# Returns:
+#  None
+function os::log::system::internal::prune_datafile() {
+    local datafile=$1
+    local column_names=$2
+
+    if [[ "${#column_names}" -eq 0 ]]; then
+        return 0
+    fi
+
+    local columns_in_order
+    columns_in_order=( $( head -n 1 "${datafile}" | sed 's/^# //g' | tr ';' ' ' ) )
+
+    local columns_to_keep
+    local i
+    for (( i = 0; i < "${#columns_in_order[@]}"; i++ )); do
+        if ! echo "${column_names}" | grep -q "${columns_in_order[$i]},"; then
+            # this is a column we need to keep, adding one as 'cut' is 1-indexed
+            columns_to_keep+=( "$(( i + 1 ))" )
+        fi
+    done
+
+    # for the proper flag format for 'cut', we join the list delimiting with commas
+    columns_to_keep="$( IFS=','; echo "${columns_to_keep[*]}" )"
+
+    cut --delimiter=';' -f"${columns_to_keep}" "${datafile}" > "${datafile}.tmp"
+    sed -i '1s/^/# /' "${datafile}.tmp"
+    mv "${datafile}.tmp" "${datafile}"
+}
+readonly -f os::log::system::internal::prune_datafile
+
+# os::log::system::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used
+# on the output of a 'sar -f' read of a sar binary file. Plots will be made of all columns and stacked on each other with one x axis.
+# This function needs the non-data columns of the file to be prefixed with comments.
+#
+# Globals:
+#  - LOG_DIR
+# Arguments:
+#  - 1: data file
+# Returns:
+#  None
+function os::log::system::internal::plot() {
+    local datafile=$1
+    local plotname
+    plotname="$(basename "${datafile}" .txt)"
+
+    # we are expecting the output of a 'sadf -d' read, so the headers will be on the first line of the file
+    local headers
+    headers=( $( head -n 1 "${datafile}" | sed 's/^# //g' | tr ';' ' ' ) )
+
+    local records
+    local width
+    records="$(( $( wc -l < "${datafile}" ) - 1 ))" # one of these lines will be the header comment
+    if [[ "${records}" -gt 90 ]]; then
+        width="$(echo "8.5 + ${records}*0.025" | bc )"
+    else
+        width="8.5"
+    fi
+
+    local gnuplot_directive=( "set terminal pdf size ${width}in,$(( 2 * (${#headers[@]} - 1) ))in" \
+                              "set output \"${LOG_DIR}/${plotname}.pdf\"" \
+                              "set datafile separator \";\"" \
+                              "set xdata time" \
+                              "set timefmt '%Y-%m-%d %H:%M:%S UTC'" \
+                              "set tmargin 1" \
+                              "set bmargin 1" \
+                              "set lmargin 20" \
+                              "set rmargin 20" \
+                              "set multiplot layout ${#headers[@]},1 title \"\n${plotname}\n\"" \
+                              "unset title" )
+
+    local i
+    for (( i = 1; i < "${#headers[@]}"; i++ )); do
+        local header
+        header="${headers[$i]}"
+
+        if (( i == ${#headers[@]} - 1 )); then
+            # we need x-tick labels on the bottom plot
+            gnuplot_directive+=( "set xtics format '%H:%M:%S' rotate by -90" )
+        else
+            gnuplot_directive+=( "set format x ''" )
+        fi
+
+        gnuplot_directive+=( "plot \"${datafile}\" using 1:$(( i + 1 )) title \"${header}\" with lines" )
+    done
+
+    # concatenate the array with newlines to get the final directive to send to gnuplot
+    gnuplot_directive="$( IFS=$'\n'; echo "${gnuplot_directive[*]}" )"
+
+    {
+        printf '$ gnuplot <<< %s\n' "${gnuplot_directive}"
+        gnuplot <<< "${gnuplot_directive}" 2>&1
+        printf '\n\n'
+    } >> "${LOG_DIR}/gnuplot.log"
+
+    os::log::debug "Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
+}
+readonly -f os::log::system::internal::plot
+
+# os::log::system::start installs the system logger and begins logging
+#
+# Globals:
+#  - LOG_DIR
+# Arguments:
+#  None
+# Returns:
+#  - export LOGGER_PID
+#  - export SAR_LOGFILE
+function os::log::system::start() {
+    if ! which sar >/dev/null 2>&1; then
+        os::log::debug "System logger could not be started, 'sar' binary not found in this environment."
+        return 0
+    fi
+
+    readonly SAR_LOGFILE="${LOG_DIR}/sar.log"
+    export SAR_LOGFILE
+
+    os::log::system::internal::run "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log"
+
+    os::log::system::install_cleanup
+}
+readonly -f os::log::system::start
+
+# os::log::system::internal::run runs the system logger in the background.
+# 'sar' is configured to run once a second for 24 hours, so the cleanup trap should be installed to ensure that
+# the process is killed once the parent script is finished.
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: file to log binary outut to
+#  - 2: file to log stderr of the logger to
+# Returns:
+#  None
+function os::log::system::internal::run() {
+    local binary_logfile=$1
+    local stderr_logfile=$2
+
+    sar -A -o "${binary_logfile}" 1 86400 1>/dev/null 2>"${stderr_logfile}" &
+
+    LOGGER_PID=$!
+    readonly LOGGER_PID
+    export LOGGER_PID
+}
+readonly -f os::log::system::internal::run
+`)
+
+func testExtendedTestdataCmdHackLibLogSystemShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibLogSystemSh, nil
+}
+
+func testExtendedTestdataCmdHackLibLogSystemSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibLogSystemShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/log/system.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibTestJunitSh = []byte(`#!/usr/bin/env bash
+# This utility file contains functions that format test output to be parsed into jUnit XML
+
+# os::test::junit::declare_suite_start prints a message declaring the start of a test suite
+# Any number of suites can be in flight at any time, so there is no failure condition for this
+# script based on the number of suites in flight.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - NUM_OS_JUNIT_SUITES_IN_FLIGHT
+# Arguments:
+#  - 1: the suite name that is starting
+# Returns:
+#  - increment NUM_OS_JUNIT_SUITES_IN_FLIGHT
+function os::test::junit::declare_suite_start() {
+    local suite_name=$1
+    local num_suites=${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}
+
+    echo "=== BEGIN TEST SUITE github.com/openshift/origin/test/${suite_name} ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
+    NUM_OS_JUNIT_SUITES_IN_FLIGHT=$(( ${num_suites} + 1 ))
+    export NUM_OS_JUNIT_SUITES_IN_FLIGHT
+}
+readonly -f os::test::junit::declare_suite_start
+
+# os::test::junit::declare_suite_end prints a message declaring the end of a test suite
+# If there aren't any suites in flight, this function will fail.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - NUM_OS_JUNIT_SUITES_IN_FLIGHT
+# Arguments:
+#  - 1: the suite name that is starting
+# Returns:
+#  - export/decrement NUM_OS_JUNIT_SUITES_IN_FLIGHT
+function os::test::junit::declare_suite_end() {
+    local num_suites=${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}
+    if [[ "${num_suites}" -lt "1" ]]; then
+        # we can't end a suite if none have been started yet
+        echo "[ERROR] jUnit suite marker could not be placed, expected suites in flight, got ${num_suites}"
+        return 1
+    fi
+
+    echo "=== END TEST SUITE ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
+    NUM_OS_JUNIT_SUITES_IN_FLIGHT=$(( ${num_suites} - 1 ))
+    export NUM_OS_JUNIT_SUITES_IN_FLIGHT
+}
+readonly -f os::test::junit::declare_suite_end
+
+# os::test::junit::declare_test_start prints a message declaring the start of a test case
+# If there is already a test marked as being in flight, this function will fail.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - NUM_OS_JUNIT_TESTS_IN_FLIGHT
+# Arguments:
+#  None
+# Returns:
+#  - increment NUM_OS_JUNIT_TESTS_IN_FLIGHT
+function os::test::junit::declare_test_start() {
+    local num_tests=${NUM_OS_JUNIT_TESTS_IN_FLIGHT:-0}
+    if [[ "${num_tests}" -ne "0" ]]; then
+        # someone's declaring the starting of a test when a test is already in flight
+        echo "[ERROR] jUnit test marker could not be placed, expected no tests in flight, got ${num_tests}"
+        return 1
+    fi
+
+    local num_suites=${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}
+    if [[ "${num_suites}" -lt "1" ]]; then
+        # we can't end a test if no suites are in flight
+        echo "[ERROR] jUnit test marker could not be placed, expected suites in flight, got ${num_suites}"
+        return 1
+    fi
+
+    echo "=== BEGIN TEST CASE ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
+    NUM_OS_JUNIT_TESTS_IN_FLIGHT=$(( ${num_tests} + 1 ))
+    export NUM_OS_JUNIT_TESTS_IN_FLIGHT
+}
+readonly -f os::test::junit::declare_test_start
+
+# os::test::junit::declare_test_end prints a message declaring the end of a test case
+# If there is no test marked as being in flight, this function will fail.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - NUM_OS_JUNIT_TESTS_IN_FLIGHT
+# Arguments:
+#  None
+# Returns:
+#  - decrement NUM_OS_JUNIT_TESTS_IN_FLIGHT
+function os::test::junit::declare_test_end() {
+    local num_tests=${NUM_OS_JUNIT_TESTS_IN_FLIGHT:-0}
+    if [[ "${num_tests}" -ne "1" ]]; then
+        # someone's declaring the end of a test when a test is not in flight
+        echo "[ERROR] jUnit test marker could not be placed, expected one test in flight, got ${num_tests}"
+        return 1
+    fi
+
+    echo "=== END TEST CASE ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
+    NUM_OS_JUNIT_TESTS_IN_FLIGHT=$(( ${num_tests} - 1 ))
+    export NUM_OS_JUNIT_TESTS_IN_FLIGHT
+}
+readonly -f os::test::junit::declare_test_end
+
+# os::test::junit::check_test_counters checks that we do not have any test suites or test cases in flight
+# This function should be called at the very end of any test script using jUnit markers to make sure no error in
+# marking has occurred.
+#
+# Globals:
+#  - NUM_OS_JUNIT_SUITES_IN_FLIGHT
+#  - NUM_OS_JUNIT_TESTS_IN_FLIGHT
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::test::junit::check_test_counters() {
+    if [[ "${NUM_OS_JUNIT_SUITES_IN_FLIGHT-}" -ne "0" ]]; then
+        echo "[ERROR] Expected no test suites to be marked as in-flight at the end of testing, got ${NUM_OS_JUNIT_SUITES_IN_FLIGHT-}"
+        return 1
+    elif [[ "${NUM_OS_JUNIT_TESTS_IN_FLIGHT-}" -ne "0" ]]; then
+        echo "[ERROR] Expected no test cases to be marked as in-flight at the end of testing, got ${NUM_OS_JUNIT_TESTS_IN_FLIGHT-}"
+        return 1
+    fi
+}
+readonly -f os::test::junit::check_test_counters
+
+# os::test::junit::reconcile_output appends the necessary suite and test end statements to the jUnit output file
+# in order to ensure that the file is in a consistent state to allow for parsing
+#
+# Globals:
+#  - NUM_OS_JUNIT_SUITES_IN_FLIGHT
+#  - NUM_OS_JUNIT_TESTS_IN_FLIGHT
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::test::junit::reconcile_output() {
+    if [[ "${NUM_OS_JUNIT_TESTS_IN_FLIGHT:-0}" = "1" ]]; then
+        os::test::junit::declare_test_end
+    fi
+
+    for (( i = 0; i < ${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}; i++ )); do
+        os::test::junit::declare_suite_end
+    done
+}
+readonly -f os::test::junit::reconcile_output
+
+# os::test::junit::generate_report determines which type of report is to
+# be generated and does so from the raw output of the tests.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - ARTIFACT_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::test::junit::generate_report() {
+    if [[ -z "${JUNIT_REPORT_OUTPUT:-}" ||
+          -n "${JUNIT_REPORT_OUTPUT:-}" && ! -s "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+        # we can't generate a report
+        return 0
+    fi
+
+    if grep -q "=== END TEST CASE ===" "${JUNIT_REPORT_OUTPUT}"; then
+        os::test::junit::reconcile_output
+        os::test::junit::check_test_counters
+        os::test::junit::internal::generate_report "oscmd"
+    fi
+}
+
+# os::test::junit::internal::generate_report generats an XML jUnit
+# report for either `+"`"+`os::cmd`+"`"+` or `+"`"+`go test`+"`"+`, based on the passed
+# argument. If the `+"`"+`junitreport`+"`"+` binary is not present, it will be built.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - ARTIFACT_DIR
+# Arguments:
+#  - 1: specify which type of tests command output should junitreport read
+# Returns:
+#  export JUNIT_REPORT_NUM_FAILED
+function os::test::junit::internal::generate_report() {
+    local report_type="$1"
+    os::util::ensure::built_binary_exists 'junitreport'
+
+    local report_file
+    report_file="$( mktemp "${ARTIFACT_DIR}/${report_type}_report_XXXXX" ).xml"
+    os::log::info "jUnit XML report placed at $( os::util::repository_relative_path ${report_file} )"
+    junitreport --type "${report_type}"             \
+                --suites nested                     \
+                --roots github.com/openshift/origin \
+                --output "${report_file}"           \
+                <"${JUNIT_REPORT_OUTPUT}"
+
+    local summary
+    summary=$( junitreport summarize <"${report_file}" )
+
+    JUNIT_REPORT_NUM_FAILED="$( grep -oE "[0-9]+ failed" <<<"${summary}" )"
+    export JUNIT_REPORT_NUM_FAILED
+
+    echo "${summary}"
+}`)
+
+func testExtendedTestdataCmdHackLibTestJunitShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibTestJunitSh, nil
+}
+
+func testExtendedTestdataCmdHackLibTestJunitSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibTestJunitShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/test/junit.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibUtilEnvironmentSh = []byte(`#!/usr/bin/env bash
+
+# This script holds library functions for setting up the shell environment for OpenShift scripts
+
+# os::util::environment::use_sudo updates $USE_SUDO to be 'true', so that later scripts choosing between
+# execution using 'sudo' and execution without it chose to use 'sudo'
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export USE_SUDO
+function os::util::environment::use_sudo() {
+    USE_SUDO=true
+    export USE_SUDO
+}
+readonly -f os::util::environment::use_sudo
+
+# os::util::environment::setup_time_vars sets up environment variables that describe durations of time
+# These variables can be used to specify times for other utility functions
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export TIME_MS
+#  - export TIME_SEC
+#  - export TIME_MIN
+function os::util::environment::setup_time_vars() {
+    TIME_MS=1
+    export TIME_MS
+    TIME_SEC="$(( 1000  * ${TIME_MS} ))"
+    export TIME_SEC
+    TIME_MIN="$(( 60 * ${TIME_SEC} ))"
+    export TIME_MIN
+}
+readonly -f os::util::environment::setup_time_vars
+
+# os::util::environment::setup_all_server_vars sets up all environment variables necessary to configure and start an OpenShift server
+#
+# Globals:
+#  - OS_ROOT
+#  - PATH
+#  - TMPDIR
+#  - LOG_DIR
+#  - ARTIFACT_DIR
+#  - KUBELET_SCHEME
+#  - KUBELET_BIND_HOST
+#  - KUBELET_HOST
+#  - KUBELET_PORT
+#  - BASETMPDIR
+#  - ETCD_PORT
+#  - ETCD_PEER_PORT
+#  - API_BIND_HOST
+#  - API_HOST
+#  - API_PORT
+#  - API_SCHEME
+#  - PUBLIC_MASTER_HOST
+#  - USE_IMAGES
+# Arguments:
+#  - 1: the path under the root temporary directory for OpenShift where these subdirectories should be made
+# Returns:
+#  - export PATH
+#  - export BASETMPDIR
+#  - export LOG_DIR
+#  - export VOLUME_DIR
+#  - export ARTIFACT_DIR
+#  - export FAKE_HOME_DIR
+#  - export KUBELET_SCHEME
+#  - export KUBELET_BIND_HOST
+#  - export KUBELET_HOST
+#  - export KUBELET_PORT
+#  - export ETCD_PORT
+#  - export ETCD_PEER_PORT
+#  - export ETCD_DATA_DIR
+#  - export API_BIND_HOST
+#  - export API_HOST
+#  - export API_PORT
+#  - export API_SCHEME
+#  - export SERVER_CONFIG_DIR
+#  - export MASTER_CONFIG_DIR
+#  - export NODE_CONFIG_DIR
+#  - export USE_IMAGES
+#  - export TAG
+function os::util::environment::setup_all_server_vars() {
+    os::util::environment::setup_kubelet_vars
+    os::util::environment::setup_etcd_vars
+    os::util::environment::setup_server_vars
+    os::util::environment::setup_images_vars
+}
+readonly -f os::util::environment::setup_all_server_vars
+
+# os::util::environment::update_path_var updates $PATH so that OpenShift binaries are available
+#
+# Globals:
+#  - OS_ROOT
+#  - PATH
+# Arguments:
+#  None
+# Returns:
+#  - export PATH
+function os::util::environment::update_path_var() {
+    local prefix
+    if os::util::find::system_binary 'go' >/dev/null 2>&1; then
+        prefix+="${OS_OUTPUT_BINPATH}/$(os::build::host_platform):"
+    fi
+    if [[ -n "${GOPATH:-}" ]]; then
+        prefix+="${GOPATH}/bin:"
+    fi
+
+    PATH="${prefix:-}${PATH}"
+    export PATH
+}
+readonly -f os::util::environment::update_path_var
+
+# os::util::environment::setup_tmpdir_vars sets up temporary directory path variables
+#
+# Globals:
+#  - TMPDIR
+# Arguments:
+#  - 1: the path under the root temporary directory for OpenShift where these subdirectories should be made
+# Returns:
+#  - export BASETMPDIR
+#  - export BASEOUTDIR
+#  - export LOG_DIR
+#  - export VOLUME_DIR
+#  - export ARTIFACT_DIR
+#  - export FAKE_HOME_DIR
+#  - export OS_TMP_ENV_SET
+function os::util::environment::setup_tmpdir_vars() {
+    local sub_dir=$1
+
+    BASETMPDIR="${TMPDIR:-/tmp}/openshift/${sub_dir}"
+    export BASETMPDIR
+    VOLUME_DIR="${BASETMPDIR}/volumes"
+    export VOLUME_DIR
+
+    BASEOUTDIR="${OS_OUTPUT_SCRIPTPATH}/${sub_dir}"
+    export BASEOUTDIR
+    LOG_DIR="${ARTIFACT_DIR:-${BASEOUTDIR}}/logs"
+    export LOG_DIR
+    ARTIFACT_DIR="${ARTIFACT_DIR:-${BASEOUTDIR}/artifacts}"
+    export ARTIFACT_DIR
+    FAKE_HOME_DIR="${BASEOUTDIR}/openshift.local.home"
+    export FAKE_HOME_DIR
+
+    mkdir -p "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}"
+
+    export OS_TMP_ENV_SET="${sub_dir}"
+}
+readonly -f os::util::environment::setup_tmpdir_vars
+
+# os::util::environment::setup_kubelet_vars sets up environment variables necessary for interacting with the kubelet
+#
+# Globals:
+#  - KUBELET_SCHEME
+#  - KUBELET_BIND_HOST
+#  - KUBELET_HOST
+#  - KUBELET_PORT
+# Arguments:
+#  None
+# Returns:
+#  - export KUBELET_SCHEME
+#  - export KUBELET_BIND_HOST
+#  - export KUBELET_HOST
+#  - export KUBELET_PORT
+function os::util::environment::setup_kubelet_vars() {
+    KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
+    export KUBELET_SCHEME
+    KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-127.0.0.1}"
+    export KUBELET_BIND_HOST
+    KUBELET_HOST="${KUBELET_HOST:-${KUBELET_BIND_HOST}}"
+    export KUBELET_HOST
+    KUBELET_PORT="${KUBELET_PORT:-10250}"
+    export KUBELET_PORT
+}
+readonly -f os::util::environment::setup_kubelet_vars
+
+# os::util::environment::setup_etcd_vars sets up environment variables necessary for interacting with etcd
+#
+# Globals:
+#  - BASETMPDIR
+#  - ETCD_HOST
+#  - ETCD_PORT
+#  - ETCD_PEER_PORT
+# Arguments:
+#  None
+# Returns:
+#  - export ETCD_HOST
+#  - export ETCD_PORT
+#  - export ETCD_PEER_PORT
+#  - export ETCD_DATA_DIR
+function os::util::environment::setup_etcd_vars() {
+    ETCD_HOST="${ETCD_HOST:-127.0.0.1}"
+    export ETCD_HOST
+    ETCD_PORT="${ETCD_PORT:-4001}"
+    export ETCD_PORT
+    ETCD_PEER_PORT="${ETCD_PEER_PORT:-7001}"
+    export ETCD_PEER_PORT
+
+    ETCD_DATA_DIR="${BASETMPDIR}/etcd"
+    export ETCD_DATA_DIR
+
+    mkdir -p "${ETCD_DATA_DIR}"
+}
+readonly -f os::util::environment::setup_etcd_vars
+
+# os::util::environment::setup_server_vars sets up environment variables necessary for interacting with the server
+#
+# Globals:
+#  - BASETMPDIR
+#  - KUBELET_HOST
+#  - API_BIND_HOST
+#  - API_HOST
+#  - API_PORT
+#  - API_SCHEME
+#  - PUBLIC_MASTER_HOST
+# Arguments:
+#  None
+# Returns:
+#  - export API_BIND_HOST
+#  - export API_HOST
+#  - export API_PORT
+#  - export API_SCHEME
+#  - export SERVER_CONFIG_DIR
+#  - export MASTER_CONFIG_DIR
+#  - export NODE_CONFIG_DIR
+function os::util::environment::setup_server_vars() {
+    # turn on cache mutation detector every time we start a server
+    KUBE_CACHE_MUTATION_DETECTOR="${KUBE_CACHE_MUTATION_DETECTOR:-true}"
+    export KUBE_CACHE_MUTATION_DETECTOR
+
+    API_BIND_HOST="${API_BIND_HOST:-127.0.0.1}"
+    export API_BIND_HOST
+    API_HOST="${API_HOST:-${API_BIND_HOST}}"
+    export API_HOST
+    API_PORT="${API_PORT:-8443}"
+    export API_PORT
+    API_SCHEME="${API_SCHEME:-https}"
+    export API_SCHEME
+
+    MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
+    export MASTER_ADDR
+    PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
+    export PUBLIC_MASTER_HOST
+
+    SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+    export SERVER_CONFIG_DIR
+    MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+    export MASTER_CONFIG_DIR
+    NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
+    export NODE_CONFIG_DIR
+
+    ETCD_CLIENT_CERT="${MASTER_CONFIG_DIR}/master.etcd-client.crt"
+    export ETCD_CLIENT_CERT
+    ETCD_CLIENT_KEY="${MASTER_CONFIG_DIR}/master.etcd-client.key"
+    export ETCD_CLIENT_KEY
+    ETCD_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca-bundle.crt"
+    export ETCD_CA_BUNDLE
+
+    mkdir -p "${SERVER_CONFIG_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}"
+}
+readonly -f os::util::environment::setup_server_vars
+
+# os::util::environment::setup_images_vars sets up environment variables necessary for interacting with release images
+#
+# Globals:
+#  - OS_ROOT
+#  - USE_IMAGES
+# Arguments:
+#  None
+# Returns:
+#  - export USE_IMAGES
+#  - export TAG
+#  - export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY
+function os::util::environment::setup_images_vars() {
+    # Use either the latest release built images, or latest.
+    IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
+    if [[ -z "${USE_IMAGES-}" ]]; then
+        TAG='latest'
+        export TAG
+        USE_IMAGES="${IMAGE_PREFIX}-\${component}:latest"
+        export USE_IMAGES
+
+        if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
+            TAG="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
+            export TAG
+            USE_IMAGES="${IMAGE_PREFIX}-\${component}:${TAG}"
+            export USE_IMAGES
+        fi
+    fi
+	export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY="${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-3}"
+}
+readonly -f os::util::environment::setup_images_vars
+`)
+
+func testExtendedTestdataCmdHackLibUtilEnvironmentShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibUtilEnvironmentSh, nil
+}
+
+func testExtendedTestdataCmdHackLibUtilEnvironmentSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibUtilEnvironmentShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/util/environment.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibUtilMiscSh = []byte(`#!/usr/bin/env bash
+#
+# This library holds miscellaneous utility functions. If there begin to be groups of functions in this
+# file that share intent or are thematically similar, they should be split into their own files.
+
+# os::util::describe_return_code describes an exit code
+#
+# Globals:
+#  - OS_SCRIPT_START_TIME
+# Arguments:
+#  - 1: exit code to describe
+# Returns:
+#  None
+function os::util::describe_return_code() {
+	local return_code=$1
+	local message="$( os::util::repository_relative_path $0 ) exited with code ${return_code} "
+
+	if [[ -n "${OS_SCRIPT_START_TIME:-}" ]]; then
+		local end_time
+        end_time="$(date +%s)"
+		local elapsed_time
+        elapsed_time="$(( end_time - OS_SCRIPT_START_TIME ))"
+		local formatted_time
+        formatted_time="$( os::util::format_seconds "${elapsed_time}" )"
+		message+="after ${formatted_time}"
+	fi
+
+	if [[ "${return_code}" = "0" ]]; then
+		os::log::info "${message}"
+	else
+		os::log::error "${message}"
+	fi
+}
+readonly -f os::util::describe_return_code
+
+# os::util::install_describe_return_code installs the return code describer for the EXIT trap
+# If the EXIT trap is not initialized, installing this plugin will initialize it.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  - export OS_DESCRIBE_RETURN_CODE
+#  - export OS_SCRIPT_START_TIME
+function os::util::install_describe_return_code() {
+	export OS_DESCRIBE_RETURN_CODE="true"
+	OS_SCRIPT_START_TIME="$( date +%s )"; export OS_SCRIPT_START_TIME
+	os::util::trap::init_exit
+}
+readonly -f os::util::install_describe_return_code
+
+# OS_ORIGINAL_WD is the original working directory the script sourcing this utility file was called
+# from. This is an important directory as if $0 is a relative path, we cannot use the following path
+# utility without knowing from where $0 is relative.
+if [[ -z "${OS_ORIGINAL_WD:-}" ]]; then
+	# since this could be sourced in a context where the utilities are already loaded,
+	# we want to ensure that this is re-entrant, so we only set $OS_ORIGINAL_WD if it
+	# is not set already
+	OS_ORIGINAL_WD="$( pwd )"
+	readonly OS_ORIGINAL_WD
+	export OS_ORIGINAL_WD
+fi
+
+# os::util::repository_relative_path returns the relative path from the $OS_ROOT directory to the
+# given file, if the file is inside of the $OS_ROOT directory. If the file is outside of $OS_ROOT,
+# this function will return the absolute path to the file
+#
+# Globals:
+#  - OS_ROOT
+# Arguments:
+#  - 1: the path to relativize
+# Returns:
+#  None
+function os::util::repository_relative_path() {
+	local filename=$1
+	local directory; directory="$( dirname "${filename}" )"
+	filename="$( basename "${filename}" )"
+
+	if [[ "${directory}" != "${OS_ROOT}"* ]]; then
+		pushd "${OS_ORIGINAL_WD}" >/dev/null 2>&1
+		directory="$( os::util::absolute_path "${directory}" )"
+		popd >/dev/null 2>&1
+	fi
+
+	directory="${directory##*${OS_ROOT}/}"
+
+	echo "${directory}/${filename}"
+}
+readonly -f os::util::repository_relative_path
+
+# os::util::format_seconds formats a duration of time in seconds to print in HHh MMm SSs
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: time in seconds to format
+# Return:
+#  None
+function os::util::format_seconds() {
+	local raw_seconds=$1
+
+	local hours minutes seconds
+	(( hours=raw_seconds/3600 ))
+	(( minutes=(raw_seconds%3600)/60 ))
+	(( seconds=raw_seconds%60 ))
+
+	printf '%02dh %02dm %02ds' "${hours}" "${minutes}" "${seconds}"
+}
+readonly -f os::util::format_seconds
+
+# os::util::sed attempts to make our Bash scripts agnostic to the platform
+# on which they run `+"`"+`sed`+"`"+` by glossing over a discrepancy in flag use in GNU.
+#
+# Globals:
+#  None
+# Arguments:
+#  - all: arguments to pass to `+"`"+`sed -i`+"`"+`
+# Return:
+#  None
+function os::util::sed() {
+	local sudo="${USE_SUDO:+sudo}"
+	if LANG=C sed --help 2>&1 | grep -q "GNU sed"; then
+		${sudo} sed -i'' "$@"
+	else
+		${sudo} sed -i '' "$@"
+	fi
+}
+readonly -f os::util::sed
+
+# os::util::base64decode attempts to make our Bash scripts agnostic to the platform
+# on which they run `+"`"+`base64decode`+"`"+` by glossing over a discrepancy in flag use in GNU.
+#
+# Globals:
+#  None
+# Arguments:
+#  - all: arguments to pass to `+"`"+`base64decode`+"`"+`
+# Return:
+#  None
+function os::util::base64decode() {
+	if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
+		base64 -D "$@"
+	else
+		base64 -d "$@"
+	fi
+}
+readonly -f os::util::base64decode
+
+# os::util::curl_etcd sends a request to the backing etcd store for the master.
+# We use the administrative client cert and key for access and re-encode them
+# as necessary for OSX clients.
+#
+# Globals:
+#  MASTER_CONFIG_DIR
+#  API_SCHEME
+#  API_HOST
+#  ETCD_PORT
+# Arguments:
+#  - 1: etcd-relative URL to curl, with leading slash
+# Returns:
+#  None
+function os::util::curl_etcd() {
+	local url="$1"
+	local full_url="${API_SCHEME}://${API_HOST}:${ETCD_PORT}${url}"
+
+	local etcd_client_cert="${MASTER_CONFIG_DIR}/master.etcd-client.crt"
+	local etcd_client_key="${MASTER_CONFIG_DIR}/master.etcd-client.key"
+	local ca_bundle="${MASTER_CONFIG_DIR}/ca-bundle.crt"
+
+	if curl -V | grep -q 'SecureTransport'; then
+		# on newer OSX `+"`"+`curl`+"`"+` implementations, SSL is not used and client certs
+		# and keys are expected to be encoded in P12 format instead of PEM format,
+		# so we need to convert the secrets that the server wrote if we haven't
+		# already done so
+		local etcd_client_cert_p12="${MASTER_CONFIG_DIR}/master.etcd-client.crt.p12"
+		local etcd_client_cert_p12_password="${CURL_CERT_P12_PASSWORD:-'password'}"
+		if [[ ! -f "${etcd_client_cert_p12}" ]]; then
+			openssl pkcs12 -export                        \
+			               -in "${etcd_client_cert}"      \
+			               -inkey "${etcd_client_key}"    \
+			               -out "${etcd_client_cert_p12}" \
+			               -password "pass:${etcd_client_cert_p12_password}"
+		fi
+
+		curl --fail --silent --cacert "${ca_bundle}" \
+		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
+	else
+		curl --fail --silent --cacert "${ca_bundle}" \
+		     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
+	fi
+}
+
+# os::util::ensure_tmpfs ensures that the target dir is mounted on tmpfs
+#
+# Globals:
+#  OS_TMPFS_REQUIRED
+# Arguments:
+#  - 1: target to check
+# Returns:
+#  None
+function os::util::ensure_tmpfs() {
+	if [[ -z "${OS_TMPFS_REQUIRED:-}" ]]; then
+		return 0
+	fi
+
+	local target="$1"
+	if [[ ! -d "${target}" ]]; then
+		os::log::fatal "Target dir ${target} does not exist, cannot perform fstype check."
+	fi
+
+	os::log::debug "Filesystem information:
+$( df -h -T )"
+
+	os::log::debug "Mount information:
+$( findmnt --all )"
+
+	local fstype
+	fstype="$( df --output=fstype "${target}" | tail -n 1 )"
+	if [[ "${fstype}" != "tmpfs" ]]; then
+		local message="Expected \`+"`"+`${target}\`+"`"+` to be mounted on \`+"`"+`tmpfs\`+"`"+` but found \`+"`"+`${fstype}\`+"`"+` instead."
+		os::log::fatal "${message}"
+	fi
+}`)
+
+func testExtendedTestdataCmdHackLibUtilMiscShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibUtilMiscSh, nil
+}
+
+func testExtendedTestdataCmdHackLibUtilMiscSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibUtilMiscShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/util/misc.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibUtilTextSh = []byte(`#!/usr/bin/env bash
+
+# This file contains helpful aliases for manipulating the output text to the terminal as
+# well as functions for one-command augmented printing.
+
+# os::text::reset resets the terminal output to default if it is called in a TTY
+function os::text::reset() {
+	if os::text::internal::is_tty; then
+		tput sgr0
+	fi
+}
+readonly -f os::text::reset
+
+# os::text::bold sets the terminal output to bold text if it is called in a TTY
+function os::text::bold() {
+	if os::text::internal::is_tty; then
+		tput bold
+	fi
+}
+readonly -f os::text::bold
+
+# os::text::red sets the terminal output to red text if it is called in a TTY
+function os::text::red() {
+	if os::text::internal::is_tty; then
+		tput setaf 1
+	fi
+}
+readonly -f os::text::red
+
+# os::text::green sets the terminal output to green text if it is called in a TTY
+function os::text::green() {
+	if os::text::internal::is_tty; then
+		tput setaf 2
+	fi
+}
+readonly -f os::text::green
+
+# os::text::blue sets the terminal output to blue text if it is called in a TTY
+function os::text::blue() {
+	if os::text::internal::is_tty; then
+		tput setaf 4
+	fi
+}
+readonly -f os::text::blue
+
+# os::text::yellow sets the terminal output to yellow text if it is called in a TTY
+function os::text::yellow() {
+	if os::text::internal::is_tty; then
+		tput setaf 11
+	fi
+}
+readonly -f os::text::yellow
+
+# os::text::clear_last_line clears the text from the last line of output to the
+# terminal and leaves the cursor on that line to allow for overwriting that text
+# if it is called in a TTY
+function os::text::clear_last_line() {
+	if os::text::internal::is_tty; then
+		tput cuu 1
+		tput el
+	fi
+}
+readonly -f os::text::clear_last_line
+
+# os::text::clear_string attempts to clear the entirety of a string from the terminal.
+# If the string contains literal tabs or other characters that take up more than one
+# character space in output, or if the window size is changed before this function
+# is called, it will not function correctly.
+# No action is taken if this is called outside of a TTY
+function os::text::clear_string() {
+    local -r string="$1"
+    if os::text::internal::is_tty; then
+        echo "${string}" | while read line; do
+            # num_lines is the number of terminal lines this one line of output
+            # would have taken up with the current terminal width in columns
+            local num_lines=$(( ${#line} / $( tput cols ) ))
+            for (( i = 0; i <= num_lines; i++ )); do
+                os::text::clear_last_line
+            done
+        done
+    fi
+}
+
+# os::text::internal::is_tty determines if we are outputting to a TTY
+function os::text::internal::is_tty() {
+	[[ -t 1 && -n "${TERM:-}" ]]
+}
+readonly -f os::text::internal::is_tty
+
+# os::text::print_bold prints all input in bold text
+function os::text::print_bold() {
+	os::text::bold
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_bold
+
+# os::text::print_red prints all input in red text
+function os::text::print_red() {
+	os::text::red
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_red
+
+# os::text::print_red_bold prints all input in bold red text
+function os::text::print_red_bold() {
+	os::text::red
+	os::text::bold
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_red_bold
+
+# os::text::print_green prints all input in green text
+function os::text::print_green() {
+	os::text::green
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_green
+
+# os::text::print_green_bold prints all input in bold green text
+function os::text::print_green_bold() {
+	os::text::green
+	os::text::bold
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_green_bold
+
+# os::text::print_blue prints all input in blue text
+function os::text::print_blue() {
+	os::text::blue
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_blue
+
+# os::text::print_blue_bold prints all input in bold blue text
+function os::text::print_blue_bold() {
+	os::text::blue
+	os::text::bold
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_blue_bold
+
+# os::text::print_yellow prints all input in yellow text
+function os::text::print_yellow() {
+	os::text::yellow
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_yellow
+
+# os::text::print_yellow_bold prints all input in bold yellow text
+function os::text::print_yellow_bold() {
+	os::text::yellow
+	os::text::bold
+	echo "${*}"
+	os::text::reset
+}
+readonly -f os::text::print_yellow_bold
+`)
+
+func testExtendedTestdataCmdHackLibUtilTextShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibUtilTextSh, nil
+}
+
+func testExtendedTestdataCmdHackLibUtilTextSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibUtilTextShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/util/text.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdHackLibUtilTrapSh = []byte(`#!/usr/bin/env bash
+#
+# This library defines the trap handlers for the ERR and EXIT signals. Any new handler for these signals
+# must be added to these handlers and activated by the environment variable mechanism that the rest use.
+# These functions ensure that no handler can ever alter the exit code that was emitted by a command
+# in a test script.
+
+# os::util::trap::init_err initializes the privileged handler for the ERR signal if it hasn't
+# been registered already. This will overwrite any other handlers registered on the signal.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::util::trap::init_err() {
+    if ! trap -p ERR | grep -q 'os::util::trap::err_handler'; then
+        trap 'os::util::trap::err_handler;' ERR
+    fi
+}
+readonly -f os::util::trap::init_err
+
+# os::util::trap::init_exit initializes the privileged handler for the EXIT signal if it hasn't
+# been registered already. This will overwrite any other handlers registered on the signal.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::util::trap::init_exit() {
+    if ! trap -p EXIT | grep -q 'os::util::trap::exit_handler'; then
+        trap 'os::util::trap::exit_handler;' EXIT
+    fi
+}
+readonly -f os::util::trap::init_exit
+
+# os::util::trap::err_handler is the handler for the ERR signal.
+#
+# Globals:
+#  - OS_TRAP_DEBUG
+#  - OS_USE_STACKTRACE
+# Arguments:
+#  None
+# Returns:
+#  - returns original return code, allows privileged handler to exit if necessary
+function os::util::trap::err_handler() {
+    local -r return_code=$?
+    local -r last_command="${BASH_COMMAND}"
+
+    if set +o | grep -q '\-o errexit'; then
+        local -r errexit_set=true
+    fi
+
+    if [[ "${OS_TRAP_DEBUG:-}" = "true" ]]; then
+        echo "[DEBUG] Error handler executing with return code \`+"`"+`${return_code}\`+"`"+`, last command \`+"`"+`${last_command}\`+"`"+`, and errexit set \`+"`"+`${errexit_set:-}\`+"`"+`"
+    fi
+
+    if [[ "${OS_USE_STACKTRACE:-}" = "true" ]]; then
+        # the OpenShift stacktrace function is treated as a privileged handler for this signal
+        # and is therefore allowed to run outside of a subshell in order to allow it to `+"`"+`exit`+"`"+`
+        # if necessary
+        os::log::stacktrace::print "${return_code}" "${last_command}" "${errexit_set:-}"
+    fi
+
+    return "${return_code}"
+}
+readonly -f os::util::trap::err_handler
+
+# os::util::trap::exit_handler is the handler for the EXIT signal.
+#
+# Globals:
+#  - OS_TRAP_DEBUG
+#  - OS_DESCRIBE_RETURN_CODE
+# Arguments:
+#  None
+# Returns:
+#  - original exit code of the script that exited
+function os::util::trap::exit_handler() {
+    local -r return_code=$?
+
+    # we do not want these traps to be able to trigger more errors, we can let them fail silently
+    set +o errexit
+
+    if [[ "${OS_TRAP_DEBUG:-}" = "true" ]]; then
+        echo "[DEBUG] Exit handler executing with return code \`+"`"+`${return_code}\`+"`"+`"
+    fi
+
+    # the following envars selectively enable optional exit traps, all of which are run inside of
+    # a subshell in order to sandbox them and not allow them to influence how this script will exit
+    if [[ "${OS_DESCRIBE_RETURN_CODE:-}" = "true" ]]; then
+        ( os::util::describe_return_code "${return_code}" )
+    fi
+
+    exit "${return_code}"
+}
+readonly -f os::util::trap::exit_handler
+`)
+
+func testExtendedTestdataCmdHackLibUtilTrapShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdHackLibUtilTrapSh, nil
+}
+
+func testExtendedTestdataCmdHackLibUtilTrapSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdHackLibUtilTrapShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/hack/lib/util/trap.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdAdminSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete project/example project/ui-test-project project/recreated-project &>/dev/null || true
+  oc delete groups/shortoutputgroup &>/dev/null || true
+  oc delete groups/group1 &>/dev/null || true
+  oc delete groups/cascaded-group &>/dev/null || true
+  oc delete groups/orphaned-group &>/dev/null || true
+  oc delete users/cascaded-user &>/dev/null || true
+  oc delete users/orphaned-user &>/dev/null || true
+  oc delete identities/alwaysallow:orphaned-user &>/dev/null || true
+  oc delete identities/alwaysallow:cascaded-user &>/dev/null || true
+  oc delete clusterroles/basic-users2 &>/dev/null || true
+  oc delete clusterroles/basic-user2 &>/dev/null || true
+  oc delete clusterrolebindings/basic-users2 &>/dev/null || true
+  oc delete clusterrolebindings/basic-user2 &>/dev/null || true
+  oc delete user/test-cmd-user &>/dev/null || true
+  oc delete namespace example &>/dev/null || true
+  oc delete identities.user.openshift.io/test-idp:test-uid &>/dev/null || true
+  oc delete images.image.openshift.io/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6 &>/dev/null || true
+  oc delete -n default imagestreams.image.openshift.io/busybox &>/dev/null || true
+  oc wait --for=delete namespace/example --timeout=60s || true
+#  oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"
+  exit 0
+) &>/dev/null
+
+project="$( oc project -q )"
+
+defaultimage="openshift/origin-\${component}:latest"
+USE_IMAGES=${USE_IMAGES:-$defaultimage}
+
+os::test::junit::declare_suite_start "cmd/admin"
+# This test validates admin level commands including system policy
+
+os::test::junit::declare_suite_start "cmd/admin/start"
+# Check failure modes of various system commands
+
+os::test::junit::declare_suite_start "cmd/admin/certs"
+# check encrypt/decrypt of plain text
+os::cmd::expect_success          "echo -n 'secret data 1' | oc adm ca encrypt --genkey='${ARTIFACT_DIR}/secret.key' --out='${ARTIFACT_DIR}/secret.encrypted'"
+os::cmd::expect_success_and_text "oc adm ca decrypt --in='${ARTIFACT_DIR}/secret.encrypted' --key='${ARTIFACT_DIR}/secret.key'" 'secret data 1'
+# create a file with trailing whitespace
+echo "data with newline" > "${ARTIFACT_DIR}/secret.whitespace.data"
+os::cmd::expect_success_and_text "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.whitespace.data'      --out='${ARTIFACT_DIR}/secret.whitespace.encrypted'" 'Warning.*whitespace'
+os::cmd::expect_success          "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.whitespace.encrypted' --out='${ARTIFACT_DIR}/secret.whitespace.decrypted'"
+os::cmd::expect_success          "diff '${ARTIFACT_DIR}/secret.whitespace.data' '${ARTIFACT_DIR}/secret.whitespace.decrypted'"
+# create a binary file
+echo "hello" | gzip > "${ARTIFACT_DIR}/secret.data"
+# encrypt using file and pipe input/output
+os::cmd::expect_success "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.data' --out='${ARTIFACT_DIR}/secret.file-in-file-out.encrypted'"
+os::cmd::expect_success "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.data'     > '${ARTIFACT_DIR}/secret.file-in-pipe-out.encrypted'"
+os::cmd::expect_success "oc adm ca encrypt --key='${ARTIFACT_DIR}/secret.key'    < '${ARTIFACT_DIR}/secret.data'     > '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.encrypted'"
+# decrypt using all three methods
+os::cmd::expect_success "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.file-in-file-out.encrypted' --out='${ARTIFACT_DIR}/secret.file-in-file-out.decrypted'"
+os::cmd::expect_success "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key' --in='${ARTIFACT_DIR}/secret.file-in-pipe-out.encrypted'     > '${ARTIFACT_DIR}/secret.file-in-pipe-out.decrypted'"
+os::cmd::expect_success "oc adm ca decrypt --key='${ARTIFACT_DIR}/secret.key'    < '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.encrypted'     > '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.decrypted'"
+# verify lossless roundtrip
+os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.file-in-file-out.decrypted'"
+os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.file-in-pipe-out.decrypted'"
+os::cmd::expect_success "diff '${ARTIFACT_DIR}/secret.data' '${ARTIFACT_DIR}/secret.pipe-in-pipe-out.decrypted'"
+echo "certs: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/groups"
+os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name' 'group.user.openshift.io/shortoutputgroup'
+# test --dry-run flag for this command
+os::cmd::expect_success_and_text 'oc adm groups new mygroup --dry-run' 'group.user.openshift.io/mygroup created \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm groups new mygroup --dry-run -o name' 'group.user.openshift.io/mygroup'
+# ensure group was not actually created
+os::cmd::expect_failure_and_text 'oc get groups mygroup' 'groups.user.openshift.io "mygroup" not found'
+os::cmd::expect_success_and_text 'oc adm groups new shortoutputgroup -o name --dry-run' 'group.user.openshift.io/shortoutputgroup'
+os::cmd::expect_failure_and_text 'oc adm groups new shortoutputgroup' 'groups.user.openshift.io "shortoutputgroup" already exists'
+os::cmd::expect_failure_and_text 'oc adm groups new errorgroup -o blah' 'unable to match a printer suitable for the output format "blah"'
+os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups.user.openshift.io "errorgroup" not found'
+# update cmd to use --template once it is wired across all Origin commands.
+# see
+os::cmd::expect_success_and_text 'oc adm groups new group1 foo bar -o yaml' '\- foo'
+os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
+os::cmd::expect_success 'oc adm groups add-users group1 baz'
+os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'baz'
+os::cmd::expect_success 'oc adm groups remove-users group1 bar'
+os::cmd::expect_success_and_not_text 'oc get groups/group1 --no-headers' 'bar'
+os::cmd::expect_success_and_text 'oc adm prune auth users/baz' 'group.user.openshift.io/group1 updated'
+echo "groups: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/admin-scc"
+os::cmd::expect_success 'oc adm policy who-can get pods'
+os::cmd::expect_success 'oc adm policy who-can get pods -n default'
+os::cmd::expect_success 'oc adm policy who-can get pods --all-namespaces'
+# check to make sure that the resource arg conforms to resource rules
+os::cmd::expect_success_and_text 'oc adm policy who-can get Pod' "Resource:  pods"
+os::cmd::expect_success_and_text 'oc adm policy who-can get PodASDF' "Resource:  PodASDF"
+os::cmd::expect_success_and_text 'oc adm policy who-can get hpa.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
+os::cmd::expect_success_and_text 'oc adm policy who-can get hpa.v1.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
+os::cmd::expect_success_and_text 'oc adm policy who-can get hpa -n default' "Resource:  horizontalpodautoscalers.autoscaling"
+
+os::cmd::expect_success 'oc adm policy add-role-to-group --rolebinding-name=cluster-admin cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=cluster-admin cluster-admin system:no-user'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin -z fake-sa'
+os::cmd::expect_success_and_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success 'oc adm policy remove-role-from-user admin -z fake-sa'
+os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin -z fake-sa'
+os::cmd::expect_success_and_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success "oc adm policy remove-role-from-user admin system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
+os::cmd::expect_success 'oc adm policy remove-role-from-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oc adm policy remove-role-from-user cluster-admin system:no-user'
+os::cmd::expect_failure_and_text 'oc adm policy remove-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
+os::cmd::expect_failure_and_text 'oc adm policy remove-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
+os::cmd::expect_success 'oc adm policy remove-group system:unauthenticated'
+os::cmd::expect_success 'oc adm policy remove-user system:no-user'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oc adm policy remove-cluster-role-from-group cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-admin system:no-user'
+os::cmd::expect_success 'oc adm policy remove-cluster-role-from-user cluster-admin system:no-user'
+os::cmd::expect_success 'oc adm policy add-role-to-user view foo'
+os::cmd::expect_success 'oc adm policy add-role-to-user view bar --rolebinding-name=custom'
+os::cmd::expect_success 'oc adm policy add-role-to-user view baz --rolebinding-name=custom'
+#os::cmd::expect_success_and_text 'oc get rolebinding/view -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^view,view,foo$'
+#os::cmd::expect_success_and_text 'oc get rolebinding/custom -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^custom,view,bar baz$'
+os::cmd::expect_failure_and_text 'oc adm policy add-role-to-user other fuz --rolebinding-name=custom' '^error: rolebinding custom found for role view, not other$'
+#os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning: Your changes may get lost whenever a master is restarted, unless you prevent reconciliation of this rolebinding using the following command: oc annotate clusterrolebinding.rbac self-provisioners 'rbac.authorization.kubernetes.io/autoupdate=false' --overwrite"
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
+#os::cmd::expect_success 'oc annotate clusterrolebinding.rbac self-provisioners "rbac.authorization.kubernetes.io/autoupdate=false" --overwrite'
+#os::cmd::expect_success_and_not_text 'oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth' "Warning"
+#os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
+
+os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
+os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
+os::cmd::expect_success 'oc adm policy add-scc-to-user privileged -z fake-sa'
+os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
+os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-group'
+os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged fake-user'
+os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-user'
+os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged -z fake-sa'
+os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success 'oc adm policy remove-scc-from-group privileged fake-group'
+os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
+
+# check pruning
+os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
+os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'securitycontextconstraints.security.openshift.io/privileged updated'
+os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
+os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'securitycontextconstraints.security.openshift.io/privileged updated'
+echo "admin-scc: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/role-reapers"
+#os::cmd::expect_success "oc process -f ${TEST_DATA}/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
+#os::cmd::expect_success "oc get rolebinding/basic-users"
+#os::cmd::expect_success "oc adm prune auth role/basic-user"
+#os::cmd::try_until_failure "oc get rolebinding/basic-users"
+#os::cmd::expect_success "oc delete role/basic-user"
+#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
+#os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+#os::cmd::expect_success "oc adm prune auth clusterrole/basic-user2"
+#os::cmd::try_until_failure "oc get clusterrolebinding/basic-users2"
+#os::cmd::expect_success "oc delete clusterrole/basic-user2"
+#os::cmd::expect_success "oc policy add-role-to-user edit foo"
+#os::cmd::expect_success "oc get rolebinding/edit"
+#os::cmd::expect_success "oc adm prune auth clusterrole/edit"
+#os::cmd::try_until_failure "oc get rolebinding/edit"
+#os::cmd::expect_success "oc delete clusterrole/edit"
+#os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
+#
+#os::cmd::expect_success "oc process -f ${TEST_DATA}/roles/policy-roles.yaml -p NAMESPACE='${project}' | oc create -f -"
+#os::cmd::expect_success "oc get rolebinding/basic-users"
+#os::cmd::expect_success_and_text "oc adm prune auth role/basic-user" "rolebinding.rbac.authorization.k8s.io/basic-users deleted"
+#os::cmd::expect_success "oc get role/basic-user"
+#os::cmd::expect_success "oc delete role/basic-user"
+#
+#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
+#os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+#os::cmd::expect_success_and_text "oc adm prune auth clusterrole/basic-user2"  "clusterrolebinding.rbac.authorization.k8s.io/basic-users2 deleted"
+#os::cmd::expect_success "oc get clusterrole/basic-user2"
+#os::cmd::expect_success "oc delete clusterrole/basic-user2"
+echo "admin-role-reapers: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/role-selectors"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/policy-clusterroles.yaml"
+os::cmd::expect_success "oc get clusterrole/basic-user2"
+os::cmd::expect_success "oc label clusterrole/basic-user2 foo=bar"
+os::cmd::expect_success_and_not_text "oc get clusterroles --selector=foo=bar" "No resources found"
+os::cmd::expect_success_and_text "oc get clusterroles --selector=foo=unknown" "No resources found"
+os::cmd::expect_success "oc get clusterrolebinding/basic-users2"
+os::cmd::expect_success "oc label clusterrolebinding/basic-users2 foo=bar"
+os::cmd::expect_success_and_not_text "oc get clusterrolebindings --selector=foo=bar" "No resources found"
+os::cmd::expect_success_and_text "oc get clusterroles --selector=foo=unknown" "No resources found"
+os::cmd::expect_success "oc delete clusterrole/basic-user2"
+os::test::junit::declare_suite_end
+echo "admin-role-selectors: ok"
+
+os::test::junit::declare_suite_start "cmd/admin/ui-project-commands"
+# Test the commands the UI projects page tells users to run
+# These should match what is described in projects.html
+os::cmd::expect_success 'oc adm new-project ui-test-project --admin="createuser"'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin adduser -n ui-test-project'
+# Make sure project can be listed by oc (after auth cache syncs)
+os::cmd::try_until_text 'oc get projects' 'ui\-test\-project'
+# Make sure users got added
+os::cmd::expect_success_and_text "oc get rolebinding admin -n ui-test-project -o jsonpath='{.subjects[*].name}'" '^createuser adduser$'
+echo "ui-project-commands: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/new-project"
+# Test deleting and recreating a project
+os::cmd::expect_success 'oc adm new-project recreated-project --admin="createuser1"'
+os::cmd::expect_success 'oc delete project recreated-project'
+os::cmd::try_until_failure 'oc get project recreated-project'
+os::cmd::expect_success 'oc adm new-project recreated-project --admin="createuser2"'
+os::cmd::expect_success_and_text "oc get rolebinding admin -n recreated-project -o jsonpath='{.subjects[*].name}'" '^createuser2$'
+echo "new-project: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/build-chain"
+# Test building a dependency tree
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l build=sti | oc create -f -'
+# Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
+# not created but due to a buildConfig pointing to it, we get back its graph of deps.
+os::cmd::expect_success_and_text 'oc adm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
+os::cmd::expect_success_and_text 'oc adm build-chain ruby-22-centos7 -o dot' 'digraph "ruby-22-centos7:latest"'
+os::cmd::expect_success 'oc delete all -l build=sti'
+echo "ex build-chain: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/complex-scenarios"
+# Make sure no one commits data with allocated values that could flake
+os::cmd::expect_failure 'grep -r "clusterIP.*172" ${TEST_DATA}/app-scenarios'
+os::cmd::expect_success 'oc adm new-project example --admin="createuser"'
+os::cmd::expect_success 'oc project example'
+os::cmd::try_until_success 'oc get serviceaccount default'
+#os::cmd::expect_success 'oc create -f ${TEST_DATA}/app-scenarios'
+os::cmd::expect_success 'oc status'
+os::cmd::expect_success_and_text 'oc status -o dot' '"example"'
+echo "complex-scenarios: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
+# Admin can bind local roles without cluster-admin permissions
+#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/empty-role.yaml -n '${project}'"
+#os::cmd::expect_success 'oc adm policy add-role-to-user admin local-admin  -n '${project}''
+#os::cmd::expect_success 'oc login -u local-admin -p pw'
+#os::cmd::expect_success 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${project}''
+#os::cmd::expect_success 'oc login -u system:admin'
+#os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
+echo "cmd/admin/rolebinding-allowed: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/rolebinding-local-only"
+# Admin cannot bind local roles from different namespace
+otherproject='someotherproject'
+#os::cmd::expect_success "oc new-project '${otherproject}'"
+#os::cmd::expect_success "oc create -f ${TEST_DATA}/roles/empty-role.yaml -n '${project}'"
+#os::cmd::expect_success 'oc adm policy add-role-to-user admin local-admin  -n '${otherproject}''
+#os::cmd::expect_success 'oc login -u local-admin -p pw'
+#os::cmd::expect_failure_and_text 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${otherproject}'' "role binding in namespace \"${otherproject}\" can't reference role in different namespace \"${project}\""
+#os::cmd::expect_success 'oc login -u system:admin'
+#os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
+echo "rolebinding-local-only: ok"
+os::test::junit::declare_suite_end
+
+#os::test::junit::declare_suite_start "cmd/admin/user-group-cascade"
+## Create test users/identities and groups
+#os::cmd::expect_success 'oc login -u cascaded-user -p pw'
+#os::cmd::expect_success 'oc login -u orphaned-user -p pw'
+#os::cmd::expect_success 'oc login -u system:admin'
+## switch to using --template once template printing is available to all cmds through the genericclioptions printer
+#os::cmd::expect_success_and_text 'oc adm groups new cascaded-group cascaded-user orphaned-user -o yaml' '\- cascaded\-user'
+## switch to using --template once template printing is available to all cmds through the genericclioptions printer
+#os::cmd::expect_success_and_text 'oc adm groups new orphaned-group cascaded-user orphaned-user -o yaml' '\- orphaned\-user'
+## Add roles, sccs to users/groups
+#os::cmd::expect_success 'oc adm policy add-scc-to-user           restricted    cascaded-user  orphaned-user'
+#os::cmd::expect_success 'oc adm policy add-scc-to-group          restricted    cascaded-group orphaned-group'
+#os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=cluster-admin cluster-admin cascaded-user  orphaned-user  -n default'
+#os::cmd::expect_success 'oc adm policy add-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group -n default'
+#os::cmd::expect_success 'oc adm policy add-cluster-role-to-user --rolebinding-name=cluster-admin cluster-admin cascaded-user  orphaned-user'
+#os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group'
+#
+## Delete users
+#os::cmd::expect_success 'oc adm prune auth user/cascaded-user'
+#os::cmd::expect_success 'oc delete user  cascaded-user'
+#os::cmd::expect_success 'oc delete user  orphaned-user  --cascade=false'
+## Verify all identities remain
+#os::cmd::expect_success 'oc get identities/alwaysallow:cascaded-user'
+#os::cmd::expect_success 'oc get identities/alwaysallow:orphaned-user'
+## Verify orphaned user references are left
+#os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-user'
+#os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-user'
+#os::cmd::expect_success_and_text     "oc get scc/restricted                     --template='{{.users}}'"               'orphaned-user'
+#os::cmd::expect_success_and_text     "oc get group/cascaded-group               --template='{{.users}}'"               'orphaned-user'
+## Verify cascaded user references are removed
+#os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'cascaded-user'
+#os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'cascaded-user'
+#os::cmd::expect_success_and_not_text "oc get scc/restricted                     --template='{{.users}}'"               'cascaded-user'
+#os::cmd::expect_success_and_not_text "oc get group/cascaded-group               --template='{{.users}}'"               'cascaded-user'
+#
+## Delete groups
+#os::cmd::expect_success "oc adm prune auth group/cascaded-group"
+#os::cmd::expect_success 'oc delete group cascaded-group'
+#os::cmd::expect_success 'oc delete group orphaned-group --cascade=false'
+## Verify orphaned group references are left
+#os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-group'
+#os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-group'
+#os::cmd::expect_success_and_text     "oc get scc/restricted                     --template='{{.groups}}'"              'orphaned-group'
+## Verify cascaded group references are removed
+#os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'cascaded-group'
+#os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'cascaded-group'
+#os::cmd::expect_success_and_not_text "oc get scc/restricted                     --template='{{.groups}}'"              'cascaded-group'
+#echo "user-group-cascade: ok"
+#os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/serviceaccounts"
+# create a new service account
+os::cmd::expect_success_and_text 'oc create serviceaccount my-sa-name' 'serviceaccount/my-sa-name created'
+os::cmd::expect_success 'oc get sa my-sa-name'
+
+# extract token and ensure it links us back to the service account
+os::cmd::try_until_success 'oc sa get-token my-sa-name'
+os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa get-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
+
+# add a new token and ensure it links us back to the service account
+os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa new-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
+
+# add a new labeled token and ensure the label stuck
+os::cmd::expect_success 'oc sa new-token my-sa-name --labels="mykey=myvalue,myotherkey=myothervalue"'
+os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue"' 'my-sa-name'
+os::cmd::expect_success_and_text 'oc get secrets --selector="myotherkey=myothervalue"' 'my-sa-name'
+os::cmd::expect_success_and_text 'oc get secrets --selector="mykey=myvalue,myotherkey=myothervalue"' 'my-sa-name'
+echo "serviceacounts: ok"
+os::test::junit::declare_suite_end
+
+# user creation
+os::test::junit::declare_suite_start "cmd/admin/user-creation"
+os::cmd::expect_success 'oc create user                test-cmd-user'
+os::cmd::expect_success 'oc create identity            test-idp:test-uid'
+os::cmd::expect_success 'oc create useridentitymapping test-idp:test-uid test-cmd-user'
+os::cmd::expect_success_and_text 'oc describe identity test-idp:test-uid' 'test-cmd-user'
+os::cmd::expect_success_and_text 'oc describe user     test-cmd-user' 'test-idp:test-uid'
+os::test::junit::declare_suite_end
+
+# images
+os::test::junit::declare_suite_start "cmd/admin/images"
+
+# import image and check its information
+os::cmd::expect_success "oc create -f ${TEST_DATA}/stable-busybox.yaml"
+os::cmd::expect_success_and_text "oc adm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+<none>\W+<none>\W+yes\W+653\.4KiB"
+os::cmd::expect_success_and_text "oc adm top imagestreams" "default/busybox\W+653\.4KiB\W+1\W+1"
+os::cmd::expect_success "oc delete is/busybox -n default"
+
+# log in as an image-pruner and test that oc adm prune images works against the atomic binary
+#os::cmd::expect_success "oc adm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+#os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u pruner -p anything"
+#os::cmd::expect_success_and_text "oc adm prune images" "Dry run enabled - no modifications will be made. Add --confirm to remove images"
+
+echo "images: ok"
+os::test::junit::declare_suite_end
+
+# oc adm must-gather
+os::test::junit::declare_suite_start "cmd/admin/must-gather"
+os::cmd::expect_success "oc adm must-gather --help"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdAdminShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdAdminSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdAdminSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdAdminShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/admin.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdAnnotationsSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/annotate"
+# This test validates empty values in key-value pairs set by the annotate command
+os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
+os::cmd::expect_success_and_text 'oc annotate pod hello-openshift node-selector=""' 'pod/hello-openshift annotated'
+os::cmd::expect_success_and_not_text 'oc get pod hello-openshift --template="{{index .metadata.annotations \"node-selector\"}}"' '.'
+
+echo "annotate: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/label"
+# This test validates empty values in key-value pairs set by the label command
+os::cmd::expect_success_and_text 'oc label pod hello-openshift label2=""' 'pod/hello-openshift labeled'
+os::cmd::expect_success_and_not_text 'oc get pod hello-openshift --template="{{.metadata.labels.label2}}"' '.'
+
+echo "label: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdAnnotationsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdAnnotationsSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdAnnotationsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdAnnotationsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/annotations.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdApiresourcesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+os::test::junit::declare_suite_start "cmd/apiresources"
+
+os::cmd::expect_success_and_text 'oc api-resources' 'imagestreamtags'
+os::cmd::expect_success_and_text 'oc api-resources --api-group=build.openshift.io' 'BuildConfig'
+os::cmd::expect_success_and_text 'oc api-resources --namespaced=false' 'Image'
+os::cmd::expect_success_and_text 'oc api-resources --verbs=get' 'project.openshift.io'
+
+os::cmd::expect_success_and_text 'oc api-versions' 'route.openshift.io/v1'
+
+echo "apiresources: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdApiresourcesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdApiresourcesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdApiresourcesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdApiresourcesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/apiresources.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdAuthenticationSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+project="$( oc project -q )"
+if [[ "${project}" == "default" ]]; then
+  echo "Test must be run from a non-default namespace"
+  exit 1
+fi
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete oauthaccesstokens --all
+  oc adm policy remove-cluster-role-from-user cluster-debugger user3
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/authentication"
+
+## Logging in prints useful messages
+#os::test::junit::declare_suite_start "cmd/authentication/existing-credentials"
+#os::cmd::expect_success_and_text 'oc login -u user1 -p pw' 'Login successful'
+#os::cmd::expect_success_and_text 'oc login -u user2 -p pw' 'Login successful'
+## Switching to another user using existing credentials informs you
+#os::cmd::expect_success_and_text 'oc login -u user1'       'Logged into ".*" as "user1" using existing credentials'
+## Completing a login as the same user using existing credentials informs you
+#os::cmd::expect_success_and_text 'oc login -u user1'       'Logged into ".*" as "user1" using existing credentials'
+## Return to the system:admin user
+#os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+#os::test::junit::declare_suite_end
+#
+#os::test::junit::declare_suite_start "cmd/authentication/scopedtokens"
+#os::cmd::expect_success 'oc adm policy add-role-to-user admin scoped-user'
+#
+## initialize the user object
+#os::cmd::expect_success 'oc login -u scoped-user -p asdf'
+#os::cmd::expect_success 'oc login -u system:admin'
+#username="$(oc get user/scoped-user -o jsonpath='{.metadata.name}')"
+#useruid="$(oc get user/scoped-user -o jsonpath='{.metadata.uid}')"
+#os::cmd::expect_success_and_text "oc policy can-i --list -n '${project}' --as=scoped-user" 'get.*pods'
+#os::cmd::expect_success "oc policy can-i --list --output=yaml"
+#os::cmd::expect_success "oc policy can-i --list --output=json"
+#os::cmd::expect_success "oc policy can-i --list"
+#
+#whoamitoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
+#os::cmd::expect_success_and_text "oc get user/~ --token='${whoamitoken}'" "${username}"
+#os::cmd::expect_success_and_text "oc whoami --token='${whoamitoken}'" "${username}"
+#os::cmd::expect_failure_and_text "oc get pods --token='${whoamitoken}' -n '${project}'" "pods is forbidden: User \"scoped-user\" cannot list resource \"pods\" in API group \"\" in the namespace \"${project}\""
+#
+#listprojecttoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=listproject SCOPE=user:list-scoped-projects USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
+## this token doesn't have rights to see any projects even though it can hit the list endpoint, so an empty list is correct
+## we'll add another scope that allows listing all known projects even if this token has no other powers in them.
+#os::cmd::expect_success_and_not_text "oc get projects --token='${listprojecttoken}'" "${project}"
+#os::cmd::expect_failure_and_text "oc get user/~ --token='${listprojecttoken}'" 'User "scoped-user" cannot get resource "users" in API group "user.openshift.io" at the cluster scope'
+#os::cmd::expect_failure_and_text "oc get pods --token='${listprojecttoken}' -n '${project}'" "User \"scoped-user\" cannot list resource \"pods\" in API group \"\" in the namespace \"${project}\""
+#
+#listprojecttoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=listallprojects SCOPE=user:list-projects USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
+#os::cmd::expect_success_and_text "oc get projects --token='${listprojecttoken}'" "${project}"
+#
+#adminnonescalatingpowerstoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=admin SCOPE=role:admin:* USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
+#os::cmd::expect_failure_and_text "oc get user/~ --token='${adminnonescalatingpowerstoken}'" 'User "scoped-user" cannot get resource "users" in API group "user.openshift.io" at the cluster scope'
+#os::cmd::expect_failure_and_text "oc get secrets --token='${adminnonescalatingpowerstoken}' -n '${project}'" "User \"scoped-user\" cannot list resource \"secrets\" in API group \"\" in the namespace \"${project}\""
+#os::cmd::expect_success_and_text "oc get 'projects/${project}' --token='${adminnonescalatingpowerstoken}' -n '${project}'" "${project}"
+#
+#allescalatingpowerstoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=clusteradmin SCOPE='role:cluster-admin:*:!' USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
+#os::cmd::expect_success_and_text "oc get user/~ --token='${allescalatingpowerstoken}'" "${username}"
+#os::cmd::expect_success "oc get secrets --token='${allescalatingpowerstoken}' -n '${project}'"
+## scopes allow it, but authorization doesn't
+#os::cmd::try_until_failure "oc get secrets --token='${allescalatingpowerstoken}' -n default"
+#os::cmd::expect_failure_and_text "oc get secrets --token='${allescalatingpowerstoken}' -n default" 'cannot list resource "secrets" in API group "" in the namespace'
+#os::cmd::expect_success_and_text "oc get projects --token='${allescalatingpowerstoken}'" "${project}"
+#os::cmd::expect_success_and_text "oc policy can-i --list --token='${allescalatingpowerstoken}' -n '${project}'" 'get.*pods'
+#
+#accesstoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=access SCOPE=user:check-access USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
+#os::cmd::expect_success_and_text "curl -k -XPOST -H 'Content-Type: application/json' -H 'Authorization: Bearer ${accesstoken}' '${API_SCHEME}://${API_HOST}:${API_PORT}/apis/authorization.openshift.io/v1/namespaces/${project}/localsubjectaccessreviews' -d '{\"kind\":\"LocalSubjectAccessReview\",\"apiVersion\":\"authorization.openshift.io/v1\",\"namespace\":\"${project}\",\"verb\":\"create\",\"resource\":\"pods\"}'" '"kind": "SubjectAccessReviewResponse"'
+## verify group and kind defaulting works correctly
+#os::cmd::expect_success_and_text "curl -k -XPOST -H 'Content-Type: application/json' -H 'Authorization: Bearer ${accesstoken}' '${API_SCHEME}://${API_HOST}:${API_PORT}/apis/authorization.openshift.io/v1/subjectaccessreviews' -d '{\"namespace\":\"${project}\",\"verb\":\"create\",\"resource\":\"pods\"}'" '"kind": "SubjectAccessReviewResponse"'
+#os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n '${project}' --ignore-scopes" 'yes'
+#os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n '${project}'" 'no'
+#os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews.authorization.openshift.io --token='${accesstoken}' -n '${project}'" 'no'
+#os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews.authorization.openshift.io --token='${accesstoken}' -n '${project}' --ignore-scopes" 'yes'
+#os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n '${project}' --scopes='role:admin:*'" 'yes'
+#os::cmd::expect_success_and_text "oc policy can-i --list --token='${accesstoken}' -n '${project}' --scopes='role:admin:*'" 'get.*pods'
+#os::cmd::expect_success_and_not_text "oc policy can-i --list --token='${accesstoken}' -n '${project}'" 'get.*pods'
+#
+#os::test::junit::declare_suite_end
+#
+#os::test::junit::declare_suite_start "cmd/authentication/debugging"
+#os::cmd::expect_success_and_text 'oc login -u user3 -p pw' 'Login successful'
+#os::cmd::expect_success 'oc login -u system:admin'
+#os::cmd::expect_failure_and_text 'oc get --raw /debug/pprof/ --as=user3' 'Forbidden'
+#os::cmd::expect_failure_and_text 'oc get --raw /metrics --as=user3' 'Forbidden'
+#os::cmd::expect_success_and_text 'oc get --raw /healthz --as=user3' 'ok'
+#os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-debugger user3'
+#os::cmd::try_until_text 'oc get --raw /debug/pprof/ --as=user3' 'full goroutine stack dump'
+#os::cmd::expect_success_and_text 'oc get --raw /debug/pprof/ --as=user3' 'full goroutine stack dump'
+#os::cmd::expect_success_and_text 'oc get --raw /metrics --as=user3' 'apiserver_request_latencies'
+#os::cmd::expect_success_and_text 'oc get --raw /healthz --as=user3' 'ok'
+## TODO validate controller
+#os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/authentication/scopedtokens"
+
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdAuthenticationShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdAuthenticationSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdAuthenticationSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdAuthenticationShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/authentication.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdBasicresourcesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates,secrets,pods,jobs --all
+  oc delete image v1-image
+  oc delete group patch-group
+  oc delete project test-project-admin
+  oc delete oauthaccesstokens.oauth.openshift.io/DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod
+  oc delete -f ${TEST_DATA}/multiport-service.yaml
+  exit 0
+) &>/dev/null
+
+function escape_regex() {
+  sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
+}
+
+project="$( oc project -q )"
+
+os::test::junit::declare_suite_start "cmd/basicresources"
+# This test validates basic resource retrieval and command interaction
+
+os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
+# Test to make sure that we're reporting the correct version information from endpoints and the correct
+# User-Agent information from our clients regardless of which resources they're trying to access
+#os::build::version::get_vars
+#os_git_regex="$( escape_regex "${OS_GIT_VERSION%%-*}" )"
+#kube_git_regex="$( escape_regex "${KUBE_GIT_VERSION%%-*}" )"
+#etcd_version="$(echo "${ETCD_GIT_VERSION}" | sed -E "s/\-.*//g" | sed -E "s/v//")"
+#etcd_git_regex="$( escape_regex "${etcd_version%%-*}" )"
+#os::cmd::expect_success_and_text 'oc version' "Client Version: .*GitVersion:\"${os_git_regex}"
+#os::cmd::expect_success_and_text 'oc version' "Server Version: .*GitVersion:\"${kube_git_regex}"
+#os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${kube_git_regex}"
+#os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${OS_GIT_COMMIT}"
+
+# variants I know I have to worry about
+# 1. oc (kube and openshift resources)
+# 2. oc adm (kube and openshift resources)
+
+# example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+#os::cmd::expect_success_and_text 'oc get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
+## example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
+#os::cmd::expect_success_and_text 'oc get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
+## example User-Agent: oc/v1.1.3 (linux/amd64) openshift/b348c2f
+#os::cmd::expect_success_and_text 'oc adm policy who-can get pods --loglevel=7  2>&1 | grep -A4 "localresourceaccessreviews" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
+#echo "version reporting: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/status"
+os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+os::cmd::expect_success_and_text 'oc status' 'oc new-app'
+echo "status help output: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/explain"
+os::cmd::expect_failure_and_text 'oc get' 'oc api-resources'
+os::cmd::expect_success_and_text 'oc get all --loglevel=6' 'buildconfigs'
+os::cmd::expect_success_and_text 'oc explain pods' 'Pod is a collection of containers that can run on a host'
+os::cmd::expect_success_and_text 'oc explain pods.spec' 'SecurityContext holds pod-level security attributes'
+# TODO unbreak explain
+#os::cmd::expect_success_and_text 'oc explain deploymentconfig' 'a desired deployment state'
+#os::cmd::expect_success_and_text 'oc explain deploymentconfig.spec' 'ensures that this deployment config will have zero replicas'
+echo "explain: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/resource-builder"
+# Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/resource-builder/directory -f ${TEST_DATA}/resource-builder/json-no-extension -f ${TEST_DATA}/resource-builder/yml-no-extension'
+# Explicitly specified extensionless files
+os::cmd::expect_success 'oc get secret json-no-extension yml-no-extension'
+# Scanned files with extensions inside directories
+os::cmd::expect_success 'oc get secret json-with-extension yml-with-extension'
+# Ensure extensionless files inside directories are not processed by resource-builder
+os::cmd::expect_failure_and_text 'oc get secret json-no-extension-in-directory' 'not found'
+echo "resource-builder: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/pods"
+os::cmd::expect_success 'oc get pods --match-server-version'
+os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
+os::cmd::expect_success 'oc describe pod hello-openshift'
+os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'
+echo "pods: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/label"
+os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
+os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
+os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
+os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
+os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
+os::cmd::expect_failure_and_not_text 'oc annotate pod hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
+os::cmd::expect_failure_and_text 'oc annotate pod hello-openshift hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
+os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0 --force'
+os::cmd::expect_failure 'oc get pod/hello-openshift'
+
+# show-labels should work for projects
+os::cmd::expect_success "oc label namespace '${project}' foo=bar"
+os::cmd::expect_success_and_text "oc get project '${project}' --show-labels" "foo=bar"
+
+echo "label: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/services"
+os::cmd::expect_success 'oc get services'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
+os::cmd::expect_success 'oc delete services frontend'
+# TODO: reenable with a permission check
+# os::cmd::expect_failure_and_text 'oc create -f test/integration/testdata/test-service-with-finalizer.json' "finalizers are disabled"
+echo "services: ok"
+os::test::junit::declare_suite_end
+
+# TODO rewrite the yaml for this test to actually work
+os::test::junit::declare_suite_start "cmd/basicresources/list-version-conversion"
+os::cmd::expect_success 'oc create   -f ${TEST_DATA}/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc get      -f ${TEST_DATA}/mixed-api-versions.yaml -o yaml'
+os::cmd::expect_success 'oc label    -f ${TEST_DATA}/mixed-api-versions.yaml mylabel=a'
+os::cmd::expect_success 'oc annotate -f ${TEST_DATA}/mixed-api-versions.yaml myannotation=b'
+# Make sure all six resources, with different API versions, got labeled and annotated
+os::cmd::expect_success_and_text 'oc get -f ${TEST_DATA}/mixed-api-versions.yaml --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a$'
+os::cmd::expect_success_and_text 'oc get -f ${TEST_DATA}/mixed-api-versions.yaml --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b$'
+os::cmd::expect_success 'oc delete   -f ${TEST_DATA}/mixed-api-versions.yaml'
+echo "list version conversion: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/nodes"
+os::cmd::expect_success 'oc get nodes'
+(
+  # subshell so we can unset kubeconfig
+  cfg="${KUBECONFIG}"
+  unset KUBECONFIG
+  os::cmd::expect_success "kubectl get nodes --kubeconfig='${cfg}'"
+)
+echo "nodes: ok"
+os::test::junit::declare_suite_end
+
+
+os::test::junit::declare_suite_start "cmd/basicresources/create"
+os::cmd::expect_success 'oc create dc my-nginx --image=nginx'
+os::cmd::expect_success 'oc delete dc my-nginx'
+os::cmd::expect_success 'oc create clusterquota limit-bob --project-label-selector=openshift.io/requester=user-bob --hard=pods=10'
+os::cmd::expect_success 'oc delete clusterquota/limit-bob'
+echo "create subcommands: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/statefulset.yaml'
+os::cmd::try_until_success 'oc get pods testapp-0'
+os::cmd::expect_success_and_text 'oc describe statefulset testapp' 'app=testapp'
+os::cmd::expect_success 'oc delete -f ${TEST_DATA}/statefulset.yaml'
+echo "statefulsets: ok"
+os::test::junit::declare_suite_end
+
+
+os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
+# Validate the probe command
+arg="-f ${TEST_DATA}/hello-openshift/hello-pod.json"
+os::cmd::expect_failure_and_text "oc set probe" "error: one or more resources"
+os::cmd::expect_failure_and_text "oc set probe ${arg}" "error: you must specify one of --readiness, --liveness or both"
+os::cmd::expect_failure_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1/path" "port must be specified as part of a url"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness" 'livenessProbe: \{\}'
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --initial-delay-seconds=10" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --initial-delay-seconds=10" "initialDelaySeconds: 10"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness -- echo test" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --readiness -- echo test" "readinessProbe:"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness -- echo test" "exec:"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness -- echo test" "\- echo"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness -- echo test" "\- test"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --open-tcp=3306" "tcpSocket:"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --open-tcp=3306" "port: 3306"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --open-tcp=port" "port: port"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:8080/path" "port: 8080"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "path: /path"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "scheme: HTTPS"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=http://127.0.0.1:port/path" "scheme: HTTP"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "host: 127.0.0.1"
+os::cmd::expect_success_and_text "oc set probe ${arg} --local -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
+os::cmd::expect_failure_and_text "oc set probe dc/test-deployment-config --liveness" "Required value: must specify a handler type"
+os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --open-tcp=8080" "updated"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --open-tcp=8080 --v=1" "was not changed"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "livenessProbe:"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --initial-delay-seconds=10" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 10"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --initial-delay-seconds=20" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 20"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --failure-threshold=2" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 20"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "failureThreshold: 2"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --readiness --success-threshold=4 -- echo test" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "initialDelaySeconds: 20"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "successThreshold: 4"
+os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --period-seconds=5" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "periodSeconds: 5"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --timeout-seconds=6" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "timeoutSeconds: 6"
+os::cmd::expect_success_and_text "oc set probe dc --all --liveness --timeout-seconds=7" "updated"
+os::cmd::expect_success_and_text "oc get dc -o yaml" "timeoutSeconds: 7"
+os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" "livenessProbe"
+os::cmd::expect_success "oc delete dc/test-deployment-config"
+echo "set probe: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/setenv"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-buildcli.json"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=1st" "updated"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=2nd" "updated"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar --overwrite" "updated"
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config FOO=zee --overwrite=false" "already has a value"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "FOO=bar"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO-" "updated"
+os::cmd::expect_success_and_text "oc set env bc --all FOO=bar" "updated"
+os::cmd::expect_success_and_text "oc set env bc --all --list" "FOO=bar"
+os::cmd::expect_success_and_text "oc set env bc --all FOO-" "updated"
+os::cmd::expect_success "oc create secret generic mysecret --from-literal='foo.bar=secret'"
+os::cmd::expect_success_and_text "oc set env --from=secret/mysecret --prefix=PREFIX_ dc/test-deployment-config" "updated"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "PREFIX_FOO_BAR from secret mysecret, key foo.bar"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list --resolve" "PREFIX_FOO_BAR=secret"
+os::cmd::expect_success "oc delete secret mysecret"
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "error retrieving reference for PREFIX_FOO_BAR"
+# switch to view user to ensure view-only users can't get secrets through env var resolution
+new="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > $new"
+export KUBECONFIG=$new
+project=$(oc project -q)
+#os::cmd::expect_success 'oc policy add-role-to-user view view-user'
+#os::cmd::expect_success 'oc login -u view-user -p anything'
+#os::cmd::try_until_success 'oc project ${project}'
+#os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" 'cannot get resource "secrets" in API group "" in the namespace'
+#oc login -u system:admin
+# clean up
+os::cmd::expect_success "oc delete dc/test-deployment-config"
+os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
+echo "set env: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/expose"
+# Expose service as a route
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
+os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
+os::cmd::expect_failure 'oc expose service frontend --port=40 --type=NodePort'
+os::cmd::expect_success 'oc expose service frontend --path=/test'
+os::cmd::expect_success_and_text "oc get route.v1.route.openshift.io frontend --template='{{.spec.path}}'" "/test"
+os::cmd::expect_success_and_text "oc get route.v1.route.openshift.io frontend --template='{{.spec.to.name}}'" "frontend"           # routes to correct service
+os::cmd::expect_success_and_text "oc get route.v1.route.openshift.io frontend --template='{{.spec.port.targetPort}}'" ""
+os::cmd::expect_success 'oc delete svc,route -l name=frontend'
+# Test that external services are exposable
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/external-service.yaml'
+os::cmd::expect_success 'oc expose svc/external'
+os::cmd::expect_success_and_text 'oc get route external' 'external'
+os::cmd::expect_success 'oc delete route external'
+os::cmd::expect_success 'oc delete svc external'
+# Expose multiport service and verify we set a port in the route
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/multiport-service.yaml'
+os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
+os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}'" "web"
+echo "expose: ok"
+os::test::junit::declare_suite_end
+
+# Test OAuth access token describer
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/oauthaccesstoken.yaml'
+os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
+echo "OAuth descriptor: ok"
+
+os::cmd::expect_success 'oc delete all --all'
+
+os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"
+# switch to test user to be sure that default project admin policy works properly
+temp_config="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > '${temp_config}'"
+export KUBECONFIG="${temp_config}"
+#os::cmd::expect_success 'oc policy add-role-to-user admin project-admin'
+#os::cmd::expect_success 'oc login -u project-admin -p anything'
+#os::cmd::expect_success 'oc new-project test-project-admin'
+#os::cmd::try_until_success "oc project test-project-admin"
+
+os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
+os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
+os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
+os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=job/v1 --restart=Never test4'
+os::cmd::expect_success 'oc delete dc/test rc/test2 pod/test3 job/test4'
+
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name'                                'deploymentconfig.apps.openshift.io/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Always'               'deploymentconfig.apps.openshift.io/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Never'                'pod/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=job/v1'              'job.batch/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deploymentconfig/v1' 'deploymentconfig.apps.openshift.io/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-controller/v1'   'replicationcontroller/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run/v1'              'replicationcontroller/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=deployment/v1beta1'  'deployment.extensions/foo'
+
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
+os::cmd::expect_success 'oc delete all -l name=mytemplate'
+#os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world'
+#os::cmd::expect_success 'oc get dc/ruby-hello-world'
+
+#os::cmd::expect_success_and_text "oc get dc/ruby-hello-world --template='{{ .spec.replicas }}'" '1'
+#patch='{"spec": {"replicas": 2}}'
+#os::cmd::expect_success "oc patch dc/ruby-hello-world -p '${patch}'"
+#os::cmd::expect_success_and_text "oc get dc/ruby-hello-world --template='{{ .spec.replicas }}'" '2'
+#
+#os::cmd::expect_success 'oc delete all -l app=ruby-hello-world'
+#os::cmd::expect_failure 'oc get dc/ruby-hello-world'
+echo "delete all: ok"
+os::test::junit::declare_suite_end
+
+# service accounts should not be allowed to request new projects
+os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
+
+os::test::junit::declare_suite_start "cmd/basicresources/patch"
+# Validate patching works correctly
+#os::cmd::expect_success 'oc login -u system:admin'
+group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
+os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
+os::cmd::expect_success          "oc patch group patch-group -p 'users: [\"myuser\"]' --loglevel=8"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
+os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
+# applying the same patch twice results in exit code 0, and "not patched" text
+os::cmd::expect_success_and_text "oc patch group patch-group -p 'users: []'" "patched \(no change\)"
+# applying an invalid patch results in exit code 1 and an error
+os::cmd::expect_failure_and_text "oc patch group patch-group -p 'users: \"\"'" "cannot restore slice from string"
+os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
+echo "patch: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdBasicresourcesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdBasicresourcesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdBasicresourcesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdBasicresourcesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/basicresources.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdBuildsSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+url=":${API_PORT:-6443}"
+project="$(oc project -q)"
+
+os::test::junit::declare_suite_start "cmd/builds"
+# This test validates builds and build related commands
+
+#os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
+#os::cmd::expect_success 'oc get bc/ruby-hello-world'
+#
+#os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
+#os::cmd::expect_success 'oc get bc/test'
+
+template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
+
+# Build from Dockerfile with output to ImageStreamTag
+os::cmd::expect_success "oc new-build --dockerfile=\$'FROM centos:7\nRUN yum install -y httpd'"
+os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^ImageStreamTag centos:latest$'
+
+# Build from a binary with no inputs requires name
+os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --name"
+
+# Build from a binary with inputs creates a binary build
+os::cmd::expect_success "oc new-build --binary --name=binary-test"
+os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
+
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test'
+
+# Build from Dockerfile with output to DockerImage
+os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1' --to-docker"
+os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage origin:latest$'
+
+os::cmd::expect_success 'oc delete is/origin'
+
+# Build from Dockerfile with given output ImageStreamTag spec
+os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-test:v1.1"
+os::cmd::expect_success_and_text "oc get bc/origin-test --template '${template}'" '^ImageStreamTag origin-test:v1.1$'
+
+os::cmd::expect_success 'oc delete is/origin bc/origin'
+
+# Build from Dockerfile with given output DockerImage spec
+os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
+os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage openshift/origin:v1.1-test$'
+
+os::cmd::expect_success 'oc delete is/origin'
+
+# Build from Dockerfile with custom name and given output ImageStreamTag spec
+os::cmd::expect_success "oc new-build -D \$'FROM openshift/origin:v1.1\nENV ok=1' --to origin-name-test --name origin-test2"
+os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
+
+#os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
+#os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.com/sclorg/ruby-ex ruby-22-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
+
+os::cmd::expect_success 'oc delete all --all'
+
+os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
+os::cmd::expect_success_and_not_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '.'
+
+# Ensure output is valid JSON
+#os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
+
+os::cmd::expect_success 'oc delete all --all'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
+os::cmd::expect_success 'oc get buildConfigs'
+os::cmd::expect_success 'oc get bc'
+os::cmd::expect_success 'oc get builds'
+
+# make sure the imagestream has the latest tag before trying to test it or start a build with it
+os::cmd::try_until_text 'oc get is ruby-22-centos7' 'latest'
+
+os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
+REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
+os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"output\":{\"to\":{\"name\":\"different:tag1\"}}}}'"
+os::cmd::expect_success_and_text "oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}'" 'different'
+os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"output\":{\"to\":{\"name\":\"${REAL_OUTPUT_TO}\"}}}}'"
+echo "patchAnonFields: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/builds/config"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/github"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/generic"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic"
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-sample-build --from-gitlab' "triggers updated"
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-sample-build --from-bitbucket' "triggers updated"
+os::cmd::expect_success 'oc start-build --list-webhooks=all ruby-sample-build'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sample-build' 'generic'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'gitlab'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'bitbucket'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' '<secret>'
+os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
+hook=$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)
+hook=${hook/<secret>/secret101}
+os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build.build.openshift.io/ruby-sample-build-[0-9] started"
+os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}/foo" "error: server rejected our request"
+os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
+os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}" "Error resolving ImageStreamTag asdf:7"
+os::cmd::expect_success 'oc get builds'
+os::cmd::expect_success 'oc set triggers bc/ruby-sample-build --from-github --remove'
+os::cmd::expect_success_and_not_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
+# make sure we describe webhooks using secretReferences properly
+os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"triggers\":[{\"github\":{\"secretReference\":{\"name\":\"mysecret\"}},\"type\":\"GitHub\"}]}}'"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
+os::cmd::expect_success 'oc delete all -l build=docker'
+
+echo "buildConfig: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/builds/start-build"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-buildcli.json'
+# a build for which there is not an upstream tag in the corresponding imagerepo, so
+# the build should use the image field as defined in the buildconfig
+# Use basename to transform "build/build-name" into "build-name"
+started="$(basename $(oc start-build -o=name ruby-sample-build-invalidtag))"
+os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
+frombuild="$(basename $(oc start-build -o=name --from-build="${started}"))"
+os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
+# --incremental flag should override Spec.Strategy.SourceStrategy.Incremental
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-s2i-build.json'
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
+build_name="$(oc start-build -o=name --incremental test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"sourceStrategy\":{\"incremental\": true}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+build_name="$(oc start-build -o=name --incremental=false test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"sourceStrategy\":{\"incremental\": false}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
+build_name="$(oc start-build -o=name --incremental test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_failure_and_text "oc start-build test --no-cache" 'Cannot specify Docker build specific options'
+os::cmd::expect_failure_and_text "oc start-build test --build-arg=a=b" 'Cannot specify Docker build specific options'
+os::cmd::expect_success 'oc delete all --selector="name=test"'
+# --no-cache flag should override Spec.Strategy.SourceStrategy.NoCache
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-docker-build.json'
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
+build_name="$(oc start-build -o=name --no-cache test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"noCache\": true}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+build_name="$(oc start-build -o=name --no-cache=false test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"noCache\": false}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
+build_name="$(oc start-build -o=name --no-cache test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_failure_and_text "oc start-build test --incremental" 'Cannot specify Source build specific options'
+# ensure a specific version can be specified for buildconfigs
+os::cmd::expect_failure_and_not_text "oc logs bc/test --version=1" "cannot specify a version and a build"
+os::cmd::expect_success 'oc delete all --selector="name=test"'
+echo "start-build: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/builds/cancel-build"
+os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "build.build.openshift.io/${started} restarted"
+os::cmd::expect_success 'oc delete all --all'
+os::cmd::expect_success 'oc delete secret dbsecret'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
+os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
+# Uses type/name resource syntax to cancel the build and check for proper message
+os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build.build.openshift.io/ruby-sample-build-1 cancelled'
+# Make sure canceling already cancelled build returns proper message
+os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
+# Cancel all builds from a build configuration
+os::cmd::expect_success "oc start-build bc/ruby-sample-build"
+os::cmd::expect_success "oc start-build bc/ruby-sample-build"
+lastbuild="$(basename $(oc start-build -o=name bc/ruby-sample-build))"
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build.build.openshift.io/${lastbuild} cancelled"
+os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
+for state in $builds; do
+  os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"
+done
+# Running this command again when all builds are cancelled should be no-op.
+os::cmd::expect_success 'oc cancel-build bc/ruby-sample-build'
+os::cmd::expect_success 'oc delete all --all'
+os::cmd::expect_success 'oc delete secret dbsecret'
+echo "cancel-build: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdBuildsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdBuildsSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdBuildsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdBuildsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/builds.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdCompletionsSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+os::test::junit::declare_suite_start "cmd/completions"
+# This test validates basic resource retrieval and command interaction
+
+# test completion command help
+os::cmd::expect_success_and_text "oc completion -h" "prints shell code"
+# test completion command output
+os::cmd::expect_failure_and_text "oc completion" "Shell not specified."
+os::cmd::expect_success "oc completion bash"
+os::cmd::expect_success "oc completion zsh"
+os::cmd::expect_failure_and_text "oc completion test_shell" 'Unsupported shell type "test_shell"'
+echo "oc completion: ok"
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdCompletionsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdCompletionsSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdCompletionsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdCompletionsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/completions.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdConfigSh = []byte(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates,secrets --all
+  exit 0
+) &>/dev/null
+
+# check to make sure that "get"ting a resource with no config file present
+# still returns error indicating that no config-file is set
+os::test::junit::declare_suite_start "cmd/configuration"
+os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
+(
+  export HOME=/tmp
+  unset KUBECONFIG
+  unset KUBERNETES_MASTER
+
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user=""' 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --context=""' 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --cluster=""' 'Missing or incomplete configuration info'
+
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --context="test"' 'context was not found for specified context: test'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --cluster="test"' 'no server found for cluster "test"'
+  # need some level of default (both upstream and here) to get the pretty auth message because you fail on namespace first.
+  os::cmd::expect_failure_and_text 'KUBERNETES_MASTER=anything env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --user="test"' 'auth info "test" does not exist'
+
+  os::cmd::expect_failure_and_text 'oc get bc --config=missing' 'missing: no such file or directory'
+
+  # define temp location for new config
+  NEW_CONFIG_LOC="${BASETMPDIR}/new-config.yaml"
+
+  # make sure non-existing --cluster and --user can still be set
+  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --config='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST -u KUBECONFIG -u KUBERNETES_MASTER oc get buildconfigs --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get buildconfigs --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+)
+echo "config error handling: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdConfigShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdConfigSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdConfigSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdConfigShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/config.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdConvertSh = []byte(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all --all
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/convert"
+# This test validates the convert command
+
+os::cmd::expect_success "oc convert -f ${TEST_DATA}/convert/job-v1.yaml | grep 'apiVersion: batch/v1'"
+os::cmd::expect_success "oc convert -f ${TEST_DATA}/convert/job-v2.json | grep 'apiVersion: batch/v1beta1'"
+
+os::cmd::expect_success_and_text "oc convert -f ${TEST_DATA}/convert | oc create --dry-run -f -" 'job.batch/pi created'
+os::cmd::expect_success_and_text "oc convert -f ${TEST_DATA}/convert | oc create --dry-run -f -" 'cronjob.batch/hello created'
+
+echo "convert: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdConvertShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdConvertSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdConvertSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdConvertShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/convert.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdCreateSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/create"
+# validate --dry-run outputs correct success message
+os::cmd::expect_success_and_text 'oc create quota quota --dry-run' 'resourcequota/quota created \(dry run\)'
+# validate -- works in create
+os::cmd::expect_success_and_text 'oc create deploymentconfig sleep --image=busybox -- /bin/sleep infinity' 'deploymentconfig.apps.openshift.io/sleep created'
+
+echo "oc create: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdCreateShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdCreateSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdCreateSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdCreateShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/create.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdDebugSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/debug"
+# This test validates the debug command
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml" '\- /bin/sh'
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-annotations -o yaml" 'annotations:'
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --as-root -o yaml" 'runAsUser: 0'
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --as-root=false -o yaml" 'runAsNonRoot: true'
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --as-user=1 -o yaml" 'runAsUser: 1'
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-liveness --keep-readiness -o yaml" ''
+os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" '\- /bin/env'
+os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'stdinOnce'
+os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'tty'
+os::cmd::expect_success_and_text "oc debug --v=8 -t dc/test-deployment-config -o yaml" "Response Headers"
+os::cmd::expect_success_and_not_text "oc debug --tty=false dc/test-deployment-config -o yaml" 'tty'
+os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'stdin'
+os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
+os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'on node "invalid"'
+# Does not require a real resource on the server
+os::cmd::expect_success_and_not_text "oc debug -T -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml" 'tty'
+os::cmd::expect_success_and_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json --keep-liveness --keep-readiness -o yaml" ''
+os::cmd::expect_success_and_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml -- /bin/env" '\- /bin/env'
+os::cmd::expect_success_and_not_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'stdin'
+os::cmd::expect_success_and_not_text "oc debug -f ${TEST_DATA}/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'tty'
+# TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
+
+# Ensure debug does not depend on a container actually existing for the selected resource.
+# The command should not hang waiting for an attachable pod. Timeout each cmd after 10s.
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-replication-controller.yaml'
+os::cmd::expect_success 'oc scale --replicas=0 rc/test-replication-controller'
+os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container rc/test-replication-controller -o jsonpath='{.metadata.name}'" 'test-replication-controller-debug'
+
+os::cmd::expect_success 'oc scale --replicas=0 dc/test-deployment-config'
+os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container dc/test-deployment-config -o jsonpath='{.metadata.name}'" 'test-deployment-config'
+
+tmp_deploy="$(mktemp)"
+os::cmd::expect_success 'oc create -f - >> $tmp_deploy << __EOF__
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: test-deployment
+  labels:
+    deployment: test-deployment
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      deployment: test-deployment
+  template:
+    metadata:
+      labels:
+        deployment: test-deployment
+      name: test-deployment
+    spec:
+      containers:
+      - name: ruby-helloworld
+        image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        resources: {}
+status: {}
+__EOF__'
+os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container deploy/test-deployment -o jsonpath='{.metadata.name}'" 'test-deployment-debug'
+
+# re-scale existing resources
+os::cmd::expect_success 'oc scale --replicas=1 dc/test-deployment-config'
+
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image:.*cmd-debug/wildfly.*@'
+sha="$( oc get istag/wildfly:latest --template '{{ .image.metadata.name }}' )"
+os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: docker.io/openshift/wildfly-150-centos7'
+
+echo "debug: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdDebugShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdDebugSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdDebugSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdDebugShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/debug.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdDeploymentsSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/deployments"
+# This test validates deployments and the env command
+
+os::cmd::expect_success 'oc get deploymentConfigs'
+os::cmd::expect_success 'oc get dc'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
+os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
+os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
+os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
+os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys docker.io/openshift/origin-pod:latest'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
+os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs openshift/hello-openshift'
+
+os::test::junit::declare_suite_start "cmd/deployments/env"
+# Patch a nil list
+os::cmd::expect_success 'oc set env dc/test-deployment-config TEST=value'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'TEST=value'
+# Remove only env in the list
+os::cmd::expect_success 'oc set env dc/test-deployment-config TEST-'
+os::cmd::expect_success_and_not_text 'oc set env dc/test-deployment-config --list' 'TEST=value'
+# Add back to empty list
+os::cmd::expect_success 'oc set env dc/test-deployment-config TEST=value'
+os::cmd::expect_success_and_not_text 'oc set env dc/test-deployment-config TEST=foo --list' 'TEST=value'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config TEST=foo --list' 'TEST=foo'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo --list' 'TEST=value'
+os::cmd::expect_success_and_not_text 'oc set env dc/test-deployment-config OTHER=foo -c ruby --list' 'OTHER=foo'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo -c ruby*   --list' 'OTHER=foo'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo -c *hello* --list' 'OTHER=foo'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo -c *world  --list' 'OTHER=foo'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo --list' 'OTHER=foo'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config OTHER=foo -o yaml' 'name: OTHER'
+os::cmd::expect_success_and_text 'echo OTHER=foo | oc set env dc/test-deployment-config -e - --list' 'OTHER=foo'
+os::cmd::expect_success_and_not_text 'echo #OTHER=foo | oc set env dc/test-deployment-config -e - --list' 'OTHER=foo'
+os::cmd::expect_success 'oc set env dc/test-deployment-config TEST=bar OTHER=baz BAR-'
+os::cmd::expect_success_and_text 'oc set env -f ${TEST_DATA}/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1'
+os::cmd::expect_success 'oc set env dc/test-deployment-config A=a B=b C=c D=d E=e F=f G=g'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'A=a'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'B=b'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'C=c'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'D=d'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'E=e'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'F=f'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'G=g'
+os::cmd::expect_success 'oc set env dc/test-deployment-config H=h G- E=updated C- A-'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'B=b'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'D=d'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'E=updated'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'F=f'
+os::cmd::expect_success_and_text 'oc set env dc/test-deployment-config --list' 'H=h'
+os::cmd::expect_success_and_not_text 'oc set env dc/test-deployment-config --list' 'A=a'
+os::cmd::expect_success_and_not_text 'oc set env dc/test-deployment-config --list' 'C=c'
+os::cmd::expect_success_and_not_text 'oc set env dc/test-deployment-config --list' 'G=g'
+echo "env: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/config"
+#os::cmd::expect_failure_and_text 'oc rollout latest test-deployment-config' 'already in progress'
+#os::cmd::expect_failure_and_text 'oc rollout latest dc/test-deployment-config' 'already in progress'
+## ensure that a cancelled deployment can be retried successfully
+#os::cmd::expect_success 'oc rollout cancel dc/test-deployment-config'
+#os::cmd::expect_success_and_text 'oc rollout retry dc/test-deployment-config' 'deploymentconfig.apps.openshift.io/test-deployment-config retried rollout'
+#os::cmd::expect_success 'oc delete deploymentConfigs test-deployment-config'
+echo "deploymentConfigs: ok"
+os::test::junit::declare_suite_end
+
+os::cmd::expect_success 'oc delete all --all'
+# TODO: remove, flake caused by deployment controller updating the following dc
+sleep 1
+os::cmd::expect_success 'oc delete all --all'
+
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
+os::cmd::try_until_success 'oc get rc/database-1'
+
+os::test::junit::declare_suite_start "cmd/deployments/get"
+os::cmd::expect_success_and_text "oc get dc --show-labels" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success_and_text "oc get dc frontend --show-labels" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success_and_not_text "oc get dc" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success_and_not_text "oc get dc frontend" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success "oc process -f ${TEST_DATA}/old-template.json | oc create -f -"
+os::cmd::expect_success_and_text "oc get dc/eap-app -o yaml" ":latest"
+echo "get: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/rollout"
+os::cmd::try_until_success 'oc rollout pause dc/database'
+os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "true"
+os::cmd::try_until_success 'oc rollout resume dc/database'
+os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "<no value>"
+# create a replication controller and attempt to perform `+"`"+`oc rollout cancel`+"`"+` on it.
+# expect an error about the resource type, rather than a panic or a success.
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-replication-controller.yaml'
+os::cmd::expect_failure_and_text 'oc rollout cancel rc/test-replication-controller' 'expected deployment configuration, got replicationcontrollers'
+
+echo "rollout: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/rollback"
+# should fail because there's no previous deployment
+os::cmd::expect_failure 'oc rollback database --to-version=1 -o=yaml'
+os::cmd::expect_failure 'oc rollback dc/database --to-version=1 -o=yaml'
+os::cmd::expect_failure 'oc rollback dc/database --to-version=1 --dry-run'
+os::cmd::expect_failure 'oc rollback database-1 -o=yaml'
+os::cmd::expect_failure 'oc rollback rc/database-1 -o=yaml'
+os::cmd::expect_failure 'oc rollback database -o yaml'
+# trigger a new deployment with 'foo' image
+os::cmd::expect_success 'oc set image dc/database ruby-helloworld-database=foo --source=docker'
+# wait for the new deployment
+os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
+# rolling back to the same revision should fail
+os::cmd::expect_failure 'oc rollback dc/database --to-version=2'
+# undo --dry-run should report the original image
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'mysql-57-centos7'
+echo "rollback: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/stop"
+os::cmd::expect_success 'oc get dc/database'
+os::cmd::expect_success 'oc expose dc/database --name=fromdc'
+# should be a service
+os::cmd::expect_success 'oc get svc/fromdc'
+os::cmd::expect_success 'oc delete svc/fromdc'
+os::cmd::expect_success 'oc delete dc/database'
+os::cmd::expect_failure 'oc get dc/database'
+os::cmd::try_until_failure 'oc get rc/database-1'
+echo "stop: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/autoscale"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success 'oc autoscale dc/test-deployment-config --max 5'
+os::cmd::expect_success_and_text "oc get hpa/test-deployment-config --template='{{.spec.maxReplicas}}'" "5"
+os::cmd::expect_success_and_text "oc get hpa/test-deployment-config -o jsonpath='{.spec.scaleTargetRef.apiVersion}'" "apps.openshift.io/v1"
+os::cmd::expect_success 'oc delete dc/test-deployment-config'
+os::cmd::expect_success 'oc delete hpa/test-deployment-config'
+echo "autoscale: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/setimage"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=myshinynewimage --source=docker'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" "myshinynewimage"
+os::cmd::expect_success 'oc delete dc/test-deployment-config'
+echo "set image: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
+# Validate the set deployment-hook command
+arg="-f ${TEST_DATA}/test-deployment-config.yaml"
+os::cmd::expect_failure_and_text "oc set deployment-hook" "error: one or more deployment configs"
+os::cmd::expect_failure_and_text "oc set deployment-hook ${arg}" "error: you must specify one of --pre, --mid, or --post"
+os::cmd::expect_failure_and_text "oc set deployment-hook ${arg} -o yaml --pre -- mycmd" 'deploymentconfigs.apps.openshift.io "test-deployment-config" not found'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local -o yaml --post -- mycmd" 'mycmd'
+os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local -o yaml --post -- mycmd | oc set deployment-hook -f - --local -o yaml --post --remove" 'mycmd'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre  -o yaml -- echo 'hello world'" 'pre:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre  -o yaml -- echo 'hello world'" 'execNewPod:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre  -o yaml -- echo 'hello world'" '\- echo'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre  -o yaml -- echo 'hello world'" '\- hello world'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --post -o yaml -- echo 'hello world'" 'post:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --mid  -o yaml -- echo 'hello world'" 'mid:'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --failure-policy=ignore -o yaml -- echo 'hello world'" 'failurePolicy: Ignore'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --failure-policy=retry  -o yaml -- echo 'hello world'" 'failurePolicy: Retry'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --failure-policy=abort  -o yaml -- echo 'hello world'" 'failurePolicy: Abort'
+# Non-existent container
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=blah -o yaml -- echo 'hello world'" 'does not have a container named'
+# Non-existent volume
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=blah -o yaml -- echo 'hello world'" 'does not have a volume named'
+# verify the deprecated flag shorthand is working
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre -v blah -o yaml -- echo 'hello world'" 'shorthand -v has been deprecated'
+# Existing container
+os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'does not have a container named'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --container=ruby-helloworld -o yaml -- echo 'hello world'" 'containerName: ruby-helloworld'
+# Existing volume
+os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local --pre --volumes=vol1 -o yaml -- echo 'hello world'" 'does not have a volume named'
+os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local --pre --volumes=vol1 -o yaml -- echo 'hello world'" '\- vol1'
+# Server object tests
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
+os::cmd::expect_failure_and_text "oc set deployment-hook dc/test-deployment-config --pre" "you must specify a command"
+os::cmd::expect_success_and_text "oc set deployment-hook test-deployment-config --pre -- echo 'hello world'" "updated"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --loglevel=1 --pre -- echo 'hello world'" "was not changed"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "pre:"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre --failure-policy=abort -- echo 'test'" "updated"
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o yaml" "failurePolicy: Abort"
+os::cmd::expect_success_and_text "oc set deployment-hook --all --pre -- echo 'all dc'" "updated"
+os::cmd::expect_success_and_text "oc get dc -o yaml" "all dc"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get dc/test-deployment-config -o yaml" "pre:"
+# Environment handling
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre -o yaml --environment X=Y,Z=W -- echo 'test'" "value: Y,Z=W"
+os::cmd::expect_success_and_text "oc set deployment-hook dc/test-deployment-config --pre -o yaml --environment X=Y,Z=W -- echo 'test'" "no longer accepts comma-separated list"
+os::cmd::expect_success_and_not_text "oc set deployment-hook dc/test-deployment-config --pre -o yaml --environment X=Y -- echo 'test'" "no longer accepts comma-separated list"
+
+os::cmd::expect_success "oc delete dc/test-deployment-config"
+echo "set deployment-hook: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdDeploymentsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdDeploymentsSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdDeploymentsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdDeploymentsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/deployments.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdDescriberSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/describe"
+# This test validates non-duplicate errors when describing an existing resource without a defined describer
+os::cmd::expect_success 'oc create -f - << __EOF__
+{
+  "apiVersion": "v1",
+  "involvedObject": {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "name": "test-pod",
+    "namespace": "cmd-describer"
+  },
+  "kind": "Event",
+  "message": "test message",
+  "metadata": {
+    "name": "test-event"
+  }
+}
+__EOF__
+'
+os::cmd::try_until_success 'eventnum=$(oc get events | wc -l) && [[ $eventnum -gt 0 ]]'
+# resources without describers get a default
+os::cmd::expect_success_and_text 'oc describe events' 'Namespace:\s+cmd-describer'
+
+# TemplateInstance
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/templateinstance_objectkinds.yaml'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Name:\s+templateinstance'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Namespace:\s+cmd-describer'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Type:\s+Ready'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Status:\s+True'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Secret:\s+cmd-describer/secret'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Deployment:\s+cmd-describer/deployment'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Route:\s+cmd-describer/route'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'Route:\s+cmd-describer/newroute'
+os::cmd::expect_success_and_text 'oc describe templateinstances templateinstance' 'NAME:\s+8 bytes'
+
+echo "describer: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdDescriberShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdDescriberSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdDescriberSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdDescriberShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/describer.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdEditSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/edit"
+# This test validates the edit command
+
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
+
+os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'Edit cancelled'
+os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit pod/hello-openshift' 'name: hello-openshift'
+#os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit --windows-line-endings pod/hello-openshift | file -' 'CRLF'
+#os::cmd::expect_success_and_not_text 'OC_EDITOR=cat oc edit --windows-line-endings=false pod/hello-openshift | file -' 'CRFL'
+
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/services.yaml'
+os::cmd::expect_success_and_text 'OC_EDITOR=cat oc edit svc' 'kind: List'
+
+os::cmd::expect_success 'oc create imagestream test'
+os::cmd::expect_success 'oc tag --source=docker docker.io/busybox:latest test:new'
+os::cmd::try_until_success 'oc get istag/test:new'
+os::cmd::expect_success_and_not_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags:hidden"
+editorfile="$(mktemp -d)/tmp-editor.sh"
+echo '#!/bin/bash' > ${editorfile}
+echo 'sed -i "s/^tag: null/tag:\n  referencePolicy:\n    type: Source/g" $1' >> ${editorfile}
+echo 'sed -i "s/^metadata:$/metadata:\n  annotations:\n    tags: hidden/g" $1' >> ${editorfile}
+chmod +x ${editorfile}
+os::cmd::expect_success "EDITOR=${editorfile} oc edit istag/test:new"
+os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags:hidden"
+
+echo "edit: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdEditShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdEditSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdEditSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdEditShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/edit.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdEnvSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+os::test::junit::declare_suite_start "cmd/set-env"
+# This test validates the value of --image for oc run
+os::cmd::expect_success 'oc new-app node'
+os::cmd::expect_failure_and_text 'oc set env dc/node' 'error: at least one environment variable must be provided'
+os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_success_and_text 'oc set env dc/node --list' 'deploymentconfigs/node, container node'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variable test#abc=1234 is invalid, a valid environment variable name must consist of alphabetic characters'
+
+# ensure deleting a var through --env does not result in an error message
+os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_success_and_text 'oc set env dc/node dots.in.a.key=dots.in.a.value' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=key-' 'deploymentconfig.apps.openshift.io/node updated'
+# ensure deleting a var through --env actually deletes the env var
+os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:key'
+os::cmd::expect_success_and_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=dots.in.a.key-' 'deploymentconfig.apps.openshift.io/node updated'
+os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:dots.in.a.key'
+
+# check that env vars are not split at commas
+os::cmd::expect_success_and_text 'oc set env -o yaml dc/node PASS=x,y=z' 'value: x,y=z'
+os::cmd::expect_success_and_text 'oc set env -o yaml dc/node --env PASS=x,y=z' 'value: x,y=z'
+# warning is printed when --env has comma in it
+os::cmd::expect_success_and_text 'oc set env dc/node --env PASS=x,y=z' 'no longer accepts comma-separated list'
+# warning is not printed for variables passed as positional arguments
+os::cmd::expect_success_and_not_text 'oc set env dc/node PASS=x,y=z' 'no longer accepts comma-separated list'
+
+# create a build-config object with the JenkinsPipeline strategy
+os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f ${TEST_DATA}/jenkins/jenkins-ephemeral-template.json | oc create -f -'
+os::cmd::expect_success "echo 'apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: fake-pipeline
+spec:
+  source:
+    git:
+      uri: git://github.com/openshift/ruby-hello-world.git
+  strategy:
+    jenkinsPipelineStrategy: {}
+' | oc create -f -"
+
+# ensure build-config has been created and that its type is "JenkinsPipeline"
+os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.type }'" 'JenkinsPipeline'
+# attempt to set an environment variable
+os::cmd::expect_success_and_text 'oc set env bc/fake-pipeline FOO=BAR' 'buildconfig.build.openshift.io/fake\-pipeline updated'
+# ensure environment variable was set
+os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.jenkinsPipelineStrategy.env }'" 'name\:FOO'
+os::cmd::expect_success 'oc delete bc fake-pipeline'
+
+echo "oc set env: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdEnvShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdEnvSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdEnvSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdEnvShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/env.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdFrameworkTestSh = []byte(`#!/usr/bin/env bash
+#
+# This script tests os::test::junit functionality.
+
+function exit_trap() {
+    local return_code=$?
+
+    end_time=$(date +%s)
+
+    if [[ "${return_code}" -eq "0" ]]; then
+        verb="succeeded"
+    else
+        verb="failed"
+    fi
+
+    echo "$0 ${verb} after $((${end_time} - ${start_time})) seconds"
+    exit "${return_code}"
+}
+
+trap exit_trap EXIT
+
+start_time=$(date +%s)
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+
+# envars used to track these interactions are not propagated out of the subshells used to run these commands
+# therefore each os::cmd call is its own sandbox and complicated scenarios need to play out inside one call
+# however, envars from this scope *are* propagated into each subshell, so they need to be cleared in each call
+
+os::test::junit::declare_suite_start 'lib/test/junit'
+
+# shouldn't be able to end a suite straight away
+os::cmd::expect_failure_and_text 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_end' '\[ERROR\] jUnit suite marker could not be placed, expected suites in flight, got 0'
+# should be able to start one straight away
+os::cmd::expect_success 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever'
+# should be able to start and end a suite
+os::cmd::expect_success 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever
+os::test::junit::declare_suite_end'
+# should not be able to end more suites than are in flight
+os::cmd::expect_failure_and_text 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever
+os::test::junit::declare_suite_end
+os::test::junit::declare_suite_end' '\[ERROR\] jUnit suite marker could not be placed, expected suites in flight, got 0'
+# should not be able to end more suites than are in flight
+os::cmd::expect_failure_and_text 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever
+os::test::junit::declare_suite_start whateverelse
+os::test::junit::declare_suite_end
+os::test::junit::declare_suite_end
+os::test::junit::declare_suite_end' '\[ERROR\] jUnit suite marker could not be placed, expected suites in flight, got 0'
+# should be able to staart a test
+os::cmd::expect_success 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever
+os::test::junit::declare_test_start'
+# shouldn't be able to end a test that hasn't been started
+os::cmd::expect_failure_and_text 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_test_end' '\[ERROR\] jUnit test marker could not be placed, expected one test in flight, got 0'
+# should be able to start and end a test case
+os::cmd::expect_success 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever
+os::test::junit::declare_test_start
+os::test::junit::declare_test_end'
+# shouldn't be able to end too many test cases
+os::cmd::expect_failure_and_text 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_suite_start whatever
+os::test::junit::declare_test_start
+os::test::junit::declare_test_end
+os::test::junit::declare_test_end' '\[ERROR\] jUnit test marker could not be placed, expected one test in flight, got 0'
+# shouldn't be able to start a test without a suite
+os::cmd::expect_failure_and_text 'unset NUM_OS_JUNIT_SUITES_IN_FLIGHT NUM_OS_JUNIT_TESTS_IN_FLIGHT JUNIT_REPORT_OUTPUT
+os::test::junit::declare_test_start' '\[ERROR\] jUnit test marker could not be placed, expected suites in flight, got 0'
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdFrameworkTestShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdFrameworkTestSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdFrameworkTestSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdFrameworkTestShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/framework-test.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdGetSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  oc delete users.user.openshift.io test-user-1
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/get"
+os::cmd::expect_success_and_text 'oc create service loadbalancer testsvc1  --tcp=8080' "service/testsvc1 created"
+# mixed resource output should print resource kind
+# prefix even when only one type of resource is present
+os::cmd::expect_success_and_text 'oc get all' "service/testsvc1"
+# ensure that getting mixed resource types still returns prefixed resources, if there are at most resources of one type
+os::cmd::expect_success_and_text 'oc get svc,pod' "service/testsvc1"
+os::cmd::expect_failure_and_text 'oc get svc,pod testsvc1' "testsvc1"
+# create second resource type and ensure that prefixed resource names are returned for both
+os::cmd::expect_success_and_text 'oc create imagestream testimg1' "imagestream.image.openshift.io/testimg1 created"
+os::cmd::expect_success_and_text 'oc get svc,is' "service/testsvc1"
+# create second service and expect `+"`"+`get all`+"`"+` to still append resource kind to multiple of one type of resource
+os::cmd::expect_success_and_text 'oc create service loadbalancer testsvc2  --tcp=8081' "service/testsvc2 created"
+os::cmd::expect_success_and_text 'oc get all' "service/testsvc2"
+# test tuples of same and different resource kinds (tuples of same resource kind should not return prefixed items).
+os::cmd::expect_success_and_not_text 'oc get svc/testsvc1 svc/testsvc2' "service/testsvc1"
+os::cmd::expect_success_and_text 'oc get svc/testsvc1 is/testimg1' "service/testsvc1"
+os::cmd::expect_success_and_text 'oc get --v=8 svc/testsvc1 is/testimg1' "round_trippers.go"
+# specific resources should not have their kind prefixed
+os::cmd::expect_success_and_text 'oc get svc' "testsvc1"
+# test --show-labels displays labels for users
+os::cmd::expect_success 'oc create user test-user-1'
+os::cmd::expect_success 'oc label user/test-user-1 customlabel=true'
+os::cmd::expect_success_and_text 'oc get users test-user-1 --show-labels' "customlabel=true"
+os::cmd::expect_success_and_not_text 'oc get users test-user-1' "customlabel=true"
+# test structured and unstructured resources print generically without panic
+os::cmd::expect_success_and_text 'oc get projectrequests -o yaml' 'status: Success'
+os::cmd::expect_success_and_text 'oc get projectrequests,svc,pod -o yaml' 'kind: List'
+# test --wacth does not result in an error when a resource list is served in multiple chunks
+os::cmd::expect_success 'oc create cm cmone'
+os::cmd::expect_success 'oc create cm cmtwo'
+os::cmd::expect_success 'oc create cm cmthree'
+os::cmd::expect_success_and_not_text 'oc get configmap --chunk-size=1 --watch --request-timeout=1s' 'watch is only supported on individual resources'
+os::cmd::expect_success_and_not_text 'oc get configmap --chunk-size=1 --watch-only --request-timeout=1s' 'watch is only supported on individual resources'
+echo "oc get: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdGetShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdGetSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdGetSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdGetShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/get.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdHelpSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+os::test::junit::declare_suite_start "cmd/help"
+# This test validates the help commands and output text
+
+# verify some default commands
+os::cmd::expect_success 'kubectl'
+os::cmd::expect_success 'oc'
+os::cmd::expect_success 'oc ex'
+os::cmd::expect_failure 'origin'
+
+# help for root commands must be consistent
+os::cmd::expect_success_and_text 'oc' 'OpenShift Client'
+os::cmd::expect_success_and_text 'oc -h' 'Build and Deploy Commands:'
+os::cmd::expect_success_and_text 'oc -h' 'Other Commands:'
+os::cmd::expect_success_and_text 'oc policy --help' 'add-role-to-user'
+os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
+os::cmd::expect_success_and_not_text 'oc -h' 'Options'
+os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
+os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
+os::cmd::expect_success_and_text 'oc exec --help' '\[flags\] POD \[\-c CONTAINER\] \-\- COMMAND \[args\.\.\.\]$'
+os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
+
+# help for root commands with --help flag must be consistent
+os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'
+os::cmd::expect_success_and_text 'oc login --help' 'Options'
+os::cmd::expect_success_and_not_text 'oc login --help' 'Global Options'
+os::cmd::expect_success_and_text 'oc login --help' 'insecure-skip-tls-verify'
+
+# help for given command with --help flag must be consistent
+os::cmd::expect_success_and_text 'oc get --help' 'Display one or many resources'
+os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc projects --help' 'existing projects'
+os::cmd::expect_success_and_text 'oc get --help' 'oc'
+
+# help for given command through help command must be consistent
+os::cmd::expect_success_and_text 'oc help get' 'Display one or many resources'
+os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc help projects' 'current active project and existing projects on the server'
+
+# help tips must be consistent
+os::cmd::expect_success_and_text 'oc --help' 'Use "oc <command> --help" for more information'
+os::cmd::expect_success_and_text 'oc --help' 'Use "oc options" for a list of global'
+os::cmd::expect_success_and_text 'oc help' 'Use "oc <command> --help" for more information'
+os::cmd::expect_success_and_text 'oc help' 'Use "oc options" for a list of global'
+os::cmd::expect_success_and_text 'oc set --help' 'Use "oc set <command> --help" for more information'
+os::cmd::expect_success_and_text 'oc set --help' 'Use "oc options" for a list of global'
+os::cmd::expect_success_and_text 'oc set env --help' 'Use "oc options" for a list of global'
+
+# runnable commands with required flags must error consistently
+os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'
+
+# commands that expect file paths must validate and error out correctly
+os::cmd::expect_failure_and_text 'oc login --certificate-authority=/path/to/invalid' 'no such file or directory'
+
+# make sure that typoed commands come back with non-zero return codes
+os::cmd::expect_failure 'oc policy TYPO'
+os::cmd::expect_failure 'oc secrets TYPO'
+
+# make sure that LDAP group sync and prune exist under both experimental and `+"`"+`oc adm`+"`"+`
+os::cmd::expect_success_and_text 'oc ex sync-groups --help' 'external provider'
+os::cmd::expect_success_and_text 'oc ex prune-groups --help' 'external provider'
+os::cmd::expect_success_and_text 'oc adm groups sync --help' 'external provider'
+os::cmd::expect_success_and_text 'oc adm groups prune --help' 'external provider'
+os::cmd::expect_success_and_text 'oc adm prune groups --help' 'external provider'
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdHelpShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdHelpSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdHelpSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdHelpShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/help.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdIdleSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+project="$(oc project -q)"
+idled_at_annotation='idling.alpha.openshift.io/idled-at'
+unidle_target_annotation='idling.alpha.openshift.io/unidle-targets'
+prev_scale_annotation='idling.alpha.openshift.io/previous-scale'
+idled_at_template="{{index .metadata.annotations \"${idled_at_annotation}\"}}"
+unidle_target_template="{{index .metadata.annotations \"${unidle_target_annotation}\"}}"
+prev_scale_template="{{index .metadata.annotations \"${prev_scale_annotation}\"}}"
+dc_name=""
+
+setup_idling_resources() {
+    os::cmd::expect_success 'oc delete all --all'
+
+    # set up resources for the idle command
+    os::cmd::expect_success 'oc create -f ${TEST_DATA}/idling-svc-route.yaml'
+    dc_name=$(basename $(oc create -f ${TEST_DATA}/idling-dc.yaml -o name))  # `+"`"+`basename type/name`+"`"+` --> name
+    os::cmd::expect_success "oc describe deploymentconfigs '${dc_name}'"
+    os::cmd::try_until_success 'oc describe endpoints idling-echo'
+    local endpoints_json
+    endpoints_json="$(oc get endpoints idling-echo -o json)"
+    os::cmd::expect_success 'oc delete service idling-echo'
+    os::cmd::expect_success "echo '${endpoints_json}' | oc create -f -"
+    os::cmd::expect_success 'oc describe endpoints idling-echo'
+    # deployer pod won't work, so just scale up the rc ourselves
+    os::cmd::try_until_success "oc get replicationcontroller ${dc_name}-1"
+    os::cmd::expect_success "oc scale replicationcontroller ${dc_name}-1 --replicas=2"
+    os::cmd::try_until_text "oc get pod -l app=idling-echo -o go-template='{{ len .items }}'" "2"
+    local pod_name
+    pod_name="$(oc get pod -l app=idling-echo -o go-template='{{ (index .items 0).metadata.name }}')"
+    fake_endpoints_patch=$(cat <<EOF
+{
+    "subsets": [{
+        "addresses": [{
+            "ip": "1.2.3.4",
+            "targetRef": {
+                "kind": "Pod",
+                "name": "${pod_name}",
+                "namespace": "${project}"
+            }
+        }],
+        "ports": [{"name": "foo", "port": 80}]
+    }]
+}
+EOF
+)
+
+    os::cmd::expect_success "oc patch endpoints idling-echo -p '${fake_endpoints_patch}'"
+    os::cmd::try_until_text 'oc get endpoints idling-echo -o go-template="{{ len .subsets }}"' '1'
+}
+
+os::test::junit::declare_suite_start "cmd/idle/by-name"
+setup_idling_resources
+os::cmd::expect_failure "oc idle dc/${dc_name}" # make sure manually passing non-endpoints resources fails
+os::cmd::expect_success_and_text 'oc idle idling-echo' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
+os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
+#os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq '.[] | select(.name == \"${dc_name}\") | (.replicas == 2 and .kind == \"DeploymentConfig\")'" 'true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/idle/by-label"
+setup_idling_resources
+os::cmd::expect_success_and_text 'oc idle -l app=idling-echo' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
+os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
+#os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq '.[] | select(.name == \"${dc_name}\") | (.replicas == 2 and .kind == \"DeploymentConfig\")'" 'true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/idle/all"
+setup_idling_resources
+os::cmd::expect_success_and_text 'oc idle --all' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
+os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
+#os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq '.[] | select(.name == \"${dc_name}\") | (.replicas == 2 and .kind == \"DeploymentConfig\")'" 'true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/idle/check-previous-scale"
+setup_idling_resources  # scales up to 2 replicas
+os::cmd::expect_success_and_text 'oc idle idling-echo' "The service will unidle DeploymentConfig \"${project}/${dc_name}\" to 2 replicas once it receives traffic"
+os::cmd::expect_success_and_text "oc get dc ${dc_name}  -o go-template='${prev_scale_template}'" '2'  # we see the result of the initial scale as the previous scale
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdIdleShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdIdleSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdIdleSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdIdleShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/idle.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdImageLookupSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,is,pods --all
+
+  exit 0
+) &> /dev/null
+
+project="$( oc project -q )"
+
+os::test::junit::declare_suite_start "cmd/image-lookup"
+## This test validates image lookup resolution
+#
+## TODO: fix and re-enable these tests before 4.0 release
+#
+## Verify image resolution on default resource types
+os::cmd::expect_success_and_text "oc import-image --confirm --from=nginx:latest nginx:latest" "sha256:"
+os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
+## Image lookup works for pods
+os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
+## Image lookup works for jobs
+os::cmd::expect_success          "oc run --generator=job/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success_and_text "oc get job/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
+## Image lookup works for replica sets
+os::cmd::expect_success          "oc create deployment --image=nginx:latest nginx"
+os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
+## Image lookup works for replication controllers
+rc='{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"nginx"},"spec":{"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"nginx:latest"}]}}}}'
+os::cmd::expect_success          "echo '${rc}' | oc create -f -"
+os::cmd::expect_success_and_text "oc get rc/nginx -o jsonpath='{.spec.template.spec.containers[0].image}'" "nginx@sha256:"
+#
+## Verify swapping settings on image stream
+os::cmd::expect_success_and_text "oc set image-lookup is/nginx --v=1" "was not changed"
+os::cmd::expect_success_and_text "oc set image-lookup nginx --v=1" "was not changed"
+os::cmd::expect_success_and_text "oc set image-lookup is --list" "nginx.*true"
+os::cmd::expect_success_and_text "oc set image-lookup nginx --enabled=false" "updated"
+os::cmd::expect_success_and_text "oc set image-lookup is --list" "nginx.*false"
+os::cmd::expect_failure_and_text "oc set image-lookup unknown --list" "the server doesn't have a resource type"
+os::cmd::expect_success_and_text "oc set image-lookup secrets --list" "false"
+#
+## Clear resources
+os::cmd::expect_success "oc delete deploy,dc,rs,rc,pods --all"
+#
+## Resource annotated with image lookup will create pods that resolve
+os::cmd::expect_success          "oc tag nginx:latest alternate:latest"
+rc='{"kind":"Deployment","apiVersion":"apps/v1beta1","metadata":{"name":"alternate"},"spec":{"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
+os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
+os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
+os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
+os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdImageLookupShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdImageLookupSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdImageLookupSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdImageLookupShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/image-lookup.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdImagesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  original_context="$( oc config current-context )"
+  os::cmd::expect_success 'oc login -u system:admin'
+  cluster_admin_context="$( oc config current-context )"
+  os::cmd::expect_success "oc config use-context '${original_context}'"
+  oc delete project test-cmd-images-2 merge-tags --context=${cluster_admin_context}
+  oc delete all,templates --all --context=${cluster_admin_context}
+
+  exit 0
+) &> /dev/null
+
+project="$( oc project -q )"
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}"
+# This test validates images and image streams along with the tag and import-image commands
+
+# some steps below require that we use system:admin privileges, but we don't
+# want to stomp on whatever context we were given when we started
+original_context="$( oc config current-context )"
+os::cmd::expect_success 'oc login -u system:admin'
+cluster_admin_context="$( oc config current-context )"
+os::cmd::expect_success "oc config use-context '${original_context}'"
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/images"
+os::cmd::expect_success "oc get images --context='${cluster_admin_context}'"
+os::cmd::expect_success "oc create -f '${TEST_DATA}/test-image.json' --context='${cluster_admin_context}'"
+os::cmd::expect_success "oc delete images test --context='${cluster_admin_context}'"
+echo "images: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/imagestreams"
+os::cmd::expect_success 'oc get imageStreams'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-image-stream.json'
+# can't check status since there is no registry running so internalRegistryHostname isn't populated.
+#os::cmd::expect_success_and_text "oc get imageStreams test --template='{{.status.dockerImageRepository}}'" 'test'
+os::cmd::expect_success 'oc delete imageStreams test'
+os::cmd::expect_failure 'oc get imageStreams test'
+
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
+# can't check status since there is no registry running so internalRegistryHostname isn't populated.
+#os::cmd::expect_success_and_text "oc get imageStreams ruby --template='{{.status.dockerImageRepository}}'" 'ruby'
+#os::cmd::expect_success_and_text "oc get imageStreams nodejs --template='{{.status.dockerImageRepository}}'" 'nodejs'
+#os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{.status.dockerImageRepository}}'" 'wildfly'
+#os::cmd::expect_success_and_text "oc get imageStreams mysql --template='{{.status.dockerImageRepository}}'" 'mysql'
+#os::cmd::expect_success_and_text "oc get imageStreams postgresql --template='{{.status.dockerImageRepository}}'" 'postgresql'
+#os::cmd::expect_success_and_text "oc get imageStreams mongodb --template='{{.status.dockerImageRepository}}'" 'mongodb'
+#os::cmd::expect_success_and_text "oc get imageStreams httpd --template='{{.status.dockerImageRepository}}'" 'httpd'
+
+# verify the image repository had its tags populated
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
+os::cmd::expect_success_and_text 'oc get istag' 'wildfly'
+
+# create an image stream and post a mapping to it
+#os::cmd::expect_success 'oc create imagestream test'
+#os::cmd::expect_success 'oc create -f test/testdata/mysql-image-stream-mapping.yaml'
+#os::cmd::expect_success_and_text 'oc get istag/test:new --template="{{ index .image.dockerImageMetadata.Config.Entrypoint 0 }}"' "docker-entrypoint.sh"
+#os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.image.metadata.name}' 'sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237'
+# reference should point to the current repository, and that repository should match the reported dockerImageRepository for pushes
+#repository="$( oc get is/test -o jsonpath='{.status.dockerImageRepository}' )"
+#os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.image.dockerImageReference}' "^$repository@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237"
+#os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.image.dockerImageReference}' "/$project/test@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237"
+
+#repository="$( oc get is/test -o jsonpath='{.status.dockerImageRepository}' )"
+#os::cmd::expect_success "oc annotate --context='${cluster_admin_context}' --overwrite image/sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237 images.openshift.io/deny-execution=true"
+# TODO: re-enable before 4.0 release
+#os::cmd::expect_failure_and_text "oc run vulnerable --image=${repository}:new --restart=Never" 'spec.containers\[0\].image: Forbidden: this image is prohibited by policy'
+
+# test image stream tag operations
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.generation}' '2'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'ImageStreamTag'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' '15.0'
+os::cmd::expect_success 'oc annotate istag/wildfly:latest foo=bar'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo}' 'bar'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.annotations.foo}' 'bar'
+os::cmd::expect_success 'oc annotate istag/wildfly:latest foo-'
+os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations}' 'bar'
+os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.tag.annotations}' 'bar'
+os::cmd::expect_success "oc patch istag/wildfly:latest -p='{\"tag\":{\"from\":{\"kind\":\"DockerImage\",\"name\":\"mysql:latest\"}}}'"
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'DockerImage'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' 'mysql:latest'
+os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.tag.generation}' '2'
+
+# create an image stream tag
+os::cmd::expect_success 'oc create imagestreamtag tag:1 --from=wildfly:15.0'
+os::cmd::expect_success 'oc create imagestreamtag tag:2 --from-image=mysql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags tag:2'
+os::cmd::expect_success 'oc create imagestreamtag tag:3 -A foo=bar'
+os::cmd::expect_success 'oc create imagestreamtag tag:4 --from=:2'
+os::cmd::expect_success 'oc create imagestreamtag tag:5 --from=tag:2'
+os::cmd::expect_success 'oc create imagestreamtag tag:6 --reference --from-image=mysql:latest'
+os::cmd::expect_success 'oc create imagestreamtag tag:7 --reference-policy=Local --from=tag:2'
+os::cmd::expect_success 'oc create istag tag:8 --insecure --from-image=mysql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags tag:8'
+os::cmd::expect_success 'oc create imagestreamtag tag:9 --scheduled --reference-policy=Local --from-image=mysql:latest'
+os::cmd::expect_success 'oc create imagestream tag-b'
+os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=wildfly:15.0'
+os::cmd::expect_success 'oc create imagestreamtag tag-c:1 -A annotation.with.dots=are.ok'
+
+os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c --from-image=mysql:latest' 'must be of the form <stream_name>:<tag>'
+os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:1 -A foo' 'annotations must be of the form key=value, but is "foo"'
+os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:2 --from=mysql --from-image=mysql:latest' '\--from and --from-image may not be used together'
+
+os::cmd::expect_success_and_text 'oc get istag/tag:1 -o jsonpath={.image.dockerImageReference}' 'wildfly.*@sha256:'
+tag1=$( oc get istag/wildfly:15.0 -o jsonpath={.image.metadata.name} )
+os::cmd::expect_success_and_text 'oc get istag/tag-b:1 -o jsonpath={.image.metadata.name}' "${tag1}"
+os::cmd::expect_success_and_text 'oc get istag/tag:2 -o jsonpath={.image.dockerImageReference}' 'mysql@sha256:'
+tag2=$( oc get istag/tag:2 -o jsonpath={.image.metadata.name} )
+os::cmd::expect_success_and_text "oc get is/tag -o 'jsonpath={.spec.tags[?(@.name==\"3\")].annotations.foo}'" 'bar'
+os::cmd::expect_success_and_text 'oc get istag/tag:4 -o jsonpath={.image.metadata.name}' "${tag2}"
+os::cmd::expect_success_and_text "oc get is/tag -o 'jsonpath={.spec.tags[?(@.name==\"4\")].from.name}'" '^2$'
+os::cmd::expect_success_and_text 'oc get istag/tag:5 -o jsonpath={.image.metadata.name}' "${tag2}"
+os::cmd::expect_success_and_text "oc get is/tag -o 'jsonpath={.spec.tags[?(@.name==\"6\")].reference}'" 'true'
+os::cmd::expect_success_and_text "oc get is/tag -o 'jsonpath={.spec.tags[?(@.name==\"7\")].referencePolicy}'" 'Local'
+os::cmd::expect_success_and_text "oc get is/tag -o 'jsonpath={.spec.tags[?(@.name==\"8\")].importPolicy.insecure}'" 'true'
+os::cmd::expect_success_and_text "oc get is/tag -o 'jsonpath={.spec.tags[?(@.name==\"9\")].importPolicy.scheduled}'" 'true'
+
+os::cmd::expect_success 'oc delete imageStreams ruby'
+os::cmd::expect_success 'oc delete imageStreams nodejs'
+os::cmd::expect_success 'oc delete imageStreams wildfly'
+os::cmd::expect_success 'oc delete imageStreams postgresql'
+os::cmd::expect_success 'oc delete imageStreams mongodb'
+os::cmd::expect_failure 'oc get imageStreams ruby'
+os::cmd::expect_failure 'oc get imageStreams nodejs'
+os::cmd::expect_failure 'oc get imageStreams postgresql'
+os::cmd::expect_failure 'oc get imageStreams mongodb'
+os::cmd::expect_failure 'oc get imageStreams wildfly'
+os::cmd::try_until_success 'oc get imagestreamTags mysql:5.5'
+os::cmd::try_until_success 'oc get imagestreamTags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamTags mysql:5.7'
+os::cmd::expect_success_and_text "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
+os::cmd::expect_success 'oc describe istag/mysql:latest'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Environment:'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Created:'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Image Name:'
+os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Layers:'
+name=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
+imagename="isimage/mysql@${name:0:15}"
+os::cmd::expect_success "oc describe ${imagename}"
+os::cmd::expect_success_and_text "oc describe ${imagename}" 'Environment:'
+os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
+os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
+
+# test prefer-os and prefer-arch annotations
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-multiarch-stream.yaml'
+os::cmd::try_until_success 'oc get istag test-multiarch-stream:linux-amd64'
+os::cmd::try_until_success 'oc get istag test-multiarch-stream:linux-s390x'
+os::cmd::expect_success_and_text 'oc get istag test-multiarch-stream:linux-amd64 --template={{.image.dockerImageMetadata.Architecture}}' 'amd64'
+os::cmd::expect_success_and_text 'oc get istag test-multiarch-stream:linux-s390x --template={{.image.dockerImageMetadata.Architecture}}' 's390x'
+os::cmd::expect_success 'oc delete is test-multiarch-stream'
+echo "imageStreams: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-image"
+# should follow the latest reference to 5.6 and update that, and leave latest unchanged
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
+# import existing tag (implicit latest)
+os::cmd::expect_success_and_text 'oc import-image mysql' 'sha256:'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
+# should prevent changing source
+os::cmd::expect_failure_and_text 'oc import-image mysql --from=docker.io/mysql' "use the 'tag' command if you want to change the source"
+os::cmd::expect_success 'oc describe is/mysql'
+# import existing tag (explicit)
+os::cmd::expect_success_and_text 'oc import-image mysql:5.6' "sha256:"
+os::cmd::expect_success_and_text 'oc import-image mysql:latest' "sha256:"
+# import existing image stream creating new tag
+os::cmd::expect_success_and_text 'oc import-image mysql:external --from=docker.io/mysql' "sha256:"
+os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.name}}'" 'docker.io/mysql'
+# import creates new image stream with single tag
+os::cmd::expect_failure_and_text 'oc import-image mysql-new-single:latest --from=docker.io/mysql:latest' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-single:latest --from=docker.io/mysql:latest --confirm' 'sha256:'
+os::cmd::expect_success_and_text "oc get is/mysql-new-single --template='{{(len .spec.tags)}}'" '1'
+os::cmd::expect_success 'oc delete is/mysql-new-single'
+# import creates new image stream with all tags
+os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=mysql --all' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=mysql --all --confirm --request-timeout=1m' 'sha256:'
+name=$(oc get istag/mysql-new-all:latest --template='{{ .image.metadata.name }}')
+echo "import-image: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/tag"
+# oc tag
+os::cmd::expect_success 'oc tag mysql:latest mysql:tag1 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamTag'
+
+os::cmd::expect_success "oc tag mysql@${name} mysql:tag2 --alias"
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
+
+os::cmd::expect_success 'oc tag mysql:notfound mysql:tag3 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
+
+os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest mysql:tag4 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
+
+os::cmd::expect_success 'oc tag --source=istag mysql:latest mysql:tag5 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamTag'
+
+os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} mysql:tag6 --alias"
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
+
+os::cmd::expect_success "oc tag --source=isimage mysql@${name} mysql:tag7 --alias"
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'ImageStreamImage'
+
+os::cmd::expect_success 'oc tag --source=docker mysql:latest mysql:tag8 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'DockerImage'
+
+os::cmd::expect_success 'oc tag mysql:latest mysql:zzz mysql:yyy --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 13).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 14).from.kind}}'" 'ImageStreamTag'
+
+os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'cannot set alias across'
+
+# label image
+imgsha256=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
+os::cmd::expect_success "oc label image ${imgsha256} foo=bar || true"
+os::cmd::expect_success_and_text "oc get image ${imgsha256} --show-labels" 'foo=bar'
+
+# tag labeled image
+os::cmd::expect_success 'oc label is/mysql labelA=value'
+os::cmd::expect_success 'oc tag mysql:latest mysql:labeled'
+os::cmd::expect_success_and_text "oc get istag/mysql:labeled -o jsonpath='{.metadata.labels.labelA}'" 'value'
+# test copying tags
+os::cmd::expect_success 'oc tag registry-1.docker.io/openshift/origin:v1.0.4 newrepo:latest'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'DockerImage'
+os::cmd::try_until_success 'oc get istag/mysql:5.5'
+# default behavior is to copy the current image, but since this is an external image we preserve the dockerImageReference
+os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^docker.io/openshift/mysql-55-centos7@sha256:'
+# when copying a tag that points to the internal registry, update the container image reference
+#os::cmd::expect_success "oc tag test:new newrepo:direct"
+#os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "/$project/newrepo@sha256:"
+# test references
+os::cmd::expect_success 'oc tag mysql:5.5 reference:latest --reference'
+os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).reference}}'" 'true'
+# create a second project to test tagging across projects
+os::cmd::expect_success 'oc new-project test-cmd-images-2'
+os::cmd::expect_success "oc tag $project/mysql:5.5 newrepo:latest"
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'docker.io/openshift/mysql-55-centos7@sha256:'
+# tag across projects without specifying the source's project
+os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mysql:tag1'" "mysql:tag1 set to"
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).name}}'" "latest"
+# tagging an image with a DockerImageReference that points to the internal registry across namespaces updates the reference
+#os::cmd::expect_success "oc tag $project/test:new newrepo:direct"
+# reference should point to the current repository, and that repository should match the reported dockerImageRepository for pushes
+# can't check status since there is no registry running so internalRegistryHostname isn't populated.
+#repository="$( oc get is/newrepo -o jsonpath='{.status.dockerImageRepository}' )"
+#os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "^$repository@sha256:"
+#os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' '/test-cmd-images-2/newrepo@sha256:'
+# tagging an image using --reference does not
+#os::cmd::expect_success "oc tag $project/test:new newrepo:indirect --reference"
+#os::cmd::expect_success_and_text 'oc get istag/newrepo:indirect -o jsonpath={.image.dockerImageReference}' "/$project/test@sha256:"
+os::cmd::expect_success "oc project $project"
+# test scheduled and insecure tagging
+os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --scheduled'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.scheduled}}'" 'true'
+os::cmd::expect_success_and_text "oc describe is/newrepo" 'updates automatically from registry mysql:5.7'
+os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --insecure'
+os::cmd::expect_success_and_text "oc describe is/newrepo" 'will use insecure HTTPS or HTTP connections'
+os::cmd::expect_success_and_not_text "oc describe is/newrepo" 'updates automatically from'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.insecure}}'" 'true'
+
+# test creating streams that don't exist
+os::cmd::expect_failure_and_text 'oc get imageStreams tagtest1' 'not found'
+os::cmd::expect_failure_and_text 'oc get imageStreams tagtest2' 'not found'
+os::cmd::expect_success 'oc tag mysql:latest tagtest1:latest tagtest2:latest'
+os::cmd::expect_success_and_text "oc get is/tagtest1 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success 'oc delete is/tagtest1 is/tagtest2'
+os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
+
+# test deleting a spec tag using oc tag
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-stream.yaml'
+os::cmd::expect_success_and_text 'oc tag test-stream:latest -d' 'Deleted'
+os::cmd::expect_success 'oc delete is/test-stream'
+echo "tag: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/delete-istag"
+# test deleting a tag using oc delete
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.16'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.16'
+os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" 'latest'
+os::cmd::expect_success "oc delete istag/perl:5.16 --context='${cluster_admin_context}'"
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.16'
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'version:5.16'
+os::cmd::expect_success 'oc delete all --all'
+
+echo "delete istag: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
+os::cmd::expect_success 'oc new-project merge-tags'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 2.5 latest'
+os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 2.5 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[3].annotations.version}' '2.4 patched'
+os::cmd::expect_success 'oc delete project merge-tags'
+echo "apply new imagestream tags: ok"
+os::test::junit::declare_suite_end
+
+# test importing images with wrong docker secrets
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-public-images-with-fake-secret"
+os::cmd::expect_success 'oc new-project import-images'
+os::cmd::expect_success 'oc create secret docker-registry dummy-secret1 --docker-server=docker.io --docker-username=dummy1 --docker-password=dummy1 --docker-email==dummy1@example.com'
+os::cmd::expect_success 'oc create secret docker-registry dummy-secret2 --docker-server=docker.io --docker-username=dummy2 --docker-password=dummy2 --docker-email==dummy2@example.com'
+os::cmd::expect_success_and_text 'oc import-image example --from=openshift/hello-openshift --confirm' 'imagestream.image.openshift.io/example imported'
+os::cmd::expect_success 'oc delete project import-images'
+echo "import public images with fake secret ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdImagesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdImagesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdImagesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdImagesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/images.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdLoginSh = []byte(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete project project-foo
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/login"
+# This test validates login functionality for the client
+# we want this test to run without $KUBECONFIG or $KUBERNETES_MASTER as it tests that functionality
+# `+"`"+`oc`+"`"+` will use in-cluster config if KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT
+# are set, as well as /var/run/secrets/kubernetes.io/serviceaccount/token exists. we
+# therefore can be sure that we are picking up no client configuration if we unset these variables
+login_kubeconfig="${ARTIFACT_DIR}/login.kubeconfig"
+CA_CERT=${MASTER_CONFIG_DIR}/server-ca.crt
+cp "${KUBECONFIG}" "${login_kubeconfig}"
+unset KUBECONFIG
+unset KUBERNETES_MASTER
+# test client not configured
+os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get services" 'Missing or incomplete configuration info.  Please login'
+unused_port="33333"
+# setting env bypasses the not configured message
+os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services" 'did you specify the right host or port'
+# setting --server bypasses the not configured message
+os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get services --server=http://${API_HOST}:${unused_port}" 'did you specify the right host or port'
+
+# Set KUBERNETES_MASTER for oc from now on
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
+
+# Set certificates for oc from now on
+if [[ "${API_SCHEME}" == "https" ]]; then
+    # test bad certificate
+    os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get services" 'certificate signed by unknown authority'
+fi
+
+# remove self-provisioner role from user and test login prompt before creating any projects
+os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
+os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u no-project-test-user -p anything" "You don't have any projects. Contact your system administrator to request a project"
+# make sure standard login prompt is printed once self-provisioner status is restored
+os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
+os::cmd::try_until_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u no-project-test-user -p anything" "You don't have any projects. You can try to create a new project, by running" $(( 30 * second )) 0.25
+# make sure `+"`"+`oc login`+"`"+` fails with unauthorized error
+os::cmd::expect_failure_and_text 'oc login <<< \n' 'Login failed \(401 Unauthorized\)'
+os::cmd::expect_success 'oc logout'
+echo "login and status messages: ok"
+
+# login and logout tests
+# bad token should error
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' --token=badvalue" 'The token provided is invalid or expired'
+# --token and --username are mutually exclusive
+os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify" 'mutually exclusive'
+# must only accept one arg (server)
+os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 'Only the server URL may be specified'
+# logs in with a valid certificate authority
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
+os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1"
+os::cmd::expect_success 'oc logout'
+# logs in skipping certificate check
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything"
+# logs in by an existing and valid token
+temp_token="$(oc whoami -t)"
+os::cmd::expect_success_and_text "oc login --token=${temp_token}" 'using the token provided'
+os::cmd::expect_success 'oc logout'
+# properly parse server port
+os::cmd::expect_failure_and_text 'oc login https://server1:844333' 'Not a valid port'
+# properly handle trailing slash
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
+# create a new project
+os::cmd::expect_success "oc new-project project-foo --display-name='my project' --description='boring project description'"
+os::cmd::expect_success_and_text "oc project" 'Using project "project-foo"'
+# new user should get default context
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u new-and-unknown-user -p anything"
+os::cmd::expect_success_and_text 'oc config view' "current-context.+/${API_HOST}:${API_PORT}/new-and-unknown-user"
+# denies access after logging out
+os::cmd::expect_success 'oc logout'
+os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list resource "pods" in API group ""'
+
+# make sure we report an error if the config file we pass is not writable
+# Does not work inside of a container, determine why and reenable
+# os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--kubeconfig=${templocation}/file' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
+echo "login warnings: ok"
+
+# login and create serviceaccount and test login and logout with a service account token
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
+os::cmd::expect_success_and_text "oc create sa testserviceaccount" "serviceaccount/testserviceaccount created"
+os::cmd::try_until_success "oc sa get-token testserviceaccount"
+os::cmd::expect_success_and_text "oc login --token=$(oc sa get-token testserviceaccount)" "system:serviceaccount:project-foo:testserviceaccount"
+# attempt to logout successfully
+os::cmd::expect_success_and_text "oc logout" "Logged \"system:serviceaccount:project-foo:testserviceaccount\" out"
+# verify that the token is no longer present in our local config
+os::cmd::expect_failure_and_text "oc whoami" 'User "system:anonymous" cannot get resource "users" in API group "user.openshift.io"'
+
+# log in and set project to use from now on
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${CA_CERT}' -u test-user -p anything"
+os::cmd::expect_success 'oc get projects'
+os::cmd::expect_success 'oc project project-foo'
+os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
+os::cmd::expect_success_and_text 'oc whoami' 'test-user'
+os::cmd::expect_success_and_text "oc whoami --config='${login_kubeconfig}'" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --kubeconfig='${login_kubeconfig}'" 'system:admin'
+os::cmd::expect_success_and_text 'oc whoami -t' '.'
+os::cmd::expect_success_and_text 'oc whoami -c' '.'
+
+# test config files from the --kubeconfig flag
+os::cmd::expect_success "oc get services --kubeconfig='${login_kubeconfig}'"
+# test config files from env vars
+os::cmd::expect_success "KUBECONFIG='${login_kubeconfig}' oc get services"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdLoginShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdLoginSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdLoginSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdLoginShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/login.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdMigrateSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all --all
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/migrate"
+# This test validates storage migration
+
+os::cmd::expect_success 'oc login -u system:admin'
+# ensure all namespaces have been deleted before attempting to perform global action
+os::cmd::try_until_not_text 'oc get ns --template "{{ range .items }}{{ if not (eq .status.phase \"Active\") }}1{{ end }}{{ end }}"' '1'
+
+project="$( oc project -q )"
+
+os::test::junit::declare_suite_start "cmd/migrate/storage"
+os::cmd::expect_success_and_text     'oc adm migrate storage' 'summary'
+os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2' ": -n ${project} serviceaccounts/deployer"
+os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --include=pods' ": -n ${project} serviceaccounts/deployer"
+os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/\xFF' ": -n default serviceaccounts/deployer"
+os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/deployer' ": -n default serviceaccounts/deployer"
+os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2' 'unchanged:'
+os::cmd::expect_success_and_text     'oc adm migrate storage --bandwidth=20' 'summary:'
+os::cmd::expect_success_and_text     'oc adm migrate storage --confirm' 'storage migration does not support dry run, this flag is ignored'
+os::cmd::expect_success_and_text     'oc adm migrate storage -o=yaml' 'storage migration does not support dry run, this flag is ignored'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/migrate/storage_oauthclientauthorizations"
+# Create valid OAuth client
+os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/client.yaml' 'oauthclient.oauth.openshift.io/test-oauth-client created'
+# Create OAuth client authorization for client
+os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/clientauthorization.yaml' 'oauthclientauthorization.oauth.openshift.io/user1:test-oauth-client created'
+# Delete client
+os::cmd::expect_success_and_text     'oc delete oauthclient test-oauth-client' 'oauthclient.oauth.openshift.io "test-oauth-client" deleted'
+# Assert that migration/update still works even though the client authorization is no longer valid
+os::cmd::expect_success_and_text 'oc adm migrate storage --loglevel=6 --include=oauthclientauthorizations' 'PUT.*oauthclientauthorizations/user1:test-oauth-client'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/migrate/imagereferences"
+# create alternating items in history
+os::cmd::expect_success 'oc import-image --from=mysql:latest test:1 --confirm'
+os::cmd::expect_success 'oc import-image --from=php:latest test:2 --confirm'
+os::cmd::expect_success 'oc tag --source=docker php:latest test:1'
+os::cmd::expect_success 'oc tag --source=docker mysql:latest test:1'
+os::cmd::expect_success 'oc tag --source=docker mysql:latest test:2'
+os::cmd::expect_success 'oc tag --source=docker php:latest test:2'
+os::cmd::expect_success 'oc tag --source=docker myregistry.com/php:latest test:3'
+# verify error cases
+os::cmd::expect_failure_and_text     'oc adm migrate image-references' 'at least one mapping argument must be specified: REGISTRY/NAME=REGISTRY/NAME'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references my.docker.io=docker.io/* --loglevel=1' 'all arguments'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references my.docker.io/=docker.io/* --loglevel=1' 'not a valid source'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references /*=docker.io/* --loglevel=1' 'not a valid source'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references my.docker.io/*=docker.io --loglevel=1' 'all arguments'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references my.docker.io/*=docker.io/ --loglevel=1' 'not a valid target'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references my.docker.io/*=/x --loglevel=1' 'not a valid target'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references my.docker.io/*=*/* --loglevel=1' 'at least one change'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references a/b=a/b --loglevel=1' 'at least one field'
+os::cmd::expect_failure_and_text     'oc adm migrate image-references */*=*/* --loglevel=1' 'at least one change'
+# verify dry run
+os::cmd::expect_success_and_text     'oc adm migrate image-references my.docker.io/*=docker.io/* --loglevel=1' 'migrated=0'
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/*=my.docker.io/* --loglevel=1' "migrated \(dry run\): -n ${project} imagestreams.image.openshift.io/test"
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/* --all-namespaces=false --loglevel=1' 'migrated=1'
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/* --all-namespaces=false --loglevel=1 -o yaml' 'dockerImageReference: my.docker.io/mysql@sha256:'
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/other=my.docker.io/* --all-namespaces=false --loglevel=1' 'migrated=0'
+# only mysql references are changed
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/mysql2 --all-namespaces=false --loglevel=1 --confirm' 'migrated=1'
+os::cmd::expect_success_and_text     'oc get istag test:1 --template "{{ .image.dockerImageReference }}"' '^my.docker.io/mysql2@sha256:'
+os::cmd::expect_success_and_text     'oc get istag test:2 --template "{{ .image.dockerImageReference }}"' '^php@sha256:'
+# all items in history are changed
+os::cmd::expect_success_and_text     'oc adm migrate image-references --include=imagestreams docker.io/*=my.docker.io/* --all-namespaces=false --loglevel=1 --confirm' 'migrated=1'
+os::cmd::expect_success_and_not_text 'oc get is test --template "{{ range .status.tags }}{{ range .items }}{{ .dockerImageReference }}{{ \"\n\" }}{{ end }}{{ end }}"' '^php'
+os::cmd::expect_success_and_not_text 'oc get is test --template "{{ range .status.tags }}{{ range .items }}{{ .dockerImageReference }}{{ \"\n\" }}{{ end }}{{ end }}"' '^mysql'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/migrate/legacyhpa"
+# create a legacy and a normal HPA
+os::cmd::expect_success 'oc create -f test/testdata/hpa/legacy-and-normal-hpa.yaml'
+# verify dry run
+os::cmd::expect_success_and_text 'oc adm migrate legacy-hpa' 'migrated=1'
+# confirm...
+os::cmd::expect_success_and_text 'oc adm migrate legacy-hpa --confirm' 'migrated=1'
+# verify that all HPAs are as they should be
+os::cmd::expect_success_and_text 'oc get hpa legacy-hpa -o jsonpath="{.spec.scaleTargetRef.apiVersion}.{.spec.scaleTargetRef.kind} {.spec.scaleTargetRef.name}"' 'apps.openshift.io/v1.DeploymentConfig legacy-target'
+os::cmd::expect_success_and_text 'oc get hpa other-hpa -o jsonpath="{.spec.scaleTargetRef.apiVersion}.{.spec.scaleTargetRef.kind} {.spec.scaleTargetRef.name}"' 'apps/v1.Deployment other-target'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdMigrateShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdMigrateSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdMigrateSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdMigrateShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/migrate.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdNewappSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc login -u system:admin
+  oc delete all,templates --all
+  oc delete all,templates --all -n openshift
+  oc delete project template-substitute
+  oc delete project prefix-template-substitute
+  oc delete project test-imagestreams
+  oc delete project new-app-syntax
+  rm -rf ./test/testdata/testapp
+  exit 0
+) &>/dev/null
+
+os::util::environment::setup_time_vars
+
+os::test::junit::declare_suite_start "cmd/newapp"
+
+default_project=$(oc project -q)
+#os::cmd::expect_success 'git clone https://github.com/openshift/ruby-hello-world.git ./test/testdata/testapp'
+
+# imagestream/tag creation and reuse
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json -n openshift'
+os::cmd::expect_success 'oc delete istag php:latest -n openshift'
+os::cmd::expect_success 'oc new-project test-imagestreams'
+os::cmd::try_until_failure 'oc get istag php:latest -n openshift'
+
+# should fail due to missing php:latest tag
+os::cmd::expect_failure 'oc new-app --image-stream=openshift/php https://github.com/sclorg/cakephp-ex'
+
+# should succeed and create the php:latest tag in the current namespace
+os::cmd::expect_success 'oc new-app --docker-image=library/php https://github.com/sclorg/cakephp-ex --strategy=source'
+os::cmd::try_until_success 'oc get istag php:latest -n test-imagestreams'
+os::cmd::expect_success 'oc create istag php:latest --from=openshift/php:7.1 -n openshift'
+
+# create a new tag for an existing imagestream in the current namespace
+os::cmd::expect_success 'oc create istag perl:5.20 --from=openshift/perl:5.20'
+os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.com/sclorg/dancer-ex --strategy=source'
+os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
+
+# remove redundant imagestream tag before creating objects
+os::cmd::expect_success_and_text 'oc new-app  openshift/ruby-22-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
+
+# create imagestream in the correct namespace
+os::cmd::expect_success 'oc new-app --name=mytest --image-stream=mysql --env=MYSQL_USER=test --env=MYSQL_PASSWORD=redhat --env=MYSQL_DATABASE=testdb -l app=mytest'
+os::cmd::try_until_success 'oc get is mytest -n test-imagestreams'
+
+# don't create an unnecessary imagestream
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/nodejs-ex'
+os::cmd::expect_failure_and_text 'oc get is nodejs -n test-imagestreams' 'not found'
+
+# check reuse imagestreams
+os::cmd::expect_success "oc new-build -D $'FROM node:8\nRUN echo \"Test\"' --name=node8"
+os::cmd::try_until_success 'oc get istag node:8'
+os::cmd::expect_success "oc new-build -D $'FROM node:10\nRUN echo \"Test\"' --name=node10"
+os::cmd::try_until_success 'oc get istag node:10'
+
+# cleanup and reset to default namespace
+os::cmd::expect_success 'oc delete is --all -n openshift'
+os::cmd::expect_success 'oc delete project test-imagestreams'
+
+# This test validates the new-app command
+os::cmd::expect_success 'oc project ${default_project}'
+os::cmd::expect_success_and_text 'oc new-app library/php mysql -o yaml' '3306'
+os::cmd::expect_success_and_text 'oc new-app library/php mysql --dry-run' "Image \"library/php\" runs as the 'root' user which may not be permitted by your cluster administrator"
+os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/node~https://github.com/sclorg/nodejs-ex' 'the image match \"docker.io/node\" for source repository \"https://github.com/sclorg/nodejs-ex\" does not appear to be a source-to-image builder.'
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/rails-ex' 'the image match \"ruby\" for source repository \"https://github.com/sclorg/rails-ex\" does not appear to be a source-to-image builder.'
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/rails-ex --strategy=source --dry-run'
+# verify we can generate a container image based component "mongodb" directly
+os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
+# the local image repository takes precedence over the Docker Hub "mysql" image
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:latest' $((2*TIME_MIN))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'    $((2*TIME_MIN))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'    $((2*TIME_MIN))
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.7'    $((2*TIME_MIN))
+os::cmd::expect_success_and_not_text 'oc new-app mysql -o yaml' 'image:\s*mysql'
+os::cmd::expect_success_and_not_text 'oc new-app mysql --dry-run' "runs as the 'root' user which may not be permitted by your cluster administrator"
+# trigger and output should say 5.6
+os::cmd::expect_success_and_text 'oc new-app mysql -o yaml' 'mysql:5.7'
+os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.7" for "mysql"'
+# test deployments are created with the boolean flag and printed in the UI
+os::cmd::expect_success_and_text 'oc new-app mysql --dry-run --as-test' 'This image will be test deployed'
+os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: true'
+os::cmd::expect_success_and_text 'oc new-app ${TEST_DATA}/new-app/template-minimal-expose.json --as-test' 'Access your application via route'
+os::cmd::expect_success 'oc delete all -l app=expose-output'
+os::cmd::expect_success_and_text 'oc new-app mysql --as-test' 'Application is not exposed'
+os::cmd::expect_success 'oc delete all -l app=mysql'
+
+# ensure that oc new-app does not emit a BuildConfigInstantiateFailed event when creating a new application
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/ruby-ex'
+os::cmd::expect_success_and_not_text 'oc describe bc/ruby-ex' 'BuildConfigInstantiateFailed'
+os::cmd::expect_success 'oc delete all -l app=ruby-ex'
+
+# Ensure that an invalid build strategy in a template does not throw a segmentation fault
+os::cmd::expect_success_and_not_text 'oc new-app --file ${TEST_DATA}/new-app/invalid-build-strategy.yaml --dry-run' 'invalid memory address or nil pointer dereference'
+
+# test that imagestream references across imagestreams do not cause an error
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/imagestream-ref.yaml'
+os::cmd::try_until_success 'oc get imagestreamtags myruby:latest'
+os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc delete is myruby'
+
+# Ensure clear error message wrt templates container CRDs and new-app appears
+os::cmd::expect_failure_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-crd.yaml' 'error: The template contained an object type unknown to '
+
+# docker strategy with repo that has no dockerfile
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/nodejs-ex --strategy=docker' 'No Dockerfile was found'
+
+# repo related error message validation
+os::cmd::expect_success 'oc create -f examples/db-templates/mysql-persistent-template.json'
+os::cmd::expect_failure_and_text 'oc new-app mysql-persisten mysql' 'only a partial match was found for'
+os::cmd::expect_success 'oc delete template/mysql-persistent'
+os::cmd::expect_failure_and_text 'oc new-app --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'none of the arguments provided could be classified as a source code location'
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-build --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'none of the arguments provided could be classified as a source code location'
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-build --name imagesourcetest python~https://github.com/openshift-katacoda/blog-django-py --source-image xxx --source-image-path=yyy --dry-run' 'unable to locate any '
+os::cmd::expect_failure_and_text 'oc new-app ~java' 'you must specify a image name'
+
+# setting source secret via the --source-secret flag
+os::cmd::expect_success_and_text 'oc new-app https://github.com/sclorg/cakephp-ex --source-secret=mysecret -o yaml' 'name: mysecret'
+os::cmd::expect_success_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --source-secret=mynewsecret -o yaml' 'name: mynewsecret'
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/cakephp-ex --source-secret=InvalidSecretName -o yaml' 'error: source secret name "InvalidSecretName" is invalid'
+os::cmd::expect_success_and_text 'oc new-app -f examples/quickstarts/cakephp-mysql.json --source-secret=mysecret -o yaml' 'name: mysecret'
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/cakephp-ex --source-secret=mysecret'
+os::cmd::expect_success 'oc delete all --selector="label=cakephp-ex"'
+# setting push secret via the --push-secret flag
+os::cmd::expect_success_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --push-secret=mynewsecret -o yaml' 'name: mynewsecret'
+os::cmd::expect_failure_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --push-secret=InvalidSecretName -o yaml' 'error: push secret name "InvalidSecretName" is invalid'
+
+
+# check label creation
+os::cmd::try_until_success 'oc get imagestreamtags php:latest'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
+os::cmd::expect_success 'oc new-app php mysql -l no-source=php-mysql'
+os::cmd::expect_success 'oc delete all -l no-source=php-mysql'
+os::cmd::expect_success 'oc new-app php mysql'
+os::cmd::expect_success 'oc delete all -l app=php'
+os::cmd::expect_failure 'oc get dc/mysql'
+os::cmd::expect_failure 'oc get dc/php'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+
+# check object namespace handling
+# hardcoded values should be stripped
+os::cmd::expect_success_and_not_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"stripped\")].metadata.namespace}"' 'STRIPPED'
+# normal parameterized values should be substituted and retained
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-substituted\")].metadata.namespace}"' 'substituted'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-substituted\")].metadata.namespace}"' 'prefix-substituted'
+# non-string parameterized values should be stripped
+os::cmd::expect_failure_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-refstripped\")].metadata.namespace}"' 'namespace is not found'
+os::cmd::expect_failure_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-refstripped\")].metadata.namespace}"' 'namespace is not found'
+# ensure --build-env environment variables get added to the buildconfig
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-app-label.json --build-env FOO=bar -o yaml' 'FOO'
+# ensure the objects can actually get created with a namespace specified
+os::cmd::expect_success 'oc new-project template-substitute'
+os::cmd::expect_success 'oc new-project prefix-template-substitute'
+os::cmd::expect_success 'oc project ${default_project}'
+os::cmd::expect_success 'oc new-app -f ${TEST_DATA}/new-app/template-with-namespaces.json -p SUBSTITUTED=template-substitute'
+os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
+
+# ensure non-duplicate invalid label errors show up
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'error: ImageStream.image.openshift.io "wordpress" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'DeploymentConfig.apps.openshift.io "wordpress" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'Service "wordpress" is invalid'
+
+# check if we can create from a stored template
+os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
+os::cmd::expect_success 'oc get template ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'MYSQL_USER'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'MYSQL_PASSWORD'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_PASSWORD=hello -o yaml' 'hello'
+os::cmd::expect_success_and_text  'oc new-app -e FOO=BAR -f examples/jenkins/jenkins-ephemeral-template.json -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"FOO\")].value}" ' '^BAR$'
+os::cmd::expect_success_and_text  'oc new-app -e OPENSHIFT_ENABLE_OAUTH=false -f examples/jenkins/jenkins-ephemeral-template.json -o jsonpath="{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"OPENSHIFT_ENABLE_OAUTH\")].value}" ' 'false'
+
+# check that multiple resource groups are printed with their respective external version
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template_multiple_resource_gvs.yaml -o yaml' 'apiVersion: apps/v1'
+
+# check that an error is produced when using --context-dir with a template
+os::cmd::expect_failure_and_text 'oc new-app -f examples/sample-app/application-template-stibuild.json --context-dir=example' '\-\-context-dir is not supported when using a template'
+
+# check that values are not split on commas
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_DATABASE=hello,MYSQL_USER=fail -o yaml' 'value: hello,MYSQL_USER=fail'
+# check that warning is printed when --param PARAM1=VAL1,PARAM2=VAL2 is used
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_DATABASE=hello,MYSQL_USER=fail -o yaml' 'no longer accepts comma-separated list'
+# check that env vars are not split on commas
+os::cmd::expect_success_and_text 'oc new-app php --env PASS=one,two=three -o yaml' 'value: one,two=three'
+# check that warning is printed when --env PARAM1=VAL1,PARAM2=VAL2 is used
+os::cmd::expect_success_and_text 'oc new-app php --env PASS=one,two=three -o yaml' 'no longer accepts comma-separated list'
+# check that warning is not printed when --param/env doesn't contain two k-v pairs
+os::cmd::expect_success_and_not_text 'oc new-app php --env DEBUG=disabled -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc new-app php --env LEVELS=INFO,WARNING -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc new-app ruby-helloworld-sample --param MYSQL_USER=mysql -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc new-app ruby-helloworld-sample --param MYSQL_PASSWORD=com,ma -o yaml' 'no longer accepts comma-separated list'
+# check that warning is not printed when env vars are passed positionally
+os::cmd::expect_success_and_text 'oc new-app php PASS=one,two=three -o yaml' 'value: one,two=three'
+os::cmd::expect_success_and_not_text 'oc new-app php PASS=one,two=three -o yaml' 'no longer accepts comma-separated list'
+
+# check that we can populate template parameters from file
+param_file="${TEST_DATA}/new-app/test-cmd-newapp-params.env"
+os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_DATABASE\")].value}'" 'thisisadatabase'
+os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} --param MYSQL_DATABASE=otherdatabase -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_DATABASE\")].value}'" 'otherdatabase'
+os::cmd::expect_success_and_text "oc new-app ruby-helloworld-sample --param-file ${param_file} --param MYSQL_DATABASE=otherdatabase -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${param_file} | oc new-app ruby-helloworld-sample --param-file - -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"MYSQL_DATABASE\")].value}'" 'thisisadatabase'
+
+os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-app ruby-helloworld-sample --param-file ${TEST_DATA}"  'is a directory'
+os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/null --param-file ${param_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
+
+os::cmd::expect_failure_and_text 'oc new-app ruby-helloworld-sample --param ABSENT_PARAMETER=absent -o yaml' 'unexpected parameter name'
+os::cmd::expect_success 'oc new-app ruby-helloworld-sample --param ABSENT_PARAMETER=absent -o yaml --ignore-unknown-parameters'
+
+# check that we can set environment variables from env file
+env_file="${TEST_DATA}/new-app/test-cmd-newapp-env.env"
+os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} --env SOME_VAR=fromcmdline -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'fromcmdline'
+os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} --env SOME_VAR=fromcmdline -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${env_file} | oc new-app php --env-file - -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+
+os::cmd::expect_failure_and_text "oc new-app php --env-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-app php --env-file ${TEST_DATA}/new-app"  'is a directory'
+os::cmd::expect_success "oc new-app php --env-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-app php --env-file /dev/null --env-file ${env_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app php --env-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-app php --env-file -" 'invalid parameter assignment'
+
+# new-build
+# check that env vars are not split on commas and warning is printed where they previously have
+os::cmd::expect_success_and_text 'oc new-build --binary php --env X=Y,Z=W -o yaml' 'value: Y,Z=W'
+os::cmd::expect_success_and_text 'oc new-build --binary php --env X=Y,Z=W -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_text 'oc new-build --binary php --env X=Y,Z,W -o yaml' 'value: Y,Z,W'
+os::cmd::expect_success_and_not_text 'oc new-build --binary php --env X=Y,Z,W -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc new-build --binary php --env X=Y -o yaml' 'no longer accepts comma-separated list'
+
+# new-build - load envvars from file
+os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_file} --env SOME_VAR=fromcmdline -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'fromcmdline'
+os::cmd::expect_success_and_text "oc new-build --binary php --env-file ${env_file} --env SOME_VAR=fromcmdline -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${env_file} | oc new-build --binary php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'
+
+os::cmd::expect_failure_and_text "oc new-build --binary php --env-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-build --binary php --env-file ${TEST_DATA}/new-app"  'is a directory'
+os::cmd::expect_success "oc new-build --binary php --env-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-build --binary php --env-file /dev/null --env-file ${env_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --env-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --env-file -" 'invalid parameter assignment'
+
+# check that we can set environment variables from build-env file
+build_env_file="${TEST_DATA}/new-app/test-cmd-newapp-build-env.env"
+
+os::cmd::expect_failure_and_text "oc new-app php --build-env-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-app php --build-env-file ${TEST_DATA}/new-app"  'is a directory'
+os::cmd::expect_success "oc new-app php --build-env-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-app php --build-env-file /dev/null --build-env-file ${build_env_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app php --build-env-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-app php --build-env-file -" 'invalid parameter assignment'
+
+# new-build
+# check that build env vars are not split on commas and warning is printed where they previously have
+os::cmd::expect_success_and_text 'oc new-build --binary php --build-env X=Y,Z=W -o yaml' 'value: Y,Z=W'
+os::cmd::expect_success_and_text 'oc new-build --binary php --build-env X=Y,Z=W -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_text 'oc new-build --binary php --build-env X=Y,Z,W -o yaml' 'value: Y,Z,W'
+os::cmd::expect_success_and_not_text 'oc new-build --binary php --build-env X=Y,Z,W -o yaml' 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text 'oc new-build --binary php --build-env X=Y -o yaml' 'no longer accepts comma-separated list'
+
+# new-build - load build env vars from file
+os::cmd::expect_success_and_text "oc new-build --binary php --build-env-file ${build_env_file} -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'buildenvvarfromfile'
+os::cmd::expect_success_and_text "oc new-build --binary php --build-env-file ${build_env_file} --env SOME_VAR=fromcmdline -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'fromcmdline'
+os::cmd::expect_success_and_text "oc new-build --binary php --build-env-file ${build_env_file} --env SOME_VAR=fromcmdline -o yaml" 'ignoring value from file'
+os::cmd::expect_success_and_text "cat ${build_env_file} | oc new-build --binary php --build-env-file - -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.sourceStrategy.env[?(@.name==\"SOME_VAR\")].value}'" 'buildenvvarfromfile'
+
+os::cmd::expect_failure_and_text "oc new-build --binary php --build-env-file does/not/exist" 'no such file or directory'
+os::cmd::expect_failure_and_text "oc new-build --binary php --build-env-file ${TEST_DATA}/new-app"  'is a directory'
+os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null -o yaml"
+os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null --env-file ${build_env_file} -o yaml"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
+
+# new-build - check that we can set build args in DockerStrategy
+os::cmd::expect_success_and_text "oc new-build ${TEST_DATA}/new-app/build-arg-dockerfile --build-arg 'foo=bar' --to 'test' -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.dockerStrategy.buildArgs[?(@.name==\"foo\")].value}'" 'bar'
+
+# check that we cannot set build args in a non-DockerStrategy build
+os::cmd::expect_failure_and_text "oc new-build https://github.com/openshift/ruby-hello-world --strategy=source --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
+os::cmd::expect_failure_and_text "oc new-build https://github.com/sclorg/ruby-ex --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
+
+#
+# verify we can create from a template when some objects in the template declare an app label
+# the app label will not be applied to any objects in the template.
+os::cmd::expect_success_and_not_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+# verify the existing app label on an object is not overridden by new-app
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/template-with-app-label.json -o yaml' 'app: myapp'
+
+# verify that a template can be passed in stdin
+os::cmd::expect_success 'cat ${TEST_DATA}/application-template-stibuild.json | oc new-app -o yaml -f -'
+
+# check search
+os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.7, latest"
+os::cmd::expect_success_and_text 'oc new-app --search ruby-helloworld-sample' 'ruby-helloworld-sample'
+# check search - partial matches
+os::cmd::expect_success_and_text 'oc new-app --search ruby-hellow' 'ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-hel' 'ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sam -o yaml' 'ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc new-app --search rub' "Tags:\s+2.3, 2.4, 2.5, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=rub' "Tags:\s+2.3, 2.4, 2.5, latest"
+# check search - check correct usage of filters
+os::cmd::expect_failure_and_not_text 'oc new-app --search --image-stream=ruby-heloworld-sample' 'application-template-stibuild'
+os::cmd::expect_failure 'oc new-app --search --template=php'
+os::cmd::expect_failure 'oc new-app -S --template=nodejs'
+os::cmd::expect_failure 'oc new-app -S --template=perl'
+# check search - filtered, exact matches
+# make sure the imagestreams are imported first.
+os::cmd::try_until_success 'oc get imagestreamtags mariadb:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mariadb:10.1'
+os::cmd::try_until_success 'oc get imagestreamtags mariadb:10.2'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.4'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.6'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:3.2'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:3.4'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags mysql:5.7'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:latest'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:1.8'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:1.10'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:1.12'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:0.10'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:4'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:6'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:8'
+os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.16'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.20'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.24'
+os::cmd::try_until_success 'oc get imagestreamtags php:latest'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
+os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags php:7.0'
+os::cmd::try_until_success 'oc get imagestreamtags php:7.1'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:latest'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.2'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.4'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.5'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.6'
+os::cmd::try_until_success 'oc get imagestreamtags python:latest'
+os::cmd::try_until_success 'oc get imagestreamtags python:2.7'
+os::cmd::try_until_success 'oc get imagestreamtags python:3.3'
+os::cmd::try_until_success 'oc get imagestreamtags python:3.4'
+os::cmd::try_until_success 'oc get imagestreamtags python:3.5'
+os::cmd::try_until_success 'oc get imagestreamtags python:3.6'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.4'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:12.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:11.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.1'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:9.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
+
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mariadb' "Tags:\s+10.1, 10.2, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+3.2, 3.4, 3.6, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.7, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nginx' "Tags:\s+1.10, 1.12, 1.8, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+10, 11, 6, 8, 8-RHOAR, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.24, 5.26, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+10, 9.5, 9.6, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.5, 3.6, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.3, 2.4, 2.5, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 11.0, 12.0, 13.0, 14.0, 15.0, 8.1, 9.0, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
+# check search - no matches
+os::cmd::expect_failure_and_text 'oc new-app -S foo-the-bar' 'no matches found'
+os::cmd::expect_failure_and_text 'oc new-app --search winter-is-coming' 'no matches found'
+# check search - mutually exclusive flags
+os::cmd::expect_failure_and_text 'oc new-app -S mysql --env=FOO=BAR' "can't be used"
+os::cmd::expect_failure_and_text 'oc new-app --search mysql --code=https://github.com/openshift/ruby-hello-world' "can't be used"
+os::cmd::expect_failure_and_text 'oc new-app --search mysql --param=FOO=BAR' "can't be used"
+# check specifying a non-existent template does not cause an index out of range error
+os::cmd::expect_failure_and_not_text 'oc new-app --template foo' 'index out of range'
+
+# set context-dir
+os::cmd::expect_success_and_text 'oc new-app https://github.com/sclorg/s2i-ruby-container.git --context-dir="2.4/test/puma-test-app" -o yaml' 'contextDir: 2.4/test/puma-test-app'
+os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/sclorg/s2i-ruby-container.git --context-dir="2.4/test/puma-test-app" -o yaml' 'contextDir: 2.4/test/puma-test-app'
+
+# set strategy
+os::cmd::expect_success_and_text 'oc new-app ruby~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml' 'dockerStrategy'
+os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/ruby-hello-world.git --strategy=source -o yaml' 'sourceStrategy'
+
+# prints root user info
+os::cmd::expect_success_and_not_text 'oc new-app --dry-run mysql' "runs as the 'root' user"
+os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' "WARNING: Image \"mysql\" runs as the 'root' user"
+
+# verify multiple errors are displayed together, a nested error is returned, and that the usage message is displayed
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'with name "__templatefile_fail"'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: unable to find the specified template file'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' "The 'oc new-app' command will match arguments"
+
+# verify partial match error
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'error: only a partial match was found for "mysq"'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'The argument "mysq" only partially matched'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.7\"\\) in project"
+
+# ensure new-app with pr ref does not fail
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world#refs/pull/58/head --dry-run'
+
+# verify image streams with no tags are reported correctly and that --allow-missing-imagestream-tags works
+# new-app
+os::cmd::expect_success 'printf "apiVersion: v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run emptystream' 'error: no tags found on matching image stream'
+os::cmd::expect_success 'oc new-app --dry-run emptystream --allow-missing-imagestream-tags'
+# new-build
+os::cmd::expect_failure_and_text 'oc new-build --dry-run emptystream~https://github.com/sclorg/ruby-ex' 'error: no tags found on matching image stream'
+os::cmd::expect_success 'oc new-build --dry-run emptystream~https://github.com/sclorg/ruby-ex --allow-missing-imagestream-tags --strategy=source'
+
+# Allow setting --name when specifying grouping
+os::cmd::expect_success "oc new-app mysql+ruby~https://github.com/sclorg/ruby-ex --name foo -o yaml"
+# but not with multiple components
+os::cmd::expect_failure_and_text "oc new-app mysql ruby~https://github.com/sclorg/ruby-ex --name foo -o yaml" "error: only one component or source repository can be used when specifying a name"
+# do not allow specifying output image when specifying multiple input repos
+os::cmd::expect_failure_and_text 'oc new-build https://github.com/sclorg/nodejs-ex https://github.com/sclorg/ruby-ex --to foo' 'error: only one component with source can be used when specifying an output image reference'
+# but succeed with multiple input repos and no output image specified
+os::cmd::expect_success 'oc new-build https://github.com/sclorg/nodejs-ex https://github.com/sclorg/ruby-ex -o yaml'
+# check that binary build with a builder image results in a source type build
+os::cmd::expect_success_and_text 'oc new-build --binary --image-stream=ruby -o yaml' 'type: Source'
+# check that binary build with a specific strategy uses that strategy regardless of the image type
+os::cmd::expect_success_and_text 'oc new-build --binary --image=ruby --strategy=docker -o yaml' 'type: Docker'
+
+# When only a single imagestreamtag exists, and it does not match the implicit default
+# latest tag, new-app should fail.
+# when latest exists, we default to it and match it.
+os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run'
+# when latest does not exist, there are multiple partial matches (2.2, 2.3, 2.4, 2.5)
+os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\"'
+# when only 2.5 exists, there is a single partial match (2.5)
+os::cmd::expect_success 'oc delete imagestreamtag ruby:2.2'
+os::cmd::expect_success 'oc delete imagestreamtag ruby:2.3'
+os::cmd::expect_success 'oc delete imagestreamtag ruby:2.4'
+os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
+# when the tag is specified explicitly, the operation is successful
+os::cmd::expect_success 'oc new-app --image-stream ruby:2.5 https://github.com/sclorg/rails-ex --dry-run'
+os::cmd::expect_success 'oc delete imagestreams --all'
+
+# newapp does not attempt to create an imagestream that already exists for a container image
+os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream.image.openshift.io "ruby" created'
+# make sure the ruby:latest tag is imported before we run new-app again
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
+os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/sclorg/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby:latest" already exists'
+os::cmd::expect_success 'oc delete all -l app=testapp2'
+os::cmd::expect_success 'oc delete all -l app=testapp1'
+os::cmd::expect_success 'oc delete all -l app=ruby --ignore-not-found'
+os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
+# newapp does not attempt to create an imagestream that already exists for a container image
+os::cmd::expect_success 'oc new-app docker.io/ruby:2.2'
+# the next one technically fails cause the DC is already created, but we should still see the ist created
+os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.4' 'imagestreamtag.image.openshift.io "ruby:2.4" created'
+os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
+
+# check that we can create from the template without errors
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld' 'service "frontend" created'
+os::cmd::expect_success 'oc delete all -l app=helloworld'
+os::cmd::expect_success 'oc delete secret dbsecret'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld -o name' 'service/frontend'
+os::cmd::expect_success 'oc delete all -l app=helloworld'
+os::cmd::expect_success 'oc delete secret dbsecret'
+os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
+# override component names
+os::cmd::expect_success_and_text 'oc new-app mysql --name=db' 'db'
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby'
+os::cmd::expect_success 'oc delete all -l app=ruby'
+# check for error when template JSON file has errors
+jsonfile="${TEST_DATA}/new-app/invalid.json"
+os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": error parsing ${jsonfile}: json: line 0: invalid character '}' after object key"
+
+# check new-build
+os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'
+os::cmd::expect_success_and_text 'oc new-build mysql --binary -o yaml --to mysql:bin' 'type: Binary'
+os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --strategy=docker -o yaml' 'type: Docker'
+os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
+# binary builds cannot be created unless a builder image is specified.
+os::cmd::expect_failure_and_text 'oc new-build --name mybuild --binary --strategy=source -o yaml' 'you must provide a builder image when using the source strategy with a binary build'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-22-centos7 --binary --strategy=source -o yaml' 'name: ruby-22-centos7:latest'
+# binary builds can be created with no builder image if no strategy or docker strategy is specified
+os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary -o yaml' 'type: Binary'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary --strategy=docker -o yaml' 'type: Binary'
+
+# new-build image source tests
+os::cmd::expect_failure_and_text 'oc new-build mysql --source-image centos' 'error: --source-image-path must be specified when --source-image is specified.'
+os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'error: --source-image must be specified when --source-image-path is specified.'
+
+# ensure circular ref flagged but allowed for template
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/circular-is.yaml'
+os::cmd::expect_success_and_text 'oc new-app -f ${TEST_DATA}/new-app/circular.yaml' 'should be different than input'
+# ensure circular does not choke on image stream image
+os::cmd::expect_success_and_not_text 'oc new-app -f ${TEST_DATA}/new-app/bc-from-imagestreamimage.json --dry-run' 'Unable to follow reference type'
+
+# do not allow use of non-existent image (should fail)
+os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "unable to locate any"
+# allow use of non-existent image (should succeed)
+os::cmd::expect_success 'oc new-app openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images'
+
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/installable-stream.yaml'
+
+os::cmd::expect_success 'oc policy add-role-to-user edit test-user'
+os::cmd::expect_success 'oc login -u test-user -p anything'
+os::cmd::try_until_success 'oc project ${default_project}'
+
+os::cmd::try_until_success 'oc get imagestreamtags installable:file'
+os::cmd::try_until_success 'oc get imagestreamtags installable:token'
+os::cmd::try_until_success 'oc get imagestreamtags installable:serviceaccount'
+os::cmd::expect_failure 'oc new-app installable:file'
+os::cmd::expect_failure_and_text 'oc new-app installable:file' 'requires that you grant the image access'
+os::cmd::expect_failure_and_text 'oc new-app installable:serviceaccount' "requires an 'installer' service account with project editor access"
+os::cmd::expect_success_and_text 'oc new-app installable:file --grant-install-rights -o yaml' '/var/run/openshift.secret.token'
+os::cmd::expect_success_and_text 'oc new-app installable:file --grant-install-rights -o yaml' 'activeDeadlineSeconds: 14400'
+os::cmd::expect_success_and_text 'oc new-app installable:file --grant-install-rights -o yaml' 'openshift.io/generated-job: "true"'
+os::cmd::expect_success_and_text 'oc new-app installable:file --grant-install-rights -o yaml' 'openshift.io/generated-job.for: installable:file'
+os::cmd::expect_success_and_text 'oc new-app installable:token --grant-install-rights -o yaml' 'name: TOKEN_ENV'
+os::cmd::expect_success_and_text 'oc new-app installable:token --grant-install-rights -o yaml' 'openshift/origin@sha256:'
+os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml' 'serviceAccountName: installer'
+os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml' 'fieldPath: metadata.namespace'
+os::cmd::expect_success_and_text 'oc new-app installable:serviceaccount --grant-install-rights -o yaml A=B' 'name: A'
+
+# Ensure output is valid JSON
+os::cmd::expect_success 'oc new-app mongo -o json | python -m json.tool'
+
+# Ensure custom branch/ref works
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world#beta4'
+
+# Ensure the resulting BuildConfig doesn't have unexpected sources
+os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ruby-hello-world --output-version=v1 -o=jsonpath="{.items[?(@.kind==\"BuildConfig\")].spec.source}"' 'dockerfile|binary'
+
+# We permit running new-app against a remote URL which returns a template
+os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/quickstarts/rails-postgresql.json --dry-run'
+
+# ensure that --strategy sets the build strategy
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy source --dry-run -o yaml' 'sourceStrategy'
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy pipeline --dry-run -o yaml' 'jenkinsPipelineStrategy'
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy docker --dry-run -o yaml' 'dockerStrategy'
+
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
+# ensure that a build can be created with just image inputs without the --binary flag
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest --source-image centos:latest --source-image-path /tmp --image-stream nodejs --dry-run -o yaml' 'sourceStrategy'
+# ensure that using only image inputs and the --binary flag results in an error
+os::cmd::expect_failure_and_text 'oc new-build --name sourcetest --source-image centos:latest --source-image-path /tmp --image-stream nodejs --binary --dry-run -o yaml' 'specifying binary builds and source repositories at the same time is not allowed'
+os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
+
+# new-app different syntax for new-app functionality
+os::cmd::expect_success 'oc new-project new-app-syntax'
+os::cmd::expect_success 'oc import-image openshift/ruby-20-centos7:latest --confirm'
+os::cmd::expect_success 'oc import-image openshift/php-55-centos7:latest --confirm'
+os::cmd::expect_success 'oc new-app ruby-20-centos7:latest~https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app ruby-20-centos7:latest~./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest ./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app ruby-20-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app ruby-20-centos7:latest --code ./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code ./test/testdata/testapp --dry-run'
+
+os::cmd::expect_success 'oc new-app --code ./test/testdata/testapp --name test'
+os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-22-centos7:latest'
+
+os::cmd::expect_success 'oc new-app -i php-55-centos7:latest --code ./test/testdata/testapp --name test2'
+os::cmd::expect_success_and_text 'oc get bc test2 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
+
+os::cmd::expect_success 'oc new-app -i php-55-centos7:latest~https://github.com/openshift/ruby-hello-world.git --name test3'
+os::cmd::expect_success_and_text 'oc get bc test3 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
+
+os::cmd::expect_success 'oc new-app php-55-centos7:latest~https://github.com/openshift/ruby-hello-world.git --name test4'
+os::cmd::expect_success_and_text 'oc get bc test4 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
+
+os::cmd::expect_success 'oc new-app -i php-55-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test5'
+os::cmd::expect_success_and_text 'oc get bc test5 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
+
+os::cmd::expect_success 'oc new-app php-55-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --name test6'
+os::cmd::expect_success_and_text 'oc get bc test6 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
+
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world.git --name test7'
+os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-22-centos7:latest'
+
+os::cmd::expect_success 'oc new-app php-55-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test8'
+os::cmd::expect_success_and_text 'oc get bc test8 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
+os::cmd::expect_success 'oc delete project new-app-syntax'
+
+# new-app docker build strategy with binary input
+os::cmd::expect_success 'oc project ${default_project}'
+os::cmd::expect_success 'oc delete all,templates --all'
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:latest' # need to wait until tags are available!?
+os::cmd::expect_failure_and_text 'oc new-app --strategy=docker --name my-docker-app' 'none of the arguments provided could be classified as a source code location'
+os::cmd::expect_success_and_text 'oc new-app --strategy=docker --binary --name my-docker-app' 'A binary build was created'
+os::cmd::expect_success_and_text 'oc get bc my-docker-app -o yaml' 'type: Binary'
+os::cmd::expect_success 'oc delete all -l app=my-docker-app'
+
+# new-app source build strategy with binary input
+os::cmd::expect_success_and_text 'oc new-app  ruby --binary --name my-imagestream-app' 'A binary build was created'
+os::cmd::expect_success_and_text 'oc get bc my-imagestream-app -o yaml' 'type: Binary'
+os::cmd::expect_success 'oc delete all -l app=my-imagestream-app'
+
+# new-app with source repository and binary input
+os::cmd::expect_failure_and_text 'oc new-app ./test/testdata/testapp --binary' 'error: specifying binary builds and source repositories at the same time is not allowed'
+
+echo "new-app: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdNewappShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdNewappSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdNewappSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdNewappShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/newapp.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdObserveSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/observe"
+
+# basic scenarios
+os::cmd::expect_failure_and_text 'oc observe' 'you must specify at least one argument containing the resource to observe'
+os::cmd::expect_success_and_text 'oc observe serviceaccounts --once' 'Sync ended'
+os::cmd::expect_success_and_text 'oc observe daemonsets --once' 'Nothing to sync, exiting immediately'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces' 'default kubernetes'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces --print-metrics-on-exit' 'observe_counts{type="Sync"}'
+os::cmd::expect_failure_and_text 'oc observe services --once --names echo' '\-\-delete and \-\-names must both be specified'
+os::cmd::expect_success_and_text 'oc observe services --exit-after=1s' 'Shutting down after 1s ...'
+os::cmd::expect_success_and_text 'oc observe services --exit-after=1s --all-namespaces --print-metrics-on-exit' 'observe_counts{type="Sync"}'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces' 'default kubernetes'
+# TODO: fix #31755 and make this a --once test
+os::cmd::expect_success_and_text 'oc observe services --exit-after=3s --all-namespaces --names echo --names default/notfound --delete echo --delete remove' 'remove default notfound'
+
+# error counting
+os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-namespaces --maximum-errors=1 -- /bin/sh -c "exit 1"' 'reached maximum error limit of 1, exiting'
+os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-namespaces --retry-on-exit-code=2 --maximum-errors=1 --loglevel=4 -- /bin/sh -c "exit 2"' 'retrying command: exit status 2'
+
+# argument templates
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{ .spec.clusterIP }"' '172.30.0.1'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .spec.clusterIP }}" --output=gotemplate' '172.30.0.1'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key"' 'badkey'
+os::cmd::expect_failure_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key" --strict-templates' 'missingkey is not found'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .unknown }}" --output=gotemplate' '""'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ or (.unknown) \"\" }}key" --output=gotemplate' 'badkey'
+os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' '\<no value\>'
+
+# --type-env-var
+os::cmd::expect_success_and_text 'MYENV=should_be_passed oc observe services --once --all-namespaces --type-env-var=EVENT -- /bin/sh -c "echo \$EVENT \$MYENV"' 'Sync should_be_passed'
+
+echo "observe: ok"
+os::test::junit::declare_suite_end`)
+
+func testExtendedTestdataCmdTestCmdObserveShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdObserveSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdObserveSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdObserveShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/observe.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdPolicyStorageAdminSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+project="$( oc project -q )"
+
+os::test::junit::declare_suite_start "cmd/policy-storage-admin"
+
+# Test storage-admin role and impersonation
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user storage-admin storage-adm'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user storage-admin storage-adm2'
+os::cmd::expect_success 'oc adm policy add-role-to-user admin storage-adm2'
+os::cmd::expect_success_and_text 'oc policy who-can impersonate storage-admin' 'cluster-admin'
+
+# Test storage-admin role as user level
+#os::cmd::expect_success 'oc login -u storage-adm -p pw'
+#os::cmd::expect_success_and_text 'oc whoami' "storage-adm"
+#os::cmd::expect_failure 'oc whoami --as=basic-user'
+#os::cmd::expect_failure 'oc whoami --as=cluster-admin'
+
+# Test storage-admin can not do normal project scoped tasks
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pods --all-namespaces' 'no'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create projects' 'no'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pods --all-namespaces' 'no'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pvc' 'no'
+
+# Test storage-admin can read pvc and create pv and storageclass
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pvc --all-namespaces' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pv' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create storageclass' 'yes'
+
+# Test failure to change policy on users for storage-admin
+os::cmd::expect_failure_and_text 'oc policy --as=storage-adm add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
+os::cmd::expect_failure_and_text 'oc policy --as=storage-adm remove-user screeley' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
+#os::cmd::expect_success 'oc logout'
+
+# Test that scoped storage-admin now an admin in project foo
+#os::cmd::expect_success 'oc login -u storage-adm2 -p pw'
+#os::cmd::expect_success_and_text 'oc whoami' "storage-adm2"
+os::cmd::expect_success 'oc new-project --as=storage-adm2 --as-group=system:authenticated:oauth --as-group=system:authenticated policy-can-i'
+os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pod --all-namespaces' 'no'
+os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pod' 'yes'
+os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create pvc' 'yes'
+os::cmd::expect_success_and_text 'oc policy --as=storage-adm2 can-i create endpoints' 'yes'
+os::cmd::expect_success 'oc delete project policy-can-i'
+`)
+
+func testExtendedTestdataCmdTestCmdPolicyStorageAdminShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdPolicyStorageAdminSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdPolicyStorageAdminSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdPolicyStorageAdminShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdPolicySh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+project="$( oc project -q )"
+testpod="apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+spec:
+  containers:
+  - image: node
+    imagePullPolicy: IfNotPresent
+    name: testpod
+  volumes:
+  - emptyDir: {}
+    name: tmp"
+
+os::test::junit::declare_suite_start "cmd/policy"
+# This test validates user level policy
+os::cmd::expect_success_and_text 'oc whoami --as deads' "deads"
+
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user sudoer wheel'
+os::cmd::try_until_text 'oc policy who-can impersonate users system:admin' "wheel"
+os::cmd::try_until_text 'oc policy who-can impersonate groups system:masters' "wheel"
+os::cmd::try_until_text 'oc policy who-can impersonate systemusers system:admin' "wheel"
+os::cmd::try_until_text 'oc policy who-can impersonate systemgroups system:masters' "wheel"
+os::cmd::expect_success 'oc login -u wheel -p pw'
+os::cmd::expect_success_and_text 'oc whoami' "wheel"
+os::cmd::expect_failure 'oc whoami --as deads'
+os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
+os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '.*'
+
+os::cmd::expect_success 'oc login -u local-admin -p pw'
+os::cmd::expect_success 'oc new-project policy-login'
+os::cmd::expect_failure 'oc whoami --as=system:admin'
+os::cmd::expect_success_and_text 'oc whoami --as=system:serviceaccount:policy-login:default' "system:serviceaccount:policy-login:default"
+os::cmd::expect_failure 'oc whoami --as=system:serviceaccount:another:default'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success 'oc delete project policy-login'
+
+# validate --serviceaccount values
+os::cmd::expect_success_and_text 'oc policy add-role-to-user admin -z default' 'clusterrole.rbac.authorization.k8s.io/admin added: "default"'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin -z system:serviceaccount:test:default' 'should only be used with short\-form serviceaccount names'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin -z :invalid' '"\:invalid" is not a valid serviceaccount name'
+
+# This test validates user level policy
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user view' 'you must specify at least one user or service account'
+
+os::cmd::expect_success_and_text 'oc policy add-role-to-group cluster-admin --rolebinding-name cluster-admin system:unauthenticated' 'clusterrole.rbac.authorization.k8s.io/cluster-admin added: "system:unauthenticated"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'clusterrole.rbac.authorization.k8s.io/cluster-admin added: "system:no-user"'
+os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
+os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'system:no-user'
+
+os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'clusterrole.rbac.authorization.k8s.io/cluster-admin added: \["one" "two" "three" "four"\]'
+os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
+os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'one'
+os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'four'
+
+os::cmd::expect_success_and_text 'oc policy remove-role-from-group --rolebinding-name cluster-admin cluster-admin system:unauthenticated' 'clusterrole.rbac.authorization.k8s.io/cluster-admin removed: "system:unauthenticated"'
+
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'clusterrole.rbac.authorization.k8s.io/cluster-admin removed: "system:no-user"'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'clusterrole.rbac.authorization.k8s.io/cluster-admin removed: \["one" "two" "three" "four"\]'
+os::cmd::expect_failure_and_text 'oc get rolebinding/cluster-admin --no-headers' 'NotFound'
+
+os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
+os::cmd::expect_success 'oc policy remove-user system:no-user'
+
+# Test failure to mix and mismatch role/rolebiding removal
+os::cmd::expect_success 'oc login -u local-admin -p pw'
+os::cmd::expect_success 'oc new-project mismatch-prj'
+os::cmd::expect_success 'oc create rolebinding match --clusterrole=admin --user=user'
+os::cmd::expect_success 'oc create rolebinding mismatch --clusterrole=edit --user=user'
+os::cmd::expect_failure_and_text 'oc policy remove-role-from-user admin user --rolebinding-name mismatch' 'rolebinding mismatch'
+os::cmd::expect_success_and_text 'oc policy remove-user user' 'user'
+os::cmd::expect_failure_and_text 'oc get rolebinding mismatch --no-headers' 'NotFound'
+os::cmd::expect_failure_and_text 'oc get rolebinding match --no-headers' 'NotFound'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success 'oc delete project mismatch-prj'
+
+# check to make sure that our SCC policies don't prevent GC from deleting pods
+os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/privileged-pod.yaml'
+os::cmd::expect_success 'oc delete pod/test-build-pod-issue --cascade=false'
+os::cmd::try_until_failure 'oc get pods pod/test-build-pod-issue'
+
+
+os::cmd::expect_success_and_text 'oc policy add-role-to-user admin namespaced-user' 'clusterrole.rbac.authorization.k8s.io/admin added: "namespaced-user"'
+# Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
+os::cmd::try_until_text              'oc adm policy who-can create builds' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/source' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/jenkinspipeline' 'namespaced-user'
+os::cmd::expect_success_and_text     'oc adm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_text     'oc adm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success_and_text     'oc adm policy who-can create builds/jenkinspipeline' 'system:authenticated'
+# if this method for removing access to docker/custom/source/jenkinspipeline builds changes, docs need to be updated as well
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-docker removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-source removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-jenkinspipeline removed: "system:authenticated"'
+
+# ensure build strategy permissions no longer exist
+os::cmd::try_until_failure           'oc adm policy who-can create builds/source | grep system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/jenkinspipeline' 'system:authenticated'
+
+# validate --output and --dry-run flags for oc-adm-policy sub-commands
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user -o yaml' 'name: admin'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user -o yaml' 'name: namespaced-user'
+
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/admin removed: "namespaced-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/admin added: "namespaced-user" \(dry run\)'
+
+# ensure that running an `+"`"+`oc adm policy`+"`"+` sub-command with --output does not actually perform any changes
+os::cmd::expect_success_and_text 'oc adm policy who-can create pods -o yaml' '\- namespaced\-user'
+
+os::cmd::expect_success_and_text 'oc adm policy scc-subject-review -u namespaced-user --output yaml -f - << __EOF__
+$testpod
+__EOF__' 'name: testpod'
+os::cmd::expect_success_and_text 'oc adm policy scc-subject-review -u namespaced-user --output wide -f - << __EOF__
+$testpod
+__EOF__' 'Pod/testpod'
+
+os::cmd::expect_success_and_text 'oc adm policy scc-review --output yaml -f - << __EOF__
+$testpod
+__EOF__' 'allowedServiceAccounts: null'
+
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup -o yaml' 'name: view'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup -o yaml' 'name: testgroup'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user -o yaml' 'name: namespaced\-user'
+
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup --dry-run' 'rolebinding.rbac.authorization.k8s.io/view added: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/cluster-reader added: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/cluster-reader added: "namespaced-user" \(dry run\)'
+
+os::cmd::expect_success 'oc adm policy add-role-to-group view testgroup'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-reader testgroup'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user'
+
+# ensure that removing missing target causes error.
+os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
+os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
+
+os::cmd::expect_success_and_not_text 'oc adm policy remove-role-from-group view testgroup -o yaml' 'subjects: '
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup -o yaml' 'name: cluster\-readers'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user -o yaml' 'name: cluster\-reader'
+
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup --dry-run' 'clusterrole.rbac.authorization.k8s.io/view removed: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup --dry-run' 'clusterrole.rbac.authorization.k8s.io/cluster-reader removed: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/cluster-reader removed: "namespaced-user" \(dry run\)'
+
+os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user -o yaml' "namespace: ${project}"
+os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user --dry-run' "Removing admin from users \[namespaced\-user\] in project ${project}"
+
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid added to: \["namespaced\-user"\] \(dry run\)'
+
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup -o yaml' '\- testgroup'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid added to groups: \["testgroup"\] \(dry run\)'
+
+os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user anyuid namespaced-user --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid removed from: \["namespaced\-user"\] \(dry run\)'
+
+os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-group anyuid testgroup -o yaml' '\- testgroup'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid testgroup --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid removed from groups: \["testgroup"\] \(dry run\)'
+
+# ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'clusterrole.rbac.authorization.k8s.io/system:build-strategy-custom added: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
+
+os::cmd::expect_success 'oc auth reconcile --remove-extra-permissions --remove-extra-subjects -f "${BASE_RBAC_DATA}"'
+
+os::cmd::try_until_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
+os::cmd::try_until_text 'oc policy can-i create pods --all-namespaces' 'yes'
+os::cmd::try_until_text 'oc policy can-i create pods' 'yes'
+os::cmd::try_until_text 'oc policy can-i create pods --as harold' 'no'
+os::cmd::expect_failure 'oc policy can-i create pods --as harold --user harold'
+os::cmd::expect_failure 'oc policy can-i --list --as harold --user harold'
+os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
+
+os::cmd::expect_success_and_text 'oc policy can-i create pods --user system:admin' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated' 'no'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --user harold' 'no'
+
+os::cmd::expect_success_and_text 'oc policy can-i --list --user system:admin' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc policy can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc policy can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc policy can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
+
+
+os::cmd::expect_failure 'oc policy scc-subject-review'
+os::cmd::expect_failure 'oc policy scc-review'
+os::cmd::expect_failure 'oc policy scc-subject-review -u invalid --namespace=noexist'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z foo,bar -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z system:serviceaccount:test:default,system:serviceaccount:test:builder -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
+os::cmd::expect_failure_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.allowedBy.name}' 'anyuid'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.allowedBy.name}' 'anyuid'
+# In the past system:admin only had access to a few SCCs, so the following command resulted in the privileged SCC being used
+# Since SCCs are now authorized via RBAC, and system:admin can perform all RBAC actions == system:admin can access all SCCs now
+# Thus the following command now results in the use of the hostnetwork SCC which is the most restrictive SCC that still allows the pod to run
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.allowedBy.name}' 'hostnetwork'
+# Make sure that the legacy ungroupified objects continue to work by directly doing a create
+os::cmd::expect_success_and_text 'oc create -f ${OS_ROOT}/test/testdata/legacy_ungroupified_psp_review.yaml -o=jsonpath={.status.allowedBy.name}' 'restricted'
+os::cmd::expect_success "oc login -u bob -p bobpassword"
+os::cmd::expect_success_and_text 'oc whoami' 'bob'
+os::cmd::expect_success 'oc new-project policy-second'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.allowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/two_jobs.yaml -o=jsonpath={.status.allowedBy.name}' 'restrictedrestricted'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml -ojsonpath={.status.allowedServiceAccounts}' '<nil>'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml -ojsonpath={.status.allowedServiceAccounts}' '<nil>'
+os::cmd::expect_failure 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/external-service.yaml'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n policy-second -o=jsonpath={.status.allowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -f ${OS_ROOT}/test/testdata/job.yaml -n policy-second --no-headers=true' 'Job/hello   <none>'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -f ${OS_ROOT}/test/testdata/job.yaml' ''
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'error: --user and --serviceaccount are mutually exclusive'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -z system:serviceaccount:alice:default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u alice -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -g system:authenticated -n noexist -f ${OS_ROOT}/test/testdata/job.yaml' 'error: unable to compute Pod Security Policy Subject Review for "hello": namespaces "noexist" not found'
+os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/scc_lax.yaml'
+os::cmd::expect_success "oc login -u bob -p bobpassword"
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -z default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -z system:serviceaccount:policy-second:default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml --no-headers=true' 'DeploymentConfig/deployment-simple   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml --no-headers=true' ''
+os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/job.yaml --namespace=no-exist' 'error: unable to compute Pod Security Policy Review for "hello": podsecuritypolicyreviews.security.openshift.io is forbidden: User "bob" cannot create resource "podsecuritypolicyreviews" in API group "security.openshift.io" in the namespace "no-exist"'
+os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_failure_and_text 'oc policy scc-review -z no-exist -f ${OS_ROOT}/test/testdata/job.yaml' 'error: unable to compute Pod Security Policy Review for "hello": unable to retrieve ServiceAccount no-exist: serviceaccount "no-exist" not found'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success 'oc delete project policy-second'
+
+# adjust the cluster-admin role to check defaulting and coverage checks
+# this is done here instead of an integration test because we need to make sure the actual yaml serializations work
+workingdir=$(mktemp -d)
+cp ${OS_ROOT}/hack/local-up-master/test-manifests/cluster_admin_1.0.yaml ${workingdir}
+os::util::sed "s/RESOURCE_VERSION//g" ${workingdir}/cluster_admin_1.0.yaml
+os::cmd::expect_success "oc create -f ${workingdir}/cluster_admin_1.0.yaml"
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user alternate-cluster-admin alternate-cluster-admin-user'
+
+# switch to test user to be sure that default project admin policy works properly
+new_kubeconfig="${workingdir}/tempconfig"
+os::cmd::expect_success "oc config view --raw > $new_kubeconfig"
+os::cmd::expect_success "oc login -u alternate-cluster-admin-user -p anything --kubeconfig=${new_kubeconfig}"
+
+# alternate-cluster-admin can restrict himself to less groups (no star)
+os::cmd::try_until_text "oc policy who-can update clusterrroles" "alternate-cluster-admin-user"
+resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
+cp ${OS_ROOT}/hack/local-up-master/test-manifests/cluster_admin_without_apigroups.yaml ${workingdir}
+os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/cluster_admin_without_apigroups.yaml
+os::cmd::expect_success "oc replace --kubeconfig=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/cluster_admin_without_apigroups.yaml"
+
+# alternate-cluster-admin should NOT have the power add back star now (anything other than star is considered less so this mimics testing against no groups)
+os::cmd::try_until_failure "oc policy who-can update hpa.autoscaling | grep -q alternate-cluster-admin-user"
+resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
+cp ${OS_ROOT}/vendor/github.com/openshift/openshift-apiserver/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
+os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
+os::cmd::expect_failure_and_text "oc replace --kubeconfig=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempting to grant RBAC permissions not currently held"
+
+# This test validates cluster level policy for serviceaccounts
+# ensure service account cannot list pods at the namespace level
+os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/view added: "testserviceaccount"'
+# ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
+os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
+# ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
+os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/cluster-reader added: "testserviceaccount"'
+os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+
+# make sure users can easily create roles for RBAC based SCC access
+os::cmd::expect_success_and_text 'oc create role scc-privileged --verb=use --resource=scc --resource-name=privileged' 'role.rbac.authorization.k8s.io/scc-privileged created'
+os::cmd::expect_success_and_text 'oc delete role.rbac scc-privileged' 'role.rbac.authorization.k8s.io "scc-privileged" deleted'
+
+echo "policy: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdPolicyShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdPolicySh, nil
+}
+
+func testExtendedTestdataCmdTestCmdPolicySh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdPolicyShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/policy.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdPrinterSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Test that resource printer includes resource kind on multiple resources
+os::test::junit::declare_suite_start "cmd/basicresources/printer"
+os::cmd::expect_success 'oc create imagestream test1'
+os::cmd::expect_success 'oc new-app node'
+os::cmd::expect_success_and_text 'oc get all' 'imagestream.image.openshift.io/test1'
+os::cmd::expect_success_and_not_text 'oc get is' 'imagestream.image.openshift.io/test1'
+
+# Test that resource printer includes namespaces for buildconfigs with custom strategies
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-custombuild.json'
+os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig.apps.openshift.io "frontend" created'
+os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfig.build.openshift.io\/ruby\-sample\-build'
+
+# Test that infos printer supports all outputFormat options
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value' 'deploymentconfig.apps.openshift.io/node updated'
+# FIXME: what to do with this?
+# os::cmd::expect_success 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o custom-colums="NAME:.metadata.name"'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o yaml' 'apiVersion: apps.openshift.io/v1'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o json' '"apiVersion": "apps.openshift.io/v1"'
+echo "resource printer: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdPrinterShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdPrinterSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdPrinterSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdPrinterShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/printer.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdProjectsSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete namespace test4
+  oc delete namespace test5
+  oc delete namespace test6
+  oc wait --for=delete namespace test4 --timeout=60s || true
+  oc wait --for=delete namespace test5 --timeout=60s || true
+  oc wait --for=delete namespace test6 --timeout=60s || true
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/projects"
+
+os::test::junit::declare_suite_start "cmd/projects/lifecycle"
+# resourceaccessreview
+os::cmd::expect_success 'oc policy who-can get pods -n missing-ns'
+# selfsubjectaccessreview
+os::cmd::expect_success 'oc policy can-i get pods -n missing-ns'
+# selfsubjectrulesreivew
+os::cmd::expect_success 'oc policy can-i --list -n missing-ns'
+# subjectaccessreview
+os::cmd::expect_success 'oc policy can-i get pods --user=bob -n missing-ns'
+# subjectrulesreview
+os::cmd::expect_success 'oc policy can-i --list  --user=bob -n missing-ns'
+echo 'project lifecycle ok'
+os::test::junit::declare_suite_end
+
+os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
+# log in as a test user and expect no projects
+#os::cmd::expect_success 'oc login -u test -p test'
+#os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
+# add a project and expect text for a single project
+os::cmd::expect_success_and_text 'oc new-project test4' 'Now using project "test4" on server '
+os::cmd::try_until_text 'oc projects' 'Using project "test4" on server'
+os::cmd::expect_success_and_text 'oc new-project test5' 'Now using project "test5" on server '
+os::cmd::try_until_text 'oc projects' 'You have access to the following projects and can switch between them with '
+os::cmd::expect_success_and_text 'oc projects' 'test4'
+os::cmd::expect_success_and_text 'oc projects' 'test5'
+# test --skip-config-write
+os::cmd::expect_success_and_text 'oc new-project test6 --skip-config-write' 'To switch to this project and start adding applications, use'
+os::cmd::expect_success_and_not_text 'oc config view -o jsonpath="{.contexts[*].context.namespace}"' '\btest6\b'
+os::cmd::try_until_text 'oc projects' 'test6'
+os::cmd::expect_success_and_text 'oc project test6' 'Now using project "test6"'
+os::cmd::expect_success_and_text 'oc config view -o jsonpath="{.contexts[*].context.namespace}"' '\btest6\b'
+echo 'projects command ok'
+
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdProjectsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdProjectsSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdProjectsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdProjectsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/projects.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdQuotaSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+os::test::junit::declare_suite_start "cmd/quota"
+
+# Cleanup cluster resources created by this test suite
+(
+  set +e
+  oc delete namespace quota-{foo,bar,asmail,images}
+  oc wait --for=delete namespace quota-{foo,bar,asmail,images} --timeout=60s || true
+  oc delete clusterresourcequotas.quota.openshift.io "for-deads"
+  oc delete clusterresourcequotas.quota.openshift.io "for-deads-by-annotation"
+  oc delete clusterresourcequotas.quota.openshift.io "for-deads-email-by-annotation"
+  oc delete clusterresourcequotas.quota.openshift.io "annotation-value-with-commas"
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/quota/clusterquota"
+
+# This tests creating a clusterresourcequota against an existing namespace with a known number of resources
+os::cmd::expect_success 'oc new-project quota-foo --as=deads --as-group=system:authenticated --as-group=system:authenticated:oauth'
+os::cmd::expect_success 'oc label namespace/quota-foo owner=deads'
+os::cmd::try_until_text 'oc get secrets -o name -n quota-foo | wc -l' '9'
+os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
+os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads"
+os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads -n quota-foo --as deads -o jsonpath=used={.status.total.used.secrets}' "used=9"
+
+os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a DNS-1123 subdomain must consist of lower case alphanumeric characters"
+os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector=openshift.io/requester=deads,openshift.io/novalue' "Malformed annotation selector"
+os::cmd::expect_success 'oc create clusterquota for-deads-by-annotation --project-annotation-selector=openshift.io/requester=deads --hard=secrets=50'
+os::cmd::expect_success 'oc create clusterquota for-deads-email-by-annotation --project-annotation-selector=openshift.io/requester=deads@deads.io --hard=secrets=50'
+os::cmd::expect_success 'oc create clusterresourcequota annotation-value-with-commas --project-annotation-selector="openshift.io/requester=deads,\"openshift.io/withcomma=yes,true,1\"" --hard=pods=10'
+os::cmd::expect_success 'oc new-project quota-bar --as=deads  --as-group=system:authenticated --as-group=system:authenticated:oauth'
+os::cmd::expect_success 'oc new-project quota-asmail --as=deads@deads.io  --as-group=system:authenticated --as-group=system:authenticated:oauth'
+os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-bar --as deads -o name' "for-deads-by-annotation"
+os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads-by-annotation"
+os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-asmail --as deads@deads.io -o name' "for-deads-email-by-annotation"
+# the point of the test is to make sure that clusterquota is counting correct and secrets are auto-created and countable
+# the create_dockercfg controller can issue multiple creates if the token controller doesn't fill them in, but the creates are duplicates
+# since an annotation tracks the intended secrets to be created.  That results in multi-counting quota until reconciliation runs
+# do not go past 26.  If you get to 27, you might be selecting an extra namespace.
+os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads-by-annotation -n quota-bar --as deads -o jsonpath=used={.status.total.used.secrets}' "used=(1[0-9]|20|21|22|23|24|25|26)"
+os::cmd::expect_success 'oc delete project quota-foo'
+os::cmd::try_until_not_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].namespace}"' 'quota-foo'
+os::cmd::expect_success 'oc delete project quota-bar'
+os::cmd::expect_success 'oc delete project quota-asmail'
+
+echo "clusterquota: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/quota/imagestreams"
+
+os::cmd::expect_success 'oc new-project quota-images --as=deads  --as-group=system:authenticated --as-group=system:authenticated:oauth'
+os::cmd::expect_success 'oc create quota -n quota-images is-quota --hard openshift.io/imagestreams=1'
+os::cmd::try_until_success 'oc tag -n quota-images openshift/hello-openshift myis2:v2'
+os::cmd::expect_failure_and_text 'oc tag -n quota-images busybox mybox:v1' "exceeded quota"
+os::cmd::expect_failure_and_text 'oc import-image centos -n quota-images --from=docker.io/centos:latest --confirm=true' "exceeded quota"
+os::cmd::expect_success 'oc delete project quota-images'
+
+echo "imagestreams: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdQuotaShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdQuotaSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdQuotaSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdQuotaShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/quota.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdRegistrySh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/registry/login"
+# TODO - re-enable these tests on a real cluster
+#os::cmd::expect_success_and_text "oc registry login -z 'default' --registry=localhost:5000 --to=- --skip-check" "auth"
+#os::cmd::expect_failure_and_text "oc registry login -z 'default' --registry=localhost2 --to=- 2>&1" "unable to check your credentials"
+#os::cmd::expect_success_and_text "oc registry login -z 'default' --registry=localhost2 --to=/tmp/test --skip-check && cat /tmp/test" "localhost2"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/registry/info"
+# TODO - re-enable these tests on a real cluster
+#os::cmd::expect_success 'oc tag --source=docker openshift/origin-control-plane:latest newrepo:latest'
+#os::cmd::expect_success "oc registry info"
+#os::cmd::expect_failure_and_text "oc registry info --internal --public" "only one of --internal or --public"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdRegistryShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdRegistrySh, nil
+}
+
+func testExtendedTestdataCmdTestCmdRegistrySh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdRegistryShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/registry.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdRoutesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete route foo bar testroute test-route new-route
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/routes"
+
+os::cmd::expect_success 'oc get routes'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-route.json'
+os::cmd::expect_success_and_text 'oc get routes testroute --show-labels' 'rtlabel1'
+os::cmd::expect_success 'oc delete routes testroute'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
+os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
+os::cmd::expect_success 'oc delete routes frontend'
+os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
+os::cmd::expect_success 'oc delete routes non-existent'
+os::cmd::expect_success 'oc create route edge test-route --service=frontend'
+os::cmd::expect_success 'oc delete routes test-route'
+os::cmd::expect_failure 'oc create route edge new-route'
+os::cmd::expect_success 'oc delete services frontend'
+os::cmd::expect_success 'oc create route edge --insecure-policy=Allow --service=foo --port=80'
+os::cmd::expect_success_and_text 'oc get route foo -o jsonpath="{.spec.tls.insecureEdgeTerminationPolicy}"' 'Allow'
+os::cmd::expect_success 'oc delete routes foo'
+
+os::cmd::expect_success_and_text 'oc create route edge --service foo --port=8080' 'created'
+os::cmd::expect_success_and_text 'oc create route edge --service bar --port=9090' 'created'
+
+# verify that reencrypt routes with no destination CA return the stub PEM block on the old API
+project="$(oc project -q)"
+os::cmd::expect_success_and_text     'oc create route reencrypt --service baz --port=9090' 'created'
+os::cmd::expect_success_and_not_text 'oc get --raw /apis/route.openshift.io/v1/namespaces/${project}/routes/baz' 'This is an empty PEM file'
+
+os::cmd::expect_success_and_text 'oc set route-backends foo' 'routes/foo'
+os::cmd::expect_success_and_text 'oc set route-backends foo' 'Service'
+os::cmd::expect_success_and_text 'oc set route-backends foo' '100'
+os::cmd::expect_failure_and_text 'oc set route-backends foo --zero --equal' 'error: --zero and --equal may not be specified together'
+os::cmd::expect_failure_and_text 'oc set route-backends foo --zero --adjust' 'error: --adjust and --zero may not be specified together'
+os::cmd::expect_failure_and_text 'oc set route-backends foo a=' 'expected NAME=WEIGHT'
+os::cmd::expect_failure_and_text 'oc set route-backends foo =10' 'expected NAME=WEIGHT'
+os::cmd::expect_failure_and_text 'oc set route-backends foo a=a' 'WEIGHT must be a number'
+os::cmd::expect_success_and_text 'oc set route-backends foo a=10' 'updated'
+os::cmd::expect_success_and_text 'oc set route-backends foo a=100' 'updated'
+os::cmd::expect_success_and_text 'oc set route-backends foo a=0' 'updated'
+os::cmd::expect_success_and_text 'oc set route-backends foo' '0'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a'
+os::cmd::expect_success_and_text 'oc set route-backends foo a1=0 b2=0' 'updated'
+os::cmd::expect_success_and_text 'oc set route-backends foo' 'a1'
+os::cmd::expect_success_and_text 'oc set route-backends foo' 'b2'
+os::cmd::expect_success_and_text 'oc set route-backends foo a1=100 b2=50 c3=0' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(66%\),b2\(33%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo a1=100 b2=0 c3=0' 'updated'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=+10%' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(90%\),b2\(10%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=+25%' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(65%\),b2\(35%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=+99%' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(0%\),b2\(100%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=-51%' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(51%\),b2\(49%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust a1=20%' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(20%\),b2\(80%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust c3=50%' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(10%\),b2\(80%\),c3\(10%\)'
+os::cmd::expect_success_and_text 'oc describe routes foo' '25 \(10%\)'
+os::cmd::expect_success_and_text 'oc describe routes foo' '200 \(80%\)'
+os::cmd::expect_success_and_text 'oc describe routes foo' '25 \(10%\)'
+os::cmd::expect_success_and_text 'oc describe routes foo' '<error: endpoints "c3" not found>'
+os::cmd::expect_success_and_text 'oc set route-backends foo --adjust c3=1' 'updated'
+os::cmd::expect_success_and_text 'oc describe routes foo' '1 \(0%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --equal' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(33%\),b2\(33%\),c3\(33%\)'
+os::cmd::expect_success_and_text 'oc describe routes foo' '100 \(33%\)'
+os::cmd::expect_success_and_text 'oc set route-backends foo --zero' 'updated'
+os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(0%\),b2\(0%\),c3\(0%\)'
+os::cmd::expect_success_and_text 'oc describe routes foo' '0'
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdRoutesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdRoutesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdRoutesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdRoutesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/routes.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdRsyncSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all --all
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/rsync"
+# This test validates the rsync command
+os::cmd::expect_success 'oc create -f - << __EOF__
+apiVersion: v1
+kind: Pod
+metadata:
+  name: valid-pod
+  labels:
+    name: valid-pod
+spec:
+  containers:
+  - name: kubernetes-serve-hostname
+    image: k8s.gcr.io/serve_hostname
+    resources:
+      limits:
+        cpu: "1"
+        memory: 512Mi
+__EOF__'
+
+temp_dir=$(mktemp -d)
+include_file=$(mktemp -p $temp_dir)
+exclude_file=$(mktemp -p $temp_dir)
+
+# we don't actually have a kubelet running, so no "tar" binary will be available in container because there will be no container.
+# instead, ensure that the tar command to be executed is formatted correctly based on our --include and --exclude values
+os::cmd::expect_failure_and_text "oc rsync --strategy=tar --include=$include_file --exclude=$exclude_file $temp_dir valid-pod:/tmp --loglevel 4" "running command: tar.*\*\*\/$include_file.*--exclude=$exclude_file"
+
+echo "rsync: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdRsyncShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdRsyncSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdRsyncSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdRsyncShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/rsync.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdRunSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+os::test::junit::declare_suite_start "cmd/run"
+# This test validates the value of --image for oc run
+os::cmd::expect_success_and_text 'oc run newdcforimage --image=validimagevalue' 'deploymentconfig.apps.openshift.io/newdcforimage created'
+os::cmd::expect_failure_and_text 'oc run newdcforimage2 --image="InvalidImageValue0192"' 'error: Invalid image name "InvalidImageValue0192": invalid reference format'
+os::cmd::expect_failure_and_text 'oc run test1 --image=busybox --attach --dry-run' "dry-run can't be used with attached containers options"
+os::cmd::expect_failure_and_text 'oc run test1 --image=busybox --stdin --dry-run' "dry-run can't be used with attached containers options"
+echo "oc run: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdRunShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdRunSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdRunSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdRunShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/run.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdSecretsSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates,secrets --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/secrets"
+# This test validates secret interaction
+touch Makefile
+os::cmd::expect_failure_and_text 'oc secrets new foo --type=blah makefile=Makefile' 'error: unknown secret type "blah"'
+os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --confirm'
+os::cmd::expect_success_and_text 'oc get secrets/foo -o jsonpath={.type}' 'blah'
+
+os::cmd::expect_success 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org'
+# can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
+os::cmd::expect_success "oc get secrets/dockerconfigjson -o jsonpath='{ .data.\.dockerconfigjson }' | base64 -d > ${HOME}/dockerconfigjson"
+os::cmd::expect_success 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson'
+# check to make sure the type was correctly auto-detected
+os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }}"' 'kubernetes.io/dockerconfigjson'
+# make sure the -o works correctly
+os::cmd::expect_success_and_text 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml' 'kubernetes.io/dockerconfigjson'
+os::cmd::expect_success_and_text 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson -o yaml' 'kubernetes.io/dockerconfigjson'
+# check to make sure malformed names fail as expected
+os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/dockerconfigjson' "error: Key names or file paths cannot contain '='."
+
+workingdir="$( mktemp -d )"
+os::cmd::try_until_success "oc get secret/dockerconfigjson"
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to '${workingdir}'" '.dockerconfigjson'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to=-" 'sample-user'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to=-" 'sample-password'
+os::cmd::expect_success_and_text "cat '${workingdir}/.dockerconfigjson'" 'sample-user'
+os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson --to '${workingdir}'" 'error: .dockerconfigjson: file exists, pass --confirm to overwrite'
+os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson secret/dockerconfigjson --to '${workingdir}'" 'error: .dockerconfigjson: file exists, pass --confirm to overwrite'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson secret/dockerconfigjson --to '${workingdir}' --confirm" '.dockerconfigjson'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to '${workingdir}' --confirm" '.dockerconfigjson'
+os::cmd::expect_success "oc extract secret/dockerconfigjson --to '${workingdir}' --confirm | xargs rm"
+os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson --to missing-dir" "stat missing-dir: no such file or directory"
+
+# attach secrets to service account
+# single secret with prefix
+os::cmd::expect_success 'oc secrets add deployer dockerconfigjson'
+# don't add the same secret twice
+os::cmd::expect_success 'oc secrets add serviceaccounts/deployer dockerconfigjson secrets/from-file'
+# make sure we can add as as pull secret
+os::cmd::expect_success 'oc secrets add deployer dockerconfigjson from-file --for=pull'
+# make sure we can add as as pull secret and mount secret at once
+os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/dockerconfigjson secrets/from-file --for=pull,mount'
+
+GIT_CONFIG_PATH="${ARTIFACT_DIR}/.gitconfig"
+touch "${GIT_CONFIG_PATH}"
+#git config --file "${GIT_CONFIG_PATH}" user.name sample-user
+#git config --file "${GIT_CONFIG_PATH}" user.token password
+
+function create_valid_file() {
+	echo test_data > "${ARTIFACT_DIR}/${1}"
+	echo "${ARTIFACT_DIR}/${1}"
+}
+
+CA_CERT_PATH=$(create_valid_file ca.pem)
+PRIVATE_KEY_PATH=$(create_valid_file id_rsa)
+
+os::cmd::expect_success "oc secrets new-basicauth basicauth --username=sample-user --password=sample-password --gitconfig='${GIT_CONFIG_PATH}' --ca-cert='${CA_CERT_PATH}'"
+# check to make sure two mutual exclusive flags return error as expected
+os::cmd::expect_failure_and_text 'oc secrets new-basicauth bad-file --password=sample-password --prompt' 'error: must provide either --prompt or --password flag'
+# check to make sure incorrect .gitconfig path fail as expected
+os::cmd::expect_failure_and_text 'oc secrets new-basicauth bad-file --username=user --gitconfig=/bad/path' 'error: open /bad/path: no such file or directory'
+
+os::cmd::expect_success "oc secrets new-sshauth sshauth --ssh-privatekey='${PRIVATE_KEY_PATH}' --ca-cert='${CA_CERT_PATH}'"
+# check to make sure incorrect SSH private-key path fail as expected
+os::cmd::expect_failure_and_text 'oc secrets new-sshauth bad-file --ssh-privatekey=/bad/path' 'error: open /bad/path: no such file or directory'
+
+# attach secrets to service account (deprecated)
+# single secret with prefix
+os::cmd::expect_success 'oc secrets add deployer basicauth'
+# don't add the same secret twice
+os::cmd::expect_success 'oc secrets add deployer basicauth sshauth'
+# make sure we can add as as pull secret
+os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull'
+# make sure we can add as as pull secret and mount secret at once
+os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull,mount'
+
+# attach secrets to service account
+# test that those secrets can be unlinked
+# after they have been deleted.
+os::cmd::expect_success 'oc create secret generic deleted-secret'
+os::cmd::expect_success 'oc secrets link deployer deleted-secret'
+# confirm our soon-to-be-deleted secret has been linked
+os::cmd::expect_success_and_text "oc get serviceaccount deployer -o jsonpath='{.secrets[?(@.name==\"deleted-secret\")]}'" 'deleted\-secret'
+# delete "deleted-secret" and attempt to unlink from service account
+os::cmd::expect_success 'oc delete secret deleted-secret'
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer secrets/deleted-secret' 'Unlinked deleted secrets'
+# ensure already-deleted secret has been unlinked
+os::cmd::expect_success_and_not_text "oc get serviceaccount deployer -o jsonpath='{.secrets[?(@.name==\"deleted-secret\")]}'" 'deleted\-secret'
+
+# attach secrets to service account
+# single secret with prefix
+os::cmd::expect_success 'oc secrets link deployer basicauth'
+# don't add the same secret twice
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth'
+# make sure we can add as as pull secret
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth --for=pull'
+# make sure we can add as as pull secret and mount secret at once
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth --for=pull,mount'
+
+# Confirm that all the linked secrets are present
+os::cmd::expect_success 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
+os::cmd::expect_success 'oc get serviceaccounts/deployer -o yaml |grep -q sshauth'
+
+# Remove secrets from service account
+os::cmd::expect_success 'oc secrets unlink deployer basicauth'
+# Confirm that the secret was removed
+os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
+
+# Re-link that secret
+os::cmd::expect_success 'oc secrets link deployer basicauth'
+
+# Removing a non-existent secret should warn but succeed and change nothing
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar' 'secret "foobar" not found'
+
+# Make sure that removing an existent and non-existent secret succeeds but warns about the non-existent one
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar basicauth' 'secret "foobar" not found'
+# Make sure that the existing secret is removed
+os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
+
+# Make sure that removing a real but unlinked secret succeeds
+# https://github.com/openshift/origin/pull/9234#discussion_r70832486
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer basicauth', 'No valid secrets found or secrets not linked to service account'
+
+# Make sure that it succeeds if *any* of the secrets are linked
+# https://github.com/openshift/origin/pull/9234#discussion_r70832486
+os::cmd::expect_success 'oc secrets unlink deployer basicauth sshauth'
+
+# Confirm that the linked one was removed
+os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q sshauth'
+
+# command alias
+os::cmd::expect_success 'oc secret --help'
+os::cmd::expect_success 'oc secret new --help'
+os::cmd::expect_success 'oc secret new-dockercfg --help'
+os::cmd::expect_success 'oc secret new-basicauth --help'
+os::cmd::expect_success 'oc secret new-sshauth --help'
+os::cmd::expect_success 'oc secret add --help'
+os::cmd::expect_success 'oc secret link --help'
+os::cmd::expect_success 'oc secret unlink --help'
+
+echo "secrets: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/serviceaccounts-create-kubeconfig"
+os::cmd::expect_success "oc serviceaccounts create-kubeconfig default > '${BASETMPDIR}/generated_default.kubeconfig'"
+os::cmd::expect_success_and_text "KUBECONFIG='${BASETMPDIR}/generated_default.kubeconfig' oc whoami" "system:serviceaccount:$(oc project -q):default"
+echo "serviceaccounts: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdSecretsShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdSecretsSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdSecretsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdSecretsShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/secrets.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdServicesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/create-service-nodeport"
+# This test validates the 'create service nodeport' command and its "--node-port" and "--tcp" options
+os::cmd::expect_success_and_text 'oc create service nodeport mynodeport --tcp=8080:7777 --node-port=30000' 'service/mynodeport created'
+os::cmd::expect_failure_and_text 'oc create service nodeport mynodeport --tcp=8080:7777 --node-port=30000' 'provided port is already allocated'
+os::cmd::expect_failure_and_text 'oc create service nodeport mynodeport --tcp=8080:7777 --node-port=300' 'provided port is not in the valid range. The range of valid ports is 30000-32767'
+os::cmd::expect_success_and_text 'oc describe service mynodeport' 'NodePort\:.*30000'
+os::cmd::expect_success_and_text 'oc describe service mynodeport' 'NodePort\:.*8080-7777'
+os::cmd::expect_success_and_text 'oc describe --v=8 service mynodeport' 'Response Body'
+
+echo "create-services-nodeport: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdServicesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdServicesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdServicesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdServicesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/services.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdSetImageSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/oc/set/image"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
+
+# test --local flag
+os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --local' 'you must specify resources by --filename when --local is set.'
+# test --dry-run flag with -o formats
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
+# ensure backwards compatibility with -o formats acting as --dry-run (e.g. all commands after this one succeed if specifying -o without --dry-run does not mutate resources in server)
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag -o yaml' 'name: test-deployment-config'
+
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.3 --source=istag'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
+
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
+
+os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=istag'
+os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=isimage'
+
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=nginx'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'nginx'
+
+os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx'
+os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx'
+
+os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx:1.9.1'
+os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx:1.9.1'
+
+os::cmd::expect_success 'oc set image pods,dc *=ruby:2.3 --all --source=imagestreamtag'
+os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
+
+echo "set-image: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdSetImageShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdSetImageSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdSetImageSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdSetImageShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/set-image.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdSetLivenessProbeSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/set-probe-liveness"
+# This test setting a liveness probe, without warning about replication controllers whose deployment depends on deployment configs
+os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/simple-deployment.yaml' 'deploymentconfig.apps.openshift.io/simple-deployment created'
+os::cmd::expect_success_and_text 'oc status --suggest' 'dc/simple-deployment has no liveness probe'
+
+# test --local flag
+os::cmd::expect_failure_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --local' 'You must provide one or more resources by argument or filename'
+# test --dry-run flag with -o formats
+os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --dry-run' 'simple-deployment'
+os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --dry-run -o name' 'deploymentconfig.apps.openshift.io/simple-deployment'
+# ensure backwards compatibility with -o formats acting as --dry-run (e.g. all commands after this one succeed if specifying -o without --dry-run does not mutate resources in server)
+os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 -o yaml' 'name: simple-deployment'
+
+os::cmd::expect_success_and_not_text 'oc status --suggest' 'rc/simple-deployment-1 has no liveness probe'
+os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80' 'deploymentconfig.apps.openshift.io/simple-deployment probes updated'
+os::cmd::expect_success_and_not_text 'oc status --suggest' 'dc/simple-deployment has no liveness probe'
+echo "set-probe-liveness: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdSetLivenessProbeShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdSetLivenessProbeSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdSetLivenessProbeSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdSetLivenessProbeShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdSetbuildhookSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/builds/setbuildhook"
+# Validate the set build-hook command
+arg="-f ${TEST_DATA}/test-bc.yaml"
+os::cmd::expect_failure_and_text "oc set build-hook" "error: one or more build configs"
+os::cmd::expect_failure_and_text "oc set build-hook ${arg}" "error: you must specify a type of hook"
+os::cmd::expect_failure_and_text "oc set build-hook ${arg} --local --post-commit -o yaml -- echo 'hello world'" 'you must specify either a script or command for the build hook'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --local --post-commit --command -o yaml -- echo 'hello world'" 'command:'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --local --post-commit -o yaml --script='echo \"hello world\"'" 'script: echo \"hello world\"'
+# Server object tests
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-bc.yaml"
+# Must specify --command or --script
+os::cmd::expect_failure_and_text "oc set build-hook bc/test-buildconfig --post-commit" "you must specify either a script or command"
+# Setting args for the default entrypoint is not supported
+os::cmd::expect_failure_and_text "oc set build-hook test-buildconfig --post-commit -- foo bar" "you must specify either a script or command for the build hook"
+# Set a command + args on a specific build config
+os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit --command -- /bin/bash -c \"echo 'test'\"" "updated"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "command:"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "script:"
+# Set a script on a specific build config
+os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit --script /bin/script.sh -- arg1 arg2" "updated"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "script:"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "command:"
+# Remove the postcommit hook
+os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "command:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "script:"
+# Set a command + args on all build configs
+os::cmd::expect_success_and_text "oc set build-hook --all --post-commit --command -- /bin/bash -c \"echo 'test'\"" "updated"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "command:"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "script:"
+# Set a script on all build configs
+os::cmd::expect_success_and_text "oc set build-hook --all --post-commit --script /bin/script.sh" "updated"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "script:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "command:"
+
+os::cmd::expect_success "oc delete bc/test-buildconfig"
+# ensure command behaves as expected when an empty file is given
+workingdir=$(mktemp -d)
+touch "${workingdir}/emptyfile.json"
+os::cmd::expect_failure_and_text "oc set build-hook -f ${workingdir}/emptyfile.json --post-commit=true --script=foo" "no resources found"
+echo "set build-hook: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdSetbuildhookShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdSetbuildhookSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdSetbuildhookSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdSetbuildhookShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/setbuildhook.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdSetbuildsecretSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/builds/setbuildsecret"
+# Validate the set build-secret command
+arg="-f ${TEST_DATA}/test-bc.yaml"
+os::cmd::expect_failure_and_text "oc set build-secret" "error: a secret name must be specified"
+os::cmd::expect_failure_and_text "oc set build-secret ${arg}" "error: a secret name must be specified"
+os::cmd::expect_failure_and_text "oc set build-secret ${arg} mysecret" "error: specify the type of secret"
+os::cmd::expect_success_and_text "oc set build-secret ${arg} mysecret --push --local -o yaml" 'pushSecret:'
+os::cmd::expect_success_and_text "oc set build-secret ${arg} mysecret --push --local -o yaml" 'name: mysecret'
+os::cmd::expect_success_and_text "oc set build-secret ${arg} mysecret --pull --local -o yaml" 'pullSecret:'
+os::cmd::expect_success_and_text "oc set build-secret ${arg} mysecret --pull --local -o yaml" 'name: mysecret'
+os::cmd::expect_success_and_text "oc set build-secret ${arg} mysecret --source --local -o yaml" 'sourceSecret:'
+os::cmd::expect_success_and_text "oc set build-secret ${arg} mysecret --source --local -o yaml" 'name: mysecret'
+os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --push --local -o yaml | oc set build-secret --local -f - --remove --push -o yaml" 'pushSecret:'
+os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --pull --local -o yaml | oc set build-secret --local -f - --remove --pull -o yaml" 'pullSecret:'
+os::cmd::expect_success_and_not_text "oc set build-secret ${arg} mysecret --push --local -o yaml | oc set build-secret --local -f - --remove --source -o yaml" 'sourceSecret:'
+# Server object tests
+os::cmd::expect_success "oc create -f ${TEST_DATA}/test-bc.yaml"
+os::cmd::expect_success_and_text "oc set build-secret test-buildconfig mysecret --push" "updated"
+os::cmd::expect_success_and_text "oc set build-secret bc/test-buildconfig mysecret --push --v=1" "was not changed"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "pushSecret:"
+os::cmd::expect_success_and_text "oc set build-secret bc/test-buildconfig --push --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "pushSecret:"
+os::cmd::expect_success "oc delete bc/test-buildconfig"
+echo "set build-secret: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdSetbuildsecretShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdSetbuildsecretSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdSetbuildsecretSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdSetbuildsecretShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/setbuildsecret.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdStatusSh = []byte(`#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete project project-bar
+  oc delete project project-status
+  exit 0
+) &>/dev/null
+
+login_kubeconfig="${ARTIFACT_DIR}/login.kubeconfig"
+cp "${KUBECONFIG}" "${login_kubeconfig}"
+
+os::test::junit::declare_suite_start "cmd/status"
+# login and ensure no current projects exist
+#os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything"
+#os::cmd::expect_success 'oc delete project --all'
+#os::cmd::try_until_text "oc get projects -o jsonpath='{.items}'" "^\[\]$"
+#os::cmd::expect_success 'oc logout'
+
+# remove self-provisioner role from user and test login prompt before creating any projects
+#os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
+
+# login as 'test-user2'
+#os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything"
+
+# make sure `+"`"+`oc status`+"`"+` re-uses the correct "no projects" message from `+"`"+`oc login`+"`"+` with no self-provisioner role
+#os::cmd::expect_success_and_text 'oc status' "You don't have any projects. Contact your system administrator to request a project"
+os::cmd::expect_success_and_text 'oc status --all-namespaces' "Showing all projects on server"
+# make sure standard login prompt is printed once self-provisioner status is restored
+#os::cmd::expect_success "oc logout"
+#os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
+#os::cmd::try_until_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything" "You don't have any projects. You can try to create a new project, by running" $(( 30 * second )) 0.25
+
+# make sure `+"`"+`oc status`+"`"+` re-uses the correct "no projects" message from `+"`"+`oc login`+"`"+`
+#os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
+os::cmd::expect_success_and_text 'oc status -A' "Showing all projects on server"
+# make sure `+"`"+`oc status`+"`"+` does not re-use the "no projects" message from `+"`"+`oc login`+"`"+` if -n is specified
+#os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "forbidden"'
+
+# create a new project
+os::cmd::expect_success "oc new-project project-bar --display-name='my project' --description='test project'"
+os::cmd::expect_success_and_text "oc project" 'Using project "project-bar"'
+
+# make sure `+"`"+`oc status`+"`"+` does not use "no projects" message if there is a project created
+os::cmd::expect_success_and_text 'oc status' "In project my project \(project-bar\) on server"
+#os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "forbidden"'
+
+# create a second project
+os::cmd::expect_success "oc new-project project-bar-2 --display-name='my project 2' --description='test project 2'"
+os::cmd::expect_success_and_text "oc project" 'Using project "project-bar-2"'
+
+# delete the current project `+"`"+`project-bar-2`+"`"+` and make sure `+"`"+`oc status`+"`"+` does not return the "no projects"
+# message since `+"`"+`project-bar`+"`"+` still exists
+os::cmd::expect_success_and_text "oc delete project project-bar-2" 'project.project.openshift.io "project-bar-2" deleted'
+# the deletion is asynchronous and can take a while, so wait until we see the error
+#os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar-2" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "project-bar-2"'
+
+# delete "project-bar" and test that `+"`"+`oc status`+"`"+` still does not return the "no projects" message.
+# Although we are deleting the last remaining project, the current context's namespace is still set
+# to it, therefore `+"`"+`oc status`+"`"+` should simply return a forbidden error and not the "no projects" message
+# until the next time the user logs in.
+os::cmd::expect_success "oc project project-bar"
+os::cmd::expect_success "oc delete project project-bar"
+# the deletion is asynchronous and can take a while, so wait until we see the error
+#os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "project-bar"'
+os::cmd::try_until_not_text "oc get projects" "project-bar"
+os::cmd::try_until_not_text "oc get projects" "project-bar-2"
+#os::cmd::expect_success "oc logout"
+#os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything" "You don't have any projects. You can try to create a new project, by running"
+#os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
+os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
+
+# Verify the deprecated flags are working
+os::cmd::expect_success_and_text 'oc status -v' 'shorthand -v has been deprecated'
+os::cmd::expect_success_and_text 'oc status --verbose' '\-\-verbose has been deprecated'
+
+# Verify jobs are showing in status
+os::cmd::expect_success "oc run pi --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
+
+# logout
+#os::cmd::expect_success "oc logout"
+
+echo "status: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdStatusShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdStatusSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdStatusSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdStatusShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/status.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTemplatesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  oc delete template/ruby-helloworld-sample -n openshift
+  oc delete project test-template-project
+  oc delete user someval someval=moreval someval=moreval2 someval=moreval3
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/templates"
+# This test validates template commands
+
+os::test::junit::declare_suite_start "cmd/templates/basic"
+os::cmd::expect_success 'oc get templates'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json'
+os::cmd::expect_success 'oc get templates'
+os::cmd::expect_success 'oc get templates ruby-helloworld-sample'
+os::cmd::expect_success 'oc get template ruby-helloworld-sample -o json | oc process -f -'
+os::cmd::expect_success 'oc process ruby-helloworld-sample'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o template --template "{{.kind}}"'    "List"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o go-template --template "{{.kind}}"' "List"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o go-template={{.kind}}'              "List"
+os::cmd::expect_success 'oc process ruby-helloworld-sample -o go-template-file=/dev/null'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath --template "{.kind}"' "List"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath={.kind}'              "List"
+os::cmd::expect_success 'oc process ruby-helloworld-sample -o jsonpath-file=/dev/null'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-22-centos7"
+os::cmd::expect_success_and_text 'oc describe templates ruby-helloworld-sample' "BuildConfig.*ruby-sample-build"
+os::cmd::expect_success 'oc delete templates ruby-helloworld-sample'
+os::cmd::expect_success 'oc get templates'
+# TODO: create directly from template
+echo "templates: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/templates/config"
+guestbook_template="${TEST_DATA}/templates/guestbook.json"
+os::cmd::expect_success "oc process -f '${guestbook_template}' -l app=guestbook | oc create -f -"
+os::cmd::expect_success_and_text 'oc status' 'frontend-service'
+echo "template+config: ok"
+
+os::test::junit::declare_suite_start "cmd/templates/local-config"
+# Processes the template locally
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --local -l app=guestbook -o yaml" "app: guestbook"
+# Processes the template locally and get the same output in YAML
+new="$(mktemp -d)"
+os::cmd::expect_success 'oc process -f "${guestbook_template}" --local -l app=guestbook -o yaml ADMIN_USERNAME=au ADMIN_PASSWORD=ap REDIS_PASSWORD=rp > "${new}/localtemplate"'
+os::cmd::expect_success 'oc process -f "${guestbook_template}" -l app=guestbook -o yaml ADMIN_USERNAME=au ADMIN_PASSWORD=ap REDIS_PASSWORD=rp > "${new}/remotetemplate"'
+os::cmd::expect_success 'diff "${new}/localtemplate" "${new}/remotetemplate"'
+# Does not even try to hit the server
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --local -l app=guestbook -o yaml --server 0.0.0.0:1" "app: guestbook"
+echo "template+config+local: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/templates/parameters"
+guestbook_params="${TEST_DATA}/templates/guestbook.env"
+# Individually specified parameter values are honored
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword" '"myuser"'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword" '"mypassword"'
+# Argument values are honored
+os::cmd::expect_success_and_text "oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f '${guestbook_template}'"       '"myuser"'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword"       '"mypassword"'
+# Argument values with commas are honored
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-stibuild.json'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s'        '"myself"'
+os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'        '"my,1%pa=s"'
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s'  '"myself"'
+os::cmd::expect_success_and_text 'oc process -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'  '"my,1%pa=s"'
+# Argument values can be read from file
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}'" '"root"'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}'" '"adminpass"'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}'" '"redispass"'
+# Argument values can be read from stdin
+os::cmd::expect_success_and_text "cat '${guestbook_params}' | oc process -f '${guestbook_template}' --param-file=-" '"root"'
+os::cmd::expect_success_and_text "cat '${guestbook_params}' | oc process -f '${guestbook_template}' --param-file=-" '"adminpass"'
+os::cmd::expect_success_and_text "cat '${guestbook_params}' | oc process -f '${guestbook_template}' --param-file=-" '"redispass"'
+# Argument values from command line have precedence over those from file
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_USERNAME=myuser"     'ignoring value from file'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_USERNAME=myuser"     '"myuser"'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_PASSWORD=mypassword" '"mypassword"'
+os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p REDIS_PASSWORD=rrr"        '"rrr"'
+# Set template parameters from parameter file with multiline values
+os::cmd::expect_success_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=${TEST_DATA}/templates/template_required_params.env -o yaml" 'first$'
+os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
+# Parameter file failure cases
+os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=does/not/exist"  'no such file or directory'
+os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=${TEST_DATA}"   'is a directory'
+os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=/dev/null"       'parameter required_param is required and must be specified'
+os::cmd::expect_success "oc process -f '${guestbook_template}' --param-file=/dev/null --param-file='${guestbook_params}'"
+os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=-"        'invalid parameter assignment'
+os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=-" 'invalid parameter assignment'
+# Handle absent parameter
+os::cmd::expect_failure_and_text "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent" 'unknown parameter name'
+os::cmd::expect_success "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent --ignore-unknown-parameters"
+echo "template+parameters: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/templates/data-precision"
+# Run as cluster-admin to allow choosing any supplemental groups we want
+# Ensure large integers survive unstructured JSON creation
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/templates/template-type-precision.json'
+# ... and processing
+os::cmd::expect_success_and_text 'oc process template-type-precision' '1000030003'
+os::cmd::expect_success_and_text 'oc process template-type-precision' '2147483647'
+os::cmd::expect_success_and_text 'oc process template-type-precision' '9223372036854775807'
+# ... and re-encoding as structured resources
+os::cmd::expect_success 'oc process template-type-precision | oc create -f -'
+# ... and persisting
+os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '1000030003'
+os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '2147483647'
+os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '9223372036854775807'
+# Ensure patch computation preserves data
+patch='{"metadata":{"annotations":{"comment":"patch comment"}}}'
+os::cmd::expect_success "oc patch pod template-type-precision -p '${patch}'"
+os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '9223372036854775807'
+os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' 'patch comment'
+os::cmd::expect_success 'oc delete template/template-type-precision'
+os::cmd::expect_success 'oc delete pod/template-type-precision'
+echo "template data precision: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/templates/different-namespaces"
+#os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json -n openshift'
+#os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
+#new="$(mktemp -d)/tempconfig"
+#os::cmd::expect_success "oc config view --raw > ${new}"
+#old="${KUBECONFIG}"
+#export KUBECONFIG=${new}
+#os::cmd::expect_success 'oc login -u test-user -p password'
+#os::cmd::expect_success 'oc new-project test-template-project'
+## make sure the permissions on the new project are set up
+#os::cmd::try_until_success 'oc get templates'
+#os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json'
+#os::cmd::expect_success 'oc process template/ruby-helloworld-sample'
+#os::cmd::expect_success 'oc process templates/ruby-helloworld-sample'
+#os::cmd::expect_success 'oc process openshift//ruby-helloworld-sample'
+#os::cmd::expect_success 'oc process openshift/template/ruby-helloworld-sample'
+#os::cmd::expect_success 'oc get template ruby-helloworld-sample -n openshift -o yaml | oc process -f -'
+#export KUBECONFIG=${old}
+echo "processing templates in different namespace: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/templates/process"
+# This test validates oc process
+# fail to process two templates by name
+os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be specified only once'
+# fail to pass a filename or template by name
+os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
+# can't ask for parameters and try process the template (include tests for deprecated -v/--value)
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --param=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -p someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -o yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
+# providing a value more than once should fail (include tests for deprecated -v/--value)
+os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
+os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
+os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'
+os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --param=key=value --param=other=baz' 'provided more than once: key, other'
+required_params="${TEST_DATA}/templates/template_required_params.yaml"
+# providing something other than a template is not OK
+os::cmd::expect_failure_and_text "oc process -f '${TEST_DATA}/templates/basic-users-binding.json'" 'not a valid Template but'
+# not providing required parameter should fail
+os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'
+# not providing an optional param is OK
+os::cmd::expect_success "oc process -f '${required_params}' --param=required_param=someval"
+os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval | oc create -f -"
+# parameters with multiple equal signs are OK
+os::cmd::expect_success "oc process -f '${required_params}' required_param=someval=moreval | oc create -f -"
+os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval2 | oc create -f -"
+os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval3 | oc create -f -"
+# we should have overwritten the template param
+os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.metadata.name}' 'someval'
+os::cmd::expect_success_and_text 'oc get user someval=moreval -o jsonpath={.metadata.name}' 'someval=moreval'
+os::cmd::expect_success_and_text 'oc get user someval=moreval2 -o jsonpath={.metadata.name}' 'someval=moreval2'
+os::cmd::expect_success_and_text 'oc get user someval=moreval3 -o jsonpath={.metadata.name}' 'someval=moreval3'
+# providing a value not in the template should fail
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=other_param=otherval" 'unknown parameter name "other_param"'
+# failure on values fails the entire call
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=optional_param" 'invalid parameter assignment in'
+# failure on labels fails the entire call
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --labels======" 'error parsing labels'
+# values are not split on commas, required parameter is not recognized
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=optional_param=a,required_param=b" 'parameter required_param is required and must be specified'
+# warning is printed iff --value/--param looks like two k-v pairs separated by comma
+os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param=a,b=c,d" 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param=required_param=a_b_c_d" 'no longer accepts comma-separated list'
+os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param=required_param=a,b,c,d" 'no longer accepts comma-separated list'
+# warning is not printed for template values passed as positional arguments
+os::cmd::expect_success_and_not_text "oc process -f '${required_params}' required_param=a,b=c,d" 'no longer accepts comma-separated list'
+# set template parameter to contents of file
+os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param='`+"`"+`cat ${TEST_DATA}/templates/multiline.txt`+"`"+`'" 'also,with=commas'
+echo "process: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdTemplatesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTemplatesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdTemplatesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTemplatesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/templates.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile = []byte(`FROM node:0.10.38
+
+RUN mkdir /src
+
+RUN npm install nodemon -g
+
+WORKDIR /src
+ADD package.json package.json
+RUN npm install
+
+ADD nodemon.json nodemon.json
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/app/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: nginx
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: tutum/nginx
+      from:
+        kind: DockerImage
+        name: tutum/nginx
+      generation: null
+      importPolicy: {}
+      name: from
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: nginx
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: nginx:latest
+    postCommit: {}
+    resources: {}
+    source:
+      contextDir: test/testdata/app-scenarios/docker-compose/complex/nginx
+      git:
+        ref: libcompose
+        uri: git@github.com:openshift/origin.git
+      secrets: null
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nginx:from
+      type: Docker
+    triggers:
+    - github:
+        secret: IE96Fw4CdQs-g3giIjWZ
+      type: GitHub
+    - generic:
+        secret: B8mx-lYjIBjNY6ymP6MT
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: web
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: node:0.10.38
+      from:
+        kind: DockerImage
+        name: node:0.10.38
+      generation: null
+      importPolicy: {}
+      name: from
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: web
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: web:latest
+    postCommit: {}
+    resources: {}
+    source:
+      contextDir: test/testdata/app-scenarios/docker-compose/complex/app
+      git:
+        ref: libcompose
+        uri: git@github.com:openshift/origin.git
+      secrets: null
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: web:from
+      type: Docker
+    triggers:
+    - github:
+        secret: xMiKAo9EEZMKMxCRZSUk
+      type: GitHub
+    - generic:
+        secret: doIIibCQIxRvv28uyP9J
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: db
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: redis
+      from:
+        kind: DockerImage
+        name: redis
+      generation: null
+      importPolicy: {}
+      name: latest
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: db
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: db
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          app: nginx
+          deploymentconfig: db
+      spec:
+        containers:
+        - image: redis
+          name: db
+          ports:
+          - containerPort: 6379
+          resources:
+            limits:
+              cpu: 100m
+              memory: 1G
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - db
+        from:
+          kind: ImageStreamTag
+          name: db:latest
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: nginx
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: nginx
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          app: nginx
+          deploymentconfig: nginx
+      spec:
+        containers:
+        - image: nginx
+          name: nginx
+          ports:
+          - containerPort: 80
+          resources: {}
+          volumeMounts:
+          - mountPath: /www/public
+            name: dir-1
+          - mountPath: /src/app
+            name: dir-2
+        - args:
+          - nodemon
+          - -L
+          - app/bin/www
+          image: web
+          name: web
+          ports:
+          - containerPort: 3000
+          resources:
+            requests:
+              cpu: 500m
+          volumeMounts:
+          - mountPath: /src/app
+            name: dir-2
+        volumes:
+        - emptyDir: {}
+          name: dir-1
+        - emptyDir: {}
+          name: dir-2
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - nginx
+        from:
+          kind: ImageStreamTag
+          name: nginx:latest
+      type: ImageChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - web
+        from:
+          kind: ImageStreamTag
+          name: web:latest
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: redis
+  spec:
+    ports:
+    - name: 6379-tcp
+      port: 6379
+      targetPort: 6379
+    selector:
+      deploymentconfig: db
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: nginx
+    name: nginx
+  spec:
+    ports:
+    - name: 80-tcp
+      port: 80
+      targetPort: 80
+    - name: 3000-tcp
+      port: 3000
+      targetPort: 3000
+    selector:
+      deploymentconfig: nginx
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.generated.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: nginx
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: tutum/nginx
+      from:
+        kind: DockerImage
+        name: tutum/nginx
+      generation: null
+      importPolicy: {}
+      name: from
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: nginx
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: nginx:latest
+    postCommit: {}
+    resources: {}
+    source:
+      contextDir: test/testdata/app-scenarios/docker-compose/complex/nginx
+      git:
+        ref: master
+        uri: git@github.com:openshift/origin.git
+      secrets: null
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nginx:from
+      type: Docker
+    triggers:
+    - github:
+        secret: FdDzZzJCBkHQGxYMMBw0
+      type: GitHub
+    - generic:
+        secret: wMAV07N8TWt9dz40LDjL
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: web
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: node:0.10.38
+      from:
+        kind: DockerImage
+        name: node:0.10.38
+      generation: null
+      importPolicy: {}
+      name: from
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: web
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: web:latest
+    postCommit: {}
+    resources: {}
+    source:
+      contextDir: test/testdata/app-scenarios/docker-compose/complex/app
+      git:
+        ref: master
+        uri: git@github.com:openshift/origin.git
+      secrets: null
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: web:from
+      type: Docker
+    triggers:
+    - github:
+        secret: 3QSLvrej6A2E-CMYSEvQ
+      type: GitHub
+    - generic:
+        secret: uBl0LIK0anHOaRJ8-4dI
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: db
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: redis
+      from:
+        kind: DockerImage
+        name: redis
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: db
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: db
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: db
+      spec:
+        containers:
+        - image: redis
+          name: db
+          ports:
+          - containerPort: 6379
+          resources:
+            limits:
+              cpu: 100m
+              memory: 1G
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - db
+        from:
+          kind: ImageStreamTag
+          name: db:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: nginx
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: nginx
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: nginx
+      spec:
+        containers:
+        - image: nginx
+          name: nginx
+          ports:
+          - containerPort: 80
+          resources: {}
+          volumeMounts:
+          - mountPath: /www/public
+            name: dir-1
+          - mountPath: /src/app
+            name: dir-2
+        - args:
+          - nodemon
+          - -L
+          - app/bin/www
+          image: web
+          name: web
+          ports:
+          - containerPort: 3000
+          resources:
+            requests:
+              cpu: 500m
+          volumeMounts:
+          - mountPath: /src/app
+            name: dir-2
+        volumes:
+        - emptyDir: {}
+          name: dir-1
+        - emptyDir: {}
+          name: dir-2
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - nginx
+        from:
+          kind: ImageStreamTag
+          name: nginx:latest
+      type: ImageChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - web
+        from:
+          kind: ImageStreamTag
+          name: web:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    name: no-ports
+  spec:
+    tags:
+    - annotations:
+        openshift.io/imported-from: redis
+      from:
+        kind: DockerImage
+        name: redis
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: no-ports
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: no-ports
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: no-ports
+      spec:
+        containers:
+        - image: redis
+          name: no-ports
+          resources: {}
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - no-ports
+        from:
+          kind: ImageStreamTag
+          name: no-ports:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: redis
+  spec:
+    ports:
+    - name: 6379-tcp
+      port: 6379
+      targetPort: 6379
+    selector:
+      deploymentconfig: db
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: nginx
+  spec:
+    ports:
+    - name: 80-tcp
+      port: 80
+      targetPort: 80
+    - name: 3000-tcp
+      port: 3000
+      targetPort: 3000
+    selector:
+      deploymentconfig: nginx
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml = []byte(`web:
+  build: ./app
+  volumes:
+    - "./app:/src/app"
+  ports:
+    - "3030:3000"
+  links:
+    - "db:redis"
+  command: nodemon -L app/bin/www
+  cpu_shares: 512
+
+nginx:
+  restart: always
+  build: ./nginx/
+  ports:
+    - "80:80"
+  volumes:
+    - /www/public
+  volumes_from:
+    - web
+  links:
+    - web:web
+
+db:
+  image: redis
+  ports:
+    - "6379:6379"
+  cpu_quota: 10000
+  mem_limit: 1000000000
+  cpuset: 1
+
+no-ports:
+  image: redis`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile = []byte(`FROM tutum/nginx
+RUN rm /etc/nginx/sites-enabled/default
+ADD sites-enabled/ /etc/nginx/sites-enabled
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/nginx/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml = []byte(`version: "2"
+services:
+  WP:
+    image: "centurylink/wordpress:3.9.1"
+    links:
+      - "DB:DB_1"
+    ports:
+      - "8080:80"
+    environment:
+      - "DB_PASSWORD=pass@word01"
+      - DB_NAME=wordpress
+    dns:
+      - 8.8.8.8
+      - 9.9.9.9
+    hostname: wordpress
+    domainname: wordpress.mysite.com
+  DB:
+    image: "centurylink/mysql:5.5"
+    ports:
+      - "3306:3306"
+    environment:
+      - "MYSQL_ROOT_PASSWORD=pass@word01"
+    mem_limit: "1000000000"
+    cpu_shares: "40"
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "lonely-pod",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "lonely-pod"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "lonely-pod",
+            "image": "openshift/hello-openshift",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      },
+      "status": {}
+    }
+  ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-lonely-pod.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database-app-1",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "name": "database",
+          "deconflict": "database.app"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "database",
+              "template": "ruby-helloworld-sample",
+              "deconflict": "database.app"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "mysql",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "rQHfVnTo"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "root"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-app-1",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend",
+          "deconflict": "frontend.app"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend",
+              "template": "ruby-helloworld-sample",
+              "deconflict": "frontend.app"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "openshift/ruby-hello-world",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "admin6TM"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "xImx1tHR"
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "rQHfVnTo"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "root"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database-app",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-app",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-sample-app.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "hello-openshift",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "hello-openshift"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "hello-openshift"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "hello-openshift",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "hello-openshift"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "hello-openshift",
+            "image": "openshift/hello-openshift",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      },
+      "status": {}
+    }
+  ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-pod-no-rc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "empty-service",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "empty-service"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "empty-service"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-with-nothing.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database-rc-1",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "name": "database",
+          "deconflict": "database.rc"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "database",
+              "template": "ruby-helloworld-sample",
+              "deconflict": "database.rc"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "mysql",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "rQHfVnTo"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "root"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-rc-1",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend",
+          "deconflict": "frontend.rc"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend",
+              "template": "ruby-helloworld-sample",
+              "deconflict": "frontend.rc"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "openshift/ruby-hello-world",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "admin6TM"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "xImx1tHR"
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "rQHfVnTo"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "root"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database-rc",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-unserviced-rc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      name: ruby-sample-build
+      template: application-template-stibuild
+    name: ruby-sample-build
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        incremental: true
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: github
+    - generic:
+        secret: secret101
+      type: generic
+    - imageChange:
+        lastTriggeredImageID: centos/ruby-22-centos7:latest
+      type: imageChange
+  status:
+    lastVersion: 1
+- apiVersion: v1
+  kind: Build
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:18Z
+    labels:
+      buildconfig: ruby-sample-build
+      name: ruby-sample-build
+      template: application-template-stibuild
+    name: ruby-sample-build-1
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7:latest
+        incremental: true
+      type: Source
+  status:
+    completionTimestamp: 2015-04-07T04:13:01Z
+    config:
+      kind: BuildConfig
+      name: ruby-sample-build
+
+    phase: Complete
+    startTimestamp: 2015-04-07T04:12:21Z
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployment-config.name: database
+      openshift.io/deployment.phase: Running
+      openshift.io/deployment-config.latest-version: "2"
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"centos/mysql-56-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
+      pod: deploy-database-19m1he
+    creationTimestamp: 2015-04-07T04:12:18Z
+    labels:
+      template: application-template-stibuild
+    name: database-2
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      deployment: database-2
+      deploymentconfig: database
+      name: database
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment.name: database-2
+          openshift.io/deployment-config.name: database
+          openshift.io/deployment-config.latest-version: "2"
+        creationTimestamp: null
+        labels:
+          deployment: database-2
+          deploymentconfig: database
+          name: database
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 2
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployment-config.name: database
+      openshift.io/deployment.phase: Complete
+      openshift.io/deployment-config.latest-version: "1"
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"centos/mysql-56-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
+      pod: deploy-database-19m1he
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: database-1
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      deployment: database-1
+      deploymentconfig: database
+      name: database
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment.name: database-1
+          openshift.io/deployment-config.name: database
+          openshift.io/deployment-config.latest-version: "1"
+        creationTimestamp: null
+        labels:
+          deployment: database-1
+          deploymentconfig: database
+          name: database
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 1
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: database
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      name: database
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: database
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: centos/mysql-56-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    test: true
+    triggers:
+    - type: ConfigChange
+  status:
+    details:
+      causes:
+      - type: ConfigChange
+    latestVersion: 1
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployment-config.name: frontend
+      openshift.io/deployment.phase: Failed
+      openshift.io/deployment-config.latest-version: "2"
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageStreamTag","name":"origin-ruby-sample:latest"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
+      openshift.io/deployment.status-reason: unable to contact server
+      pod: deploy-frontend-17mza9
+    creationTimestamp: 2015-04-07T04:12:53Z
+    labels:
+      template: application-template-stibuild
+    name: frontend-2
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      deployment: frontend-2
+      deploymentconfig: frontend
+      name: frontend
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment.name: frontend-2
+          openshift.io/deployment-config.name: frontend
+          openshift.io/deployment-config.latest-version: "2"
+        creationTimestamp: null
+        labels:
+          deployment: frontend-2
+          deploymentconfig: frontend
+          name: frontend
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: ADMIN_USERNAME
+            value: adminNPX
+          - name: ADMIN_PASSWORD
+            value: 7q1IdEao
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 0
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    annotations:
+      openshift.io/deployment-config.name: frontend
+      openshift.io/deployment.phase: Complete
+      openshift.io/deployment-config.latest-version: "1"
+      openshift.io/encoded-deployment-config: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageStreamTag","name":"origin-ruby-sample:latest"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
+      pod: deploy-frontend-17mza9
+    creationTimestamp: 2015-04-07T04:12:53Z
+    labels:
+      template: application-template-stibuild
+    name: frontend-1
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      deployment: frontend-1
+      deploymentconfig: frontend
+      name: frontend
+    template:
+      metadata:
+        annotations:
+          openshift.io/deployment.name: frontend-1
+          openshift.io/deployment-config.name: frontend
+          openshift.io/deployment-config.latest-version: "1"
+        creationTimestamp: null
+        labels:
+          deployment: frontend-1
+          deploymentconfig: frontend
+          name: frontend
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: ADMIN_USERNAME
+            value: adminNPX
+          - name: ADMIN_PASSWORD
+            value: 7q1IdEao
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 1
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: frontend
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      name: frontend
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: frontend
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: ADMIN_USERNAME
+            value: adminNPX
+          - name: ADMIN_PASSWORD
+            value: 7q1IdEao
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ruby-helloworld
+        from:
+          kind: ImageStreamTag
+          name: origin-ruby-sample:latest
+        lastTriggeredImage: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+      type: ImageChange
+  status:
+    details:
+      causes:
+      - imageTrigger:
+          from:
+            kind: DockerImage
+            name: 172.30.17.139:5000/test/origin-ruby-sample:latest
+        type: ImageChange
+    latestVersion: 3
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: database
+    namespace: example
+  spec:
+    ports:
+    - nodePort: 0
+      port: 5434
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      name: database
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: database-external
+    namespace: example
+  spec:
+    ports:
+    - nodePort: 31000
+      port: 5434
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      name: database
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: frontend
+    namespace: example
+  spec:
+    ports:
+    - nodePort: 0
+      port: 5432
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: frontend
+    namespace: example
+    resourceVersion: "393"
+  spec:
+    host: frontend-example.router.default.svc.cluster.local
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: frontend
+  status:
+    ingress:
+    - routerName: default
+      host: frontend-example.router.default.svc.cluster.local
+    - routerName: other
+      host: www.test.com
+      conditions:
+      - type: Admitted
+        status: "False"
+        reason: HostAlreadyClaimed
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: other
+    namespace: example
+    resourceVersion: "393"
+  spec:
+    host: www.test.com
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: frontend
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      type: Edge
+  status:
+    ingress:
+    - routerName: other
+      host: www.test.com
+      conditions:
+      - type: Admitted
+        status: "True"
+kind: List
+metadata:
+  resourceVersion: "592"
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-deployed-app.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-2
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-example-2:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-example-2
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+    triggers:
+    - github:
+        secret: u5gRhTXiOJpOHxKSI1M6
+      type: github
+    - generic:
+        secret: IDO5sRS52tsUq5hczU6o
+      type: generic
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-2
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-example-2
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: sinatra-example-2
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-example-2:latest
+          imagePullPolicy: Always
+          name: sinatra-example-2
+          ports:
+          - containerPort: 8080
+            name: s-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-example-2
+        from:
+          kind: ImageStreamTag
+          name: sinatra-example-2:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    name: sinatra-example-2
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-2
+  spec:
+    ports:
+    - nodePort: 0
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: sinatra-example-2
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: "116"
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-no-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-1
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-example-1:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-example-1
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+    triggers:
+    - github:
+        secret: u5gRhTXiOJpOHxKSI1M6
+      type: github
+    - generic:
+        secret: IDO5sRS52tsUq5hczU6o
+      type: generic
+  status:
+    lastVersion: 1
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    name: sinatra-example-1
+    namespace: example
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: Build
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    labels:
+      buildconfig: sinatra-example-1
+    name: sinatra-example-1-1
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-example-1:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-example-1
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+  status:
+    phase: Running
+    startTimestamp: 2015-04-06T21:19:03Z
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-1
+    namespace: example
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-example-1
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: sinatra-example-1
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-example-1:latest
+          imagePullPolicy: Always
+          name: sinatra-example-1
+          ports:
+          - containerPort: 8080
+            name: s-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-example-1
+        from:
+          kind: ImageStreamTag
+          name: sinatra-example-1:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-1
+    namespace: example
+  spec:
+    ports:
+    - nodePort: 0
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: sinatra-example-1
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-one-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-app-example:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-app-example
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+    triggers:
+    - github:
+        secret: u5gRhTXiOJpOHxKSI1M6
+      type: github
+    - generic:
+        secret: IDO5sRS52tsUq5hczU6o
+      type: generic
+  status:
+    lastVersion: 1
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    name: sinatra-app-example
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: Build
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    labels:
+      buildconfig: sinatra-app-example
+    name: sinatra-app-example-1
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-app-example:latest
+    resources: {}
+    revision:
+      git:
+        author:
+          email: someguy@outhere.com
+          name: Roy Programmer
+        commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
+        committer: {}
+        message: Prepare v1 Template types
+      type: git
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-app-example
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+  status:
+    phase: Running
+    startTimestamp: 2015-04-06T21:19:03Z
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example-a
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-app-example
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: sinatra-app-example
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-app-example:latest
+          imagePullPolicy: Always
+          name: sinatra-app-example
+          ports:
+          - containerPort: 8080
+            name: s-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-app-example
+        from:
+          kind: ImageStreamTag
+          name: sinatra-app-example:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example-b
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-app-example
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          deploymentconfig: sinatra-app-example
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-app-example:latest
+          imagePullPolicy: Always
+          name: sinatra-app-example
+          ports:
+          - containerPort: 8080
+            name: s-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-app-example
+        from:
+          kind: ImageStreamTag
+          name: sinatra-app-example:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-app-example
+  spec:
+    ports:
+    - nodePort: 0
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: sinatra-app-example
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-two-deployment-configs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+    creationTimestamp: 2016-07-21T15:53:09Z
+    labels:
+      app: mysql
+    name: galera
+    namespace: default
+    resourceVersion: "343"
+    selfLink: /api/v1/namespaces/default/services/galera
+    uid: 38fb3915-4f5b-11e6-b8a1-080027242396
+  spec:
+    clusterIP: None
+    ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      app: mysql
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: |
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"StatefulSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6784"}}
+      openshift.io/scc: anyuid
+      pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:12Z","finishedAt":"2016-07-27T02:41:12Z","containerID":"docker://5c727d8732899605fcfe3eecbeeb02576f18f5b989496073340427a8d2134622"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://5c727d8732899605fcfe3eecbeeb02576f18f5b989496073340427a8d2134622"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:14Z","finishedAt":"2016-07-27T02:41:15Z","containerID":"docker://ab4ca0b3b6ec4860cd55c615534e1e2b11f4c3a33746783aab145919feb2446e"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://ab4ca0b3b6ec4860cd55c615534e1e2b11f4c3a33746783aab145919feb2446e"}]'
+      pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+      pod.alpha.kubernetes.io/initialized: "true"
+      pod.beta.kubernetes.io/hostname: mysql-0
+      pod.beta.kubernetes.io/subdomain: galera
+    creationTimestamp: 2016-07-27T02:41:09Z
+    generateName: mysql-
+    labels:
+      app: mysql
+    name: mysql-0
+    namespace: default
+    resourceVersion: "7191"
+    selfLink: /api/v1/namespaces/default/pods/mysql-0
+    uid: 92e49e79-53a3-11e6-b45a-080027242396
+  spec:
+    containers:
+    - args:
+      - --defaults-file=/etc/mysql/my-galera.cnf
+      - --user=root
+      image: erkules/galera:basic
+      imagePullPolicy: IfNotPresent
+      name: mysql
+      ports:
+      - containerPort: 3306
+        name: mysql
+        protocol: TCP
+      - containerPort: 4444
+        name: sst
+        protocol: TCP
+      - containerPort: 4567
+        name: replication
+        protocol: TCP
+      - containerPort: 4568
+        name: ist
+        protocol: TCP
+      readinessProbe:
+        exec:
+          command:
+          - sh
+          - -c
+          - mysql -u root -e 'show databases;'
+        failureThreshold: 3
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources: {}
+      securityContext:
+        capabilities:
+          drop:
+          - MKNOD
+          - SYS_CHROOT
+        privileged: false
+        seLinuxOptions:
+          level: s0:c5,c0
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/lib/
+        name: datadir
+      - mountPath: /etc/mysql
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-au2xq
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: localhost.localdomain
+    imagePullSecrets:
+    - name: default-dockercfg-pzhsj
+    nodeName: localhost.localdomain
+    restartPolicy: Always
+    securityContext:
+      seLinuxOptions:
+        level: s0:c5,c0
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    volumes:
+    - name: datadir
+      persistentVolumeClaim:
+        claimName: datadir-mysql-0
+    - emptyDir: {}
+      name: config
+    - emptyDir: {}
+      name: workdir
+    - name: default-token-au2xq
+      secret:
+        secretName: default-token-au2xq
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T02:41:15Z
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T03:00:47Z
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T02:41:09Z
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://f2406b0f697c525df44b64aec6b1f6024ab88d9df80256426247dc6e9a92cb30
+      image: erkules/galera:basic
+      imageID: docker://sha256:b4780e247a38c12612f539ce1ac8e0988e1781d56fddf719c80fb8d4d7b8bbde
+      lastState: {}
+      name: mysql
+      ready: true
+      restartCount: 0
+      state:
+        running:
+          startedAt: 2016-07-27T02:41:16Z
+    hostIP: 10.0.2.15
+    phase: Running
+    podIP: 172.17.0.2
+    startTime: 2016-07-27T02:41:09Z
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: |
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"StatefulSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
+      openshift.io/scc: anyuid
+      pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:42Z","finishedAt":"2016-07-27T02:41:42Z","containerID":"docker://2538c65f65557955c02745ef4021181cf322c8dc0db62144dd1e1f8ea9f7fa54"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://2538c65f65557955c02745ef4021181cf322c8dc0db62144dd1e1f8ea9f7fa54"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T02:41:44Z","finishedAt":"2016-07-27T02:41:45Z","containerID":"docker://4df7188d37033c182e675d45179941766bd1e6a013469038f43fa3fecc2cc06d"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://4df7188d37033c182e675d45179941766bd1e6a013469038f43fa3fecc2cc06d"}]'
+      pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+      pod.alpha.kubernetes.io/initialized: "true"
+      pod.beta.kubernetes.io/hostname: mysql-1
+      pod.beta.kubernetes.io/subdomain: galera
+    creationTimestamp: 2016-07-27T02:41:39Z
+    generateName: mysql-
+    labels:
+      app: mysql
+    name: mysql-1
+    namespace: default
+    resourceVersion: "7195"
+    selfLink: /api/v1/namespaces/default/pods/mysql-1
+    uid: a4da4725-53a3-11e6-b45a-080027242396
+  spec:
+    containers:
+    - args:
+      - --defaults-file=/etc/mysql/my-galera.cnf
+      - --user=root
+      image: erkules/galera:basic
+      imagePullPolicy: IfNotPresent
+      name: mysql
+      ports:
+      - containerPort: 3306
+        name: mysql
+        protocol: TCP
+      - containerPort: 4444
+        name: sst
+        protocol: TCP
+      - containerPort: 4567
+        name: replication
+        protocol: TCP
+      - containerPort: 4568
+        name: ist
+        protocol: TCP
+      readinessProbe:
+        exec:
+          command:
+          - sh
+          - -c
+          - mysql -u root -e 'show databases;'
+        failureThreshold: 3
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources: {}
+      securityContext:
+        capabilities:
+          drop:
+          - MKNOD
+          - SYS_CHROOT
+        privileged: false
+        seLinuxOptions:
+          level: s0:c5,c0
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/lib/
+        name: datadir
+      - mountPath: /etc/mysql
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-au2xq
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: localhost.localdomain
+    imagePullSecrets:
+    - name: default-dockercfg-pzhsj
+    nodeName: localhost.localdomain
+    restartPolicy: Always
+    securityContext:
+      seLinuxOptions:
+        level: s0:c5,c0
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    volumes:
+    - name: datadir
+      persistentVolumeClaim:
+        claimName: datadir-mysql-1
+    - emptyDir: {}
+      name: config
+    - emptyDir: {}
+      name: workdir
+    - name: default-token-au2xq
+      secret:
+        secretName: default-token-au2xq
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T02:41:46Z
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T03:00:58Z
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T02:41:39Z
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://be1d5be42ab23d1db23f4552141e9068e2385ba19c3e84596e047eb6d2762d1c
+      image: erkules/galera:basic
+      imageID: docker://sha256:b4780e247a38c12612f539ce1ac8e0988e1781d56fddf719c80fb8d4d7b8bbde
+      lastState:
+        terminated:
+          containerID: docker://9a662fa5b74a962fa362c6a5d632fe3642b12fefde36c8158ab1a50d8fa4e33e
+          exitCode: 1
+          finishedAt: 2016-07-27T02:51:40Z
+          reason: Error
+          startedAt: 2016-07-27T02:51:05Z
+      name: mysql
+      ready: true
+      restartCount: 7
+      state:
+        running:
+          startedAt: 2016-07-27T03:00:39Z
+    hostIP: 10.0.2.15
+    phase: Running
+    podIP: 172.17.0.3
+    startTime: 2016-07-27T02:41:39Z
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubernetes.io/created-by: |
+        {"kind":"SerializedReference","apiVersion":"v1","reference":{"kind":"StatefulSet","namespace":"default","name":"mysql","uid":"3900c985-4f5b-11e6-b8a1-080027242396","apiVersion":"apps","resourceVersion":"6790"}}
+      openshift.io/scc: anyuid
+      pod.alpha.kubernetes.io/init-container-statuses: '[{"name":"install","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T03:01:01Z","finishedAt":"2016-07-27T03:01:01Z","containerID":"docker://af008b4ce59d36695fbabf40ae2f7431b51441eb2e9c6962378937c06ac69a35"}},"lastState":{},"ready":true,"restartCount":0,"image":"gcr.io/google_containers/galera-install:0.1","imageID":"docker://sha256:56ef857005d0ce479f2db0e4ee0ece05e0766ebfa7e79e27e1513915262a18ec","containerID":"docker://af008b4ce59d36695fbabf40ae2f7431b51441eb2e9c6962378937c06ac69a35"},{"name":"bootstrap","state":{"terminated":{"exitCode":0,"reason":"Completed","startedAt":"2016-07-27T03:01:02Z","finishedAt":"2016-07-27T03:01:03Z","containerID":"docker://ee97005854130335b54a65429865956260b7729e51e6363ab05e63d5c7c9ee48"}},"lastState":{},"ready":true,"restartCount":0,"image":"debian:jessie","imageID":"docker://sha256:1b088884749bd93867ddb48ff404d4bbff09a17af8d95bc863efa5d133f87b78","containerID":"docker://ee97005854130335b54a65429865956260b7729e51e6363ab05e63d5c7c9ee48"}]'
+      pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"},{"name":"default-token-au2xq","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+      pod.alpha.kubernetes.io/initialized: "true"
+      pod.beta.kubernetes.io/hostname: mysql-2
+      pod.beta.kubernetes.io/subdomain: galera
+    creationTimestamp: 2016-07-27T03:00:58Z
+    generateName: mysql-
+    labels:
+      app: mysql
+    name: mysql-2
+    namespace: default
+    resourceVersion: "7226"
+    selfLink: /api/v1/namespaces/default/pods/mysql-2
+    uid: 57e618f1-53a6-11e6-b215-080027242396
+  spec:
+    containers:
+    - args:
+      - --defaults-file=/etc/mysql/my-galera.cnf
+      - --user=root
+      image: erkules/galera:basic
+      imagePullPolicy: IfNotPresent
+      name: mysql
+      ports:
+      - containerPort: 3306
+        name: mysql
+        protocol: TCP
+      - containerPort: 4444
+        name: sst
+        protocol: TCP
+      - containerPort: 4567
+        name: replication
+        protocol: TCP
+      - containerPort: 4568
+        name: ist
+        protocol: TCP
+      readinessProbe:
+        exec:
+          command:
+          - sh
+          - -c
+          - mysql -u root -e 'show databases;'
+        failureThreshold: 3
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources: {}
+      securityContext:
+        capabilities:
+          drop:
+          - MKNOD
+          - SYS_CHROOT
+        privileged: false
+        seLinuxOptions:
+          level: s0:c5,c0
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/lib/
+        name: datadir
+      - mountPath: /etc/mysql
+        name: config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: default-token-au2xq
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    host: localhost.localdomain
+    imagePullSecrets:
+    - name: default-dockercfg-pzhsj
+    nodeName: localhost.localdomain
+    restartPolicy: Always
+    securityContext:
+      seLinuxOptions:
+        level: s0:c5,c0
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    volumes:
+    - name: datadir
+      persistentVolumeClaim:
+        claimName: datadir-mysql-2
+    - emptyDir: {}
+      name: config
+    - emptyDir: {}
+      name: workdir
+    - name: default-token-au2xq
+      secret:
+        secretName: default-token-au2xq
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T03:01:03Z
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T03:01:28Z
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: 2016-07-27T03:00:58Z
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://82b774855cdb5d12d98e7bc34f4f9d4e88e757e9cc2da1593e2e2f66e3241e5f
+      image: erkules/galera:basic
+      imageID: docker://sha256:b4780e247a38c12612f539ce1ac8e0988e1781d56fddf719c80fb8d4d7b8bbde
+      lastState: {}
+      name: mysql
+      ready: true
+      restartCount: 0
+      state:
+        running:
+          startedAt: 2016-07-27T03:01:04Z
+    hostIP: 10.0.2.15
+    phase: Running
+    podIP: 172.17.0.4
+    startTime: 2016-07-27T03:00:58Z
+- apiVersion: apps/v1beta1
+  kind: StatefulSet
+  metadata:
+    creationTimestamp: 2016-07-21T15:53:09Z
+    generation: 3
+    labels:
+      app: mysql
+    name: mysql
+    namespace: default
+    resourceVersion: "6790"
+    selfLink: /apis/apps/v1beta1/namespaces/default/statefulsets/mysql
+    uid: 3900c985-4f5b-11e6-b8a1-080027242396
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: mysql
+    serviceName: galera
+    template:
+      metadata:
+        annotations:
+          pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+          pod.alpha.kubernetes.io/initialized: "true"
+        creationTimestamp: null
+        labels:
+          app: mysql
+      spec:
+        containers:
+        - args:
+          - --defaults-file=/etc/mysql/my-galera.cnf
+          - --user=root
+          image: erkules/galera:basic
+          imagePullPolicy: IfNotPresent
+          name: mysql
+          ports:
+          - containerPort: 3306
+            name: mysql
+            protocol: TCP
+          - containerPort: 4444
+            name: sst
+            protocol: TCP
+          - containerPort: 4567
+            name: replication
+            protocol: TCP
+          - containerPort: 4568
+            name: ist
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - mysql -u root -e 'show databases;'
+            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/lib/
+            name: datadir
+          - mountPath: /etc/mysql
+            name: config
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - emptyDir: {}
+          name: config
+        - emptyDir: {}
+          name: workdir
+    volumeClaimTemplates:
+    - metadata:
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: anything
+        creationTimestamp: null
+        name: datadir
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+      status:
+        phase: Pending
+  status:
+    replicas: 3
+kind: List
+metadata: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/petset.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-custom-docker-builder"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/origin-custom-docker-builder"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "labels": {
+          "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101",
+              "allowEnv": true
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Custom",
+          "customStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "origin-custom-docker-builder:latest"
+            },
+            "env": [
+              {
+                "name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+                "value": "openshift/origin-custom-docker-builder"
+              }
+            ],
+            "exposeDockerSocket": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "script": "bundle exec rake test"
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "rollingParams": {
+            "updatePeriodSeconds": 1,
+            "intervalSeconds": 1,
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "origin-ruby-sample:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 2,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "centos/mysql-57-centos7:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-custombuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-22-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "centos/ruby-22-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "labels": {
+          "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101",
+              "allowEnv": true
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-22-centos7:latest"
+            },
+            "env": [
+              {
+                "name": "EXAMPLE",
+                "value": "sample-app"
+              }
+            ]
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "script": "bundle exec rake test"
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "rollingParams": {
+            "updatePeriodSeconds": 1,
+            "intervalSeconds": 1,
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "origin-ruby-sample:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 2,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "centos/mysql-57-centos7:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-dockerbuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+     },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-22-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "centos/ruby-22-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "labels": {
+          "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101",
+              "allowEnv": true
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-22-centos7:latest"
+            },
+            "env": [
+              {
+                "name": "EXAMPLE",
+                "value": "sample-app"
+              }
+            ]
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "script": "bundle exec rake test"
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "rollingParams": {
+            "updatePeriodSeconds": 1,
+            "intervalSeconds": 1,
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "origin-ruby-sample:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 2,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "centos/mysql-57-centos7:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml = []byte(`apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi
+spec:
+  template:
+    metadata:
+      name: pi
+    spec:
+      containers:
+      - name: pi
+        image: perl
+        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataConvertJobV1YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataConvertJobV1YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json = []byte(`{
+    "kind": "CronJob",
+    "apiVersion": "batch/v2alpha1",
+    "metadata": {
+        "name": "hello",
+        "creationTimestamp": null
+    },
+    "spec": {
+        "schedule": "0/1 * * * ?",
+        "concurrencyPolicy": "Allow",
+        "suspend": false,
+        "jobTemplate": {
+            "metadata": {
+                "creationTimestamp": null
+            },
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "hello",
+                                "image": "busybox",
+                                "args": [
+                                    "/bin/sh",
+                                    "-c",
+                                    "date; echo Hello from the Kubernetes cluster"
+                                ],
+                                "resources": {},
+                                "terminationMessagePath": "/dev/termination-log",
+                                "imagePullPolicy": "Always"
+                            }
+                        ],
+                        "restartPolicy": "OnFailure",
+                        "terminationGracePeriodSeconds": 30,
+                        "dnsPolicy": "ClusterFirst",
+                        "securityContext": {}
+                    }
+                }
+            }
+        }
+    },
+    "status": {}
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataConvertJobV2JsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataConvertJobV2JsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    external: service
+  name: external
+  resourceVersion: "1"
+  uid: 19cff995-5546-11e5-9f57-080027c5bfa9
+spec:
+  clusterIP: 172.30.0.100
+  ports:
+  - nodePort: 0
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataExternalServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataExternalServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`{
+  "kind": "Pod",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "hello-openshift",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "hello-openshift"
+    }
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "hello-openshift",
+        "image": "openshift/hello-openshift",
+        "ports": [
+          {
+            "containerPort": 8080,
+            "protocol": "TCP"
+          }
+        ],
+        "resources": {},
+        "volumeMounts": [
+          {
+            "name":"tmp",
+            "mountPath":"/tmp"
+          }
+        ],
+        "terminationMessagePath": "/dev/termination-log",
+        "imagePullPolicy": "IfNotPresent",
+        "capabilities": {},
+        "securityContext": {
+          "capabilities": {},
+          "privileged": false
+        }
+      }
+    ],
+    "volumes": [
+      {
+        "name":"tmp",
+        "emptyDir": {}
+      }
+    ],
+    "restartPolicy": "Always",
+    "dnsPolicy": "ClusterFirst",
+    "serviceAccount": ""
+  },
+  "status": {}
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml = []byte(`apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  generateName: idling-echo-
+spec:
+  replicas: 2
+  selector:
+    app: idling-echo
+    deploymentconfig: idling-echo
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: idling-echo
+        deploymentconfig: idling-echo
+    spec:
+      containers:
+      - image: openshift/origin-base
+        name: idling-tcp-echo
+        command:
+          - /usr/bin/socat
+          - TCP4-LISTEN:8675,reuseaddr,fork
+          - EXEC:'/bin/cat'
+        ports:
+        - containerPort: 8675
+          protocol: TCP
+      - image: openshift/origin-base
+        name: idling-udp-echo
+        command:
+          - /usr/bin/socat
+          - UDP4-LISTEN:3090,reuseaddr,fork
+          - EXEC:'/bin/cat'
+        ports:
+        - containerPort: 3090
+          protocol: UDP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataIdlingDcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataIdlingDcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: idling-echo
+    labels:
+      app: idling-echo
+  spec:
+    selector:
+      app: idling-echo
+    ports:
+      - port: 8675
+        name: tcp-echo
+        protocol: TCP
+      - port: 3090
+        name: udp-echo
+        protocol: UDP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: idling-echo
+  spec:
+    to:
+      kind: Service
+      name: idling-echo
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: idling-echo-reencrypt
+  spec:
+    tls:
+      termination: reencrypt
+      # the actual certificate here is not relevant, since we're not
+      # actually serving TLS
+      destinationCACertificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIDIjCCAgqgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBoTELMAkGA1UEBhMCVVMx
+        CzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0Rl
+        ZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0ExGjAYBgNVBAMMEXd3
+        dy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUu
+        Y29tMB4XDTE1MDExMjE0MTk0MVoXDTE2MDExMjE0MTk0MVowfDEYMBYGA1UEAwwP
+        d3d3LmV4YW1wbGUuY29tMQswCQYDVQQIDAJTQzELMAkGA1UEBhMCVVMxIjAgBgkq
+        hkiG9w0BCQEWE2V4YW1wbGVAZXhhbXBsZS5jb20xEDAOBgNVBAoMB0V4YW1wbGUx
+        EDAOBgNVBAsMB0V4YW1wbGUwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMrv
+        gu6ZTTefNN7jjiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm
+        47VRx5Qrf/YLXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1M
+        mNrQUgZyQC6XIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAGjDTALMAkGA1UdEwQC
+        MAAwDQYJKoZIhvcNAQEFBQADggEBAFCi7ZlkMnESvzlZCvv82Pq6S46AAOTPXdFd
+        TMvrh12E1sdVALF1P1oYFJzG1EiZ5ezOx88fEDTW+Lxb9anw5/KJzwtWcfsupf1m
+        V7J0D3qKzw5C1wjzYHh9/Pz7B1D0KthQRATQCfNf8s6bbFLaw/dmiIUhHLtIH5Qc
+        yfrejTZbOSP77z8NOWir+BWWgIDDB2//3AkDIQvT20vmkZRhkqSdT7et4NmXOX/j
+        jhPti4b2Fie0LeuvgaOdKjCpQQNrYthZHXeVlOLRhMTSk3qUczenkKTOhvP7IS9q
+        +Dzv5hqgSfvMG392KWh5f8xXfJNs4W5KLbZyl901MeReiLrPH3w=
+        -----END CERTIFICATE-----
+    to:
+      kind: Service
+      name: idling-echo
+
+
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json = []byte(`{
+  "kind": "ImageStreamList",
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": ".NET Core"
+        },
+        "name": "dotnet"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run .NET Core applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core (Latest)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.1"
+            },
+            "name": "latest"
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 2.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.1",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.1,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
+              "version": "2.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.centos.org/dotnet/dotnet-21-centos7:latest"
+            },
+            "name": "2.1"
+          },
+          {
+            "annotations": {
+              "description": "RETIRED: Build and run .NET Core 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.0",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.0,dotnet",
+              "tags": "hidden,builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.centos.org/dotnet/dotnet-20-centos7:latest"
+            },
+            "name": "2.0"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Apache HTTP Server (httpd)"
+        },
+        "name": "httpd"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and serve static content via Apache HTTP Server (httpd) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
+              "iconClass": "icon-apache",
+              "openshift.io/display-name": "Apache HTTP Server (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
+              "supports": "httpd",
+              "tags": "builder,httpd"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.4"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-apache",
+              "openshift.io/display-name": "Apache HTTP Server 2.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
+              "supports": "httpd",
+              "tags": "builder,httpd",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/httpd-24-centos7:latest"
+            },
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Jenkins"
+        },
+        "name": "jenkins"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a Jenkins server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Jenkins available on OpenShift, including major versions updates.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a Jenkins v2.x server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins 2.X",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins",
+              "version": "2.x"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/openshift/origin-jenkins:v4.0"
+            },
+            "name": "2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "MariaDB"
+        },
+        "name": "mariadb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a MariaDB database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MariaDB available on OpenShift, including major versions updates.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10.2"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MariaDB 10.1 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB 10.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mariadb-101-centos7:latest"
+            },
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MariaDB 10.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.2/README.md.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB 10.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb",
+              "version": "10.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mariadb-102-centos7:latest"
+            },
+            "name": "10.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "MongoDB"
+        },
+        "name": "mongodb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a MongoDB database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MongoDB available on OpenShift, including major versions updates.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.6"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 2.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 2.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,mongodb",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/mongodb-24-centos7:latest"
+            },
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 2.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.6/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 2.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,database,mongodb",
+              "version": "2.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-26-centos7:latest"
+            },
+            "name": "2.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 3.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-32-centos7:latest"
+            },
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 3.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.4/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 3.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb",
+              "version": "3.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-34-centos7:latest"
+            },
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 3.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.6/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 3.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb",
+              "version": "3.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-36-centos7:latest"
+            },
+            "name": "3.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "MySQL"
+        },
+        "name": "mysql"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a MySQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MySQL available on OpenShift, including major versions updates.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "mysql"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "5.7"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MySQL 5.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 5.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,mysql",
+              "version": "5.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/mysql-55-centos7:latest"
+            },
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MySQL 5.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 5.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,mysql",
+              "version": "5.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mysql-56-centos7:latest"
+            },
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MySQL 5.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 5.7",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "mysql",
+              "version": "5.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mysql-57-centos7:latest"
+            },
+            "name": "5.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Nginx HTTP server and a reverse proxy (nginx)"
+        },
+        "name": "nginx"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.8/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.8",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.8"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nginx-18-centos7:latest"
+            },
+            "name": "1.8",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.10/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nginx-110-centos7:latest"
+            },
+            "name": "1.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.12/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.12",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.12"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nginx-112-centos7:latest"
+            },
+            "name": "1.12",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.12/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Nginx available on OpenShift, including major versions updates.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "1.12"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Node.js"
+        },
+        "name": "nodejs"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Node.js applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs",
+              "tags": "builder,nodejs"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "11"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "DEPRECATED: Build and run Node.js 0.10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 0.10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs:0.10,nodejs:0.1,nodejs",
+              "tags": "hidden,nodejs",
+              "version": "0.10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/nodejs-010-centos7:latest"
+            },
+            "name": "0.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs:4,nodejs",
+              "tags": "hidden,builder,nodejs",
+              "version": "4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nodejs-4-centos7:latest"
+            },
+            "name": "4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/6/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs:6,nodejs",
+              "tags": "builder,nodejs",
+              "version": "6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nodejs-6-centos7:latest"
+            },
+            "name": "6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 8 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/8/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 8",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "8"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nodejs-8-centos7:latest"
+            },
+            "name": "8",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 8 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 8 (RHOAR)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "8"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:8.x"
+            },
+            "name": "8-RHOAR",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:10.x"
+            },
+            "name": "10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 11 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 11",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "11"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:11.x"
+            },
+            "name": "11",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Perl"
+        },
+        "name": "perl"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Perl applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major versions updates.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl",
+              "tags": "builder,perl"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "5.26"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.16 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.16",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.16,perl",
+              "tags": "hidden,builder,perl",
+              "version": "5.16"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/perl-516-centos7:latest"
+            },
+            "name": "5.16",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.20 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.20",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.20,perl",
+              "tags": "hidden,builder,perl",
+              "version": "5.20"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/perl-520-centos7:latest"
+            },
+            "name": "5.20",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.24",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.24,perl",
+              "tags": "builder,perl",
+              "version": "5.24"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/perl-524-centos7:latest"
+            },
+            "name": "5.24",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.26 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.26",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.26,perl",
+              "tags": "builder,perl",
+              "version": "5.26"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/perl-526-centos7:latest"
+            },
+            "name": "5.26",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "PHP"
+        },
+        "name": "php"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run PHP applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major versions updates.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php",
+              "tags": "builder,php"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "7.1"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 5.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 5.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:5.5,php",
+              "tags": "hidden,builder,php",
+              "version": "5.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/php-55-centos7:latest"
+            },
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 5.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 5.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:5.6,php",
+              "tags": "hidden,builder,php",
+              "version": "5.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-56-centos7:latest"
+            },
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 7.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.0/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 7.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:7.0,php",
+              "tags": "builder,php",
+              "version": "7.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-70-centos7:latest"
+            },
+            "name": "7.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 7.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.1/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 7.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:7.1,php",
+              "tags": "builder,php",
+              "version": "7.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-71-centos7:latest"
+            },
+            "name": "7.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "PostgreSQL"
+        },
+        "name": "postgresql"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PostgreSQL available on OpenShift, including major versions updates.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,postgresql",
+              "version": "9.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/postgresql-92-centos7:latest"
+            },
+            "name": "9.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,database,postgresql",
+              "version": "9.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-94-centos7:latest"
+            },
+            "name": "9.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "9.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-95-centos7:latest"
+            },
+            "name": "9.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "9.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-96-centos7:latest"
+            },
+            "name": "9.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 10 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-10-centos7:latest"
+            },
+            "name": "10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Python"
+        },
+        "name": "python"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Python applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major versions updates.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python",
+              "tags": "builder,python"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.6"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.3",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.3,python",
+              "tags": "hidden,builder,python",
+              "version": "3.3"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/python-33-centos7:latest"
+            },
+            "name": "3.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 2.7",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:2.7,python",
+              "tags": "builder,python",
+              "version": "2.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-27-centos7:latest"
+            },
+            "name": "2.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.4/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.4,python",
+              "tags": "hidden,builder,python",
+              "version": "3.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-34-centos7:latest"
+            },
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.5,python",
+              "tags": "builder,python",
+              "version": "3.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-35-centos7:latest"
+            },
+            "name": "3.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.6,python",
+              "tags": "builder,python",
+              "version": "3.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-36-centos7:latest"
+            },
+            "name": "3.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Redis"
+        },
+        "name": "redis"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a Redis database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Redis available on OpenShift, including major versions updates.",
+              "iconClass": "icon-redis",
+              "openshift.io/display-name": "Redis (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "redis"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.2"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a Redis 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-redis",
+              "openshift.io/display-name": "Redis 3.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "redis",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/redis-32-centos7:latest"
+            },
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Ruby"
+        },
+        "name": "ruby"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Ruby applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.3/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby",
+              "tags": "builder,ruby"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.5"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.0,ruby",
+              "tags": "hidden,builder,ruby",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/ruby-20-centos7:latest"
+            },
+            "name": "2.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.2,ruby",
+              "tags": "hidden,builder,ruby",
+              "version": "2.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-22-centos7:latest"
+            },
+            "name": "2.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.3",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.3,ruby",
+              "tags": "builder,ruby",
+              "version": "2.3"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-23-centos7:latest"
+            },
+            "name": "2.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.4,ruby",
+              "tags": "builder,ruby",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-24-centos7:latest"
+            },
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.5,ruby",
+              "tags": "builder,ruby",
+              "version": "2.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-25-centos7:latest"
+            },
+            "name": "2.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "WildFly"
+        },
+        "name": "wildfly"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run WildFly applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of WildFly available on OpenShift, including major versions updates.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "jee,java",
+              "tags": "builder,wildfly,java"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "15.0"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 8.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 8.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:8.1,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "8.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-81-centos7:latest"
+            },
+            "name": "8.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 9.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 9.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:9.0,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "9.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-90-centos7:latest"
+            },
+            "name": "9.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 10.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 10.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:10.0,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "10.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-100-centos7:latest"
+            },
+            "name": "10.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 10.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 10.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:10.1,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-101-centos7:latest"
+            },
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 11 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 11",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:11,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "11.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-110-centos7:latest"
+            },
+            "name": "11.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 12 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 12",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:12,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "12.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-120-centos7:latest"
+            },
+            "name": "12.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 13 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 13",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:13,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "13.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-130-centos7:latest"
+            },
+            "name": "13.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 14 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 14",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:14,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "14.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-140-centos7:latest"
+            },
+            "name": "14.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 15 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 15",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:15,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "15.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-150-centos7:latest"
+            },
+            "name": "15.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7JsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7JsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson = []byte(`{
+    "apiVersion": "v1",
+    "kind": "Template",
+    "labels": {
+        "app": "jenkins-ephemeral",
+        "template": "jenkins-ephemeral-template"
+    },
+    "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+    "metadata": {
+        "annotations": {
+            "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+            "iconClass": "icon-jenkins",
+            "openshift.io/display-name": "Jenkins (Ephemeral)",
+            "openshift.io/documentation-url": "https://docs.okd.io/latest/using_images/other_images/jenkins.html",
+            "openshift.io/long-description": "This template deploys a Jenkins server capable of managing OpenShift Pipeline builds and supporting OpenShift-based oauth login.  The Jenkins configuration is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
+            "openshift.io/provider-display-name": "Red Hat, Inc.",
+            "openshift.io/support-url": "https://access.redhat.com",
+            "tags": "instant-app,jenkins"
+        },
+        "name": "jenkins-ephemeral"
+    },
+    "objects": [
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "annotations": {
+                    "haproxy.router.openshift.io/timeout": "4m",
+                    "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            },
+            "spec": {
+                "tls": {
+                    "insecureEdgeTerminationPolicy": "Redirect",
+                    "termination": "edge"
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "${JENKINS_SERVICE_NAME}"
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "annotations": {
+                    "template.alpha.openshift.io/wait-for-ready": "true"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "name": "${JENKINS_SERVICE_NAME}"
+                },
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "name": "${JENKINS_SERVICE_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "OPENSHIFT_ENABLE_OAUTH",
+                                        "value": "${ENABLE_OAUTH}"
+                                    },
+                                    {
+                                        "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                                        "value": "true"
+                                    },
+                                    {
+                                        "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+                                        "value": "${DISABLE_ADMINISTRATIVE_MONITORS}"
+                                    },
+                                    {
+                                        "name": "KUBERNETES_MASTER",
+                                        "value": "https://kubernetes.default:443"
+                                    },
+                                    {
+                                        "name": "KUBERNETES_TRUST_CERTIFICATES",
+                                        "value": "true"
+                                    },
+                                    {
+                                        "name": "JENKINS_SERVICE_NAME",
+                                        "value": "${JENKINS_SERVICE_NAME}"
+                                    },
+                                    {
+                                        "name": "JNLP_SERVICE_NAME",
+                                        "value": "${JNLP_SERVICE_NAME}"
+                                    }
+                                ],
+                                "image": " ",
+                                "imagePullPolicy": "IfNotPresent",
+                                "livenessProbe": {
+                                    "failureThreshold": 2,
+                                    "httpGet": {
+                                        "path": "/login",
+                                        "port": 8080
+                                    },
+                                    "initialDelaySeconds": 420,
+                                    "periodSeconds": 360,
+                                    "timeoutSeconds": 240
+                                },
+                                "name": "jenkins",
+                                "readinessProbe": {
+                                    "httpGet": {
+                                        "path": "/login",
+                                        "port": 8080
+                                    },
+                                    "initialDelaySeconds": 3,
+                                    "timeoutSeconds": 240
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "memory": "${MEMORY_LIMIT}"
+                                    }
+                                },
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/var/lib/jenkins",
+                                        "name": "${JENKINS_SERVICE_NAME}-data"
+                                    }
+                                ]
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccountName": "${JENKINS_SERVICE_NAME}",
+                        "volumes": [
+                            {
+                                "emptyDir": {
+                                    "medium": ""
+                                },
+                                "name": "${JENKINS_SERVICE_NAME}-data"
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "jenkins"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                                "namespace": "${NAMESPACE}"
+                            },
+                            "lastTriggeredImage": ""
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "metadata": {
+                "annotations": {
+                    "serviceaccounts.openshift.io/oauth-redirectreference.jenkins": "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "groupNames": null,
+            "kind": "RoleBinding",
+            "metadata": {
+                "name": "${JENKINS_SERVICE_NAME}_edit"
+            },
+            "roleRef": {
+                "name": "edit"
+            },
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "${JENKINS_SERVICE_NAME}"
+                }
+            ]
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "name": "${JNLP_SERVICE_NAME}"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "agent",
+                        "nodePort": 0,
+                        "port": 50000,
+                        "protocol": "TCP",
+                        "targetPort": 50000
+                    }
+                ],
+                "selector": {
+                    "name": "${JENKINS_SERVICE_NAME}"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+                    "service.openshift.io/infrastructure": "true"
+                },
+                "name": "${JENKINS_SERVICE_NAME}"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "web",
+                        "nodePort": 0,
+                        "port": 80,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "name": "${JENKINS_SERVICE_NAME}"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "description": "The name of the OpenShift Service exposed for the Jenkins container.",
+            "displayName": "Jenkins Service Name",
+            "name": "JENKINS_SERVICE_NAME",
+            "value": "jenkins"
+        },
+        {
+            "description": "The name of the service used for master/slave communication.",
+            "displayName": "Jenkins JNLP Service Name",
+            "name": "JNLP_SERVICE_NAME",
+            "value": "jenkins-jnlp"
+        },
+        {
+            "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
+            "displayName": "Enable OAuth in Jenkins",
+            "name": "ENABLE_OAUTH",
+            "value": "true"
+        },
+        {
+            "description": "Maximum amount of memory the container can use.",
+            "displayName": "Memory Limit",
+            "name": "MEMORY_LIMIT",
+            "value": "512Mi"
+        },
+        {
+            "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+            "displayName": "Jenkins ImageStream Namespace",
+            "name": "NAMESPACE",
+            "value": "openshift"
+        },
+        {
+            "description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
+            "displayName": "Disable memory intensive administrative monitors",
+            "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+            "value": "false"
+        },
+        {
+            "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+            "displayName": "Jenkins ImageStreamTag",
+            "name": "JENKINS_IMAGE_STREAM_TAG",
+            "value": "jenkins:2"
+        }
+    ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    annotations:
+      description: v1 Secret - used to test v1 negotiation of k8s objects
+    name: v1-secret
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      description: v1 Route - used to test v1 negotiation of origin objects
+    name: v1-route
+  spec:
+    to:
+      kind: Service
+      name: test
+
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      description: v1 Job - used to test v1 negotiation of group k8s objects
+    name: v1-job
+  spec:
+    template:
+      metadata:
+        labels:
+          run: v1-job
+      spec:
+        containers:
+        - image: openshift/hello-openshift
+          name: hello-container
+        restartPolicy: Never
+
+- apiVersion: v1
+  dockerImageMetadata:
+    Author: me
+    Config:
+      Cmd:
+      - /bin/sh
+      Entrypoint:
+      - container-entrypoint
+    ContainerConfig: {}
+    apiVersion: "1.0"
+    kind: DockerImage
+  dockerImageMetadataVersion: "1.0"
+  dockerImageReference: registry/namespace/name
+  kind: Image
+  metadata:
+    annotations:
+      description: v1 Image - used to test annotation/labeling of an object that does not support patch
+    name: v1-image
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson = []byte(`{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby",
+    "annotations": {
+      "openshift.io/display-name": "Ruby"
+    }
+  },
+  "spec": {
+    "tags": [
+      {
+        "name": "2.4",
+        "annotations": {
+          "openshift.io/display-name": "Ruby Patched",
+          "openshift.io/provider-display-name": "Red Hat, Inc.",
+          "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
+          "iconClass": "icon-ruby",
+          "tags": "builder,ruby",
+          "supports": "ruby:2.4,ruby",
+          "version": "2.4 patched",
+          "sampleRepo": "https://github.com/sclorg/ruby-ex.git"
+        },
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-24-centos7:latest"
+        }
+      },
+      {
+        "name": "newtag",
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-24-centos7:latest"
+        }
+      }
+    ]
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: 2015-10-13T10:13:11Z
+    labels:
+      test: missing-route-port
+    name: frontend
+    resourceVersion: "259"
+    uid: 024d82eb-7193-11e5-b84d-080027c5bfa9
+  spec:
+    clusterIP: 172.30.182.32
+    ports:
+    - name: web
+      port: 5432
+      protocol: TCP
+      targetPort: 8080
+    - name: web2
+      port: 5433
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataMultiportServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataMultiportServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: bc-from-imagestreamimage
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      name: bc-from-imagestreamimage
+      template: application-template-stibuild
+    name: bc-from-imagestreamimage
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    postCommit:
+      args:
+      - bundle
+      - exec
+      - rake
+      - test
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: EXAMPLE
+          value: sample-app
+        from:
+          kind: ImageStreamImage
+          name: ruby@sha256:5dc0856fea9551e102815863cceeabd3aee862ec4ad5f2625eb51564924f0360
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: GitHub
+    - generic:
+        allowEnv: true
+        secret: secret101
+      type: Generic
+    - type: ConfigChange
+  status:
+    lastVersion: 0
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM centos/ruby-22-centos7
+ARG foo
+RUN echo $foo
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: newapp-circular-template
+  spec: {}
+kind: List
+metadata: {}`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: circular
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: newapp-circular-template
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: newapp-circular-template:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: newapp-circular-template:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: faSaQS1VY-gdRMwge4eV
+      type: GitHub
+    - generic:
+        secret: u-_J-vtKR5K3GykKwCuK
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppCircularYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppCircularYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/circular.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: myruby
+spec:
+  tags:
+  - from:
+      kind: ImageStreamTag
+      name: "2.3"
+    name: "latest"
+  - from:
+      kind: ImageStreamTag
+      name: ruby:2.3
+    name: "2.3"
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/imagestream-ref.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: installable
+spec:
+  tags:
+  - name: latest
+    from:
+      kind: ImageStreamTag
+      name: installable:token
+  - name: no-token
+    annotations:
+      io.openshift.generate.job: "true"
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
+  - name: token
+    annotations:
+      io.openshift.generate.job: "true"
+      io.openshift.generate.token.as: "env:TOKEN_ENV"
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
+  - name: file
+    annotations:
+      io.openshift.generate.job: "true"
+      io.openshift.generate.token.as: "file:/var/run/openshift.secret.token"
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
+  - name: serviceaccount
+    annotations:
+      io.openshift.generate.job: "true"
+      io.openshift.generate.token.as: "serviceaccount"
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/installable-stream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  spec:
+    strategy:
+      type: foobar
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid-build-strategy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson = []byte(`{"test"}`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "helloworld-sample"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [],
+  "labels": {
+    "app": "expose-output"
+  }
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "some objects in this template declare their own app label to confirm new-app will tolerate it",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample",
+        "creationTimestamp": null
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-22-centos7",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "dockerImageRepository": "centos/ruby-22-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "ruby-sample-build",
+          "app": "myapp"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-22-centos7:latest"
+            },
+            "env": [
+              {
+                "name": "EXAMPLE",
+                "value": "sample-app"
+              }
+            ]
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "args": ["bundle", "exec", "rake", "test"]
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "rollingParams": {
+            "updatePeriodSeconds": 1,
+            "intervalSeconds": 1,
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/false"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "origin-ruby-sample:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 2,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/false"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "openshift/mysql-55-centos7:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "administrator username",
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "administrator password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: template-with-crd
+objects:
+- kind: CustomResourceDefinition
+  apiVersion: apiextensions.k8s.io/v1beta1
+  metadata:
+    name: template-with-crd
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "some objects in this template declare their own namespace via a parameter confirm new-app will tolerate it",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge-stripped",
+        "namespace": "STRIPPED"
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge-substituted",
+        "namespace": "${SUBSTITUTED}"
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge-prefix-substituted",
+        "namespace": "prefix-${SUBSTITUTED}"
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge-refstripped",
+        "namespace": "${{SUBSTITUTED}}"
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge-prefix-refstripped",
+        "namespace": "prefix-${{SUBSTITUTED}}"
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "SUBSTITUTED",
+      "description": "namespace value",
+      "value": "substituted",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "some objects in this template declare their own app label to confirm new-app will tolerate it",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "route-edge",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge",
+          "certificate": "-----BEGIN CERTIFICATE-----\nMIIDIjCCAgqgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBoTELMAkGA1UEBhMCVVMx\nCzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0Rl\nZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0ExGjAYBgNVBAMMEXd3\ndy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUu\nY29tMB4XDTE1MDExMjE0MTk0MVoXDTE2MDExMjE0MTk0MVowfDEYMBYGA1UEAwwP\nd3d3LmV4YW1wbGUuY29tMQswCQYDVQQIDAJTQzELMAkGA1UEBhMCVVMxIjAgBgkq\nhkiG9w0BCQEWE2V4YW1wbGVAZXhhbXBsZS5jb20xEDAOBgNVBAoMB0V4YW1wbGUx\nEDAOBgNVBAsMB0V4YW1wbGUwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMrv\ngu6ZTTefNN7jjiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm\n47VRx5Qrf/YLXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1M\nmNrQUgZyQC6XIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAGjDTALMAkGA1UdEwQC\nMAAwDQYJKoZIhvcNAQEFBQADggEBAFCi7ZlkMnESvzlZCvv82Pq6S46AAOTPXdFd\nTMvrh12E1sdVALF1P1oYFJzG1EiZ5ezOx88fEDTW+Lxb9anw5/KJzwtWcfsupf1m\nV7J0D3qKzw5C1wjzYHh9/Pz7B1D0KthQRATQCfNf8s6bbFLaw/dmiIUhHLtIH5Qc\nyfrejTZbOSP77z8NOWir+BWWgIDDB2//3AkDIQvT20vmkZRhkqSdT7et4NmXOX/j\njhPti4b2Fie0LeuvgaOdKjCpQQNrYthZHXeVlOLRhMTSk3qUczenkKTOhvP7IS9q\n+Dzv5hqgSfvMG392KWh5f8xXfJNs4W5KLbZyl901MeReiLrPH3w=\n-----END CERTIFICATE-----",
+          "key": "-----BEGIN PRIVATE KEY-----\nMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMrvgu6ZTTefNN7j\njiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm47VRx5Qrf/YL\nXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1MmNrQUgZyQC6X\nIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAECgYEAnxOjEj/vrLNLMZE1Q9H7PZVF\nWdP/JQVNvQ7tCpZ3ZdjxHwkvf//aQnuxS5yX2Rnf37BS/TZu+TIkK4373CfHomSx\nUTAn2FsLmOJljupgGcoeLx5K5nu7B7rY5L1NHvdpxZ4YjeISrRtEPvRakllENU5y\ngJE8c2eQOx08ZSRE4TkCQQD7dws2/FldqwdjJucYijsJVuUdoTqxP8gWL6bB251q\nelP2/a6W2elqOcWId28560jG9ZS3cuKvnmu/4LG88vZFAkEAzphrH3673oTsHN+d\nuBd5uyrlnGjWjuiMKv2TPITZcWBjB8nJDSvLneHF59MYwejNNEof2tRjgFSdImFH\nmi995wJBAMtPjW6wiqRz0i41VuT9ZgwACJBzOdvzQJfHgSD9qgFb1CU/J/hpSRIM\nkYvrXK9MbvQFvG6x4VuyT1W8mpe1LK0CQAo8VPpffhFdRpF7psXLK/XQ/0VLkG3O\nKburipLyBg/u9ZkaL0Ley5zL5dFBjTV2Qkx367Ic2b0u9AYTCcgi2DsCQQD3zZ7B\nv7BOm7MkylKokY2MduFFXU0Bxg6pfZ7q3rvg8gqhUFbaMStPRYg6myiDiW/JfLhF\nTcFT4touIo7oriFJ\n-----END PRIVATE KEY-----",
+          "caCertificate": "-----BEGIN CERTIFICATE-----\nMIIEFzCCAv+gAwIBAgIJALK1iUpF2VQLMA0GCSqGSIb3DQEBBQUAMIGhMQswCQYD\nVQQGEwJVUzELMAkGA1UECAwCU0MxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoG\nA1UECgwTRGVmYXVsdCBDb21wYW55IEx0ZDEQMA4GA1UECwwHVGVzdCBDQTEaMBgG\nA1UEAwwRd3d3LmV4YW1wbGVjYS5jb20xIjAgBgkqhkiG9w0BCQEWE2V4YW1wbGVA\nZXhhbXBsZS5jb20wHhcNMTUwMTEyMTQxNTAxWhcNMjUwMTA5MTQxNTAxWjCBoTEL\nMAkGA1UEBhMCVVMxCzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkx\nHDAaBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0Ex\nGjAYBgNVBAMMEXd3dy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFt\ncGxlQGV4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\nw2rK1J2NMtQj0KDug7g7HRKl5jbf0QMkMKyTU1fBtZ0cCzvsF4CqV11LK4BSVWaK\nrzkaXe99IVJnH8KdOlDl5Dh/+cJ3xdkClSyeUT4zgb6CCBqg78ePp+nN11JKuJlV\nIG1qdJpB1J5O/kCLsGcTf7RS74MtqMFo96446Zvt7YaBhWPz6gDaO/TUzfrNcGLA\nEfHVXkvVWqb3gqXUztZyVex/gtP9FXQ7gxTvJml7UkmT0VAFjtZnCqmFxpLZFZ15\n+qP9O7Q2MpsGUO/4vDAuYrKBeg1ZdPSi8gwqUP2qWsGd9MIWRv3thI2903BczDc7\nr8WaIbm37vYZAS9G56E4+wIDAQABo1AwTjAdBgNVHQ4EFgQUugLrSJshOBk5TSsU\nANs4+SmJUGwwHwYDVR0jBBgwFoAUugLrSJshOBk5TSsUANs4+SmJUGwwDAYDVR0T\nBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOCAQEAaMJ33zAMV4korHo5aPfayV3uHoYZ\n1ChzP3eSsF+FjoscpoNSKs91ZXZF6LquzoNezbfiihK4PYqgwVD2+O0/Ty7UjN4S\nqzFKVR4OS/6lCJ8YncxoFpTntbvjgojf1DEataKFUN196PAANc3yz8cWHF4uvjPv\nWkgFqbIjb+7D1YgglNyovXkRDlRZl0LD1OQ0ZWhd4Ge1qx8mmmanoBeYZ9+DgpFC\nj9tQAbS867yeOryNe7sEOIpXAAqK/DTu0hB6+ySsDfMo4piXCc2aA/eI2DCuw08e\nw17Dz9WnupZjVdwTKzDhFgJZMLDqn37HQnT6EemLFqbcR0VPEnfyhDtZIQ==\n-----END CERTIFICATE-----"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample",
+        "creationTimestamp": null
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-22-centos7",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "dockerImageRepository": "centos/ruby-22-centos7"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "ruby-sample-build"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-22-centos7:latest"
+            },
+            "env": [
+              {
+                "name": "EXAMPLE",
+                "value": "sample-app"
+              }
+            ]
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "args": ["bundle", "exec", "rake", "test"]
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling",
+          "rollingParams": {
+            "updatePeriodSeconds": 1,
+            "intervalSeconds": 1,
+            "timeoutSeconds": 120,
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/false"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld"
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "ruby-helloworld"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "origin-ruby-sample:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 2,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "mid": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "command": [
+                  "/bin/false"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ],
+                "containerName": "ruby-helloworld-database",
+                "volumes": ["ruby-helloworld-data"]
+              }
+            }
+          },
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "openshift/mysql-55-centos7:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "administrator username",
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "administrator password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: prometheus-test
+  annotations:
+    "openshift.io/display-name": Prometheus
+    description: |
+      Creates two resources that are part of different groups with no overlapping groupversions.
+      Used to test `+"`"+`new-app`+"`"+` versioned output when dealing with lists of varying objects.
+    iconClass: icon-cogs
+    tags: "monitoring,prometheus, alertmanager,time-series"
+parameters:
+- description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
+- description: The location of the proxy image
+  name: IMAGE_PROXY
+  value: openshift/oauth-proxy:v1.0.0
+- description: The location of the prometheus image
+  name: IMAGE_PROMETHEUS
+  value: openshift/prometheus:v2.0.0-dev
+- description: The location of the alertmanager image
+  name: IMAGE_ALERTMANAGER
+  # TODO: Change to official openshift build
+  value: openshift/prometheus-alertmanager:dev
+- description: The location of alert-buffer image
+  name: IMAGE_ALERT_BUFFER
+  # TODO: change to official openshift build
+  value: ilackarms/message-buffer
+- description: The session secret for the proxy
+  name: SESSION_SECRET
+  generate: expression
+  from: "[a-zA-Z0-9]{43}"
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: prometheus-proxy
+    namespace: "${NAMESPACE}"
+  stringData:
+    session_secret: "${SESSION_SECRET}="
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: prometheus
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: prometheus
+    template:
+      metadata:
+        labels:
+          app: prometheus
+        name: prometheus
+      spec:
+        serviceAccountName: prometheus
+        containers:
+        # Deploy Prometheus behind an oauth proxy
+        - name: prom-proxy
+          image: ${IMAGE_PROXY}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8443
+            name: web
+          args:
+          - -provider=openshift
+          - -https-address=:8443
+          - -email-domain=*
+          - -upstream=http://localhost:9090
+          - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
+          - '-openshift-sar={"resource": "namespaces", "verb": "get", "resourceName": "${NAMESPACE}", "namespace": "${NAMESPACE}"}'
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "resourceName": "${NAMESPACE}", "namespace": "${NAMESPACE}"}}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -skip-auth-regex=^/metrics
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: prometheus-tls
+          - mountPath: /etc/proxy/secrets
+            name: prometheus-secrets
+          - mountPath: /prometheus
+            name: prometheus-data
+
+        - name: prometheus
+          args:
+          - --storage.tsdb.retention=6h
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --web.listen-address=localhost:9090
+          image: ${IMAGE_PROMETHEUS}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - mountPath: /etc/prometheus
+            name: prometheus-config
+          - mountPath: /prometheus
+            name: prometheus-data
+
+        # Deploy alertmanager behind prometheus-alert-buffer behind an oauth proxy
+        # use http port=4190 and https port=9943 to differ from prom-proxy
+        - name: alerts-proxy
+          image: ${IMAGE_PROXY}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9443
+            name: web
+          args:
+          - -provider=openshift
+          - -https-address=:9443
+          - -http-address=:4190
+          - -email-domain=*
+          - -upstream=http://localhost:9099
+          - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
+          - '-openshift-sar={"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}'
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: alerts-tls
+          - mountPath: /etc/proxy/secrets
+            name: alerts-secrets
+
+        - name: alert-buffer
+          args:
+          - --storage-path=/alert-buffer/messages.db
+          image: ${IMAGE_ALERT_BUFFER}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - mountPath: /alert-buffer
+            name: alert-buffer-data
+          ports:
+          - containerPort: 9099
+            name: alert-buf
+
+        - name: alertmanager
+          args:
+          - -config.file=/etc/alertmanager/alertmanager.yml
+          image: ${IMAGE_ALERTMANAGER}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9093
+            name: web
+          volumeMounts:
+          - mountPath: /etc/alertmanager
+            name: alertmanager-config
+          - mountPath: /alertmanager
+            name: alertmanager-data
+
+        restartPolicy: Always
+        volumes:
+        - name: prometheus-config
+          configMap:
+            defaultMode: 420
+            name: prometheus
+        - name: prometheus-secrets
+          secret:
+            secretName: prometheus-proxy
+        - name: prometheus-tls
+          secret:
+            secretName: prometheus-tls
+        - name: prometheus-data
+          emptyDir: {}
+        - name: alertmanager-config
+          configMap:
+            defaultMode: 420
+            name: prometheus-alerts
+        - name: alerts-secrets
+          secret:
+            secretName: alerts-proxy
+        - name: alerts-tls
+          secret:
+            secretName: prometheus-alerts-tls
+        - name: alertmanager-data
+          emptyDir: {}
+        - name: alert-buffer-data #TODO: make persistent
+          emptyDir: {}
+
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv = []byte(`SOME_VAR=envvarfromfile
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnvBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnvBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv = []byte(`MYSQL_USER='mysql'
+MYSQL_DATABASE="thisisadatabase"
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnvBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnvBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml = []byte(`apiVersion: v1
+clientName: openshift-challenging-client
+expiresIn: 15552000
+kind: OAuthAccessToken
+metadata:
+  name: DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod
+redirectURI: https://localhost:8443/oauth/token/implicit
+userName: test
+userUID: 322b236b-22b9-11e6-b307-080027242396
+scopes:
+  - user:info
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson = []byte(`{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "annotations": {
+            "iconClass": "icon-jboss",
+            "description": "Application template for EAP 6 applications built using S2I.",
+            "tags": "eap,javaee,java,jboss,xpaas",
+            "version": "1.3.2"
+        },
+        "name": "eap64-basic-s2i"
+    },
+    "labels": {
+        "template": "eap64-basic-s2i",
+        "xpaas": "1.3.2"
+    },
+    "parameters": [
+        {
+            "description": "The name for the application.",
+            "name": "APPLICATION_NAME",
+            "value": "eap-app",
+            "required": true
+        },
+        {
+            "description": "Custom hostname for http service route.  Leave blank for default hostname, e.g.: <application-name>-<project>.<default-domain-suffix>",
+            "name": "HOSTNAME_HTTP",
+            "value": "",
+            "required": false
+        },
+        {
+            "description": "Git source URI for application",
+            "name": "SOURCE_REPOSITORY_URL",
+            "value": "https://github.com/jboss-developer/jboss-eap-quickstarts",
+            "required": true
+        },
+        {
+            "description": "Git branch/tag reference",
+            "name": "SOURCE_REPOSITORY_REF",
+            "value": "6.4.x",
+            "required": false
+        },
+        {
+            "description": "Path within Git project to build; empty for root project directory.",
+            "name": "CONTEXT_DIR",
+            "value": "kitchensink",
+            "required": false
+        },
+        {
+            "description": "Queue names",
+            "name": "HORNETQ_QUEUES",
+            "value": "",
+            "required": false
+        },
+        {
+            "description": "Topic names",
+            "name": "HORNETQ_TOPICS",
+            "value": "",
+            "required": false
+        },
+        {
+            "description": "HornetQ cluster admin password",
+            "name": "HORNETQ_CLUSTER_PASSWORD",
+            "from": "[a-zA-Z0-9]{8}",
+            "generate": "expression",
+            "required": true
+        },
+        {
+            "description": "GitHub trigger secret",
+            "name": "GITHUB_WEBHOOK_SECRET",
+            "from": "[a-zA-Z0-9]{8}",
+            "generate": "expression",
+            "required": true
+        },
+        {
+            "description": "Generic build trigger secret",
+            "name": "GENERIC_WEBHOOK_SECRET",
+            "from": "[a-zA-Z0-9]{8}",
+            "generate": "expression",
+            "required": true
+        },
+        {
+            "description": "Namespace in which the ImageStreams for Red Hat Middleware images are installed. These ImageStreams are normally installed in the openshift namespace. You should only need to modify this if you've installed the ImageStreams in a different namespace/project.",
+            "name": "IMAGE_STREAM_NAMESPACE",
+            "value": "openshift",
+            "required": true
+        },
+        {
+            "description": "JGroups cluster password",
+            "name": "JGROUPS_CLUSTER_PASSWORD",
+            "from": "[a-zA-Z0-9]{8}",
+            "generate": "expression",
+            "required": true
+        },
+        {
+            "description": "Controls whether exploded deployment content should be automatically deployed",
+            "name": "AUTO_DEPLOY_EXPLODED",
+            "value": "false",
+            "required": false
+        }
+    ],
+    "objects": [
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "spec": {
+                "ports": [
+                    {
+                        "port": 8080,
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}"
+                }
+            },
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                },
+                "annotations": {
+                    "description": "The web server's http port."
+                }
+            }
+        },
+        {
+            "kind": "Route",
+            "apiVersion": "v1",
+            "id": "${APPLICATION_NAME}-http",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                },
+                "annotations": {
+                    "description": "Route for application's http service."
+                }
+            },
+            "spec": {
+                "host": "${HOSTNAME_HTTP}",
+                "to": {
+                    "name": "${APPLICATION_NAME}"
+                }
+            }
+        },
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                }
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "source": {
+                    "type": "Git",
+                    "git": {
+                        "uri": "${SOURCE_REPOSITORY_URL}",
+                        "ref": "${SOURCE_REPOSITORY_REF}"
+                    },
+                    "contextDir": "${CONTEXT_DIR}"
+                },
+                "strategy": {
+                    "type": "Source",
+                    "sourceStrategy": {
+                        "forcePull": true,
+                        "from": {
+                            "kind": "ImageStreamTag",
+                            "namespace": "${IMAGE_STREAM_NAMESPACE}",
+                            "name": "jboss-eap64-openshift:1.4"
+                        }
+                    }
+                },
+                "output": {
+                    "to": {
+                        "kind": "ImageStreamTag",
+                        "name": "${APPLICATION_NAME}:latest"
+                    }
+                },
+                "triggers": [
+                    {
+                        "type": "GitHub",
+                        "github": {
+                            "secret": "${GITHUB_WEBHOOK_SECRET}"
+                        }
+                    },
+                    {
+                        "type": "Generic",
+                        "generic": {
+                            "secret": "${GENERIC_WEBHOOK_SECRET}"
+                        }
+                    },
+                    {
+                        "type": "ImageChange",
+                        "imageChange": {}
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            }
+        },
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "triggers": [
+                    {
+                        "type": "ImageChange",
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "${APPLICATION_NAME}"
+                            ],
+                            "from": {
+                                "kind": "ImageStream",
+                                "name": "${APPLICATION_NAME}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}"
+                },
+                "template": {
+                    "metadata": {
+                        "name": "${APPLICATION_NAME}",
+                        "labels": {
+                            "deploymentConfig": "${APPLICATION_NAME}",
+                            "application": "${APPLICATION_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "terminationGracePeriodSeconds": 60,
+                        "containers": [
+                            {
+                                "name": "${APPLICATION_NAME}",
+                                "image": "${APPLICATION_NAME}",
+                                "imagePullPolicy": "Always",
+                                "livenessProbe": {
+                                    "exec": {
+                                        "command": [
+                                            "/bin/bash",
+                                            "-c",
+                                            "/opt/eap/bin/livenessProbe.sh"
+                                        ]
+                                    }
+                                },
+                                "readinessProbe": {
+                                    "exec": {
+                                        "command": [
+                                            "/bin/bash",
+                                            "-c",
+                                            "/opt/eap/bin/readinessProbe.sh"
+                                        ]
+                                    }
+                                },
+                                "ports": [
+                                    {
+                                        "name": "jolokia",
+                                        "containerPort": 8778,
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "name": "http",
+                                        "containerPort": 8080,
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "name": "ping",
+                                        "containerPort": 8888,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "OPENSHIFT_KUBE_PING_LABELS",
+                                        "value": "application=${APPLICATION_NAME}"
+                                    },
+                                    {
+                                        "name": "OPENSHIFT_KUBE_PING_NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "HORNETQ_CLUSTER_PASSWORD",
+                                        "value": "${HORNETQ_CLUSTER_PASSWORD}"
+                                    },
+                                    {
+                                        "name": "HORNETQ_QUEUES",
+                                        "value": "${HORNETQ_QUEUES}"
+                                    },
+                                    {
+                                        "name": "HORNETQ_TOPICS",
+                                        "value": "${HORNETQ_TOPICS}"
+                                    },
+                                    {
+                                        "name": "JGROUPS_CLUSTER_PASSWORD",
+                                        "value": "${JGROUPS_CLUSTER_PASSWORD}"
+                                    },
+                                    {
+                                        "name": "AUTO_DEPLOY_EXPLODED",
+                                        "value": "${AUTO_DEPLOY_EXPLODED}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataOldTemplateJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataOldTemplateJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataOldTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/old-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory = []byte(`{"kind":"Secret","apiVersion":"v1","metadata":{"name":"json-no-extension-in-directory"}}`)
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectoryBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectoryBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson = []byte(`{"kind":"Secret","apiVersion":"v1","metadata":{"name":"json-with-extension"}}`)
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile = []byte(`non-api file content`)
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFileBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/non-api-file", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: yml-with-extension
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/yml-with-extension.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension = []byte(`{"kind":"Secret","apiVersion":"v1","metadata":{"name":"json-no-extension"}}`)
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtensionBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtensionBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/resource-builder/json-no-extension", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: yml-no-extension
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtensionBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtensionBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/resource-builder/yml-no-extension", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml = []byte(`apiVersion: v1
+kind: Role
+metadata:
+  name: empty-role
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/roles/empty-role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: basic-user2
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    resourceNames:
+    - "~"
+    resources:
+    - users
+    verbs:
+    - get
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - projectrequests
+    verbs:
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - clusterroles
+    verbs:
+    - get
+    - list
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - projects
+    verbs:
+    - list
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - selfsubjectaccessreviews
+    verbs:
+    - create
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: basic-users2
+  roleRef:
+    name: basic-user2
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
+kind: List
+metadata: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/roles/policy-clusterroles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml = []byte(`kind: Template
+apiVersion: v1
+metadata:
+  name: "policy-roles-template"
+labels:
+  createdBy: "policy-roles-template"
+parameters:
+  - description: "The namespace to create roles in."
+    name: NAMESPACE
+    required: true
+objects:
+  - apiVersion: v1
+    kind: Role
+    metadata:
+      creationTimestamp: null
+      name: basic-user
+    rules:
+    - apiGroups: null
+      attributeRestrictions: null
+      resourceNames:
+      - "~"
+      resources:
+      - users
+      verbs:
+      - get
+    - apiGroups: null
+      attributeRestrictions: null
+      resources:
+      - projectrequests
+      verbs:
+      - list
+    - apiGroups: null
+      attributeRestrictions: null
+      resources:
+      - clusterroles
+      verbs:
+      - get
+      - list
+    - apiGroups: null
+      attributeRestrictions: null
+      resources:
+      - projects
+      verbs:
+      - list
+    - apiGroups:
+      - authorization.k8s.io
+      attributeRestrictions: null
+      resources:
+      - selfsubjectaccessreviews
+      verbs:
+      - create
+  - apiVersion: v1
+    groupNames:
+    - system:authenticated
+    kind: RoleBinding
+    metadata:
+      creationTimestamp: null
+      name: basic-users
+    roleRef:
+      name: basic-user
+      namespace: ${NAMESPACE}
+    subjects:
+    - kind: SystemGroup
+      name: system:authenticated
+    userNames: null
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/roles/policy-roles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml = []byte(`apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: bind
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
+  template:
+    metadata:
+      labels:
+        service: bind
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: "service"
+                  operator: "In"
+                  values: ["bind"]
+              topologyKey: "kubernetes.io/hostname"
+              namespaces: []
+      containers:
+      - name: kubernetes-pause
+        image: gcr.io/google-containers/pause:2.0
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/rollingupdate-daemonset.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataServicesYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: clusterip
+  spec:
+    ports:
+    - name: http
+      protocol: TCP
+      port: 80
+- kind: Endpoints
+  apiVersion: v1
+  metadata:
+    name: clusterip
+    annotations:
+      "endpoints.beta.kubernetes.io/hostnames-map": '{"10.1.2.4":{"HostName": "test2"}}'
+  subsets:
+  - addresses:
+    - ip: 10.1.2.3
+    - ip: 10.1.2.4
+    ports:
+    - name: http
+      protocol: TCP
+      port: 80
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: headless
+  spec:
+    clusterIP: None
+    ports:
+    - name: http
+      protocol: TCP
+      port: 80
+- kind: Endpoints
+  apiVersion: v1
+  metadata:
+    name: headless
+  subsets:
+  - addresses:
+    - ip: 10.1.2.3
+    - ip: 10.1.2.4
+      hostname: test2
+    ports:
+    - name: http
+      protocol: TCP
+      port: 80`)
+
+func testExtendedTestdataCmdTestCmdTestdataServicesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataServicesYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataServicesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataServicesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/services.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: simple-deployment
+spec:
+  replicas: 1
+  selector:
+    name: simple-deployment
+  strategy:
+    type: Rolling
+    rollingParams:
+  template:
+    metadata:
+      labels:
+        name: simple-deployment
+    spec:
+      containers:
+      - image: "docker.io/openshift/deployment-example:v1"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+  triggers:
+  - type: ConfigChange
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml = []byte(`kind: List
+apiVersion: v1
+metadata: {}
+items:
+  - apiVersion: v1
+    dockerImageConfig: '{"architecture":"amd64","config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["sh"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"container":"764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59","container_config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop)
+      CMD [\"sh\"]"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"created":"2016-06-23T23:23:37.198943461Z","docker_version":"1.10.3","history":[{"created":"2016-06-23T23:23:36.73131105Z","created_by":"/bin/sh
+      -c #(nop) ADD file:9ca60502d646bdd815bb51e612c458e2d447b597b95cf435f9673f0966d41c1a
+      in /"},{"created":"2016-06-23T23:23:37.198943461Z","created_by":"/bin/sh -c #(nop)
+      CMD [\"sh\"]","empty_layer":true}],"os":"linux","rootfs":{"type":"layers","diff_ids":["sha256:8ac8bfaff55af948c796026ee867448c5b5b5d9dd3549f4006d9759b25d4a893"]}}'
+    dockerImageLayers:
+    - mediaType: application/vnd.docker.image.rootfs.diff.tar.gzip
+      name: sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f
+      size: 667590
+    dockerImageManifest: |-
+      {
+         "schemaVersion": 2,
+         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+         "config": {
+            "mediaType": "application/octet-stream",
+            "size": 1459,
+            "digest": "sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749"
+         },
+         "layers": [
+            {
+               "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+               "size": 667590,
+               "digest": "sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f"
+            }
+         ]
+      }
+    dockerImageManifestMediaType: application/vnd.docker.distribution.manifest.v2+json
+    dockerImageMetadata:
+      Architecture: amd64
+      Config:
+        Cmd:
+        - sh
+        Env:
+        - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        Hostname: 55cd1f8f6e5b
+        Image: sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2
+      Container: 764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59
+      ContainerConfig:
+        Cmd:
+        - /bin/sh
+        - -c
+        - '#(nop) CMD ["sh"]'
+        Env:
+        - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        Hostname: 55cd1f8f6e5b
+        Image: sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2
+      Created: 2016-06-23T23:23:37Z
+      DockerVersion: 1.10.3
+      Id: sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749
+      Size: 669049
+      apiVersion: "1.0"
+      kind: DockerImage
+    dockerImageMetadataVersion: "1.0"
+    dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+    kind: Image
+    metadata:
+      creationTimestamp: 2016-07-27T15:12:10Z
+      name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      resourceVersion: "504"
+      selfLink: /oapi/v1/images/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      uid: 7d6849b4-540c-11e6-809f-525400f25e34
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      annotations:
+        openshift.io/image.dockerRepositoryCheck: 2016-07-27T16:08:39Z
+      generation: 1
+      name: busybox
+      namespace: default
+      resourceVersion: "505"
+      selfLink: /oapi/v1/namespaces/default/imagestreams/busybox
+      uid: 7d687e72-540c-11e6-809f-525400f25e34
+  - apiVersion: v1
+    kind: ImageStreamMapping
+    metadata:
+      name: busybox
+      namespace: default
+    tag: latest
+    image:
+      apiVersion: v1
+      kind: Image
+      metadata:
+        name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataStableBusyboxYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataStableBusyboxYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/stable-busybox.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml = []byte(`apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: testapp
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: testapp
+    spec:
+      containers:
+      - name: testapp
+        image: centos/ruby-22-centos7:latest
+        command:
+        - /bin/sleep
+        args:
+        - infinity
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataStatefulsetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataStatefulsetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/statefulset.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: configsecret
+  stringData:
+    NAME: template
+- kind: TemplateInstance
+  apiVersion: template.openshift.io/v1
+  metadata:
+    name: templateinstance
+  spec:
+    template:
+      kind: Template
+      apiVersion: v1
+      metadata:
+        name: template
+      objects:
+      - kind: Secret
+        apiVersion: v1
+        metadata:
+          name: secret
+          labels:
+            foo: bar
+      - kind: Deployment
+        apiVersion: apps/v1
+        metadata:
+          name: deployment
+        spec:
+          replicas: 0
+          selector:
+            matchLabels:
+              key: value
+          template:
+            metadata:
+              labels:
+                key: value
+            spec:
+              containers:
+              - name: hello-openshift
+                image: openshift/hello-openshift
+      - kind: Route
+        apiVersion: v1
+        metadata:
+          name: route
+        spec:
+          to:
+            name: foo
+      - kind: Route
+        apiVersion: route.openshift.io/v1
+        metadata:
+          name: newroute
+        spec:
+          to:
+            name: foo
+      parameters:
+        - name: NAME
+          value: ${NAME}
+    secret:
+      name: configsecret
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson = []byte(`{
+    "kind": "ClusterRoleBinding",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "basic-users",
+        "selfLink": "/oapi/v1/clusterrolebindings/basic-users",
+        "uid": "8dcfc4cd-6917-11e5-8b72-3c970e4b7ffe",
+        "resourceVersion": "42",
+        "creationTimestamp": "2015-10-02T15:09:18Z",
+        "labels": {
+        	"custom-label":"value"
+        },
+        "annotations": {
+        	"custom-annotation":"value"
+        }
+    },
+    "subjects": [
+        {
+            "kind": "SystemGroup",
+            "name": "system:authenticated"
+        },
+        {
+            "kind": "User",
+            "name": "custom-user"
+        }
+    ],
+    "roleRef": {
+        "name": "cluster-status"
+    }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/basic-users-binding.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv = []byte(`ADMIN_USERNAME=root
+ADMIN_PASSWORD="adminpass"
+REDIS_PASSWORD='redispass'
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnvBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnvBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.env", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "guestbook-example",
+    "creationTimestamp": null,
+    "annotations": {
+      "openshift.io/display-name": "Guestbook Example",
+      "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+    }
+  },
+  "message": "Your admin credentials are ${ADMIN_USERNAME}:${ADMIN_PASSWORD}",
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-route",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "host": "guestbook.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend-service"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend-service",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 5432,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend-service"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10000,
+            "targetPort": 10000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "redis-master"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10001,
+            "targetPort": 10001,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Pod",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "redis-master"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "master",
+            "image": "dockerfile/redis",
+            "ports": [
+              {
+                "containerPort": 6379,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "REDIS_PASSWORD",
+                "value": "${REDIS_PASSWORD}"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "guestbook",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "frontend-service"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend-service"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend-service"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "php-redis",
+                "image": "brendanburns/php-redis",
+                "ports": [
+                  {
+                    "hostPort": 8000,
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        }
+      },
+      "spec": {
+        "replicas": 2,
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${SLAVE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "slave",
+                "image": "brendanburns/${SLAVE_SERVICE_NAME}",
+                "ports": [
+                  {
+                    "hostPort": 6380,
+                    "containerPort": 6379,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "Guestbook administrator username",
+      "generate": "expression",
+      "from": "admin[A-Z0-9]{3}"
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "Guestbook administrator password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "REDIS_PASSWORD",
+      "description": "Redis password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "SLAVE_SERVICE_NAME",
+      "description": "Slave Service name",
+      "value": "redis-slave"
+    }
+  ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson = []byte(`{
+    "kind": "Template",
+    "apiVersion": "template.openshift.io/v1",
+    "metadata": {
+        "name": "guestbook-example",
+        "creationTimestamp": null,
+        "annotations": {
+            "openshift.io/display-name": "Guestbook Example",
+            "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
+        }
+    },
+    "message": "Your admin credentials are adminQ3H:dwNJiJwW",
+    "objects": [
+        {
+            "apiVersion": "route.openshift.io/v1",
+            "kind": "Route",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "frontend-route"
+            },
+            "spec": {
+                "host": "guestbook.example.com",
+                "to": {
+                    "kind": "Service",
+                    "name": "frontend-service"
+                }
+            },
+            "status": {}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "frontend-service"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 5432,
+                        "protocol": "TCP",
+                        "targetPort": 5432
+                    }
+                ],
+                "selector": {
+                    "name": "frontend-service"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "redis-master"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 10000,
+                        "protocol": "TCP",
+                        "targetPort": 10000
+                    }
+                ],
+                "selector": {
+                    "name": "redis-master"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "redis-slave"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 10001,
+                        "protocol": "TCP",
+                        "targetPort": 10001
+                    }
+                ],
+                "selector": {
+                    "name": "redis-slave"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "redis-master"
+                },
+                "name": "redis-master"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "capabilities": {},
+                        "env": [
+                            {
+                                "name": "REDIS_PASSWORD",
+                                "value": "P8vxbV4C"
+                            }
+                        ],
+                        "image": "dockerfile/redis",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "master",
+                        "ports": [
+                            {
+                                "containerPort": 6379,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {},
+                        "securityContext": {
+                            "capabilities": {},
+                            "privileged": false
+                        },
+                        "terminationMessagePath": "/dev/termination-log"
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "serviceAccount": ""
+            },
+            "status": {}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "frontend-service"
+                },
+                "name": "guestbook"
+            },
+            "spec": {
+                "replicas": 3,
+                "selector": {
+                    "name": "frontend-service"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "name": "frontend-service"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "ADMIN_USERNAME",
+                                        "value": "adminQ3H"
+                                    },
+                                    {
+                                        "name": "ADMIN_PASSWORD",
+                                        "value": "dwNJiJwW"
+                                    },
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "value": "P8vxbV4C"
+                                    }
+                                ],
+                                "image": "brendanburns/php-redis",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "php-redis",
+                                "ports": [
+                                    {
+                                        "containerPort": 80,
+                                        "hostPort": 8000,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccount": ""
+                    }
+                }
+            },
+            "status": {
+                "replicas": 0
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "redis-slave"
+                },
+                "name": "redis-slave"
+            },
+            "spec": {
+                "replicas": 2,
+                "selector": {
+                    "name": "redis-slave"
+                },
+                "template": {
+                    "metadata": {
+                        "creationTimestamp": null,
+                        "labels": {
+                            "name": "redis-slave"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "value": "P8vxbV4C"
+                                    }
+                                ],
+                                "image": "brendanburns/redis-slave",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "slave",
+                                "ports": [
+                                    {
+                                        "containerPort": 6379,
+                                        "hostPort": 6380,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "serviceAccount": ""
+                    }
+                }
+            },
+            "status": {
+                "replicas": 0
+            }
+        }
+    ],
+    "parameters": [
+        {
+            "name": "ADMIN_USERNAME",
+            "description": "Guestbook administrator username",
+            "value": "adminQ3H",
+            "generate": "expression",
+            "from": "admin[A-Z0-9]{3}"
+        },
+        {
+            "name": "ADMIN_PASSWORD",
+            "description": "Guestbook administrator password",
+            "value": "dwNJiJwW",
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
+        },
+        {
+            "name": "REDIS_PASSWORD",
+            "description": "Redis password",
+            "value": "P8vxbV4C",
+            "generate": "expression",
+            "from": "[a-zA-Z0-9]{8}"
+        },
+        {
+            "name": "SLAVE_SERVICE_NAME",
+            "description": "Slave Service name",
+            "value": "redis-slave"
+        },
+        {
+            "name": "CUSTOM_PARAM1",
+            "value": "1"
+        }
+    ]
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook_list.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt = []byte(`Multiple
+lines
+also,with=commas.
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/multiline.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson = []byte(`{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "template-type-precision",
+        "annotations": {
+            "description": "template to test type precision in template processing. Sets supplemental groups of 0, 1000030003, maxint32 and maxint64"
+        }
+    },
+    "objects": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "template-type-precision"
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "test",
+                  "image": "busybox",
+                  "imagePullPolicy": "IfNotPresent"
+                }
+              ],
+              "restartPolicy": "Never",
+              "securityContext": {
+                  "supplementalGroups": [
+                      0,
+                      1000030003,
+                      2147483647
+                  ]
+              },
+              "terminationGracePeriodSeconds": 9223372036854775807
+            }
+        }
+    ]
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/template-type-precision.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv = []byte(`required_param="first\nsecond"
+optional_param=foo
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnvBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnvBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.env", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml = []byte(`kind: Template
+apiVersion: v1
+metadata:
+  name: template
+objects:
+- kind: User
+  apiVersion: v1
+  metadata:
+    name: ${required_param}
+parameters:
+- name: optional_param
+- name: required_param
+  required: true
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestBcYaml = []byte(`apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: test-buildconfig
+spec:
+  output: {}
+  runPolicy: Serial
+  source:
+    git:
+      uri: git://github.com/openshift/ruby-hello-world.git
+    secrets: null
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-22-centos7
+    type: Source
+  triggers: []
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestBcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestBcYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestBcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestBcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-20-centos7-buildcli",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "dockerImageRepository": "centos/ruby-22-centos7",
+        "tags": [
+          {
+            "name": "valid"
+          }
+        ]
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build-validtag",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            },
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build-invalidtag",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            },
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestBuildcliJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestBuildcliJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml = []byte(`apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: test-deployment-config
+spec:
+  replicas: 1
+  selector:
+    name: test-deployment
+  strategy:
+    type: Recreate
+    recreateParams:
+      timeoutSeconds: 20
+      post:
+        failurePolicy: Ignore
+        tagImages:
+        - containerName: ruby-helloworld
+          to:
+            kind: ImageStreamTag
+            name: origin-ruby-sample:deployed
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 3Gi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: vol1
+  triggers:
+  - type: ConfigChange
+status: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson = []byte(`{
+  "kind":"BuildConfig",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"test",
+    "labels":{
+      "name":"test"
+    }
+  },
+  "spec":{
+    "triggers":[],
+    "source":{
+      "git": {
+        "uri":"https://github.com/sclorg/nodejs-ex"        
+      },
+      "dockerfile": "FROM docker.io/busybox:latest"
+    },
+    "strategy":{
+      "type":"Docker",
+      "dockerStrategy":{
+        "from":{
+          "kind":"DockerImage",
+          "name":"docker.io/busybox:latest"
+        }
+      }
+    },
+    "output":{
+      "to":{
+        "kind":"ImageStreamTag",
+        "name":"test:latest"
+      },
+      "imageLabels": [
+        {
+          "name": "user-specified-label",
+          "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
+        }
+      ]
+    }
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson = []byte(`{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null,
+    "labels": {
+      "color": "blue"
+    }
+  },
+  "spec": {},
+  "status": {
+    "dockerImageRepository": ""
+  }
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestImageStreamJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestImageStreamJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestImageJson = []byte(`{
+  "kind": "Image",
+  "apiVersion": "image.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null
+  },
+  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageMetadata": {
+    "kind": "DockerImage",
+    "apiVersion": "1.0",
+    "Id": "",
+    "Created": null,
+    "ContainerConfig": {},
+    "Config": {}
+  },
+  "dockerImageMetadataVersion": "1.0"
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestImageJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestImageJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestImageJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestImageJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-image.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: test-multiarch-stream
+spec:
+  tags:
+  - name: linux-amd64
+    from:
+      kind: DockerImage
+      name: bparees/multiplatformtest:latest
+    annotations:
+      importer.image.openshift.io/prefer-os: linux
+      importer.image.openshift.io/prefer-arch: amd64
+  - name: linux-s390x
+    from:
+      kind: DockerImage
+      name: bparees/multiplatformtest:latest
+    annotations:
+      importer.image.openshift.io/prefer-os: linux
+      importer.image.openshift.io/prefer-arch: s390x
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-multiarch-stream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml = []byte(`apiVersion: v1
+kind: ReplicationController
+metadata:
+  annotations:
+    openshift.io/deployment-config.latest-version: "1"
+    openshift.io/deployment-config.name: test-deployment
+    openshift.io/deployment.phase: Complete
+    optnshift.io/deployment.replicas: "1"
+  name: test-replication-controller
+spec:
+  replicas: 1
+  selector:
+    deployment: test-deployment
+    deploymentconfig: test-deployment
+  template:
+    metadata:
+      labels:
+        deployment: test-deployment
+        deploymentconfig: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+status: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-replication-controller.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestRouteJson = []byte(`{
+  "kind": "Route",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "testroute",
+    "creationTimestamp": null,
+    "labels": {
+       "rtlabel1": "greatroute"
+    }
+  },
+  "spec": {
+    "host": "test.example.com",
+    "to": {
+      "kind": "Service",
+      "name": "testservice"
+    }
+  },
+  "status": {}
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestRouteJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestRouteJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestRouteJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestRouteJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-route.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri":"https://github.com/sclorg/nodejs-ex"        
+      }
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "docker.io/openshift/test-build-simples2i:latest"
+        }
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      },
+      "imageLabels": [
+        {
+          "name": "user-specified-label",
+          "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
+        }
+      ]
+    }
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestServiceJson = []byte(`{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "frontend",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "frontend"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 9998,
+        "targetPort": 9998,
+        "nodePort": 0
+      }
+    ],
+    "selector": {
+      "name": "frontend"
+    },
+    "type": "ClusterIP",
+    "sessionAffinity": "None"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestServiceJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestServiceJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestServiceJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestServiceJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-service.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataTestStreamYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  creationTimestamp: 2015-10-12T12:16:36Z
+  name: test-stream
+  resourceVersion: "327"
+  selfLink: /oapi/v1/namespaces/test/imagestreams/test-stream
+  uid: 15be89a8-70db-11e5-ae32-080027c5bfa9
+spec: 
+  dockerImageRepository: 172.30.30.30:5000/test/test-stream
+  tags:
+  - name: latest
+  - name: installable
+    from:
+      kind: DockerImage
+      name: openshift/origin:v1.0.6
+    annotations:
+      io.openshift.generate.job: "true"
+status: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestStreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestStreamYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestStreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestStreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTimeoutSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/request-timeout"
+# This test validates the global request-timeout option
+os::cmd::expect_success_and_text 'oc new-app node' 'Success'
+os::cmd::expect_success_and_text 'oc get dc node -w --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
+os::cmd::expect_success_and_text 'oc get dc node --request-timeout=1s' 'node'
+os::cmd::expect_success_and_text 'oc get dc node --request-timeout=1' 'node'
+os::cmd::expect_success_and_text 'oc get pods --watch --request-timeout=1s 2>&1' 'Timeout exceeded while reading body'
+
+echo "request-timeout: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdTimeoutShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTimeoutSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdTimeoutSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTimeoutShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/timeout.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTriggersSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all --all
+  exit 0
+) &>/dev/null
+
+
+url=":${API_PORT:-8443}"
+project="$(oc project -q)"
+
+os::test::junit::declare_suite_start "cmd/triggers"
+# This test validates triggers
+
+os::cmd::expect_success 'oc new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git'
+os::cmd::expect_success 'oc get bc/ruby-hello-world'
+os::cmd::expect_success 'oc get dc/ruby-hello-world'
+
+os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
+
+os::test::junit::declare_suite_start "cmd/triggers/buildconfigs"
+## Build configs
+
+# error conditions
+os::cmd::expect_failure_and_text 'oc set triggers bc/ruby-hello-world --remove --remove-all' 'specify either --remove or --remove-all'
+os::cmd::expect_failure_and_text 'oc set triggers bc/ruby-hello-world --auto --manual' 'at most one of --auto or --manual'
+# print
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:latest.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
+# note, oc new-app currently does not set up gitlab or bitbucket webhooks by default
+# remove all
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove-all' 'updated'
+# add a new secretReference style webhook to the BC
+os::cmd::expect_success "oc patch bc/ruby-hello-world -p '{\"spec\":{\"triggers\":[{\"github\":{\"secretReference\":{\"name\":\"mysecret\"}},\"type\":\"GitHub\"}]}}'"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-hello-world' "Webhook GitHub"
+# make sure we can still add/set other triggers
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-gitlab' 'updated'
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-hello-world' "Webhook GitHub"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-hello-world' "Webhook GitLab"
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove-all' 'updated'
+
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook|github'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:latest.*false'
+# set github hook
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-github' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-github' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'github'
+# set webhook
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-webhook' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-webhook' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+# set webhook plus envvars
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-webhook-allow-env' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-webhook-allow-env' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+# set gitlab hook
+os::cmd::expect_success 'oc set triggers bc/ruby-hello-world --from-gitlab'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'gitlab'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-gitlab' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'gitlab'
+# set bitbucket hook
+os::cmd::expect_success 'oc set triggers bc/ruby-hello-world --from-bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-bitbucket' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'bitbucket'
+# set from-image
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:other.*true'
+# manual and remove both clear build configs
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other --manual' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:other.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other --remove' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:other'
+# test --all
+os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc --all --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*true'
+# set a trigger on a build that doesn't have an imagestream strategy.from-image
+os::cmd::expect_success_and_text 'oc set triggers bc/scratch --from-image=test:latest' 'updated'
+
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
+## Deployment configs
+
+# error conditions
+os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-github' 'deployment configs do not support GitHub web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-webhook' 'deployment configs do not support web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-gitlab' 'deployment configs do not support GitLab web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest' 'you must specify --containers when setting --from-image'
+os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: ruby-hello-world\)'
+# print
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|gitlab|bitbucket'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'gitlab'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'bitbucket'
+# remove all
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --remove-all' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers dc/ruby-hello-world' 'webhook|github|image|gitlab|bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*false'
+# auto
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:latest -c ruby-hello-world' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/triggers/annotations"
+## Deployment configs
+
+os::cmd::expect_success 'oc create deployment test --image=busybox'
+
+# error conditions
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-github' 'does not support GitHub web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-webhook' 'does not support web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-gitlab' 'does not support GitLab web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-bitbucket' 'does not support Bitbucket web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest' 'you must specify --containers when setting --from-image'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: busybox\)'
+# print
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'webhook|github|gitlab|bitbucket'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'gitlab'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'bitbucket'
+# remove all
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --remove-all' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'webhook|github|image|gitlab|bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*false'
+# auto
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --from-image=ruby-hello-world:latest -c busybox' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'image.*ruby-hello-world:latest \(busybox\).*true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdTriggersShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTriggersSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdTriggersSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTriggersShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/triggers.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdVolumesSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates,pv,pvc --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/volumes"
+# This test validates the 'volume' command
+
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/rollingupdate-daemonset.yaml'
+
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol0 -m /opt5'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt'
+os::cmd::expect_failure_and_text "oc set volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='\$ecret' -m /data" 'overwrite to replace'
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol10 --secret-name='my-secret' -m /data-2"
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol11 --configmap-name='my-configmap' -m /data-21"
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.containers[0].volumeMounts}' '/data-21'
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[4].configMap}' 'my-configmap'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol1 --type=emptyDir -m /data --overwrite'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add -m /opt' "'/opt' already exists"
+os::cmd::expect_success_and_text "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite" 'does not have any containers'
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby*' --overwrite"
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --list --name=vol2' 'mounted at /etc'
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --dry-run --add --name=vol3 -o yaml' 'name: vol3'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --list --name=vol3' 'volume "vol3" not found'
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --remove' 'confirm for removing more than one volume'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name=vol2'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol2'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
+os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+
+# ensure that resources not present in all versions of a target group
+# are still able to be encoded and patched accordingly
+os::cmd::expect_success 'oc set volume ds/bind --add --name=vol2 --type=emptydir -m /opt'
+os::cmd::expect_success 'oc set volume ds/bind --remove --name=vol2'
+
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add -t 'secret' --secret-name='asdf' --default-mode '765'"
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[0]}' '501'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
+
+os::cmd::expect_failure "oc set volume dc/test-deployment-config --add -t 'secret' --secret-name='asdf' --default-mode '888'"
+
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add -t 'configmap' --configmap-name='asdf' --default-mode '123'"
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[0]}' '83'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
+
+os::cmd::expect_success_and_text 'oc get pvc --no-headers | wc -l' '0'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --mount-path=/other --claim-size=1G'
+os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --mount-path=/second --type=pvc --claim-size=1G --claim-mode=rwo'
+os::cmd::expect_success_and_text 'oc get pvc --no-headers | wc -l' '2'
+# attempt to add the same volume mounted in /other, but with a subpath
+# we are not using --overwrite, so expect a failure
+os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add --mount-path=/second --sub-path=foo' "'/second' already exists"
+# add --sub-path and expect success and --sub-path added when using --overwrite
+os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --mount-path=/second --sub-path=foo --overwrite' 'deploymentconfig.apps.openshift.io/test-deployment-config volume updated'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[*].subPath}'" 'foo'
+
+# ensure that we can describe volumes of type ConfigMap
+os::cmd::expect_success " echo 'apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: simple-dc
+  creationTimestamp: null
+  labels:
+    name: test-deployment
+spec:
+  replicas: 1
+  selector:
+    name: test-deployment
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-ruby-sample
+        name: helloworld
+' | oc create -f -"
+
+os::cmd::expect_success_and_text 'oc get dc simple-dc' 'simple-dc'
+os::cmd::expect_success 'oc create cm cmvol'
+os::cmd::expect_success 'oc set volume dc/simple-dc --add --name=cmvolume --type=configmap --configmap-name=cmvol'
+os::cmd::expect_success_and_text 'oc set volume dc/simple-dc' 'configMap/cmvol as cmvolume'
+
+# command alias
+os::cmd::expect_success 'oc set volumes --help'
+os::cmd::expect_success 'oc set volumes --help'
+os::cmd::expect_success 'oc set volumes dc/test-deployment-config --list'
+
+os::cmd::expect_success 'oc delete dc/test-deployment-config'
+echo "volumes: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdVolumesShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdVolumesSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdVolumesSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdVolumesShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/volumes.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdWhoamiSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete all,templates --all
+  exit 0
+) &>/dev/null
+
+
+os::test::junit::declare_suite_start "cmd/whoami"
+# This test validates the whoami command's --show-server flag
+os::cmd::expect_success_and_text 'oc whoami --show-server' 'http(s)?:\/\/.*\:[0-9]+'
+os::cmd::expect_success_and_text 'oc whoami --show-console' 'http(s)?:\/\/.*'
+
+echo "whoami: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdWhoamiShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdWhoamiSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdWhoamiSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdWhoamiShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/whoami.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -37993,6 +57197,147 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cluster/quickstarts/django-postgresql.json": testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson,
 	"test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json": testExtendedTestdataClusterQuickstartsNodejsMongodbJson,
 	"test/extended/testdata/cluster/quickstarts/rails-postgresql.json": testExtendedTestdataClusterQuickstartsRailsPostgresqlJson,
+	"test/extended/testdata/cmd/hack/lib/cmd.sh": testExtendedTestdataCmdHackLibCmdSh,
+	"test/extended/testdata/cmd/hack/lib/compress.awk": testExtendedTestdataCmdHackLibCompressAwk,
+	"test/extended/testdata/cmd/hack/lib/constants.sh": testExtendedTestdataCmdHackLibConstantsSh,
+	"test/extended/testdata/cmd/hack/lib/init.sh": testExtendedTestdataCmdHackLibInitSh,
+	"test/extended/testdata/cmd/hack/lib/log/output.sh": testExtendedTestdataCmdHackLibLogOutputSh,
+	"test/extended/testdata/cmd/hack/lib/log/stacktrace.sh": testExtendedTestdataCmdHackLibLogStacktraceSh,
+	"test/extended/testdata/cmd/hack/lib/log/system.sh": testExtendedTestdataCmdHackLibLogSystemSh,
+	"test/extended/testdata/cmd/hack/lib/test/junit.sh": testExtendedTestdataCmdHackLibTestJunitSh,
+	"test/extended/testdata/cmd/hack/lib/util/environment.sh": testExtendedTestdataCmdHackLibUtilEnvironmentSh,
+	"test/extended/testdata/cmd/hack/lib/util/misc.sh": testExtendedTestdataCmdHackLibUtilMiscSh,
+	"test/extended/testdata/cmd/hack/lib/util/text.sh": testExtendedTestdataCmdHackLibUtilTextSh,
+	"test/extended/testdata/cmd/hack/lib/util/trap.sh": testExtendedTestdataCmdHackLibUtilTrapSh,
+	"test/extended/testdata/cmd/test/cmd/admin.sh": testExtendedTestdataCmdTestCmdAdminSh,
+	"test/extended/testdata/cmd/test/cmd/annotations.sh": testExtendedTestdataCmdTestCmdAnnotationsSh,
+	"test/extended/testdata/cmd/test/cmd/apiresources.sh": testExtendedTestdataCmdTestCmdApiresourcesSh,
+	"test/extended/testdata/cmd/test/cmd/authentication.sh": testExtendedTestdataCmdTestCmdAuthenticationSh,
+	"test/extended/testdata/cmd/test/cmd/basicresources.sh": testExtendedTestdataCmdTestCmdBasicresourcesSh,
+	"test/extended/testdata/cmd/test/cmd/builds.sh": testExtendedTestdataCmdTestCmdBuildsSh,
+	"test/extended/testdata/cmd/test/cmd/completions.sh": testExtendedTestdataCmdTestCmdCompletionsSh,
+	"test/extended/testdata/cmd/test/cmd/config.sh": testExtendedTestdataCmdTestCmdConfigSh,
+	"test/extended/testdata/cmd/test/cmd/convert.sh": testExtendedTestdataCmdTestCmdConvertSh,
+	"test/extended/testdata/cmd/test/cmd/create.sh": testExtendedTestdataCmdTestCmdCreateSh,
+	"test/extended/testdata/cmd/test/cmd/debug.sh": testExtendedTestdataCmdTestCmdDebugSh,
+	"test/extended/testdata/cmd/test/cmd/deployments.sh": testExtendedTestdataCmdTestCmdDeploymentsSh,
+	"test/extended/testdata/cmd/test/cmd/describer.sh": testExtendedTestdataCmdTestCmdDescriberSh,
+	"test/extended/testdata/cmd/test/cmd/edit.sh": testExtendedTestdataCmdTestCmdEditSh,
+	"test/extended/testdata/cmd/test/cmd/env.sh": testExtendedTestdataCmdTestCmdEnvSh,
+	"test/extended/testdata/cmd/test/cmd/framework-test.sh": testExtendedTestdataCmdTestCmdFrameworkTestSh,
+	"test/extended/testdata/cmd/test/cmd/get.sh": testExtendedTestdataCmdTestCmdGetSh,
+	"test/extended/testdata/cmd/test/cmd/help.sh": testExtendedTestdataCmdTestCmdHelpSh,
+	"test/extended/testdata/cmd/test/cmd/idle.sh": testExtendedTestdataCmdTestCmdIdleSh,
+	"test/extended/testdata/cmd/test/cmd/image-lookup.sh": testExtendedTestdataCmdTestCmdImageLookupSh,
+	"test/extended/testdata/cmd/test/cmd/images.sh": testExtendedTestdataCmdTestCmdImagesSh,
+	"test/extended/testdata/cmd/test/cmd/login.sh": testExtendedTestdataCmdTestCmdLoginSh,
+	"test/extended/testdata/cmd/test/cmd/migrate.sh": testExtendedTestdataCmdTestCmdMigrateSh,
+	"test/extended/testdata/cmd/test/cmd/newapp.sh": testExtendedTestdataCmdTestCmdNewappSh,
+	"test/extended/testdata/cmd/test/cmd/observe.sh": testExtendedTestdataCmdTestCmdObserveSh,
+	"test/extended/testdata/cmd/test/cmd/policy-storage-admin.sh": testExtendedTestdataCmdTestCmdPolicyStorageAdminSh,
+	"test/extended/testdata/cmd/test/cmd/policy.sh": testExtendedTestdataCmdTestCmdPolicySh,
+	"test/extended/testdata/cmd/test/cmd/printer.sh": testExtendedTestdataCmdTestCmdPrinterSh,
+	"test/extended/testdata/cmd/test/cmd/projects.sh": testExtendedTestdataCmdTestCmdProjectsSh,
+	"test/extended/testdata/cmd/test/cmd/quota.sh": testExtendedTestdataCmdTestCmdQuotaSh,
+	"test/extended/testdata/cmd/test/cmd/registry.sh": testExtendedTestdataCmdTestCmdRegistrySh,
+	"test/extended/testdata/cmd/test/cmd/routes.sh": testExtendedTestdataCmdTestCmdRoutesSh,
+	"test/extended/testdata/cmd/test/cmd/rsync.sh": testExtendedTestdataCmdTestCmdRsyncSh,
+	"test/extended/testdata/cmd/test/cmd/run.sh": testExtendedTestdataCmdTestCmdRunSh,
+	"test/extended/testdata/cmd/test/cmd/secrets.sh": testExtendedTestdataCmdTestCmdSecretsSh,
+	"test/extended/testdata/cmd/test/cmd/services.sh": testExtendedTestdataCmdTestCmdServicesSh,
+	"test/extended/testdata/cmd/test/cmd/set-image.sh": testExtendedTestdataCmdTestCmdSetImageSh,
+	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh": testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
+	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh": testExtendedTestdataCmdTestCmdSetbuildhookSh,
+	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh": testExtendedTestdataCmdTestCmdSetbuildsecretSh,
+	"test/extended/testdata/cmd/test/cmd/status.sh": testExtendedTestdataCmdTestCmdStatusSh,
+	"test/extended/testdata/cmd/test/cmd/templates.sh": testExtendedTestdataCmdTestCmdTemplatesSh,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/app/Dockerfile": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.generated.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/docker-compose.yml": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/complex/nginx/Dockerfile": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml": testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-lonely-pod.json": testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-sample-app.json": testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-pod-no-rc.json": testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-service-with-nothing.json": testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/k8s-unserviced-rc.json": testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-deployed-app.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-no-build.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-one-build.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/new-project-two-deployment-configs.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/app-scenarios/petset.yaml": testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json": testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json": testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json": testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml": testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json": testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json,
+	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml": testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json": testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml": testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml": testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json": testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json,
+	"test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json": testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml": testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json": testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml": testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json": testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile": testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/imagestream-ref.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/installable-stream.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid-build-strategy.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json": testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json": testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json": testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json": testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json": testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml": testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env": testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env": testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml": testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/old-template.json": testExtendedTestdataCmdTestCmdTestdataOldTemplateJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory": testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json": testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/non-api-file": testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/yml-with-extension.yml": testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/json-no-extension": testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension,
+	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/yml-no-extension": testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension,
+	"test/extended/testdata/cmd/test/cmd/testdata/roles/empty-role.yaml": testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/roles/policy-roles.yaml": testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/rollingupdate-daemonset.yaml": testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/services.yaml": testExtendedTestdataCmdTestCmdTestdataServicesYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/simple-deployment.yaml": testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/stable-busybox.yaml": testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/statefulset.yaml": testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/templateinstance_objectkinds.yaml": testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/basic-users-binding.json": testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.env": testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook.json": testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/guestbook_list.json": testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/multiline.txt": testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/template-type-precision.json": testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.env": testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv,
+	"test/extended/testdata/cmd/test/cmd/testdata/templates/template_required_params.yaml": testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml": testExtendedTestdataCmdTestCmdTestdataTestBcYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json": testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml": testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json": testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json": testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-image.json": testExtendedTestdataCmdTestCmdTestdataTestImageJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-multiarch-stream.yaml": testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-replication-controller.yaml": testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-route.json": testExtendedTestdataCmdTestCmdTestdataTestRouteJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-s2i-build.json": testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-service.json": testExtendedTestdataCmdTestCmdTestdataTestServiceJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml": testExtendedTestdataCmdTestCmdTestdataTestStreamYaml,
+	"test/extended/testdata/cmd/test/cmd/timeout.sh": testExtendedTestdataCmdTestCmdTimeoutSh,
+	"test/extended/testdata/cmd/test/cmd/triggers.sh": testExtendedTestdataCmdTestCmdTriggersSh,
+	"test/extended/testdata/cmd/test/cmd/volumes.sh": testExtendedTestdataCmdTestCmdVolumesSh,
+	"test/extended/testdata/cmd/test/cmd/whoami.sh": testExtendedTestdataCmdTestCmdWhoamiSh,
 	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
@@ -38478,6 +57823,197 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"django-postgresql.json": &bintree{testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
 						"nodejs-mongodb.json": &bintree{testExtendedTestdataClusterQuickstartsNodejsMongodbJson, map[string]*bintree{}},
 						"rails-postgresql.json": &bintree{testExtendedTestdataClusterQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+					}},
+				}},
+				"cmd": &bintree{nil, map[string]*bintree{
+					"hack": &bintree{nil, map[string]*bintree{
+						"lib": &bintree{nil, map[string]*bintree{
+							"cmd.sh": &bintree{testExtendedTestdataCmdHackLibCmdSh, map[string]*bintree{}},
+							"compress.awk": &bintree{testExtendedTestdataCmdHackLibCompressAwk, map[string]*bintree{}},
+							"constants.sh": &bintree{testExtendedTestdataCmdHackLibConstantsSh, map[string]*bintree{}},
+							"init.sh": &bintree{testExtendedTestdataCmdHackLibInitSh, map[string]*bintree{}},
+							"log": &bintree{nil, map[string]*bintree{
+								"output.sh": &bintree{testExtendedTestdataCmdHackLibLogOutputSh, map[string]*bintree{}},
+								"stacktrace.sh": &bintree{testExtendedTestdataCmdHackLibLogStacktraceSh, map[string]*bintree{}},
+								"system.sh": &bintree{testExtendedTestdataCmdHackLibLogSystemSh, map[string]*bintree{}},
+							}},
+							"test": &bintree{nil, map[string]*bintree{
+								"junit.sh": &bintree{testExtendedTestdataCmdHackLibTestJunitSh, map[string]*bintree{}},
+							}},
+							"util": &bintree{nil, map[string]*bintree{
+								"environment.sh": &bintree{testExtendedTestdataCmdHackLibUtilEnvironmentSh, map[string]*bintree{}},
+								"misc.sh": &bintree{testExtendedTestdataCmdHackLibUtilMiscSh, map[string]*bintree{}},
+								"text.sh": &bintree{testExtendedTestdataCmdHackLibUtilTextSh, map[string]*bintree{}},
+								"trap.sh": &bintree{testExtendedTestdataCmdHackLibUtilTrapSh, map[string]*bintree{}},
+							}},
+						}},
+					}},
+					"test": &bintree{nil, map[string]*bintree{
+						"cmd": &bintree{nil, map[string]*bintree{
+							"admin.sh": &bintree{testExtendedTestdataCmdTestCmdAdminSh, map[string]*bintree{}},
+							"annotations.sh": &bintree{testExtendedTestdataCmdTestCmdAnnotationsSh, map[string]*bintree{}},
+							"apiresources.sh": &bintree{testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
+							"authentication.sh": &bintree{testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
+							"basicresources.sh": &bintree{testExtendedTestdataCmdTestCmdBasicresourcesSh, map[string]*bintree{}},
+							"builds.sh": &bintree{testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
+							"completions.sh": &bintree{testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
+							"config.sh": &bintree{testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
+							"convert.sh": &bintree{testExtendedTestdataCmdTestCmdConvertSh, map[string]*bintree{}},
+							"create.sh": &bintree{testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
+							"debug.sh": &bintree{testExtendedTestdataCmdTestCmdDebugSh, map[string]*bintree{}},
+							"deployments.sh": &bintree{testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
+							"describer.sh": &bintree{testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
+							"edit.sh": &bintree{testExtendedTestdataCmdTestCmdEditSh, map[string]*bintree{}},
+							"env.sh": &bintree{testExtendedTestdataCmdTestCmdEnvSh, map[string]*bintree{}},
+							"framework-test.sh": &bintree{testExtendedTestdataCmdTestCmdFrameworkTestSh, map[string]*bintree{}},
+							"get.sh": &bintree{testExtendedTestdataCmdTestCmdGetSh, map[string]*bintree{}},
+							"help.sh": &bintree{testExtendedTestdataCmdTestCmdHelpSh, map[string]*bintree{}},
+							"idle.sh": &bintree{testExtendedTestdataCmdTestCmdIdleSh, map[string]*bintree{}},
+							"image-lookup.sh": &bintree{testExtendedTestdataCmdTestCmdImageLookupSh, map[string]*bintree{}},
+							"images.sh": &bintree{testExtendedTestdataCmdTestCmdImagesSh, map[string]*bintree{}},
+							"login.sh": &bintree{testExtendedTestdataCmdTestCmdLoginSh, map[string]*bintree{}},
+							"migrate.sh": &bintree{testExtendedTestdataCmdTestCmdMigrateSh, map[string]*bintree{}},
+							"newapp.sh": &bintree{testExtendedTestdataCmdTestCmdNewappSh, map[string]*bintree{}},
+							"observe.sh": &bintree{testExtendedTestdataCmdTestCmdObserveSh, map[string]*bintree{}},
+							"policy-storage-admin.sh": &bintree{testExtendedTestdataCmdTestCmdPolicyStorageAdminSh, map[string]*bintree{}},
+							"policy.sh": &bintree{testExtendedTestdataCmdTestCmdPolicySh, map[string]*bintree{}},
+							"printer.sh": &bintree{testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
+							"projects.sh": &bintree{testExtendedTestdataCmdTestCmdProjectsSh, map[string]*bintree{}},
+							"quota.sh": &bintree{testExtendedTestdataCmdTestCmdQuotaSh, map[string]*bintree{}},
+							"registry.sh": &bintree{testExtendedTestdataCmdTestCmdRegistrySh, map[string]*bintree{}},
+							"routes.sh": &bintree{testExtendedTestdataCmdTestCmdRoutesSh, map[string]*bintree{}},
+							"rsync.sh": &bintree{testExtendedTestdataCmdTestCmdRsyncSh, map[string]*bintree{}},
+							"run.sh": &bintree{testExtendedTestdataCmdTestCmdRunSh, map[string]*bintree{}},
+							"secrets.sh": &bintree{testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
+							"services.sh": &bintree{testExtendedTestdataCmdTestCmdServicesSh, map[string]*bintree{}},
+							"set-image.sh": &bintree{testExtendedTestdataCmdTestCmdSetImageSh, map[string]*bintree{}},
+							"set-liveness-probe.sh": &bintree{testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
+							"setbuildhook.sh": &bintree{testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
+							"setbuildsecret.sh": &bintree{testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
+							"status.sh": &bintree{testExtendedTestdataCmdTestCmdStatusSh, map[string]*bintree{}},
+							"templates.sh": &bintree{testExtendedTestdataCmdTestCmdTemplatesSh, map[string]*bintree{}},
+							"testdata": &bintree{nil, map[string]*bintree{
+								"app-scenarios": &bintree{nil, map[string]*bintree{
+									"docker-compose": &bintree{nil, map[string]*bintree{
+										"complex": &bintree{nil, map[string]*bintree{
+											"app": &bintree{nil, map[string]*bintree{
+												"Dockerfile": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexAppDockerfile, map[string]*bintree{}},
+											}},
+											"docker-compose.generated.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeGeneratedYaml, map[string]*bintree{}},
+											"docker-compose.imported.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeImportedYaml, map[string]*bintree{}},
+											"docker-compose.yml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexDockerComposeYml, map[string]*bintree{}},
+											"nginx": &bintree{nil, map[string]*bintree{
+												"Dockerfile": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeComplexNginxDockerfile, map[string]*bintree{}},
+											}},
+										}},
+										"wordpress": &bintree{nil, map[string]*bintree{
+											"docker-compose.yml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosDockerComposeWordpressDockerComposeYml, map[string]*bintree{}},
+										}},
+									}},
+									"k8s-lonely-pod.json": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sLonelyPodJson, map[string]*bintree{}},
+									"k8s-sample-app.json": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sSampleAppJson, map[string]*bintree{}},
+									"k8s-service-pod-no-rc.json": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServicePodNoRcJson, map[string]*bintree{}},
+									"k8s-service-with-nothing.json": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sServiceWithNothingJson, map[string]*bintree{}},
+									"k8s-unserviced-rc.json": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosK8sUnservicedRcJson, map[string]*bintree{}},
+									"new-project-deployed-app.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectDeployedAppYaml, map[string]*bintree{}},
+									"new-project-no-build.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectNoBuildYaml, map[string]*bintree{}},
+									"new-project-one-build.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectOneBuildYaml, map[string]*bintree{}},
+									"new-project-two-deployment-configs.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosNewProjectTwoDeploymentConfigsYaml, map[string]*bintree{}},
+									"petset.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataAppScenariosPetsetYaml, map[string]*bintree{}},
+								}},
+								"application-template-custombuild.json": &bintree{testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
+								"application-template-dockerbuild.json": &bintree{testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},
+								"application-template-stibuild.json": &bintree{testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, map[string]*bintree{}},
+								"convert": &bintree{nil, map[string]*bintree{
+									"job-v1.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml, map[string]*bintree{}},
+									"job-v2.json": &bintree{testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json, map[string]*bintree{}},
+								}},
+								"external-service.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
+								"hello-openshift": &bintree{nil, map[string]*bintree{
+									"hello-pod.json": &bintree{testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, map[string]*bintree{}},
+								}},
+								"idling-dc.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml, map[string]*bintree{}},
+								"idling-svc-route.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml, map[string]*bintree{}},
+								"image-streams": &bintree{nil, map[string]*bintree{
+									"image-streams-centos7.json": &bintree{testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json, map[string]*bintree{}},
+								}},
+								"jenkins": &bintree{nil, map[string]*bintree{
+									"jenkins-ephemeral-template.json": &bintree{testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
+								}},
+								"mixed-api-versions.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml, map[string]*bintree{}},
+								"modified-ruby-imagestream.json": &bintree{testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson, map[string]*bintree{}},
+								"multiport-service.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml, map[string]*bintree{}},
+								"new-app": &bintree{nil, map[string]*bintree{
+									"bc-from-imagestreamimage.json": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson, map[string]*bintree{}},
+									"build-arg-dockerfile": &bintree{nil, map[string]*bintree{
+										"Dockerfile": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile, map[string]*bintree{}},
+									}},
+									"circular-is.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml, map[string]*bintree{}},
+									"circular.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml, map[string]*bintree{}},
+									"imagestream-ref.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml, map[string]*bintree{}},
+									"installable-stream.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml, map[string]*bintree{}},
+									"invalid-build-strategy.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml, map[string]*bintree{}},
+									"invalid.json": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson, map[string]*bintree{}},
+									"template-minimal-expose.json": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson, map[string]*bintree{}},
+									"template-with-app-label.json": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson, map[string]*bintree{}},
+									"template-with-crd.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml, map[string]*bintree{}},
+									"template-with-namespaces.json": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson, map[string]*bintree{}},
+									"template-without-app-label.json": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson, map[string]*bintree{}},
+									"template_multiple_resource_gvs.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml, map[string]*bintree{}},
+									"test-cmd-newapp-env.env": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv, map[string]*bintree{}},
+									"test-cmd-newapp-params.env": &bintree{testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv, map[string]*bintree{}},
+								}},
+								"oauthaccesstoken.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml, map[string]*bintree{}},
+								"old-template.json": &bintree{testExtendedTestdataCmdTestCmdTestdataOldTemplateJson, map[string]*bintree{}},
+								"resource-builder": &bintree{nil, map[string]*bintree{
+									"directory": &bintree{nil, map[string]*bintree{
+										"json-no-extension-in-directory": &bintree{testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory, map[string]*bintree{}},
+										"json-with-extension.json": &bintree{testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson, map[string]*bintree{}},
+										"non-api-file": &bintree{testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryNonApiFile, map[string]*bintree{}},
+										"yml-with-extension.yml": &bintree{testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryYmlWithExtensionYml, map[string]*bintree{}},
+									}},
+									"json-no-extension": &bintree{testExtendedTestdataCmdTestCmdTestdataResourceBuilderJsonNoExtension, map[string]*bintree{}},
+									"yml-no-extension": &bintree{testExtendedTestdataCmdTestCmdTestdataResourceBuilderYmlNoExtension, map[string]*bintree{}},
+								}},
+								"roles": &bintree{nil, map[string]*bintree{
+									"empty-role.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
+									"policy-clusterroles.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
+									"policy-roles.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
+								}},
+								"rollingupdate-daemonset.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYaml, map[string]*bintree{}},
+								"services.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataServicesYaml, map[string]*bintree{}},
+								"simple-deployment.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataSimpleDeploymentYaml, map[string]*bintree{}},
+								"stable-busybox.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataStableBusyboxYaml, map[string]*bintree{}},
+								"statefulset.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataStatefulsetYaml, map[string]*bintree{}},
+								"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml, map[string]*bintree{}},
+								"templates": &bintree{nil, map[string]*bintree{
+									"basic-users-binding.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson, map[string]*bintree{}},
+									"guestbook.env": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookEnv, map[string]*bintree{}},
+									"guestbook.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson, map[string]*bintree{}},
+									"guestbook_list.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbook_listJson, map[string]*bintree{}},
+									"multiline.txt": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt, map[string]*bintree{}},
+									"template-type-precision.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson, map[string]*bintree{}},
+									"template_required_params.env": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv, map[string]*bintree{}},
+									"template_required_params.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml, map[string]*bintree{}},
+								}},
+								"test-bc.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTestBcYaml, map[string]*bintree{}},
+								"test-buildcli.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson, map[string]*bintree{}},
+								"test-deployment-config.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
+								"test-docker-build.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson, map[string]*bintree{}},
+								"test-image-stream.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson, map[string]*bintree{}},
+								"test-image.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestImageJson, map[string]*bintree{}},
+								"test-multiarch-stream.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml, map[string]*bintree{}},
+								"test-replication-controller.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml, map[string]*bintree{}},
+								"test-route.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestRouteJson, map[string]*bintree{}},
+								"test-s2i-build.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson, map[string]*bintree{}},
+								"test-service.json": &bintree{testExtendedTestdataCmdTestCmdTestdataTestServiceJson, map[string]*bintree{}},
+								"test-stream.yaml": &bintree{testExtendedTestdataCmdTestCmdTestdataTestStreamYaml, map[string]*bintree{}},
+							}},
+							"timeout.sh": &bintree{testExtendedTestdataCmdTestCmdTimeoutSh, map[string]*bintree{}},
+							"triggers.sh": &bintree{testExtendedTestdataCmdTestCmdTriggersSh, map[string]*bintree{}},
+							"volumes.sh": &bintree{testExtendedTestdataCmdTestCmdVolumesSh, map[string]*bintree{}},
+							"whoami.sh": &bintree{testExtendedTestdataCmdTestCmdWhoamiSh, map[string]*bintree{}},
+						}},
 					}},
 				}},
 				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},

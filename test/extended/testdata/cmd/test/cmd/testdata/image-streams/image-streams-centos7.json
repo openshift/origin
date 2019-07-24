@@ -1,0 +1,1585 @@
+{
+  "kind": "ImageStreamList",
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": ".NET Core"
+        },
+        "name": "dotnet"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run .NET Core applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core (Latest)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.1"
+            },
+            "name": "latest"
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 2.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.1",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.1",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.1,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
+              "version": "2.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.centos.org/dotnet/dotnet-21-centos7:latest"
+            },
+            "name": "2.1"
+          },
+          {
+            "annotations": {
+              "description": "RETIRED: Build and run .NET Core 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.0",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.0,dotnet",
+              "tags": "hidden,builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.centos.org/dotnet/dotnet-20-centos7:latest"
+            },
+            "name": "2.0"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Apache HTTP Server (httpd)"
+        },
+        "name": "httpd"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and serve static content via Apache HTTP Server (httpd) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
+              "iconClass": "icon-apache",
+              "openshift.io/display-name": "Apache HTTP Server (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
+              "supports": "httpd",
+              "tags": "builder,httpd"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.4"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-apache",
+              "openshift.io/display-name": "Apache HTTP Server 2.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
+              "supports": "httpd",
+              "tags": "builder,httpd",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/httpd-24-centos7:latest"
+            },
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Jenkins"
+        },
+        "name": "jenkins"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a Jenkins server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Jenkins available on OpenShift, including major versions updates.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a Jenkins v2.x server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins 2.X",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins",
+              "version": "2.x"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/openshift/origin-jenkins:v4.0"
+            },
+            "name": "2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "MariaDB"
+        },
+        "name": "mariadb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a MariaDB database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MariaDB available on OpenShift, including major versions updates.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10.2"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MariaDB 10.1 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB 10.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mariadb-101-centos7:latest"
+            },
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MariaDB 10.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.2/README.md.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB 10.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb",
+              "version": "10.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mariadb-102-centos7:latest"
+            },
+            "name": "10.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "MongoDB"
+        },
+        "name": "mongodb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a MongoDB database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MongoDB available on OpenShift, including major versions updates.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.6"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 2.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 2.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,mongodb",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/mongodb-24-centos7:latest"
+            },
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 2.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.6/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 2.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,database,mongodb",
+              "version": "2.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-26-centos7:latest"
+            },
+            "name": "2.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 3.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-32-centos7:latest"
+            },
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 3.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.4/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 3.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb",
+              "version": "3.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-34-centos7:latest"
+            },
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MongoDB 3.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.6/README.md.",
+              "iconClass": "icon-mongodb",
+              "openshift.io/display-name": "MongoDB 3.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mongodb",
+              "version": "3.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mongodb-36-centos7:latest"
+            },
+            "name": "3.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "MySQL"
+        },
+        "name": "mysql"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a MySQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MySQL available on OpenShift, including major versions updates.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "mysql"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "5.7"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MySQL 5.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 5.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,mysql",
+              "version": "5.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/mysql-55-centos7:latest"
+            },
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MySQL 5.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 5.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,mysql",
+              "version": "5.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mysql-56-centos7:latest"
+            },
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a MySQL 5.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 5.7",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "mysql",
+              "version": "5.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/mysql-57-centos7:latest"
+            },
+            "name": "5.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Nginx HTTP server and a reverse proxy (nginx)"
+        },
+        "name": "nginx"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.8/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.8",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.8"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nginx-18-centos7:latest"
+            },
+            "name": "1.8",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.10/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nginx-110-centos7:latest"
+            },
+            "name": "1.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.12/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.12",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.12"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nginx-112-centos7:latest"
+            },
+            "name": "1.12",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.12/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Nginx available on OpenShift, including major versions updates.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "1.12"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Node.js"
+        },
+        "name": "nodejs"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Node.js applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major versions updates.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs",
+              "tags": "builder,nodejs"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "11"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "DEPRECATED: Build and run Node.js 0.10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 0.10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs:0.10,nodejs:0.1,nodejs",
+              "tags": "hidden,nodejs",
+              "version": "0.10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/nodejs-010-centos7:latest"
+            },
+            "name": "0.10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs:4,nodejs",
+              "tags": "hidden,builder,nodejs",
+              "version": "4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nodejs-4-centos7:latest"
+            },
+            "name": "4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/6/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "supports": "nodejs:6,nodejs",
+              "tags": "builder,nodejs",
+              "version": "6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nodejs-6-centos7:latest"
+            },
+            "name": "6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 8 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/8/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 8",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "8"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/nodejs-8-centos7:latest"
+            },
+            "name": "8",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 8 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 8 (RHOAR)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "8"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:8.x"
+            },
+            "name": "8-RHOAR",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:10.x"
+            },
+            "name": "10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Node.js 11 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/nodeshift/centos7-s2i-nodejs.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 11",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "11"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/nodeshift/centos7-s2i-nodejs:11.x"
+            },
+            "name": "11",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Perl"
+        },
+        "name": "perl"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Perl applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major versions updates.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl",
+              "tags": "builder,perl"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "5.26"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.16 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.16",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.16,perl",
+              "tags": "hidden,builder,perl",
+              "version": "5.16"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/perl-516-centos7:latest"
+            },
+            "name": "5.16",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.20 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.20",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.20,perl",
+              "tags": "hidden,builder,perl",
+              "version": "5.20"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/perl-520-centos7:latest"
+            },
+            "name": "5.20",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.24",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.24,perl",
+              "tags": "builder,perl",
+              "version": "5.24"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/perl-524-centos7:latest"
+            },
+            "name": "5.24",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Perl 5.26 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.26",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.26,perl",
+              "tags": "builder,perl",
+              "version": "5.26"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/perl-526-centos7:latest"
+            },
+            "name": "5.26",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "PHP"
+        },
+        "name": "php"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run PHP applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major versions updates.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php",
+              "tags": "builder,php"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "7.1"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 5.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 5.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:5.5,php",
+              "tags": "hidden,builder,php",
+              "version": "5.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/php-55-centos7:latest"
+            },
+            "name": "5.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 5.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 5.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:5.6,php",
+              "tags": "hidden,builder,php",
+              "version": "5.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-56-centos7:latest"
+            },
+            "name": "5.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 7.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.0/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 7.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:7.0,php",
+              "tags": "builder,php",
+              "version": "7.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-70-centos7:latest"
+            },
+            "name": "7.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run PHP 7.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.1/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 7.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:7.1,php",
+              "tags": "builder,php",
+              "version": "7.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/php-71-centos7:latest"
+            },
+            "name": "7.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "PostgreSQL"
+        },
+        "name": "postgresql"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PostgreSQL available on OpenShift, including major versions updates.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,postgresql",
+              "version": "9.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/postgresql-92-centos7:latest"
+            },
+            "name": "9.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "hidden,database,postgresql",
+              "version": "9.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-94-centos7:latest"
+            },
+            "name": "9.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "9.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-95-centos7:latest"
+            },
+            "name": "9.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 9.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 9.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "9.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-96-centos7:latest"
+            },
+            "name": "9.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a PostgreSQL 10 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 10",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "10"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/postgresql-10-centos7:latest"
+            },
+            "name": "10",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Python"
+        },
+        "name": "python"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Python applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major versions updates.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python",
+              "tags": "builder,python"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.6"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.3",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.3,python",
+              "tags": "hidden,builder,python",
+              "version": "3.3"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/python-33-centos7:latest"
+            },
+            "name": "3.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 2.7",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:2.7,python",
+              "tags": "builder,python",
+              "version": "2.7"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-27-centos7:latest"
+            },
+            "name": "2.7",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.4/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.4,python",
+              "tags": "hidden,builder,python",
+              "version": "3.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-34-centos7:latest"
+            },
+            "name": "3.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.5,python",
+              "tags": "builder,python",
+              "version": "3.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-35-centos7:latest"
+            },
+            "name": "3.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Python 3.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.6,python",
+              "tags": "builder,python",
+              "version": "3.6"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/python-36-centos7:latest"
+            },
+            "name": "3.6",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Redis"
+        },
+        "name": "redis"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Provides a Redis database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Redis available on OpenShift, including major versions updates.",
+              "iconClass": "icon-redis",
+              "openshift.io/display-name": "Redis (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "redis"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.2"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Provides a Redis 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/3.2/README.md.",
+              "iconClass": "icon-redis",
+              "openshift.io/display-name": "Redis 3.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "redis",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/redis-32-centos7:latest"
+            },
+            "name": "3.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "Ruby"
+        },
+        "name": "ruby"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run Ruby applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.3/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby",
+              "tags": "builder,ruby"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.5"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.0,ruby",
+              "tags": "hidden,builder,ruby",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/ruby-20-centos7:latest"
+            },
+            "name": "2.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.2",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.2,ruby",
+              "tags": "hidden,builder,ruby",
+              "version": "2.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-22-centos7:latest"
+            },
+            "name": "2.2",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.3",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.3,ruby",
+              "tags": "builder,ruby",
+              "version": "2.3"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-23-centos7:latest"
+            },
+            "name": "2.3",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.4",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.4,ruby",
+              "tags": "builder,ruby",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-24-centos7:latest"
+            },
+            "name": "2.4",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 2.5",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:2.5,ruby",
+              "tags": "builder,ruby",
+              "version": "2.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/centos/ruby-25-centos7:latest"
+            },
+            "name": "2.5",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "annotations": {
+          "openshift.io/display-name": "WildFly"
+        },
+        "name": "wildfly"
+      },
+      "spec": {
+        "tags": [
+          {
+            "annotations": {
+              "description": "Build and run WildFly applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of WildFly available on OpenShift, including major versions updates.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "jee,java",
+              "tags": "builder,wildfly,java"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "15.0"
+            },
+            "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 8.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 8.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:8.1,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "8.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-81-centos7:latest"
+            },
+            "name": "8.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 9.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 9.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:9.0,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "9.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-90-centos7:latest"
+            },
+            "name": "9.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 10.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 10.0",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:10.0,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "10.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-100-centos7:latest"
+            },
+            "name": "10.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 10.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 10.1",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:10.1,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-101-centos7:latest"
+            },
+            "name": "10.1",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 11 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 11",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:11,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "11.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-110-centos7:latest"
+            },
+            "name": "11.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 12 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 12",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:12,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "12.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-120-centos7:latest"
+            },
+            "name": "12.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 13 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 13",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:13,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "13.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-130-centos7:latest"
+            },
+            "name": "13.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 14 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 14",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:14,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "14.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-140-centos7:latest"
+            },
+            "name": "14.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run WildFly 15 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 15",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:15,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "15.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "docker.io/openshift/wildfly-150-centos7:latest"
+            },
+            "name": "15.0",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
