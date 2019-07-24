@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -39,7 +40,13 @@ func NewPodTolerationsPlugin() admission.Interface {
 }
 
 func (p *podTolerations) Validate(attr admission.Attributes, _ admission.ObjectInterfaces) error {
-	if attr.GetResource().GroupResource() != coreapi.Resource("pods") && attr.GetKind().GroupKind() != coreapi.Kind("Pod") && len(attr.GetSubresource()) == 0 {
+	if attr.GetResource().GroupResource() != coreapi.Resource("pods") {
+		return nil
+	}
+	if attr.GetKind().GroupKind() != coreapi.Kind("Pod") {
+		return nil
+	}
+	if len(attr.GetSubresource()) != 0 {
 		return nil
 	}
 	pod, ok := attr.GetObject().(*coreapi.Pod)
@@ -56,12 +63,17 @@ func (p *podTolerations) validatePodTolerations(attr admission.Attributes, podSp
 	}
 	tolerations := podSpec.Tolerations
 	if len(podSpec.ServiceAccountName) == 0 {
-		return admission.NewForbidden(attr, fmt.Errorf("service account is not provided. The restrict pod tolerations plugin is completely lost"))
+		return admission.NewForbidden(attr, fmt.Errorf("serviceaccounts are required on pods that want to use tolerations"))
 	}
 	for _, toleration := range tolerations {
 		allow := p.IsAuthorized(podSpec.ServiceAccountName, attr, toleration)
+		var errs []error
 		if !allow {
-			return admission.NewForbidden(attr, fmt.Errorf("requested user %v doesn't have permission to provide the given tolerations", podSpec.ServiceAccountName))
+			errs = append(errs, fmt.Errorf("serviceaccounts doesn't have permission to provide the given toleration %v on the pod", toleration.Key))
+		}
+		if len(errs) > 0 {
+			err := v1helpers.NewMultiLineAggregate(errs)
+			return admission.NewForbidden(attr, err)
 		}
 	}
 	return nil
