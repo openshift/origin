@@ -10,15 +10,41 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/library-go/pkg/serviceability"
+
+	"github.com/openshift/api/apps"
+	"github.com/openshift/api/authorization"
+	"github.com/openshift/api/build"
+	"github.com/openshift/api/image"
+	"github.com/openshift/api/oauth"
+	"github.com/openshift/api/project"
+	"github.com/openshift/api/security"
+	"github.com/openshift/api/template"
+	"github.com/openshift/api/user"
+
 	openshift_controller_manager "github.com/openshift/openshift-controller-manager/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/openshift-controller-manager/pkg/version"
 )
+
+func init() {
+	// TODO: these references to the legacy scheme must go
+	//  They are only here because we have controllers referencing it, and inside hypershift this worked fine as openshift-apiserver was installing the API into the legacy scheme.
+	utilruntime.Must(apps.Install(legacyscheme.Scheme))
+	utilruntime.Must(authorization.Install(legacyscheme.Scheme))
+	utilruntime.Must(build.Install(legacyscheme.Scheme))
+	utilruntime.Must(image.Install(legacyscheme.Scheme))
+	utilruntime.Must(oauth.Install(legacyscheme.Scheme))
+	utilruntime.Must(project.Install(legacyscheme.Scheme))
+	utilruntime.Must(security.Install(legacyscheme.Scheme))
+	utilruntime.Must(template.Install(legacyscheme.Scheme))
+	utilruntime.Must(user.Install(legacyscheme.Scheme))
+}
 
 func main() {
 	stopCh := genericapiserver.SetupSignalHandler()

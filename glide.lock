@@ -1,5 +1,5 @@
 hash: dac4fb4e99b9debe92777c26c64ab25de44f4e8c71c4d1d8f2786744562fc709
-updated: 2019-07-18T09:31:21.632608924-04:00
+updated: 2019-07-22T09:45:51.804671+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -16,7 +16,7 @@ imports:
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
 - name: github.com/apparentlymart/go-cidr
-  version: 1755c023625ec3a84979b90841a1ab067ed6c071
+  version: b1115bf8e14a60131a196f908223e4506b0ddc35
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -921,7 +921,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 3fb334864749eacd019c24e50e9a0628b628cfbe
+  version: 9525304a0adb725ab4a4a54539a1a6bf6cc343d3
   subpackages:
   - annotations
   - apps
@@ -971,13 +971,11 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: c44a8b61b9f46cd9e802384dfeda0bc9942db68a
+  version: a85ea6a6b3a5d2dbe41582ee35695dd4683e1f02
   subpackages:
   - apps/clientset/versioned
-  - apps/clientset/versioned/fake
   - apps/clientset/versioned/scheme
   - apps/clientset/versioned/typed/apps/v1
-  - apps/clientset/versioned/typed/apps/v1/fake
   - apps/informers/externalversions
   - apps/informers/externalversions/apps
   - apps/informers/externalversions/apps/v1
@@ -992,30 +990,24 @@ imports:
   - authorization/informers/externalversions/internalinterfaces
   - authorization/listers/authorization/v1
   - build/clientset/versioned
-  - build/clientset/versioned/fake
   - build/clientset/versioned/scheme
   - build/clientset/versioned/typed/build/v1
-  - build/clientset/versioned/typed/build/v1/fake
   - build/informers/externalversions
   - build/informers/externalversions/build
   - build/informers/externalversions/build/v1
   - build/informers/externalversions/internalinterfaces
   - build/listers/build/v1
   - config/clientset/versioned
-  - config/clientset/versioned/fake
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
-  - config/clientset/versioned/typed/config/v1/fake
   - config/informers/externalversions
   - config/informers/externalversions/config
   - config/informers/externalversions/config/v1
   - config/informers/externalversions/internalinterfaces
   - config/listers/config/v1
   - image/clientset/versioned
-  - image/clientset/versioned/fake
   - image/clientset/versioned/scheme
   - image/clientset/versioned/typed/image/v1
-  - image/clientset/versioned/typed/image/v1/fake
   - image/informers/externalversions
   - image/informers/externalversions/image
   - image/informers/externalversions/image/v1
@@ -1045,40 +1037,32 @@ imports:
   - project/clientset/versioned/scheme
   - project/clientset/versioned/typed/project/v1
   - quota/clientset/versioned
-  - quota/clientset/versioned/fake
   - quota/clientset/versioned/scheme
   - quota/clientset/versioned/typed/quota/v1
-  - quota/clientset/versioned/typed/quota/v1/fake
   - quota/informers/externalversions
   - quota/informers/externalversions/internalinterfaces
   - quota/informers/externalversions/quota
   - quota/informers/externalversions/quota/v1
   - quota/listers/quota/v1
   - route/clientset/versioned
-  - route/clientset/versioned/fake
   - route/clientset/versioned/scheme
   - route/clientset/versioned/typed/route/v1
-  - route/clientset/versioned/typed/route/v1/fake
   - route/informers/externalversions
   - route/informers/externalversions/internalinterfaces
   - route/informers/externalversions/route
   - route/informers/externalversions/route/v1
   - route/listers/route/v1
   - security/clientset/versioned
-  - security/clientset/versioned/fake
   - security/clientset/versioned/scheme
   - security/clientset/versioned/typed/security/v1
-  - security/clientset/versioned/typed/security/v1/fake
   - security/informers/externalversions
   - security/informers/externalversions/internalinterfaces
   - security/informers/externalversions/security
   - security/informers/externalversions/security/v1
   - security/listers/security/v1
   - template/clientset/versioned
-  - template/clientset/versioned/fake
   - template/clientset/versioned/scheme
   - template/clientset/versioned/typed/template/v1
-  - template/clientset/versioned/typed/template/v1/fake
   - template/informers/externalversions
   - template/informers/externalversions/internalinterfaces
   - template/informers/externalversions/template
@@ -1193,7 +1177,7 @@ imports:
   - pkg/server/tokenrequest
   - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: 7775a17b574a60902dbf3302436864b5c0878daa
+  version: c71e9a146ea3621ff22a1fa767acc4eba60b0226
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1523,9 +1507,8 @@ imports:
   - pkg/user/apiserver/registry/useridentitymapping
   - pkg/version
 - name: github.com/openshift/openshift-controller-manager
-  version: 2081b8ed64c87164ba4e45572e43a3cf90c0ba76
+  version: bbf3bba343cd8e6790f1c63d3cb977891097b370
   subpackages:
-  - pkg/apps/appstest
   - pkg/apps/deployer
   - pkg/apps/deploymentconfig
   - pkg/apps/metrics/prometheus
@@ -1567,7 +1550,7 @@ imports:
   - pkg/unidling/controller
   - pkg/version
 - name: github.com/openshift/sdn
-  version: 02f8eaa37e149d895ca0fda1714cc3efac6105d6
+  version: ca6e3b021765f96e4069eae15318e82df4b3d63f
   subpackages:
   - pkg/network
   - pkg/network/common
@@ -1594,7 +1577,7 @@ imports:
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
-  version: dba45d427ff48cfb9bcf633db3a8e43b7364e261
+  version: c01d1270ff3e442a8a57cddc1c92dc1138598194
 - name: github.com/peterbourgon/diskv
   version: 5f041e8faa004a95c88a202771f4cc3e991971e6
 - name: github.com/pkg/errors
@@ -2096,7 +2079,6 @@ imports:
   - pkg/api/errors
   - pkg/api/meta
   - pkg/api/meta/table
-  - pkg/api/meta/testrestmapper
   - pkg/api/resource
   - pkg/api/validation
   - pkg/api/validation/path
@@ -2469,11 +2451,9 @@ imports:
   - plugin/pkg/client/auth/oidc
   - plugin/pkg/client/auth/openstack
   - rest
-  - rest/fake
   - rest/watch
   - restmapper
   - scale
-  - scale/fake
   - scale/scheme
   - scale/scheme/appsint
   - scale/scheme/appsv1beta1
@@ -2618,7 +2598,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: a45281f7de40f996f67d0ee7b886add59e7b5e8d
+  version: e511a1c4da22c7f0898f6b7f2a4b88971a9249e5
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

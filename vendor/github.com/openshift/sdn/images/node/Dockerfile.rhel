@@ -13,7 +13,7 @@ RUN INSTALL_PKGS=" \
       openvswitch2.11 container-selinux socat ethtool nmap-ncat \
       libmnl libnetfilter_conntrack conntrack-tools \
       libnfnetlink iproute bridge-utils procps-ng openssl \
-      binutils xz sysvinit-tools dbus nftables \
+      iputils binutils xz sysvinit-tools dbus nftables \
       " && \
     yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
     mkdir -p /etc/sysconfig/cni/net.d && \
