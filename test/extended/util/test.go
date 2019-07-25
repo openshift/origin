@@ -271,6 +271,9 @@ func skipTestNamespaceCustomization() bool {
 
 // createTestingNS ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
 func createTestingNS(baseName string, c kclientset.Interface, labels map[string]string) (*kapiv1.Namespace, error) {
+	if !strings.HasPrefix(baseName, "e2e-") {
+		baseName = "e2e-" + baseName
+	}
 	ns, err := e2e.CreateTestingNS(baseName, c, labels)
 	if err != nil {
 		return ns, err
