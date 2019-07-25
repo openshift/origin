@@ -86,7 +86,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 	// This test verifies that when a higher priority pod is created and no node with
 	// enough resources is found, scheduler preempts a lower priority pod to schedule
 	// the high priority pod.
-	It("validates basic preemption works", func() {
+	It("[Flaky] validates basic preemption works", func() {
 		var podRes v1.ResourceList
 		// Create one pod per node that uses a lot of the node's resources.
 		By("Create pods that use 60% of node resources.")
@@ -153,7 +153,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 	// This test verifies that when a critical pod is created and no node with
 	// enough resources is found, scheduler preempts a lower priority pod to schedule
 	// this critical pod.
-	It("validates lower priority pod preemption by critical pod", func() {
+	It("[Flaky] validates lower priority pod preemption by critical pod", func() {
 		var podRes v1.ResourceList
 		// Create one pod per node that uses a lot of the node's resources.
 		By("Create pods that use 60% of node resources.")
