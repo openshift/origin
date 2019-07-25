@@ -160,8 +160,6 @@ BuildRequires:  goversioninfo
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCHIVES=n make build-cross
 %endif
 
-# Generate man pages
-%{os_git_vars} make build-docs
 %endif
 
 %install
@@ -193,10 +191,6 @@ do
     ln -s oc %{buildroot}%{_bindir}/$cmd
 done
 
-# Install man1 man pages
-install -d -m 0755 %{buildroot}%{_mandir}/man1
-install -m 0644 docs/man/man1/* %{buildroot}%{_mandir}/man1/
-
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
 for bin in oc kubectl
@@ -217,7 +211,6 @@ done
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
 %{_sysconfdir}/bash_completion.d/kubectl
-%{_mandir}/man1/oc*
 
 %if 0%{?make_redistributable}
 %files clients-redistributable

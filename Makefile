@@ -95,8 +95,6 @@ verify: build
 	hack/verify-generated-bindata.sh ||r=1;\
 	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-openapi.sh ||r=1;\
-	hack/verify-generated-completions.sh ||r=1;\
-	hack/verify-cli-conventions.sh ||r=1;\
 	hack/verify-generated-json-codecs.sh ||r=1; \
 	hack/verify-generated-swagger-spec.sh ||r=1;\
 	exit $$r ;\
@@ -122,7 +120,6 @@ update:
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-openapi.sh
 	$(MAKE) build
-	hack/update-generated-completions.sh
 .PHONY: update
 
 # Update all generated artifacts for the API
