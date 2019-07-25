@@ -486,6 +486,11 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
 			`\[sig-api-machinery\] AdmissionWebhook Should be able to deny pod and configmap creation`,
 		},
+		// tests that aren't expected to pass under the old multitenant plugin
+		"[Skipped:multitenant]": {
+			`\[Feature:NetworkPolicy\]`,
+			`\[sig-network\] Services should preserve source pod IP for traffic thru service cluster IP`,
+		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
 		"[Suite:openshift/test-cmd]": {
