@@ -24,17 +24,15 @@ pushd "${OS_ROOT}" > /dev/null
     -ignore ".*\.(go|md)$" \
     -ignore "prometheus-standalone.yaml" \
     -ignore "node-exporter.yaml" \
-    test/extended/testdata/... \
-    test/integration/testdata \
     examples/db-templates \
-    examples/image-streams \
-    examples/sample-app \
-    examples/quickstarts/... \
-    examples/prometheus/... \
-    examples/hello-openshift \
-    examples/jenkins/... \
-    examples/quickstarts/cakephp-mysql.json \
-    install/...
+	examples/image-streams \
+	examples/sample-app \
+	examples/quickstarts/... \
+	examples/hello-openshift \
+	examples/jenkins/... \
+	examples/quickstarts/cakephp-mysql.json \
+    test/extended/testdata/... \
+    test/integration/testdata
 
 popd > /dev/null
 

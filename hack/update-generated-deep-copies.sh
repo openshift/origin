@@ -11,9 +11,6 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions
 ALL_FQ_APIS=(
-    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config
-    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1
-
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration

@@ -54,7 +54,7 @@ build-all:
 #
 # Example:
 #   make build-tests
-build-tests: build-extended-test build-integration-test
+build-tests: build-extended-test
 .PHONY: build-tests
 
 build-network:
@@ -65,10 +65,6 @@ build-extended-test:
 	hack/build-go.sh cmd/openshift-tests
 .PHONY: build-extended-test
 
-build-integration-test:
-	hack/build-go.sh test/integration/integration.test
-.PHONY: build-integration-test
-
 build-docs:
 	hack/generate-docs.sh
 .PHONY: build-docs
@@ -78,7 +74,7 @@ build-docs:
 # Example:
 #   make check
 check: | build verify
-	$(MAKE) test-unit test-cmd -o build -o verify
+	$(MAKE) test-unit -o build -o verify
 .PHONY: check
 
 
@@ -97,9 +93,7 @@ verify: build
 	hack/verify-govet.sh ||r=1;\
 	hack/verify-imports.sh ||r=1;\
 	hack/verify-generated-bindata.sh ||r=1;\
-	hack/verify-generated-conversions.sh ||r=1;\
 	hack/verify-generated-deep-copies.sh ||r=1;\
-	hack/verify-generated-defaulters.sh ||r=1;\
 	hack/verify-generated-openapi.sh ||r=1;\
 	hack/verify-generated-completions.sh ||r=1;\
 	hack/verify-cli-conventions.sh ||r=1;\
@@ -125,9 +119,7 @@ verify-commits:
 update:
 	hack/update-generated-versions.sh
 	hack/update-generated-bindata.sh
-	hack/update-generated-conversions.sh
 	hack/update-generated-deep-copies.sh
-	hack/update-generated-defaulters.sh
 	hack/update-generated-openapi.sh
 	$(MAKE) build
 	hack/update-generated-completions.sh
@@ -138,8 +130,6 @@ update:
 # Example:
 #   make update-api
 update-api:
-	hack/update-generated-conversions.sh
-	hack/update-generated-defaulters.sh
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-openapi.sh
 	$(MAKE) build
@@ -167,7 +157,7 @@ update-examples:
 #
 # Example:
 #   make test
-test: test-tools test-integration test-end-to-end
+test: test-tools
 .PHONY: test
 
 # Run unit tests.
@@ -185,38 +175,6 @@ test: test-tools test-integration test-end-to-end
 test-unit:
 	TEST_KUBE=true GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS)
 .PHONY: test-unit
-
-# Run integration tests. Compiles its own tests, cannot be run
-# in parallel with any other go compilation.
-#
-# Args:
-#   WHAT: Regular expression that matches the names of all of the
-#     integration tests to run.  If not specified, "everything" will be tested.
-#
-# Example:
-#   make test-integration
-#   make test-integration WHAT=TestProjectRequestError
-test-integration:
-	hack/test-integration.sh $(WHAT)
-.PHONY: test-integration
-
-# Run command tests. Uses whatever binaries are currently built.
-#
-# Example:
-#   make test-cmd
-test-cmd: build
-	hack/test-util.sh
-	hack/test-cmd.sh
-.PHONY: test-cmd
-
-# Run end to end tests. Uses whatever binaries are currently built.
-#
-# Example:
-#   make test-end-to-end
-# TODO restore 	COVERAGE_SPEC=' ' DETECT_RACES='false' TIMEOUT='10m' hack/test-go.sh ./test/end-to-end
-test-end-to-end:
-	hack/test-end-to-end.sh
-.PHONY: test-end-to-end
 
 # Run tools tests.
 #
