@@ -17,12 +17,16 @@ import (
 	"github.com/openshift/origin/test/extended/cluster/metrics"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -583,10 +587,85 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName, config stri
 	return nil
 }
 
+// CreateSimpleTemplates creates templates in user defined namespaces without tuningsets
+func CreateSimpleTemplates(oc *exutil.CLI, nsName, config string, template ClusterLoaderObjectType) error {
+	clusterAdminClientConfig := oc.AdminConfig()
+	restmapper := oc.AsAdmin().RESTMapper()
+
+	templateFile, err := mkPath(template.File, config)
+	if err != nil {
+		return err
+	}
+	e2e.Logf("We're loading file %v: ", templateFile)
+
+	data, err := ioutil.ReadFile(templateFile)
+	if err != nil {
+		return err
+	}
+
+	templateObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, data)
+	if err != nil {
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(clusterAdminClientConfig)
+	if err != nil {
+		return err
+	}
+
+	temp := templateObj.(*unstructured.Unstructured)
+	parameters, ok := temp.Object["parameters"]
+	if !ok {
+		e2e.Logf("Template has no parameters")
+	}
+	params := parameters.([]interface{})
+
+	for count := 0; count < template.Number; count++ {
+		for _, p := range params {
+			field := p.(map[string]interface{})
+			if field["name"] == "IDENTIFIER" {
+				field["value"] = fmt.Sprintf("%d", count)
+				break
+			}
+		}
+		e2e.Logf("New Parameters: %v", params)
+
+		processedList, err := templateprocessingclient.NewDynamicTemplateProcessor(dynamicClient).ProcessToListFromUnstructured(templateObj.(*unstructured.Unstructured))
+		if err != nil {
+			return err
+		}
+
+		processedItems := len(processedList.Items)
+		if processedItems == 0 {
+			return err
+		}
+		e2e.Logf("Processed template list (items %d): %v\n", processedItems, templateObj)
+
+		for _, v := range processedList.Items {
+			var err error
+			unstructuredObj := &unstructured.Unstructured{}
+			unstructuredObj.Object = v.Object
+			if err != nil {
+				return err
+			}
+
+			mapping, err := restmapper.RESTMapping(unstructuredObj.GroupVersionKind().GroupKind(), unstructuredObj.GroupVersionKind().Version)
+			createdObj, err := dynamicClient.Resource(mapping.Resource).Namespace(nsName).Create(unstructuredObj, metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+			e2e.Logf("Created object: %v\n", createdObj)
+		}
+	}
+
+	return nil
+}
+
 func getNsCmdFlag(name string) string {
 	return fmt.Sprintf("--namespace=%v", name)
 }
 
+// SetNamespaceLabels sets the labels of a namespace
 func SetNamespaceLabels(c kclientset.Interface, name string, labels map[string]string) (*kapiv1.Namespace, error) {
 	if len(labels) == 0 {
 		return nil, nil
@@ -599,6 +678,7 @@ func SetNamespaceLabels(c kclientset.Interface, name string, labels map[string]s
 	return c.CoreV1().Namespaces().Update(ns)
 }
 
+// ProjectExists checks to see if a namespace exists, returns boolean
 func ProjectExists(oc *exutil.CLI, name string) (bool, error) {
 	p, err := oc.AdminProjectClient().ProjectV1().Projects().Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -613,6 +693,7 @@ func ProjectExists(oc *exutil.CLI, name string) (bool, error) {
 	return false, nil
 }
 
+// DeleteProject deletes a namespace with timeout
 func DeleteProject(oc *exutil.CLI, name string, interval, timeout time.Duration) error {
 	e2e.Logf("Deleting project %v ...", name)
 	err := oc.AdminProjectClient().ProjectV1().Projects().Delete(name, &metav1.DeleteOptions{})
