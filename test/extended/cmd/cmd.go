@@ -111,7 +111,7 @@ var _ = g.Describe("[Suite:openshift/test-cmd][Serial][Disruptive] test-cmd:", f
 					{Name: "TEST_NAME", Value: currFilename[0 : len(currFilename)-3]},
 					{Name: "TEST_DATA", Value: "/var/tests/test/cmd/testdata"},
 				},
-				2*time.Minute, // FIXME: code still WIP, let's just see that it works
+				5*time.Minute,
 			)
 			e2e.Logf("Logs from the container: %s", log)
 			o.Expect(errs).To(o.HaveLen(0))
