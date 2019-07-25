@@ -79,7 +79,7 @@ echo "resource-builder: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/pods"
-os::cmd::expect_success 'oc get pods --match-server-version'
+os::cmd::expect_success 'oc get pods'
 os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
 os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'

@@ -25,7 +25,6 @@ import (
 var allCanRunPerms int32 = 0777
 
 var blacklist = sets.NewString(
-	"basicresources.sh",
 	"login.sh",    // fails because so much depends on `oc login`
 	"migrate.sh",  // seems unnecessary since we never run it
 	"newapp.sh",   // our image is missing git, so a lot of it doesn't work
