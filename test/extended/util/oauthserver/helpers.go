@@ -12,7 +12,7 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/oc/pkg/helpers/tokencmd"
+	"github.com/openshift/origin/test/extended/util/oauthserver/tokencmd"
 )
 
 var (

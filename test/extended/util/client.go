@@ -61,7 +61,6 @@ import (
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
-	"github.com/openshift/oc/pkg/helpers/kubeconfig"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -152,7 +151,7 @@ func (c *CLI) AsAdmin() *CLI {
 func (c *CLI) ChangeUser(name string) *CLI {
 	clientConfig := c.GetClientConfigForUser(name)
 
-	kubeConfig, err := kubeconfig.CreateConfig(c.Namespace(), clientConfig)
+	kubeConfig, err := createConfig(c.Namespace(), clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
