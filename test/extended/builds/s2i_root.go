@@ -10,7 +10,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
 func Before(oc *exutil.CLI) {
@@ -43,8 +42,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseFailed))
-		o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
-		o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
+		o.Expect(build.Status.Reason).To(o.BeEquivalentTo("PullBuilderImageFailed" /*s2istatus.ReasonPullBuilderImageFailed*/))
+		o.Expect(build.Status.Message).To(o.BeEquivalentTo("Failed to pull builder image." /*s2istatus.ReasonMessagePullBuilderImageFailed*/))
 
 		podname := build.Annotations[buildv1.BuildPodNameAnnotation]
 		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
