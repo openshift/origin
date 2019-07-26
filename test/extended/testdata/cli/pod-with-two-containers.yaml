@@ -1,0 +1,33 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: doublecontainers
+  labels:
+    name: hello-openshift
+spec:
+  containers:
+  - name: hello-openshift
+    image: aosqe/hello-openshift
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    resources:
+      limits:
+        memory: 256Mi
+    terminationMessagePath: "/dev/termination-log"
+    imagePullPolicy: IfNotPresent
+    capabilities: {}
+    securityContext: {}
+  - name: hello-openshift-fedora
+    image: aosqe/fedora_base
+    resources:
+      limits:
+        memory: 256Mi
+    terminationMessagePath: "/dev/termination-log1"
+    imagePullPolicy: IfNotPresent
+    capabilities: {}
+    securityContext: {}
+  restartPolicy: Always
+  dnsPolicy: ClusterFirst
+  serviceAccount: ''
+status: {}
