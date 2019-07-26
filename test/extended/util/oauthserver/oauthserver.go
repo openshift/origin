@@ -146,6 +146,9 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	_, err = cmClient.Create(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oauth-config",
+			Labels: map[string]string{
+				"app": "test-oauth-server",
+			},
 		},
 		Data: map[string]string{
 			"oauth.conf": string(configBytes),
@@ -349,6 +352,7 @@ func routerCertsToSNIConfig(oc *exutil.CLI) ([]configv1.NamedCertificate, error)
 	}
 	localRouterSecret := routerSecret.DeepCopy()
 	localRouterSecret.ResourceVersion = ""
+	localRouterSecret.Labels = map[string]string{"app": "test-oauth-server"}
 	localRouterSecret.Namespace = oc.Namespace()
 	if _, err := oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).Create(localRouterSecret); err != nil {
 		return nil, err
