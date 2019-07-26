@@ -164,10 +164,16 @@ func (c *NetworkConfig) RunProxy() {
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
+		hp, ok := proxier.(hybrid.RunnableProxy)
+		if !ok {
+			// unreachable
+			glog.Fatalf("unidling proxy must be used in iptables mode")
+		}
 		proxier, err = hybrid.NewHybridProxier(
-			proxier,
+			hp,
 			unidlingUserspaceProxy,
 			c.ProxyConfig.IPTables.SyncPeriod.Duration,
+			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
 		)
 		if err != nil {
