@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -12,6 +11,8 @@ import (
 	"k8s.io/klog"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
+	"strings"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
@@ -65,16 +66,17 @@ func (p *podTolerations) validatePodTolerations(attr admission.Attributes, podSp
 	if len(podSpec.ServiceAccountName) == 0 {
 		return admission.NewForbidden(attr, fmt.Errorf("serviceaccounts are required on pods that want to use tolerations"))
 	}
+	var errs []error
 	for _, toleration := range tolerations {
 		allow := p.IsAuthorized(podSpec.ServiceAccountName, attr, toleration)
-		var errs []error
 		if !allow {
-			errs = append(errs, fmt.Errorf("serviceaccounts doesn't have permission to provide the given toleration %v on the pod", toleration.Key))
+			errs = append(errs, fmt.Errorf("serviceaccount doesn't have permission to provide the given toleration %v on the pod", toleration.Key))
 		}
-		if len(errs) > 0 {
-			err := v1helpers.NewMultiLineAggregate(errs)
-			return admission.NewForbidden(attr, err)
-		}
+
+	}
+	if len(errs) > 0 {
+		err := v1helpers.NewMultiLineAggregate(errs)
+		return admission.NewForbidden(attr, err)
 	}
 	return nil
 }
@@ -89,10 +91,10 @@ func (p *podTolerations) IsAuthorized(podSAName string, attr admission.Attribute
 
 // buildTolerationsAuthorizationAttributes builds the tolerations attributes from the user
 func buildTolerationsAuthorizationAttributes(info user.Info, namespace string, toleration coreapi.Toleration) authorizer.Attributes {
-	verb := toleration.Operator
+	verb := strings.ToLower(string(toleration.Operator))
 	tolerationKey := toleration.Key
 	if len(toleration.Key) == 0 {
-		tolerationKey = masterToleration
+		tolerationKey = "*"
 	}
 	authzAttr := authorizer.AttributesRecord{
 		User:            info,
