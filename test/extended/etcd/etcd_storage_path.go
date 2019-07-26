@@ -637,13 +637,12 @@ func JSONToUnstructured(stub, namespace string, mapping *meta.RESTMapping, dynam
 var protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
 
 func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
-	response, err := kv.Get(context.Background(), "/"+path, etcdv3.WithSerializable())
+	response, err := kv.Get(context.Background(), "/"+path)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(response.Kvs) == 0 {
-		return nil, fmt.Errorf("no keys found for %q", "/"+path)
+	if response.More || response.Count != 1 || len(response.Kvs) != 1 {
+		return nil, fmt.Errorf("invalid etcd response (not found == %v): %#v", response.Count == 0, response)
 	}
 
 	value := response.Kvs[0].Value
