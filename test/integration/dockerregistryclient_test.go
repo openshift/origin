@@ -142,7 +142,7 @@ func TestRegistryClientDockerHubV2(t *testing.T) {
 
 	var image *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		image, err = conn.ImageByTag("kubernetes", "guestbook", "latest")
+		image, err = conn.ImageByTag("openshift", "hello-openshift", "latest")
 		return err
 	})
 	if err != nil {
@@ -163,7 +163,7 @@ func TestRegistryClientDockerHubV1(t *testing.T) {
 
 	var image *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		image, err = conn.ImageByTag("kubernetes", "guestbook", "latest")
+		image, err = conn.ImageByTag("openshift", "hello-openshift", "latest")
 		return err
 	})
 	if err != nil {
@@ -242,7 +242,7 @@ func TestRegistryClientAPIv2ManifestV2Schema1(t *testing.T) {
 	doTestRegistryClientImage(t, dockerHubV2RegistryName, "schema-v1-test-repo", "v2")
 }
 
-func TestRegistryClientAPIv1(t *testing.T) {
+func DISABLEDTestRegistryClientAPIv1(t *testing.T) {
 	t.Log("openshift/schema-v1-test-repo was pushed by Docker 1.8.2")
 	doTestRegistryClientImage(t, dockerHubV1RegistryName, "schema-v1-test-repo", "v1")
 }

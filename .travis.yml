@@ -5,6 +5,7 @@ go:
 
 install:
   - export PATH=$GOPATH/bin:./_output/tools/etcd/bin:$PATH
+  - git fetch origin 'refs/tags/*:refs/tags/*'
   - make install-travis
 
 script:
