@@ -23,7 +23,7 @@ func shutdown(flags *mflag.FlagSet, action string, m storage.Store, args []strin
 		}
 	} else {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v\n", action, err)
+			fmt.Fprintf(os.Stderr, "%s: %+v\n", action, err)
 		}
 	}
 	if err != nil {

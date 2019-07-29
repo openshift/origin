@@ -12,7 +12,7 @@ import (
 
 // prepareFiles creates files for testing in the temp directory
 func prepareFiles(t *testing.T) (string, string, string, string) {
-	dir, err := ioutil.TempDir("", "docker-system-test")
+	dir, err := ioutil.TempDir("", "storage-system-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestLUtimesNano(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ts := []syscall.Timespec{{0, 0}, {0, 0}}
+	ts := []syscall.Timespec{{Sec: 0, Nsec: 0}, {Sec: 0, Nsec: 0}}
 	if err := LUtimesNano(symlink, ts); err != nil {
 		t.Fatal(err)
 	}

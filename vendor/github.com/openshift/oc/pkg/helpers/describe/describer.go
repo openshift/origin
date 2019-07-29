@@ -718,11 +718,15 @@ func DescribeImage(image *imagev1.Image, imageName string) (string, error) {
 		formatString(out, "Author", dockerImage.Author)
 		formatString(out, "Arch", dockerImage.Architecture)
 
-		if dockerImage.Config != nil {
-			// Config is the configuration of the container received from the client.
-			// In most cases this field is always set for images.
-			describeDockerImage(out, dockerImage.Config)
+		dockerImageConfig := dockerImage.Config
+		// This field should always be populated, if it is not we should print empty fields.
+		if dockerImageConfig == nil {
+			dockerImageConfig = &dockerv10.DockerConfig{}
 		}
+
+		// Config is the configuration of the container received from the client.
+		// In most cases this field is always set for images.
+		describeDockerImage(out, dockerImageConfig)
 		return nil
 	})
 }

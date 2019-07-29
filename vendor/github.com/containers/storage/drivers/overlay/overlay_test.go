@@ -3,14 +3,15 @@
 package overlay
 
 import (
+	"io/ioutil"
 	"os"
-	"syscall"
 	"testing"
 
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/graphtest"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/reexec"
+	"golang.org/x/sys/unix"
 )
 
 const driverName = "overlay"
@@ -32,7 +33,19 @@ func cdMountFrom(dir, device, target, mType, label string) error {
 	os.Chdir(dir)
 	defer os.Chdir(wd)
 
-	return syscall.Mount(device, target, mType, 0, label)
+	return unix.Mount(device, target, mType, 0, label)
+}
+
+func skipIfNaive(t *testing.T) {
+	td, err := ioutil.TempDir("", "naive-check-")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+
+	if err := doesSupportNativeDiff(td, ""); err != nil {
+		t.Skipf("Cannot run test with naive diff")
+	}
 }
 
 // This avoids creating a new driver for each test if all tests are run
@@ -53,20 +66,30 @@ func TestOverlayCreateSnap(t *testing.T) {
 	graphtest.DriverTestCreateSnap(t, driverName)
 }
 
+func TestOverlayCreateFromTemplate(t *testing.T) {
+	graphtest.DriverTestCreateFromTemplate(t, driverName)
+}
+
 func TestOverlay128LayerRead(t *testing.T) {
 	graphtest.DriverTestDeepLayerRead(t, 128, driverName)
 }
 
 func TestOverlayDiffApply10Files(t *testing.T) {
+	skipIfNaive(t)
 	graphtest.DriverTestDiffApply(t, 10, driverName)
 }
 
 func TestOverlayChanges(t *testing.T) {
+	skipIfNaive(t)
 	graphtest.DriverTestChanges(t, driverName)
 }
 
 func TestOverlayTeardown(t *testing.T) {
 	graphtest.PutDriver(t)
+}
+
+func TestOverlayEcho(t *testing.T) {
+	graphtest.DriverTestEcho(t, driverName)
 }
 
 // Benchmarks should always setup new driver

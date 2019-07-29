@@ -16,12 +16,14 @@ case "${ID_LIKE:-${ID:-unknown}}" in
     apt-get -q -y install zfs-dkms zfsutils-linux
     apt-get -q -y install golang gccgo
     apt-get -q -y install bats
+    apt-get -q -y install libostree-dev ostree
     ;;
   fedora)
     dnf -y clean all
     dnf -y install make git gcc btrfs-progs-devel device-mapper-devel
     dnf -y install golang gcc-go
     dnf -y install bats
+    dnf -y install ostree-devel ostree
     alternatives --set go /usr/lib/golang/bin/go
     ;;
   unknown)

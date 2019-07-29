@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-type testcase struct {
+type Testcase struct {
 	request *http.Request
 	*Http
 }
@@ -39,42 +39,43 @@ func newBaseHttp() *Http {
 		Headers: map[string]string{"Foo": "bar"},
 		Env:     map[string]string{"REMOTE_ADDR": "127.0.0.1", "REMOTE_PORT": "8000"},
 	}
+	h.Headers["Host"] = "example.com"
 	return h
 }
 
-func NewRequest() testcase {
-	return testcase{newBaseRequest(), newBaseHttp()}
+func NewRequest() Testcase {
+	return Testcase{newBaseRequest(), newBaseHttp()}
 }
 
-func NewRequestIPV6() testcase {
+func NewRequestIPV6() Testcase {
 	req := newBaseRequest()
 	req.RemoteAddr = "[:1]:8000"
 
 	h := newBaseHttp()
 	h.Env = map[string]string{"REMOTE_ADDR": ":1", "REMOTE_PORT": "8000"}
-	return testcase{req, h}
+	return Testcase{req, h}
 }
 
-func NewRequestMultipleHeaders() testcase {
+func NewRequestMultipleHeaders() Testcase {
 	req := newBaseRequest()
 	req.Header.Add("Foo", "baz")
 
 	h := newBaseHttp()
 	h.Headers["Foo"] = "bar,baz"
-	return testcase{req, h}
+	return Testcase{req, h}
 }
 
-func NewSecureRequest() testcase {
+func NewSecureRequest() Testcase {
 	req := newBaseRequest()
 	req.Header.Add("X-Forwarded-Proto", "https")
 
 	h := newBaseHttp()
 	h.URL = "https://example.com/"
 	h.Headers["X-Forwarded-Proto"] = "https"
-	return testcase{req, h}
+	return Testcase{req, h}
 }
 
-func NewCookiesRequest() testcase {
+func NewCookiesRequest() Testcase {
 	val := "foo=bar; bar=baz"
 	req := newBaseRequest()
 	req.Header.Add("Cookie", val)
@@ -82,10 +83,10 @@ func NewCookiesRequest() testcase {
 	h := newBaseHttp()
 	h.Cookies = val
 	h.Headers["Cookie"] = val
-	return testcase{req, h}
+	return Testcase{req, h}
 }
 
-var newHttpTests = []testcase{
+var newHttpTests = []Testcase{
 	NewRequest(),
 	NewRequestIPV6(),
 	NewRequestMultipleHeaders(),

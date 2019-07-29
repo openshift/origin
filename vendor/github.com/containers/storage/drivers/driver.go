@@ -2,6 +2,7 @@ package graphdriver
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,14 +29,32 @@ var (
 
 	// ErrNotSupported returned when driver is not supported.
 	ErrNotSupported = errors.New("driver not supported")
-	// ErrPrerequisites retuned when driver does not meet prerequisites.
+	// ErrPrerequisites returned when driver does not meet prerequisites.
 	ErrPrerequisites = errors.New("prerequisites for driver not satisfied (wrong filesystem?)")
 	// ErrIncompatibleFS returned when file system is not supported.
 	ErrIncompatibleFS = fmt.Errorf("backing file system is unsupported for this graph driver")
 )
 
+//CreateOpts contains optional arguments for Create() and CreateReadWrite()
+// methods.
+type CreateOpts struct {
+	MountLabel string
+	StorageOpt map[string]string
+	*idtools.IDMappings
+}
+
+// MountOpts contains optional arguments for LayerStope.Mount() methods.
+type MountOpts struct {
+	// Mount label is the MAC Labels to assign to mount point (SELINUX)
+	MountLabel string
+	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
+	UidMaps []idtools.IDMap
+	GidMaps []idtools.IDMap
+	Options []string
+}
+
 // InitFunc initializes the storage driver.
-type InitFunc func(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error)
+type InitFunc func(homedir string, options Options) (Driver, error)
 
 // ProtoDriver defines the basic capabilities of a driver.
 // This interface exists solely to be a minimum set of methods
@@ -47,17 +66,23 @@ type ProtoDriver interface {
 	// String returns a string representation of this driver.
 	String() string
 	// CreateReadWrite creates a new, empty filesystem layer that is ready
-	// to be used as the storage for a container.
-	CreateReadWrite(id, parent, mountLabel string, storageOpt map[string]string) error
+	// to be used as the storage for a container. Additional options can
+	// be passed in opts. parent may be "" and opts may be nil.
+	CreateReadWrite(id, parent string, opts *CreateOpts) error
 	// Create creates a new, empty, filesystem layer with the
-	// specified id and parent and mountLabel. Parent and mountLabel may be "".
-	Create(id, parent, mountLabel string, storageOpt map[string]string) error
+	// specified id and parent and options passed in opts. Parent
+	// may be "" and opts may be nil.
+	Create(id, parent string, opts *CreateOpts) error
+	// CreateFromTemplate creates a new filesystem layer with the specified id
+	// and parent, with contents identical to the specified template layer.
+	CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *CreateOpts, readWrite bool) error
 	// Remove attempts to remove the filesystem layer with this id.
 	Remove(id string) error
 	// Get returns the mountpoint for the layered filesystem referred
 	// to by this id. You can optionally specify a mountLabel or "".
+	// Optionally it gets the mappings used to create the layer.
 	// Returns the absolute path to the mounted layered filesystem.
-	Get(id, mountLabel string) (dir string, err error)
+	Get(id string, options MountOpts) (dir string, err error)
 	// Put releases the system resources for the specified id,
 	// e.g, unmounting layered filesystem.
 	Put(id string) error
@@ -78,24 +103,64 @@ type ProtoDriver interface {
 	AdditionalImageStores() []string
 }
 
-// Driver is the interface for layered/snapshot file system drivers.
-type Driver interface {
-	ProtoDriver
+// DiffDriver is the interface to use to implement graph diffs
+type DiffDriver interface {
 	// Diff produces an archive of the changes between the specified
 	// layer and its parent layer which may be "".
-	Diff(id, parent string) (archive.Archive, error)
+	Diff(id string, idMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error)
 	// Changes produces a list of changes between the specified layer
 	// and its parent layer. If parent is "", then all changes will be ADD changes.
-	Changes(id, parent string) ([]archive.Change, error)
+	Changes(id string, idMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error)
 	// ApplyDiff extracts the changeset from the given diff into the
 	// layer with the specified id and parent, returning the size of the
 	// new layer in bytes.
-	// The archive.Reader must be an uncompressed stream.
-	ApplyDiff(id, parent string, diff archive.Reader) (size int64, err error)
+	// The io.Reader must be an uncompressed stream.
+	ApplyDiff(id string, idMappings *idtools.IDMappings, parent string, mountLabel string, diff io.Reader) (size int64, err error)
 	// DiffSize calculates the changes between the specified id
 	// and its parent and returns the size in bytes of the changes
 	// relative to its base filesystem directory.
-	DiffSize(id, parent string) (size int64, err error)
+	DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, mountLabel string) (size int64, err error)
+}
+
+// LayerIDMapUpdater is the interface that implements ID map changes for layers.
+type LayerIDMapUpdater interface {
+	// UpdateLayerIDMap walks the layer's filesystem tree, changing the ownership
+	// information using the toContainer and toHost mappings, using them to replace
+	// on-disk owner UIDs and GIDs which are "host" values in the first map with
+	// UIDs and GIDs for "host" values from the second map which correspond to the
+	// same "container" IDs.  This method should only be called after a layer is
+	// first created and populated, and before it is mounted, as other changes made
+	// relative to a parent layer, but before this method is called, may be discarded
+	// by Diff().
+	UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error
+
+	// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in a
+	// image and it is not required to Chown the files when running in an user namespace.
+	SupportsShifting() bool
+}
+
+// Driver is the interface for layered/snapshot file system drivers.
+type Driver interface {
+	ProtoDriver
+	DiffDriver
+	LayerIDMapUpdater
+}
+
+// Capabilities defines a list of capabilities a driver may implement.
+// These capabilities are not required; however, they do determine how a
+// graphdriver can be used.
+type Capabilities struct {
+	// Flags that this driver is capable of reproducing exactly equivalent
+	// diffs for read-only layers. If set, clients can rely on the driver
+	// for consistent tar streams, and avoid extra processing to account
+	// for potential differences (eg: the layer store's use of tar-split).
+	ReproducesExactDiffs bool
+}
+
+// CapabilityDriver is the interface for layered file system drivers that
+// can report on their Capabilities.
+type CapabilityDriver interface {
+	Capabilities() Capabilities
 }
 
 // DiffGetterDriver is the interface for layered file system drivers that
@@ -136,35 +201,43 @@ func Register(name string, initFunc InitFunc) error {
 }
 
 // GetDriver initializes and returns the registered driver
-func GetDriver(name, home string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error) {
+func GetDriver(name string, config Options) (Driver, error) {
 	if initFunc, exists := drivers[name]; exists {
-		return initFunc(filepath.Join(home, name), options, uidMaps, gidMaps)
+		return initFunc(filepath.Join(config.Root, name), config)
 	}
-	if pluginDriver, err := lookupPlugin(name, home, options); err == nil {
-		return pluginDriver, nil
-	}
-	logrus.Errorf("Failed to GetDriver graph %s %s", name, home)
-	return nil, errors.Wrapf(ErrNotSupported, "failed to GetDriver graph %s %s", name, home)
+
+	logrus.Errorf("Failed to GetDriver graph %s %s", name, config.Root)
+	return nil, errors.Wrapf(ErrNotSupported, "failed to GetDriver graph %s %s", name, config.Root)
 }
 
 // getBuiltinDriver initializes and returns the registered driver, but does not try to load from plugins
-func getBuiltinDriver(name, home string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error) {
+func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 	if initFunc, exists := drivers[name]; exists {
-		return initFunc(filepath.Join(home, name), options, uidMaps, gidMaps)
+		return initFunc(filepath.Join(home, name), options)
 	}
 	logrus.Errorf("Failed to built-in GetDriver graph %s %s", name, home)
 	return nil, errors.Wrapf(ErrNotSupported, "failed to built-in GetDriver graph %s %s", name, home)
 }
 
+// Options is used to initialize a graphdriver
+type Options struct {
+	Root                string
+	RunRoot             string
+	DriverOptions       []string
+	UIDMaps             []idtools.IDMap
+	GIDMaps             []idtools.IDMap
+	ExperimentalEnabled bool
+}
+
 // New creates the driver and initializes it at the specified root.
-func New(root string, name string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error) {
+func New(name string, config Options) (Driver, error) {
 	if name != "" {
 		logrus.Debugf("[graphdriver] trying provided driver %q", name) // so the logs show specified driver
-		return GetDriver(name, root, options, uidMaps, gidMaps)
+		return GetDriver(name, config)
 	}
 
 	// Guess for prior driver
-	driversMap := scanPriorDrivers(root)
+	driversMap := scanPriorDrivers(config.Root)
 	for _, name := range priority {
 		if name == "vfs" {
 			// don't use vfs even if there is state present.
@@ -173,13 +246,13 @@ func New(root string, name string, options []string, uidMaps, gidMaps []idtools.
 		if _, prior := driversMap[name]; prior {
 			// of the state found from prior drivers, check in order of our priority
 			// which we would prefer
-			driver, err := getBuiltinDriver(name, root, options, uidMaps, gidMaps)
+			driver, err := getBuiltinDriver(name, config.Root, config)
 			if err != nil {
 				// unlike below, we will return error here, because there is prior
 				// state, and now it is no longer supported/prereq/compatible, so
 				// something changed and needs attention. Otherwise the daemon's
 				// images would just "disappear".
-				logrus.Errorf("[graphdriver] prior storage driver %q failed: %s", name, err)
+				logrus.Errorf("[graphdriver] prior storage driver %s failed: %s", name, err)
 				return nil, err
 			}
 
@@ -191,17 +264,17 @@ func New(root string, name string, options []string, uidMaps, gidMaps []idtools.
 					driversSlice = append(driversSlice, name)
 				}
 
-				return nil, fmt.Errorf("%q contains several valid graphdrivers: %s; Please cleanup or explicitly choose storage driver (-s <DRIVER>)", root, strings.Join(driversSlice, ", "))
+				return nil, fmt.Errorf("%s contains several valid graphdrivers: %s; Please cleanup or explicitly choose storage driver (-s <DRIVER>)", config.Root, strings.Join(driversSlice, ", "))
 			}
 
-			logrus.Infof("[graphdriver] using prior storage driver %q", name)
+			logrus.Infof("[graphdriver] using prior storage driver: %s", name)
 			return driver, nil
 		}
 	}
 
 	// Check for priority drivers first
 	for _, name := range priority {
-		driver, err := getBuiltinDriver(name, root, options, uidMaps, gidMaps)
+		driver, err := getBuiltinDriver(name, config.Root, config)
 		if err != nil {
 			if isDriverNotSupported(err) {
 				continue
@@ -213,7 +286,7 @@ func New(root string, name string, options []string, uidMaps, gidMaps []idtools.
 
 	// Check all registered drivers if no priority driver is found
 	for name, initFunc := range drivers {
-		driver, err := initFunc(filepath.Join(root, name), options, uidMaps, gidMaps)
+		driver, err := initFunc(filepath.Join(config.Root, name), config)
 		if err != nil {
 			if isDriverNotSupported(err) {
 				continue

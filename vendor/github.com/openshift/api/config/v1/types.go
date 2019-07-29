@@ -17,6 +17,8 @@ type ConfigMapFileReference struct {
 // The namespace must be specified at the point of use.
 type ConfigMapNameReference struct {
 	// name is the metadata.name of the referenced config map
+	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 }
 
@@ -24,6 +26,8 @@ type ConfigMapNameReference struct {
 // The namespace must be specified at the point of use.
 type SecretNameReference struct {
 	// name is the metadata.name of the referenced secret
+	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 }
 

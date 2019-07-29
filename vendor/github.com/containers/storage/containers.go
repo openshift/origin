@@ -2,20 +2,18 @@ package storage
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
-)
-
-var (
-	// ErrContainerUnknown indicates that there was no container with the specified name or ID
-	ErrContainerUnknown = errors.New("container not known")
+	digest "github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 // A Container is a reference to a read-write layer with metadata.
@@ -50,11 +48,21 @@ type Container struct {
 	// that has been stored, if they're known.
 	BigDataSizes map[string]int64 `json:"big-data-sizes,omitempty"`
 
+	// BigDataDigests maps the names in BigDataNames to the digests of the
+	// data that has been stored, if they're known.
+	BigDataDigests map[string]digest.Digest `json:"big-data-digests,omitempty"`
+
 	// Created is the datestamp for when this container was created.  Older
 	// versions of the library did not track this information, so callers
 	// will likely want to use the IsZero() method to verify that a value
 	// is set before using it.
 	Created time.Time `json:"created,omitempty"`
+
+	// UIDMap and GIDMap are used for setting up a container's root
+	// filesystem for use inside of a user namespace where UID mapping is
+	// being used.
+	UIDMap []idtools.IDMap `json:"uidmap,omitempty"`
+	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
 
 	Flags map[string]interface{} `json:"flags,omitempty"`
 }
@@ -63,14 +71,16 @@ type Container struct {
 type ContainerStore interface {
 	FileBasedStore
 	MetadataStore
-	BigDataStore
+	ContainerBigDataStore
 	FlaggableStore
 
 	// Create creates a container that has a specified ID (or generates a
 	// random one if an empty value is supplied) and optional names,
 	// based on the specified image, using the specified layer as its
 	// read-write layer.
-	Create(id string, names []string, image, layer, metadata string) (*Container, error)
+	// The maps in the container's options structure are recorded for the
+	// convenience of the caller, nothing more.
+	Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (*Container, error)
 
 	// SetNames updates the list of names associated with the container
 	// with the specified ID.
@@ -106,10 +116,48 @@ type containerStore struct {
 	byname     map[string]*Container
 }
 
+func copyContainer(c *Container) *Container {
+	return &Container{
+		ID:             c.ID,
+		Names:          copyStringSlice(c.Names),
+		ImageID:        c.ImageID,
+		LayerID:        c.LayerID,
+		Metadata:       c.Metadata,
+		BigDataNames:   copyStringSlice(c.BigDataNames),
+		BigDataSizes:   copyStringInt64Map(c.BigDataSizes),
+		BigDataDigests: copyStringDigestMap(c.BigDataDigests),
+		Created:        c.Created,
+		UIDMap:         copyIDMap(c.UIDMap),
+		GIDMap:         copyIDMap(c.GIDMap),
+		Flags:          copyStringInterfaceMap(c.Flags),
+	}
+}
+
+func (c *Container) MountLabel() string {
+	if label, ok := c.Flags["MountLabel"].(string); ok {
+		return label
+	}
+	return ""
+}
+
+func (c *Container) ProcessLabel() string {
+	if label, ok := c.Flags["ProcessLabel"].(string); ok {
+		return label
+	}
+	return ""
+}
+
+func (c *Container) MountOpts() []string {
+	if mountOpts, ok := c.Flags["MountOpts"].([]string); ok {
+		return mountOpts
+	}
+	return nil
+}
+
 func (r *containerStore) Containers() ([]Container, error) {
 	containers := make([]Container, len(r.containers))
 	for i := range r.containers {
-		containers[i] = *(r.containers[i])
+		containers[i] = *copyContainer(r.containers[i])
 	}
 	return containers, nil
 }
@@ -139,6 +187,7 @@ func (r *containerStore) Load() error {
 	ids := make(map[string]*Container)
 	names := make(map[string]*Container)
 	if err = json.Unmarshal(data, &containers); len(data) == 0 || err == nil {
+		idlist = make([]string, 0, len(containers))
 		for n, container := range containers {
 			idlist = append(idlist, container.ID)
 			ids[container.ID] = containers[n]
@@ -164,6 +213,9 @@ func (r *containerStore) Load() error {
 }
 
 func (r *containerStore) Save() error {
+	if !r.Locked() {
+		return errors.New("container store is not locked")
+	}
 	rpath := r.containerspath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
 		return err
@@ -229,11 +281,14 @@ func (r *containerStore) SetFlag(id string, flag string, value interface{}) erro
 	if !ok {
 		return ErrContainerUnknown
 	}
+	if container.Flags == nil {
+		container.Flags = make(map[string]interface{})
+	}
 	container.Flags[flag] = value
 	return r.Save()
 }
 
-func (r *containerStore) Create(id string, names []string, image, layer, metadata string) (container *Container, err error) {
+func (r *containerStore) Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (container *Container, err error) {
 	if id == "" {
 		id = stringid.GenerateRandomID()
 		_, idInUse := r.byid[id]
@@ -245,22 +300,30 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, ErrDuplicateID
 	}
+	if options.MountOpts != nil {
+		options.Flags["MountOpts"] = append([]string{}, options.MountOpts...)
+	}
+	names = dedupeNames(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
-			return nil, ErrDuplicateName
+			return nil, errors.Wrapf(ErrDuplicateName,
+				fmt.Sprintf("the container name \"%s\" is already in use by \"%s\". You have to remove that container to be able to reuse that name.", name, r.byname[name].ID))
 		}
 	}
 	if err == nil {
 		container = &Container{
-			ID:           id,
-			Names:        names,
-			ImageID:      image,
-			LayerID:      layer,
-			Metadata:     metadata,
-			BigDataNames: []string{},
-			BigDataSizes: make(map[string]int64),
-			Created:      time.Now().UTC(),
-			Flags:        make(map[string]interface{}),
+			ID:             id,
+			Names:          names,
+			ImageID:        image,
+			LayerID:        layer,
+			Metadata:       metadata,
+			BigDataNames:   []string{},
+			BigDataSizes:   make(map[string]int64),
+			BigDataDigests: make(map[string]digest.Digest),
+			Created:        time.Now().UTC(),
+			Flags:          copyStringInterfaceMap(options.Flags),
+			UIDMap:         copyIDMap(options.UIDMap),
+			GIDMap:         copyIDMap(options.GIDMap),
 		}
 		r.containers = append(r.containers, container)
 		r.byid[id] = container
@@ -270,6 +333,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 			r.byname[name] = container
 		}
 		err = r.Save()
+		container = copyContainer(container)
 	}
 	return container, err
 }
@@ -294,6 +358,7 @@ func (r *containerStore) removeName(container *Container, name string) {
 }
 
 func (r *containerStore) SetNames(id string, names []string) error {
+	names = dedupeNames(names)
 	if container, ok := r.lookup(id); ok {
 		for _, name := range container.Names {
 			delete(r.byname, name)
@@ -348,7 +413,7 @@ func (r *containerStore) Delete(id string) error {
 
 func (r *containerStore) Get(id string) (*Container, error) {
 	if container, ok := r.lookup(id); ok {
-		return container, nil
+		return copyContainer(container), nil
 	}
 	return nil, ErrContainerUnknown
 }
@@ -366,6 +431,9 @@ func (r *containerStore) Exists(id string) bool {
 }
 
 func (r *containerStore) BigData(id, key string) ([]byte, error) {
+	if key == "" {
+		return nil, errors.Wrapf(ErrInvalidBigDataName, "can't retrieve container big data value for empty name")
+	}
 	c, ok := r.lookup(id)
 	if !ok {
 		return nil, ErrContainerUnknown
@@ -374,14 +442,63 @@ func (r *containerStore) BigData(id, key string) ([]byte, error) {
 }
 
 func (r *containerStore) BigDataSize(id, key string) (int64, error) {
+	if key == "" {
+		return -1, errors.Wrapf(ErrInvalidBigDataName, "can't retrieve size of container big data with empty name")
+	}
 	c, ok := r.lookup(id)
 	if !ok {
 		return -1, ErrContainerUnknown
 	}
+	if c.BigDataSizes == nil {
+		c.BigDataSizes = make(map[string]int64)
+	}
 	if size, ok := c.BigDataSizes[key]; ok {
 		return size, nil
 	}
+	if data, err := r.BigData(id, key); err == nil && data != nil {
+		if err = r.SetBigData(id, key, data); err == nil {
+			c, ok := r.lookup(id)
+			if !ok {
+				return -1, ErrContainerUnknown
+			}
+			if size, ok := c.BigDataSizes[key]; ok {
+				return size, nil
+			}
+		} else {
+			return -1, err
+		}
+	}
 	return -1, ErrSizeUnknown
+}
+
+func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
+	if key == "" {
+		return "", errors.Wrapf(ErrInvalidBigDataName, "can't retrieve digest of container big data value with empty name")
+	}
+	c, ok := r.lookup(id)
+	if !ok {
+		return "", ErrContainerUnknown
+	}
+	if c.BigDataDigests == nil {
+		c.BigDataDigests = make(map[string]digest.Digest)
+	}
+	if d, ok := c.BigDataDigests[key]; ok {
+		return d, nil
+	}
+	if data, err := r.BigData(id, key); err == nil && data != nil {
+		if err = r.SetBigData(id, key, data); err == nil {
+			c, ok := r.lookup(id)
+			if !ok {
+				return "", ErrContainerUnknown
+			}
+			if d, ok := c.BigDataDigests[key]; ok {
+				return d, nil
+			}
+		} else {
+			return "", err
+		}
+	}
+	return "", ErrDigestUnknown
 }
 
 func (r *containerStore) BigDataNames(id string) ([]string, error) {
@@ -389,10 +506,13 @@ func (r *containerStore) BigDataNames(id string) ([]string, error) {
 	if !ok {
 		return nil, ErrContainerUnknown
 	}
-	return c.BigDataNames, nil
+	return copyStringSlice(c.BigDataNames), nil
 }
 
 func (r *containerStore) SetBigData(id, key string, data []byte) error {
+	if key == "" {
+		return errors.Wrapf(ErrInvalidBigDataName, "can't set empty name for container big data item")
+	}
 	c, ok := r.lookup(id)
 	if !ok {
 		return ErrContainerUnknown
@@ -403,19 +523,28 @@ func (r *containerStore) SetBigData(id, key string, data []byte) error {
 	err := ioutils.AtomicWriteFile(r.datapath(c.ID, key), data, 0600)
 	if err == nil {
 		save := false
-		oldSize, ok := c.BigDataSizes[key]
+		if c.BigDataSizes == nil {
+			c.BigDataSizes = make(map[string]int64)
+		}
+		oldSize, sizeOk := c.BigDataSizes[key]
 		c.BigDataSizes[key] = int64(len(data))
-		if !ok || oldSize != c.BigDataSizes[key] {
+		if c.BigDataDigests == nil {
+			c.BigDataDigests = make(map[string]digest.Digest)
+		}
+		oldDigest, digestOk := c.BigDataDigests[key]
+		newDigest := digest.Canonical.FromBytes(data)
+		c.BigDataDigests[key] = newDigest
+		if !sizeOk || oldSize != c.BigDataSizes[key] || !digestOk || oldDigest != newDigest {
 			save = true
 		}
-		add := true
+		addName := true
 		for _, name := range c.BigDataNames {
 			if name == key {
-				add = false
+				addName = false
 				break
 			}
 		}
-		if add {
+		if addName {
 			c.BigDataNames = append(c.BigDataNames, key)
 			save = true
 		}
@@ -427,7 +556,7 @@ func (r *containerStore) SetBigData(id, key string, data []byte) error {
 }
 
 func (r *containerStore) Wipe() error {
-	ids := []string{}
+	ids := make([]string, 0, len(r.byid))
 	for id := range r.byid {
 		ids = append(ids, id)
 	}
@@ -441,6 +570,14 @@ func (r *containerStore) Wipe() error {
 
 func (r *containerStore) Lock() {
 	r.lockfile.Lock()
+}
+
+func (r *containerStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
+}
+
+func (r *containerStore) RLock() {
+	r.lockfile.RLock()
 }
 
 func (r *containerStore) Unlock() {
@@ -461,4 +598,8 @@ func (r *containerStore) IsReadWrite() bool {
 
 func (r *containerStore) TouchedSince(when time.Time) bool {
 	return r.lockfile.TouchedSince(when)
+}
+
+func (r *containerStore) Locked() bool {
+	return r.lockfile.Locked()
 }

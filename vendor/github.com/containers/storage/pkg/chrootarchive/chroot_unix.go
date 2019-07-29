@@ -2,11 +2,15 @@
 
 package chrootarchive
 
-import "syscall"
+import "golang.org/x/sys/unix"
 
-func chroot(path string) error {
-	if err := syscall.Chroot(path); err != nil {
+func realChroot(path string) error {
+	if err := unix.Chroot(path); err != nil {
 		return err
 	}
-	return syscall.Chdir("/")
+	return unix.Chdir("/")
+}
+
+func chroot(path string) error {
+	return realChroot(path)
 }

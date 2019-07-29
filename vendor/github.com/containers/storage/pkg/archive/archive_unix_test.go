@@ -8,10 +8,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
 )
 
 func TestCanonicalTarNameForPath(t *testing.T) {
@@ -67,61 +72,90 @@ func TestChmodTarEntry(t *testing.T) {
 }
 
 func TestTarWithHardLink(t *testing.T) {
-	origin, err := ioutil.TempDir("", "docker-test-tar-hardlink")
-	if err != nil {
-		t.Fatal(err)
-	}
+	origin, err := ioutil.TempDir("", "storage-test-tar-hardlink")
+	require.NoError(t, err)
 	defer os.RemoveAll(origin)
-	if err := ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Link(filepath.Join(origin, "1"), filepath.Join(origin, "2")); err != nil {
-		t.Fatal(err)
-	}
+
+	err = ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700)
+	require.NoError(t, err)
+
+	err = os.Link(filepath.Join(origin, "1"), filepath.Join(origin, "2"))
+	require.NoError(t, err)
 
 	var i1, i2 uint64
-	if i1, err = getNlink(filepath.Join(origin, "1")); err != nil {
-		t.Fatal(err)
-	}
+	i1, err = getNlink(filepath.Join(origin, "1"))
+	require.NoError(t, err)
+
 	// sanity check that we can hardlink
 	if i1 != 2 {
 		t.Skipf("skipping since hardlinks don't work here; expected 2 links, got %d", i1)
 	}
 
-	dest, err := ioutil.TempDir("", "docker-test-tar-hardlink-dest")
-	if err != nil {
-		t.Fatal(err)
-	}
+	dest, err := ioutil.TempDir("", "storage-test-tar-hardlink-dest")
+	require.NoError(t, err)
 	defer os.RemoveAll(dest)
 
 	// we'll do this in two steps to separate failure
 	fh, err := Tar(origin, Uncompressed)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// ensure we can read the whole thing with no error, before writing back out
 	buf, err := ioutil.ReadAll(fh)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	bRdr := bytes.NewReader(buf)
 	err = Untar(bRdr, dest, &TarOptions{Compression: Uncompressed})
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+
+	i1, err = getInode(filepath.Join(dest, "1"))
+	require.NoError(t, err)
+
+	i2, err = getInode(filepath.Join(dest, "2"))
+	require.NoError(t, err)
+
+	assert.Equal(t, i1, i2)
+}
+
+func TestTarWithHardLinkAndRebase(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "storage-test-tar-hardlink-rebase")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	origin := filepath.Join(tmpDir, "origin")
+	err = os.Mkdir(origin, 0700)
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700)
+	require.NoError(t, err)
+
+	err = os.Link(filepath.Join(origin, "1"), filepath.Join(origin, "2"))
+	require.NoError(t, err)
+
+	var i1, i2 uint64
+	i1, err = getNlink(filepath.Join(origin, "1"))
+	require.NoError(t, err)
+
+	// sanity check that we can hardlink
+	if i1 != 2 {
+		t.Skipf("skipping since hardlinks don't work here; expected 2 links, got %d", i1)
 	}
 
-	if i1, err = getInode(filepath.Join(dest, "1")); err != nil {
-		t.Fatal(err)
-	}
-	if i2, err = getInode(filepath.Join(dest, "2")); err != nil {
-		t.Fatal(err)
-	}
+	dest := filepath.Join(tmpDir, "dest")
+	bRdr, err := TarResourceRebase(origin, "origin")
+	require.NoError(t, err)
 
-	if i1 != i2 {
-		t.Errorf("expected matching inodes, but got %d and %d", i1, i2)
-	}
+	dstDir, srcBase := SplitPathDirEntry(origin)
+	_, dstBase := SplitPathDirEntry(dest)
+	content := RebaseArchiveEntries(bRdr, srcBase, dstBase)
+	err = Untar(content, dstDir, &TarOptions{Compression: Uncompressed, NoLchown: true, NoOverwriteDirNonDir: true})
+	require.NoError(t, err)
+
+	i1, err = getInode(filepath.Join(dest, "1"))
+	require.NoError(t, err)
+	i2, err = getInode(filepath.Join(dest, "2"))
+	require.NoError(t, err)
+
+	assert.Equal(t, i1, i2)
 }
 
 func getNlink(path string) (uint64, error) {
@@ -150,52 +184,39 @@ func getInode(path string) (uint64, error) {
 }
 
 func TestTarWithBlockCharFifo(t *testing.T) {
-	origin, err := ioutil.TempDir("", "docker-test-tar-hardlink")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(origin)
-	if err := ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := system.Mknod(filepath.Join(origin, "2"), syscall.S_IFBLK, int(system.Mkdev(int64(12), int64(5)))); err != nil {
-		t.Fatal(err)
-	}
-	if err := system.Mknod(filepath.Join(origin, "3"), syscall.S_IFCHR, int(system.Mkdev(int64(12), int64(5)))); err != nil {
-		t.Fatal(err)
-	}
-	if err := system.Mknod(filepath.Join(origin, "4"), syscall.S_IFIFO, int(system.Mkdev(int64(12), int64(5)))); err != nil {
-		t.Fatal(err)
-	}
+	origin, err := ioutil.TempDir("", "storage-test-tar-hardlink")
+	require.NoError(t, err)
 
-	dest, err := ioutil.TempDir("", "docker-test-tar-hardlink-dest")
-	if err != nil {
-		t.Fatal(err)
-	}
+	defer os.RemoveAll(origin)
+	err = ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700)
+	require.NoError(t, err)
+
+	err = system.Mknod(filepath.Join(origin, "2"), unix.S_IFBLK, int(system.Mkdev(int64(12), int64(5))))
+	require.NoError(t, err)
+	err = system.Mknod(filepath.Join(origin, "3"), unix.S_IFCHR, int(system.Mkdev(int64(12), int64(5))))
+	require.NoError(t, err)
+	err = system.Mknod(filepath.Join(origin, "4"), unix.S_IFIFO, int(system.Mkdev(int64(12), int64(5))))
+	require.NoError(t, err)
+
+	dest, err := ioutil.TempDir("", "storage-test-tar-hardlink-dest")
+	require.NoError(t, err)
 	defer os.RemoveAll(dest)
 
 	// we'll do this in two steps to separate failure
 	fh, err := Tar(origin, Uncompressed)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// ensure we can read the whole thing with no error, before writing back out
 	buf, err := ioutil.ReadAll(fh)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	bRdr := bytes.NewReader(buf)
 	err = Untar(bRdr, dest, &TarOptions{Compression: Uncompressed})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	changes, err := ChangesDirs(origin, dest)
-	if err != nil {
-		t.Fatal(err)
-	}
+	changes, err := ChangesDirs(origin, &idtools.IDMappings{}, dest, &idtools.IDMappings{})
+	require.NoError(t, err)
+
 	if len(changes) > 0 {
 		t.Fatalf("Tar with special device (block, char, fifo) should keep them (recreate them when untar) : %v", changes)
 	}
@@ -203,23 +224,22 @@ func TestTarWithBlockCharFifo(t *testing.T) {
 
 // TestTarUntarWithXattr is Unix as Lsetxattr is not supported on Windows
 func TestTarUntarWithXattr(t *testing.T) {
-	origin, err := ioutil.TempDir("", "docker-test-untar-origin")
-	if err != nil {
-		t.Fatal(err)
+	if runtime.GOOS == "solaris" {
+		t.Skip()
 	}
+	origin, err := ioutil.TempDir("", "storage-test-untar-origin")
+	require.NoError(t, err)
 	defer os.RemoveAll(origin)
-	if err := ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(origin, "2"), []byte("welcome!"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(origin, "3"), []byte("will be ignored"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := system.Lsetxattr(filepath.Join(origin, "2"), "security.capability", []byte{0x00}, 0); err != nil {
-		t.Fatal(err)
-	}
+	err = ioutil.WriteFile(filepath.Join(origin, "1"), []byte("hello world"), 0700)
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(filepath.Join(origin, "2"), []byte("welcome!"), 0700)
+	require.NoError(t, err)
+	err = ioutil.WriteFile(filepath.Join(origin, "3"), []byte("will be ignored"), 0700)
+	require.NoError(t, err)
+	encoded := [20]byte{0, 0, 0, 2}
+	err = system.Lsetxattr(filepath.Join(origin, "2"), "security.capability", encoded[:], 0)
+	require.NoError(t, err)
 
 	for _, c := range []Compression{
 		Uncompressed,

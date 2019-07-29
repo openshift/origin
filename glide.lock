@@ -1,5 +1,5 @@
-hash: dac4fb4e99b9debe92777c26c64ab25de44f4e8c71c4d1d8f2786744562fc709
-updated: 2019-07-22T09:45:51.804671+02:00
+hash: 0c458ec5cc0892c3d9b9356007bbda6a2328b0c4bd62065c691f17489aeda4ca
+updated: 2019-07-29T08:13:06.240083276-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -16,7 +16,7 @@ imports:
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
 - name: github.com/apparentlymart/go-cidr
-  version: b1115bf8e14a60131a196f908223e4506b0ddc35
+  version: 1755c023625ec3a84979b90841a1ab067ed6c071
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -95,8 +95,6 @@ imports:
   - autorest/validation
   - logger
   - version
-- name: github.com/bcicen/go-haproxy
-  version: ff5824fe38bede761b873cab6e247a530e89236a
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -180,8 +178,6 @@ imports:
   - ubiquity
 - name: github.com/clusterhq/flocker-go
   version: 2b8b7259d3139c96c4a6871031355808ab3fd3b3
-- name: github.com/cockroachdb/cmux
-  version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
 - name: github.com/codedellemc/goscaleio
   version: 20e2ce2cf8852dc78bd42b76698dcd8dcd77b7b1
   subpackages:
@@ -217,26 +213,25 @@ imports:
   - pkg/types/020
   - pkg/types/current
   - pkg/version
-- name: github.com/containernetworking/plugins
-  version: 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
 - name: github.com/containers/image
   version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
   repo: https://github.com/openshift/containers-image.git
   subpackages:
-  - docker
   - docker/policyconfiguration
   - docker/reference
-  - image
   - manifest
-  - pkg/strslice
   - signature
   - transports
   - types
   - version
 - name: github.com/containers/storage
-  version: 47536c89fcc545a87745e1a1573addc439409165
+  version: 912de200380ac2fd1e90f91b78c1495ed8d5beea
   subpackages:
+  - pkg/fileutils
   - pkg/homedir
+  - pkg/idtools
+  - pkg/mount
+  - pkg/system
 - name: github.com/coreos/bbolt
   version: 48ea1b39c25fc1bab3506fbc712ecbaa842c4d2d
 - name: github.com/coreos/etcd
@@ -293,7 +288,6 @@ imports:
   - pkg/ioutil
   - pkg/logutil
   - pkg/netutil
-  - pkg/osutil
   - pkg/pathutil
   - pkg/pbutil
   - pkg/runtime
@@ -425,7 +419,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -451,7 +445,7 @@ imports:
 - name: github.com/fsouza/go-dockerclient
   version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
-  version: 32a13797442ccb601b11761d74232773c1402d14
+  version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/globalsign/mgo
@@ -470,7 +464,7 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 8483a886a90412cd6858df4ea3483dce9c8e35a3
 - name: github.com/go-openapi/loads
-  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+  version: 150d36912387ec2f607be674c5be309ddccc0eed
 - name: github.com/go-openapi/runtime
   version: 231d7876b7019dbcbfc97a7ba764379497b67c1d
 - name: github.com/go-openapi/spec
@@ -485,18 +479,37 @@ imports:
   version: 106681dbb37bfa3e7683c4c8129cb7f5925ea3e9
   subpackages:
   - is
-- name: github.com/gocarina/gocsv
-  version: a5c9099e2484f1551abb9433885e158610a25f4b
 - name: github.com/godbus/dbus
   version: c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f
 - name: github.com/gogo/protobuf
   version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
   subpackages:
   - gogoproto
+  - plugin/compare
+  - plugin/defaultcheck
+  - plugin/description
+  - plugin/embedcheck
+  - plugin/enumstringer
+  - plugin/equal
+  - plugin/face
+  - plugin/gostring
+  - plugin/marshalto
+  - plugin/oneofcheck
+  - plugin/populate
+  - plugin/size
+  - plugin/stringer
+  - plugin/testgen
+  - plugin/union
+  - plugin/unmarshal
   - proto
   - protoc-gen-gogo/descriptor
+  - protoc-gen-gogo/generator
+  - protoc-gen-gogo/grpc
+  - protoc-gen-gogo/plugin
   - sortkeys
   - types
+  - vanity
+  - vanity/command
 - name: github.com/golang/glog
   version: 3c92600d7533018d216b534fe894ad60a1e6d5bf
   repo: https://github.com/openshift/golang-glog.git
@@ -661,14 +674,8 @@ imports:
   - openstack/networking/v2/ports
   - openstack/utils
   - pagination
-- name: github.com/gorilla/context
-  version: 8559d4a6b87e4f517ec1846eb90a192b8748cc89
 - name: github.com/gorilla/mux
-  version: 08e7f807d38d6a870193019bb439056118661505
-- name: github.com/gorilla/securecookie
-  version: 86450627d8e6b88e00ea41f228489b89d08a40de
-- name: github.com/gorilla/sessions
-  version: a3acf13e802c358d65f249324d14ed24aac11370
+  version: e67b3c02c7195c052acff13261f0c9fd1ba53011
 - name: github.com/gorilla/websocket
   version: 4201258b820c74ac8e6922fc9e6b52f71fe46f8d
 - name: github.com/gregjones/httpcache
@@ -728,18 +735,24 @@ imports:
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
-- name: github.com/lestrrat/go-jspointer
-  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
-- name: github.com/lestrrat/go-jsref
-  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+- name: github.com/lestrrat-go/jspointer
+  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
+- name: github.com/lestrrat-go/jsref
+  version: 1b590508f37d3af76c77c8328e16978d2889b486
   subpackages:
   - provider
+- name: github.com/lestrrat-go/pdebug
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+- name: github.com/lestrrat-go/structinfo
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
+- name: github.com/lestrrat/go-jsref
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+  repo: https://github.com/lestrrat/go-jsref.git
 - name: github.com/lestrrat/go-jsschema
-  version: a6a42341b50d8d7e2a733db922eefaa756321021
-- name: github.com/lestrrat/go-pdebug
-  version: 569c97477ae8837e053e5a50bc739e15172b8ebe
+  version: 5c81c58ffcc359c4390d440b45f5462edb0107cb
 - name: github.com/lestrrat/go-structinfo
   version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
+  repo: https://github.com/lestrrat/go-structinfo.git
 - name: github.com/libopenstorage/openstorage
   version: 093a0c3888753c2056e7373183693d670c6bba01
   subpackages:
@@ -921,7 +934,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 9525304a0adb725ab4a4a54539a1a6bf6cc343d3
+  version: 406574a7aa1eb0e916f4029433e5c28c6a53099b
   subpackages:
   - annotations
   - apps
@@ -1000,11 +1013,6 @@ imports:
   - config/clientset/versioned
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
-  - config/informers/externalversions
-  - config/informers/externalversions/config
-  - config/informers/externalversions/config/v1
-  - config/informers/externalversions/internalinterfaces
-  - config/listers/config/v1
   - image/clientset/versioned
   - image/clientset/versioned/scheme
   - image/clientset/versioned/typed/image/v1
@@ -1077,7 +1085,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 83581c469d2eeb6dadfe86a4b6d8033b465ffd15
+  version: 36633f9f3e364a749e55f44e1cce0af47b7c65b3
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1085,8 +1093,6 @@ imports:
   - pkg/apiserver/httprequest
   - pkg/apps/appsserialization
   - pkg/apps/appsutil
-  - pkg/assets
-  - pkg/assets/create
   - pkg/authentication/bootstrapauthenticator
   - pkg/authorization/authorizationutil
   - pkg/authorization/scopemetadata
@@ -1097,8 +1103,6 @@ imports:
   - pkg/config/client
   - pkg/config/configdefaults
   - pkg/config/helpers
-  - pkg/config/leaderelection
-  - pkg/config/serving
   - pkg/config/validation
   - pkg/crypto
   - pkg/git
@@ -1114,7 +1118,6 @@ imports:
   - pkg/network/networkapihelpers
   - pkg/network/networkutils
   - pkg/oauth/oauthdiscovery
-  - pkg/oauth/oauthserviceaccountclient
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
@@ -1131,53 +1134,8 @@ imports:
   - pkg/template/templateprocessing
   - pkg/template/templateprocessingclient
   - pkg/unidling/unidlingclient
-- name: github.com/openshift/oauth-server
-  version: 0a5e433b582821a84470032a6bf902ef94ca82b1
-  subpackages:
-  - pkg
-  - pkg/api
-  - pkg/authenticator
-  - pkg/authenticator/challenger/passwordchallenger
-  - pkg/authenticator/challenger/placeholderchallenger
-  - pkg/authenticator/identitymapper
-  - pkg/authenticator/password/allowanypassword
-  - pkg/authenticator/password/basicauthpassword
-  - pkg/authenticator/password/denypassword
-  - pkg/authenticator/password/htpasswd
-  - pkg/authenticator/password/keystonepassword
-  - pkg/authenticator/password/ldappassword
-  - pkg/authenticator/redirector
-  - pkg/authenticator/request/basicauthrequest
-  - pkg/authenticator/request/headerrequest
-  - pkg/authenticator/tokens
-  - pkg/config
-  - pkg/oauth/external
-  - pkg/oauth/external/github
-  - pkg/oauth/external/github/links
-  - pkg/oauth/external/gitlab
-  - pkg/oauth/external/google
-  - pkg/oauth/external/openid
-  - pkg/oauth/handlers
-  - pkg/oauth/registry
-  - pkg/oauthserver
-  - pkg/osinserver
-  - pkg/osinserver/registrystorage
-  - pkg/prometheus
-  - pkg/scopecovers
-  - pkg/server/crypto
-  - pkg/server/csrf
-  - pkg/server/errorpage
-  - pkg/server/grant
-  - pkg/server/headers
-  - pkg/server/login
-  - pkg/server/logout
-  - pkg/server/redirect
-  - pkg/server/selectprovider
-  - pkg/server/session
-  - pkg/server/tokenrequest
-  - pkg/userregistry/identitymapper
 - name: github.com/openshift/oc
-  version: c71e9a146ea3621ff22a1fa767acc4eba60b0226
+  version: 0d02ccfccbfbabe8be161db4dbb1f42bf00cf7c2
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1332,231 +1290,6 @@ imports:
   - pkg/helpers/term
   - pkg/helpers/tokencmd
   - pkg/version
-- name: github.com/openshift/openshift-apiserver
-  version: 401d4175751d893275151fb20f2ff0b2e8df3e42
-  subpackages:
-  - pkg/api
-  - pkg/api/apihelpers
-  - pkg/api/install
-  - pkg/api/legacy
-  - pkg/apiserver/labelselector
-  - pkg/apiserver/rest
-  - pkg/apps/apis/apps
-  - pkg/apps/apis/apps/install
-  - pkg/apps/apis/apps/v1
-  - pkg/apps/apis/apps/validation
-  - pkg/apps/apiserver
-  - pkg/apps/apiserver/registry/deployconfig
-  - pkg/apps/apiserver/registry/deployconfig/etcd
-  - pkg/apps/apiserver/registry/deploylog
-  - pkg/apps/apiserver/registry/instantiate
-  - pkg/apps/apiserver/registry/rollback
-  - pkg/authorization/apis/authorization
-  - pkg/authorization/apis/authorization/install
-  - pkg/authorization/apis/authorization/rbacconversion
-  - pkg/authorization/apis/authorization/v1
-  - pkg/authorization/apis/authorization/validation
-  - pkg/authorization/apiserver
-  - pkg/authorization/apiserver/registry/clusterrole
-  - pkg/authorization/apiserver/registry/clusterrolebinding
-  - pkg/authorization/apiserver/registry/localresourceaccessreview
-  - pkg/authorization/apiserver/registry/localsubjectaccessreview
-  - pkg/authorization/apiserver/registry/registry
-  - pkg/authorization/apiserver/registry/resourceaccessreview
-  - pkg/authorization/apiserver/registry/role
-  - pkg/authorization/apiserver/registry/rolebinding
-  - pkg/authorization/apiserver/registry/rolebindingrestriction/etcd
-  - pkg/authorization/apiserver/registry/selfsubjectrulesreview
-  - pkg/authorization/apiserver/registry/subjectaccessreview
-  - pkg/authorization/apiserver/registry/subjectrulesreview
-  - pkg/authorization/apiserver/registry/util
-  - pkg/bootstrappolicy
-  - pkg/build/apis/build
-  - pkg/build/apis/build/install
-  - pkg/build/apis/build/internal_helpers
-  - pkg/build/apis/build/v1
-  - pkg/build/apis/build/validation
-  - pkg/build/apiserver
-  - pkg/build/apiserver/admission/secretinjector
-  - pkg/build/apiserver/admission/strategyrestrictions
-  - pkg/build/apiserver/apiserverbuildutil
-  - pkg/build/apiserver/buildgenerator
-  - pkg/build/apiserver/registry/build
-  - pkg/build/apiserver/registry/build/etcd
-  - pkg/build/apiserver/registry/buildclone
-  - pkg/build/apiserver/registry/buildconfig
-  - pkg/build/apiserver/registry/buildconfig/etcd
-  - pkg/build/apiserver/registry/buildconfiginstantiate
-  - pkg/build/apiserver/registry/buildlog
-  - pkg/build/apiserver/registry/wait
-  - pkg/build/apiserver/webhook
-  - pkg/build/apiserver/webhook/bitbucket
-  - pkg/build/apiserver/webhook/generic
-  - pkg/build/apiserver/webhook/github
-  - pkg/build/apiserver/webhook/gitlab
-  - pkg/client/impersonatingclient
-  - pkg/cmd/openshift-apiserver
-  - pkg/cmd/openshift-apiserver/openshiftadmission
-  - pkg/cmd/openshift-apiserver/openshiftapiserver
-  - pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing
-  - pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing/flags
-  - pkg/image/apis/image
-  - pkg/image/apis/image/docker10
-  - pkg/image/apis/image/install
-  - pkg/image/apis/image/v1
-  - pkg/image/apis/image/validation
-  - pkg/image/apis/image/validation/whitelist
-  - pkg/image/apiserver
-  - pkg/image/apiserver/admission/imagepolicy/originimagereferencemutators
-  - pkg/image/apiserver/admission/limitrange
-  - pkg/image/apiserver/importer
-  - pkg/image/apiserver/importer/dockerv1client
-  - pkg/image/apiserver/internalimageutil
-  - pkg/image/apiserver/registry/image
-  - pkg/image/apiserver/registry/image/etcd
-  - pkg/image/apiserver/registry/imagesecret
-  - pkg/image/apiserver/registry/imagesignature
-  - pkg/image/apiserver/registry/imagestream
-  - pkg/image/apiserver/registry/imagestream/etcd
-  - pkg/image/apiserver/registry/imagestreamimage
-  - pkg/image/apiserver/registry/imagestreamimport
-  - pkg/image/apiserver/registry/imagestreammapping
-  - pkg/image/apiserver/registry/imagestreamtag
-  - pkg/image/apiserver/registryhostname
-  - pkg/oauth/apis/oauth
-  - pkg/oauth/apis/oauth/install
-  - pkg/oauth/apis/oauth/v1
-  - pkg/oauth/apis/oauth/validation
-  - pkg/oauth/apiserver
-  - pkg/oauth/apiserver/registry/oauthaccesstoken
-  - pkg/oauth/apiserver/registry/oauthaccesstoken/etcd
-  - pkg/oauth/apiserver/registry/oauthauthorizetoken
-  - pkg/oauth/apiserver/registry/oauthauthorizetoken/etcd
-  - pkg/oauth/apiserver/registry/oauthclient
-  - pkg/oauth/apiserver/registry/oauthclient/etcd
-  - pkg/oauth/apiserver/registry/oauthclientauthorization
-  - pkg/oauth/apiserver/registry/oauthclientauthorization/etcd
-  - pkg/openapi
-  - pkg/printers/internalversion
-  - pkg/project/apis/project
-  - pkg/project/apis/project/install
-  - pkg/project/apis/project/v1
-  - pkg/project/apis/project/validation
-  - pkg/project/apiserver
-  - pkg/project/apiserver/admission/apis/requestlimit
-  - pkg/project/apiserver/admission/apis/requestlimit/v1
-  - pkg/project/apiserver/admission/apis/requestlimit/validation
-  - pkg/project/apiserver/admission/requestlimit
-  - pkg/project/apiserver/registry/project
-  - pkg/project/apiserver/registry/project/proxy
-  - pkg/project/apiserver/registry/projectrequest
-  - pkg/project/apiserver/registry/projectrequest/delegated
-  - pkg/project/auth
-  - pkg/project/cache
-  - pkg/project/util
-  - pkg/quota/apis/quota
-  - pkg/quota/apis/quota/install
-  - pkg/quota/apis/quota/v1
-  - pkg/quota/apiserver
-  - pkg/quota/apiserver/registry/appliedclusterresourcequota
-  - pkg/quota/apiserver/registry/clusterresourcequota/etcd
-  - pkg/quota/image
-  - pkg/quota/quotaimageexternal
-  - pkg/route/apis/route
-  - pkg/route/apis/route/install
-  - pkg/route/apis/route/v1
-  - pkg/route/apis/route/validation
-  - pkg/route/apiserver
-  - pkg/route/apiserver/registry/route
-  - pkg/route/apiserver/registry/route/etcd
-  - pkg/route/apiserver/routeallocationcontroller
-  - pkg/route/apiserver/routeinterfaces
-  - pkg/route/apiserver/simplerouteallocation
-  - pkg/security/apis/security
-  - pkg/security/apis/security/install
-  - pkg/security/apis/security/v1
-  - pkg/security/apis/security/validation
-  - pkg/security/apiserver
-  - pkg/security/apiserver/registry/podsecuritypolicyreview
-  - pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview
-  - pkg/security/apiserver/registry/podsecuritypolicysubjectreview
-  - pkg/security/apiserver/registry/rangeallocations
-  - pkg/security/apiserver/registry/securitycontextconstraints/etcd
-  - pkg/template/apis/template
-  - pkg/template/apis/template/install
-  - pkg/template/apis/template/v1
-  - pkg/template/apis/template/validation
-  - pkg/template/apiserver
-  - pkg/template/apiserver/registry/brokertemplateinstance
-  - pkg/template/apiserver/registry/brokertemplateinstance/etcd
-  - pkg/template/apiserver/registry/template
-  - pkg/template/apiserver/registry/template/etcd
-  - pkg/template/apiserver/registry/templateinstance
-  - pkg/template/apiserver/registry/templateinstance/etcd
-  - pkg/user/apis/user
-  - pkg/user/apis/user/install
-  - pkg/user/apis/user/v1
-  - pkg/user/apis/user/validation
-  - pkg/user/apiserver
-  - pkg/user/apiserver/registry/group
-  - pkg/user/apiserver/registry/group/etcd
-  - pkg/user/apiserver/registry/identity
-  - pkg/user/apiserver/registry/identity/etcd
-  - pkg/user/apiserver/registry/user
-  - pkg/user/apiserver/registry/user/etcd
-  - pkg/user/apiserver/registry/useridentitymapping
-  - pkg/version
-- name: github.com/openshift/openshift-controller-manager
-  version: bbf3bba343cd8e6790f1c63d3cb977891097b370
-  subpackages:
-  - pkg/apps/deployer
-  - pkg/apps/deploymentconfig
-  - pkg/apps/metrics/prometheus
-  - pkg/authorization/defaultrolebindings
-  - pkg/build/buildscheme
-  - pkg/build/buildutil
-  - pkg/build/controller/build
-  - pkg/build/controller/build/defaults
-  - pkg/build/controller/build/overrides
-  - pkg/build/controller/buildconfig
-  - pkg/build/controller/common
-  - pkg/build/controller/common/internal/expansion
-  - pkg/build/controller/common/testutil
-  - pkg/build/controller/policy
-  - pkg/build/controller/strategy
-  - pkg/build/metrics/prometheus
-  - pkg/client/genericinformers
-  - pkg/cmd/controller
-  - pkg/cmd/imageformat
-  - pkg/cmd/openshift-controller-manager
-  - pkg/image/controller
-  - pkg/image/controller/signature
-  - pkg/image/controller/trigger
-  - pkg/image/metrics/prometheus
-  - pkg/image/trigger
-  - pkg/image/trigger/annotations
-  - pkg/image/trigger/buildconfigs
-  - pkg/image/trigger/deploymentconfigs
-  - pkg/project/controller
-  - pkg/quota/clusterquotareconciliation
-  - pkg/quota/quotaimageexternal
-  - pkg/route/ingress
-  - pkg/route/ingressip
-  - pkg/security/controller
-  - pkg/security/mcs
-  - pkg/security/uidallocator
-  - pkg/serviceaccounts/controllers
-  - pkg/template/controller
-  - pkg/unidling/controller
-  - pkg/version
-- name: github.com/openshift/sdn
-  version: ca6e3b021765f96e4069eae15318e82df4b3d63f
-  subpackages:
-  - pkg/network
-  - pkg/network/common
-  - pkg/network/master
-  - pkg/network/master/netid
-  - pkg/openshift-network-controller
 - name: github.com/openshift/source-to-image
   version: 2a579ecd66dfaf9ee21bbc860fcde8e4d1d12301
   subpackages:
@@ -1570,10 +1303,7 @@ imports:
   - pkg/util/cygpath
   - pkg/util/fs
   - pkg/util/log
-  - pkg/util/status
   - pkg/util/user
-- name: github.com/openshift/template-service-broker
-  version: 05590d70cdfe32895624c61f91d7f7aec4184586
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
@@ -1605,6 +1335,7 @@ imports:
   - prometheus
   - prometheus/internal
   - prometheus/promhttp
+  - prometheus/testutil
 - name: github.com/prometheus/client_model
   version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
@@ -1629,12 +1360,8 @@ imports:
   version: 09693a8743ba5ee58c58c1b1e8a4abd17af00d45
   subpackages:
   - client
-- name: github.com/RangelReale/osin
-  version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
-  repo: https://github.com/openshift/osin.git
 - name: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
-  repo: https://github.com/openshift/osincli.git
 - name: github.com/Rican7/retry
   version: 272ad122d6e5ce1be757544007cf8bcd1c9c9ab0
   subpackages:
@@ -1669,7 +1396,7 @@ imports:
 - name: github.com/spf13/cast
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
-  version: c439c4fa093711d42e1b01acb1235b52004753c1
+  version: 1c9c46d5c1cc2aaebdd1898c0680e85e8a44b36d
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1708,10 +1435,6 @@ imports:
   - nl
 - name: github.com/vishvananda/netns
   version: be1fbeda19366dea804f00efff2dd73a1642fdcc
-- name: github.com/vjeantet/asn1-ber
-  version: 85041cd0f4769ebf4a5ae600b1e921e630d6aff0
-- name: github.com/vjeantet/ldapserver
-  version: 5ac58729571e52ae23768e3c270c624d4ee7fa23
 - name: github.com/vmware/govmomi
   version: 22f74650cf39ba4649fba45e770df0f44df6f758
   subpackages:
@@ -1817,8 +1540,10 @@ imports:
   - http2/hpack
   - idna
   - internal/iana
+  - internal/nettest
   - internal/socket
   - internal/socks
+  - internal/sockstest
   - internal/timeseries
   - ipv4
   - ipv6
@@ -2074,7 +1799,6 @@ imports:
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
-  - pkg/api/apitesting/fuzzer
   - pkg/api/equality
   - pkg/api/errors
   - pkg/api/meta
@@ -2082,7 +1806,6 @@ imports:
   - pkg/api/resource
   - pkg/api/validation
   - pkg/api/validation/path
-  - pkg/apis/meta/fuzzer
   - pkg/apis/meta/internalversion
   - pkg/apis/meta/v1
   - pkg/apis/meta/v1/unstructured
@@ -2136,7 +1859,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 609697ced6c17aa748be8e7af619bfd99aa2e952
+  version: 392b5b3e5888849e57618271955c58ccf2f44351
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2519,6 +2242,7 @@ imports:
   - cli/globalflag
   - config
   - config/v1alpha1
+  - config/validation
   - logs
 - name: k8s.io/csi-api
   version: 693d387aa133c41adc69c717981d40df2b5c797a
@@ -2592,27 +2316,34 @@ imports:
 - name: k8s.io/kube-scheduler
   version: b74e9e79538d3a93ad1d1f391b9461c04a20c84e
   repo: https://github.com/openshift/kubernetes-kube-scheduler.git
+  subpackages:
+  - config/v1alpha1
 - name: k8s.io/kubelet
   version: f6da02f583256d1a15cc44a101c80bfa2080a46f
   repo: https://github.com/openshift/kubernetes-kubelet.git
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: e511a1c4da22c7f0898f6b7f2a4b88971a9249e5
+  version: 607f250c092ff320fed8333186ca710ca9d58424
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
+  - cmd/cloud-controller-manager/app
   - cmd/cloud-controller-manager/app/apis/config
   - cmd/cloud-controller-manager/app/apis/config/scheme
   - cmd/cloud-controller-manager/app/apis/config/v1alpha1
+  - cmd/cloud-controller-manager/app/config
+  - cmd/cloud-controller-manager/app/options
   - cmd/controller-manager/app
   - cmd/controller-manager/app/options
-  - cmd/genutils
   - cmd/kube-apiserver/app
   - cmd/kube-apiserver/app/options
   - cmd/kube-controller-manager/app
   - cmd/kube-controller-manager/app/config
   - cmd/kube-controller-manager/app/options
   - cmd/kube-proxy/app
+  - cmd/kube-scheduler/app
+  - cmd/kube-scheduler/app/config
+  - cmd/kube-scheduler/app/options
   - cmd/kubeadm/app/apis/kubeadm
   - cmd/kubeadm/app/constants
   - cmd/kubeadm/app/util
@@ -2697,7 +2428,6 @@ imports:
   - pkg/api/resourcequota
   - pkg/api/service
   - pkg/api/testapi
-  - pkg/api/testing
   - pkg/api/v1/endpoints
   - pkg/api/v1/persistentvolume
   - pkg/api/v1/pod
@@ -2711,19 +2441,16 @@ imports:
   - pkg/apis/admission/install
   - pkg/apis/admission/v1beta1
   - pkg/apis/admissionregistration
-  - pkg/apis/admissionregistration/fuzzer
   - pkg/apis/admissionregistration/install
   - pkg/apis/admissionregistration/v1beta1
   - pkg/apis/admissionregistration/validation
   - pkg/apis/apps
-  - pkg/apis/apps/fuzzer
   - pkg/apis/apps/install
   - pkg/apis/apps/v1
   - pkg/apis/apps/v1beta1
   - pkg/apis/apps/v1beta2
   - pkg/apis/apps/validation
   - pkg/apis/auditregistration
-  - pkg/apis/auditregistration/fuzzer
   - pkg/apis/auditregistration/install
   - pkg/apis/auditregistration/v1alpha1
   - pkg/apis/auditregistration/validation
@@ -2738,21 +2465,18 @@ imports:
   - pkg/apis/authorization/v1beta1
   - pkg/apis/authorization/validation
   - pkg/apis/autoscaling
-  - pkg/apis/autoscaling/fuzzer
   - pkg/apis/autoscaling/install
   - pkg/apis/autoscaling/v1
   - pkg/apis/autoscaling/v2beta1
   - pkg/apis/autoscaling/v2beta2
   - pkg/apis/autoscaling/validation
   - pkg/apis/batch
-  - pkg/apis/batch/fuzzer
   - pkg/apis/batch/install
   - pkg/apis/batch/v1
   - pkg/apis/batch/v1beta1
   - pkg/apis/batch/v2alpha1
   - pkg/apis/batch/validation
   - pkg/apis/certificates
-  - pkg/apis/certificates/fuzzer
   - pkg/apis/certificates/install
   - pkg/apis/certificates/v1beta1
   - pkg/apis/certificates/validation
@@ -2762,7 +2486,6 @@ imports:
   - pkg/apis/coordination/v1beta1
   - pkg/apis/coordination/validation
   - pkg/apis/core
-  - pkg/apis/core/fuzzer
   - pkg/apis/core/helper
   - pkg/apis/core/helper/qos
   - pkg/apis/core/install
@@ -2776,14 +2499,12 @@ imports:
   - pkg/apis/events/install
   - pkg/apis/events/v1beta1
   - pkg/apis/extensions
-  - pkg/apis/extensions/fuzzer
   - pkg/apis/extensions/install
   - pkg/apis/extensions/v1beta1
   - pkg/apis/imagepolicy
   - pkg/apis/imagepolicy/install
   - pkg/apis/imagepolicy/v1alpha1
   - pkg/apis/networking
-  - pkg/apis/networking/fuzzer
   - pkg/apis/networking/install
   - pkg/apis/networking/v1
   - pkg/apis/networking/v1beta1
@@ -2794,12 +2515,10 @@ imports:
   - pkg/apis/node/v1beta1
   - pkg/apis/node/validation
   - pkg/apis/policy
-  - pkg/apis/policy/fuzzer
   - pkg/apis/policy/install
   - pkg/apis/policy/v1beta1
   - pkg/apis/policy/validation
   - pkg/apis/rbac
-  - pkg/apis/rbac/fuzzer
   - pkg/apis/rbac/install
   - pkg/apis/rbac/v1
   - pkg/apis/rbac/v1alpha1
@@ -2816,7 +2535,6 @@ imports:
   - pkg/apis/settings/v1alpha1
   - pkg/apis/settings/validation
   - pkg/apis/storage
-  - pkg/apis/storage/fuzzer
   - pkg/apis/storage/install
   - pkg/apis/storage/util
   - pkg/apis/storage/v1
@@ -3286,12 +3004,30 @@ imports:
   - pkg/registry/storage/volumeattachment
   - pkg/registry/storage/volumeattachment/storage
   - pkg/routes
+  - pkg/scheduler
   - pkg/scheduler/algorithm
   - pkg/scheduler/algorithm/predicates
+  - pkg/scheduler/algorithm/priorities
   - pkg/scheduler/algorithm/priorities/util
+  - pkg/scheduler/algorithmprovider
+  - pkg/scheduler/algorithmprovider/defaults
   - pkg/scheduler/api
+  - pkg/scheduler/api/latest
+  - pkg/scheduler/api/v1
+  - pkg/scheduler/api/validation
+  - pkg/scheduler/apis/config
+  - pkg/scheduler/apis/config/scheme
+  - pkg/scheduler/apis/config/v1alpha1
+  - pkg/scheduler/apis/config/validation
+  - pkg/scheduler/core
+  - pkg/scheduler/factory
+  - pkg/scheduler/internal/cache
+  - pkg/scheduler/internal/cache/debugger
+  - pkg/scheduler/internal/queue
   - pkg/scheduler/metrics
   - pkg/scheduler/nodeinfo
+  - pkg/scheduler/plugins
+  - pkg/scheduler/plugins/v1alpha1
   - pkg/scheduler/util
   - pkg/scheduler/volumebinder
   - pkg/security/apparmor
@@ -3350,6 +3086,7 @@ imports:
   - pkg/util/tolerations
   - pkg/util/workqueue/prometheus
   - pkg/version
+  - pkg/version/prometheus
   - pkg/version/verflag
   - pkg/volume
   - pkg/volume/awsebs
@@ -3538,9 +3275,7 @@ imports:
   subpackages:
   - buffer
   - clock
-  - diff
   - exec
-  - field
   - integer
   - io
   - keymutex

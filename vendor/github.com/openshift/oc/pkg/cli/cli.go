@@ -57,6 +57,7 @@ import (
 	"github.com/openshift/oc/pkg/cli/startbuild"
 	"github.com/openshift/oc/pkg/cli/status"
 	"github.com/openshift/oc/pkg/cli/tag"
+	"github.com/openshift/oc/pkg/cli/version"
 	"github.com/openshift/oc/pkg/cli/whoami"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/oc/pkg/helpers/term"
@@ -267,7 +268,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 	cmds.AddCommand(newExperimentalCommand("ex", name+" ex", f, ioStreams))
 
 	cmds.AddCommand(kubectlwrappers.NewCmdPlugin(fullName, f, ioStreams))
-	cmds.AddCommand(kubectlwrappers.NewCmdVersion(fullName, f, ioStreams))
+	cmds.AddCommand(version.NewCmdVersion(fullName, f, ioStreams))
 	cmds.AddCommand(options.NewCmdOptions(ioStreams))
 
 	if cmds.Flag("namespace") != nil {

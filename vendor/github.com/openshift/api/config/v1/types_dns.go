@@ -31,12 +31,20 @@ type DNSSpec struct {
 	BaseDomain string `json:"baseDomain"`
 	// publicZone is the location where all the DNS records that are publicly accessible to
 	// the internet exist.
+	//
 	// If this field is nil, no public records should be created.
+	//
+	// Once set, this field cannot be changed.
+	//
 	// +optional
 	PublicZone *DNSZone `json:"publicZone,omitempty"`
 	// privateZone is the location where all the DNS records that are only available internally
 	// to the cluster exist.
+	//
 	// If this field is nil, no private records should be created.
+	//
+	// Once set, this field cannot be changed.
+	//
 	// +optional
 	PrivateZone *DNSZone `json:"privateZone,omitempty"`
 }
