@@ -6,7 +6,7 @@ Kubernetes creates Docker containers from images that were built elsewhere and p
 
 Offering an API for builds makes OpenShift a viable back-end for arbitrary third-party Docker image build systems which require resource constraints and scheduling capabilities, and allows organizations to orchestrate Docker builds from their existing continuous integration processes. OpenShift enables CI/CD flows around Docker images.
 
-Most build jobs share common characteristics - a set of inputs to a build, the need to run a certain build process to completion, the capture of the logs from that build process, publishing resources from successful builds, and the final status of the build. In addition, the image-driven deployment flow that Kubernetes advocates depends on having images available.
+Most build jobs share common characteristics, a set of inputs to a build, the need to run a certain build process to completion, the capture of the logs from that build process, publishing resources from successful builds, and the final status of the build. In addition, the image-driven deployment flow that Kubernetes advocates depends on having images available.
 
 Builds should take advantage of resource restrictions – specifying limitations on things such as CPU usage, memory usage, and build (pod) execution time – once support for this exists in Kubernetes. Additionally, builds should be repeatable and consistent (same inputs = same output).
 
