@@ -12,17 +12,28 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/pkg/proxy"
+	"k8s.io/kubernetes/pkg/util/async"
 
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
+
+// RunnableProxy is an extra interface we layer on top of ProxyProvider that
+// lets us control exactly when the proxy is synced.
+type RunnableProxy interface {
+	proxy.ProxyProvider
+
+	SyncProxyRules()
+	SetSyncRunner(b *async.BoundedFrequencyRunner)
+}
 
 // HybridProxier runs an unidling proxy and a primary proxy at the same time,
 // delegating idled services to the unidling proxy and other services to the
 // primary proxy.
 type HybridProxier struct {
-	mainProxy     proxy.ProxyProvider
-	unidlingProxy proxy.ProxyProvider
+	mainProxy     RunnableProxy
+	unidlingProxy RunnableProxy
 	syncPeriod    time.Duration
+	minSyncPeriod time.Duration
 	serviceLister corev1listers.ServiceLister
 
 	// TODO(directxman12): figure out a good way to avoid duplicating this information
@@ -39,23 +50,38 @@ type HybridProxier struct {
 	// So, add an additional state store to ensure we only switch once
 	switchedToUserspace     map[types.NamespacedName]bool
 	switchedToUserspaceLock sync.Mutex
+
+	// A gate that prevents iptables from being exhausted by proxy calls.
+	syncRunner *async.BoundedFrequencyRunner
 }
 
 func NewHybridProxier(
-	mainProxy proxy.ProxyProvider,
-	unidlingProxy proxy.ProxyProvider,
+	mainProxy RunnableProxy,
+	unidlingProxy RunnableProxy,
 	syncPeriod time.Duration,
+	minSyncPeriod time.Duration,
 	serviceLister corev1listers.ServiceLister,
 ) (*HybridProxier, error) {
-	return &HybridProxier{
+	p := &HybridProxier{
 		mainProxy:     mainProxy,
 		unidlingProxy: unidlingProxy,
 		syncPeriod:    syncPeriod,
+		minSyncPeriod: minSyncPeriod,
 		serviceLister: serviceLister,
 
 		usingUserspace:      make(map[types.NamespacedName]bool),
 		switchedToUserspace: make(map[types.NamespacedName]bool),
-	}, nil
+	}
+
+	p.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", p.syncProxyRules, minSyncPeriod, syncPeriod, 4)
+
+	// Hackery abound: we want to make sure that changes are applied
+	// to both proxies at approximately the same time. That means that we
+	// need to stop the two proxy's independent loops and take them over.
+	mainProxy.SetSyncRunner(p.syncRunner)
+	unidlingProxy.SetSyncRunner(p.syncRunner)
+
+	return p, nil
 }
 
 func (p *HybridProxier) OnServiceAdd(service *corev1.Service) {
@@ -290,20 +316,29 @@ func (p *HybridProxier) OnEndpointsSynced() {
 	klog.V(6).Infof("hybrid proxy: endpoints synced")
 }
 
-// Sync is called to immediately synchronize the proxier state to iptables
+// Sync is called to synchronize the proxier state to iptables
+// this doesn't take immediate effect - rather, it requests that the
+// BoundedFrequencyRunner call syncProxyRules()
 func (p *HybridProxier) Sync() {
-	p.mainProxy.Sync()
-	p.unidlingProxy.Sync()
-	klog.V(6).Infof("hybrid proxy: proxies synced")
+	p.syncRunner.Run()
+}
+
+// syncProxyRules actually applies the proxy rules to the node.
+// It is called by our SyncRunner.
+// We do this so that we can guarantee that changes are applied to both
+// proxies, especially when unidling a newly-awoken service.
+func (p *HybridProxier) syncProxyRules() {
+	klog.V(4).Infof("hybrid proxy: syncProxyRules start")
+
+	p.mainProxy.SyncProxyRules()
+	p.unidlingProxy.SyncProxyRules()
+
+	klog.V(4).Infof("hybrid proxy: syncProxyRules finished")
 }
 
 // SyncLoop runs periodic work.  This is expected to run as a goroutine or as the main loop of the app.  It does not return.
 func (p *HybridProxier) SyncLoop() {
-	// the iptables proxier now lies about how it works.  sync doesn't actually sync now --
-	// it just adds to a queue that's processed by a loop launched by SyncLoop, so we
-	// *must* start the sync loops, and not just use our own...
-	go p.mainProxy.SyncLoop()
-	go p.unidlingProxy.SyncLoop()
-
-	select {}
+	// All this does is start our syncRunner, since we pass it *back* in to
+	// the mainProxy
+	p.mainProxy.SyncLoop()
 }

@@ -241,10 +241,16 @@ func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 		if err != nil {
 			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
+		hp, ok := proxier.(hybrid.RunnableProxy)
+		if !ok {
+			// unreachable
+			klog.Fatalf("unidling proxy must be used in iptables mode")
+		}
 		proxier, err = hybrid.NewHybridProxier(
-			proxier,
+			hp,
 			unidlingUserspaceProxy,
 			sdn.ProxyConfig.IPTables.SyncPeriod.Duration,
+			sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			sdn.informers.KubeInformers.Core().V1().Services().Lister(),
 		)
 		if err != nil {
