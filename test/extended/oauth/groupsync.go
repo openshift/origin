@@ -14,7 +14,7 @@ import (
 	testutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/oauth] ldap group sync", func() {
+var _ = g.Describe("[Suite:openshift/oauth][Serial] ldap group sync", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                 = testutil.NewCLI("ldap-group-sync", testutil.KubeConfigPath())
