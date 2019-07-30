@@ -482,6 +482,9 @@ var (
 		"[Suite:openshift/test-cmd]": {
 			`\[Suite:openshift/test-cmd\]`,
 		},
+		"[Suite:openshift/csi]": {
+			`External Storage \[Driver:`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite

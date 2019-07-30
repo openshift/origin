@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -22,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/storage/external"
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
@@ -280,6 +282,10 @@ func initProvider(provider string) error {
 	exutil.TestContext.MaxNodesToGather = 0
 	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
 
+	if err := initCSITests(); err != nil {
+		return err
+	}
+
 	// set defaults so these tests don't log
 	// these appear to be defaults now
 	//exutil.TestContext.LoggingSoak.Scale = 1
@@ -336,5 +342,21 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 		testContext.Provider = "skeleton"
 	}
 	klog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
+	return nil
+}
+
+// Initialize openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
+func initCSITests() error {
+	// TODO: replace with cmdline argument
+	driverList := os.Getenv("TEST_CSI_DRIVER_FILES")
+	if driverList == "" {
+		return nil
+	}
+	drivers := strings.Split(driverList, ",")
+	for _, driver := range drivers {
+		if err := external.AddDriverDefinition(driver); err != nil {
+			return fmt.Errorf("failed to load driver from %q: %s", driver, err)
+		}
+	}
 	return nil
 }
