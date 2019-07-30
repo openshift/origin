@@ -1,21 +1,21 @@
 package kubeadmission
 
 import (
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/sccadmission"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
+	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy"
+	imagepolicyapiv1 "github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1"
+	quotaclusterresourcequota "github.com/openshift/apiserver-library-go/pkg/admission/quota/clusterresourcequota"
+	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccadmission"
 	authorizationrestrictusers "k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
 	quotaclusterresourceoverride "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/clusterresourceoverride"
 	quotarunonceduration "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/runonceduration"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
-	imagepolicyapiv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/externalipranger"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/restrictedendpoints"
-	quotaclusterresourcequota "k8s.io/kubernetes/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	ingressadmission "k8s.io/kubernetes/openshift-kube-apiserver/admission/route"
 	projectnodeenv "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	schedulerpodnodeconstraints "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
@@ -89,10 +89,10 @@ func NewOrderedKubeAdmissionPlugins(kubeAdmissionOrder []string) []string {
 			ret = append(ret, openshiftAdmissionPluginsForKubeBeforeMutating...)
 			ret = append(ret, customresourcevalidationregistration.AllCustomResourceValidators...)
 		}
-		
+
 		ret = append(ret, curr)
-		
-		if curr == resourcequota.PluginName{
+
+		if curr == resourcequota.PluginName {
 			ret = append(ret, openshiftAdmissionPluginsForKubeAfterResourceQuota...)
 		}
 	}

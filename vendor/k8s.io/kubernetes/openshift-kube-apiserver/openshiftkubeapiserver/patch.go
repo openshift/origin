@@ -16,6 +16,10 @@ import (
 	"k8s.io/kubernetes/pkg/quota/v1/install"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy"
+	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/imagereferencemutators"
+	"github.com/openshift/apiserver-library-go/pkg/admission/quota/clusterresourcequota"
+	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccadmission"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
@@ -30,11 +34,7 @@ import (
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/sccadmission"
 )
 
 type KubeAPIServerServerPatchContext struct {

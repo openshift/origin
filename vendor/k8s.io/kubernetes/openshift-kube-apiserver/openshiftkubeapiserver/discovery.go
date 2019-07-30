@@ -9,8 +9,8 @@ import (
 	"k8s.io/klog"
 
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
-	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"
 )
 
 // PKCE [RFC7636] code challenge methods supported
