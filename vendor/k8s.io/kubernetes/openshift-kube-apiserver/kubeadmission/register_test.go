@@ -1,6 +1,7 @@
 package kubeadmission
 
 import (
+	"reflect"
 	"testing"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -27,4 +28,27 @@ func TestAdmissionRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestResourceQuotaBeforeClusterResourceQuota simply test wheather ResourceQuota plugin is before ClusterResourceQuota plugin
+func TestResourceQuotaBeforeClusterResourceQuota(t *testing.T) {
+	orderedAdmissionChain := NewOrderedKubeAdmissionPlugins(options.AllOrderedPlugins)
+
+	expectedOrderedAdmissionSubChain := []string{"ResourceQuota", "quota.openshift.io/ClusterResourceQuota", "AlwaysDeny"}
+	actualOrderedAdmissionChain := extractSubChain(orderedAdmissionChain, expectedOrderedAdmissionSubChain[0])
+
+	if !reflect.DeepEqual(actualOrderedAdmissionChain, expectedOrderedAdmissionSubChain) {
+		t.Fatalf("expected %v, got %v ", expectedOrderedAdmissionSubChain, actualOrderedAdmissionChain)
+	}
+}
+
+func extractSubChain(admissionChain []string, takeFrom string) []string {
+	indexOfTake := 0
+	for index, admission := range admissionChain {
+		if admission == takeFrom {
+			indexOfTake = index
+			break
+		}
+	}
+	return admissionChain[indexOfTake:]
 }
