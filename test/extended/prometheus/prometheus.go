@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -47,6 +48,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	})
 
 	g.Describe("when installed on the cluster", func() {
+        defer g.GinkgoRecover()
 		g.It("should report telemetry if a cloud.openshift.com token is present", func() {
 			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 				e2e.Skipf("Telemetry is disabled")
@@ -222,6 +224,41 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
+
+		g.It("should not be run in the BestEffort QoS the monitoirng pods", func() {
+            defer g.GinkgoRecover()
+			oc := exutil.NewCLI("oauth-well-known", exutil.KubeConfigPath())
+			oc.SetNamespace("openshift-monitoring")
+			fmt.Println("----------------> Test Start")
+			//out, err := oc.Run("set", "env").Args("dc/deployment-simple", fmt.Sprintf("A=%d", i)).Output()
+			e2e.Logf("Try to check Qos of monitoring pods")
+			podNameOut, err := oc.Run("get").Args("pods", "--no-headers").Output()
+			if err != nil {
+				e2e.Logf("Error with getting pods name:\n%s\n", err)
+			}
+			fmt.Println(takeOnlyPodName(podNameOut))
+			podNames := takeOnlyPodName(podNameOut)
+			for index, each := range podNames {
+				fmt.Printf("Array value [%d] is [%s]\n", index, each)
+				// oc -n openshift-monitoring get pod $i -oyaml | grep qosClass:
+				pod_yaml_output, err := oc.Run("get").Args("pods", each, "-oyaml").Output()
+				if err != nil {
+					e2e.Logf("Error with getting pod yaml :\n%s\n", err)
+				}
+				//fmt.Println(pod_yaml_output)
+				//Should not be BestEffort QoS,
+				result_BestEffortCheck := checkPodYamlNoBestEffort(pod_yaml_output)
+				o.Expect(result_BestEffortCheck).To(o.Equal(false))
+				//sample output qosClass: Burstable
+				result_QosClassCheck := checkPodYamlQosClass(pod_yaml_output)
+				o.Expect(result_QosClassCheck).To(o.Equal(true))
+				
+				//oc = nil
+			}
+            fmt.Println("----------------> Test Finish")
+
+		})
+
 	})
 })
 
@@ -457,4 +494,30 @@ func hasPullSecret(client clientset.Interface, name string) bool {
 		e2e.Failf("could not unmarshal pullSecret from openshift-config/pull-secret: %v", err)
 	}
 	return len(ps.Auths[name].Auth) > 0
+}
+
+func takeOnlyPodName(s string) []string {
+	var news []string
+	scanner := bufio.NewScanner(strings.NewReader(s))
+	for scanner.Scan() {
+		//fmt.Println(strings.Split(scanner.Text(), " ")[0])
+		news = append(news, strings.Split(scanner.Text(), " ")[0])
+		if len(news) == 0 {
+			e2e.Logf("Error, zero size of pods. ")
+		}
+		//fmt.Println(news)
+	}
+	return news
+}
+
+func checkPodYamlNoBestEffort(pod_yaml string) bool {
+	result := strings.Contains(pod_yaml, "BestEffort")
+	fmt.Println("Result ===========> %s", result)
+	return result
+}
+
+func checkPodYamlQosClass(pod_yaml string) bool {
+	result := strings.Contains(pod_yaml, "qosClass: Burstable")
+	fmt.Println("Result ===========> %s", result)
+	return result
 }
