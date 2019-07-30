@@ -15,7 +15,7 @@ function cleanup() {
        os::test::junit::generate_report
        os::cleanup::all
        os::util::describe_return_code "${return_code}"
-       exit "${return_code}"
+       exit 1
 }
 trap "cleanup" EXIT
 

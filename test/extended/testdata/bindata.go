@@ -51249,7 +51249,7 @@ function cleanup() {
        os::test::junit::generate_report
        os::cleanup::all
        os::util::describe_return_code "${return_code}"
-       exit "${return_code}"
+       exit 1
 }
 trap "cleanup" EXIT
 
@@ -51433,7 +51433,8 @@ oc adm groups sync --sync-config=sync-config.yaml --confirm
 ldapdelete -x -h $LDAP_SERVICE_IP -p 389 -D cn=Manager,dc=example,dc=com -w admin "${group1_ldapuid}"
 oc adm groups prune --sync-config=sync-config.yaml --confirm
 compare_and_cleanup valid_all_ldap_sync_delete_prune.yaml
-popd > /dev/null`)
+popd > /dev/null
+`)
 
 func testExtendedTestdataLdapGroupsyncShBytes() ([]byte, error) {
 	return _testExtendedTestdataLdapGroupsyncSh, nil
