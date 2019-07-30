@@ -92,6 +92,8 @@ import:
   version: master
 - package: github.com/openshift/library-go
   version: master
+- package: github.com/openshift/apiserver-library-go
+  version: master
 - package: github.com/openshift/oc
   version: master
 
@@ -134,6 +136,10 @@ import:
   - errorutil
 
 # needed to get the
+- package: github.com/lestrrat/go-jspointer
+  repo:    https://github.com/lestrrat/go-jspointer.git
+- package: github.com/lestrrat/go-pdebug
+  repo:    https://github.com/lestrrat/go-pdebug.git
 - package: github.com/lestrrat/go-jsref
   repo:    https://github.com/lestrrat/go-jsref.git
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
@@ -152,3 +158,8 @@ import:
 # https://github.com/kubernetes/kubernetes/pull/72138
 - package: bitbucket.org/ww/goautoneg
   repo: https://github.com/munnerz/goautoneg.git
+
+# yours that I suspect aren't pinning because vendor.conf is respected
+# yours: containers/image.  No idea why this isn't self-pinning.
+- package: github.com/containers/storage
+  version: 912de200380ac2fd1e90f91b78c1495ed8d5beea
