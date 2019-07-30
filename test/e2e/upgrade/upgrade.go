@@ -496,7 +496,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		}
 		allUpdated := true
 		for _, p := range pools.Items {
-			updated, err := isPoolUpdated(mcps, p.GetName())
+			updated, err := IsPoolUpdated(mcps, p.GetName())
 			if err != nil {
 				framework.Logf("error checking pool %s: %v", p.GetName(), err)
 				return false, nil
@@ -513,7 +513,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 }
 
 // TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
-func isPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
+func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
 	pool, err := dc.Get(name, metav1.GetOptions{})
 	if err != nil {
 		framework.Logf("error getting pool %s: %v", name, err)
