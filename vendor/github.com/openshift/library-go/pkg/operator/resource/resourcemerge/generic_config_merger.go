@@ -205,7 +205,7 @@ func intersectArray(x1, x2 []interface{}) []interface{} {
 		if i >= len(x2) {
 			break
 		}
-		ret = append(ret, intersectValue(x1, x2))
+		ret = append(ret, intersectValue(x1[i], x2[i]))
 	}
 	return ret
 }
