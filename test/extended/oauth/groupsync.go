@@ -10,8 +10,12 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"time"
+
 	"github.com/openshift/origin/test/extended/testdata"
 	testutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[Suite:openshift/oauth][Serial] ldap group sync", func() {
@@ -74,6 +78,17 @@ var _ = g.Describe("[Suite:openshift/oauth][Serial] ldap group sync", func() {
 
 		// Copy groupsync script
 		err = pod.CopyFromHost(groupSyncScriptPath, path.Join("/usr", "bin", "groupsync.sh"))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Fix flake executing groupsync.sh before it has landed on the pod.
+		err = wait.PollImmediate(2*time.Second, 5*time.Minute, func() (done bool, err error) {
+			_, lsErr := pod.Exec("/bin/ls /usr/bin/groupsync.sh &> /dev/null")
+			if lsErr != nil {
+				e2e.Logf("groupsync.sh is not available, retrying...")
+				return false, nil
+			}
+			return true, nil
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Make it executable
