@@ -17,11 +17,6 @@ func init() {
 	initCmd.SetOutput(new(bytes.Buffer))
 }
 
-// ensureLF converts any \r\n to \n
-func ensureLF(content []byte) []byte {
-	return bytes.Replace(content, []byte("\r\n"), []byte("\n"), -1)
-}
-
 // compareFiles compares the content of files with pathA and pathB.
 // If contents are equal, it returns nil.
 // If not, it returns which files are not equal
@@ -35,7 +30,7 @@ func compareFiles(pathA, pathB string) error {
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(ensureLF(contentA), ensureLF(contentB)) {
+	if !bytes.Equal(contentA, contentB) {
 		output := new(bytes.Buffer)
 		output.WriteString(fmt.Sprintf("%q and %q are not equal!\n\n", pathA, pathB))
 

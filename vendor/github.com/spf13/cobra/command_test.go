@@ -1164,13 +1164,12 @@ func TestPersistentHooks(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	// TODO: currently PersistenPreRun* defined in parent does not
-	// run if the matchin child subcommand has PersistenPreRun.
-	// If the behavior changes (https://github.com/spf13/cobra/issues/252)
-	// this test must be fixed.
-	if parentPersPreArgs != "" {
-		t.Errorf("Expected blank parentPersPreArgs, got %q", parentPersPreArgs)
-	}
+	// TODO: This test fails, but should not.
+	// Related to https://github.com/spf13/cobra/issues/252.
+	//
+	// if parentPersPreArgs != "one two" {
+	// 	t.Errorf("Expected parentPersPreArgs %q, got %q", "one two", parentPersPreArgs)
+	// }
 	if parentPreArgs != "" {
 		t.Errorf("Expected blank parentPreArgs, got %q", parentPreArgs)
 	}
@@ -1180,13 +1179,12 @@ func TestPersistentHooks(t *testing.T) {
 	if parentPostArgs != "" {
 		t.Errorf("Expected blank parentPostArgs, got %q", parentPostArgs)
 	}
-	// TODO: currently PersistenPostRun* defined in parent does not
-	// run if the matchin child subcommand has PersistenPostRun.
-	// If the behavior changes (https://github.com/spf13/cobra/issues/252)
-	// this test must be fixed.
-	if parentPersPostArgs != "" {
-		t.Errorf("Expected blank parentPersPostArgs, got %q", parentPersPostArgs)
-	}
+	// TODO: This test fails, but should not.
+	// Related to https://github.com/spf13/cobra/issues/252.
+	//
+	// if parentPersPostArgs != "one two" {
+	// 	t.Errorf("Expected parentPersPostArgs %q, got %q", "one two", parentPersPostArgs)
+	// }
 
 	if childPersPreArgs != "one two" {
 		t.Errorf("Expected childPersPreArgs %q, got %q", "one two", childPersPreArgs)
@@ -1378,46 +1376,6 @@ func TestSetOutput(t *testing.T) {
 	c.SetOutput(nil)
 	if out := c.OutOrStdout(); out != os.Stdout {
 		t.Errorf("Expected setting output to nil to revert back to stdout")
-	}
-}
-
-func TestSetOut(t *testing.T) {
-	c := &Command{}
-	c.SetOut(nil)
-	if out := c.OutOrStdout(); out != os.Stdout {
-		t.Errorf("Expected setting output to nil to revert back to stdout")
-	}
-}
-
-func TestSetErr(t *testing.T) {
-	c := &Command{}
-	c.SetErr(nil)
-	if out := c.ErrOrStderr(); out != os.Stderr {
-		t.Errorf("Expected setting error to nil to revert back to stderr")
-	}
-}
-
-func TestSetIn(t *testing.T) {
-	c := &Command{}
-	c.SetIn(nil)
-	if out := c.InOrStdin(); out != os.Stdin {
-		t.Errorf("Expected setting input to nil to revert back to stdin")
-	}
-}
-
-func TestUsageStringRedirected(t *testing.T) {
-	c := &Command{}
-
-	c.usageFunc = func(cmd *Command) error {
-		cmd.Print("[stdout1]")
-		cmd.PrintErr("[stderr2]")
-		cmd.Print("[stdout3]")
-		return nil
-	}
-
-	expected := "[stdout1][stderr2][stdout3]"
-	if got := c.UsageString(); got != expected {
-		t.Errorf("Expected usage string to consider both stdout and stderr")
 	}
 }
 
@@ -1667,109 +1625,4 @@ func TestCalledAs(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, tc.test)
 	}
-}
-
-func TestFParseErrWhitelistBackwardCompatibility(t *testing.T) {
-	c := &Command{Use: "c", Run: emptyRun}
-	c.Flags().BoolP("boola", "a", false, "a boolean flag")
-
-	output, err := executeCommand(c, "c", "-a", "--unknown", "flag")
-	if err == nil {
-		t.Error("expected unknown flag error")
-	}
-	checkStringContains(t, output, "unknown flag: --unknown")
-}
-
-func TestFParseErrWhitelistSameCommand(t *testing.T) {
-	c := &Command{
-		Use: "c",
-		Run: emptyRun,
-		FParseErrWhitelist: FParseErrWhitelist{
-			UnknownFlags: true,
-		},
-	}
-	c.Flags().BoolP("boola", "a", false, "a boolean flag")
-
-	_, err := executeCommand(c, "c", "-a", "--unknown", "flag")
-	if err != nil {
-		t.Error("unexpected error: ", err)
-	}
-}
-
-func TestFParseErrWhitelistParentCommand(t *testing.T) {
-	root := &Command{
-		Use: "root",
-		Run: emptyRun,
-		FParseErrWhitelist: FParseErrWhitelist{
-			UnknownFlags: true,
-		},
-	}
-
-	c := &Command{
-		Use: "child",
-		Run: emptyRun,
-	}
-	c.Flags().BoolP("boola", "a", false, "a boolean flag")
-
-	root.AddCommand(c)
-
-	output, err := executeCommand(root, "child", "-a", "--unknown", "flag")
-	if err == nil {
-		t.Error("expected unknown flag error")
-	}
-	checkStringContains(t, output, "unknown flag: --unknown")
-}
-
-func TestFParseErrWhitelistChildCommand(t *testing.T) {
-	root := &Command{
-		Use: "root",
-		Run: emptyRun,
-	}
-
-	c := &Command{
-		Use: "child",
-		Run: emptyRun,
-		FParseErrWhitelist: FParseErrWhitelist{
-			UnknownFlags: true,
-		},
-	}
-	c.Flags().BoolP("boola", "a", false, "a boolean flag")
-
-	root.AddCommand(c)
-
-	_, err := executeCommand(root, "child", "-a", "--unknown", "flag")
-	if err != nil {
-		t.Error("unexpected error: ", err.Error())
-	}
-}
-
-func TestFParseErrWhitelistSiblingCommand(t *testing.T) {
-	root := &Command{
-		Use: "root",
-		Run: emptyRun,
-	}
-
-	c := &Command{
-		Use: "child",
-		Run: emptyRun,
-		FParseErrWhitelist: FParseErrWhitelist{
-			UnknownFlags: true,
-		},
-	}
-	c.Flags().BoolP("boola", "a", false, "a boolean flag")
-
-	s := &Command{
-		Use: "sibling",
-		Run: emptyRun,
-	}
-	s.Flags().BoolP("boolb", "b", false, "a boolean flag")
-
-	root.AddCommand(c)
-	root.AddCommand(s)
-
-	output, err := executeCommand(root, "sibling", "-b", "--unknown", "flag")
-	if err == nil {
-		t.Error("expected unknown flag error")
-	}
-	checkStringContains(t, output, "unknown flag: --unknown")
 }

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	sccutil "k8s.io/kubernetes/openshift-kube-apiserver/admission/security/securitycontextconstraints/util"
+	sccutil "github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util"
 )
 
 func TestDefaultingHappens(t *testing.T) {

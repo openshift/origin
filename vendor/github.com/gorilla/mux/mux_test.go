@@ -1123,7 +1123,10 @@ func TestSchemes(t *testing.T) {
 
 func TestMatcherFunc(t *testing.T) {
 	m := func(r *http.Request, m *RouteMatch) bool {
-		return r.URL.Host == "aaa.bbb.ccc"
+		if r.URL.Host == "aaa.bbb.ccc" {
+			return true
+		}
+		return false
 	}
 
 	tests := []routeTest{
@@ -1441,11 +1444,10 @@ func TestNamedRoutes(t *testing.T) {
 	r3.NewRoute().Name("g")
 	r3.NewRoute().Name("h")
 	r3.NewRoute().Name("i")
-	r3.Name("j")
 
-	if r1.namedRoutes == nil || len(r1.namedRoutes) != 10 {
-		t.Errorf("Expected 10 named routes, got %v", r1.namedRoutes)
-	} else if r1.Get("j") == nil {
+	if r1.namedRoutes == nil || len(r1.namedRoutes) != 9 {
+		t.Errorf("Expected 9 named routes, got %v", r1.namedRoutes)
+	} else if r1.Get("i") == nil {
 		t.Errorf("Subroute name not registered")
 	}
 }
@@ -1943,7 +1945,7 @@ type TestA301ResponseWriter struct {
 }
 
 func (ho *TestA301ResponseWriter) Header() http.Header {
-	return ho.hh
+	return http.Header(ho.hh)
 }
 
 func (ho *TestA301ResponseWriter) Write(b []byte) (int, error) {

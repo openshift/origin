@@ -15,7 +15,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1
-    github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints

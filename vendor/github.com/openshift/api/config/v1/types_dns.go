@@ -6,8 +6,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DNS holds cluster-wide information about DNS.  The canonical name is `cluster`
-// TODO this object is an example of a possible grouping and is subject to change or removal
+// DNS holds cluster-wide information about DNS. The canonical name is `cluster`
 type DNS struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -28,6 +27,8 @@ type DNSSpec struct {
 	//
 	// For example, given the base domain `openshift.example.com`, an API server
 	// DNS record may be created for `cluster-api.openshift.example.com`.
+	//
+	// Once set, this field cannot be changed.
 	BaseDomain string `json:"baseDomain"`
 	// publicZone is the location where all the DNS records that are publicly accessible to
 	// the internet exist.

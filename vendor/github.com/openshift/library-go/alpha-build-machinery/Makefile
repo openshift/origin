@@ -12,7 +12,7 @@ examples :=$(wildcard ./make/examples/*/Makefile.test)
 # Dynamic values are replaced with "<redacted_for_diff>" so we can do diff against checkout versions.
 define update-makefile-log
 mkdir -p "$(3)"
-$(MAKE) -j 1 -C "$(dir $(1))" -f "$(notdir $(1))" --no-print-directory --warn-undefined-variables $(2) 2>&1 | \
+set -o pipefail; $(MAKE) -j 1 -C "$(dir $(1))" -f "$(notdir $(1))" --no-print-directory --warn-undefined-variables $(2) 2>&1 | \
    sed 's/\.\(buildDate\|versionFromGit\|commitFromGit\|gitTreeState\)="[^"]*" /.\1="<redacted_for_diff>" /g' | \
    tee "$(3)"/"$(notdir $(1))"$(subst ..,.,.$(2).log)
 

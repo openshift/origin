@@ -5,6 +5,12 @@ gopath_list :=$(subst :, ,$(strip $(GOPATH)))
 # If the prefix is not removed on subtitution, filter-out unchanged paths.
 GO_PACKAGE ?=$(strip $(filter-out $(abspath .),$(foreach p,$(gopath_list),$(patsubst $(p)/src/%,%,$(abspath .)))))
 
+GOOS ?=$(shell $(GO) env GOOS)
+GOHOSTOS ?=$(shell $(GO) env GOHOSTOS)
+GOARCH ?=$(shell $(GO) env GOARCH)
+GOHOSTARCH ?=$(shell $(GO) env GOHOSTARCH)
+GOEXE ?=$(shell $(GO) env GOEXE)
+
 GOFMT ?=gofmt
 GOFMT_FLAGS ?=-s -l
 GOLINT ?=golint
@@ -17,6 +23,7 @@ GO_BUILD_PACKAGES ?=./cmd/...
 GO_BUILD_PACKAGES_EXPANDED ?=$(shell $(GO) list $(GO_BUILD_PACKAGES))
 go_build_binaries =$(notdir $(GO_BUILD_PACKAGES_EXPANDED))
 GO_BUILD_FLAGS ?=
+GO_BUILD_BINDIR ?=
 
 GO_TEST_FLAGS ?=-race
 
