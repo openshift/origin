@@ -22,6 +22,7 @@ import (
 const (
 	machineAPINamespace     = "openshift-machine-api"
 	nodeLabelSelectorWorker = "node-role.kubernetes.io/worker"
+	machineLabelRole        = "machine.openshift.io/cluster-api-machine-role"
 
 	// time after purge of machine to wait for replacement and ready node
 	// TODO: tighten this further based on node lifecycle controller [appears to be ~5m30s]
@@ -89,6 +90,20 @@ func mapNodeNameToMachine(nodes []corev1.Node, machines []objx.Map) (map[string]
 		}
 	}
 	return result, len(nodes) == len(result)
+}
+
+// mapMachineNameToNodeName returns a tuple (map node to machine by name, true if a match is found for every node)
+func mapMachineNameToNodeName(machines []objx.Map, nodes []corev1.Node) (map[string]string, bool) {
+	result := map[string]string{}
+	for i := range machines {
+		for j := range nodes {
+			if nodes[j].Name == nodeNameFromNodeRef(machines[i]) {
+				result[machineName(machines[i])] = nodes[j].Name
+				break
+			}
+		}
+	}
+	return result, len(machines) == len(result)
 }
 
 func isNodeReady(node corev1.Node) bool {
