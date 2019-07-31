@@ -603,6 +603,14 @@ func CreateSimpleTemplates(oc *exutil.CLI, nsName, config string, template Clust
 		return err
 	}
 
+	templateFileExtension := filepath.Ext(templateFile)
+	if templateFileExtension == ".yaml" || templateFileExtension == ".yml" {
+		data, err = yaml.YAMLToJSON(data)
+		if err != nil {
+			e2e.Logf("Unable to convert %s to YAML.", templateFile)
+		}
+	}
+
 	templateObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, data)
 	if err != nil {
 		return err
@@ -613,7 +621,11 @@ func CreateSimpleTemplates(oc *exutil.CLI, nsName, config string, template Clust
 		return err
 	}
 
-	temp := templateObj.(*unstructured.Unstructured)
+	temp, ok := templateObj.(*unstructured.Unstructured)
+	if !ok {
+		return err
+	}
+
 	parameters, ok := temp.Object["parameters"]
 	if !ok {
 		e2e.Logf("Template has no parameters")
