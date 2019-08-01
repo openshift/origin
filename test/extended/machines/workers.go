@@ -3,11 +3,13 @@ package operators
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/tabwriter"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/stretchr/objx"
 
 	corev1 "k8s.io/api/core/v1"
@@ -117,6 +119,83 @@ func isNodeReady(node corev1.Node) bool {
 
 var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func() {
 	defer g.GinkgoRecover()
+
+	var (
+		oc         = exutil.NewCLI("machine", exutil.KubeConfigPath())
+		machine    = exutil.FixturePath("testdata", "machines", "machine-example.yaml")
+		machineset = exutil.FixturePath("testdata", "machines", "machineset-example.yaml")
+	)
+
+	g.It("create machine/machineset", func() {
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c, err := e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dc, err := dynamic.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("checking for the openshift machine api operator")
+		// TODO: skip if platform != aws
+		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
+
+		g.By("fetching worker machineSets")
+		machineSets, err := listWorkerMachineSets(dc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(machineSets) == 0 {
+			e2e.Skipf("Expects at least one worker machineset. Found none!!!")
+		}
+
+		g.By("checking initial cluster workers size")
+		nodeList, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+			LabelSelector: nodeLabelSelectorWorker,
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		initialNumberOfWorkers := len(nodeList.Items)
+
+		for _, m := range machineSets {
+			machineName := m.Get("metadata.name").String()
+			value, err := oc.AsAdmin().Run("get").Args("machineset", machineName, "-n", "openshift-machine-api", "-o", "jsonpath={.metadata.labels.machine\\.openshift\\.io/cluster-api-cluster}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			clusterId := strings.TrimSpace(value)
+			ami := m.Get("spec.template.spec.providerSpec.value.ami.id").String()
+			region := m.Get("spec.template.spec.providerSpec.value.placement.region").String()
+
+			g.By("create a machine")
+			configFile, err := oc.AsAdmin().Run("process").Args("-f", machine, "-p", fmt.Sprintf("CLUSTERID=%s", clusterId), "-p", fmt.Sprintf("AMI=%s", ami), "-p", fmt.Sprintf("REGION=%s", region), "-n", "openshift-machine-api").OutputToFile("config.json")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.AsAdmin().Run("create").Args("-f", configFile, "-n", "openshift-machine-api").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			output, err := oc.AsAdmin().Run("get").Args("machine", "-n", "openshift-machine-api").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(output).To(o.ContainSubstring("mymachine"))
+			g.By(fmt.Sprintf("waiting for cluster to get to finial size. Final size should be %d nodes", initialNumberOfWorkers+1))
+			o.Eventually(func() bool {
+				nodeList, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+					LabelSelector: nodeLabelSelectorWorker,
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return len(nodeList.Items) == initialNumberOfWorkers+1
+			}, 5*time.Minute, 5*time.Second).Should(o.BeTrue())
+
+			g.By("create a machineset")
+			configFile, err = oc.AsAdmin().Run("process").Args("-f", machineset, "-p", fmt.Sprintf("CLUSTERID=%s", clusterId), "-p", fmt.Sprintf("AMI=%s", ami), "-p", fmt.Sprintf("REGION=%s", region), "-n", "openshift-machine-api").OutputToFile("config.json")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.AsAdmin().Run("create").Args("-f", configFile, "-n", "openshift-machine-api").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			output, err = oc.AsAdmin().Run("get").Args("machineset", "-n", "openshift-machine-api").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(output).To(o.ContainSubstring("mymachineset"))
+			g.By(fmt.Sprintf("waiting for cluster to get to finial size. Final size should be %d nodes", initialNumberOfWorkers+2))
+			o.Eventually(func() bool {
+				nodeList, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+					LabelSelector: nodeLabelSelectorWorker,
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return len(nodeList.Items) == initialNumberOfWorkers+2
+			}, 5*time.Minute, 5*time.Second).Should(o.BeTrue())
+			break
+		}
+	})
 
 	g.It("recover from deleted worker machines", func() {
 		cfg, err := e2e.LoadConfig()

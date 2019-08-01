@@ -396,6 +396,8 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/machines/machine-example.yaml
+// test/extended/testdata/machines/machineset-example.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
@@ -51926,6 +51928,170 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMachinesMachineExampleYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: machine-template
+objects:
+- apiVersion: machine.openshift.io/v1beta1
+  kind: Machine
+  metadata:
+    labels:
+      machine.openshift.io/cluster-api-cluster: ${CLUSTERID}
+      machine.openshift.io/cluster-api-machine-role: worker
+      machine.openshift.io/cluster-api-machine-type: worker
+    name: mymachine
+    namespace: openshift-machine-api
+  spec:
+    metadata:
+      creationTimestamp: null
+    providerSpec:
+      value:
+        ami:
+          id: ${AMI}
+        apiVersion: awsproviderconfig.openshift.io/v1beta1
+        blockDevices:
+        - ebs:
+            iops: 0
+            volumeSize: 120
+            volumeType: gp2
+        credentialsSecret:
+          name: aws-cloud-credentials
+        deviceIndex: 0
+        iamInstanceProfile:
+          id: ${CLUSTERID}-worker-profile
+        instanceType: m4.large
+        kind: AWSMachineProviderConfig
+        metadata:
+          creationTimestamp: null
+        placement:
+          availabilityZone: ${REGION}a
+          region: ${REGION}
+        publicIp: null
+        securityGroups:
+        - filters:
+          - name: tag:Name
+            values:
+            - ${CLUSTERID}-worker-sg
+        subnet:
+          filters:
+          - name: tag:Name
+            values:
+            - ${CLUSTERID}-private-${REGION}a
+        tags:
+        - name: kubernetes.io/cluster/${CLUSTERID}
+          value: owned
+        userDataSecret:
+          name: worker-user-data
+parameters:
+- name: CLUSTERID
+- name: AMI
+- name: REGION`)
+
+func testExtendedTestdataMachinesMachineExampleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachinesMachineExampleYaml, nil
+}
+
+func testExtendedTestdataMachinesMachineExampleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachinesMachineExampleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machines/machine-example.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachinesMachinesetExapmleYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: machineset-template
+objects:
+- apiVersion: machine.openshift.io/v1beta1
+  kind: MachineSet
+  metadata:
+    labels:
+      machine.openshift.io/cluster-api-cluster: ${CLUSTERID}
+    name: mymachineset
+    namespace: openshift-machine-api
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        machine.openshift.io/cluster-api-cluster: ${CLUSTERID}
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: mymachineset
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          machine.openshift.io/cluster-api-cluster: ${CLUSTERID}
+          machine.openshift.io/cluster-api-machine-role: worker
+          machine.openshift.io/cluster-api-machine-type: worker
+          machine.openshift.io/cluster-api-machineset: mymachineset
+      spec:
+        metadata:
+          creationTimestamp: null
+        providerSpec:
+          value:
+            ami:
+              id: ${AMI}
+            apiVersion: awsproviderconfig.openshift.io/v1beta1
+            blockDevices:
+            - ebs:
+                iops: 0
+                volumeSize: 120
+                volumeType: gp2
+            credentialsSecret:
+              name: aws-cloud-credentials
+            deviceIndex: 0
+            iamInstanceProfile:
+              id: ${CLUSTERID}-worker-profile
+            instanceType: m4.large
+            kind: AWSMachineProviderConfig
+            metadata:
+              creationTimestamp: null
+            placement:
+              availabilityZone: ${REGION}a
+              region: ${REGION}
+            publicIp: null
+            securityGroups:
+            - filters:
+              - name: tag:Name
+                values:
+                - ${CLUSTERID}-worker-sg
+            subnet:
+              filters:
+              - name: tag:Name
+                values:
+                - ${CLUSTERID}-private-${REGION}a
+            tags:
+            - name: kubernetes.io/cluster/${CLUSTERID}
+              value: owned
+            userDataSecret:
+              name: worker-user-data
+parameters:
+- name: CLUSTERID
+- name: AMI
+- name: REGION`)
+
+func testExtendedTestdataMachinesMachinesetExampleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachinesMachinesetExampleYaml, nil
+}
+
+func testExtendedTestdataMachinesMachinesetExampleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachinesMachinesetExampleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machines/machineset-example.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
@@ -57171,6 +57337,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml": testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/machines/machine-example.yaml": testExtendedTestdataMachinesMachineExampleYaml,
+	"test/extended/testdata/machines/machineset-example.yaml": testExtendedTestdataMachinesMachinesetExampleYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
@@ -57864,6 +58032,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"long_names": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
+				}},
+				"machines": &bintree{nil, map[string]*bintree{
+					"machine-example.yaml": &bintree{testExtendedTestdataMachinesMachineExampleYaml, map[string]*bintree{}},
+					"machineset-example.yaml": &bintree{testExtendedTestdataMachinesMachinesetExampleYaml, map[string]*bintree{}},
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
