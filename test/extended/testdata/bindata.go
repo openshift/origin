@@ -396,6 +396,8 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/machines/clusterautoscaler.yaml
+// test/extended/testdata/machines/machineautoscaler.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
@@ -51926,6 +51928,71 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMachinesClusterautoscalerYaml = []byte(`apiVersion: "autoscaling.openshift.io/v1"
+kind: "ClusterAutoscaler"
+metadata:
+  name: "default"
+spec:
+  balanceSimilarNodeGroups: true
+  scaleDown:
+    enabled: true
+    delayAfterAdd: 10s
+    delayAfterDelete: 10s
+    delayAfterFailure: 10s
+    unneededTime: 10s
+`)
+
+func testExtendedTestdataMachinesClusterautoscalerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachinesClusterautoscalerYaml, nil
+}
+
+func testExtendedTestdataMachinesClusterautoscalerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachinesClusterautoscalerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machines/clusterautoscaler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachinesMachineautoscalerYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: machineautoscaler-template
+objects:
+- apiVersion: autoscaling.openshift.io/v1beta1
+  kind: MachineAutoscaler
+  metadata:
+    name: ${NAME}
+    namespace: openshift-machine-api
+  spec:
+    maxReplicas: 3
+    minReplicas: 1
+    scaleTargetRef:
+      apiVersion: machine.openshift.io/v1beta1
+      kind: MachineSet
+      name: ${NAME}
+parameters:
+- name: NAME
+`)
+
+func testExtendedTestdataMachinesMachineautoscalerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachinesMachineautoscalerYaml, nil
+}
+
+func testExtendedTestdataMachinesMachineautoscalerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachinesMachineautoscalerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machines/machineautoscaler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
@@ -57171,6 +57238,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml": testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/machines/clusterautoscaler.yaml": testExtendedTestdataMachinesClusterautoscalerYaml,
+	"test/extended/testdata/machines/machineautoscaler.yaml": testExtendedTestdataMachinesMachineautoscalerYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
@@ -57865,6 +57934,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
+				"machines": &bintree{nil, map[string]*bintree{
+					"clusterautoscaler.yaml": &bintree{testExtendedTestdataMachinesClusterautoscalerYaml, map[string]*bintree{}},
+					"machineautoscaler.yaml": &bintree{testExtendedTestdataMachinesMachineautoscalerYaml, map[string]*bintree{}},
+				}},	
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"oauthserver": &bintree{nil, map[string]*bintree{
