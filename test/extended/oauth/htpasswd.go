@@ -4,7 +4,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -28,33 +27,10 @@ func init() {
 }
 
 var _ = g.Describe("[Suite:openshift/oauth/htpasswd] HTPasswd IDP", func() {
-	defer g.GinkgoRecover()
-	var (
-		oc = exutil.NewCLI("htpasswd-idp", exutil.KubeConfigPath())
-	)
+	var oc = exutil.NewCLI("htpasswd-idp", exutil.KubeConfigPath())
 
 	g.It("[Flaky] should successfully configure htpasswd and be responsive", func() {
-		secrets := []corev1.Secret{{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "htpasswd-secret",
-			},
-			Data: map[string][]byte{
-				"htpasswd": []byte("testuser:$2y$05$pOYBCbJ1RXr.vDzPXdyTxuE96Nojc9dNI9R3QjkWUj2t/Ae/jmFy."), // userinfo testuser:password
-			},
-		}}
-
-		htpasswdProvider, err := utiloauth.GetRawExtensionForOsinProvider(
-			&osinv1.HTPasswdPasswordIdentityProvider{File: utiloauth.GetPathFromConfigMapSecretName("htpasswd-secret", "htpasswd")},
-		)
-		o.Expect(err).ToNot(o.HaveOccurred())
-		htpasswdConfig := osinv1.IdentityProvider{
-			Name:            "htpasswd",
-			UseAsChallenger: true,
-			UseAsLogin:      true,
-			MappingMethod:   "claim",
-			Provider:        *htpasswdProvider,
-		}
-		newTokenReqOpts, cleanup, err := utiloauth.DeployOAuthServer(oc, []osinv1.IdentityProvider{htpasswdConfig}, nil, secrets)
+		newTokenReqOpts, cleanup, err := deployOAuthServer(oc)
 		defer cleanup()
 		o.Expect(err).ToNot(o.HaveOccurred())
 		tokenReqOpts := newTokenReqOpts("testuser", "password")
@@ -70,11 +46,3 @@ var _ = g.Describe("[Suite:openshift/oauth/htpasswd] HTPasswd IDP", func() {
 		o.Expect(tokenUser.Name).To(o.Equal("testuser"))
 	})
 })
-
-func encodeOrDie(obj runtime.Object) []byte {
-	bytes, err := runtime.Encode(encoder, obj)
-	if err != nil {
-		panic(err) // indicates static generated code is broken, unrecoverable
-	}
-	return bytes
-}

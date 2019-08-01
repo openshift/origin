@@ -9,12 +9,8 @@ import (
 	t "github.com/onsi/ginkgo/extensions/table"
 	o "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/util/sets"
-
-	osinv1 "github.com/openshift/api/osin/v1"
 
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/oauthserver"
@@ -32,29 +28,9 @@ var _ = g.Describe("[Feature:OAuthServer] [Headers]", func() {
 		transport, err = rest.TransportFor(rest.AnonymousClientConfig(oc.UserConfig()))
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		// secret containing htpasswd "file"
-		secret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "htpasswd"},
-			Data: map[string][]byte{
-				"htpasswd": []byte("testuser:$2y$05$ZPH3KIKb3Gr86610n8y7Zuy5fZQUZhNl6dHqAYA6KWCqkacqYfw2i"),
-			},
-		}
-		// provider config
-		providerConfig, err := oauthserver.GetRawExtensionForOsinProvider(&osinv1.HTPasswdPasswordIdentityProvider{
-			File: oauthserver.GetPathFromConfigMapSecretName(secret.Name, "htpasswd"),
-		})
-		o.Expect(err).ToNot(o.HaveOccurred())
-		// identity provider
-		identityProvider := osinv1.IdentityProvider{
-			Name:            "htpasswd",
-			MappingMethod:   "claim",
-			Provider:        *providerConfig,
-			UseAsChallenger: true,
-			UseAsLogin:      true,
-		}
 		// deploy oauth server
 		var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
-		newRequestTokenOptions, oauthServerCleanup, err = oauthserver.DeployOAuthServer(oc, []osinv1.IdentityProvider{identityProvider}, nil, []corev1.Secret{secret})
+		newRequestTokenOptions, oauthServerCleanup, err = deployOAuthServer(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		oauthServerAddr = newRequestTokenOptions("", "").Issuer
 	})
