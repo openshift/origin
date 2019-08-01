@@ -12,7 +12,6 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/test/extended/util/oauthserver/tokencmd"
 )
 
 var (
@@ -23,16 +22,6 @@ var (
 
 func init() {
 	utilruntime.Must(osinv1.Install(osinScheme))
-}
-
-func RequestTokenForUser(reqOpts *tokencmd.RequestTokenOptions, username, password string) (string, error) {
-	reqOpts.Handler = &tokencmd.BasicChallengeHandler{
-		Host:     reqOpts.ClientConfig.Host,
-		Username: username,
-		Password: password,
-	}
-
-	return reqOpts.RequestToken()
 }
 
 func GetRawExtensionForOsinProvider(obj runtime.Object) (*runtime.RawExtension, error) {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"path"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/crypto"
+
 	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/oauthserver/tokencmd"
@@ -59,91 +61,80 @@ var (
 	volumesDefaultMode int32 = 420
 )
 
+type NewRequestTokenOptionsFunc func(username, password string) *tokencmd.RequestTokenOptions
+
 // DeployOAuthServer - deployes an instance of an OpenShift OAuth server
 // very simplified for now
 // returns OAuth server url, cleanup function, error
-func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMaps []corev1.ConfigMap, secrets []corev1.Secret) (*tokencmd.RequestTokenOptions, func(), error) {
-	oauthServerDataDir := exutil.FixturePath("testdata", "oauthserver")
-	cleanups := func() {
-		oc.AsAdmin().Run("delete").Args("clusterrolebinding", oc.Namespace()).Execute()
-		oc.AsAdmin().Run("delete").Args("oauthclient", oc.Namespace()).Execute()
+func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMaps []corev1.ConfigMap, secrets []corev1.Secret) (NewRequestTokenOptionsFunc, func(), error) {
+
+	var cleanupFuncs []func()
+	cleanupFunc := func() {
+		for _, f := range cleanupFuncs {
+			f()
+		}
 	}
 
 	// create the CA bundle, Service, Route and SA
+	oauthServerDataDir := exutil.FixturePath("testdata", "oauthserver")
 	for _, res := range []string{"cabundle-cm.yaml", "oauth-sa.yaml", "oauth-network.yaml"} {
 		if err := oc.AsAdmin().Run("create").Args("-f", path.Join(oauthServerDataDir, res)).Execute(); err != nil {
-			return nil, cleanups, err
+			return nil, cleanupFunc, err
 		}
 	}
+
+	kubeClient := oc.AdminKubeClient()
 
 	// the oauth server needs access to kube-system configmaps/extension-apiserver-authentication
-	oauthSARolebinding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: oc.Namespace(),
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      SAName,
-				Namespace: oc.Namespace(),
-			},
-		},
+	clusterRoleBinding, err := createClusterRoleBinding(oc)
+	if err != nil {
+		return nil, cleanupFunc, err
 	}
-	if _, err := oc.AdminKubeClient().RbacV1().ClusterRoleBindings().Create(oauthSARolebinding); err != nil {
-		return nil, cleanups, err
-	}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		_ = oc.AsAdmin().Run("delete").Args("clusterrolebindings.rbac.authorization.k8s.io", clusterRoleBinding.Name).Execute()
+	})
 
 	// create the secrets and configmaps the OAuth server config requires to get the server going
-	coreClient := oc.AdminKubeClient().CoreV1()
-	cmClient := coreClient.ConfigMaps(oc.Namespace())
-	secretsClient := coreClient.Secrets(oc.Namespace())
-
 	for _, cm := range configMaps {
-		if _, err := cmClient.Create(&cm); err != nil {
-			return nil, cleanups, err
+		if _, err := kubeClient.CoreV1().ConfigMaps(oc.Namespace()).Create(&cm); err != nil {
+			return nil, cleanupFunc, err
 		}
 	}
-
 	for _, secret := range secrets {
-		if _, err := secretsClient.Create(&secret); err != nil {
-			return nil, cleanups, err
+		if _, err := kubeClient.CoreV1().Secrets(oc.Namespace()).Create(&secret); err != nil {
+			return nil, cleanupFunc, err
 		}
 	}
 
 	// generate a session secret for the oauth server
 	sessionSecret, err := randomSessionSecret()
 	if err != nil {
-		return nil, cleanups, err
+		return nil, cleanupFunc, err
 	}
-	if _, err := secretsClient.Create(sessionSecret); err != nil {
-		return nil, cleanups, err
+	if _, err := kubeClient.CoreV1().Secrets(oc.Namespace()).Create(sessionSecret); err != nil {
+		return nil, cleanupFunc, err
 	}
 
-	// get the route of the future OAuth server
+	// get the route of the future OAuth server (defined in the oauth-network.yaml fixture above)
 	route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(RouteName, metav1.GetOptions{})
 	if err != nil {
-		return nil, cleanups, err
+		return nil, cleanupFunc, err
 	}
 	routeURL := fmt.Sprintf("https://%s", route.Spec.Host)
 
 	// prepare the config, inject it with the route URL and the IdP config we got
 	config, err := oauthServerConfig(oc, routeURL, idps)
 	if err != nil {
-		return nil, cleanups, err
+		return nil, cleanupFunc, err
 	}
 
 	configBytes := encode(config)
 	if configBytes == nil {
-		return nil, cleanups, fmt.Errorf("error encoding the OSIN config")
+		return nil, cleanupFunc, fmt.Errorf("error encoding the OSIN config")
 	}
 
 	// store the config in a ConfigMap that's to be mounted into the server's pod
-	_, err = cmClient.Create(&corev1.ConfigMap{
+	_, err = kubeClient.CoreV1().ConfigMaps(oc.Namespace()).Create(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oauth-config",
 		},
@@ -152,27 +143,57 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 		},
 	})
 	if err != nil {
-		return nil, cleanups, err
+		return nil, cleanupFunc, err
 	}
 
 	// get the OAuth server image that's used in the cluster
 	image, err := getImage(oc)
 	if err != nil {
-		return nil, cleanups, err
+		return nil, cleanupFunc, err
 	}
 
 	// prepare the pod def, create secrets and CMs
 	oauthServerPod, err := oauthServerPod(configMaps, secrets, image)
 	if err != nil {
-		return nil, cleanups, err
+		return nil, cleanupFunc, err
 	}
 
 	// finally create the oauth server, wait till it starts running
-	if _, err := coreClient.Pods(oc.Namespace()).Create(oauthServerPod); err != nil {
-		return nil, cleanups, err
+	if _, err := kubeClient.CoreV1().Pods(oc.Namespace()).Create(oauthServerPod); err != nil {
+		return nil, cleanupFunc, err
 	}
 
-	err = wait.PollImmediate(1*time.Second, 45*time.Second, func() (bool, error) {
+	if err := waitForOAuthServerReady(oc); err != nil {
+		return nil, cleanupFunc, err
+	}
+
+	oauthClient, err := createOAuthClient(oc, routeURL)
+	if err != nil {
+		return nil, cleanupFunc, err
+	}
+	cleanupFuncs = append(cleanupFuncs, func() {
+		_ = oc.AsAdmin().Run("delete").Args("oauthclients.oauth.openshift.io", oauthClient.Name).Execute()
+	})
+
+	newRequestTokenOptionFunc := func(username, password string) *tokencmd.RequestTokenOptions {
+		return newRequestTokenOptions(restclient.AnonymousClientConfig(oc.AdminConfig()), routeURL, oc.Namespace(), username, password)
+	}
+
+	return newRequestTokenOptionFunc, cleanupFunc, nil
+}
+
+func waitForOAuthServerReady(oc *exutil.CLI) error {
+	if err := exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":e2e-oauth", "*", "*"); err != nil {
+		return err
+	}
+	if err := waitForOAuthServerRouteReady(oc); err != nil {
+		return err
+	}
+	return waitForOAuthServerPodReady(oc)
+}
+
+func waitForOAuthServerPodReady(oc *exutil.CLI) error {
+	return wait.PollImmediate(1*time.Second, 45*time.Second, func() (bool, error) {
 		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get("test-oauth-server", metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -180,23 +201,27 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 		if !exutil.CheckPodIsReady(*pod) {
 			return false, nil
 		}
-
 		return true, nil
 	})
+}
 
+func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
+	route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(RouteName, metav1.GetOptions{})
 	if err != nil {
-		return nil, cleanups, err
+		return err
 	}
-
-	if err = createOAuthClient(oc, routeURL); err != nil {
-		return nil, cleanups, err
-	}
-	tokenReqOptions, err := getTokenOpts(oc.AdminConfig(), routeURL, oc.Namespace())
+	request, err := http.NewRequest(http.MethodHead, fmt.Sprintf("https://%s/healthz", route.Spec.Host), nil)
 	if err != nil {
-		return nil, cleanups, err
+		return err
 	}
-
-	return tokenReqOptions, cleanups, nil
+	return wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
+		transport, err := restclient.TransportFor(restclient.AnonymousClientConfig(oc.AdminConfig()))
+		if err != nil {
+			return false, err
+		}
+		response, _ := transport.RoundTrip(request)
+		return response != nil && response.StatusCode == http.StatusOK, nil
+	})
 }
 
 func oauthServerPod(configMaps []corev1.ConfigMap, secrets []corev1.Secret, image string) (*corev1.Pod, error) {
@@ -414,11 +439,11 @@ func newSessionSecretsJSON() ([]byte, error) {
 
 //randomString - random string of A-Z chars with len size
 func randomString(size int) string {
-	bytes := make([]byte, size)
+	buffer := make([]byte, size)
 	for i := 0; i < size; i++ {
-		bytes[i] = byte(65 + rand.Intn(25))
+		buffer[i] = byte(65 + rand.Intn(25))
 	}
-	return base64.RawURLEncoding.EncodeToString(bytes)
+	return base64.RawURLEncoding.EncodeToString(buffer)
 }
 
 // getImage will grab the hypershift image version from openshift-authentication ns
@@ -431,8 +456,8 @@ func getImage(oc *exutil.CLI) (string, error) {
 	return pods.Items[0].Spec.Containers[0].Image, nil
 }
 
-func getTokenOpts(config *restclient.Config, oauthServerURL, oauthClientName string) (*tokencmd.RequestTokenOptions, error) {
-	tokenReqOptions := tokencmd.NewRequestTokenOptions(config, nil, "", "", false)
+func newRequestTokenOptions(config *restclient.Config, oauthServerURL, oauthClientName, username, password string) *tokencmd.RequestTokenOptions {
+	options := tokencmd.NewRequestTokenOptions(config, nil, username, password, false)
 	// supply the info the client would otherwise ask from .well-known/oauth-authorization-server
 	oauthClientConfig := &osincli.ClientConfig{
 		ClientId:     oauthClientName,
@@ -440,18 +465,36 @@ func getTokenOpts(config *restclient.Config, oauthServerURL, oauthClientName str
 		TokenUrl:     fmt.Sprintf("%s/oauth/token", oauthServerURL),
 		RedirectUrl:  fmt.Sprintf("%s/oauth/token/implicit", oauthServerURL),
 	}
-
 	if err := osincli.PopulatePKCE(oauthClientConfig); err != nil {
-		return nil, err
+		panic(err)
 	}
-	tokenReqOptions.OsinConfig = oauthClientConfig
-	tokenReqOptions.Issuer = oauthServerURL
-
-	return tokenReqOptions, nil
+	options.OsinConfig = oauthClientConfig
+	options.Issuer = oauthServerURL
+	return options
 }
 
-func createOAuthClient(oc *exutil.CLI, routeURL string) error {
-	_, err := oc.AdminOAuthClient().OauthV1().OAuthClients().
+func createClusterRoleBinding(oc *exutil.CLI) (*rbacv1.ClusterRoleBinding, error) {
+	return oc.AdminKubeClient().RbacV1().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: oc.Namespace(),
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      SAName,
+				Namespace: oc.Namespace(),
+			},
+		},
+	})
+}
+
+func createOAuthClient(oc *exutil.CLI, routeURL string) (*oauthv1.OAuthClient, error) {
+	return oc.AdminOAuthClient().OauthV1().OAuthClients().
 		Create(&oauthv1.OAuthClient{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: oc.Namespace(),
@@ -460,5 +503,4 @@ func createOAuthClient(oc *exutil.CLI, routeURL string) error {
 			RedirectURIs:          []string{fmt.Sprintf("%s/oauth/token/implicit", routeURL)},
 			RespondWithChallenges: true,
 		})
-	return err
 }
