@@ -1123,6 +1123,8 @@ items:
     name: system:openshift:public-info-viewer
   rules:
   - nonResourceURLs:
+    - /.well-known
+    - /.well-known/*
     - /readyz
     verbs:
     - get
