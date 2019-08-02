@@ -1,7 +1,9 @@
 package user
 
 import (
+	"fmt"
 	"reflect"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -9,6 +11,7 @@ import (
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -62,14 +65,25 @@ var _ = g.Describe("[Feature:UserAPI]", func() {
 
 		g.By("make sure that user/~ returns system groups for backed users when it merges", func() {
 			// make sure that user/~ returns system groups for backed users when it merges
-			expectedValerieGroups := []string{"system:authenticated", "system:authenticated:oauth"}
+			expectedValerieGroups := []string{"system:authenticated", "system:authenticated:oauth", theGroup.Name}
 			valerieConfig := oc.GetClientConfigForUser(valerieName)
-			secondValerie, err := userv1typedclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if !reflect.DeepEqual(secondValerie.Groups, expectedValerieGroups) {
-				t.Errorf("expected %v, got %v", expectedValerieGroups, secondValerie.Groups)
+			var lastErr error
+			if err := wait.PollImmediate(100*time.Millisecond, wait.ForeverTestTimeout, func() (done bool, err error) {
+				secondValerie, err := userv1typedclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if !reflect.DeepEqual(secondValerie.Groups, expectedValerieGroups) {
+					lastErr = fmt.Errorf("expected %v, got %v", expectedValerieGroups, secondValerie.Groups)
+					return false, nil
+				}
+				return true, nil
+			}); err != nil {
+				if lastErr != nil {
+					t.Error(lastErr)
+				} else {
+					t.Error(err)
+				}
 			}
 		})
 
