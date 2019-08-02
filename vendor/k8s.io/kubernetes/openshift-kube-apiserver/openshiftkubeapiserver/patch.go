@@ -128,6 +128,10 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// END CONSTRUCT DELEGATE
 
 		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start)
+		patchContext.postStartHooks["openshift.io-kubernetes-informers-synched"] = func(context genericapiserver.PostStartHookContext) error {
+			kubeInformers.WaitForCacheSync(context.StopCh)
+			return nil
+		}
 		patchContext.initialized = true
 
 		return openshiftNonAPIServer.GenericAPIServer, nil
