@@ -37785,6 +37785,20 @@ func schema_k8sio_kubelet_config_v1beta1_KubeletConfiguration(ref common.Referen
 							},
 						},
 					},
+					"allowedUnsafeSysctls": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A comma separated whitelist of unsafe sysctls or sysctl patterns (ending in *). Unsafe sysctl groups are kernel.shm*, kernel.msg*, kernel.sem, fs.mqueue.*, and net.*. These sysctls are namespaced but not allowed by default.  For example: \"kernel.msg*,net.ipv4.route.min_pmtu\" Default: []",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
