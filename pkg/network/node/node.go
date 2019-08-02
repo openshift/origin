@@ -287,7 +287,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
 
-	networkChanged, existingPods, err := node.SetupSDN()
+	networkChanged, existingOFPodNetworks, err := node.SetupSDN()
 	if err != nil {
 		return fmt.Errorf("node SDN setup failed: %v", err)
 	}
@@ -310,6 +310,20 @@ func (node *OsdnNode) Start() error {
 		node.watchServices()
 	}
 
+	existingSandboxPods, err := node.getPodSandboxes()
+	if err != nil {
+		return err
+	}
+
+	runningPods, err := node.GetRunningPods(metav1.NamespaceAll)
+	if err != nil {
+		return err
+	}
+
+	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods); err != nil {
+		return err
+	}
+
 	klog.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
 		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String(),
@@ -317,8 +331,8 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	if networkChanged && len(existingPods) > 0 {
-		err := node.reattachPods(existingPods)
+	if networkChanged && len(existingOFPodNetworks) > 0 {
+		err := node.reattachPods(existingSandboxPods, existingOFPodNetworks)
 		if err != nil {
 			return err
 		}
@@ -335,15 +349,11 @@ func (node *OsdnNode) Start() error {
 // reattachPods takes an array containing the information about pods that had been
 // attached to the OVS bridge before restart, and either reattaches or kills each of the
 // corresponding pods.
-func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error {
-	sandboxes, err := node.getPodSandboxes()
-	if err != nil {
-		return err
-	}
+func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo) error {
 
 	failed := []*kruntimeapi.PodSandbox{}
-	for sandboxID, podInfo := range existingPods {
-		sandbox, ok := sandboxes[sandboxID]
+	for sandboxID, podInfo := range existingOFPodNetworks {
+		sandbox, ok := existingPodSandboxes[sandboxID]
 		if !ok {
 			klog.V(5).Infof("Sandbox for pod with IP %s no longer exists", podInfo.ip)
 			continue
@@ -416,7 +426,7 @@ func (node *OsdnNode) UpdatePod(pod corev1.Pod) error {
 	return err
 }
 
-func (node *OsdnNode) GetLocalPods(namespace string) ([]corev1.Pod, error) {
+func (node *OsdnNode) GetRunningPods(namespace string) ([]corev1.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),
