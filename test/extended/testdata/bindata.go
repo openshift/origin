@@ -51939,8 +51939,7 @@ spec:
     delayAfterAdd: 10s
     delayAfterDelete: 10s
     delayAfterFailure: 10s
-    unneededTime: 10s
-`)
+    unneededTime: 10s`)
 
 func testExtendedTestdataMachinesClusterautoscalerYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataMachinesClusterautoscalerYaml, nil
@@ -51975,8 +51974,7 @@ objects:
       kind: MachineSet
       name: ${NAME}
 parameters:
-- name: NAME
-`)
+- name: NAME`)
 
 func testExtendedTestdataMachinesMachineautoscalerYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataMachinesMachineautoscalerYaml, nil
@@ -57937,7 +57935,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"machines": &bintree{nil, map[string]*bintree{
 					"clusterautoscaler.yaml": &bintree{testExtendedTestdataMachinesClusterautoscalerYaml, map[string]*bintree{}},
 					"machineautoscaler.yaml": &bintree{testExtendedTestdataMachinesMachineautoscalerYaml, map[string]*bintree{}},
-				}},	
+				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"oauthserver": &bintree{nil, map[string]*bintree{
