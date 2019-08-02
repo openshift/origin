@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	g "github.com/onsi/ginkgo"
 	t "github.com/onsi/ginkgo/extensions/table"
@@ -22,12 +21,10 @@ import (
 )
 
 var _ = g.Describe("[Feature:OAuthServer] [Headers]", func() {
-	var (
-		transport       http.RoundTripper
-		oauthServerAddr string
-		oc              *util.CLI
-	)
-	oc = util.NewCLI("oauth-server-headers", util.KubeConfigPath())
+	var oc = util.NewCLI("oauth-server-headers", util.KubeConfigPath())
+	var transport http.RoundTripper
+	var oauthServerAddr string
+	var oauthServerCleanup func()
 
 	g.BeforeEach(func() {
 		var err error
@@ -56,10 +53,14 @@ var _ = g.Describe("[Feature:OAuthServer] [Headers]", func() {
 			UseAsLogin:      true,
 		}
 		// deploy oauth server
-		tokenOptions, oauthServerCleanup, err := oauthserver.DeployOAuthServer(oc, []osinv1.IdentityProvider{identityProvider}, nil, []corev1.Secret{secret})
-		defer oauthServerCleanup()
+		var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
+		newRequestTokenOptions, oauthServerCleanup, err = oauthserver.DeployOAuthServer(oc, []osinv1.IdentityProvider{identityProvider}, nil, []corev1.Secret{secret})
 		o.Expect(err).ToNot(o.HaveOccurred())
-		oauthServerAddr = tokenOptions.Issuer
+		oauthServerAddr = newRequestTokenOptions("", "").Issuer
+	})
+
+	g.AfterEach(func() {
+		oauthServerCleanup()
 	})
 
 	t.DescribeTable("expected headers returned from the",
@@ -72,14 +73,8 @@ var _ = g.Describe("[Feature:OAuthServer] [Headers]", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			req.Header.Set("Accept", "text/html; charset=utf-8")
-
-			// sometimes it takes a few seconds for the oauth server to be ready
-			var resp *http.Response
-			o.Eventually(func() error {
-				var err error
-				resp, err = transport.RoundTrip(req)
-				return err
-			}, 10*time.Second).ShouldNot(o.HaveOccurred())
+			resp, err := transport.RoundTrip(req)
+			o.Expect(err).ToNot(o.HaveOccurred())
 
 			allHeaders := http.Header{}
 			for key, val := range map[string]string{
