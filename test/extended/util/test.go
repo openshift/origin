@@ -379,29 +379,28 @@ var (
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
-			`mount an API token into pods`,                                     // We add 6 secrets, not 1
-			`ServiceAccounts should ensure a single API token exists`,          // We create lots of secrets
-			`unchanging, static URL paths for kubernetes api services`,         // the test needs to exclude URLs that are not part of conformance (/logs)
-			"PersistentVolumes NFS when invoking the Recycle reclaim policy",   // failing for some reason
-			`Simple pod should handle in-cluster config`,                       // kubectl cp is not preserving executable bit
-			`Services should be able to up and down services`,                  // we don't have wget installed on nodes
-			`Network should set TCP CLOSE_WAIT timeout`,                        // possibly some difference between ubuntu and fedora
-			`Services should be able to create a functioning NodePort service`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
-			`\[NodeFeature:Sysctls\]`,                                          // needs SCC support
-			`should check kube-proxy urls`,                                     // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
-			`extremely long build/bc names are not problematic`,                // there's a problem in kubelet when creating log directory in vendor/k8s.io/kubernetes/pkg/kubelet/kuberuntime/helpers.go:181, this changed in https://github.com/kubernetes/kubernetes/pull/74441
-			`SSH`, // TRIAGE
-			`should implement service.kubernetes.io/service-proxy-name`, // this is an optional test that requires SSH. sig-network
-			`should idle the service and DeploymentConfig properly`,     // idling with a single service and DeploymentConfig [Conformance]
-			`\[Driver: rbd\]`,        // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
-			`\[Driver: csi-hostpath`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
+			`mount an API token into pods`,                                               // We add 6 secrets, not 1
+			`ServiceAccounts should ensure a single API token exists`,                    // We create lots of secrets
+			`unchanging, static URL paths for kubernetes api services`,                   // the test needs to exclude URLs that are not part of conformance (/logs)
+			"PersistentVolumes NFS when invoking the Recycle reclaim policy",             // failing for some reason
+			`Simple pod should handle in-cluster config`,                                 // kubectl cp is not preserving executable bit
+			`Services should be able to up and down services`,                            // we don't have wget installed on nodes
+			`Network should set TCP CLOSE_WAIT timeout`,                                  // possibly some difference between ubuntu and fedora
+			`Services should be able to create a functioning NodePort service`,           // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
+			`\[NodeFeature:Sysctls\]`,                                                    // needs SCC support
+			`should check kube-proxy urls`,                                               // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
+			`SSH`,                                                                        // TRIAGE
+			`should implement service.kubernetes.io/service-proxy-name`,                  // this is an optional test that requires SSH. sig-network
+			`should idle the service and DeploymentConfig properly`,                      // idling with a single service and DeploymentConfig [Conformance]
+			`\[Driver: rbd\]`,                                                            // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
+			`\[Driver: csi-hostpath`,                                                     // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
 			`should answer endpoint and wildcard queries for the cluster`,                // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 			`should propagate mounts to the host`,                                        // requires SSH, https://bugzilla.redhat.com/show_bug.cgi?id=1711600
 			`should allow ingress access on one named port`,                              // https://bugzilla.redhat.com/show_bug.cgi?id=1711602
 			`ClusterDns \[Feature:Example\] should create pod that uses dns`,             // https://bugzilla.redhat.com/show_bug.cgi?id=1711601
 			`should be rejected when no endpoints exist`,                                 // https://bugzilla.redhat.com/show_bug.cgi?id=1711605
 			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
-			`TaintBasedEvictions`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
+			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 
 			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 			`\[Driver: ceph\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath`,
