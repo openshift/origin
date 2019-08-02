@@ -471,18 +471,21 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 
 			// wait for evaluation errors to show up in both namespaces and at cluster scope
 			err = wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-				review := &authorizationv1.ResourceAccessReview{Action: authorizationv1.Action{Verb: "get", Resource: "pods"}}
-				review.Action.Namespace = fooName
-				if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
-					return false, err
-				}
-				review.Action.Namespace = barName
-				if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
-					return false, err
-				}
-				review.Action.Namespace = ""
-				if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
-					return false, err
+				// do this 10 times to be sure that all API server instances have converged
+				for i := 0; i < 10; i++ {
+					review := &authorizationv1.ResourceAccessReview{Action: authorizationv1.Action{Verb: "get", Resource: "pods"}}
+					review.Action.Namespace = fooName
+					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+						return false, err
+					}
+					review.Action.Namespace = barName
+					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+						return false, err
+					}
+					review.Action.Namespace = ""
+					if resp, err := clusterAdminAuthorizationClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+						return false, err
+					}
 				}
 				return true, nil
 			})
@@ -505,8 +508,9 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 			for _, project := range projects.Items {
 				projectNames.Insert(project.Name)
 			}
-			if !projectNames.HasAll(fooName, barName, "openshift-infra", "openshift", "default") {
-				g.Fail(fmt.Sprintf("Expected projects %q and %q, got %v", fooName, barName, projectNames.List()))
+			expected := []string{fooName, barName, "openshift-infra", "openshift", "default"}
+			if !projectNames.HasAll(expected...) {
+				g.Fail(fmt.Sprintf("Expected projects %v among %v", expected, projectNames.List()))
 			}
 		})
 	})
