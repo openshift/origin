@@ -223,19 +223,3 @@ items:
     nodeSelector: 
   status:
     lastVersion: 0
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: simple-docker-build
-    creationTimestamp:
-  spec:
-    source:
-      type: Git
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-    strategy:
-      type: Docker
-      dockerStrategy:
-        from:
-          kind: DockerImage
-          name: docker.io/centos/ruby-25-centos7

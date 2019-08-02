@@ -51,7 +51,6 @@
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
-// test/extended/testdata/builds/build-cluster-config.yaml
 // test/extended/testdata/builds/build-postcommit/docker.yaml
 // test/extended/testdata/builds/build-postcommit/imagestreams.yaml
 // test/extended/testdata/builds/build-postcommit/sti.yaml
@@ -110,6 +109,7 @@
 // test/extended/testdata/builds/test-build-app/Dockerfile
 // test/extended/testdata/builds/test-build-app/Gemfile
 // test/extended/testdata/builds/test-build-app/config.ru
+// test/extended/testdata/builds/test-build-cluster-config.yaml
 // test/extended/testdata/builds/test-build-podsvc.json
 // test/extended/testdata/builds/test-build-proxy.yaml
 // test/extended/testdata/builds/test-build-revision.json
@@ -18941,28 +18941,6 @@ func testExtendedTestdataBuildsApplicationTemplateCustombuildJson() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildClusterConfigYaml = []byte(`kind: Build
-apiVersion: config.openshift.io/v1
-metadata:
-  name: cluster
-spec: {}
-`)
-
-func testExtendedTestdataBuildsBuildClusterConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsBuildClusterConfigYaml, nil
-}
-
-func testExtendedTestdataBuildsBuildClusterConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsBuildClusterConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/build-cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataBuildsBuildPostcommitDockerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
@@ -21023,6 +21001,60 @@ func testExtendedTestdataBuildsTestBuildAppConfigRu() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsTestBuildClusterConfigYaml = []byte(`kind: List
+apiVersion: v1
+metadata: {}
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: simple-s2i-build
+  spec:
+    source:
+      git:
+        uri: https://github.com/sclorg/nodejs-ex
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
+      type: Source
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: verbose-s2i-build
+  spec:
+    source:
+      git:
+        uri: https://github.com/sclorg/nodejs-ex
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        from:
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
+      type: Source
+`)
+
+func testExtendedTestdataBuildsTestBuildClusterConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildClusterConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsTestBuildClusterConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildClusterConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsTestBuildPodsvcJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
@@ -21484,22 +21516,6 @@ items:
     nodeSelector: 
   status:
     lastVersion: 0
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: simple-docker-build
-    creationTimestamp:
-  spec:
-    source:
-      type: Git
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-    strategy:
-      type: Docker
-      dockerStrategy:
-        from:
-          kind: DockerImage
-          name: docker.io/centos/ruby-25-centos7
 `)
 
 func testExtendedTestdataBuildsTestBuildYamlBytes() ([]byte, error) {
@@ -56826,7 +56842,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml": testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json": testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
-	"test/extended/testdata/builds/build-cluster-config.yaml": testExtendedTestdataBuildsBuildClusterConfigYaml,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml": testExtendedTestdataBuildsBuildPostcommitDockerYaml,
 	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml": testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
 	"test/extended/testdata/builds/build-postcommit/sti.yaml": testExtendedTestdataBuildsBuildPostcommitStiYaml,
@@ -56885,6 +56900,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-build-app/Dockerfile": testExtendedTestdataBuildsTestBuildAppDockerfile,
 	"test/extended/testdata/builds/test-build-app/Gemfile": testExtendedTestdataBuildsTestBuildAppGemfile,
 	"test/extended/testdata/builds/test-build-app/config.ru": testExtendedTestdataBuildsTestBuildAppConfigRu,
+	"test/extended/testdata/builds/test-build-cluster-config.yaml": testExtendedTestdataBuildsTestBuildClusterConfigYaml,
 	"test/extended/testdata/builds/test-build-podsvc.json": testExtendedTestdataBuildsTestBuildPodsvcJson,
 	"test/extended/testdata/builds/test-build-proxy.yaml": testExtendedTestdataBuildsTestBuildProxyYaml,
 	"test/extended/testdata/builds/test-build-revision.json": testExtendedTestdataBuildsTestBuildRevisionJson,
@@ -57345,7 +57361,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"builds": &bintree{nil, map[string]*bintree{
 					"application-template-custombuild.json": &bintree{testExtendedTestdataBuildsApplicationTemplateCustombuildJson, map[string]*bintree{}},
-					"build-cluster-config.yaml": &bintree{testExtendedTestdataBuildsBuildClusterConfigYaml, map[string]*bintree{}},
 					"build-postcommit": &bintree{nil, map[string]*bintree{
 						"docker.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitDockerYaml, map[string]*bintree{}},
 						"imagestreams.yaml": &bintree{testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml, map[string]*bintree{}},
@@ -57446,6 +57461,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"Gemfile": &bintree{testExtendedTestdataBuildsTestBuildAppGemfile, map[string]*bintree{}},
 						"config.ru": &bintree{testExtendedTestdataBuildsTestBuildAppConfigRu, map[string]*bintree{}},
 					}},
+					"test-build-cluster-config.yaml": &bintree{testExtendedTestdataBuildsTestBuildClusterConfigYaml, map[string]*bintree{}},
 					"test-build-podsvc.json": &bintree{testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
 					"test-build-proxy.yaml": &bintree{testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
 					"test-build-revision.json": &bintree{testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
