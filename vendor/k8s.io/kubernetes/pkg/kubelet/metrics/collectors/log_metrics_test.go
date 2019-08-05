@@ -49,6 +49,7 @@ func TestMetricsCollected(t *testing.T) {
 					PodRef: statsapi.PodReference{
 						Namespace: "some-namespace",
 						Name:      "podName1",
+						UID:       "UID_some_id",
 					},
 					Containers: []statsapi.ContainerStats{
 						{
@@ -66,7 +67,7 @@ func TestMetricsCollected(t *testing.T) {
 	err := gatherAndCompare(collector, `
 		# HELP kubelet_container_log_filesystem_used_bytes Bytes used by the container's logs on the filesystem.
 		# TYPE kubelet_container_log_filesystem_used_bytes gauge
-		kubelet_container_log_filesystem_used_bytes{container="containerName1",namespace="some-namespace",pod="podName1"} 18
+		kubelet_container_log_filesystem_used_bytes{container="containerName1",namespace="some-namespace",pod="podName1",uid="UID_some_id"} 18
 `, nil)
 	if err != nil {
 		t.Fatal(err)
