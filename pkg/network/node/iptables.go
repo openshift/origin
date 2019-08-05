@@ -22,19 +22,21 @@ type NodeIPTables struct {
 	syncPeriod         time.Duration
 	masqueradeServices bool
 	vxlanPort          uint32
+	masqueradeBitHex   string // the masquerade bit as hex value
 
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 
 	egressIPs map[string]string
 }
 
-func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32) *NodeIPTables {
+func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool, vxlanPort uint32, masqueradeBit uint32) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,
 		syncPeriod:         syncPeriod,
 		masqueradeServices: masqueradeServices,
 		vxlanPort:          vxlanPort,
+		masqueradeBitHex:   fmt.Sprintf("%#x", 1<<masqueradeBit),
 		egressIPs:          make(map[string]string),
 	}
 }
@@ -177,7 +179,12 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 		},
 	)
 
-	var masqRules [][]string
+	masqRules := [][]string{
+		// Skip traffic already marked by kube-proxy for masquerading.
+		// This fixes a bug where traffic destined to a service's ExternalIP
+		// but also intended to go be SNAT'd to an EgressIP was dropped.
+		{"-m", "mark", "--mark", n.masqueradeBitHex + "/" + n.masqueradeBitHex, "-j", "RETURN"},
+	}
 	var masq2Rules [][]string
 	var filterRules [][]string
 	for _, cidr := range n.clusterNetworkCIDR {
