@@ -57,4 +57,6 @@ import (
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/templates"
 	_ "github.com/openshift/origin/test/extended/user"
+
+	_ "github.com/openshift/origin/test/e2e/dr"
 )
