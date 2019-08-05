@@ -200,8 +200,7 @@ func (c *CLI) SetupProject() {
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	// TODO: remove when https://github.com/kubernetes/kubernetes/pull/62606 merges and is in origin
-	c.namespacesToDelete = append(c.namespacesToDelete, newNamespace)
+	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
 
 	e2e.Logf("Waiting on permissions in project %q ...", newNamespace)
 	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
