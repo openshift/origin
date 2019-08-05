@@ -218,7 +218,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			tests := map[string][]metricTest{
-				`mapi_machine_set_status_available_replicas`: {metricTest{greaterThanEqual: true, value: 1}},
+				`mapi_machine_set_status_replicas`: {metricTest{greaterThanEqual: true, value: 1}},
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
