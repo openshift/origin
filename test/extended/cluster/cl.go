@@ -16,6 +16,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/test/extended/cluster/metrics"
+	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -222,75 +223,8 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 			}
 		}
 
-		// Wait for builds and deployments to complete
-		for _, ns := range namespaces {
-			rcList, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).List(metav1.ListOptions{})
-			if err != nil {
-				e2e.Failf("Error listing RCs: %v", err)
-			}
-			rcCount := len(rcList.Items)
-			if rcCount > 0 {
-				e2e.Logf("Waiting for %d RCs in namespace %s", rcCount, ns)
-				for _, rc := range rcList.Items {
-					e2e.Logf("Waiting for RC: %s", rc.Name)
-					err := e2e.WaitForRCToStabilize(oc.AdminKubeClient(), ns, rc.Name, checkPodRunningTimeout)
-					if err != nil {
-						e2e.Failf("Error in waiting for RC to stabilize: %v", err)
-					}
-					err = WaitForRCReady(oc, ns, rc.Name, checkPodRunningTimeout)
-					if err != nil {
-						e2e.Failf("Error in waiting for RC to become ready: %v", err)
-					}
-				}
-			}
-
-			podLabels := exutil.ParseLabelsOrDie(mapToString(podLabelMap))
-			podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: podLabels.String()})
-			if err != nil {
-				e2e.Failf("Error listing pods: %v", err)
-			}
-			podCount := len(podList.Items)
-			if podCount > 0 {
-				e2e.Logf("Waiting for %d pods in namespace %s", podCount, ns)
-				pods, err := exutil.WaitForPods(c.CoreV1().Pods(ns), podLabels, exutil.CheckPodIsRunning, podCount, checkPodRunningTimeout)
-				if err != nil {
-					e2e.Failf("Error in pod wait: %v", err)
-				} else if len(pods) < podCount {
-					e2e.Failf("Only got %v out of %v pods in %s (timeout)", len(pods), podCount, checkPodRunningTimeout)
-				}
-				e2e.Logf("All pods in namespace %s running", ns)
-			}
-
-			buildList, err := oc.AsAdmin().BuildClient().BuildV1().Builds(ns).List(metav1.ListOptions{})
-			if err != nil {
-				e2e.Failf("Error listing builds: %v", err)
-			}
-			e2e.Logf("Build List: %+v", buildList)
-			if len(buildList.Items) > 0 {
-				// Get first build name
-				buildName := buildList.Items[0].Name
-				e2e.Logf("Waiting for build: %q", buildName)
-				err = exutil.WaitForABuild(oc.AsAdmin().BuildClient().BuildV1().Builds(ns), buildName, nil, nil, nil)
-				if err != nil {
-					exutil.DumpBuildLogs(buildName, oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-				e2e.Logf("Build %q completed", buildName)
-
-			}
-
-			dcList, err := oc.AsAdmin().AppsClient().AppsV1().DeploymentConfigs(ns).List(metav1.ListOptions{})
-			if err != nil {
-				e2e.Failf("Error listing deployment configs: %v", err)
-			}
-			if len(dcList.Items) > 0 {
-				// Get first deployment config name
-				deploymentName := dcList.Items[0].Name
-				e2e.Logf("Waiting for deployment: %q", deploymentName)
-				err = exutil.WaitForDeploymentConfig(oc.AdminKubeClient(), oc.AsAdmin().AppsClient().AppsV1(), ns, deploymentName, 1, true, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				e2e.Logf("Deployment %q completed", deploymentName)
-			}
+		if err := postCreateWait(oc, namespaces); err != nil {
+			e2e.Failf("Error in postCreateWait: %v", err)
 		}
 
 		// Calculate and log test duration
@@ -308,6 +242,84 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 	})
 })
+
+// postCreateWait looks for RCs, pods, builds, and DCs to ensure they're in a good state in each namespace
+func postCreateWait(oc *util.CLI, namespaces []string) error {
+	// Wait for builds and deployments to complete
+	for _, ns := range namespaces {
+		rcList, err := oc.AdminKubeClient().CoreV1().ReplicationControllers(ns).List(metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("Error listing RCs: %v", err)
+		}
+		rcCount := len(rcList.Items)
+		if rcCount > 0 {
+			e2e.Logf("Waiting for %d RCs in namespace %s", rcCount, ns)
+			for _, rc := range rcList.Items {
+				e2e.Logf("Waiting for RC: %s", rc.Name)
+				err := e2e.WaitForRCToStabilize(oc.AdminKubeClient(), ns, rc.Name, checkPodRunningTimeout)
+				if err != nil {
+					return fmt.Errorf("Error in waiting for RC to stabilize: %v", err)
+				}
+				err = WaitForRCReady(oc, ns, rc.Name, checkPodRunningTimeout)
+				if err != nil {
+					return fmt.Errorf("Error in waiting for RC to become ready: %v", err)
+				}
+			}
+		}
+
+		podLabels := exutil.ParseLabelsOrDie(mapToString(podLabelMap))
+		podList, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(metav1.ListOptions{LabelSelector: podLabels.String()})
+		if err != nil {
+			return fmt.Errorf("Error in listing pods: %v", err)
+		}
+		podCount := len(podList.Items)
+		if podCount > 0 {
+			e2e.Logf("Waiting for %d pods in namespace %s", podCount, ns)
+			c := oc.AdminKubeClient()
+			pods, err := exutil.WaitForPods(c.CoreV1().Pods(ns), podLabels, exutil.CheckPodIsRunning, podCount, checkPodRunningTimeout)
+			if err != nil {
+				return fmt.Errorf("Error in pod wait: %v", err)
+			} else if len(pods) < podCount {
+				return fmt.Errorf("Only got %v out of %v pods in %s (timeout)", len(pods), podCount, checkPodRunningTimeout)
+			}
+			e2e.Logf("All pods in namespace %s running", ns)
+		}
+
+		buildList, err := oc.AsAdmin().BuildClient().BuildV1().Builds(ns).List(metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("Error in listing builds: %v", err)
+		}
+		e2e.Logf("Build List: %+v", buildList)
+		if len(buildList.Items) > 0 {
+			// Get first build name
+			buildName := buildList.Items[0].Name
+			e2e.Logf("Waiting for build: %q", buildName)
+			err = exutil.WaitForABuild(oc.AsAdmin().BuildClient().BuildV1().Builds(ns), buildName, nil, nil, nil)
+			if err != nil {
+				exutil.DumpBuildLogs(buildName, oc)
+				return fmt.Errorf("Error in waiting for build: %v", err)
+			}
+			e2e.Logf("Build %q completed", buildName)
+
+		}
+
+		dcList, err := oc.AsAdmin().AppsClient().AppsV1().DeploymentConfigs(ns).List(metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("Error listing DeploymentConfigs: %v", err)
+		}
+		if len(dcList.Items) > 0 {
+			// Get first deployment config name
+			deploymentName := dcList.Items[0].Name
+			e2e.Logf("Waiting for deployment: %q", deploymentName)
+			err = exutil.WaitForDeploymentConfig(oc.AdminKubeClient(), oc.AsAdmin().AppsClient().AppsV1(), ns, deploymentName, 1, true, oc)
+			if err != nil {
+				return fmt.Errorf("Error in waiting for DeploymentConfigs: %v", err)
+			}
+			e2e.Logf("Deployment %q completed", deploymentName)
+		}
+	}
+	return nil
+}
 
 // mkPath returns fully qualfied file path as a string
 func mkPath(filename, config string) (string, error) {
