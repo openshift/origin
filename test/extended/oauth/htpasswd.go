@@ -29,7 +29,7 @@ func init() {
 var _ = g.Describe("[Suite:openshift/oauth/htpasswd] HTPasswd IDP", func() {
 	var oc = exutil.NewCLI("htpasswd-idp", exutil.KubeConfigPath())
 
-	g.It("[Flaky] should successfully configure htpasswd and be responsive", func() {
+	g.It("should successfully configure htpasswd and be responsive", func() {
 		newTokenReqOpts, cleanup, err := deployOAuthServer(oc)
 		defer cleanup()
 		o.Expect(err).ToNot(o.HaveOccurred())
