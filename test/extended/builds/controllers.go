@@ -2,6 +2,7 @@ package builds
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +37,8 @@ const (
 	// BuildCancelledEventReason is the reason associated with the event registered when build is cancelled.
 	BuildCancelledEventReason = "BuildCancelled"
 	// BuildCancelledEventMessage is the message associated with the event registered when build is cancelled.
-	BuildCancelledEventMessage = "Build %s/%s has been cancelled"
+	BuildCancelledEventMessage        = "Build %s/%s has been cancelled"
+	additionalAllowedRegistriesEnvVar = "ADDITIONAL_ALLOWED_REGISTRIES"
 )
 
 var (
@@ -144,7 +146,7 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1client
 		registryHostname = "registry:8080"
 	)
 
-	//testutil.SetAdditionalAllowedRegistries(registryHostname)
+	os.Setenv(additionalAllowedRegistriesEnvVar, registryHostname)
 
 	imageStream := mockImageStream2(registryHostname, tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, registryHostname+"/openshift/test-image-trigger:"+tag)
