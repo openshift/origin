@@ -88,6 +88,9 @@
 // test/extended/testdata/builds/cluster-config/registry-blacklist.yaml
 // test/extended/testdata/builds/cluster-config/registry-whitelist.yaml
 // test/extended/testdata/builds/cluster-config.yaml
+// test/extended/testdata/builds/custom-build/Dockerfile
+// test/extended/testdata/builds/custom-build/Dockerfile.sample
+// test/extended/testdata/builds/custom-build/build.sh
 // test/extended/testdata/builds/docker-add/Dockerfile
 // test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
@@ -118,6 +121,7 @@
 // test/extended/testdata/builds/test-cds-dockerbuild.json
 // test/extended/testdata/builds/test-cds-sourcebuild.json
 // test/extended/testdata/builds/test-context-build.json
+// test/extended/testdata/builds/test-custom-build.yaml
 // test/extended/testdata/builds/test-docker-app/Dockerfile
 // test/extended/testdata/builds/test-docker-build-pullsecret.json
 // test/extended/testdata/builds/test-docker-build.json
@@ -20299,6 +20303,84 @@ func testExtendedTestdataBuildsClusterConfigYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsCustomBuildDockerfile = []byte(`FROM quay.io/buildah/stable:latest
+# For simplicity, /tmp/build contains the inputs we’ll be building when we
+# run this custom builder image. Normally the custom builder image would
+# fetch this content from some location at build time. (e.g. via git clone).
+ADD Dockerfile.sample /tmp/input/Dockerfile
+ADD build.sh /usr/bin
+RUN chmod a+x /usr/bin/build.sh
+# /tmp/build/build.sh contains the actual custom build logic that will be executed when
+# this custom builder image is executed.
+ENTRYPOINT ["/usr/bin/build.sh"]
+`)
+
+func testExtendedTestdataBuildsCustomBuildDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildDockerfile, nil
+}
+
+func testExtendedTestdataBuildsCustomBuildDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM docker.io/centos:7
+RUN touch /tmp/built
+`)
+
+func testExtendedTestdataBuildsCustomBuildDockerfileSampleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildDockerfileSample, nil
+}
+
+func testExtendedTestdataBuildsCustomBuildDockerfileSample() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildDockerfileSampleBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build/Dockerfile.sample", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsCustomBuildBuildSh = []byte(`#!/bin/sh
+# Note that in this case the build inputs are part of the custom builder image, but normally this
+# would be retrieved from an external source.
+cd /tmp/input
+# OUTPUT_REGISTRY and OUTPUT_IMAGE are env variables provided by the custom
+# build framework
+TAG="${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
+# performs the build of the new image defined by Dockerfile.sample
+buildah --storage-driver vfs bud --isolation chroot -t ${TAG} .
+# buildah requires a slight modification to the push secret provided by the service account in order to use it for pushing the image
+cp /var/run/secrets/openshift.io/push/.dockercfg /tmp
+(echo "{ \"auths\": " ; cat /var/run/secrets/openshift.io/push/.dockercfg ; echo "}") > /tmp/.dockercfg
+# push the new image to the target for the build
+buildah --storage-driver vfs push --tls-verify=false --authfile /tmp/.dockercfg ${TAG}
+
+`)
+
+func testExtendedTestdataBuildsCustomBuildBuildShBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildBuildSh, nil
+}
+
+func testExtendedTestdataBuildsCustomBuildBuildSh() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildBuildShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build/build.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM centos:7
 ADD no-exist-file .
 `)
@@ -21906,6 +21988,50 @@ func testExtendedTestdataBuildsTestContextBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-context-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestCustomBuildYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: sample-custom
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-custom-build
+    labels:
+      name: sample-custom-build
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Custom
+      customStrategy:
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: custom-builder-image:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sample-custom:latest
+`)
+
+func testExtendedTestdataBuildsTestCustomBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestCustomBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestCustomBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestCustomBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-custom-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -56879,6 +57005,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml": testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
 	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml": testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
 	"test/extended/testdata/builds/cluster-config.yaml": testExtendedTestdataBuildsClusterConfigYaml,
+	"test/extended/testdata/builds/custom-build/Dockerfile": testExtendedTestdataBuildsCustomBuildDockerfile,
+	"test/extended/testdata/builds/custom-build/Dockerfile.sample": testExtendedTestdataBuildsCustomBuildDockerfileSample,
+	"test/extended/testdata/builds/custom-build/build.sh": testExtendedTestdataBuildsCustomBuildBuildSh,
 	"test/extended/testdata/builds/docker-add/Dockerfile": testExtendedTestdataBuildsDockerAddDockerfile,
 	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
@@ -56909,6 +57038,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-cds-dockerbuild.json": testExtendedTestdataBuildsTestCdsDockerbuildJson,
 	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
 	"test/extended/testdata/builds/test-context-build.json": testExtendedTestdataBuildsTestContextBuildJson,
+	"test/extended/testdata/builds/test-custom-build.yaml": testExtendedTestdataBuildsTestCustomBuildYaml,
 	"test/extended/testdata/builds/test-docker-app/Dockerfile": testExtendedTestdataBuildsTestDockerAppDockerfile,
 	"test/extended/testdata/builds/test-docker-build-pullsecret.json": testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
 	"test/extended/testdata/builds/test-docker-build.json": testExtendedTestdataBuildsTestDockerBuildJson,
@@ -57426,6 +57556,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"registry-whitelist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, map[string]*bintree{}},
 					}},
 					"cluster-config.yaml": &bintree{testExtendedTestdataBuildsClusterConfigYaml, map[string]*bintree{}},
+					"custom-build": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsCustomBuildDockerfile, map[string]*bintree{}},
+						"Dockerfile.sample": &bintree{testExtendedTestdataBuildsCustomBuildDockerfileSample, map[string]*bintree{}},
+						"build.sh": &bintree{testExtendedTestdataBuildsCustomBuildBuildSh, map[string]*bintree{}},
+					}},
 					"docker-add": &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},
 					}},
@@ -57470,6 +57605,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-cds-dockerbuild.json": &bintree{testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
 					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
 					"test-context-build.json": &bintree{testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
+					"test-custom-build.yaml": &bintree{testExtendedTestdataBuildsTestCustomBuildYaml, map[string]*bintree{}},
 					"test-docker-app": &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsTestDockerAppDockerfile, map[string]*bintree{}},
 					}},
