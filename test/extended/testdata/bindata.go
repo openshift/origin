@@ -52003,7 +52003,7 @@ func testExtendedTestdataMachinesMachineExampleYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataMachinesMachinesetExapmleYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataMachinesMachinesetExampleYaml = []byte(`apiVersion: v1
 kind: Template
 metadata:
   name: machineset-template
