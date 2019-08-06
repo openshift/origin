@@ -486,6 +486,15 @@ func (d *namespacedResourcesDeleter) deleteAllContentForGroupVersionResource(
 				return finalizerEstimateSeconds, nil
 			}
 		}
+
+		items, err := d.podsGetter.Pods(namespace).List(metav1.ListOptions{})
+		if err != nil {
+			klog.V(2).Infof("cannot get pods for %v ns due to %v", namespace, err)
+			return estimate, err
+		}
+		for _, item := range items.Items {
+			klog.V(2).Infof("pod %v has the following status %v", item.Name, item.Status)
+		}
 		// nothing reported a finalizer, so something was unexpected as it should have been deleted.
 		return estimate, fmt.Errorf("unexpected items still remain in namespace: %s for gvr: %v", namespace, gvr)
 	}
