@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## `v14.7.0`
+
+### New Services
+
+- Compute 2019-03-01
+
 ## `v14.6.0`
 
 ### New Services

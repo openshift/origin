@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-03-01/compute"
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/golang/glog"
@@ -63,6 +63,19 @@ func ignoreStatusNotFoundFromError(err error) error {
 	}
 	v, ok := err.(autorest.DetailedError)
 	if ok && v.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	return err
+}
+
+// ignoreStatusForbiddenFromError returns nil if the status code is StatusForbidden.
+// This happens when AuthorizationFailed is reported from Azure API.
+func ignoreStatusForbiddenFromError(err error) error {
+	if err == nil {
+		return nil
+	}
+	v, ok := err.(autorest.DetailedError)
+	if ok && v.StatusCode == http.StatusForbidden {
 		return nil
 	}
 	return err
@@ -276,4 +289,38 @@ func (az *Cloud) useStandardLoadBalancer() bool {
 
 func (az *Cloud) excludeMasterNodesFromStandardLB() bool {
 	return az.ExcludeMasterFromStandardLB != nil && *az.ExcludeMasterFromStandardLB
+}
+
+func (az *Cloud) disableLoadBalancerOutboundSNAT() bool {
+	if !az.useStandardLoadBalancer() || az.DisableOutboundSNAT == nil {
+		return false
+	}
+
+	return *az.DisableOutboundSNAT
+}
+
+// isBackendPoolOnSameLB checks whether newBackendPoolID is on the same load balancer as existingBackendPools.
+// Since both public and internal LBs are supported, lbName and lbName-internal are treated as same.
+// If not same, the lbName for existingBackendPools would also be returned.
+func isBackendPoolOnSameLB(newBackendPoolID string, existingBackendPools []string) (bool, string, error) {
+	matches := backendPoolIDRE.FindStringSubmatch(newBackendPoolID)
+	if len(matches) != 2 {
+		return false, "", fmt.Errorf("new backendPoolID %q is in wrong format", newBackendPoolID)
+	}
+
+	newLBName := matches[1]
+	newLBNameTrimmed := strings.TrimRight(newLBName, InternalLoadBalancerNameSuffix)
+	for _, backendPool := range existingBackendPools {
+		matches := backendPoolIDRE.FindStringSubmatch(backendPool)
+		if len(matches) != 2 {
+			return false, "", fmt.Errorf("existing backendPoolID %q is in wrong format", backendPool)
+		}
+
+		lbName := matches[1]
+		if !strings.EqualFold(strings.TrimRight(lbName, InternalLoadBalancerNameSuffix), newLBNameTrimmed) {
+			return false, lbName, nil
+		}
+	}
+
+	return true, "", nil
 }

@@ -1,8 +1,9 @@
-hash: 38c293cd395b48a47f66c9434e2e7b1b19aa388c37259a06d772e6ceaca4c1cc
-updated: 2019-03-07T14:08:52.092350929+01:00
+hash: fbd25b5deb27fc4a1a6983f6a4d763cdf5153fceffe72c16b9bc90e6e4e8dd
+updated: 2019-07-21T11:15:49.781134265+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
+  vcs: hg
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
   subpackages:
@@ -64,7 +65,7 @@ imports:
   - service/s3/s3manager
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
-  version: 56a0b1d2af3b65d5f1f7a330e02faaf48b473c5a
+  version: 8c6dfb65cae4368cc3242549023a616e42fcb702
   subpackages:
   - services/compute/mgmt/2017-12-01/compute
   - services/containerregistry/mgmt/2017-10-01/containerregistry
