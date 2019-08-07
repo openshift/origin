@@ -52,6 +52,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 		failedPipeline                         = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
 		clientPluginPipelinePath               = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
 		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
+		verifyServiceClientPluginPipelinePath  = exutil.FixturePath("testdata", "verifyservice-pipeline-template.yaml")
 		pollingInterval                        = time.Second
 		timeout                                = time.Minute
 		oc                                     = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
@@ -228,8 +229,8 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				for i := 0; i < 2; i++ {
 					g.By(fmt.Sprintf("starting the pipeline build and waiting for it to complete, pass: %d", i))
 					br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
 					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
 						exutil.DumpBuilds(oc)
 						exutil.DumpBuildLogs("ruby", oc)
 						exutil.DumpDeploymentLogs("mongodb", 1, oc)
@@ -272,6 +273,38 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
+			g.By("should verify services successfully", func() {
+				// instantiate the bc
+				g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
+				err := oc.Run("new-app").Args("-f", verifyServiceClientPluginPipelinePath).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "nodejs-example", 1, false, oc)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("nodejs-example", oc)
+				}
+
+				brservices, err := exutil.StartBuildAndWait(oc, "jenkins-verifyservice-pipeline")
+				if err != nil || !brservices.BuildSuccess {
+					debugAnyJenkinsFailure(brservices, oc.Namespace()+"-jenkins-verifyservice-pipeline", oc, true)
+					exutil.DumpBuilds(oc)
+					exutil.DumpDeploymentLogs("nodejs-example", 1, oc)
+					exutil.DumpBuildLogs("jenkins-verifyservice-pipeline", oc)
+				}
+				brservices.AssertSuccess()
+				g.By("get build console logs and see if succeeded")
+				_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(brservices, "Finished: SUCCESS")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("clean up openshift resources for next potential run")
+				err = oc.Run("delete").Args("bc", "jenkins-verifyservice-pipeline").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.Run("delete").Args("dc", "nodejs-example").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = oc.AsAdmin().Run("delete").Args("all", "-l", "app=nodejs-example").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+			})
+
 			g.By("should handle multi-namespace templates", func() {
 				g.By("create additional projects")
 				namespace := oc.Namespace()
@@ -300,8 +333,8 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				// run the build
 				g.By("starting the pipeline build and waiting for it to complete")
 				br, err := exutil.StartBuildAndWait(oc, "multi-namespace-pipeline")
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-multi-namespace-pipeline", oc, true)
 				if err != nil || !br.BuildSuccess {
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-multi-namespace-pipeline", oc, true)
 					exutil.DumpBuilds(oc)
 				}
 				br.AssertSuccess()
@@ -449,9 +482,9 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				// this just does sh "mvn --version"
 				br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 				if err != nil || !br.BuildSuccess {
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 					exutil.DumpBuilds(oc)
 				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 				br.AssertSuccess()
 
 				g.By("getting job log, make sure has success message")
@@ -482,9 +515,9 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				// this just does sh "mvn --version"
 				br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 				if err != nil || !br.BuildSuccess {
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 					exutil.DumpBuilds(oc)
 				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 				br.AssertSuccess()
 
 				g.By("getting job log, making sure job log has success message")
@@ -515,9 +548,9 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				// this just does sh "mvn --version"
 				br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 				if err != nil || !br.BuildSuccess {
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 					exutil.DumpBuilds(oc)
 				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 				br.AssertSuccess()
 
 				g.By("getting job log, making sure job log has success message")
@@ -545,9 +578,9 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				g.By("starting the pipeline build, including env var, and waiting for it to complete")
 				br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
 				if err != nil || !br.BuildSuccess {
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 					exutil.DumpBuilds(oc)
 				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 				br.AssertSuccess()
 
 				g.By("confirm all the log annotations are there")
@@ -573,10 +606,10 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 				g.By("starting the pipeline build and waiting for it to complete")
 				br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
 				if err != nil || !br.BuildSuccess {
+					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 					exutil.DumpApplicationPodLogs("jenkins", oc)
 					exutil.DumpBuilds(oc)
 				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 				br.AssertSuccess()
 
 				g.By("get build console logs and see if succeeded")

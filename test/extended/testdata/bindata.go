@@ -447,6 +447,7 @@
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-gitserver.yaml
 // test/extended/testdata/test-secret.json
+// test/extended/testdata/verifyservice-pipeline-template.yaml
 // test/integration/testdata/project-request-template-with-quota.yaml
 // test/integration/testdata/test-buildcli-beta2.json
 // test/integration/testdata/test-buildcli.json
@@ -56136,6 +56137,125 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataVerifyservicePipelineTemplateYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  template: nodejs-example
+metadata:
+  name: nodejs-example
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: nodejs-example
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: nodejs-example
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: nodejs-example-headless
+  spec:
+    clusterIP: None
+    ports:
+    - port: 8080
+      targetPort: 8080
+    selector:
+      name: nodejs-example
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: nodejs-example
+  spec:
+    replicas: 2
+    selector:
+      name: nodejs-example
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          name: nodejs-example
+        name: nodejs-example
+      spec:
+        containers:
+        - env: []
+          image: ' '
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+          name: nodejs-example
+          ports:
+          - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - nodejs-example
+        from:
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: jenkins-verifyservice-pipeline
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          try {
+              timeout(time: 20, unit: 'MINUTES') {
+                  // Select the default cluster
+                  openshift.withCluster() {
+                      // Select the default project
+                      openshift.withProject() {
+                        // Verify Normal Services
+                        def connectedNormalService = openshift.verifyService('nodejs-example')
+                        // Verify Headless Services with Selectors
+                        def connectedHeadlessService = openshift.verifyService('nodejs-example-headless')
+                      }
+                  }
+              }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataVerifyservicePipelineTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataVerifyservicePipelineTemplateYaml, nil
+}
+
+func testExtendedTestdataVerifyservicePipelineTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataVerifyservicePipelineTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/verifyservice-pipeline-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testIntegrationTestdataProjectRequestTemplateWithQuotaYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -57364,6 +57484,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-gitserver.yaml": testExtendedTestdataTestGitserverYaml,
 	"test/extended/testdata/test-secret.json": testExtendedTestdataTestSecretJson,
+	"test/extended/testdata/verifyservice-pipeline-template.yaml": testExtendedTestdataVerifyservicePipelineTemplateYaml,
 	"test/integration/testdata/project-request-template-with-quota.yaml": testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
 	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
 	"test/integration/testdata/test-buildcli.json": testIntegrationTestdataTestBuildcliJson,
@@ -58088,6 +58209,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-env-pod.json": &bintree{testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
 				"test-gitserver.yaml": &bintree{testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
 				"test-secret.json": &bintree{testExtendedTestdataTestSecretJson, map[string]*bintree{}},
+				"verifyservice-pipeline-template.yaml": &bintree{testExtendedTestdataVerifyservicePipelineTemplateYaml, map[string]*bintree{}},
 			}},
 		}},
 		"integration": &bintree{nil, map[string]*bintree{
