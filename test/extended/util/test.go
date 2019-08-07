@@ -440,6 +440,8 @@ var (
 			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
 
 			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
+
+			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`, // down custom metrics apiservices break other clients
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
@@ -475,6 +477,21 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(ext4\)\] volumes should allow exec of files on the volume`,
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(ext4\)\] volumes should be mountable`,
 			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)] volumeMode should create sc, pod, pv, and pvc, read/write to the pv, and delete all created resources`,
+		},
+		"[Skipped:gce]": {
+			// Requires creation of a different compute instance in a different zone and is not compatible with volumeBindingMode of WaitForFirstConsumer which we use in 4.x
+			`\[sig-scheduling\] Multi-AZ Cluster Volumes \[sig-storage\] should only be allowed to provision PDs in zones where nodes exist`,
+
+			// The following tests try to ssh directly to a node. None of our nodes have external IPs
+			`\[k8s.io\] \[sig-node\] crictl should be able to run crictl on the node`,
+			`\[sig-storage\] Flexvolumes should be mountable`,
+			`\[sig-storage\] Detaching volumes should not work when mount is in progress`,
+
+			// We are using openshift-sdn to conceal metadata
+			`\[sig-auth\] Metadata Concealment should run a check-metadata-concealment job to completion`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
+			`\[sig-api-machinery\] AdmissionWebhook Should be able to deny pod and configmap creation`,
 		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
