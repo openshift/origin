@@ -127,6 +127,11 @@ var Cases = []Case{
 		`{ "foo": [ "all", "cows", "grass", "eat" ] }`,
 	},
 	{
+		`{ "foo": [ "a", "b", "c", "d", "e" ] }`,
+		`[ { "op": "move", "from": "/foo/1", "path": "/foo/2" } ]`,
+		`{ "foo": [ "a", "c", "b", "d", "e" ] }`,
+	},
+	{
 		`{ "foo": "bar" }`,
 		`[ { "op": "add", "path": "/child", "value": { "grandchild": { } } } ]`,
 		`{ "foo": "bar", "child": { "grandchild": { } } }`,
@@ -185,6 +190,36 @@ var Cases = []Case{
 		`{ "foo": ["bar"]}`,
 		`[{"op": "copy", "path": "/foo/0", "from": "/foo"}]`,
 		`{ "foo": [["bar"], "bar"]}`,
+	},
+	{
+		`{ "foo": ["bar","qux","baz"]}`,
+		`[ { "op": "remove", "path": "/foo/-2"}]`,
+		`{ "foo": ["bar", "baz"]}`,
+	},
+	{
+		`{ "foo": []}`,
+		`[ { "op": "add", "path": "/foo/-1", "value": "qux"}]`,
+		`{ "foo": ["qux"]}`,
+	},
+	{
+		`{ "bar": [{"baz": null}]}`,
+		`[ { "op": "replace", "path": "/bar/0/baz", "value": 1 } ]`,
+		`{ "bar": [{"baz": 1}]}`,
+	},
+	{
+		`{ "bar": [{"baz": 1}]}`,
+		`[ { "op": "replace", "path": "/bar/0/baz", "value": null } ]`,
+		`{ "bar": [{"baz": null}]}`,
+	},
+	{
+		`{ "bar": [null]}`,
+		`[ { "op": "replace", "path": "/bar/0", "value": 1 } ]`,
+		`{ "bar": [1]}`,
+	},
+	{
+		`{ "bar": [1]}`,
+		`[ { "op": "replace", "path": "/bar/0", "value": null } ]`,
+		`{ "bar": [null]}`,
 	},
 	{
 		fmt.Sprintf(`{ "foo": ["A", %q] }`, repeatedA(48)),
@@ -248,7 +283,6 @@ var BadCases = []BadCase{
 		`{ "foo": ["bar","baz"]}`,
 		`[ { "op": "add", "path": "/foo/-4", "value": "bum"}]`,
 	},
-
 	{
 		`{ "name":{ "foo": "bat", "qux": "bum"}}`,
 		`[ { "op": "replace", "path": "/foo/bar", "value":"baz"}]`,
@@ -256,6 +290,30 @@ var BadCases = []BadCase{
 	{
 		`{ "foo": ["bar"]}`,
 		`[ {"op": "add", "path": "/foo/2", "value": "bum"}]`,
+	},
+	{
+		`{ "foo": []}`,
+		`[ {"op": "remove", "path": "/foo/-"}]`,
+	},
+	{
+		`{ "foo": []}`,
+		`[ {"op": "remove", "path": "/foo/-1"}]`,
+	},
+	{
+		`{ "foo": ["bar"]}`,
+		`[ {"op": "remove", "path": "/foo/-2"}]`,
+	},
+	{
+		`{}`,
+		`[ {"op":null,"path":""} ]`,
+	},
+	{
+		`{}`,
+		`[ {"op":"add","path":null} ]`,
+	},
+	{
+		`{}`,
+		`[ { "op": "copy", "from": null }]`,
 	},
 	{
 		`{ "foo": ["bar"]}`,
@@ -399,6 +457,12 @@ var TestCases = []TestCase{
 		`[ { "op": "test", "path": "/baz~1foo", "value": "qux"} ]`,
 		true,
 		"",
+	},
+	{
+		`{ "foo": [] }`,
+		`[ { "op": "test", "path": "/foo"} ]`,
+		false,
+		"/foo",
 	},
 }
 
