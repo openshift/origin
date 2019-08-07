@@ -223,6 +223,71 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
 	})
+
+	g.Describe("when installed on the cluster II", func() {
+
+		oc = exutil.NewCLI("monitoring", exutil.KubeConfigPath())
+
+		g.It("prometheus & alertmanager pods should use anti-affinity", func() {
+			oc.SetNamespace("openshift-monitoring")
+			e2e.Logf("Add admin role to current user.")
+			err := oc.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "admin", oc.Username()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			e2e.Logf("Get list of pods for specific namespace.")
+			podList, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
+
+			if err != nil {
+				e2e.Logf("Error in podList: %v", err)
+				return
+			}
+
+			var alm = `affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: alertmanager
+              operator: In
+              values:
+              - main`
+
+			var k8s = `affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: prometheus
+              operator: In
+              values:
+              - k8s`
+
+			for _, pod := range podList.Items {
+				if strings.Contains(pod.Name, "alertmanager-main") {
+					e2e.Logf("\n*************ALERT***********************>\n")
+					podYamlOutput, err := oc.Run("get").Args("pod", pod.Name, "-o", "yaml").Output()
+					if err != nil {
+						e2e.Logf("Error with getting pod yaml :\n%s\n", err)
+					}
+					o.Expect(strings.Contains(strings.TrimSpace(podYamlOutput), strings.TrimSpace(alm))).To(o.Equal(true))
+				}
+
+				if strings.Contains(pod.Name, "prometheus-k8s") {
+					e2e.Logf("\n***********K8S*************************>\n")
+					podYamlOutput, err := oc.Run("get").Args("pod", pod.Name, "-o", "yaml").Output()
+					if err != nil {
+						e2e.Logf("Error with getting pod yaml :\n%s\n", err)
+					}
+					o.Expect(strings.Contains(strings.TrimSpace(podYamlOutput), strings.TrimSpace(k8s))).To(o.Equal(true))
+				}
+			}
+
+		})
+
+	})
+
 })
 
 func all(errs ...error) []error {
