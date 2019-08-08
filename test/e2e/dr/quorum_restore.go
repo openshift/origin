@@ -202,7 +202,7 @@ var _ = g.Describe("[Feature:DisasterRecovery][Disruptive]", func() {
 		runPodSigner(oc, survivingNodeName, imagePullSecretPath, proxy)
 
 		e2e.Logf("Restore etcd on remaining masters")
-		setupEtcdEnvImage := getImagePullSpecFromRelease(oc, imagePullSecretPath, "setup-etcd-environment")
+		setupEtcdEnvImage := getImagePullSpecFromRelease(oc, imagePullSecretPath, "machine-config-operator")
 		kubeClientAgent := getImagePullSpecFromRelease(oc, imagePullSecretPath, "kube-client-agent")
 		for i := range masterNodes.Items {
 			node := &masterNodes.Items[i]
