@@ -1,5 +1,5 @@
-hash: fbd25b5deb27fc4a1a6983f6a4d763cdf5153fceffe72c16b9bc90e6e4e8dd
-updated: 2019-07-21T11:15:49.781134265+02:00
+hash: 5c459be4a51174fa532676eefe13d941ae19372cb838705e6177ebe0d35b6a98
+updated: 2019-08-08T10:07:51.388439632-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -973,7 +973,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: c0887bd82bb30c80ad4a0fd19a22b2520a8223c6
+  version: 88ea7f56be8b37593900daf982db5cde64f62221
   subpackages:
   - dockerclient
   - imageprogress
