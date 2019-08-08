@@ -266,20 +266,22 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			for _, pod := range podList.Items {
 				if strings.Contains(pod.Name, "alertmanager-main") {
-					e2e.Logf("\n*************ALERT***********************>\n")
+					e2e.Logf("Try to get %s pod config.", pod.Name)
 					podYamlOutput, err := oc.Run("get").Args("pod", pod.Name, "-o", "yaml").Output()
 					if err != nil {
-						e2e.Logf("Error with getting pod yaml :\n%s\n", err)
+						e2e.Logf("Error with getting pod yaml: %s\n", err)
 					}
+					e2e.Logf("Check that pod config include proper ani-affinity section.")
 					o.Expect(strings.Contains(strings.TrimSpace(podYamlOutput), strings.TrimSpace(alm))).To(o.Equal(true))
 				}
 
 				if strings.Contains(pod.Name, "prometheus-k8s") {
-					e2e.Logf("\n***********K8S*************************>\n")
+					e2e.Logf("Try to get %s pod config.", pod.Name)
 					podYamlOutput, err := oc.Run("get").Args("pod", pod.Name, "-o", "yaml").Output()
 					if err != nil {
-						e2e.Logf("Error with getting pod yaml :\n%s\n", err)
+						e2e.Logf("Error with getting pod yaml: %s\n", err)
 					}
+					e2e.Logf("Check that pod config include proper ani-affinity section.")
 					o.Expect(strings.Contains(strings.TrimSpace(podYamlOutput), strings.TrimSpace(k8s))).To(o.Equal(true))
 				}
 			}
