@@ -74,7 +74,7 @@ var (
 	matchInterPodAffinitySet      = sets.NewString(predicates.MatchInterPodAffinityPred)
 	generalPredicatesSets         = sets.NewString(predicates.GeneralPred)
 	noDiskConflictSet             = sets.NewString(predicates.NoDiskConflictPred)
-	maxPDVolumeCountPredicateKeys = []string{predicates.MaxGCEPDVolumeCountPred, predicates.MaxAzureDiskVolumeCountPred, predicates.MaxEBSVolumeCountPred}
+	maxPDVolumeCountPredicateKeys = []string{predicates.MaxGCEPDVolumeCountPred, predicates.MaxAzureDiskVolumeCountPred, predicates.MaxEBSVolumeCountPred, predicates.MaxCinderVolumeCountPred}
 )
 
 // configFactory is the default implementation of the scheduler.Configurator interface.
