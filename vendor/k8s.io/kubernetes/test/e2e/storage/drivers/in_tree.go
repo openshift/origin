@@ -1547,8 +1547,9 @@ func (a *awsDriver) GetDynamicProvisionStorageClass(config *testsuites.PerTestCo
 	}
 	ns := config.Framework.Namespace.Name
 	suffix := fmt.Sprintf("%s-sc", a.driverInfo.Name)
+	delayedBinding := storagev1.VolumeBindingWaitForFirstConsumer
 
-	return testsuites.GetStorageClass(provisioner, parameters, nil, ns, suffix)
+	return testsuites.GetStorageClass(provisioner, parameters, &delayedBinding, ns, suffix)
 }
 
 func (a *awsDriver) GetClaimSize() string {
