@@ -725,6 +725,12 @@ func (os *OpenStack) GetLabelsForVolume(ctx context.Context, pv *v1.PersistentVo
 		return nil, nil
 	}
 
+	// Initialize the provider if it hasn't been done yet
+	err := os.ensureCloudProviderWasInitialized()
+	if err != nil {
+		return nil, err
+	}
+
 	// Get Volume
 	volume, err := os.getVolume(pv.Spec.Cinder.VolumeID)
 	if err != nil {
