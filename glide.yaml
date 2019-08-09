@@ -107,6 +107,11 @@ import:
 - package: github.com/opencontainers/runc
   repo:    https://github.com/openshift/opencontainers-runc.git
   version: 7c7775178c25e952571573f44a8df281824cf8e1
+# pod - sjenning
+# openshift-4.1-cadvisor-v0.32.0
+- package: github.com/google/cadvisor
+  repo:    https://github.com/openshift/google-cadvisor.git
+  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
 # these need to match the kubelet
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git

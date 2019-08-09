@@ -1,5 +1,5 @@
-hash: 54c022d2a987c13cb158b9cdfd458877ddbdadeee4d26f066118f9cb2da08db4
-updated: 2019-08-09T14:17:14.906388783-05:00
+hash: 7622b75aea01706933f2e1470797c5cd1ceb7d1c97869ce895928386abb09a93
+updated: 2019-08-09T14:43:52.240397386-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -576,7 +576,8 @@ imports:
 - name: github.com/google/btree
   version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
-  version: 8949c822ea91fa6b4996614a5ad6ade840be24ee
+  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
+  repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
   - cache/memory
@@ -1389,7 +1390,6 @@ imports:
   - client
 - name: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
-  repo: https://github.com/openshift/osincli.git
 - name: github.com/Rican7/retry
   version: 272ad122d6e5ce1be757544007cf8bcd1c9c9ab0
   subpackages:
