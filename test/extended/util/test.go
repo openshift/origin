@@ -367,6 +367,8 @@ var (
 			// vSphere tests can be skipped generally
 			`vsphere`,
 			`Cinder`, // requires an OpenStack cluster
+			`Multi-AZ Cluster Volumes \[sig-storage\]`, // needs to create an extra compute instance (gce/gke)
+
 			// See the CanSupport implementation in upstream to determine wether these work.
 			`Ceph RBD`,                              // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
 			`GlusterFS`,                             // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
