@@ -274,33 +274,44 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 			})
 
 			g.By("should verify services successfully", func() {
-				// instantiate the bc
+				redisTemplate := "redis-ephemeral"
+				redisAppName := "redis"
+				verifyServiceBuildConfig := "jenkins-verifyservice-pipeline"
+
+				newAppRedisEphemeralArgs := []string{redisTemplate, "--name", redisAppName, "-p", "MEMORY_LIMIT=128Mi"}
+
+				// Redis deployment with the redis service
+				g.By("instantiate the test application")
+				err := oc.Run("new-app").Args(newAppRedisEphemeralArgs...).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), redisAppName, 1, false, oc)
+				if err != nil {
+					exutil.DumpApplicationPodLogs(redisAppName, oc)
+				}
+
+				// Redis headless service and jenkinsFile which runs verify service on both the services
 				g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
-				err := oc.Run("new-app").Args("-f", verifyServiceClientPluginPipelinePath).Execute()
+				err = oc.Run("new-app").Args("-f", verifyServiceClientPluginPipelinePath).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "nodejs-example", 1, false, oc)
-				if err != nil {
-					exutil.DumpApplicationPodLogs("nodejs-example", oc)
-				}
-
-				brservices, err := exutil.StartBuildAndWait(oc, "jenkins-verifyservice-pipeline")
+				brservices, err := exutil.StartBuildAndWait(oc, verifyServiceBuildConfig)
 				if err != nil || !brservices.BuildSuccess {
-					debugAnyJenkinsFailure(brservices, oc.Namespace()+"-jenkins-verifyservice-pipeline", oc, true)
+					debugAnyJenkinsFailure(brservices, oc.Namespace()+"-"+verifyServiceBuildConfig, oc, true)
 					exutil.DumpBuilds(oc)
-					exutil.DumpDeploymentLogs("nodejs-example", 1, oc)
-					exutil.DumpBuildLogs("jenkins-verifyservice-pipeline", oc)
+					exutil.DumpDeploymentLogs(redisAppName, 1, oc)
+					exutil.DumpBuildLogs(verifyServiceBuildConfig, oc)
 				}
 				brservices.AssertSuccess()
+
 				g.By("get build console logs and see if succeeded")
 				_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(brservices, "Finished: SUCCESS")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "jenkins-verifyservice-pipeline").Execute()
+				err = oc.Run("delete").Args("bc", verifyServiceBuildConfig).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc", "nodejs-example").Execute()
+				err = oc.Run("delete").Args("dc", redisAppName).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.AsAdmin().Run("delete").Args("all", "-l", "app=nodejs-example").Execute()
+				err = oc.AsAdmin().Run("delete").Args("all", "-l", fmt.Sprintf("app=%v", redisAppName)).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 			})

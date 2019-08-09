@@ -56140,81 +56140,28 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 var _testExtendedTestdataVerifyservicePipelineTemplateYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
-  template: nodejs-example
+  template: jenkins-verifyservice-pipeline
 metadata:
-  name: nodejs-example
+  name: redis-verifyservice-test
+  app: redis
 objects:
 - apiVersion: v1
   kind: Service
   metadata:
-    name: nodejs-example
-  spec:
-    ports:
-    - name: web
-      port: 8080
-      targetPort: 8080
-    selector:
-      name: nodejs-example
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: nodejs-example-headless
+    name: redis-headless
+    app: redis
   spec:
     clusterIP: None
     ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 6379
+      targetPort: 6379
     selector:
-      name: nodejs-example
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    name: nodejs-example
-  spec:
-    replicas: 2
-    selector:
-      name: nodejs-example
-    strategy:
-      type: Rolling
-    template:
-      metadata:
-        labels:
-          name: nodejs-example
-        name: nodejs-example
-      spec:
-        containers:
-        - env: []
-          image: ' '
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 30
-            timeoutSeconds: 3
-          name: nodejs-example
-          ports:
-          - containerPort: 8080
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 3
-            timeoutSeconds: 3
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - nodejs-example
-        from:
-          kind: ImageStreamTag
-          name: nodejs:latest
-          namespace: openshift
-      type: ImageChange
-    - type: ConfigChange
+      name: redis
 - apiVersion: v1
   kind: BuildConfig
   metadata:
     name: jenkins-verifyservice-pipeline
+    app: redis
   spec:
     strategy:
       jenkinsPipelineStrategy:
@@ -56226,9 +56173,9 @@ objects:
                       // Select the default project
                       openshift.withProject() {
                         // Verify Normal Services
-                        def connectedNormalService = openshift.verifyService('nodejs-example')
+                        def connectedNormalService = openshift.verifyService('redis')
                         // Verify Headless Services with Selectors
-                        def connectedHeadlessService = openshift.verifyService('nodejs-example-headless')
+                        def connectedHeadlessService = openshift.verifyService('redis-headless')
                       }
                   }
               }
