@@ -46,14 +46,14 @@ type ProxySpec struct {
 	// only be consumed by a proxy validator. The validator is responsible for reading
 	// ConfigMapNameReference, validating the certificate and copying "ca-bundle.crt"
 	// from data to a ConfigMap in the namespace of an operator configured for proxy.
-	// The namespace for this ConfigMap is "openshift-config-managed". Here is an example
+	// The namespace for this ConfigMap is "openshift-config". Here is an example
 	// ConfigMap (in yaml):
 	//
 	// apiVersion: v1
 	// kind: ConfigMap
 	// metadata:
-	//  name: proxy-ca
-	//  namespace: openshift-config-managed
+	//  name: trusted-ca-bundle
+	//  namespace: openshift-config
 	//  data:
 	//    ca-bundle.crt: |
 	//      -----BEGIN CERTIFICATE-----

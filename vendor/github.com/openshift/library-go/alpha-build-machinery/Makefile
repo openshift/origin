@@ -10,10 +10,12 @@ examples :=$(wildcard ./make/examples/*/Makefile.test)
 # $3 - output folder
 # We need to change dir to the final makefile directory or relative paths won't match.
 # Dynamic values are replaced with "<redacted_for_diff>" so we can do diff against checkout versions.
+# Avoid comparing local paths by stripping the prefix.
 define update-makefile-log
 mkdir -p "$(3)"
 set -o pipefail; $(MAKE) -j 1 -C "$(dir $(1))" -f "$(notdir $(1))" --no-print-directory --warn-undefined-variables $(2) 2>&1 | \
    sed 's/\.\(buildDate\|versionFromGit\|commitFromGit\|gitTreeState\)="[^"]*" /.\1="<redacted_for_diff>" /g' | \
+   sed -E 's~/.*/(github.com/openshift/library-go/alpha-build-machinery/.*)~/\1~g' | \
    tee "$(3)"/"$(notdir $(1))"$(subst ..,.,.$(2).log)
 
 endef

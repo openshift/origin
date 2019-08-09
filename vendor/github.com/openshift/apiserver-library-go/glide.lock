@@ -1,5 +1,5 @@
-hash: 28528b597c719cef00c25ae3ffcd8d1e3b51a6a91bafa0e1453ecff6151de036
-updated: 2019-07-30T08:42:49.496985972-04:00
+hash: c44fe7d003c2234edfa3750e8fc1d8d2d5e983bc2a9ec44d518b0cb9c7282de3
+updated: 2019-07-31T09:05:49.223875358-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
@@ -165,7 +165,7 @@ imports:
 - name: github.com/opencontainers/go-digest
   version: a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb
 - name: github.com/openshift/api
-  version: a33d022e090746dfe27a1dc417c6b84cc640800f
+  version: 0922aa5a655be314e20a3e0e94f4f2b105100154
   subpackages:
   - config/v1
   - image
@@ -199,7 +199,7 @@ imports:
   - security/informers/externalversions/security/v1
   - security/listers/security/v1
 - name: github.com/openshift/library-go
-  version: 06fca5b7f9cc44922a00a9850755a79e3060213e
+  version: 9fac0f4cee906d25073d044cb600b00e6bfca8b1
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/authorization/scopemetadata
@@ -292,6 +292,10 @@ imports:
   version: f51c12702a4d776e4c1fa9b0fabab841babae631
   subpackages:
   - rate
+- name: golang.org/x/tools
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
+  subpackages:
+  - imports
 - name: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
@@ -718,12 +722,16 @@ imports:
   version: c892ea32361a3655e7bd8c06f2d02dd8ce73dd78
   subpackages:
   - features
+- name: k8s.io/code-generator
+  version: 50b561225d70b3eb79a1faafd3dfe7b1a62cbe73
 - name: k8s.io/component-base
   version: 4a91899592f42b2f5859587cc5a676a5b94d2ee3
   subpackages:
   - logs
+- name: k8s.io/gengo
+  version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
 - name: k8s.io/klog
-  version: 8e90cee79f823779174776412c13478955131846
+  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
 - name: k8s.io/kube-openapi
   version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
   subpackages:

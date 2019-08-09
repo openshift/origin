@@ -3,8 +3,8 @@ package schema_test
 import (
 	"log"
 
-	"github.com/lestrrat/go-jsschema"
-	"github.com/lestrrat/go-jsschema/validator"
+	"github.com/lestrrat-go/jsschema"
+	"github.com/lestrrat-go/jsschema/validator"
 )
 
 func Example() {

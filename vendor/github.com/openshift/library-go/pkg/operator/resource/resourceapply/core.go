@@ -196,6 +196,10 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 
 // ApplySecret merges objectmeta, requires data
 func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, required *corev1.Secret) (*corev1.Secret, bool, error) {
+	if len(required.StringData) > 0 {
+		return nil, false, fmt.Errorf("Secret.stringData is not supported")
+	}
+
 	existing, err := client.Secrets(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.Secrets(required.Namespace).Create(required)
@@ -210,6 +214,7 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	existingCopy := existing.DeepCopy()
 
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+
 	dataSame := equality.Semantic.DeepEqual(existingCopy.Data, required.Data)
 	if dataSame && !*modified {
 		return existingCopy, false, nil
@@ -217,7 +222,23 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	existingCopy.Data = required.Data
 
 	if klog.V(4) {
-		klog.Infof("Secret %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+		safeRequired := required.DeepCopy()
+		safeExisting := existing.DeepCopy()
+
+		for s := range safeExisting.Data {
+			safeExisting.Data[s] = []byte("OLD")
+		}
+		for s := range safeRequired.Data {
+			if _, preexisting := existing.Data[s]; !preexisting {
+				safeRequired.Data[s] = []byte("NEW")
+			} else if !equality.Semantic.DeepEqual(existing.Data[s], safeRequired.Data[s]) {
+				safeRequired.Data[s] = []byte("MODIFIED")
+			} else {
+				safeRequired.Data[s] = []byte("OLD")
+			}
+		}
+
+		klog.Infof("Secret %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(safeExisting, safeRequired))
 	}
 	actual, err := client.Secrets(required.Namespace).Update(existingCopy)
 

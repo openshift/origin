@@ -10,6 +10,9 @@ import (
 
 	"github.com/spf13/pflag"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apimachineryruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -26,10 +29,11 @@ import (
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/quota"
 	"github.com/openshift/api/route"
-	"github.com/openshift/api/security"
+	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
 	"github.com/openshift/library-go/pkg/serviceability"
+
 	"github.com/openshift/oc/pkg/cli"
 	"github.com/openshift/oc/pkg/helpers/legacy"
 	"github.com/openshift/oc/pkg/version"
@@ -73,7 +77,7 @@ func main() {
 	utilruntime.Must(project.Install(scheme.Scheme))
 	utilruntime.Must(quota.Install(scheme.Scheme))
 	utilruntime.Must(route.Install(scheme.Scheme))
-	utilruntime.Must(security.Install(scheme.Scheme))
+	utilruntime.Must(installNonCRDSecurity(scheme.Scheme))
 	utilruntime.Must(template.Install(scheme.Scheme))
 	utilruntime.Must(user.Install(scheme.Scheme))
 	legacy.InstallExternalLegacyAll(scheme.Scheme)
@@ -89,7 +93,7 @@ func main() {
 	utilruntime.Must(project.Install(legacyscheme.Scheme))
 	utilruntime.Must(quota.Install(legacyscheme.Scheme))
 	utilruntime.Must(route.Install(legacyscheme.Scheme))
-	utilruntime.Must(security.Install(legacyscheme.Scheme))
+	utilruntime.Must(installNonCRDSecurity(legacyscheme.Scheme))
 	utilruntime.Must(template.Install(legacyscheme.Scheme))
 	utilruntime.Must(user.Install(legacyscheme.Scheme))
 	legacy.InstallExternalLegacyAll(legacyscheme.Scheme)
@@ -99,4 +103,19 @@ func main() {
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func installNonCRDSecurity(scheme *apimachineryruntime.Scheme) error {
+	scheme.AddKnownTypes(securityv1.GroupVersion,
+		&securityv1.PodSecurityPolicySubjectReview{},
+		&securityv1.PodSecurityPolicySelfSubjectReview{},
+		&securityv1.PodSecurityPolicyReview{},
+		&securityv1.RangeAllocation{},
+		&securityv1.RangeAllocationList{},
+	)
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return err
+	}
+	metav1.AddToGroupVersion(scheme, securityv1.GroupVersion)
+	return nil
 }

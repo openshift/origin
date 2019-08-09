@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -12,17 +13,20 @@ import (
 
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	"sigs.k8s.io/yaml"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/dockerv1client"
 	imagereference "github.com/openshift/library-go/pkg/image/reference"
@@ -269,6 +273,8 @@ func (o *MirrorOptions) Run() error {
 		}
 	}
 
+	repositories := make(map[string]struct{})
+
 	// build the mapping list for mirroring and rewrite if necessary
 	for i := range is.Spec.Tags {
 		tag := &is.Spec.Tags[i]
@@ -282,6 +288,10 @@ func (o *MirrorOptions) Run() error {
 		if len(from.Tag) > 0 || len(from.ID) == 0 {
 			return fmt.Errorf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
 		}
+
+		// Create a unique map of repos as keys
+		currentRepo := from.AsRepository().String()
+		repositories[currentRepo] = struct{}{}
 
 		dstMirrorRef := targetFn(tag.Name)
 		mappings = append(mappings, mirror.Mapping{
@@ -442,18 +452,82 @@ func (o *MirrorOptions) Run() error {
 	} else {
 		fmt.Fprintf(o.Out, "\nSuccess\nUpdate image:  %s\nMirrored to: %s\n", to, o.To)
 	}
+
+	if err := printImageContentInstructions(o.Out, o.From, o.To, repositories); err != nil {
+		return fmt.Errorf("Error creating mirror usage instructions: %v", err)
+	}
 	return nil
 }
 
-func sourceImageRef(is *imagev1.ImageStream, name string) (string, bool) {
-	for _, tag := range is.Spec.Tags {
-		if tag.Name != name {
-			continue
-		}
-		if tag.From == nil || tag.From.Kind != "DockerImage" {
-			return "", false
-		}
-		return tag.From.Name, true
+// printImageContentInstructions provides exapmles to the user for using the new repository mirror
+// https://github.com/openshift/installer/blob/master/docs/dev/alternative_release_image_sources.md
+func printImageContentInstructions(out io.Writer, from, to string, repositories map[string]struct{}) error {
+	type installConfigSubsection struct {
+		ImageContentSources []operatorv1alpha1.RepositoryDigestMirrors `json:"imageContentSources"`
 	}
-	return "", false
+
+	var sources []operatorv1alpha1.RepositoryDigestMirrors
+
+	mirrorRef, err := imagereference.Parse(to)
+	if err != nil {
+		return fmt.Errorf("Unable to parse image reference '%s': %v", to, err)
+	}
+	mirrorRepo := mirrorRef.AsRepository().String()
+
+	sourceRef, err := imagereference.Parse(from)
+	if err != nil {
+		return fmt.Errorf("Unable to parse image reference '%s': %v", from, err)
+	}
+	sourceRepo := sourceRef.AsRepository().String()
+	repositories[sourceRepo] = struct{}{}
+
+	for repository := range repositories {
+		sources = append(sources, operatorv1alpha1.RepositoryDigestMirrors{
+			Source:  repository,
+			Mirrors: []string{mirrorRepo},
+		})
+	}
+	sort.Slice(sources, func(i, j int) bool {
+		return sources[i].Source < sources[j].Source
+	})
+
+	// Create and display install-config.yaml example
+	imageContentSources := installConfigSubsection{
+		ImageContentSources: sources}
+	installConfigExample, err := yaml.Marshal(imageContentSources)
+	if err != nil {
+		return fmt.Errorf("Unable to marshal install-config.yaml example yaml: %v", err)
+	}
+	fmt.Fprintf(out, "\nTo use the new mirrored repository to install, add the following section to the install-config.yaml:\n\n")
+	fmt.Fprintf(out, string(installConfigExample))
+
+	// Create and display ImageContentSourcePolicy example
+	icsp := operatorv1alpha1.ImageContentSourcePolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: operatorv1alpha1.GroupVersion.String(),
+			Kind:       "ImageContentSourcePolicy"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "example",
+		},
+		Spec: operatorv1alpha1.ImageContentSourcePolicySpec{
+			RepositoryDigestMirrors: sources,
+		},
+	}
+
+	// Create an unstructured object for removing creationTimestamp
+	unstructuredObj := unstructured.Unstructured{}
+	unstructuredObj.Object, err = runtime.DefaultUnstructuredConverter.ToUnstructured(&icsp)
+	if err != nil {
+		return fmt.Errorf("ToUnstructured error: %v", err)
+	}
+	delete(unstructuredObj.Object["metadata"].(map[string]interface{}), "creationTimestamp")
+
+	icspExample, err := yaml.Marshal(unstructuredObj.Object)
+	if err != nil {
+		return fmt.Errorf("Unable to marshal ImageContentSourcePolicy example yaml: %v", err)
+	}
+	fmt.Fprintf(out, "\n\nTo use the new mirrored repository for upgrades, use the following to create an ImageContentSourcePolicy:\n\n")
+	fmt.Fprintf(out, string(icspExample))
+
+	return nil
 }

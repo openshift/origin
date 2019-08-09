@@ -1,5 +1,5 @@
 hash: 54c022d2a987c13cb158b9cdfd458877ddbdadeee4d26f066118f9cb2da08db4
-updated: 2019-07-31T08:00:42.67906301-04:00
+updated: 2019-08-09T14:17:14.906388783-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -16,7 +16,7 @@ imports:
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
 - name: github.com/apparentlymart/go-cidr
-  version: b1115bf8e14a60131a196f908223e4506b0ddc35
+  version: 1755c023625ec3a84979b90841a1ab067ed6c071
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -419,7 +419,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
+  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -675,7 +675,7 @@ imports:
   - openstack/utils
   - pagination
 - name: github.com/gorilla/mux
-  version: 08e7f807d38d6a870193019bb439056118661505
+  version: e67b3c02c7195c052acff13261f0c9fd1ba53011
 - name: github.com/gorilla/websocket
   version: 4201258b820c74ac8e6922fc9e6b52f71fe46f8d
 - name: github.com/gregjones/httpcache
@@ -735,16 +735,24 @@ imports:
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/lestrrat-go/jspointer
+  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
+- name: github.com/lestrrat-go/jsref
+  version: 1b590508f37d3af76c77c8328e16978d2889b486
+  subpackages:
+  - provider
+- name: github.com/lestrrat-go/pdebug
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+- name: github.com/lestrrat-go/structinfo
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
 - name: github.com/lestrrat/go-jspointer
-  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
   repo: https://github.com/lestrrat/go-jspointer.git
 - name: github.com/lestrrat/go-jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
   repo: https://github.com/lestrrat/go-jsref.git
-  subpackages:
-  - provider
 - name: github.com/lestrrat/go-jsschema
-  version: a6a42341b50d8d7e2a733db922eefaa756321021
+  version: 5c81c58ffcc359c4390d440b45f5462edb0107cb
 - name: github.com/lestrrat/go-pdebug
   version: 569c97477ae8837e053e5a50bc739e15172b8ebe
   repo: https://github.com/lestrrat/go-pdebug.git
@@ -774,7 +782,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/MakeNowJust/heredoc
-  version: bb23615498cded5e105af4ce27de75b089cbe851
+  version: e9091a26100e9cfb2b6a8f470085bfa541931a91
 - name: github.com/marstr/guid
   version: 8bdf7d1a087ccc975cf37dd6507da50698fd19ca
 - name: github.com/mattn/go-shellwords
@@ -933,7 +941,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 0922aa5a655be314e20a3e0e94f4f2b105100154
+  version: 8f800d2391d0b451818fd5bfc348b16d7cc1e588
   subpackages:
   - annotations
   - apps
@@ -983,11 +991,27 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/apiserver-library-go
-  version: 9ba756241be5498149388d39031e6161e8ebf90c
+  version: 4d81e8c49306fab396f2ad574beb87e10203d578
   subpackages:
+  - pkg/admission/imagepolicy
+  - pkg/admission/imagepolicy/apis/imagepolicy/v1
+  - pkg/admission/imagepolicy/apis/imagepolicy/validation
+  - pkg/admission/imagepolicy/imagereferencemutators
+  - pkg/admission/imagepolicy/rules
+  - pkg/admission/quota/clusterresourcequota
   - pkg/authorization/scope
+  - pkg/configflags
+  - pkg/securitycontextconstraints/capabilities
+  - pkg/securitycontextconstraints/group
+  - pkg/securitycontextconstraints/sccadmission
+  - pkg/securitycontextconstraints/sccmatching
+  - pkg/securitycontextconstraints/seccomp
+  - pkg/securitycontextconstraints/selinux
+  - pkg/securitycontextconstraints/user
+  - pkg/securitycontextconstraints/util
+  - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: a85ea6a6b3a5d2dbe41582ee35695dd4683e1f02
+  version: e9678e3b850da36470c5554609c6cd110aace47e
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1088,7 +1112,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 9fac0f4cee906d25073d044cb600b00e6bfca8b1
+  version: 211d32684d6cd8b9a50db92e213d4b6ea827bb63
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1138,7 +1162,7 @@ imports:
   - pkg/template/templateprocessingclient
   - pkg/unidling/unidlingclient
 - name: github.com/openshift/oc
-  version: 96787327f0e8f1780104bd935aa4229a5be4f959
+  version: 8fdb79e549651c0f3c91d54349715309b5d149d3
   subpackages:
   - pkg/cli
   - pkg/cli/admin
@@ -1365,6 +1389,7 @@ imports:
   - client
 - name: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
+  repo: https://github.com/openshift/osincli.git
 - name: github.com/Rican7/retry
   version: 272ad122d6e5ce1be757544007cf8bcd1c9c9ab0
   subpackages:
@@ -1399,7 +1424,7 @@ imports:
 - name: github.com/spf13/cast
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
-  version: c439c4fa093711d42e1b01acb1235b52004753c1
+  version: b80588d523ec50c7fee20218426cf2ff70920f06
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1757,9 +1782,10 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: ee330a2a5c6d54e58af0defc868f1258a5c47422
+  version: ef1fb026cb0ebf50e765bba38c951dc095f7fddf
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
+  - pkg/apihelpers
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/install
   - pkg/apis/apiextensions/v1beta1
@@ -1785,6 +1811,7 @@ imports:
   - pkg/client/listers/apiextensions/v1beta1
   - pkg/cmd/server/options
   - pkg/cmd/server/testing
+  - pkg/controller/apiapproval
   - pkg/controller/establish
   - pkg/controller/finalizer
   - pkg/controller/openapi
@@ -2322,12 +2349,12 @@ imports:
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kubelet
-  version: f6da02f583256d1a15cc44a101c80bfa2080a46f
+  version: 60e43eba885b922ab5b385950859964a534af90a
   repo: https://github.com/openshift/kubernetes-kubelet.git
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 9166b5c864d9bd8fe3136c5a28d3c87e645749d9
+  version: faf0538d61897caa1a1b8aea789d8def9d585e74
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2380,11 +2407,6 @@ imports:
   - openshift-kube-apiserver/admission/customresourcevalidation/scheduler
   - openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints
   - openshift-kube-apiserver/admission/customresourcevalidation/securitycontextconstraints/validation
-  - openshift-kube-apiserver/admission/imagepolicy
-  - openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1
-  - openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/validation
-  - openshift-kube-apiserver/admission/imagepolicy/imagereferencemutators
-  - openshift-kube-apiserver/admission/imagepolicy/rules
   - openshift-kube-apiserver/admission/namespaceconditions
   - openshift-kube-apiserver/admission/network/apis/externalipranger
   - openshift-kube-apiserver/admission/network/apis/externalipranger/v1
@@ -2392,7 +2414,6 @@ imports:
   - openshift-kube-apiserver/admission/network/apis/restrictedendpoints/v1
   - openshift-kube-apiserver/admission/network/externalipranger
   - openshift-kube-apiserver/admission/network/restrictedendpoints
-  - openshift-kube-apiserver/admission/quota/clusterresourcequota
   - openshift-kube-apiserver/admission/route
   - openshift-kube-apiserver/admission/route/apis/ingressadmission
   - openshift-kube-apiserver/admission/route/apis/ingressadmission/v1
@@ -2401,22 +2422,11 @@ imports:
   - openshift-kube-apiserver/admission/scheduler/nodeenv
   - openshift-kube-apiserver/admission/scheduler/nodeenv/labelselector
   - openshift-kube-apiserver/admission/scheduler/podnodeconstraints
-  - openshift-kube-apiserver/admission/security/sccadmission
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/capabilities
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/group
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/sccmatching
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/seccomp
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/selinux
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/user
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/util
-  - openshift-kube-apiserver/admission/security/securitycontextconstraints/util/sort
   - openshift-kube-apiserver/authentication/oauth
   - openshift-kube-apiserver/authentication/oauth/rankedset
   - openshift-kube-apiserver/authorization/browsersafe
-  - openshift-kube-apiserver/authorization/scope
   - openshift-kube-apiserver/authorization/scopeauthorizer
   - openshift-kube-apiserver/configdefault
-  - openshift-kube-apiserver/configflags
   - openshift-kube-apiserver/enablement
   - openshift-kube-apiserver/kubeadmission
   - openshift-kube-apiserver/openshiftkubeapiserver

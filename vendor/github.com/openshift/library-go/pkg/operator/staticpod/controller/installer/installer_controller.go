@@ -600,7 +600,7 @@ func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *op
 		ret.LastFailedRevision = currNodeState.TargetRevision
 		ret.TargetRevision = 0
 		if len(errors) == 0 {
-			errors = append(errors, "no detailed termination message, see `oc get -n %q pods/%q -oyaml`", installerPod.Namespace, installerPod.Name)
+			errors = append(errors, fmt.Sprintf("no detailed termination message, see `oc get -n %q pods/%q -oyaml`", installerPod.Namespace, installerPod.Name))
 		}
 		ret.LastFailedRevisionErrors = errors
 		return ret, false, "installer pod failed", nil
