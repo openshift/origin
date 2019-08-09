@@ -29,7 +29,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.BeforeEach(func() {
 		var err error
-		routerIP, err = exutil.WaitForRouterServiceIP(oc)
+		routerIP, err = exutil.WaitForDefaultIngressControllerRoutableEndpoint(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		metricsIP, err = exutil.WaitForRouterInternalIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

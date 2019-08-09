@@ -6,6 +6,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -13,10 +14,6 @@ import (
 
 func WaitForRouterInternalIP(oc *CLI) (string, error) {
 	return waitForNamedRouterServiceIP(oc, "router-internal-default")
-}
-
-func waitForRouterExternalIP(oc *CLI) (string, error) {
-	return waitForNamedRouterServiceIP(oc, "router-default")
 }
 
 func routerShouldHaveExternalService(oc *CLI) (bool, error) {
@@ -38,11 +35,11 @@ func routerShouldHaveExternalService(oc *CLI) (bool, error) {
 	return foundLoadBalancerServiceStrategyType, err
 }
 
-func WaitForRouterServiceIP(oc *CLI) (string, error) {
+func WaitForDefaultIngressControllerRoutableEndpoint(oc *CLI) (string, error) {
 	if useExternal, err := routerShouldHaveExternalService(oc); err != nil {
 		return "", err
 	} else if useExternal {
-		return waitForRouterExternalIP(oc)
+		return waitForNamedRouterServiceIP(oc, "router-default")
 	}
 	return WaitForRouterInternalIP(oc)
 }
@@ -78,4 +75,31 @@ func waitForNamedRouterServiceIP(oc *CLI, name string) (string, error) {
 		return true, nil
 	})
 	return endpoint, err
+}
+
+// WaitForDefaultIngressControllerEndpoints will return Endpoints for the default
+// ingresscontroller once it exists and contains any number of addresses.
+//
+// Endpoints should be used for any test which needs to communicate with a specific
+// ingress controller (rather than behind the load-balanced abstraction of a service).
+func WaitForDefaultIngressControllerEndpoints(oc *CLI) (*corev1.Endpoints, error) {
+	var endpoints *corev1.Endpoints
+
+	err := wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
+		ep, err := oc.AdminKubeClient().CoreV1().Endpoints("openshift-ingress").Get("router-default", metav1.GetOptions{})
+		if err != nil {
+			if kapierrs.IsNotFound(err) {
+				return false, nil
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		if len(ep.Subsets) > 0 && len(ep.Subsets[0].Addresses) > 0 {
+			endpoints = ep
+			return true, nil
+		}
+		return false, nil
+	})
+
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return endpoints, err
 }

@@ -39,7 +39,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 	g.BeforeEach(func() {
 		var err error
-		ip, err = exutil.WaitForRouterServiceIP(oc)
+		ip, err = exutil.WaitForDefaultIngressControllerRoutableEndpoint(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name

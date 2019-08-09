@@ -13,17 +13,22 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
 	corev1 "k8s.io/api/core/v1"
+
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+
 	clientset "k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
+
 	"k8s.io/kubernetes/pkg/client/conditions"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -34,9 +39,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	var (
 		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())
 
-		username, password, execPodName, ns, host string
-		statsPort                                 int
-		routerNamespace, serviceIP, bearerToken   string
+		username, password, execPodName, ns string
+
+		statsPort int
+
+		routerNamespace, routerIP, ingressEndpoint, bearerToken string
 	)
 
 	g.BeforeEach(func() {
@@ -66,10 +73,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			}
 		}
 
-		host, err = exutil.WaitForRouterInternalIP(oc)
+		endpoints, err := exutil.WaitForDefaultIngressControllerEndpoints(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		routerIP = endpoints.Subsets[0].Addresses[0].IP
 
-		serviceIP, err = exutil.WaitForRouterServiceIP(oc)
+		ingressEndpoint, err = exutil.WaitForDefaultIngressControllerRoutableEndpoint(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		bearerToken, err = findMetricsBearerToken(oc)
@@ -78,23 +86,17 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		ns = oc.KubeFramework().Namespace.Name
 	})
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc.AsAdmin())
-		}
-	})
-
 	g.Describe("The HAProxy router", func() {
 		g.It("should expose a health check on the metrics port", func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("listening on the health port")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", host, statsPort), 200)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", routerIP, statsPort), 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("[Flaky] should expose prometheus metrics for a route", func() {
+		g.It("should expose prometheus metrics for a route", func() {
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -104,11 +106,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), 401, 403)
+			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", routerIP, statsPort), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("validate access using username and password")
-			_, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
+			_, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", routerIP, statsPort), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking for the expected metrics")
@@ -121,7 +123,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			p := expfmt.TextParser{}
 
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
-				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), bearerToken)
+				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", routerIP, statsPort), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
@@ -134,7 +136,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
-					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", serviceIP), "weighted.metrics.example.com", http.StatusOK, times)
+					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", ingressEndpoint), "weighted.metrics.example.com", http.StatusOK, times)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				g.By("retrying metrics until all backend servers appear")
@@ -196,7 +198,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			time.Sleep(15 * time.Second)
 
 			g.By("checking that some metrics are not reset to 0 after router restart")
-			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), bearerToken)
+			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", routerIP, statsPort), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() { e2e.Logf("final metrics:\n%s", updatedResults) }()
 
@@ -211,11 +213,11 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, statsPort), 401, 403)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", routerIP, statsPort), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("at /debug/pprof")
-			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap?debug=1", host, statsPort), username, password)
+			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap?debug=1", routerIP, statsPort), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
