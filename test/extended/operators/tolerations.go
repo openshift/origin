@@ -31,7 +31,7 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
 		excludedNamespaces := sets.NewString("openshift-kube-apiserver", "openshift-kube-controller-manager", "openshift-kube-scheduler", "openshift-etcd")
 		// exclude these pods from checks
-		whitelistPods := sets.NewString("network-operator", "dns-operator", "olm-operators")
+		whitelistPods := sets.NewString("network-operator", "dns-operator", "olm-operators", "gcp-routes-controller")
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
