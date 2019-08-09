@@ -439,7 +439,9 @@ var (
 			`should allow starting 95 pods per node`,
 			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
 
-			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
+			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`,      // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
+			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`, // causes unresponsive apiservice which blocks other tests from completing
+			// See: https://github.com/GoogleCloudPlatform/k8s-stackdriver/blob/36bc3a335ff643a014ce6c2ca8c2e1d192a976d4/custom-metrics-stackdriver-adapter/deploy/staging/adapter_new_resource_model.yaml#L113-L154
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
