@@ -4,7 +4,9 @@ COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.0:machine-os-conte
 RUN set -x && yum install -y ostree yum-utils selinux-policy-targeted && \
     commit=$( find /srv -name *.commit | sed -Ee 's|.*objects/(.+)/(.+)\.commit|\1\2|' | head -1 ) && \
     mkdir /tmp/working && cd /tmp/working && \
-    yumdownloader --enablerepo=built --destdir=/tmp/rpms openshift-hyperkube openshift-clients && \
+    PACKAGES=(openshift-hyperkube openshift-clients) && \
+    yumdownloader --enablerepo=built --destdir=/tmp/rpms "${PACKAGES[@]}"  && \
+    ls /tmp/rpms/ && (cd /tmp/rpms/ && ls ${PACKAGES[@]/%/*}) && \
     for i in $(find /tmp/rpms/ -name openshift-* -iname *.rpm); do echo "Extracting $i ..."; rpm2cpio $i | cpio -div; done && \
     mv etc usr/ && \
     mkdir -p /tmp/tmprootfs/etc && \
