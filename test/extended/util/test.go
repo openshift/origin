@@ -364,9 +364,6 @@ var (
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
 			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
 
-			// vSphere tests can be skipped generally
-			`vsphere`,
-			`Cinder`, // requires an OpenStack cluster
 			// See the CanSupport implementation in upstream to determine wether these work.
 			`Ceph RBD`,                              // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
 			`GlusterFS`,                             // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
