@@ -10,6 +10,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/test/extended/testdata"
 	testutil "github.com/openshift/origin/test/extended/util"
 )
@@ -43,6 +45,15 @@ var _ = g.Describe("[Suite:openshift/oauth][Serial] ldap group sync", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = pod.CopyFromHost(ocAbsPath, path.Join("/usr", "bin")+"/")
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		_, err = os.Stat(path.Join("test", "extended", "authentication", "ldap"))
+		if err != nil {
+			e2e.Logf("DBG: error finding %s, %s", path.Join("test", "extended", "authentication", "ldap"), err)
+		}
+		_, err = os.Stat("/go/src/github.com/openshift/origin/test/extended/authentication/ldap")
+		if err != nil {
+			e2e.Logf("DBG: error finding %s, %s", "/go/src/github.com/openshift/origin/test/extended/authentication/ldap", err)
+		}
 
 		// Copy groupsync test data
 		err = pod.CopyFromHost(path.Join("test", "extended", "authentication", "ldap"), remoteTmp)
