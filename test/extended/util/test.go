@@ -376,7 +376,6 @@ var (
 			`mount an API token into pods`,                                               // We add 6 secrets, not 1
 			`ServiceAccounts should ensure a single API token exists`,                    // We create lots of secrets
 			`unchanging, static URL paths for kubernetes api services`,                   // the test needs to exclude URLs that are not part of conformance (/logs)
-			"PersistentVolumes NFS when invoking the Recycle reclaim policy",             // failing for some reason
 			`Simple pod should handle in-cluster config`,                                 // kubectl cp is not preserving executable bit
 			`Services should be able to up and down services`,                            // we don't have wget installed on nodes
 			`Network should set TCP CLOSE_WAIT timeout`,                                  // possibly some difference between ubuntu and fedora
