@@ -82,7 +82,7 @@ import:
 # pod - sjenning
 - package: github.com/google/cadvisor
   repo:    git@github.com:openshift/google-cadvisor
-  version: release-v0.28.3
+  version: openshift-3.10-cadvisor-v0.29.1
 # cli
 - package: github.com/docker/distribution
   repo:    git@github.com:openshift/docker-distribution

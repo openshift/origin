@@ -1,5 +1,5 @@
-hash: 12a6b90f5033f90f3f2c6601d01d7a3947b3b0c35bfa5187f0df2e09b511edb1
-updated: 2018-02-28T08:28:24.709125924-05:00
+hash: 3546cd2396f8605e42ed8b94242e68bfc3f841b90005ca9887f52b8d1bfaa1e3
+updated: 2019-08-12T12:10:50.731952103-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -162,7 +162,7 @@ imports:
   - pkg/ns
   - pkg/utils/hwaddr
 - name: github.com/containers/image
-  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
+  version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
   repo: git@github.com:openshift/containers-image
   subpackages:
   - docker
@@ -405,7 +405,7 @@ imports:
   subpackages:
   - log
 - name: github.com/emicklei/go-restful-swagger12
-  version: 885875a92c2ab7d6222e257e41f6ca2c1f010b4e
+  version: 5e28dc7157ebd9247a268c26dd1bee7818aa33f7
   repo: https://github.com/openshift/emicklei-go-restful-swagger12
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
@@ -531,7 +531,7 @@ imports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/cadvisor
-  version: 1548b36960e691afa34a8eb03e720a1c9facf5dc
+  version: 7de6d3a20159d0d4c404436989dcdbbcfb3b20ae
   repo: git@github.com:openshift/google-cadvisor
   subpackages:
   - accelerators
@@ -771,7 +771,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: 6e93088a6ab736ec6a12d10ef99962f8d9e435ee
+  version: 53ca7dc85f609e8aa3af7902f189ed5dca96dbb5
   repo: git@github.com:openshift/onsi-ginkgo
   subpackages:
   - config
@@ -813,7 +813,7 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: ca78c55f8146dae6b6f53be8ea1179b30c04d0fd
+  version: 451f43b1c09cd448212823dee1c404d3fa99d379
   repo: git@github.com:openshift/opencontainers-runc
   subpackages:
   - libcontainer
@@ -841,7 +841,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 0d921e363e951d89f583292c60d013c318df64dc
+  version: 322a19404e375a4b2f59e081a61343404c49bf46
   subpackages:
   - apps/v1
   - authorization/v1
@@ -859,7 +859,7 @@ imports:
   - template/v1
   - user/v1
 - name: github.com/openshift/client-go
-  version: 1fa528d3be060e4c7178eb69e76d37cf7e699e3c
+  version: 42d4abb856ce41c204a6e24342f12be5b5cd9ab8
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1060,7 +1060,7 @@ imports:
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/skynetservices/skydns
-  version: 30763c4e568fe411f1663af553c063cec8879929
+  version: 775ef406696380ce92b76e72421e86b6868905d8
   repo: https://github.com/openshift/skynetservices-skydns
   subpackages:
   - cache
@@ -1301,7 +1301,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 4a80308ab64deb462259d3d96a1d7825f0bb875e
+  version: b31eb08de4e8d98cf75dc3b31f75afee5b5243e9
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1335,7 +1335,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 8cdd78b7e067060cf564be740dd58e77f0e861c3
+  version: 3420cf9ba4b83258558ce3236b7898a955ab02fd
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1367,7 +1367,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: b6fcf44e3f3db22881a94b089a171fad73b30b19
+  version: eb698cb3066e71ea02d0dc86173d0f8f16cc0f76
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1433,7 +1433,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: fbcb407558281c12d3f4eca5cb3b2819de1000d0
+  version: 74254c49e33253692e377a2200981e7d51bae0ed
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1542,7 +1542,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 2ef70d1cd65223642ac2963c201823e01fc725b9
+  version: feb640bf1516e2c281b72c62af4bb640994dd19a
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1720,17 +1720,17 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 4a42db67724ec4bf63a6ff162e97543e0e312770
+  version: 81450feab9b9a5598cb5704cb115cc5ea872e83b
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
-  version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e
+  version: a38df30a39ca0f0766f908d4aba13522b90f899d
   repo: git@github.com:openshift/kubernetes-gengo
 - name: k8s.io/heapster
   version: c2ac40f1adf8c42a79badddb2a2acd673cae3bcb
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 7d63ec809118514cf7bd8ca10db7424330fcd1f5
+  version: 1df0f2b3528152d532d21e699617920b3bccd363
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -1766,7 +1766,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 62ce2f21c50a1ca3992fa9f76b18d4638fbe218a
+  version: 6a15431e618305d11bf5d7526f0d5e464ba815f2
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
@@ -2145,6 +2145,7 @@ imports:
   - pkg/kubelet/leaky
   - pkg/kubelet/lifecycle
   - pkg/kubelet/metrics
+  - pkg/kubelet/metrics/collectors
   - pkg/kubelet/mountpod
   - pkg/kubelet/network
   - pkg/kubelet/network/cni
@@ -2513,7 +2514,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: ff454b3dae7059eae17d532cc35bfc478e20a88e
+  version: fb62c3f1f0e680446a29f26b2002b2dd63fe0370
   repo: git@github.com:openshift/kubernetes-metrics
   subpackages:
   - pkg/apis/custom_metrics
