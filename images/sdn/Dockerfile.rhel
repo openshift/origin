@@ -25,7 +25,7 @@ RUN INSTALL_PKGS=" \
       libnfnetlink iproute bridge-utils procps-ng openssl \
       iputils binutils xz sysvinit-tools dbus nftables \
       " && \
-    yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    yum install -y --setopt=tsflags=nodocs --setopt=skip_missing_names_on_install=False $INSTALL_PKGS && \
     mkdir -p /etc/sysconfig/cni/net.d && \
     yum clean all && rm -rf /var/cache/*
 
