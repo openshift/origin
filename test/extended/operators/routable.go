@@ -50,7 +50,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 	g.It("should expose cluster services outside the cluster", func() {
 		ns := oc.KubeFramework().Namespace.Name
 
-		tester := exurl.NewTester(oc.AdminKubeClient(), ns)
+		tester := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
 
 		tests := []*exurl.Test{}
 
