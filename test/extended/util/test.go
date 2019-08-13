@@ -364,12 +364,6 @@ var (
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
 			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
 
-			// vSphere tests can be skipped generally
-			`vsphere`,
-			`Cinder`, // requires an OpenStack cluster
-			// See the CanSupport implementation in upstream to determine wether these work.
-			`Ceph RBD`,                              // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
-			`GlusterFS`,                             // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
 			`authentication: OpenLDAP`,              // needs separate setup and bucketing for openldap bootstrapping
 			`NodeProblemDetector`,                   // requires a non-master node to run on
 			`Advanced Audit should audit API calls`, // expects to be able to call /logs
@@ -382,7 +376,6 @@ var (
 			`mount an API token into pods`,                                               // We add 6 secrets, not 1
 			`ServiceAccounts should ensure a single API token exists`,                    // We create lots of secrets
 			`unchanging, static URL paths for kubernetes api services`,                   // the test needs to exclude URLs that are not part of conformance (/logs)
-			"PersistentVolumes NFS when invoking the Recycle reclaim policy",             // failing for some reason
 			`Simple pod should handle in-cluster config`,                                 // kubectl cp is not preserving executable bit
 			`Services should be able to up and down services`,                            // we don't have wget installed on nodes
 			`Network should set TCP CLOSE_WAIT timeout`,                                  // possibly some difference between ubuntu and fedora
