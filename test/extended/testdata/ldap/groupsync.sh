@@ -13,7 +13,7 @@ LDAP_SERVICE_IP="${LDAP_SERVICE}"
 function cleanup() {
        return_code=1
        os::test::junit::generate_report
-       os::cleanup::all
+       #os::cleanup::all
        os::util::describe_return_code "${return_code}"
        exit "${return_code}"
 }
