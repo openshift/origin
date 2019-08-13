@@ -19,13 +19,13 @@ go_library(
     deps = [
         "//staging/src/k8s.io/apimachinery/pkg/util/sets:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/version:go_default_library",
+        "//staging/src/k8s.io/apimachinery/pkg/util/wait:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
         "//vendor/k8s.io/utils/exec:go_default_library",
         "//vendor/k8s.io/utils/trace:go_default_library",
     ] + select({
         "@io_bazel_rules_go//go/platform:linux": [
             "//staging/src/k8s.io/apimachinery/pkg/util/errors:go_default_library",
-            "//staging/src/k8s.io/apimachinery/pkg/util/wait:go_default_library",
             "//vendor/golang.org/x/sys/unix:go_default_library",
         ],
         "//conditions:default": [],
@@ -36,13 +36,22 @@ go_test(
     name = "go_default_test",
     srcs = [
         "iptables_test.go",
+        "monitor_test.go",
         "save_restore_test.go",
     ],
     embed = [":go_default_library"],
     deps = select({
         "@io_bazel_rules_go//go/platform:linux": [
             "//staging/src/k8s.io/apimachinery/pkg/util/sets:go_default_library",
+<<<<<<< HEAD
             "//staging/src/k8s.io/apimachinery/pkg/util/version:go_default_library",
+=======
+<<<<<<< HEAD
+=======
+            "//staging/src/k8s.io/apimachinery/pkg/util/version:go_default_library",
+            "//staging/src/k8s.io/apimachinery/pkg/util/wait:go_default_library",
+>>>>>>> ad7a0eabc... UPSTREAM: 81517: Add iptables.Monitor, use it from kubelet and kube-proxy
+>>>>>>> 45545339ab8... UPSTREAM: 81517: Add iptables.Monitor, use it from kubelet and kube-proxy
             "//vendor/k8s.io/utils/exec:go_default_library",
             "//vendor/k8s.io/utils/exec/testing:go_default_library",
         ],
