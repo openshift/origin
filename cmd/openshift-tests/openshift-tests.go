@@ -27,6 +27,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/recorder"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	exutilazure "github.com/openshift/origin/test/extended/util/azure"
@@ -60,6 +61,7 @@ func main() {
 		newRunUpgradeCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
+		newRunConfigMonitorCommand(),
 	)
 
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
@@ -97,6 +99,33 @@ func newRunMonitorCommand() *cobra.Command {
 			return monitorOpt.Run()
 		},
 	}
+	return cmd
+}
+
+func newRunConfigMonitorCommand() *cobra.Command {
+	monitorOpt := &recorder.Options{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
+	cmd := &cobra.Command{
+		Use:   "run-config-monitor",
+		Short: "Continuously record changes in cluster configuration to Git repository",
+		Long: templates.LongDesc(`
+		Run config change recorder
+
+		`),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := monitorOpt.Validate(); err != nil {
+				return err
+			}
+			return monitorOpt.Run()
+		},
+	}
+
+	cmd.Flags().StringVar(&monitorOpt.RepositoryPath, "repo-path", monitorOpt.RepositoryPath, "Path to the output Git repository.")
 	return cmd
 }
 
