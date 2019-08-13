@@ -406,8 +406,14 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+<<<<<<< HEAD
 // test/extended/testdata/marketplace/csc/02-csc.yaml
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
+=======
+// test/extended/testdata/marketplace/csc/01-csc.yaml
+// test/extended/testdata/marketplace/opsrc/01-opsrc.yaml
+// test/extended/testdata/marketplace/sub/01-subofdes.yaml
+>>>>>>> rebase
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
@@ -53094,7 +53100,11 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+<<<<<<< HEAD
 var _testExtendedTestdataMarketplaceCsc02CscYaml = []byte(`apiVersion: v1
+=======
+var _testExtendedTestdataMarketplaceCsc01CscYaml = []byte(`apiVersion: v1
+>>>>>>> rebase
 kind: Template
 metadata:
   name: csc-template
@@ -53108,13 +53118,17 @@ objects:
     targetNamespace: "${NAMESPACE}"
     source: ""
     packages: "${PACKAGES}"
+<<<<<<< HEAD
     csDisplayName: "${DISPLAYNAME}"
     csPublisher: "${PUBLISHER}"
+=======
+>>>>>>> rebase
 
 parameters:
 - name: NAME
 - name: NAMESPACE
 - name: MARKETPLACE
+<<<<<<< HEAD
 - name: PACKAGES
 - name: DISPLAYNAME
 - name: PUBLISHER`)
@@ -53125,16 +53139,34 @@ func testExtendedTestdataMarketplaceCsc02CscYamlBytes() ([]byte, error) {
 
 func testExtendedTestdataMarketplaceCsc02CscYaml() (*asset, error) {
 	bytes, err := testExtendedTestdataMarketplaceCsc02CscYamlBytes()
+=======
+- name: PACKAGES`)
+
+func testExtendedTestdataMarketplaceCsc01CscYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceCsc01CscYaml, nil
+}
+
+func testExtendedTestdataMarketplaceCsc01CscYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceCsc01CscYamlBytes()
+>>>>>>> rebase
 	if err != nil {
 		return nil, err
 	}
 
+<<<<<<< HEAD
 	info := bindataFileInfo{name: "test/extended/testdata/marketplace/csc/02-csc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+=======
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/csc/01-csc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+>>>>>>> rebase
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
+<<<<<<< HEAD
 var _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml = []byte(`apiVersion: v1
+=======
+var _testExtendedTestdataMarketplaceOpsrc01OpsrcYaml = []byte(`apiVersion: v1
+>>>>>>> rebase
 kind: Template
 metadata:
   name: opsrc-template
@@ -53144,18 +53176,25 @@ objects:
   metadata:
     name: "${NAME}"
     namespace: "${MARKETPLACE}"
+<<<<<<< HEAD
     labels:
       opsrc-provider: "${LABEL}"
+=======
+>>>>>>> rebase
   spec:
     type: appregistry
     endpoint: "https://quay.io/cnr"
     registryNamespace: "${NAMESPACE}"
+<<<<<<< HEAD
     displayName: "${DISPLAYNAME}"
     publisher: "${PUBLISHER}"
+=======
+>>>>>>> rebase
 
 parameters:
 - name: NAME
 - name: NAMESPACE
+<<<<<<< HEAD
 - name: MARKETPLACE
 - name: LABEL
 - name: DISPLAYNAME
@@ -53167,11 +53206,63 @@ func testExtendedTestdataMarketplaceOpsrc02OpsrcYamlBytes() ([]byte, error) {
 
 func testExtendedTestdataMarketplaceOpsrc02OpsrcYaml() (*asset, error) {
 	bytes, err := testExtendedTestdataMarketplaceOpsrc02OpsrcYamlBytes()
+=======
+- name: MARKETPLACE`)
+
+func testExtendedTestdataMarketplaceOpsrc01OpsrcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceOpsrc01OpsrcYaml, nil
+}
+
+func testExtendedTestdataMarketplaceOpsrc01OpsrcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceOpsrc01OpsrcYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/opsrc/01-opsrc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMarketplaceSub01SubofdesYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: alpha
+    installPlanApproval: Automatic
+    name: "${NAME}"
+    source: "${SOURCE}"
+    sourceNamespace: "${NAMESPACE}"
+    startingCSV: "${CSV}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SOURCE
+- name: CSV`)
+
+func testExtendedTestdataMarketplaceSub01SubofdesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMarketplaceSub01SubofdesYaml, nil
+}
+
+func testExtendedTestdataMarketplaceSub01SubofdesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMarketplaceSub01SubofdesYamlBytes()
+>>>>>>> rebase
+	if err != nil {
+		return nil, err
+	}
+
+<<<<<<< HEAD
 	info := bindataFileInfo{name: "test/extended/testdata/marketplace/opsrc/02-opsrc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+=======
+	info := bindataFileInfo{name: "test/extended/testdata/marketplace/sub/01-subofdes.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+>>>>>>> rebase
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -58511,8 +58602,14 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml": testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+<<<<<<< HEAD
 	"test/extended/testdata/marketplace/csc/02-csc.yaml": testExtendedTestdataMarketplaceCsc02CscYaml,
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml": testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
+=======
+	"test/extended/testdata/marketplace/csc/01-csc.yaml": testExtendedTestdataMarketplaceCsc01CscYaml,
+	"test/extended/testdata/marketplace/opsrc/01-opsrc.yaml": testExtendedTestdataMarketplaceOpsrc01OpsrcYaml,
+	"test/extended/testdata/marketplace/sub/01-subofdes.yaml": testExtendedTestdataMarketplaceSub01SubofdesYaml,
+>>>>>>> rebase
 	"test/extended/testdata/multi-namespace-pipeline.yaml": testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml": testExtendedTestdataOauthserverCabundleCmYaml,
@@ -59230,10 +59327,20 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"marketplace": &bintree{nil, map[string]*bintree{
 					"csc": &bintree{nil, map[string]*bintree{
+<<<<<<< HEAD
 						"02-csc.yaml": &bintree{testExtendedTestdataMarketplaceCsc02CscYaml, map[string]*bintree{}},
 					}},
 					"opsrc": &bintree{nil, map[string]*bintree{
 						"02-opsrc.yaml": &bintree{testExtendedTestdataMarketplaceOpsrc02OpsrcYaml, map[string]*bintree{}},
+=======
+						"01-csc.yaml": &bintree{testExtendedTestdataMarketplaceCsc01CscYaml, map[string]*bintree{}},
+					}},
+					"opsrc": &bintree{nil, map[string]*bintree{
+						"01-opsrc.yaml": &bintree{testExtendedTestdataMarketplaceOpsrc01OpsrcYaml, map[string]*bintree{}},
+					}},
+					"sub": &bintree{nil, map[string]*bintree{
+						"01-subofdes.yaml": &bintree{testExtendedTestdataMarketplaceSub01SubofdesYaml, map[string]*bintree{}},
+>>>>>>> rebase
 					}},
 				}},
 				"multi-namespace-pipeline.yaml": &bintree{testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
