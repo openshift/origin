@@ -68,7 +68,7 @@ USER 1001
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("getting the build Docker image reference from ImageStream")
+				g.By("getting the build container image reference from ImageStream")
 				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("busybox:custom", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)
@@ -99,7 +99,7 @@ USER 1001
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("getting the built Docker image reference from ImageStream")
+				g.By("getting the built container image reference from ImageStream")
 				image, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get("centos:latest", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = imageutil.ImageWithMetadata(&image.Image)

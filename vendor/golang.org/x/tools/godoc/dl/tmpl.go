@@ -2,6 +2,8 @@
 // Use of this source code is governed by the Apache 2.0
 // license that can be found in the LICENSE file.
 
+// +build appengine
+
 package dl
 
 // TODO(adg): refactor this to use the tools/godoc/static template.
@@ -87,7 +89,7 @@ const templateHTML = `
 <a href="/project/">The Project</a>
 <a href="/help/">Help</a>
 <a href="/blog/">Blog</a>
-<span class="search-box"><input type="search" id="search" name="q" placeholder="Search" aria-label="Search" required><button type="submit"><span><!-- magnifying glass: --><svg width="24" height="24" viewBox="0 0 24 24"><title>submit search</title><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M0 0h24v24H0z" fill="none"/></svg></span></button></span>
+<input type="text" id="search" name="q" class="inactive" value="Search" placeholder="Search">
 </div>
 </form>
 
@@ -104,7 +106,7 @@ please follow the <a href="/doc/install">installation instructions</a>.
 </p>
 
 <p>
-If you are building from source,
+If you are building from source, 
 follow the <a href="/doc/install/source">source installation instructions</a>.
 </p>
 
@@ -143,6 +145,13 @@ information about Go releases.
   </div>
 </div>
 {{end}}
+
+
+<!-- Disabled for now; there's no admin functionality yet.
+<p>
+<small><a href="{{.LoginURL}}">&pi;</a></small>
+</p>
+-->
 
 <div id="footer">
         <p>
@@ -218,7 +227,7 @@ $(document).ready(function() {
 			<p>This is an <b>unstable</b> version of Go. Use with caution.</p>
 			<p>If you already have Go installed, you can install this version by running:</p>
 <pre>
-go get golang.org/dl/{{.Version}}
+go get golang.org/x/build/version/{{.Version}}
 </pre>
 			<p>Then, use the <code>{{.Version}}</code> command instead of the <code>go</code> command to use {{.Version}}.</p>
 		{{end}}

@@ -3,10 +3,10 @@ package util
 import (
 	"github.com/docker/docker/api/types/container"
 
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // SafeForLoggingContainerConfig returns a copy of the container.Config object
 // with sensitive information (proxy environment variables containing credentials)

@@ -2,21 +2,13 @@ package util
 
 import (
 	"fmt"
-	"strings"
-
-	g "github.com/onsi/ginkgo"
-
-	gson "encoding/json"
 
 	dockerClient "github.com/fsouza/go-dockerclient"
-	tutil "github.com/openshift/origin/test/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
 //ListImages initiates the equivalent of a `docker images`
 func ListImages() ([]string, error) {
-	client, err := tutil.NewDockerClient()
+	client, err := dockerClient.NewClientFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -33,49 +25,6 @@ func ListImages() ([]string, error) {
 	return returnIds, nil
 }
 
-//BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal docker registry
-func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfiguration, error) {
-	authCfg := &dockerClient.AuthConfiguration{}
-	secretList, err := oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).List(metav1.ListOptions{})
-
-	g.By(fmt.Sprintf("get secret list err %v ", err))
-	if err == nil {
-		for _, secret := range secretList.Items {
-			g.By(fmt.Sprintf("secret name %s ", secret.ObjectMeta.Name))
-			if strings.Contains(secret.ObjectMeta.Name, "builder-dockercfg") {
-				dockercfgToken := secret.Data[".dockercfg"]
-				dockercfgTokenJson := string(dockercfgToken)
-				g.By(fmt.Sprintf("docker cfg token json %s ", dockercfgTokenJson))
-
-				creds := credentialprovider.DockerConfig{}
-				err = gson.Unmarshal(dockercfgToken, &creds)
-				g.By(fmt.Sprintf("json unmarshal err %v ", err))
-				if err == nil {
-
-					// borrowed from openshift/origin/pkg/build/builder/cmd/dockercfg/cfg.go, but we get the
-					// secrets and dockercfg data via `oc` vs. internal use of env vars and local file reading,
-					// so we don't use the public methods present there
-					keyring := credentialprovider.BasicDockerKeyring{}
-					keyring.Add(creds)
-					authConfs, found := keyring.Lookup(credKey)
-					g.By(fmt.Sprintf("found auth %v with auth cfg len %d ", found, len(authConfs)))
-					if !found || len(authConfs) == 0 {
-						return authCfg, err
-					}
-					// have seen this does not get set
-					if len(authConfs[0].ServerAddress) == 0 {
-						authConfs[0].ServerAddress = credKey
-					}
-					g.By(fmt.Sprintf("dockercfg with svrAddr %s user %s pass %s email %s ", authConfs[0].ServerAddress, authConfs[0].Username, authConfs[0].Password, authConfs[0].Email))
-					c := dockerClient.AuthConfiguration{Username: authConfs[0].Username, ServerAddress: authConfs[0].ServerAddress, Password: authConfs[0].Password}
-					return &c, err
-				}
-			}
-		}
-	}
-	return authCfg, err
-}
-
 type MissingTagError struct {
 	Tags []string
 }
@@ -86,7 +35,7 @@ func (mte MissingTagError) Error() string {
 
 //GetImageIDForTags will obtain the hexadecimal IDs for the array of human readible image tags IDs provided
 func GetImageIDForTags(comps []string) ([]string, error) {
-	client, dcerr := tutil.NewDockerClient()
+	client, dcerr := dockerClient.NewClientFromEnv()
 	if dcerr != nil {
 		return nil, dcerr
 	}

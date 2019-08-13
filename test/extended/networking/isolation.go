@@ -5,9 +5,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	testexutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[Area:Networking] network isolation", func() {
+	oc := testexutil.NewCLI("ns-global", testexutil.KubeConfigPath())
+
 	InNonIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-isolation1")
 		f2 := e2e.NewDefaultFramework("net-isolation2")
@@ -39,19 +42,19 @@ var _ = Describe("[Area:Networking] network isolation", func() {
 		// multi-tenant plugin since the single-tenant one doesn't create NetNamespaces at
 		// all (and so there's not really any point in even running these tests anyway).
 		It("should allow communication from default to non-default namespace on the same node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(oc, f2.Namespace)
 			Expect(checkPodIsolation(f1, f2, SAME_NODE)).To(Succeed())
 		})
 		It("should allow communication from default to non-default namespace on a different node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(oc, f2.Namespace)
 			Expect(checkPodIsolation(f1, f2, DIFFERENT_NODE)).To(Succeed())
 		})
 		It("should allow communication from non-default to default namespace on the same node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(oc, f1.Namespace)
 			Expect(checkPodIsolation(f1, f2, SAME_NODE)).To(Succeed())
 		})
 		It("should allow communication from non-default to default namespace on a different node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(oc, f1.Namespace)
 			Expect(checkPodIsolation(f1, f2, DIFFERENT_NODE)).To(Succeed())
 		})
 	})

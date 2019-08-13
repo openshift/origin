@@ -11,9 +11,10 @@
     display: block !important;
 
     height: 100%;
-    height: 100vh;
+    min-height: 740px;
 
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 
     background: rgb(215, 215, 215);
     background: -o-radial-gradient(rgb(240, 240, 240), rgb(190, 190, 190));
@@ -390,9 +391,18 @@ article > .video {
   margin-top: 40px;
 }
 
-article.background {
-  background-size: contain;
-  background-repeat: round;
+article > .background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}
+
+article > .background > img {
+  max-height: 100%;
+  max-width: 100%;
 }
 
 table {
@@ -413,14 +423,6 @@ th {
 
 p.link {
   margin-left: 20px;
-}
-
-.pagenumber {
-  color: #8c8c8c;
-  font-size: 75%;
-  position: absolute;
-  bottom: 0px;
-  right: 10px;
 }
 
 /* Code */

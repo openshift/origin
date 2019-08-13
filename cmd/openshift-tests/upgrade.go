@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	"k8s.io/kubernetes/test/e2e/lifecycle"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
@@ -91,8 +92,8 @@ func initUpgrade(value string) error {
 	}
 	for _, suite := range upgradeSuites {
 		if suite.Name == opt.Suite {
-			exutil.TestContext.UpgradeTarget = ""
-			exutil.TestContext.UpgradeImage = opt.ToImage
+			lifecycle.SetUpgradeTarget("")
+			lifecycle.SetUpgradeImage(opt.ToImage)
 			exutil.TestContext.ReportDir = opt.JUnitDir
 			o, err := opt.OptionsMap()
 			if err != nil {

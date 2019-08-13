@@ -56,6 +56,8 @@ func Register(plugins *admission.Plugins) {
 		return NewLifecycle(sets.NewString(metav1.NamespaceDefault, metav1.NamespaceSystem, metav1.NamespacePublic,
 			// user specified configuration that cannot be rebuilt
 			"openshift-config",
+			// cluster generated configuration that cannot be rebuilt (etcd encryption keys)
+			"openshift-config-managed",
 			// the CVO which is the root we use to rebuild all the rest
 			"openshift-cluster-version",
 			// contains a namespaced list of all nodes in the cluster (yeah, weird.  they do it for multi-tenant management I think?)

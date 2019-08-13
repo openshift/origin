@@ -6,10 +6,10 @@ import (
 	"regexp"
 
 	"github.com/openshift/source-to-image/pkg/util/fs"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 var validEntrypoints = []*regexp.Regexp{
 	regexp.MustCompile(`^run(\.sh)?$`),
@@ -30,7 +30,7 @@ func GuessEntrypoint(fs fs.FileSystem, sourceDir string) (string, error) {
 			continue
 		}
 		if isValidEntrypoint(fs, filepath.Join(sourceDir, f.Name())) {
-			glog.V(2).Infof("Found valid ENTRYPOINT: %s", f.Name())
+			log.V(2).Infof("Found valid ENTRYPOINT: %s", f.Name())
 			return f.Name(), nil
 		}
 	}

@@ -116,7 +116,7 @@ var (
 
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
-			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consolenotifications").RuleOrDie(),
+			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications").RuleOrDie(),
 		},
 		allUnauthenticatedRules...,
 	)
@@ -138,47 +138,50 @@ var (
 	}
 )
 
-var _ = g.Describe("The default cluster RBAC policy", func() {
+var _ = g.Describe("[Feature:OpenShiftAuthorization] The default cluster RBAC policy", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("default-rbac-policy", exutil.KubeConfigPath())
 
-	kubeInformers := informers.NewSharedInformerFactory(oc.AdminKubeClient(), 20*time.Minute)
-	ruleResolver := exutil.NewRuleResolver(kubeInformers.Rbac().V1()) // signal what informers we want to use early
+	g.It("should have correct RBAC rules", func() {
+		kubeInformers := informers.NewSharedInformerFactory(oc.AdminKubeClient(), 20*time.Minute)
+		ruleResolver := exutil.NewRuleResolver(kubeInformers.Rbac().V1()) // signal what informers we want to use early
 
-	stopCh := make(chan struct{})
-	defer func() { close(stopCh) }()
-	kubeInformers.Start(stopCh)
+		stopCh := make(chan struct{})
+		defer func() { close(stopCh) }()
+		kubeInformers.Start(stopCh)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
-	if ok := cache.WaitForCacheSync(ctx.Done(),
-		kubeInformers.Rbac().V1().ClusterRoles().Informer().HasSynced,
-		kubeInformers.Rbac().V1().ClusterRoleBindings().Informer().HasSynced,
-		kubeInformers.Rbac().V1().Roles().Informer().HasSynced,
-		kubeInformers.Rbac().V1().RoleBindings().Informer().HasSynced,
-	); !ok {
-		exutil.FatalErr("failed to sync RBAC cache")
-	}
+		if ok := cache.WaitForCacheSync(ctx.Done(),
+			kubeInformers.Rbac().V1().ClusterRoles().Informer().HasSynced,
+			kubeInformers.Rbac().V1().ClusterRoleBindings().Informer().HasSynced,
+			kubeInformers.Rbac().V1().Roles().Informer().HasSynced,
+			kubeInformers.Rbac().V1().RoleBindings().Informer().HasSynced,
+		); !ok {
+			exutil.FatalErr("failed to sync RBAC cache")
+		}
 
-	namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(metav1.ListOptions{})
-	if err != nil {
-		exutil.FatalErr(err)
-	}
+		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(metav1.ListOptions{})
+		if err != nil {
+			exutil.FatalErr(err)
+		}
 
-	g.It("should only allow the system:authenticated group to access certain policy rules", func() {
-		testAllGroupRules(ruleResolver, kuser.AllAuthenticated, allAuthenticatedRules, namespaces.Items)
-	})
+		g.By("should only allow the system:authenticated group to access certain policy rules", func() {
+			testAllGroupRules(ruleResolver, kuser.AllAuthenticated, allAuthenticatedRules, namespaces.Items)
+		})
 
-	g.It("should only allow the system:unauthenticated group to access certain policy rules", func() {
-		testAllGroupRules(ruleResolver, kuser.AllUnauthenticated, allUnauthenticatedRules, namespaces.Items)
-	})
+		g.By("should only allow the system:unauthenticated group to access certain policy rules", func() {
+			testAllGroupRules(ruleResolver, kuser.AllUnauthenticated, allUnauthenticatedRules, namespaces.Items)
+		})
 
-	g.It("should only allow the system:authenticated:oauth group to access certain policy rules", func() {
-		testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
-		}, namespaces.Items)
+		g.By("should only allow the system:authenticated:oauth group to access certain policy rules", func() {
+			testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
+			}, namespaces.Items)
+		})
+
 	})
 })
 

@@ -38,7 +38,7 @@ func GetEnvironment(path string) (api.EnvironmentList, error) {
 		result.Set(s)
 	}
 
-	glog.V(1).Infof("Setting %d environment variables provided by environment file in sources", len(result))
+	log.V(1).Infof("Setting %d environment variables provided by environment file in sources", len(result))
 	return result, scanner.Err()
 }
 

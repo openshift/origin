@@ -17,7 +17,7 @@ import (
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("testdata", "reencrypt-serving-cert.yaml")
+		configPath = exutil.FixturePath("testdata", "router", "reencrypt-serving-cert.yaml")
 		oc         *exutil.CLI
 
 		ip, ns string

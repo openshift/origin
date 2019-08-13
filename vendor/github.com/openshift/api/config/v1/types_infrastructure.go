@@ -13,6 +13,7 @@ type Infrastructure struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec InfrastructureSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -91,6 +92,9 @@ const (
 
 	// VSpherePlatformType represents VMWare vSphere infrastructure.
 	VSpherePlatformType PlatformType = "VSphere"
+
+	// OvirtPlatformType represents oVirt/RHV infrastructure.
+	OvirtPlatformType PlatformType = "oVirt"
 )
 
 // PlatformStatus holds the current status specific to the underlying infrastructure provider
@@ -102,7 +106,7 @@ type PlatformStatus struct {
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
-	// "OpenStack", "VSphere", and "None". Individual components may not support
+	// "OpenStack", "VSphere", "oVirt", and "None". Individual components may not support
 	// all platforms, and must handle unrecognized platforms as None if they do
 	// not support that platform.
 	Type PlatformType `json:"type"`
@@ -110,12 +114,89 @@ type PlatformStatus struct {
 	// AWS contains settings specific to the Amazon Web Services infrastructure provider.
 	// +optional
 	AWS *AWSPlatformStatus `json:"aws,omitempty"`
+
+	// Azure contains settings specific to the Azure infrastructure provider.
+	// +optional
+	Azure *AzurePlatformStatus `json:"azure,omitempty"`
+
+	// GCP contains settings specific to the Google Cloud Platform infrastructure provider.
+	// +optional
+	GCP *GCPPlatformStatus `json:"gcp,omitempty"`
+
+	// BareMetal contains settings specific to the BareMetal platform.
+	// +optional
+	BareMetal *BareMetalPlatformStatus `json:"baremetal,omitempty"`
+
+	// OpenStack contains settings specific to the OpenStack infrastructure provider.
+	// +optional
+	OpenStack *OpenStackPlatformStatus `json:"openstack,omitempty"`
 }
 
 // AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.
 type AWSPlatformStatus struct {
 	// region holds the default AWS region for new AWS resources created by the cluster.
 	Region string `json:"region"`
+}
+
+// AzurePlatformStatus holds the current status of the Azure infrastructure provider.
+type AzurePlatformStatus struct {
+	// resourceGroupName is the Resource Group for new Azure resources created for the cluster.
+	ResourceGroupName string `json:"resourceGroupName"`
+}
+
+// GCPPlatformStatus holds the current status of the Google Cloud Platform infrastructure provider.
+type GCPPlatformStatus struct {
+	// resourceGroupName is the Project ID for new GCP resources created for the cluster.
+	ProjectID string `json:"projectID"`
+
+	// region holds the region for new GCP resources created for the cluster.
+	Region string `json:"region"`
+}
+
+// BareMetalPlatformStatus holds the current status of the BareMetal infrastructure provider.
+type BareMetalPlatformStatus struct {
+	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
+	// by components inside the cluster, like kubelets using the infrastructure rather
+	// than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI
+	// points to. It is the IP for a self-hosted load balancer in front of the API servers.
+	APIServerInternalIP string `json:"apiServerInternalIP,omitempty"`
+
+	// ingressIP is an external IP which routes to the default ingress controller.
+	// The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+	IngressIP string `json:"ingressIP,omitempty"`
+
+	// nodeDNSIP is the IP address for the internal DNS used by the
+	// nodes. Unlike the one managed by the DNS operator, `NodeDNSIP`
+	// provides name resolution for the nodes themselves. There is no DNS-as-a-service for
+	// BareMetal deployments. In order to minimize necessary changes to the
+	// datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames
+	// to the nodes in the cluster.
+	NodeDNSIP string `json:"nodeDNSIP,omitempty"`
+}
+
+// OpenStackPlatformStatus holds the current status of the OpenStack infrastructure provider.
+type OpenStackPlatformStatus struct {
+	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
+	// by components inside the cluster, like kubelets using the infrastructure rather
+	// than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI
+	// points to. It is the IP for a self-hosted load balancer in front of the API servers.
+	APIServerInternalIP string `json:"apiServerInternalIP,omitempty"`
+
+	// cloudName is the name of the desired OpenStack cloud in the
+	// client configuration file (`clouds.yaml`).
+	CloudName string `json:"cloudName,omitempty"`
+
+	// ingressIP is an external IP which routes to the default ingress controller.
+	// The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+	IngressIP string `json:"ingressIP,omitempty"`
+
+	// nodeDNSIP is the IP address for the internal DNS used by the
+	// nodes. Unlike the one managed by the DNS operator, `NodeDNSIP`
+	// provides name resolution for the nodes themselves. There is no DNS-as-a-service for
+	// OpenStack deployments. In order to minimize necessary changes to the
+	// datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames
+	// to the nodes in the cluster.
+	NodeDNSIP string `json:"nodeDNSIP,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

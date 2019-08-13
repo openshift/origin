@@ -1,0 +1,24 @@
+package: github.com/openshift/apiserver-library-go
+import:
+# kube first
+- package: k8s.io/api
+  version: kubernetes-1.14.0
+- package: k8s.io/apimachinery
+  version: kubernetes-1.14.0
+- package: k8s.io/apiserver
+  version: kubernetes-1.14.0
+- package: k8s.io/client-go
+  version: kubernetes-1.14.0
+- package: k8s.io/component-base
+  version: kubernetes-1.14.0
+- package: k8s.io/kubernetes
+  version: v1.14.0
+
+# openshift second
+- package: github.com/openshift/api
+  version: master
+- package: github.com/openshift/client-go
+  version: master
+- package: github.com/openshift/library-go
+  version: master
+

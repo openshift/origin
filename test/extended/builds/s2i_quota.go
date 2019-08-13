@@ -9,7 +9,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/openshift-controller-manager/pkg/build/buildutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -67,8 +66,8 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
 				o.Expect(events).NotTo(o.BeNil(), "Build event list should not be nil")
 
-				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, buildutil.BuildStartedEventReason, buildutil.BuildStartedEventMessage)
-				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, buildutil.BuildCompletedEventReason, buildutil.BuildCompletedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildStartedEventReason, BuildStartedEventMessage)
+				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildCompletedEventReason, BuildCompletedEventMessage)
 
 			})
 		})

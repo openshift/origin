@@ -8,10 +8,13 @@ examples :=$(wildcard ./make/examples/*/Makefile.test)
 # $1 - makefile name relative to ./make/ folder
 # $2 - target
 # $3 - output folder
-# We need to change dir to the final makefile directory or relative paths won't match
+# We need to change dir to the final makefile directory or relative paths won't match.
+# Dynamic values are replaced with "<redacted_for_diff>" so we can do diff against checkout versions.
 define update-makefile-log
 mkdir -p "$(3)"
-$(MAKE) -C "$(dir $(1))" -f "$(notdir $(1))" --no-print-directory --warn-undefined-variables $(2) 2>&1 | tee "$(3)"/"$(notdir $(1))"$(subst ..,.,.$(2).log)
+set -o pipefail; $(MAKE) -j 1 -C "$(dir $(1))" -f "$(notdir $(1))" --no-print-directory --warn-undefined-variables $(2) 2>&1 | \
+   sed 's/\.\(buildDate\|versionFromGit\|commitFromGit\|gitTreeState\)="[^"]*" /.\1="<redacted_for_diff>" /g' | \
+   tee "$(3)"/"$(notdir $(1))"$(subst ..,.,.$(2).log)
 
 endef
 

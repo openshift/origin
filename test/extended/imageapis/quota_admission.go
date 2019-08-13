@@ -8,7 +8,11 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	quota "k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
@@ -16,7 +20,6 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 const (
@@ -184,11 +187,78 @@ func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources cor
 // waitForLimitSync waits until a usage of a quota reaches given limit with a short timeout
 func waitForLimitSync(oc *exutil.CLI, hardLimit corev1.ResourceList) error {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", quotaName))
-	return testutil.WaitForResourceQuotaLimitSync(
+	return waitForResourceQuotaLimitSync(
 		oc.KubeClient().CoreV1().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		hardLimit,
 		waitTimeout)
+}
+
+// waitForResourceQuotaLimitSync watches given resource quota until its hard limit is updated to match the desired
+// spec or timeout occurs.
+func waitForResourceQuotaLimitSync(
+	client corev1client.ResourceQuotaInterface,
+	name string,
+	hardLimit corev1.ResourceList,
+	timeout time.Duration,
+) error {
+	startTime := time.Now()
+	endTime := startTime.Add(timeout)
+
+	expectedResourceNames := quota.ResourceNames(hardLimit)
+
+	list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
+	if err != nil {
+		return err
+	}
+
+	for i := range list.Items {
+		used := quota.Mask(list.Items[i].Status.Hard, expectedResourceNames)
+		if isLimitSynced(used, hardLimit) {
+			return nil
+		}
+	}
+
+	rv := list.ResourceVersion
+	w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
+	if err != nil {
+		return err
+	}
+	defer w.Stop()
+
+	for time.Now().Before(endTime) {
+		select {
+		case val, ok := <-w.ResultChan():
+			if !ok {
+				// reget and re-watch
+				continue
+			}
+			if rq, ok := val.Object.(*corev1.ResourceQuota); ok {
+				used := quota.Mask(rq.Status.Hard, expectedResourceNames)
+				if isLimitSynced(used, hardLimit) {
+					return nil
+				}
+			}
+		case <-time.After(endTime.Sub(time.Now())):
+			return wait.ErrWaitTimeout
+		}
+	}
+	return wait.ErrWaitTimeout
+}
+
+func isLimitSynced(received, expected corev1.ResourceList) bool {
+	resourceNames := quota.ResourceNames(expected)
+	masked := quota.Mask(received, resourceNames)
+	if len(masked) != len(expected) {
+		return false
+	}
+	if le, _ := quota.LessThanOrEqual(masked, expected); !le {
+		return false
+	}
+	if le, _ := quota.LessThanOrEqual(expected, masked); !le {
+		return false
+	}
+	return true
 }
 
 func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error {

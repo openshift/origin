@@ -14,6 +14,7 @@ type Network struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration.
+	// +kubebuilder:validation:Required
 	// +required
 	Spec NetworkSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -24,7 +25,8 @@ type Network struct {
 // NetworkSpec is the desired network configuration.
 // As a general rule, this SHOULD NOT be read directly. Instead, you should
 // consume the NetworkStatus, as it indicates the currently deployed configuration.
-// Currently, none of these fields may be changed after installation.
+// Currently, changing ClusterNetwork, ServiceNetwork, or NetworkType after
+// installation is not supported.
 type NetworkSpec struct {
 	// IP address pool to use for pod IPs.
 	ClusterNetwork []ClusterNetworkEntry `json:"clusterNetwork"`
@@ -39,6 +41,11 @@ type NetworkSpec struct {
 	// Currently supported values are:
 	// - OpenShiftSDN
 	NetworkType string `json:"networkType"`
+
+	// externalIP defines configuration for controllers that
+	// affect Service.ExternalIP
+	// +optional
+	ExternalIP *ExternalIPConfig `json:"externalIP,omitempty"`
 }
 
 // NetworkStatus is the current network configuration.
@@ -65,6 +72,39 @@ type ClusterNetworkEntry struct {
 
 	// The size (prefix) of block to allocate to each node.
 	HostPrefix uint32 `json:"hostPrefix"`
+}
+
+// ExternalIPConfig specifies some IP blocks relevant for the ExternalIP field
+// of a Service resource.
+type ExternalIPConfig struct {
+	// policy is a set of restrictions applied to the ExternalIP field.
+	// If nil, any value is allowed for an ExternalIP. If the empty/zero
+	// policy is supplied, then ExternalIP is not allowed to be set.
+	// +optional
+	Policy *ExternalIPPolicy `json:"policy,omitempty"`
+
+	// autoAssignCIDRs is a list of CIDRs from which to automatically assign
+	// Service.ExternalIP. These are assigned when the service is of type
+	// LoadBalancer. In general, this is only useful for bare-metal clusters.
+	// In Openshift 3.x, this was misleadingly called "IngressIPs".
+	// Automatically assigned External IPs are not affected by any
+	// ExternalIPPolicy rules.
+	// Currently, only one entry may be provided.
+	// +optional
+	AutoAssignCIDRs []string `json:"autoAssignCIDRs,omitempty"`
+}
+
+// ExternalIPPolicy configures exactly which IPs are allowed for the ExternalIP
+// field in a Service. If the zero struct is supplied, then none are permitted.
+// The policy controller always allows automatically assigned external IPs.
+type ExternalIPPolicy struct {
+	// allowedCIDRs is the list of allowed CIDRs.
+	AllowedCIDRs []string `json:"allowedCIDRs,omitempty"`
+
+	// rejectedCIDRs is the list of disallowed CIDRs. These take precedence
+	// over allowedCIDRs.
+	// +optional
+	RejectedCIDRs []string `json:"rejectedCIDRs,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

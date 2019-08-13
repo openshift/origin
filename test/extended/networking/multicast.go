@@ -9,7 +9,6 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	testexutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +21,8 @@ import (
 )
 
 var _ = Describe("[Area:Networking] multicast", func() {
+	oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
+
 	// The subnet plugin should block all multicast. The multitenant and networkpolicy
 	// plugins should implement multicast in the way that we test. For third-party
 	// plugins, the behavior is unspecified and we should not run either test.
@@ -39,25 +40,24 @@ var _ = Describe("[Area:Networking] multicast", func() {
 
 	InPluginContext([]string{networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName},
 		func() {
-			oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 			f := oc.KubeFramework()
 
 			It("should block multicast traffic in namespaces where it is disabled", func() {
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
 			})
 			It("should allow multicast traffic in namespaces where it is enabled", func() {
-				makeNamespaceMulticastEnabled(f.Namespace)
+				makeNamespaceMulticastEnabled(oc, f.Namespace)
 				Expect(testMulticast(f, oc)).To(Succeed())
 			})
 		},
 	)
 })
 
-func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
-	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
+func makeNamespaceMulticastEnabled(oc *testexutil.CLI, ns *kapiv1.Namespace) {
+	clientConfig := oc.AdminConfig()
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
-	expectNoError(err)
 	var netns *networkapi.NetNamespace
+	var err error
 	err = wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
 		netns, err = networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 		if err != nil {

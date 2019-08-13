@@ -1,4 +1,7 @@
 #!/bin/bash
+if test $(${GO:-go} env GOOS) != "linux" ; then
+	exit 0
+fi
 tmpdir="$PWD/tmp.$RANDOM"
 mkdir -p "$tmpdir"
 trap 'rm -fr "$tmpdir"' EXIT

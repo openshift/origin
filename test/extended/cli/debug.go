@@ -32,13 +32,13 @@ var _ = g.Describe("[cli][Slow] oc debug", func() {
 		o.Expect(out).To(o.ContainSubstring("Debugging with pod/local-busybox2-debug, original command: foo bar baz qux\n"))
 	})
 
-	g.It("should print the docker image-based container entrypoint/command", func() {
+	g.It("should print the container image-based container entrypoint/command", func() {
 		out, err := oc.Run("debug").Args("dc/busybox1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Debugging with pod/busybox1-debug, original command: sh\n"))
 	})
 
-	g.It("should print the overridden docker image-based container entrypoint/command", func() {
+	g.It("should print the overridden container image-based container entrypoint/command", func() {
 		out, err := oc.Run("debug").Args("dc/busybox2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Debugging with pod/busybox2-debug, original command: foo bar baz qux\n"))

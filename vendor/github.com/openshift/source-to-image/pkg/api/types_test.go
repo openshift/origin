@@ -53,7 +53,7 @@ func TestEnvironmentSet(t *testing.T) {
 		"=":        {},
 		"FOO=bar,": {{Name: "FOO", Value: "bar,"}},
 		// Users should get a deprecation warning in this case
-		// TODO: Create fake glog interface to be able to verify this.
+		// TODO: Create fake klog interface to be able to verify this.
 		"FOO=bar,BAR=foo": {{Name: "FOO", Value: "bar,BAR=foo"}},
 	}
 

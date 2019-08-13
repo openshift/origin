@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -77,14 +76,7 @@ func TestProcessMainReadFromFile(t *testing.T) {
 }
 
 func TestProcessMainReadFromMissingFile(t *testing.T) {
-	var expectedError string
-	if runtime.GOOS == "windows" {
-		expectedError = `open /this/file/does/not/exist: The system cannot find the path specified.
+	expectedError := `open /this/file/does/not/exist: no such file or directory
 `
-	} else {
-		expectedError = `open /this/file/does/not/exist: no such file or directory
-`
-	}
-
 	expectProcessMainResults(t, ``, []string{"/this/file/does/not/exist"}, -1, ``, expectedError)
 }

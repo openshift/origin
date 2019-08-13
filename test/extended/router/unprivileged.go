@@ -44,7 +44,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		routerImage, _ = exutil.FindRouterImage(oc)
 		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		configPath := exutil.FixturePath("testdata", "router-common.yaml")
+		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
 		err := oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
@@ -52,7 +52,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should run even if it has no access to update status", func() {
 
-			configPath := exutil.FixturePath("testdata", "router-scoped.yaml")
+			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
 			err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
 				`-p=IMAGE=`+routerImage,

@@ -44,6 +44,16 @@ var staticSuites = []*ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/conformance/multitenant",
+		Description: templates.LongDesc(`
+		Only the portion of the openshift/conformance test suite that applies to the openshift-sdn multitenant plugin.
+		`),
+		Matches: func(name string) bool {
+			return !strings.Contains(name, "[Feature:NetworkPolicy]") && strings.Contains(name, "[Suite:openshift/conformance/")
+		},
+		Parallelism: 30,
+	},
+	{
 		Name: "openshift/disruptive",
 		Description: templates.LongDesc(`
 		The disruptive test suite.
@@ -124,6 +134,23 @@ var staticSuites = []*ginkgo.TestSuite{
 		Run only tests that are excluded from conformance. Makes identifying omitted tests easier.
 		`),
 		Matches: func(name string) bool { return !strings.Contains(name, "[Suite:openshift/conformance/") },
+	},
+	{
+		Name: "openshift/test-cmd",
+		Description: templates.LongDesc(`
+		Run only tests for test-cmd.
+		`),
+		Matches: func(name string) bool { return strings.Contains(name, "[Suite:openshift/test-cmd]") },
+	},
+	{
+		Name: "openshift/csi",
+		Description: templates.LongDesc(`
+		Run tests for an installed CSI driver. TEST_CSI_DRIVER_FILES env. variable must be set and it must be a comma separated list of CSI driver definition files.
+        See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the files.
+		`),
+		Matches: func(name string) bool {
+			return strings.Contains(name, "[Suite:openshift/csi") && !strings.Contains(name, "[Disruptive]")
+		},
 	},
 	{
 		Name: "all",

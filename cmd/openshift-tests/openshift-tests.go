@@ -9,11 +9,11 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/onsi/gomega"
-
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -21,13 +21,19 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/storage/external"
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	exutilazure "github.com/openshift/origin/test/extended/util/azure"
+
+	// these are loading important global flags that we need to get and set
+	_ "k8s.io/kubernetes/test/e2e"
+	_ "k8s.io/kubernetes/test/e2e/lifecycle"
 )
 
 func main() {
@@ -274,11 +280,16 @@ func initProvider(provider string) error {
 	}
 	exutil.TestContext.AllowedNotReadyNodes = 100
 	exutil.TestContext.MaxNodesToGather = 0
-	exutil.TestContext.Viper = os.Getenv("VIPERCONFIG")
+	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
+
+	if err := initCSITests(); err != nil {
+		return err
+	}
 
 	// set defaults so these tests don't log
-	exutil.TestContext.LoggingSoak.Scale = 1
-	exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
+	// these appear to be defaults now
+	//exutil.TestContext.LoggingSoak.Scale = 1
+	//exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
 
 	exutil.AnnotateTestSuite()
 	exutil.InitTest()
@@ -331,5 +342,21 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 		testContext.Provider = "skeleton"
 	}
 	klog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
+	return nil
+}
+
+// Initialize openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
+func initCSITests() error {
+	// TODO: replace with cmdline argument
+	driverList := os.Getenv("TEST_CSI_DRIVER_FILES")
+	if driverList == "" {
+		return nil
+	}
+	drivers := strings.Split(driverList, ",")
+	for _, driver := range drivers {
+		if err := external.AddDriverDefinition(driver); err != nil {
+			return fmt.Errorf("failed to load driver from %q: %s", driver, err)
+		}
+	}
 	return nil
 }

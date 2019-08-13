@@ -1,0 +1,193 @@
+package: github.com/openshift/oc
+import:
+# kube first
+- package: k8s.io/kubernetes
+  repo:    https://github.com/openshift/kubernetes.git
+  version: oc-4.2-kubernetes-1.14.0
+- package: k8s.io/apimachinery
+  repo:    https://github.com/openshift/kubernetes-apimachinery.git
+  version: oc-4.2-kubernetes-1.14.0
+- package: k8s.io/client-go
+  repo:    https://github.com/openshift/kubernetes-client-go.git
+  version: oc-4.2-kubernetes-1.14.0
+- package: k8s.io/cli-runtime
+  repo:    https://github.com/openshift/kubernetes-cli-runtime.git
+  version: oc-4.2-kubernetes-1.14.0
+- package: k8s.io/api
+  version: kubernetes-1.14.0
+- package: k8s.io/apiextensions-apiserver
+  version: kubernetes-1.14.0
+- package: k8s.io/apiserver
+  version: kubernetes-1.14.0
+- package: k8s.io/cloud-provider
+  version: kubernetes-1.14.0
+- package: k8s.io/cluster-bootstrap
+  version: kubernetes-1.14.0
+- package: k8s.io/code-generator
+  version: kubernetes-1.14.0
+- package: k8s.io/component-base
+  version: kubernetes-1.14.0
+- package: k8s.io/csi-api
+  version: kubernetes-1.14.0
+- package: k8s.io/csi-translation-lib
+  version: kubernetes-1.14.0
+- package: k8s.io/kube-aggregator
+  version: kubernetes-1.14.0
+- package: k8s.io/kube-controller-manager
+  version: kubernetes-1.14.0
+- package: k8s.io/kubelet
+  version: kubernetes-1.14.0
+- package: k8s.io/kube-proxy
+  version: kubernetes-1.14.0
+- package: k8s.io/kube-scheduler
+  version: kubernetes-1.14.0
+- package: k8s.io/metrics
+  version: kubernetes-1.14.0
+- package: k8s.io/sample-apiserver
+  version: kubernetes-1.14.0
+- package: k8s.io/sample-cli-plugin
+  version: kubernetes-1.14.0
+- package: k8s.io/sample-controller
+  version: kubernetes-1.14.0
+ # this matches the 1.14 branch from kube
+- package: k8s.io/gengo
+  version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
+- package: k8s.io/utils
+  version: c2654d5206da6b7b6ace12841e8f359bb89b443c
+- package: k8s.io/kube-openapi
+  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
+- package: k8s.io/klog
+  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f # recent klog bump broke glog flags test in k8s.io/apiserver, pin
+- package: github.com/coreos/etcd
+  version: v3.3.10
+- package: google.golang.org/grpc
+  version: v1.13.0
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: v1.3.0
+- package: github.com/coreos/bbolt
+  version: v1.3.1-coreos.6
+- package: github.com/google/cadvisor
+  version: v0.32.0
+
+# openshift second
+- package: github.com/openshift/api
+  version: master
+- package: github.com/openshift/client-go
+  version: master
+- package: github.com/openshift/library-go
+  version: master
+- package: github.com/openshift/source-to-image
+  version: master
+
+# forks third
+# master
+- package: github.com/onsi/ginkgo
+  repo:    https://github.com/openshift/onsi-ginkgo.git
+  version: release-v1.2.0
+- package: github.com/containers/image
+  repo:    https://github.com/openshift/containers-image.git
+  version: openshift-3.8
+# cli
+- package: github.com/docker/distribution
+  repo:    https://github.com/openshift/docker-distribution.git
+  version: image-registry-3.11
+- package: github.com/docker/docker
+  version: a9fbbdc8dd8794b20af358382ab780559bca589d
+
+# ours: shared with kube, but forced by openshift
+# master: co-exist with klog
+- package: github.com/golang/glog
+  repo:    https://github.com/openshift/golang-glog.git
+  version: delegate-to-klog
+# cli
+- package: github.com/gonum/blas
+  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
+# cli
+- package: github.com/gonum/floats
+  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
+# cli
+- package: github.com/gonum/graph
+  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
+# cli
+- package: github.com/gonum/internal
+  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
+# cli
+- package: github.com/gonum/lapack
+  version: 5ed4b826becd1807e09377508f51756586d1a98c
+# cli
+- package: github.com/gonum/matrix
+  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
+# because of genapidocs.  This is the current kube level
+- package: github.com/go-openapi/loads
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+# retrieve latest version that fixes deadlock on kqueue
+- package: github.com/fsnotify/fsnotify
+  version: v1.4.7
+# pinned to the level that kubernetes uses.  Not sure why glide isn't matching this
+- package: github.com/sirupsen/logrus
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+# pinned to a level that kubernetes uses.
+- package: github.com/evanphx/json-patch
+  version: 5858425f75500d40c52783dce87d085a483ce135
+# pinned to a level that kubernetes 1.12 use
+- package: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+
+# mine: specific to openshift
+# builds/cli
+- package: github.com/fsouza/go-dockerclient
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
+# auth (for testing)
+- package: github.com/vjeantet/ldapserver
+  version: v1.0
+# auth (for sally)
+- package: github.com/RangelReale/osincli
+  repo:    https://github.com/openshift/osincli.git
+  version: fababb0555f21315d1a34af6615a16eaab44396b
+# auth (for oc kerberos on linux + mac)
+- package: github.com/apcera/gssapi
+  version: release-2.6.3
+# auth (for oc kerberos on windows)
+- package: github.com/alexbrainman/sspi
+  version: e580b900e9f5657daa5473021296289be6da2661
+# new-app
+- package: github.com/joho/godotenv
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+# new-app
+- package: github.com/moby/buildkit
+  version: c3a857e3fca0a5cadd44ffd886a977559841aeaa
+# master? for bindata
+- package: github.com/jteeuwen/go-bindata
+  version: a0ff2567cfb70903282db057e799fd826784d41d
+# used to be ~v1 to keep up with fixes.  It didn't build past v1.0.8.
+- package: github.com/miekg/dns
+  version: v1.0.8
+# etcd pins a very old version that has contention issues
+- package: github.com/google/btree
+  version: master
+
+# why do we have this?
+- package: google.golang.org/appengine
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+
+# to avoid go4.org website outages on glide update
+- package: go4.org
+  repo: https://github.com/go4org/go4
+  version: 03efcb870d84809319ea509714dd6d19a1498483
+  subpackages:
+  - errorutil
+
+# force glide to pull this in
+- package: github.com/google/uuid
+
+# due to https://github.com/Masterminds/glide/issues/881 manually show where
+# to get gonum.org/v1/gonum from
+- package: gonum.org/v1/gonum
+  repo: https://github.com/gonum/gonum.git
+  version: cebdade430ccb61c1feba4878085f6cf8cb3320e
+
+# set alias location for this package due to
+# https://github.com/Masterminds/glide/issues/1057; upstream did this in
+# https://github.com/kubernetes/kubernetes/pull/72138
+- package: bitbucket.org/ww/goautoneg
+  repo: https://github.com/munnerz/goautoneg.git

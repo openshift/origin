@@ -18,12 +18,12 @@ items:
         # Bug 1694859: ensure symlinks are followed
         FROM ruby
         RUN mkdir -p /opt/app-root/test-links && \
-            ln -s ../../rh/rh-ruby22/root/usr/bin /opt/app-root/test-links/bin
+            ln -s ../../rh/rh-ruby25/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
         from: 
           kind: ImageStreamTag
-          name: ruby:2.2
+          name: ruby:2.5
           namespace: openshift
 - apiVersion: v1
   kind: BuildConfig
@@ -47,8 +47,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-22/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+        - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -77,8 +77,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-22/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby22/root/usr/bin/ruby
+        - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
+          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
     strategy:
       dockerStrategy: {}
 

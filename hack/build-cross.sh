@@ -66,7 +66,7 @@ fi
 
 # Build image binaries for a subset of platforms. Image binaries are currently
 # linux-only, and a subset of them are compiled with flags to make them static
-# for use in Docker images "FROM scratch".
+# for use in container images "FROM scratch".
 OS_BUILD_PLATFORMS=("${image_platforms[@]+"${image_platforms[@]}"}")
 os::build::build_static_binaries "${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]-}"
 os::build::build_binaries "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]-}"

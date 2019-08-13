@@ -2,7 +2,7 @@
 layers, container images, and containers.  A `containers-storage` CLI wrapper
 is also included for manual and scripting use.
 
-To build the CLI wrapper, use 'make build-binary'.
+To build the CLI wrapper, use 'make binary'.
 
 Operations which use VMs expect to launch them using 'vagrant', defaulting to
 using its 'libvirt' provider.  The boxes used are also available for the
@@ -41,3 +41,6 @@ memory and stored along with the library's own bookkeeping information.
 Additionally, the library can store one or more of what it calls *big data* for
 images and containers.  This is a named chunk of larger data, which is only in
 memory when it is being read from or being written to its own disk file.
+
+**[Contributing](CONTRIBUTING.md)**
+Information about contributing to this project.

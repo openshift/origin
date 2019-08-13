@@ -3,6 +3,7 @@ package daemon
 import (
 	"testing"
 
+	projectv1 "github.com/openshift/api/project/v1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -67,14 +68,14 @@ func TestNamespaceNodeSelectorMatches(t *testing.T) {
 	all := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"openshift.io/node-selector": "",
+				projectv1.ProjectNodeSelector: "",
 			},
 		},
 	}
 	projectSpecified := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"openshift.io/node-selector": "echo=foxtrot",
+				projectv1.ProjectNodeSelector: "echo=foxtrot",
 			},
 		},
 	}
@@ -88,7 +89,7 @@ func TestNamespaceNodeSelectorMatches(t *testing.T) {
 	bothSpecified := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"openshift.io/node-selector":                  "echo=foxtrot",
+				projectv1.ProjectNodeSelector:                 "echo=foxtrot",
 				"scheduler.alpha.kubernetes.io/node-selector": "charlie=delta",
 			},
 		},

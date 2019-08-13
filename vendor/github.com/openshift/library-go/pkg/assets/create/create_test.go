@@ -149,6 +149,25 @@ func TestCreate(t *testing.T) {
 	testConfigMap.SetName("aggregator-client-ca")
 	testConfigMap.SetNamespace("openshift-kube-apiserver")
 
+	testOperatorConfig := &unstructured.Unstructured{}
+	testOperatorConfig.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "kubeapiserver.operator.openshift.io",
+		Version: "v1alpha1",
+		Kind:    "KubeAPIServerOperatorConfig",
+	})
+	testOperatorConfig.SetName("instance")
+
+	testOperatorConfigWithStatus := &unstructured.Unstructured{}
+	testOperatorConfigWithStatus.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "kubeapiserver.operator.openshift.io",
+		Version: "v1alpha1",
+		Kind:    "KubeAPIServerOperatorConfig",
+	})
+	testOperatorConfigWithStatus.SetName("instance")
+	testOperatorConfigStatusVal := make(map[string]interface{})
+	testOperatorConfigStatusVal["initializedValue"] = "something before"
+	unstructured.SetNestedField(testOperatorConfigWithStatus.Object, testOperatorConfigStatusVal, "status")
+
 	tests := []struct {
 		name              string
 		discovery         []*restmapper.APIGroupResources
@@ -165,7 +184,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:              "fail to create kube apiserver operator config",
 			discovery:         resourcesWithoutKubeAPIServer,
-			expectFailedCount: 1,
+			expectFailedCount: 2,
 			expectError:       true,
 			expectReload:      true,
 		},
@@ -173,6 +192,38 @@ func TestCreate(t *testing.T) {
 			name:            "create all resources",
 			discovery:       resources,
 			existingObjects: []runtime.Object{testConfigMap},
+		},
+		{
+			name:            "create all resources",
+			discovery:       resources,
+			existingObjects: []runtime.Object{testOperatorConfig},
+			evalActions: func(t *testing.T, actions []ktesting.Action) {
+				if got, exp := len(actions), 8; got != exp {
+					t.Errorf("expected %d actions, found %d", exp, got)
+					return
+				}
+
+				ups, ok := actions[6].(ktesting.UpdateAction)
+				if !ok {
+					t.Errorf("expecting Update action for actions[5], got %T", actions[5])
+					return
+				}
+				if got, exp := ups.GetSubresource(), "status"; got != exp {
+					t.Errorf("ecpecting the subresource to be %q, got %q", exp, got)
+					return
+				}
+			},
+		},
+		{
+			name:            "create all resources",
+			discovery:       resources,
+			existingObjects: []runtime.Object{testOperatorConfigWithStatus},
+			evalActions: func(t *testing.T, actions []ktesting.Action) {
+				if got, exp := len(actions), 7; got != exp {
+					t.Errorf("expected %d actions, found %d", exp, got)
+					return
+				}
+			},
 		},
 	}
 
@@ -230,7 +281,7 @@ func TestLoad(t *testing.T) {
 		{
 			name:                  "read all manifests",
 			assetDir:              "testdata",
-			expectedManifestCount: 5,
+			expectedManifestCount: 6,
 		},
 		{
 			name:        "handle missing dir",

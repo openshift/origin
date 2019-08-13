@@ -24,22 +24,20 @@ pushd "${OS_ROOT}" > /dev/null
     -ignore ".*\.(go|md)$" \
     -ignore "prometheus-standalone.yaml" \
     -ignore "node-exporter.yaml" \
-    test/extended/testdata/... \
-    test/integration/testdata \
     examples/db-templates \
-    examples/image-streams \
-    examples/sample-app \
-    examples/quickstarts/... \
-    examples/prometheus/... \
-    examples/hello-openshift \
-    examples/jenkins/... \
-    examples/quickstarts/cakephp-mysql.json \
-    install/...
+	examples/image-streams \
+	examples/sample-app \
+	examples/quickstarts/... \
+	examples/hello-openshift \
+	examples/jenkins/... \
+	examples/quickstarts/cakephp-mysql.json \
+    test/extended/testdata/... \
+    test/integration/testdata
 
 popd > /dev/null
 
 # If you hit this, please reduce other tests instead of importing more
-if [[ "$( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c )" -gt 1500000 ]]; then
+if [[ "$( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c )" -gt 2500000 ]]; then
     echo "error: extended bindata is $( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c ) bytes, reduce the size of the import" 1>&2
     exit 1
 fi

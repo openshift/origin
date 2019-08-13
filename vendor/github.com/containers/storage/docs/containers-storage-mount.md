@@ -19,4 +19,5 @@ Specify an SELinux context for the mounted layer.
 **containers-storage mount my-container**
 
 ## SEE ALSO
+containers-storage-mounted(1)
 containers-storage-unmount(1)

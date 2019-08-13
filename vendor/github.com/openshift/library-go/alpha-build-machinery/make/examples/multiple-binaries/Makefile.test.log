@@ -1,9 +1,51 @@
-make -C . build
-go build  github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
-go build  github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+make build
+fatal: No names found, cannot describe anything.
+fatal: No names found, cannot describe anything.
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
 [[ -f ./openshift ]]
 [[ -f ./oc ]]
-make -C . clean
+# test version is set correctly when linking
+#   majorFromGit, minorFromGit are deprecated upstream and set to empty value
+#   we avoid comparing time to avoid flakes
+#   we avoid comparing git tree state
+diff <( ./oc | grep -v -e 'clean' -e 'dirty' | sed '$d' ) <( \
+	echo ""; \
+	echo ""; \
+	git rev-parse --short "HEAD^{commit}" 2>/dev/null; \
+	git describe --long --tags --abbrev=7 --match 'v[0-9]*' || echo 'v0.0.0-unknown'; \
+)
+fatal: No names found, cannot describe anything.
+make clean
 rm -f oc openshift
+rm -f -r '_output/bin'
 [[ ! -f ./openshift ]]
 [[ ! -f ./oc ]]
+[[ ! -f ./_output/bin ]]
+make cross-build
+fatal: No names found, cannot describe anything.
+fatal: No names found, cannot describe anything.
+mkdir -p '_output/bin/darwin_amd64'
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/darwin_amd64/oc' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+mkdir -p '_output/bin/darwin_amd64'
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/darwin_amd64/openshift' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+fatal: No names found, cannot describe anything.
+fatal: No names found, cannot describe anything.
+mkdir -p '_output/bin/windows_amd64'
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/windows_amd64/oc.exe' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+mkdir -p '_output/bin/windows_amd64'
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/windows_amd64/openshift.exe' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+[[ ! -f ./openshift ]]
+[[ ! -f ./oc ]]
+[[ -f ./_output/bin/darwin_amd64/openshift ]]
+[[ -f ./_output/bin/darwin_amd64/oc ]]
+[[ -f ./_output/bin/windows_amd64/openshift.exe ]]
+[[ -f ./_output/bin/windows_amd64/oc.exe ]]
+make clean
+rm -f oc openshift
+rm -f -r '_output/bin'
+[[ ! -f ./_output/bin/darwin_amd64/openshift ]]
+[[ ! -f ./_output/bin/darwin_amd64/oc ]]
+[[ ! -f ./_output/bin/windows_amd64/openshift.exe ]]
+[[ ! -f ./_output/bin/windows_amd64/oc.exe ]]
+[[ ! -f ./_output/bin ]]

@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: jenkins-verifyservice-pipeline
+metadata:
+  name: redis-verifyservice-test
+  app: redis
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: redis-headless
+    app: redis
+  spec:
+    clusterIP: None
+    ports:
+    - port: 6379
+      targetPort: 6379
+    selector:
+      name: redis
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: jenkins-verifyservice-pipeline
+    app: redis
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          try {
+              timeout(time: 20, unit: 'MINUTES') {
+                  // Select the default cluster
+                  openshift.withCluster() {
+                      // Select the default project
+                      openshift.withProject() {
+                        // Verify Normal Services
+                        def connectedNormalService = openshift.verifyService('redis')
+                        // Verify Headless Services with Selectors
+                        def connectedHeadlessService = openshift.verifyService('redis-headless')
+                      }
+                  }
+              }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline

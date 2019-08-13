@@ -29,7 +29,7 @@ func NewCmdUsage(cfg *api.Config) *cobra.Command {
 			cfg.BuilderImage = args[0]
 
 			if len(oldScriptsFlag) != 0 {
-				glog.Warning("DEPRECATED: Flag --scripts is deprecated, use --scripts-url instead")
+				log.Warning("DEPRECATED: Flag --scripts is deprecated, use --scripts-url instead")
 				cfg.ScriptsURL = oldScriptsFlag
 			}
 

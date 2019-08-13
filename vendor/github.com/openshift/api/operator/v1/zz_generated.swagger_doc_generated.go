@@ -117,7 +117,16 @@ func (AuthenticationList) SwaggerDoc() map[string]string {
 	return map_AuthenticationList
 }
 
+var map_Console = map[string]string{
+	"": "Console provides a means to configure an operator to manage the console.",
+}
+
+func (Console) SwaggerDoc() map[string]string {
+	return map_Console
+}
+
 var map_ConsoleCustomization = map[string]string{
+	"":                     "ConsoleCustomization defines a list of optional configuration for the console UI.",
 	"brand":                "brand is the default branding of the web console which can be overridden by providing the brand field.  There is a limited set of specific brand options. This field controls elements of the console such as the logo. Invalid value will prevent a console rollout.",
 	"documentationBaseURL": "documentationBaseURL links to external documentation are shown in various sections of the web console.  Providing documentationBaseURL will override the default documentation URL. Invalid value will prevent a console rollout.",
 	"customProductName":    "customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog instead of the normal OpenShift product name.",
@@ -129,6 +138,7 @@ func (ConsoleCustomization) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleProviders = map[string]string{
+	"":           "ConsoleProviders defines a list of optional additional providers of functionality to the console.",
 	"statuspage": "statuspage contains ID for statuspage.io page that provides status info about.",
 }
 
@@ -137,12 +147,21 @@ func (ConsoleProviders) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleSpec = map[string]string{
+	"":              "ConsoleSpec is the specification of the desired behavior of the Console.",
 	"customization": "customization is used to optionally provide a small set of customization options to the web console.",
 	"providers":     "providers contains configuration for using specific service providers.",
 }
 
 func (ConsoleSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleSpec
+}
+
+var map_ConsoleStatus = map[string]string{
+	"": "ConsoleStatus defines the observed status of the Console.",
+}
+
+func (ConsoleStatus) SwaggerDoc() map[string]string {
+	return map_ConsoleStatus
 }
 
 var map_StatuspageProvider = map[string]string{
@@ -339,11 +358,12 @@ func (KubeControllerManagerList) SwaggerDoc() map[string]string {
 }
 
 var map_AdditionalNetworkDefinition = map[string]string{
-	"":             "AdditionalNetworkDefinition configures an extra network that is available but not created by default. Instead, pods must request them by name. type must be specified, along with exactly one \"Config\" that matches the type.",
-	"type":         "type is the type of network The only supported value is NetworkTypeRaw",
-	"name":         "name is the name of the network. This will be populated in the resulting CRD This must be unique.",
-	"namespace":    "namespace is the namespace of the network. This will be populated in the resulting CRD If not given the network will be created in the default namespace.",
-	"rawCNIConfig": "rawCNIConfig is the raw CNI configuration json to create in the NetworkAttachmentDefinition CRD",
+	"":                    "AdditionalNetworkDefinition configures an extra network that is available but not created by default. Instead, pods must request them by name. type must be specified, along with exactly one \"Config\" that matches the type.",
+	"type":                "type is the type of network The supported values are NetworkTypeRaw, NetworkTypeSimpleMacvlan",
+	"name":                "name is the name of the network. This will be populated in the resulting CRD This must be unique.",
+	"namespace":           "namespace is the namespace of the network. This will be populated in the resulting CRD If not given the network will be created in the default namespace.",
+	"rawCNIConfig":        "rawCNIConfig is the raw CNI configuration json to create in the NetworkAttachmentDefinition CRD",
+	"simpleMacvlanConfig": "SimpleMacvlanConfig configures the macvlan interface in case of type:NetworkTypeSimpleMacvlan",
 }
 
 func (AdditionalNetworkDefinition) SwaggerDoc() map[string]string {
@@ -368,6 +388,16 @@ var map_DefaultNetworkDefinition = map[string]string{
 
 func (DefaultNetworkDefinition) SwaggerDoc() map[string]string {
 	return map_DefaultNetworkDefinition
+}
+
+var map_IPAMConfig = map[string]string{
+	"":                 "IPAMConfig contains configurations for IPAM (IP Address Management)",
+	"type":             "Type is the type of IPAM module will be used for IP Address Management(IPAM). The supported values are IPAMTypeDHCP, IPAMTypeStatic",
+	"staticIPAMConfig": "StaticIPAMConfig configures the static IP address in case of type:IPAMTypeStatic",
+}
+
+func (IPAMConfig) SwaggerDoc() map[string]string {
+	return map_IPAMConfig
 }
 
 var map_KuryrConfig = map[string]string{
@@ -434,6 +464,7 @@ var map_OpenShiftSDNConfig = map[string]string{
 	"vxlanPort":              "vxlanPort is the port to use for all vxlan packets. The default is 4789.",
 	"mtu":                    "mtu is the mtu to use for the tunnel interface. Defaults to 1450 if unset. This must be 50 bytes smaller than the machine's uplink.",
 	"useExternalOpenvswitch": "useExternalOpenvswitch tells the operator not to install openvswitch, because it will be provided separately. If set, you must provide it yourself.",
+	"enableUnidling":         "enableUnidling controls whether or not the service proxy will support idling and unidling of services. By default, unidling is enabled.",
 }
 
 func (OpenShiftSDNConfig) SwaggerDoc() map[string]string {
@@ -449,6 +480,60 @@ var map_ProxyConfig = map[string]string{
 
 func (ProxyConfig) SwaggerDoc() map[string]string {
 	return map_ProxyConfig
+}
+
+var map_SimpleMacvlanConfig = map[string]string{
+	"":           "SimpleMacvlanConfig contains configurations for macvlan interface.",
+	"master":     "master is the host interface to create the macvlan interface from. If not specified, it will be default route interface",
+	"ipamConfig": "IPAMConfig configures IPAM module will be used for IP Address Management (IPAM).",
+	"mode":       "mode is the macvlan mode: bridge, private, vepa, passthru. The default is bridge",
+	"mtu":        "mtu is the mtu to use for the macvlan interface. if unset, host's kernel will select the value.",
+}
+
+func (SimpleMacvlanConfig) SwaggerDoc() map[string]string {
+	return map_SimpleMacvlanConfig
+}
+
+var map_StaticIPAMAddresses = map[string]string{
+	"":        "StaticIPAMAddresses provides IP address and Gateway for static IPAM addresses",
+	"address": "Address is the IP address in CIDR format",
+	"gateway": "Gateway is IP inside of subnet to designate as the gateway",
+}
+
+func (StaticIPAMAddresses) SwaggerDoc() map[string]string {
+	return map_StaticIPAMAddresses
+}
+
+var map_StaticIPAMConfig = map[string]string{
+	"":          "StaticIPAMConfig contains configurations for static IPAM (IP Address Management)",
+	"addresses": "Addresses configures IP address for the interface",
+	"routes":    "Routes configures IP routes for the interface",
+	"dns":       "DNS configures DNS for the interface",
+}
+
+func (StaticIPAMConfig) SwaggerDoc() map[string]string {
+	return map_StaticIPAMConfig
+}
+
+var map_StaticIPAMDNS = map[string]string{
+	"":            "StaticIPAMDNS provides DNS related information for static IPAM",
+	"nameservers": "Nameservers points DNS servers for IP lookup",
+	"domain":      "Domain configures the domainname the local domain used for short hostname lookups",
+	"search":      "Search configures priority ordered search domains for short hostname lookups",
+}
+
+func (StaticIPAMDNS) SwaggerDoc() map[string]string {
+	return map_StaticIPAMDNS
+}
+
+var map_StaticIPAMRoutes = map[string]string{
+	"":            "StaticIPAMRoutes provides Destination/Gateway pairs for static IPAM routes",
+	"destination": "Destination points the IP route destination",
+	"gateway":     "Gateway is the route's next-hop IP address If unset, a default gateway is assumed (as determined by the CNI plugin).",
+}
+
+func (StaticIPAMRoutes) SwaggerDoc() map[string]string {
+	return map_StaticIPAMRoutes
 }
 
 var map_OpenShiftAPIServer = map[string]string{

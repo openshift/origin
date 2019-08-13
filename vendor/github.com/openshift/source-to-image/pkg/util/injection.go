@@ -30,7 +30,7 @@ func FixInjectionsWithRelativePath(workdir string, injections api.VolumeList) ap
 			changed = true
 		}
 		if changed {
-			glog.V(5).Infof("Using %q as a destination for injecting %q", injection.Destination, injection.Source)
+			log.V(5).Infof("Using %q as a destination for injecting %q", injection.Destination, injection.Source)
 		}
 		newList = append(newList, injection)
 	}
@@ -86,7 +86,7 @@ func ListFiles(fs fs.FileSystem, spec api.VolumeSpec) ([]string, error) {
 			if err != nil {
 				// This is not a fatal error. If AtomicWrite tried multiple times, a symlink might not point
 				// to a valid destination.
-				glog.Warningf("Unable to lstat symlink destination [%s]->[%s]. err: %v. Partial atomic write?", path, linkDest, err)
+				log.Warningf("Unable to lstat symlink destination [%s]->[%s]. err: %v. Partial atomic write?", path, linkDest, err)
 				return nil
 			}
 		}
@@ -148,9 +148,9 @@ func HandleInjectionError(p api.VolumeSpec, err error) error {
 		return nil
 	}
 	if strings.Contains(err.Error(), "no such file or directory") {
-		glog.Errorf("The destination directory for %q injection must exist in container (%q)", p.Source, p.Destination)
+		log.Errorf("The destination directory for %q injection must exist in container (%q)", p.Source, p.Destination)
 		return err
 	}
-	glog.Errorf("Error occurred during injecting %q to %q: %v", p.Source, p.Destination, err)
+	log.Errorf("Error occurred during injecting %q to %q: %v", p.Source, p.Destination, err)
 	return err
 }

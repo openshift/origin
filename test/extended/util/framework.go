@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -148,7 +149,7 @@ func DumpImageStreams(oc *CLI) {
 	}
 	ids, err := ListImages()
 	if err != nil {
-		e2e.Logf("\n  got error on docker images %+v\n", err)
+		e2e.Logf("\n  got error on container images %+v\n", err)
 	} else {
 		for _, id := range ids {
 			e2e.Logf(" found local image %s\n", id)
@@ -1398,6 +1399,111 @@ func (r *podExecutor) Exec(script string) (string, error) {
 func (r *podExecutor) CopyFromHost(local, remote string) error {
 	_, err := r.client.Run("cp").Args(local, fmt.Sprintf("%s:%s", r.podName, remote)).Output()
 	return err
+}
+
+// RunOneShotCommandPod runs the given command in a pod and waits for completion and log output for the given timeout
+// duration, returning the command output or an error.
+// TODO: merge with the PodExecutor above
+func RunOneShotCommandPod(
+	oc *CLI,
+	name, image, command string,
+	volumeMounts []corev1.VolumeMount,
+	volumes []corev1.Volume,
+	env []corev1.EnvVar,
+	timeout time.Duration,
+) (string, []error) {
+	errs := []error{}
+	cmd := strings.Split(command, " ")
+	args := cmd[1:]
+	var output string
+
+	pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Create(newCommandPod(name, image, cmd[0], args,
+		volumeMounts, volumes, env))
+	if err != nil {
+		return "", []error{err}
+	}
+
+	// Wait for command completion.
+	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
+		cmdPod, getErr := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, v1.GetOptions{})
+		if err != nil {
+			return false, getErr
+		}
+
+		if podHasErrored(cmdPod) {
+			return true, fmt.Errorf("the pod errored trying to run the command")
+		}
+		return podHasCompleted(cmdPod), nil
+	})
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error waiting for the pod '%s' to complete: %v", pod.Name, err))
+	}
+
+	// Gather pod log output
+	err = wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
+		logs, logErr := getPodLogs(oc, pod)
+		if logErr != nil {
+			return false, logErr
+		}
+		if len(logs) == 0 {
+			return false, nil
+		}
+		output = logs
+		return true, nil
+	})
+	if err != nil {
+		errs = append(errs, fmt.Errorf("command pod %s did not complete: %v", pod.Name, err))
+	}
+
+	return output, errs
+}
+
+func podHasCompleted(pod *corev1.Pod) bool {
+	return len(pod.Status.ContainerStatuses) > 0 &&
+		pod.Status.ContainerStatuses[0].State.Terminated != nil &&
+		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Completed"
+}
+
+func podHasErrored(pod *corev1.Pod) bool {
+	return len(pod.Status.ContainerStatuses) > 0 &&
+		pod.Status.ContainerStatuses[0].State.Terminated != nil &&
+		pod.Status.ContainerStatuses[0].State.Terminated.Reason == "Error"
+}
+
+func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
+	reader, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream()
+	if err != nil {
+		return "", err
+	}
+	logs, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return "", err
+	}
+	return string(logs), nil
+}
+
+func newCommandPod(name, image, command string, args []string, volumeMounts []corev1.VolumeMount,
+	volumes []corev1.Volume, env []corev1.EnvVar) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name: name,
+		},
+		Spec: corev1.PodSpec{
+			Volumes:       volumes,
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:            name,
+					Image:           image,
+					Command:         []string{command},
+					Args:            args,
+					VolumeMounts:    volumeMounts,
+					ImagePullPolicy: "Always",
+					Env:             env,
+				},
+			},
+		},
+	}
 }
 
 type GitRepo struct {

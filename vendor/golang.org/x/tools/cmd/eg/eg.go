@@ -7,8 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
-	"go/format"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"os"
 	"os/exec"
@@ -139,7 +139,7 @@ func doMain() error {
 					hadErrors = true
 				}
 			} else {
-				format.Node(os.Stdout, iprog.Fset, file)
+				printer.Fprint(os.Stdout, iprog.Fset, file)
 			}
 		}
 	}

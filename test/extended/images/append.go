@@ -12,7 +12,6 @@ import (
 
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/library-go/pkg/image/imageutil"
-	"github.com/openshift/oc/pkg/helpers/image/dockerlayer"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -121,7 +120,7 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
 
 		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(1))
-		o.Expect(istag.Image.DockerImageLayers[0].Name).To(o.Equal(dockerlayer.GzippedEmptyLayerDigest))
+		o.Expect(istag.Image.DockerImageLayers[0].Name).To(o.Equal(GzippedEmptyLayerDigest))
 		err = imageutil.ImageWithMetadata(&istag.Image)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Cmd).To(o.Equal([]string{"/bin/sleep"}))
@@ -136,7 +135,7 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
 		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(1))
-		o.Expect(istag.Image.DockerImageLayers[0].Name).NotTo(o.Equal(dockerlayer.GzippedEmptyLayerDigest))
+		o.Expect(istag.Image.DockerImageLayers[0].Name).NotTo(o.Equal(GzippedEmptyLayerDigest))
 		err = imageutil.ImageWithMetadata(&istag.Image)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Cmd).To(o.Equal([]string{"/bin/sleep"}))
@@ -154,3 +153,12 @@ var _ = g.Describe("[Feature:ImageAppend] Image append", func() {
 		o.Expect(istag.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.Cmd).To(o.Equal([]string{"/bin/sleep"}))
 	})
 })
+
+const (
+	// GzippedEmptyLayerDigest is a digest of GzippedEmptyLayer
+	GzippedEmptyLayerDigest = "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+	// EmptyLayerDiffID is the tarsum of the GzippedEmptyLayer
+	EmptyLayerDiffID = "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+	// DigestSha256EmptyTar is the canonical sha256 digest of empty data
+	DigestSha256EmptyTar = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+)

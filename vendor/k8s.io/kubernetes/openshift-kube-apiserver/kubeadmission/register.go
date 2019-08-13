@@ -1,20 +1,21 @@
 package kubeadmission
 
 import (
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/security/sccadmission"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
+	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
+	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy"
+	imagepolicyapiv1 "github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1"
+	quotaclusterresourcequota "github.com/openshift/apiserver-library-go/pkg/admission/quota/clusterresourcequota"
+	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccadmission"
 	authorizationrestrictusers "k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
 	quotaclusterresourceoverride "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/clusterresourceoverride"
 	quotarunonceduration "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/runonceduration"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy"
-	imagepolicyapiv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/externalipranger"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/restrictedendpoints"
-	quotaclusterresourcequota "k8s.io/kubernetes/openshift-kube-apiserver/admission/quota/clusterresourcequota"
 	ingressadmission "k8s.io/kubernetes/openshift-kube-apiserver/admission/route"
 	projectnodeenv "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	schedulerpodnodeconstraints "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
@@ -48,8 +49,8 @@ var (
 		"security.openshift.io/SCCExecRestrictions",
 	)
 
-	// AfterKubeAdmissionPlugins are the admission plugins to add after kube admission, before mutating webhooks
-	openshiftAdmissionPluginsForKube = []string{
+	// openshiftAdmissionPluginsForKubeBeforeMutating are the admission plugins to add after kube admission, before mutating webhooks
+	openshiftAdmissionPluginsForKubeBeforeMutating = []string{
 		"autoscaling.openshift.io/ClusterResourceOverride",
 		"authorization.openshift.io/RestrictSubjectBindings",
 		"autoscaling.openshift.io/RunOnceDuration",
@@ -61,6 +62,10 @@ var (
 		"security.openshift.io/SecurityContextConstraint",
 		"security.openshift.io/SCCExecRestrictions",
 		"route.openshift.io/IngressAdmission",
+	}
+
+	// openshiftAdmissionPluginsForKubeAfterResourceQuota are the plugins to add after ResourceQuota plugin
+	openshiftAdmissionPluginsForKubeAfterResourceQuota = []string{
 		"quota.openshift.io/ClusterResourceQuota",
 	}
 
@@ -81,10 +86,15 @@ func NewOrderedKubeAdmissionPlugins(kubeAdmissionOrder []string) []string {
 	ret := []string{}
 	for _, curr := range kubeAdmissionOrder {
 		if curr == mutatingwebhook.PluginName {
-			ret = append(ret, openshiftAdmissionPluginsForKube...)
+			ret = append(ret, openshiftAdmissionPluginsForKubeBeforeMutating...)
 			ret = append(ret, customresourcevalidationregistration.AllCustomResourceValidators...)
 		}
+
 		ret = append(ret, curr)
+
+		if curr == resourcequota.PluginName {
+			ret = append(ret, openshiftAdmissionPluginsForKubeAfterResourceQuota...)
+		}
 	}
 	return ret
 }
@@ -93,7 +103,8 @@ func NewDefaultOffPluginsFunc(kubeDefaultOffAdmission sets.String) func() sets.S
 	return func() sets.String {
 		kubeOff := sets.NewString(kubeDefaultOffAdmission.UnsortedList()...)
 		kubeOff.Delete(additionalDefaultOnPlugins.List()...)
-		kubeOff.Delete(openshiftAdmissionPluginsForKube...)
+		kubeOff.Delete(openshiftAdmissionPluginsForKubeBeforeMutating...)
+		kubeOff.Delete(openshiftAdmissionPluginsForKubeAfterResourceQuota...)
 		kubeOff.Delete(customresourcevalidationregistration.AllCustomResourceValidators...)
 		return kubeOff
 	}

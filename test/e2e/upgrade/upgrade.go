@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
+	"k8s.io/kubernetes/test/e2e/lifecycle"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/utils/junit"
@@ -126,8 +127,8 @@ var _ = g.Describe("[Disruptive]", func() {
 			client := configv1client.NewForConfigOrDie(config)
 			dynamicClient := dynamic.NewForConfigOrDie(config)
 
-			upgCtx, err := getUpgradeContext(client, framework.TestContext.UpgradeTarget, framework.TestContext.UpgradeImage)
-			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", framework.TestContext.UpgradeTarget, framework.TestContext.UpgradeImage)
+			upgCtx, err := getUpgradeContext(client, lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
+			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", lifecycle.GetUpgradeTarget(), lifecycle.GetUpgradeImage())
 
 			testSuite := &junit.TestSuite{Name: "Cluster upgrade"}
 			clusterUpgradeTest := &junit.TestCase{Name: "cluster-upgrade", Classname: "upgrade_tests"}
@@ -495,7 +496,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 		}
 		allUpdated := true
 		for _, p := range pools.Items {
-			updated, err := isPoolUpdated(mcps, p.GetName())
+			updated, err := IsPoolUpdated(mcps, p.GetName())
 			if err != nil {
 				framework.Logf("error checking pool %s: %v", p.GetName(), err)
 				return false, nil
@@ -512,7 +513,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 }
 
 // TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
-func isPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
+func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
 	pool, err := dc.Get(name, metav1.GetOptions{})
 	if err != nil {
 		framework.Logf("error getting pool %s: %v", name, err)

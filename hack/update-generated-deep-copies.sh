@@ -11,19 +11,10 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions
 ALL_FQ_APIS=(
-    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/config
-    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/config/v1
-    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template
-    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template/v1
-
-    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config
-    github.com/openshift/origin/test/util/server/deprecated_openshift/apis/config/v1
-
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/runonceduration/v1
-    github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/imagepolicy/apis/imagepolicy/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/restrictedendpoints
@@ -32,20 +23,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/ingressadmission/v1
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints
     github.com/openshift/origin/vendor/k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/apis/podnodeconstraints/v1
-
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apiserver/admission/apis/requestlimit
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apiserver/admission/apis/requestlimit/v1
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/apps/apis/apps
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/build/apis/build
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/image/apis/image
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/project/apis/project
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/quota/apis/quota
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/route/apis/route
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/security/apis/security
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/template/apis/template
-    github.com/openshift/origin/vendor/github.com/openshift/openshift-apiserver/pkg/user/apis/user
 )
 
 echo "Generating deepcopy funcs"

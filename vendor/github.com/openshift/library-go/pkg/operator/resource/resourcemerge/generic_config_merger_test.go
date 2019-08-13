@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/diff"
+
+	controlplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 )
 
 func TestMergeConfig(t *testing.T) {
@@ -190,6 +192,66 @@ bravo: two
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actual, err := MergeProcessConfig(test.specialCases, []byte(test.curr), []byte(test.additional))
+			switch {
+			case err == nil && len(test.expectedErr) == 0:
+			case err == nil && len(test.expectedErr) != 0:
+				t.Fatalf("missing %q", test.expectedErr)
+			case err != nil && len(test.expectedErr) == 0:
+				t.Fatal(err)
+			case err != nil && len(test.expectedErr) != 0 && !strings.Contains(err.Error(), test.expectedErr):
+				t.Fatalf("expected %q, got %q", test.expectedErr, err)
+			}
+			if err != nil {
+				return
+			}
+
+			if test.expected != string(actual) {
+				t.Error(diff.StringDiff(test.expected, string(actual)))
+			}
+		})
+	}
+}
+
+func TestMergePrunedConfig(t *testing.T) {
+	tests := []struct {
+		name         string
+		curr         string
+		additional   string
+		specialCases map[string]MergeFunc
+
+		expected    string
+		expectedErr string
+	}{
+		{
+			name: "prune unknown values",
+			curr: `
+apiVersion: foo
+kind: the-kind
+alpha: first
+`,
+			additional: `
+consolePublicURL: http://foo/bar
+`,
+			expected: `{"apiVersion":"foo","consolePublicURL":"http://foo/bar","kind":"the-kind"}`,
+		},
+		{
+			name: "prune unknown values with array",
+			curr: `
+apiVersion: foo
+kind: the-kind
+corsAllowedOrigins:
+- (?i)//openshift(:|\z)
+`,
+			additional: `
+consolePublicURL: http://foo/bar
+`,
+			expected: `{"apiVersion":"foo","consolePublicURL":"http://foo/bar","corsAllowedOrigins":["(?i)//openshift(:|\\z)"],"kind":"the-kind"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := MergePrunedProcessConfig(&controlplanev1.KubeAPIServerConfig{}, test.specialCases, []byte(test.curr), []byte(test.additional))
 			switch {
 			case err == nil && len(test.expectedErr) == 0:
 			case err == nil && len(test.expectedErr) != 0:

@@ -32,7 +32,7 @@ func TestValidateCreateSpec(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := validateFeatureGateSpecCreate(configv1.FeatureGateSpec{FeatureSet: configv1.FeatureSet(tc.featureSet)})
+			actual := validateFeatureGateSpecCreate(configv1.FeatureGateSpec{FeatureGateSelection: configv1.FeatureGateSelection{FeatureSet: configv1.FeatureSet(tc.featureSet)}})
 			switch {
 			case len(actual) == 0 && len(tc.expectedErr) == 0:
 			case len(actual) == 0 && len(tc.expectedErr) != 0:
@@ -80,6 +80,12 @@ func TestValidateUpdateSpec(t *testing.T) {
 			expectedErr:   "once enabled, tech preview features may not be disabled",
 		},
 		{
+			name:          "change from custom",
+			featureSet:    string(configv1.TechPreviewNoUpgrade),
+			oldFeatureSet: string(configv1.CustomNoUpgrade),
+			expectedErr:   "once enabled, custom feature gates may not be disabled",
+		},
+		{
 			name:          "unknown, but no change",
 			featureSet:    "fake-value",
 			oldFeatureSet: "fake-value",
@@ -96,8 +102,8 @@ func TestValidateUpdateSpec(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := validateFeatureGateSpecUpdate(
-				configv1.FeatureGateSpec{FeatureSet: configv1.FeatureSet(tc.featureSet)},
-				configv1.FeatureGateSpec{FeatureSet: configv1.FeatureSet(tc.oldFeatureSet)},
+				configv1.FeatureGateSpec{FeatureGateSelection: configv1.FeatureGateSelection{FeatureSet: configv1.FeatureSet(tc.featureSet)}},
+				configv1.FeatureGateSpec{FeatureGateSelection: configv1.FeatureGateSelection{FeatureSet: configv1.FeatureSet(tc.oldFeatureSet)}},
 			)
 			switch {
 			case len(actual) == 0 && len(tc.expectedErr) == 0:

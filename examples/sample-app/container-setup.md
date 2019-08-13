@@ -28,11 +28,11 @@ running the pullimages.sh script like so:
     $ sh <(curl \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/pullimages.sh)
 
-This will fetch several Docker images that are used as part of the Sample
+This will fetch several container images that are used as part of the Sample
 Application.
 
 Next, be sure to follow the **Setup** instructions for the Sample Application
-regarding an "insecure" Docker registry.
+regarding an "insecure" container image registry.
 
 ## Connect to the OpenShift Container
 Once the container is started, you need to attach to it in order to execute
@@ -63,7 +63,7 @@ For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
 step #3.
 
-## Deploy the private docker registry
+## Deploy the private container image registry
 
     $ oc adm registry
     $ cd examples/sample-app

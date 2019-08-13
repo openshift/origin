@@ -6,14 +6,14 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DNS holds cluster-wide information about DNS.  The canonical name is `cluster`
-// TODO this object is an example of a possible grouping and is subject to change or removal
+// DNS holds cluster-wide information about DNS. The canonical name is `cluster`
 type DNS struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec DNSSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -27,15 +27,25 @@ type DNSSpec struct {
 	//
 	// For example, given the base domain `openshift.example.com`, an API server
 	// DNS record may be created for `cluster-api.openshift.example.com`.
+	//
+	// Once set, this field cannot be changed.
 	BaseDomain string `json:"baseDomain"`
 	// publicZone is the location where all the DNS records that are publicly accessible to
 	// the internet exist.
+	//
 	// If this field is nil, no public records should be created.
+	//
+	// Once set, this field cannot be changed.
+	//
 	// +optional
 	PublicZone *DNSZone `json:"publicZone,omitempty"`
 	// privateZone is the location where all the DNS records that are only available internally
 	// to the cluster exist.
+	//
 	// If this field is nil, no private records should be created.
+	//
+	// Once set, this field cannot be changed.
+	//
 	// +optional
 	PrivateZone *DNSZone `json:"privateZone,omitempty"`
 }

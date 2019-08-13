@@ -24,6 +24,7 @@ type command struct {
 var (
 	commands   = []command{}
 	jsonOutput = false
+	force      = false
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 		return
 	}
 
-	options := storage.DefaultStoreOptions
+	options := storage.StoreOptions{}
 	debug := false
 
 	makeFlags := func(command string, eh mflag.ErrorHandling) *mflag.FlagSet {
@@ -49,7 +50,7 @@ func main() {
 		fmt.Printf("Usage: containers-storage command [options [...]]\n\n")
 		fmt.Printf("Commands:\n\n")
 		for _, command := range commands {
-			fmt.Printf("  %-22s%s\n", command.names[0], command.usage)
+			fmt.Printf("  %-30s%s\n", command.names[0], command.usage)
 		}
 		fmt.Printf("\nOptions:\n")
 		flags.PrintDefaults()
@@ -65,6 +66,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	if options.GraphRoot == "" && options.RunRoot == "" && options.GraphDriverName == "" && len(options.GraphDriverOptions) == 0 {
+		options, _ = storage.DefaultStoreOptionsAutoDetectUID()
+	}
 	args := flags.Args()
 	if len(args) < 1 {
 		flags.Usage()
@@ -104,16 +108,16 @@ func main() {
 				}
 				if debug {
 					logrus.SetLevel(logrus.DebugLevel)
-					logrus.Debugf("RunRoot: %s", options.RunRoot)
-					logrus.Debugf("GraphRoot: %s", options.GraphRoot)
-					logrus.Debugf("GraphDriverName: %s", options.GraphDriverName)
-					logrus.Debugf("GraphDriverOptions: %s", options.GraphDriverOptions)
+					logrus.Debugf("Root: %s", options.GraphRoot)
+					logrus.Debugf("Run Root: %s", options.RunRoot)
+					logrus.Debugf("Driver Name: %s", options.GraphDriverName)
+					logrus.Debugf("Driver Options: %s", options.GraphDriverOptions)
 				} else {
 					logrus.SetLevel(logrus.ErrorLevel)
 				}
 				store, err := storage.GetStore(options)
 				if err != nil {
-					fmt.Printf("error initializing: %v\n", err)
+					fmt.Printf("error initializing: %+v\n", err)
 					os.Exit(1)
 				}
 				os.Exit(command.action(flags, cmd, store, args))

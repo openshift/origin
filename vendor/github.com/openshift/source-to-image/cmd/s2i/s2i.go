@@ -1,14 +1,21 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
 	"runtime"
 	"time"
 
+	"k8s.io/klog"
+
 	"github.com/openshift/source-to-image/pkg/cmd/cli"
 )
+
+func init() {
+	klog.InitFlags(flag.CommandLine)
+}
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())

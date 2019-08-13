@@ -59,7 +59,7 @@ func NewCmdRebuild(cfg *api.Config) *cobra.Command {
 
 			cfg.PullAuthentication = docker.GetImageRegistryAuth(auths, cfg.BuilderImage)
 
-			glog.V(2).Infof("\n%s\n", describe.Config(client, cfg))
+			log.V(2).Infof("\n%s\n", describe.Config(client, cfg))
 
 			builder, _, err := strategies.GetStrategy(client, cfg)
 			s2ierr.CheckError(err)
@@ -67,7 +67,7 @@ func NewCmdRebuild(cfg *api.Config) *cobra.Command {
 			s2ierr.CheckError(err)
 
 			for _, message := range result.Messages {
-				glog.V(1).Infof(message)
+				log.V(1).Infof(message)
 			}
 		},
 	}

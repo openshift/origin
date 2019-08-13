@@ -60,19 +60,19 @@ type storePreviousImageStep struct {
 
 func (step *storePreviousImageStep) execute(ctx *postExecutorStepContext) error {
 	if step.builder.incremental && step.builder.config.RemovePreviousImage {
-		glog.V(3).Info("Executing step: store previous image")
+		log.V(3).Info("Executing step: store previous image")
 		ctx.previousImageID = step.getPreviousImage()
 		return nil
 	}
 
-	glog.V(3).Info("Skipping step: store previous image")
+	log.V(3).Info("Skipping step: store previous image")
 	return nil
 }
 
 func (step *storePreviousImageStep) getPreviousImage() string {
 	previousImageID, err := step.docker.GetImageID(step.builder.config.Tag)
 	if err != nil {
-		glog.V(0).Infof("error: Error retrieving previous image's (%v) metadata: %v", step.builder.config.Tag, err)
+		log.V(0).Infof("error: Error retrieving previous image's (%v) metadata: %v", step.builder.config.Tag, err)
 		return ""
 	}
 	return previousImageID
@@ -85,12 +85,12 @@ type removePreviousImageStep struct {
 
 func (step *removePreviousImageStep) execute(ctx *postExecutorStepContext) error {
 	if step.builder.incremental && step.builder.config.RemovePreviousImage {
-		glog.V(3).Info("Executing step: remove previous image")
+		log.V(3).Info("Executing step: remove previous image")
 		step.removePreviousImage(ctx.previousImageID)
 		return nil
 	}
 
-	glog.V(3).Info("Skipping step: remove previous image")
+	log.V(3).Info("Skipping step: remove previous image")
 	return nil
 }
 
@@ -99,9 +99,9 @@ func (step *removePreviousImageStep) removePreviousImage(previousImageID string)
 		return
 	}
 
-	glog.V(1).Infof("Removing previously-tagged image %s", previousImageID)
+	log.V(1).Infof("Removing previously-tagged image %s", previousImageID)
 	if err := step.docker.RemoveImage(previousImageID); err != nil {
-		glog.V(0).Infof("error: Unable to remove previous image: %v", err)
+		log.V(0).Infof("error: Unable to remove previous image: %v", err)
 	}
 }
 
@@ -114,7 +114,7 @@ type commitImageStep struct {
 }
 
 func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
-	glog.V(3).Infof("Executing step: commit image")
+	log.V(3).Infof("Executing step: commit image")
 
 	user, err := step.docker.GetImageUser(step.image)
 	if err != nil {
@@ -175,7 +175,7 @@ type downloadFilesFromBuilderImageStep struct {
 }
 
 func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepContext) error {
-	glog.V(3).Info("Executing step: download files from the builder image")
+	log.V(3).Info("Executing step: download files from the builder image")
 
 	artifactsDir := filepath.Join(step.builder.config.WorkingDir, constants.RuntimeArtifactsDir)
 	if err := step.fs.Mkdir(artifactsDir); err != nil {
@@ -199,7 +199,7 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 		dstSubDir := path.Clean(artifact.Destination)
 		if dstSubDir != "." && dstSubDir != "/" {
 			dstDir := filepath.Join(artifactsDir, dstSubDir)
-			glog.V(5).Infof("Creating directory %q", dstDir)
+			log.V(5).Infof("Creating directory %q", dstDir)
 			if err := step.fs.MkdirAll(dstDir); err != nil {
 				step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 					utilstatus.ReasonFSOperationFailed,
@@ -211,7 +211,7 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 			currentFile := filepath.Base(artifact.Source)
 			oldFile := filepath.Join(artifactsDir, currentFile)
 			newFile := filepath.Join(artifactsDir, dstSubDir, currentFile)
-			glog.V(5).Infof("Renaming %q to %q", oldFile, newFile)
+			log.V(5).Infof("Renaming %q to %q", oldFile, newFile)
 			if err := step.fs.Rename(oldFile, newFile); err != nil {
 				step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 					utilstatus.ReasonFSOperationFailed,
@@ -240,7 +240,7 @@ type startRuntimeImageAndUploadFilesStep struct {
 }
 
 func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepContext) error {
-	glog.V(3).Info("Executing step: start runtime image and upload files")
+	log.V(3).Info("Executing step: start runtime image and upload files")
 
 	fd, err := ioutil.TempFile("", "s2i-upload-done")
 	if err != nil {
@@ -336,13 +336,13 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 			return s2itar.ChmodAdapter{Writer: tar.NewWriter(writer), NewFileMode: 0644, NewExecFileMode: 0755, NewDirMode: 0755}
 		}
 
-		glog.V(5).Infof("Uploading directory %q -> %q", artifactsDir, workDir)
+		log.V(5).Infof("Uploading directory %q -> %q", artifactsDir, workDir)
 		onStartErr := step.docker.UploadToContainerWithTarWriter(step.fs, artifactsDir, workDir, containerID, setStandardPerms)
 		if onStartErr != nil {
 			return fmt.Errorf("could not upload directory (%q -> %q) into container %s: %v", artifactsDir, workDir, containerID, err)
 		}
 
-		glog.V(5).Infof("Uploading file %q -> %q", lastFilePath, lastFileDstPath)
+		log.V(5).Infof("Uploading file %q -> %q", lastFilePath, lastFileDstPath)
 		onStartErr = step.docker.UploadToContainerWithTarWriter(step.fs, lastFilePath, lastFileDstPath, containerID, setStandardPerms)
 		if onStartErr != nil {
 			return fmt.Errorf("could not upload file (%q -> %q) into container %s: %v", lastFilePath, lastFileDstPath, containerID, err)
@@ -351,10 +351,10 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		return onStartErr
 	}
 
-	dockerpkg.StreamContainerIO(outReader, nil, func(s string) { glog.V(0).Info(s) })
+	dockerpkg.StreamContainerIO(outReader, nil, func(s string) { log.V(0).Info(s) })
 
 	errOutput := ""
-	c := dockerpkg.StreamContainerIO(errReader, &errOutput, func(s string) { glog.Info(s) })
+	c := dockerpkg.StreamContainerIO(errReader, &errOutput, func(s string) { log.Info(s) })
 
 	// switch to the next stage of post executors steps
 	step.builder.postExecutorStage++
@@ -374,7 +374,7 @@ func (step *startRuntimeImageAndUploadFilesStep) copyScriptIfNeeded(script, dest
 	if useExternalScript {
 		src := filepath.Join(step.builder.config.WorkingDir, constants.UploadScripts, script)
 		dst := filepath.Join(destinationDir, script)
-		glog.V(5).Infof("Copying file %q -> %q", src, dst)
+		log.V(5).Infof("Copying file %q -> %q", src, dst)
 		if err := step.fs.MkdirAll(destinationDir); err != nil {
 			return fmt.Errorf("could not create directory %q: %v", destinationDir, err)
 		}
@@ -390,12 +390,12 @@ type reportSuccessStep struct {
 }
 
 func (step *reportSuccessStep) execute(ctx *postExecutorStepContext) error {
-	glog.V(3).Info("Executing step: report success")
+	log.V(3).Info("Executing step: report success")
 
 	step.builder.result.Success = true
 	step.builder.result.ImageID = ctx.imageID
 
-	glog.V(3).Infof("Successfully built %s", util.FirstNonEmpty(step.builder.config.Tag, ctx.imageID))
+	log.V(3).Infof("Successfully built %s", util.FirstNonEmpty(step.builder.config.Tag, ctx.imageID))
 
 	return nil
 }
@@ -426,7 +426,7 @@ func createLabelsForResultingImage(builder *STI, docker dockerpkg.Docker, baseIm
 
 	existingLabels, err := docker.GetLabels(baseImage)
 	if err != nil {
-		glog.V(0).Infof("error: Unable to read existing labels from the base image %s", baseImage)
+		log.V(0).Infof("error: Unable to read existing labels from the base image %s", baseImage)
 	}
 
 	configLabels := builder.config.Labels
@@ -462,7 +462,7 @@ func createCommandForExecutingRunScript(scriptsURL map[string]string, location s
 }
 
 func downloadAndExtractFileFromContainer(docker dockerpkg.Docker, tar s2itar.Tar, sourcePath, destinationPath, containerID string) (api.FailureReason, error) {
-	glog.V(5).Infof("Downloading file %q", sourcePath)
+	log.V(5).Infof("Downloading file %q", sourcePath)
 
 	fd, err := ioutil.TempFile(destinationPath, "s2i-runtime-artifact")
 	if err != nil {
@@ -520,7 +520,7 @@ func checkLabelSize(labels map[string]string) error {
 
 // check for new labels and apply to the output image.
 func checkAndGetNewLabels(builder *STI, docker dockerpkg.Docker, tar s2itar.Tar, containerID string) error {
-	glog.V(3).Infof("Checking for new Labels to apply... ")
+	log.V(3).Infof("Checking for new Labels to apply... ")
 
 	// metadata filename and its path inside the container
 	metadataFilename := "image_metadata.json"
@@ -528,15 +528,15 @@ func checkAndGetNewLabels(builder *STI, docker dockerpkg.Docker, tar s2itar.Tar,
 
 	// create the 'downloadPath' folder if it doesn't exist
 	downloadPath := filepath.Join(builder.config.WorkingDir, "metadata")
-	glog.V(3).Infof("Creating the download path '%s'", downloadPath)
+	log.V(3).Infof("Creating the download path '%s'", downloadPath)
 	if err := os.MkdirAll(downloadPath, 0700); err != nil {
-		glog.Errorf("Error creating dir %q for '%s': %v", downloadPath, metadataFilename, err)
+		log.Errorf("Error creating dir %q for '%s': %v", downloadPath, metadataFilename, err)
 		return err
 	}
 
 	// download & extract the file from container
 	if _, err := downloadAndExtractFileFromContainer(docker, tar, sourceFilepath, downloadPath, containerID); err != nil {
-		glog.V(3).Infof("unable to download and extract '%s' ... continuing", metadataFilename)
+		log.V(3).Infof("unable to download and extract '%s' ... continuing", metadataFilename)
 		return nil
 	}
 
@@ -553,7 +553,7 @@ func checkAndGetNewLabels(builder *STI, docker dockerpkg.Docker, tar s2itar.Tar,
 	if err != nil {
 		return fmt.Errorf("error reading file '%s' in to a string: %v", filePath, err)
 	}
-	glog.V(3).Infof("new Labels File contents : \n%s\n", str)
+	log.V(3).Infof("new Labels File contents : \n%s\n", str)
 
 	// string into a map
 	var data map[string]interface{}

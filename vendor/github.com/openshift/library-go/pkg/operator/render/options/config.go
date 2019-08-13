@@ -20,6 +20,9 @@ type ManifestConfig struct {
 	// Image is the pull spec of the image to use for the controller manager.
 	Image string
 
+	// OperatorImage is the pull spec of the image to use for the operator (optional).
+	OperatorImage string
+
 	// ImagePullPolicy specifies the image pull policy to use for the images.
 	ImagePullPolicy string
 }

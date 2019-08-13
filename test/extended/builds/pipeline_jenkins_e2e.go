@@ -73,7 +73,7 @@ var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slo
 			exutil.PreTestDump()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
-			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
+			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a container image that extends
 			// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
 			// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
 			// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with

@@ -16,6 +16,7 @@ type ClusterVersion struct {
 
 	// spec is the desired state of the cluster version - the operator will work
 	// to ensure that the desired version is applied to the cluster.
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ClusterVersionSpec `json:"spec"`
 	// status contains information about the available updates and any in-progress

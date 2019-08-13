@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/openshift/source-to-image/pkg/scm/git"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/source-to-image/pkg/api"
@@ -22,9 +22,9 @@ import (
 	"github.com/openshift/source-to-image/pkg/version"
 )
 
-// glog is a placeholder until the builders pass an output stream down
-// client facing libraries should not be using glog
-var glog = utilglog.StderrLog
+// log is a placeholder until the builders pass an output stream down
+// client facing libraries should not be using log
+var log = utillog.StderrLog
 
 // NewCmdBuild implements the S2I cli build command.
 func NewCmdBuild(cfg *api.Config) *cobra.Command {
@@ -47,7 +47,7 @@ $ s2i build https://github.com/openshift/ruby-hello-world centos/ruby-22-centos7
 $ s2i build . centos/ruby-22-centos7 hello-world-app
 `,
 		Run: func(cmd *cobra.Command, args []string) {
-			glog.V(1).Infof("Running S2I version %q\n", version.Get())
+			log.V(1).Infof("Running S2I version %q\n", version.Get())
 
 			// Attempt to restore the build command from the configuration file
 			if useConfig {
@@ -126,7 +126,7 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 			if len(cfg.EnvironmentFile) > 0 {
 				result, err := util.ReadEnvironmentFile(cfg.EnvironmentFile)
 				if err != nil {
-					glog.Warningf("Unable to read environment file %q: %v", cfg.EnvironmentFile, err)
+					log.Warningf("Unable to read environment file %q: %v", cfg.EnvironmentFile, err)
 				} else {
 					for name, value := range result {
 						cfg.Environment = append(cfg.Environment, api.EnvironmentSpec{Name: name, Value: value})
@@ -135,11 +135,11 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 			}
 
 			if len(oldScriptsFlag) != 0 {
-				glog.Warning("DEPRECATED: Flag --scripts is deprecated, use --scripts-url instead")
+				log.Warning("DEPRECATED: Flag --scripts is deprecated, use --scripts-url instead")
 				cfg.ScriptsURL = oldScriptsFlag
 			}
 			if len(oldDestination) != 0 {
-				glog.Warning("DEPRECATED: Flag --location is deprecated, use --destination instead")
+				log.Warning("DEPRECATED: Flag --location is deprecated, use --destination instead")
 				cfg.Destination = oldDestination
 			}
 
@@ -149,36 +149,36 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 
 			client, err := docker.NewEngineAPIClient(cfg.DockerConfig)
 			if err != nil {
-				glog.Fatal(err)
+				log.Fatal(err)
 			}
 
 			if len(cfg.AsDockerfile) == 0 {
 				d := docker.New(client, cfg.PullAuthentication)
 				err := d.CheckReachable()
 				if err != nil {
-					glog.Fatal(err)
+					log.Fatal(err)
 				}
 			}
 
-			glog.V(2).Infof("\n%s\n", describe.Config(client, cfg))
+			log.V(2).Infof("\n%s\n", describe.Config(client, cfg))
 
 			builder, _, err := strategies.GetStrategy(client, cfg)
 			s2ierr.CheckError(err)
 			result, err := builder.Build(cfg)
 			if err != nil {
-				glog.V(0).Infof("Build failed")
+				log.V(0).Infof("Build failed")
 				s2ierr.CheckError(err)
 			} else {
 				if len(cfg.AsDockerfile) > 0 {
-					glog.V(0).Infof("Application dockerfile generated in %s", cfg.AsDockerfile)
+					log.V(0).Infof("Application dockerfile generated in %s", cfg.AsDockerfile)
 				} else {
-					glog.V(0).Infof("Build completed successfully")
+					log.V(0).Infof("Build completed successfully")
 
 				}
 			}
 
 			for _, message := range result.Messages {
-				glog.V(1).Infof(message)
+				log.V(1).Infof(message)
 			}
 
 			if cfg.RunImage {

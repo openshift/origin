@@ -17,7 +17,6 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -52,7 +51,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		routerImage, _ = exutil.FindRouterImage(oc)
 		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		configPath := exutil.FixturePath("testdata", "router-common.yaml")
+		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
 		err := oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
@@ -60,7 +59,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 
-			configPath := exutil.FixturePath("testdata", "router-scoped.yaml")
+			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
 			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -104,7 +103,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 
 		g.It("should override the route host with a custom value", func() {
 
-			configPath := exutil.FixturePath("testdata", "router-override.yaml")
+			configPath := exutil.FixturePath("testdata", "router", "router-override.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
 			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -160,14 +159,14 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			e2e.Logf("Selected: %#v, All: %#v", ingress, r.Status.Ingress)
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-1", ns)))
-			status, condition := routedisplayhelpers.IngressConditionStatus(ingress, routev1.RouteAdmitted)
+			status, condition := IngressConditionStatus(ingress, routev1.RouteAdmitted)
 			o.Expect(status).To(o.Equal(corev1.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
 
 		g.It("should override the route host for overridden domains with a custom value", func() {
 
-			configPath := exutil.FixturePath("testdata", "router-override-domains.yaml")
+			configPath := exutil.FixturePath("testdata", "router", "router-override-domains.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
 			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -224,7 +223,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			ingress := ingressForName(r, "test-override-domains")
 			o.Expect(ingress).NotTo(o.BeNil())
 			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-override-domain-2", ns)))
-			status, condition := routedisplayhelpers.IngressConditionStatus(ingress, routev1.RouteAdmitted)
+			status, condition := IngressConditionStatus(ingress, routev1.RouteAdmitted)
 			o.Expect(status).To(o.Equal(corev1.ConditionTrue))
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})

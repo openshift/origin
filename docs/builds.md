@@ -2,30 +2,30 @@
 
 ## Problem/Rationale
 
-Kubernetes creates containers from images that were built elsewhere and pushed to a Docker registry. Building Docker images is a foundational use-case in Docker-based workflows for application development and deployment. Without support for builds in Kubernetes, if a system administrator wanted a system that could build images, he or she would have to select a pre-existing build system or write a new one, and then figure out how to deploy and maintain it on or off Kubernetes. However, in most cases operators would wish to leverage the ability of Kubernetes to schedule task execution into a pool of available resources, and most build systems would want to take advantage of that mechanism.
+Kubernetes creates containers from images that were built elsewhere and pushed to a container image registry. Building container images is a foundational use-case in Docker-based workflows for application development and deployment. Without support for builds in Kubernetes, if a system administrator wanted a system that could build images, he or she would have to select a pre-existing build system or write a new one, and then figure out how to deploy and maintain it on or off Kubernetes. However, in most cases operators would wish to leverage the ability of Kubernetes to schedule task execution into a pool of available resources, and most build systems would want to take advantage of that mechanism.
 
-Offering an API for builds makes OpenShift a viable back-end for arbitrary third-party Docker image build systems which require resource constraints and scheduling capabilities, and allows organizations to orchestrate Docker builds from their existing continuous integration processes. OpenShift enables CI/CD flows around Docker images.
+Offering an API for builds makes OpenShift a viable back-end for arbitrary third-party container image build systems which require resource constraints and scheduling capabilities, and allows organizations to orchestrate Docker builds from their existing continuous integration processes. OpenShift enables CI/CD flows around container images.
 
 Most build jobs share common characteristics - a set of inputs to a build, the need to run a certain build process to completion, the capture of the logs from that build process, publishing resources from successful builds, and the final status of the build. In addition, the image-driven deployment flow that Kubernetes advocates depends on having images available.
 
 Builds should take advantage of resource restrictions – specifying limitations on things such as CPU usage, memory usage, and build (pod) execution time – once support for this exists in Kubernetes. Additionally, builds should be repeatable and consistent (same inputs = same output).
 
-Although there are potentially several different types of builds that produce other types of output, OpenShift by default provides the ability to build Docker images.
+Although there are potentially several different types of builds that produce other types of output, OpenShift by default provides the ability to build container images.
 
 Here are some possible user scenarios for builds in OpenShift:
 
 1.   As a user of OpenShift, I want to build an image from a source URL and push it to a registry (for eventual deployment in OpenShift).
 2.   As a user of OpenShift, I want to build an image from a binary input (Docker context, artifact) and push it to a registry (for eventual deployment in OpenShift).
-3.   As a provider of a service that involves building Docker images, I want to offload the resource allocation, scheduling, and garbage collection associated with that activity to OpenShift instead of solving those problems myself.
-4.   As a developer of a system which involves building Docker images, I want to take advantage of OpenShift to perform the build, but orchestrate from an existing CI in order to integrate with my organization’s devops SOPs.
+3.   As a provider of a service that involves building container images, I want to offload the resource allocation, scheduling, and garbage collection associated with that activity to OpenShift instead of solving those problems myself.
+4.   As a developer of a system which involves building container images, I want to take advantage of OpenShift to perform the build, but orchestrate from an existing CI in order to integrate with my organization’s devops SOPs.
 
 ### Example Use: Cloud IDE
 
-Company X offers a Docker-based cloud IDE service and needs to build Docker images at scale for their customers’ hosted projects. Company X wants a turn-key solution for this that handles scheduling, resource allocation, and garbage collection. Using the build API, Company X can leverage OpenShift for the build work and concentrate on solving their core business problems.
+Company X offers a Docker-based cloud IDE service and needs to build container images at scale for their customers’ hosted projects. Company X wants a turn-key solution for this that handles scheduling, resource allocation, and garbage collection. Using the build API, Company X can leverage OpenShift for the build work and concentrate on solving their core business problems.
 
 ### Example Use: Enterprise Devops
 
-Company Y wants to leverage OpenShift to build Docker images, but their Devops SOPs mandate the use of a third-party CI server in order to facilitate actions such as triggering builds when an upstream project is built and promoting builds when the result is signed off on in the CI server. Using the build API, company Y implements workflows in the CI server that orchestrate building in OpenShift which integrates with their organization’s SOPs.
+Company Y wants to leverage OpenShift to build container images, but their Devops SOPs mandate the use of a third-party CI server in order to facilitate actions such as triggering builds when an upstream project is built and promoting builds when the result is signed off on in the CI server. Using the build API, company Y implements workflows in the CI server that orchestrate building in OpenShift which integrates with their organization’s SOPs.
 
 ## Build Strategies
 
@@ -76,7 +76,7 @@ For these reasons, Docker-in-Docker is not considered a viable build strategy fo
 
 OpenShift also supports [Source-To-Images (s2i)](https://github.com/openshift/source-to-image#source-to-image-sti) builds.
 
-Source-to-images (s2i) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. S2I supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
+Source-to-images (s2i) is a tool for building reproducible container images. It produces ready-to-run images by injecting a user source into a container image and assembling a new container image which incorporates the base image and built source, and is ready to use with `docker run`. S2I supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
 
 ### Custom Builds
 
@@ -107,8 +107,8 @@ be passed to the builder container environment. By default, these environment
 variables are passed to the build container:
 
 * `$BUILD` contains the JSON representation of the Build
-* `$OUTPUT_IMAGE` contains the output Docker image name as configured in Build
-* `$OUTPUT_REGISTRY` contains the output Docker registry as configured in Build
+* `$OUTPUT_IMAGE` contains the output container image name as configured in Build
+* `$OUTPUT_REGISTRY` contains the output container image registry as configured in Build
 * `$SOURCE_URI` contains the URL to the source code repository
 * `$SOURCE_REF` contains the branch, tag or ref for source repository
 * `$DOCKER_SOCKET` contains full path to the Docker socket

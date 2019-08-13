@@ -16,3 +16,5 @@ its top layer.
 
 ## SEE ALSO
 containers-storage-images(1)
+containers-storage-layer(1)
+containers-storage-container(1)

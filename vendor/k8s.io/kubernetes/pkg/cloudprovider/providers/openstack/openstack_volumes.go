@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
@@ -177,6 +177,9 @@ func (volumes *VolumesV1) getVolume(volumeID string) (Volume, error) {
 	timeTaken := time.Since(startTime).Seconds()
 	recordOpenstackOperationMetric("get_v1_volume", timeTaken, err)
 	if err != nil {
+		if isNotFound(err) {
+			return Volume{}, ErrNotFound
+		}
 		return Volume{}, fmt.Errorf("error occurred getting volume by ID: %s, err: %v", volumeID, err)
 	}
 
@@ -202,6 +205,9 @@ func (volumes *VolumesV2) getVolume(volumeID string) (Volume, error) {
 	timeTaken := time.Since(startTime).Seconds()
 	recordOpenstackOperationMetric("get_v2_volume", timeTaken, err)
 	if err != nil {
+		if isNotFound(err) {
+			return Volume{}, ErrNotFound
+		}
 		return Volume{}, fmt.Errorf("error occurred getting volume by ID: %s, err: %v", volumeID, err)
 	}
 
@@ -227,6 +233,9 @@ func (volumes *VolumesV3) getVolume(volumeID string) (Volume, error) {
 	timeTaken := time.Since(startTime).Seconds()
 	recordOpenstackOperationMetric("get_v3_volume", timeTaken, err)
 	if err != nil {
+		if isNotFound(err) {
+			return Volume{}, ErrNotFound
+		}
 		return Volume{}, fmt.Errorf("error occurred getting volume by ID: %s, err: %v", volumeID, err)
 	}
 
@@ -614,6 +623,10 @@ func (os *OpenStack) DiskIsAttached(instanceID, volumeID string) (bool, error) {
 	}
 	volume, err := os.getVolume(volumeID)
 	if err != nil {
+		if err == ErrNotFound {
+			// Volume does not exists, it can't be attached.
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -712,15 +725,15 @@ func (os *OpenStack) GetLabelsForVolume(ctx context.Context, pv *v1.PersistentVo
 		return nil, nil
 	}
 
-	// Get Volume
-	volume, err := os.getVolume(pv.Spec.Cinder.VolumeID)
+	// Get metadata
+	md, err := getMetadata(os.metadataOpts.SearchOrder)
 	if err != nil {
 		return nil, err
 	}
 
 	// Construct Volume Labels
 	labels := make(map[string]string)
-	labels[v1.LabelZoneFailureDomain] = volume.AvailabilityZone
+	labels[v1.LabelZoneFailureDomain] = md.AvailabilityZone
 	labels[v1.LabelZoneRegion] = os.region
 	klog.V(4).Infof("The Volume %s has labels %v", pv.Spec.Cinder.VolumeID, labels)
 

@@ -69,60 +69,6 @@ func TestTomlHasPath(t *testing.T) {
 	}
 }
 
-func TestTomlDelete(t *testing.T) {
-	tree, _ := Load(`
-        key = "value"
-    `)
-	err := tree.Delete("key")
-	if err != nil {
-		t.Errorf("Delete - unexpected error while deleting key: %s", err.Error())
-	}
-
-	if tree.Get("key") != nil {
-		t.Errorf("Delete should have removed key but did not.")
-	}
-
-}
-
-func TestTomlDeleteUnparsableKey(t *testing.T) {
-	tree, _ := Load(`
-        key = "value"
-    `)
-	err := tree.Delete(".")
-	if err == nil {
-		t.Errorf("Delete should error")
-	}
-}
-
-func TestTomlDeleteNestedKey(t *testing.T) {
-	tree, _ := Load(`
-		[foo]
-        [foo.bar]
-        key = "value"
-    `)
-	err := tree.Delete("foo.bar.key")
-	if err != nil {
-		t.Errorf("Error while deleting nested key: %s", err.Error())
-	}
-
-	if tree.Get("key") != nil {
-		t.Errorf("Delete should have removed nested key but did not.")
-	}
-
-}
-
-func TestTomlDeleteNonexistentNestedKey(t *testing.T) {
-	tree, _ := Load(`
-		[foo]
-        [foo.bar]
-        key = "value"
-    `)
-	err := tree.Delete("foo.not.there.key")
-	if err == nil {
-		t.Errorf("Delete should have thrown an error trying to delete key in nonexistent tree")
-	}
-}
-
 func TestTomlGetPath(t *testing.T) {
 	node := newTree()
 	//TODO: set other node data
@@ -156,25 +102,5 @@ func TestTomlFromMap(t *testing.T) {
 	}
 	if tree.Get("hello") != int64(42) {
 		t.Fatal("hello should be 42, not", tree.Get("hello"))
-	}
-}
-
-func TestLoadBytesBOM(t *testing.T) {
-	payloads := [][]byte{
-		[]byte("\xFE\xFFhello=1"),
-		[]byte("\xFF\xFEhello=1"),
-		[]byte("\xEF\xBB\xBFhello=1"),
-		[]byte("\x00\x00\xFE\xFFhello=1"),
-		[]byte("\xFF\xFE\x00\x00hello=1"),
-	}
-	for _, data := range payloads {
-		tree, err := LoadBytes(data)
-		if err != nil {
-			t.Fatal("unexpected error:", err, "for:", data)
-		}
-		v := tree.Get("hello")
-		if v != int64(1) {
-			t.Fatal("hello should be 1, not", v)
-		}
 	}
 }

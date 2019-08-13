@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // +build go1.7
-// +build gc
 
 package gcexportdata_test
 
@@ -70,15 +69,14 @@ func ExampleRead() {
 // ExampleNewImporter demonstrates usage of NewImporter to provide type
 // information for dependencies when type-checking Go source code.
 func ExampleNewImporter() {
-	const src = `package myscanner
+	const src = `package twopi
 
-// choosing a package that is unlikely to change across releases
-import "text/scanner"
+import "math"
 
-const eof = scanner.EOF
+const TwoPi = 2 * math.Pi
 `
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "myscanner.go", src, 0)
+	f, err := parser.ParseFile(fset, "twopi.go", src, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,34 +84,32 @@ const eof = scanner.EOF
 	packages := make(map[string]*types.Package)
 	imp := gcexportdata.NewImporter(fset, packages)
 	conf := types.Config{Importer: imp}
-	pkg, err := conf.Check("myscanner", fset, []*ast.File{f}, nil)
+	pkg, err := conf.Check("twopi", fset, []*ast.File{f}, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// object from imported package
-	pi := packages["text/scanner"].Scope().Lookup("EOF")
+	pi := packages["math"].Scope().Lookup("Pi")
 	fmt.Printf("const %s.%s %s = %s // %s\n",
 		pi.Pkg().Path(),
 		pi.Name(),
 		pi.Type(),
 		pi.(*types.Const).Val(),
-		slashify(fset.Position(pi.Pos())),
-	)
+		slashify(fset.Position(pi.Pos())))
 
 	// object in source package
-	twopi := pkg.Scope().Lookup("eof")
+	twopi := pkg.Scope().Lookup("TwoPi")
 	fmt.Printf("const %s %s = %s // %s\n",
 		twopi.Name(),
 		twopi.Type(),
 		twopi.(*types.Const).Val(),
-		slashify(fset.Position(twopi.Pos())),
-	)
+		slashify(fset.Position(twopi.Pos())))
 
 	// Output:
 	//
-	// const text/scanner.EOF untyped int = -1 // $GOROOT/src/text/scanner/scanner.go:75:1
-	// const eof untyped int = -1 // myscanner.go:6:7
+	// const math.Pi untyped float = 3.14159 // $GOROOT/src/math/const.go:11:1
+	// const TwoPi untyped float = 6.28319 // twopi.go:5:7
 }
 
 func slashify(posn token.Position) token.Position {

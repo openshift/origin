@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: ssh-bastion
+  name: ssh-bastion
+  namespace: ssh-bastion
+spec:
+  externalTrafficPolicy: Local
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: ssh
+  selector:
+    run: ssh-bastion
+  type: LoadBalancer

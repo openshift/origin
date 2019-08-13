@@ -20,7 +20,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/util"
 	"github.com/openshift/source-to-image/pkg/util/fs"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	glog = utilglog.StderrLog
+	log = utillog.StderrLog
 
 	// List of directories that needs to be present inside working dir
 	workingDirs = []string{
@@ -112,7 +112,7 @@ func (builder *Dockerfile) Build(config *api.Config) (*api.Result, error) {
 // CreateDockerfile takes the various inputs and creates the Dockerfile used by
 // the docker cmd to create the image produced by s2i.
 func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
-	glog.V(4).Infof("Constructing image build context directory at %s", config.WorkingDir)
+	log.V(4).Infof("Constructing image build context directory at %s", config.WorkingDir)
 	buffer := bytes.Buffer{}
 
 	if len(config.ImageWorkDir) == 0 {
@@ -143,7 +143,7 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 		var artifactsScript string
 		if _, provided := providedScripts[constants.SaveArtifacts]; provided {
 			// switch to root to COPY and chown content
-			glog.V(2).Infof("Override save-artifacts script is included in directory %q", builder.uploadScriptsDir)
+			log.V(2).Infof("Override save-artifacts script is included in directory %q", builder.uploadScriptsDir)
 			buffer.WriteString("# Copying in override save-artifacts script\n")
 			buffer.WriteString("USER root\n")
 			artifactsScript = sanitize(filepath.ToSlash(filepath.Join(scriptsDestDir, "save-artifacts")))
@@ -197,7 +197,7 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	if len(providedScripts) > 0 {
 		// Only COPY scripts dir if required scripts are present and needed.
 		// Even if the "scripts" dir exists, the COPY would fail if it was empty.
-		glog.V(2).Infof("Override scripts are included in directory %q", builder.uploadScriptsDir)
+		log.V(2).Infof("Override scripts are included in directory %q", builder.uploadScriptsDir)
 		scriptsDest := sanitize(filepath.ToSlash(scriptsDestDir))
 		buffer.WriteString("# Copying in override assemble/run scripts\n")
 		buffer.WriteString(fmt.Sprintf("COPY %s %s\n", sanitize(filepath.ToSlash(builder.uploadScriptsDir)), scriptsDest))
@@ -211,9 +211,9 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	chownList = append(chownList, sourceDest)
 
 	// add injections
-	glog.V(4).Infof("Processing injected inputs: %#v", config.Injections)
+	log.V(4).Infof("Processing injected inputs: %#v", config.Injections)
 	config.Injections = util.FixInjectionsWithRelativePath(config.ImageWorkDir, config.Injections)
-	glog.V(4).Infof("Processed injected inputs: %#v", config.Injections)
+	log.V(4).Infof("Processed injected inputs: %#v", config.Injections)
 
 	if len(config.Injections) > 0 {
 		buffer.WriteString("# Copying in injected content\n")
@@ -284,7 +284,7 @@ func (builder *Dockerfile) CreateDockerfile(config *api.Config) error {
 	if err := builder.fs.WriteFile(filepath.Join(config.AsDockerfile), buffer.Bytes()); err != nil {
 		return err
 	}
-	glog.V(2).Infof("Wrote custom Dockerfile to %s", config.AsDockerfile)
+	log.V(2).Infof("Wrote custom Dockerfile to %s", config.AsDockerfile)
 	return nil
 }
 
@@ -362,7 +362,7 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 		// like upload/injections/C:/tempdir/injection1
 		trimmedSrc := strings.TrimPrefix(injection.Source, filepath.VolumeName(injection.Source))
 		dst := filepath.Join(config.WorkingDir, constants.Injections, trimmedSrc)
-		glog.V(4).Infof("Copying injection content from %s to %s", injection.Source, dst)
+		log.V(4).Infof("Copying injection content from %s to %s", injection.Source, dst)
 		if err := builder.fs.CopyContents(injection.Source, dst, nil); err != nil {
 			builder.setFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
 			return err
@@ -427,7 +427,7 @@ func scanScripts(name string) map[string]bool {
 	scriptsMap := make(map[string]bool)
 	items, err := ioutil.ReadDir(name)
 	if os.IsNotExist(err) {
-		glog.Warningf("Unable to access directory %q: %v", name, err)
+		log.Warningf("Unable to access directory %q: %v", name, err)
 	}
 	if err != nil || len(items) == 0 {
 		return scriptsMap
@@ -437,7 +437,7 @@ func scanScripts(name string) map[string]bool {
 	runProvided := false
 	saveArtifactsProvided := false
 	for _, f := range items {
-		glog.V(2).Infof("found override script file %s", f.Name())
+		log.V(2).Infof("found override script file %s", f.Name())
 		if f.Name() == constants.Run {
 			runProvided = true
 			scriptsMap[constants.Run] = true
@@ -471,7 +471,7 @@ func sanitize(s string) string {
 func createBuildEnvironment(sourcePath string, cfgEnv api.EnvironmentList) string {
 	s2iEnv, err := scripts.GetEnvironment(filepath.Join(sourcePath, constants.Source))
 	if err != nil {
-		glog.V(3).Infof("No user environment provided (%v)", err)
+		log.V(3).Infof("No user environment provided (%v)", err)
 	}
 
 	return scripts.ConvertEnvironmentToDocker(append(s2iEnv, cfgEnv...))

@@ -54,7 +54,7 @@ This will set up a go workspace locally and will build all go components.  It is
 **VAGRANT USERS**:
 If you are using the OpenShift Vagrant image you can skip this step.
 
-First, you'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.
+First, you'll need to configure the Docker daemon on your host to trust the container image registry service you'll be starting.
 
 To do this, you need to add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
 
@@ -64,7 +64,7 @@ Note that you need to have installed Docker 1.3.2 or higher in order to use the 
 
 If you are running Docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
 
-This will instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet,
+This will instruct the Docker daemon to trust any container image registry on the 172.30.0.0/16 subnet,
 rather than requiring the registry to have a verifiable certificate.
 
 These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16.
@@ -171,7 +171,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             service "frontend" created
             route "route-edge" created
             imagestream "origin-ruby-sample" created
-            imagestream "ruby-22-centos7" created
+            imagestream "ruby-25-centos7" created
             buildconfig "ruby-sample-build" created
             deploymentconfig "frontend" created
             service "database" created
@@ -195,8 +195,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     The built image will be named with the ImageStream
     (origin-ruby-sample) named in the BuildConfig and pushed to the
-    private Docker registry running in OpenShift.  (Note that the private
-    docker registry is using ephemeral storage, so when it is stopped,
+    private container image registry running in OpenShift.  (Note that the private
+    container image registry is using ephemeral storage, so when it is stopped,
     the image will be lost.)
 
     Stream the build logs:
@@ -217,7 +217,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         I0310 12:54:10.286740       1 sti.go:270] Successfully pushed 172.30.163.205:5000/test/origin-ruby-sample:latest
 
 
-    The creation of the new image in the Docker registry will
+    The creation of the new image in the container image registry will
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
 

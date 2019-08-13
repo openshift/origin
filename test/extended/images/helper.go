@@ -30,7 +30,6 @@ import (
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 const (
@@ -469,7 +468,7 @@ func getDockerVersion(logger io.Writer) (major, minor int, version string, err e
 	reVersion := regexp.MustCompile(`^(\d+)\.(\d+)`)
 
 	if dockerVersion == "" {
-		client, err2 := testutil.NewDockerClient()
+		client, err2 := dockerclient.NewClientFromEnv()
 		if err = err2; err != nil {
 			return
 		}
@@ -733,7 +732,7 @@ func AssertDeletedStorageFiles(deleted, expected *RegistryStorageFiles) error {
 	return kerrors.NewAggregate(errors)
 }
 
-// CleanUpContainer holds names of image names, docker image IDs, imagestreamtags and imagestreams that shall
+// CleanUpContainer holds names of image names, container image IDs, imagestreamtags and imagestreams that shall
 // be deleted at the end of the test.
 type CleanUpContainer struct {
 	OC *exutil.CLI
@@ -755,7 +754,7 @@ func NewCleanUpContainer(oc *exutil.CLI) *CleanUpContainer {
 	}
 }
 
-// AddImage marks given image name, docker image id and imagestreamtag as candidates for deletion.
+// AddImage marks given image name, container image id and imagestreamtag as candidates for deletion.
 func (c *CleanUpContainer) AddImage(name, id, isTag string) {
 	if len(name) > 0 {
 		c.imageNames.Insert(name)
@@ -807,7 +806,7 @@ func (c *CleanUpContainer) Run() {
 		return
 	}
 
-	dClient, err := testutil.NewDockerClient()
+	dClient, err := dockerclient.NewClientFromEnv()
 	if err != nil {
 		fmt.Fprintf(g.GinkgoWriter, "failed to create a new docker client: %v\n", err)
 		return

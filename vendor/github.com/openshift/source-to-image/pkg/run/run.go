@@ -8,11 +8,11 @@ import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
 var (
-	glog = utilglog.StderrLog
+	log = utillog.StderrLog
 )
 
 // A DockerRunner allows running a Docker image as a new container, streaming
@@ -31,7 +31,7 @@ func New(client docker.Client, config *api.Config) *DockerRunner {
 // Run invokes the Docker API to run the image defined in config as a new
 // container. The container's stdout and stderr will be logged with glog.
 func (b *DockerRunner) Run(config *api.Config) error {
-	glog.V(4).Infof("Attempting to run image %s \n", config.Tag)
+	log.V(4).Infof("Attempting to run image %s \n", config.Tag)
 
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
@@ -45,8 +45,8 @@ func (b *DockerRunner) Run(config *api.Config) error {
 		CapDrop:      config.DropCapabilities,
 	}
 
-	docker.StreamContainerIO(errReader, nil, func(s string) { glog.Error(s) })
-	docker.StreamContainerIO(outReader, nil, func(s string) { glog.Info(s) })
+	docker.StreamContainerIO(errReader, nil, func(s string) { log.Error(s) })
+	docker.StreamContainerIO(outReader, nil, func(s string) { log.Info(s) })
 
 	err := b.ContainerClient.RunContainer(opts)
 	// If we get a ContainerError, the original message reports the

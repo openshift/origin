@@ -9,15 +9,15 @@ import (
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util/cmd"
 	"github.com/openshift/source-to-image/pkg/util/fs"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // DownloaderForSource determines what SCM plugin should be used for downloading
 // the sources from the repository.
 func DownloaderForSource(fs fs.FileSystem, s *git.URL, forceCopy bool) (build.Downloader, error) {
-	glog.V(4).Infof("DownloadForSource %s", s)
+	log.V(4).Infof("DownloadForSource %s", s)
 
 	if s == nil {
 		return &empty.Noop{}, nil

@@ -9,12 +9,14 @@ load(
 go_test(
     name = "go_default_test",
     srcs = [
+        "apiapproval_test.go",
         "apply_test.go",
         "basic_test.go",
         "change_test.go",
         "finalization_test.go",
         "objectmeta_test.go",
         "registration_test.go",
+        "scope_test.go",
         "subresources_test.go",
         "table_test.go",
         "validation_test.go",

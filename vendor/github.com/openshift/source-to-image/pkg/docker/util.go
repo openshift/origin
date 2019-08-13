@@ -20,14 +20,14 @@ import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/constants"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
 var (
-	// glog is a placeholder until the builders pass an output stream down client
-	// facing libraries should not be using glog
-	glog = utilglog.StderrLog
+	// log is a placeholder until the builders pass an output stream down client
+	// facing libraries should not be using log
+	log = utillog.StderrLog
 
 	// DefaultEntrypoint is the default entry point used when starting containers
 	DefaultEntrypoint = []string{"/usr/bin/env"}
@@ -55,23 +55,23 @@ const (
 // object for a given image name and a given set of client authentication
 // objects.
 func GetImageRegistryAuth(auths *AuthConfigurations, imageName string) api.AuthConfig {
-	glog.V(5).Infof("Getting docker credentials for %s", imageName)
+	log.V(5).Infof("Getting docker credentials for %s", imageName)
 	if auths == nil {
 		return api.AuthConfig{}
 	}
 	ref, err := parseNamedDockerImageReference(imageName)
 	if err != nil {
-		glog.V(0).Infof("error: Failed to parse docker reference %s", imageName)
+		log.V(0).Infof("error: Failed to parse docker reference %s", imageName)
 		return api.AuthConfig{}
 	}
 	if ref.Registry != "" {
 		if auth, ok := auths.Configs[ref.Registry]; ok {
-			glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, ref.Registry, imageName)
+			log.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, ref.Registry, imageName)
 			return auth
 		}
 	}
 	if auth, ok := auths.Configs[defaultRegistry]; ok {
-		glog.V(5).Infof("Using %s credentials for pulling %s", auth.Email, imageName)
+		log.V(5).Infof("Using %s credentials for pulling %s", auth.Email, imageName)
 		return auth
 	}
 	return api.AuthConfig{}
@@ -126,7 +126,7 @@ func parseNamedDockerImageReference(spec string) (namedDockerImageReference, err
 func LoadImageRegistryAuth(dockerCfg io.Reader) *AuthConfigurations {
 	auths, err := NewAuthConfigurations(dockerCfg)
 	if err != nil {
-		glog.V(0).Infof("error: Unable to load docker config: %v", err)
+		log.V(0).Infof("error: Unable to load docker config: %v", err)
 		return nil
 	}
 	return auths
@@ -208,21 +208,21 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 // https://github.com/openshift/source-to-image/issues/558 .
 // StreamContainerIO returns a channel which is closed after the reader is
 // closed.
-func StreamContainerIO(r io.Reader, errOutput *string, log func(string)) <-chan struct{} {
+func StreamContainerIO(r io.Reader, errOutput *string, logFn func(string)) <-chan struct{} {
 	c := make(chan struct{}, 1)
 	go func() {
 		reader := bufio.NewReader(r)
 		for {
 			text, err := reader.ReadString('\n')
 			if text != "" {
-				log(text)
+				logFn(text)
 			}
 			if errOutput != nil && len(*errOutput) < maxErrorOutput {
 				*errOutput += text + "\n"
 			}
 			if err != nil {
-				if glog.Is(2) && err != io.EOF {
-					glog.V(0).Infof("error: Error reading docker stdout/stderr: %#v", err)
+				if log.Is(2) && err != io.EOF {
+					log.V(0).Infof("error: Error reading docker stdout/stderr: %#v", err)
 				}
 				break
 			}
@@ -264,10 +264,10 @@ func PullImage(name string, d Docker, policy api.PullPolicy) (*PullResult, error
 	case api.PullIfNotPresent:
 		image, err = d.CheckAndPullImage(name)
 	case api.PullAlways:
-		glog.Infof("Pulling image %q ...", name)
+		log.Infof("Pulling image %q ...", name)
 		image, err = d.PullImage(name)
 	case api.PullNever:
-		glog.Infof("Checking if image %q is available locally ...", name)
+		log.Infof("Checking if image %q is available locally ...", name)
 		image, err = d.CheckImage(name)
 	}
 	return &PullResult{Image: image, OnBuild: d.IsImageOnBuild(name)}, err

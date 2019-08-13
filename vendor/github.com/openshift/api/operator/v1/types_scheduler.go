@@ -13,6 +13,7 @@ type KubeScheduler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec KubeSchedulerSpec `json:"spec"`
 	// +optional

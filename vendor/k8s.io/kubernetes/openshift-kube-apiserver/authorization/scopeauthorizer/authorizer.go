@@ -8,7 +8,7 @@ import (
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
-	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scope"
+	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
 )
 
 type scopeAuthorizer struct {

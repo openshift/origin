@@ -81,16 +81,9 @@ import:
   version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
 - package: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f # recent klog bump broke glog flags test in k8s.io/apiserver, pin
-- package: github.com/coreos/etcd
-  version: v3.3.10
-- package: google.golang.org/grpc
-  version: v1.13.0
-- package: github.com/grpc-ecosystem/grpc-gateway
-  version: v1.3.0
-- package: github.com/coreos/bbolt
-  version: v1.3.1-coreos.6
-- package: github.com/google/cadvisor
-  version: v0.32.0
+# for gengo
+- package: golang.org/x/tools/imports
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
 
 # openshift second
 - package: github.com/openshift/api
@@ -99,17 +92,9 @@ import:
   version: master
 - package: github.com/openshift/library-go
   version: master
-- package: github.com/openshift/source-to-image
-  version: master
-- package: github.com/openshift/oauth-server
+- package: github.com/openshift/apiserver-library-go
   version: master
 - package: github.com/openshift/oc
-  version: master
-- package: github.com/openshift/openshift-controller-manager
-  version: master
-- package: github.com/openshift/openshift-apiserver
-  version: release-4.2
-- package: github.com/openshift/template-service-broker
   version: master
 
 # forks third
@@ -117,15 +102,12 @@ import:
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: release-v1.2.0
-- package: github.com/containers/image
-  repo:    https://github.com/openshift/containers-image.git
-  version: openshift-3.8
 # pod - sjenning
 # origin-3.11-runc-871ba2e
 - package: github.com/opencontainers/runc
   repo:    https://github.com/openshift/opencontainers-runc.git
   version: 7c7775178c25e952571573f44a8df281824cf8e1
-# cli
+# these need to match the kubelet
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
   version: image-registry-3.11
@@ -137,112 +119,14 @@ import:
 - package: github.com/golang/glog
   repo:    https://github.com/openshift/golang-glog.git
   version: delegate-to-klog
-# cli
-- package: github.com/gonum/blas
-  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
-# cli
-- package: github.com/gonum/floats
-  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
-# cli
-- package: github.com/gonum/graph
-  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
-# cli
-- package: github.com/gonum/internal
-  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
-# cli
-- package: github.com/gonum/lapack
-  version: 5ed4b826becd1807e09377508f51756586d1a98c
-# cli
-- package: github.com/gonum/matrix
-  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
-# networking
-- package: github.com/vishvananda/netlink
-  version: b2de5d10e38ecce8607e6b438b6d174f389a004e
-# because of genapidocs.  This is the current kube level
-- package: github.com/go-openapi/loads
-  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
 # retrieve latest version that fixes deadlock on kqueue
 - package: github.com/fsnotify/fsnotify
   version: v1.4.7
-# pinned to the level that kubernetes uses.  Not sure why glide isn't matching this
-- package: github.com/sirupsen/logrus
-  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
-# pinned to a level that kubernetes uses.
-- package: github.com/evanphx/json-patch
-  version: 5858425f75500d40c52783dce87d085a483ce135
-# pinned to a level that kubernetes 1.12 use
-- package: github.com/gorilla/mux
-  version: 08e7f807d38d6a870193019bb439056118661505
-# pinned to a level that kubernetes 1.12 use
-- package: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 
 # mine: specific to openshift
-# networking
-- package: github.com/containernetworking/plugins
-  version: ~0.6.0
-# builds/cli
-- package: github.com/fsouza/go-dockerclient
-  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
-# auth (for testing)
-- package: github.com/vjeantet/ldapserver
-  version: v1.0
-# master
-- package: github.com/getsentry/raven-go
-  version: 32a13797442ccb601b11761d74232773c1402d14
-# auth (for sally)
-- package: github.com/RangelReale/osin
-  repo:    https://github.com/openshift/osin.git
-  version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
-# auth (for sally)
-- package: github.com/RangelReale/osincli
-  repo:    https://github.com/openshift/osincli.git
-  version: fababb0555f21315d1a34af6615a16eaab44396b
-# auth (for sally)
-- package: github.com/gorilla/sessions
-  version: a3acf13e802c358d65f249324d14ed24aac11370
-# auth (for oc kerberos on linux + mac)
-- package: github.com/apcera/gssapi
-  version: release-2.6.3
-# auth (for oc kerberos on windows)
-- package: github.com/alexbrainman/sspi
-  version: e580b900e9f5657daa5473021296289be6da2661
-# new-app
-- package: github.com/joho/godotenv
-  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
-# new-app
-- package: github.com/moby/buildkit
-  version: c3a857e3fca0a5cadd44ffd886a977559841aeaa
-# dev-ex (template service broker)
-- package: github.com/lestrrat/go-jspointer
-  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
-# dev-ex (template service broker)
-- package: github.com/lestrrat/go-jsref
-  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
-# dev-ex (template service broker)
-- package: github.com/lestrrat/go-jsschema
-  version: a6a42341b50d8d7e2a733db922eefaa756321021
 # master? for bindata
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
-# router metrics
-- package: github.com/cockroachdb/cmux
-  version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
-# router dynamic reloads
-- package: github.com/gocarina/gocsv
-  version: a5c9099e2484f1551abb9433885e158610a25f4b
-- package: github.com/bcicen/go-haproxy
-  version: ff5824fe38bede761b873cab6e247a530e89236a
-# used to be ~v1 to keep up with fixes.  It didn't build past v1.0.8.
-- package: github.com/miekg/dns
-  version: v1.0.8
-# etcd pins a very old version that has contention issues
-- package: github.com/google/btree
-  version: master
-
-# why do we have this?
-- package: google.golang.org/appengine
-  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
 
 # to avoid go4.org website outages on glide update
 - package: go4.org
@@ -251,16 +135,31 @@ import:
   subpackages:
   - errorutil
 
-# force glide to pull this in
-- package: github.com/google/uuid
-
-# yours that I suspect aren't pinning because vendor.conf is respected
-# yours: containers/image.  No idea why this isn't self-pinning.
-- package: github.com/containers/storage
-  version: 47536c89fcc545a87745e1a1573addc439409165
+# needed to get the
+- package: github.com/lestrrat/go-jspointer
+  repo:    https://github.com/lestrrat/go-jspointer.git
+- package: github.com/lestrrat/go-pdebug
+  repo:    https://github.com/lestrrat/go-pdebug.git
+- package: github.com/lestrrat/go-jsref
+  repo:    https://github.com/lestrrat/go-jsref.git
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+- package: github.com/lestrrat/go-structinfo
+  repo:    https://github.com/lestrrat/go-structinfo.git
+  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
 
 # due to https://github.com/Masterminds/glide/issues/881 manually show where
 # to get gonum.org/v1/gonum from
 - package: gonum.org/v1/gonum
   repo: https://github.com/gonum/gonum.git
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
+
+# set alias location for this package due to
+# https://github.com/Masterminds/glide/issues/1057; upstream did this in
+# https://github.com/kubernetes/kubernetes/pull/72138
+- package: bitbucket.org/ww/goautoneg
+  repo: https://github.com/munnerz/goautoneg.git
+
+# yours that I suspect aren't pinning because vendor.conf is respected
+# yours: containers/image.  No idea why this isn't self-pinning.
+- package: github.com/containers/storage
+  version: 912de200380ac2fd1e90f91b78c1495ed8d5beea

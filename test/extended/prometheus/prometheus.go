@@ -207,10 +207,18 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			tests := map[string][]metricTest{
 				// should be checking there is no more than 1 alerts firing.
 				// Checking for specific alert is done in "should have a Watchdog alert in firing state".
-				//
-				// TODO(sur) once we migrated over all service monitors to the corresponding repositories,
-				// then remove alertname!="PrometheusTargetScrapesDuplicate"
-				`sum(ALERTS{alertstate="firing",alertname!="PrometheusTargetScrapesDuplicate"})`: {metricTest{greaterThanEqual: false, value: 2}},
+				`sum(ALERTS{alertstate="firing"})`: {metricTest{greaterThanEqual: false, value: 2}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+		})
+		g.It("should have machine api operator metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				`mapi_machine_set_status_replicas`: {metricTest{greaterThanEqual: true, value: 1}},
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})

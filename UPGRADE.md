@@ -23,7 +23,7 @@ when that change will happen.
 1. The `/ns/namespace-name/subjectaccessreview` endpoint is deprecated, use `/subjectaccessreview`
 (with the `namespace` field set) or `/ns/namespace-name/localsubjectaccessreview`.  In
 Origin 1.y / OSE 3.y, support for `/ns/namespace-name/subjectaccessreview` will be removed.
-At that time, the openshift docker registry image must be upgraded in order to continue functioning.
+At that time, the openshift container image registry image must be upgraded in order to continue functioning.
 
 1. The `deploymentConfig.spec.strategy.rollingParams.updatePercent` field is deprecated in
   favor of `deploymentConfig.spec.strategy.rollingParams.maxUnavailable` and
@@ -88,8 +88,8 @@ references:
   Incorrectly cased field names will now be rejected.  Please ensure all `yaml` and `json` files
   conform to the naming conventions defined in [REST API](https://docs.okd.io/latest/rest_api/index.html) 
 
-1.  The existing docker registry images will not be able to support auto-provisioning of image streams based on docker pushes against new API servers.
-  Upgrade your docker registry image to make auto-provisioning work again.
+1.  The existing container image registry images will not be able to support auto-provisioning of image streams based on docker pushes against new API servers.
+  Upgrade your container image registry image to make auto-provisioning work again.
 1. New service accounts specific to the PersistentVolume operations of binding, recycling, and provisioning were added.  Run `oc adm policy reconcile-sccs --confirm` to update your SecurityContextConstraints.
 
 ## Origin 1.3.x / OSE 3.3.x

@@ -45,7 +45,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 
 		g.It("should succeed with a --name of 58 characters", func() {
 			g.By("calling oc new-app")
-			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58).Execute()
+			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58, "--build-env=BUILD_LOGLEVEL=5").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")

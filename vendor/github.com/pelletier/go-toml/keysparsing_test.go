@@ -24,7 +24,7 @@ func testResult(t *testing.T, key string, expected []string) {
 func testError(t *testing.T, key string, expectedError string) {
 	res, err := parseKey(key)
 	if err == nil {
-		t.Fatalf("Expected error, but successfully parsed key %s", res)
+		t.Fatalf("Expected error, but succesfully parsed key %s", res)
 	}
 	if fmt.Sprintf("%s", err) != expectedError {
 		t.Fatalf("Expected error \"%s\", but got \"%s\".", expectedError, err)
@@ -44,23 +44,7 @@ func TestDottedKeyBasic(t *testing.T) {
 }
 
 func TestBaseKeyPound(t *testing.T) {
-	testError(t, "hello#world", "invalid bare key character: #")
-}
-
-func TestUnclosedSingleQuotedKey(t *testing.T) {
-	testError(t, "'", "unclosed single-quoted key")
-}
-
-func TestUnclosedDoubleQuotedKey(t *testing.T) {
-	testError(t, "\"", "unclosed double-quoted key")
-}
-
-func TestInvalidStartKeyCharacter(t *testing.T) {
-	testError(t, "/", "invalid key character: /")
-}
-
-func TestInvalidSpaceInKey(t *testing.T) {
-	testError(t, "invalid key", "invalid key character after whitespace: k")
+	testError(t, "hello#world", "invalid bare character: #")
 }
 
 func TestQuotedKeys(t *testing.T) {
@@ -73,7 +57,7 @@ func TestQuotedKeys(t *testing.T) {
 }
 
 func TestEmptyKey(t *testing.T) {
-	testError(t, ``, "empty key")
-	testError(t, ` `, "empty key")
+	testError(t, "", "empty key")
+	testError(t, " ", "empty key")
 	testResult(t, `""`, []string{""})
 }

@@ -12,9 +12,16 @@ import (
 func status(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
 	status, err := m.Status()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "status: %v\n", err)
+		fmt.Fprintf(os.Stderr, "status: %+v\n", err)
 		return 1
 	}
+	basics := [][2]string{
+		{"Root", m.GraphRoot()},
+		{"Run Root", m.RunRoot()},
+		{"Driver Name", m.GraphDriverName()},
+		{"Driver Options", fmt.Sprintf("%v", m.GraphOptions())},
+	}
+	status = append(basics, status...)
 	if jsonOutput {
 		json.NewEncoder(os.Stdout).Encode(status)
 	} else {

@@ -24,14 +24,7 @@ import (
 	"golang.org/x/tools/present"
 )
 
-var (
-	validJSONPFunc = regexp.MustCompile(`(?i)^[a-z_][a-z0-9_.]*$`)
-	// used to serve relative paths when ServeLocalLinks is enabled.
-	golangOrgAbsLinkReplacer = strings.NewReplacer(
-		`href="https://golang.org/pkg`, `href="/pkg`,
-		`href="https://golang.org/cmd`, `href="/cmd`,
-	)
-)
+var validJSONPFunc = regexp.MustCompile(`(?i)^[a-z_][a-z0-9_.]*$`)
 
 // Config specifies Server configuration values.
 type Config struct {
@@ -47,8 +40,7 @@ type Config struct {
 	FeedArticles int    // Articles to include in Atom and JSON feeds.
 	FeedTitle    string // The title of the Atom XML feed
 
-	PlayEnabled     bool
-	ServeLocalLinks bool // rewrite golang.org/{pkg,cmd} links to host-less, relative paths.
+	PlayEnabled bool
 }
 
 // Doc represents an article adorned with presentation data.
@@ -81,17 +73,10 @@ type Server struct {
 func NewServer(cfg Config) (*Server, error) {
 	present.PlayEnabled = cfg.PlayEnabled
 
-	if notExist(cfg.TemplatePath) {
-		return nil, fmt.Errorf("template directory not found: %s", cfg.TemplatePath)
-	}
 	root := filepath.Join(cfg.TemplatePath, "root.tmpl")
 	parse := func(name string) (*template.Template, error) {
-		path := filepath.Join(cfg.TemplatePath, name)
-		if notExist(path) {
-			return nil, fmt.Errorf("template %s was not found in %s", name, cfg.TemplatePath)
-		}
 		t := template.New("").Funcs(funcMap)
-		return t.ParseFiles(root, path)
+		return t.ParseFiles(root, filepath.Join(cfg.TemplatePath, name))
 	}
 
 	s := &Server{cfg: cfg}
@@ -199,8 +184,8 @@ func (s *Server) loadDocs(root string) error {
 		if err != nil {
 			return err
 		}
-		var html bytes.Buffer
-		err = d.Render(&html, s.template.doc)
+		html := new(bytes.Buffer)
+		err = d.Render(html, s.template.doc)
 		if err != nil {
 			return err
 		}
@@ -425,18 +410,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		d.Doc = doc
 		t = s.template.article
 	}
-	var err error
-	if s.cfg.ServeLocalLinks {
-		var buf bytes.Buffer
-		err = t.ExecuteTemplate(&buf, "root", d)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		_, err = golangOrgAbsLinkReplacer.WriteString(w, buf.String())
-	} else {
-		err = t.ExecuteTemplate(w, "root", d)
-	}
+	err := t.ExecuteTemplate(w, "root", d)
 	if err != nil {
 		log.Println(err)
 	}
@@ -448,9 +422,3 @@ type docsByTime []*Doc
 func (s docsByTime) Len() int           { return len(s) }
 func (s docsByTime) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s docsByTime) Less(i, j int) bool { return s[i].Time.After(s[j].Time) }
-
-// notExist reports whether the path exists or not.
-func notExist(path string) bool {
-	_, err := os.Stat(path)
-	return os.IsNotExist(err)
-}

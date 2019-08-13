@@ -9,7 +9,7 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 
 verify="${VERIFY:-}"
 
-for group in apps authorization build config image network oauth operator project quota route security template user; do
+for group in apps authorization build config image network oauth project quota route security template user; do
   ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
     github.com/openshift/client-go/${group} \
     github.com/openshift/api \
@@ -23,6 +23,15 @@ for group in servicecertsigner; do
     github.com/openshift/client-go/${group} \
     github.com/openshift/api \
     "${group}:v1alpha1" \
+    --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
+    ${verify}
+done
+
+for group in operator; do
+  ${CODEGEN_PKG}/generate-groups.sh "client,lister,informer" \
+    github.com/openshift/client-go/${group} \
+    github.com/openshift/api \
+    "${group}:v1,v1alpha1" \
     --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.txt \
     ${verify}
 done

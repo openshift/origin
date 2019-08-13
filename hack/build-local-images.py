@@ -63,23 +63,6 @@ image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 # "enable_default: True" can be added to skip the image build
 # with no arguments
 image_config = {
-    "cli": {
-        "tag": "latest",
-        "directory": "cli",
-        "binaries": {
-            "oc": "/usr/bin/oc",
-        },
-        "files": {}
-    },
-    "control-plane": {
-        "tag": "latest",
-        "directory": "origin",
-        "binaries": {
-            "openshift": "/usr/bin/openshift",
-            "oc": "/usr/bin/oc",
-        },
-        "files": {}
-    },
     "hyperkube": {
         "tag": "latest",
         "directory": "hyperkube",
@@ -87,59 +70,7 @@ image_config = {
             "hyperkube": "/usr/bin/hyperkube",
         },
         "files": {}
-    },
-    "hypershift": {
-        "tag": "latest",
-        "directory": "hypershift",
-        "binaries": {
-            "hypershift": "/usr/bin/hypershift",
-        },
-        "files": {}
-    },
-    "deployer": {
-        "tag": "latest",
-        "directory": "deployer",
-        "binaries": {
-            "openshift-deploy": "/usr/bin/openshift-deploy",
-            "oc": "/usr/bin/oc",
-        },
-        "files": {}
-    },
-    "recycler": {
-        "tag": "latest",
-        "directory": "recycler",
-        "binaries": {
-            "oc": "/usr/bin/oc"
-        },
-        "files": {}
-    },
-    "keepalived-ipfailover": {
-        "tag": "latest",
-        "directory": "ipfailover/keepalived",
-        "binaries": {
-            "openshift": "/usr/bin/openshift"
-        },
-        "files": {
-            ".": "/var/lib/ipfailover/keepalived"
-        }
-    },
-    "node": {
-        "tag": "latest",
-        "directory": "node",
-        "binaries": {
-            "openshift": "/usr/bin/openshift",
-            "hyperkube": "/usr/bin/hyperkube"
-        },
-        "files": {}
-    },
-    "template-service-broker": {
-        "tag": "latest",
-        "directory": "template-service-broker",
-        "binaries": {
-            "template-service-broker": "/usr/bin/template-service-broker"
-        },
-        "files": {}
-    },
+    }
 }
 
 

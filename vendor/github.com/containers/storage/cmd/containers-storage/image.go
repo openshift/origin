@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/mflag"
+	digest "github.com/opencontainers/go-digest"
 )
 
 var (
@@ -30,8 +31,23 @@ func image(flags *mflag.FlagSet, action string, m storage.Store, args []string) 
 				fmt.Printf("Name: %s\n", name)
 			}
 			fmt.Printf("Top Layer: %s\n", image.TopLayer)
+			for _, layerID := range image.MappedTopLayers {
+				fmt.Printf("Top Layer: %s\n", layerID)
+			}
+			for _, digest := range image.Digests {
+				fmt.Printf("Digest: %s\n", digest.String())
+			}
 			for _, name := range image.BigDataNames {
 				fmt.Printf("Data: %s\n", name)
+			}
+			size, err := m.ImageSize(image.ID)
+			if err != nil {
+				fmt.Printf("Size unknown: %+v\n", err)
+			} else {
+				fmt.Printf("Size: %d\n", size)
+			}
+			if image.ReadOnly {
+				fmt.Printf("Read Only: true\n")
 			}
 		}
 	}
@@ -44,7 +60,7 @@ func image(flags *mflag.FlagSet, action string, m storage.Store, args []string) 
 func listImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
 	image, err := m.Image(args[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	d, err := m.ListImageBigData(image.ID)
@@ -61,7 +77,7 @@ func listImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args
 func getImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
 	image, err := m.Image(args[0])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	output := os.Stdout
@@ -75,11 +91,49 @@ func getImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args 
 	}
 	b, err := m.ImageBigData(image.ID, args[1])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	output.Write(b)
 	output.Close()
+	return 0
+}
+
+func wrongManifestDigest(b []byte) (digest.Digest, error) {
+	return digest.Canonical.FromBytes(b), nil
+}
+
+func getImageBigDataSize(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
+	image, err := m.Image(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		return 1
+	}
+	size, err := m.ImageBigDataSize(image.ID, args[1])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		return 1
+	}
+	fmt.Fprintf(os.Stdout, "%d\n", size)
+	return 0
+}
+
+func getImageBigDataDigest(flags *mflag.FlagSet, action string, m storage.Store, args []string) int {
+	image, err := m.Image(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		return 1
+	}
+	d, err := m.ImageBigDataDigest(image.ID, args[1])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
+		return 1
+	}
+	if d.Validate() != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", d.Validate())
+		return 1
+	}
+	fmt.Fprintf(os.Stdout, "%s\n", d.String())
 	return 0
 }
 
@@ -103,7 +157,7 @@ func setImageBigData(flags *mflag.FlagSet, action string, m storage.Store, args 
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	err = m.SetImageBigData(image.ID, args[1], b)
+	err = m.SetImageBigData(image.ID, args[1], b, wrongManifestDigest)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
@@ -145,9 +199,23 @@ func init() {
 			},
 		},
 		command{
+			names:       []string{"get-image-data-size", "getimagedatasize"},
+			optionsHelp: "[options [...]] imageNameOrID dataName",
+			usage:       "Get size of data that is attached to an image",
+			action:      getImageBigDataSize,
+			minArgs:     2,
+		},
+		command{
+			names:       []string{"get-image-data-digest", "getimagedatadigest"},
+			optionsHelp: "[options [...]] imageNameOrID dataName",
+			usage:       "Get digest of data that is attached to an image",
+			action:      getImageBigDataDigest,
+			minArgs:     2,
+		},
+		command{
 			names:       []string{"set-image-data", "setimagedata"},
 			optionsHelp: "[options [...]] imageNameOrID dataName",
-			usage:       "Set data that is attached to an image",
+			usage:       "Set data that is attached to an image (with sometimes wrong digest)",
 			action:      setImageBigData,
 			minArgs:     2,
 			addFlags: func(flags *mflag.FlagSet, cmd *command) {

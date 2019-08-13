@@ -18,23 +18,25 @@ import (
 	"k8s.io/klog"
 
 	kapiv1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/printers"
 	kclientset "k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
+	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/generated"
 
+	// this appears to inexplicably auto-register global flags.
+	_ "k8s.io/kubernetes/test/e2e/storage/drivers"
+
+	projectv1 "github.com/openshift/api/project/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
-	"github.com/openshift/oc/pkg/cli/admin/policy"
 	"github.com/openshift/origin/pkg/version"
-	testutil "github.com/openshift/origin/test/util"
 )
 
 var (
@@ -52,14 +54,17 @@ var TestContext *e2e.TestContextType = &e2e.TestContext
 // TEST_REPORT_FILE_NAME - If set, will determine the name of the file that JUnit output is written to
 func Init() {
 	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
-	e2e.ViperizeFlags()
+	reale2e.ViperizeFlags(reale2e.GetViperConfig())
+	e2e.HandleFlags()
 	InitTest()
 }
 
 func InitStandardFlags() {
 	e2e.RegisterCommonFlags()
 	e2e.RegisterClusterFlags()
-	e2e.RegisterStorageFlags()
+
+	// replaced by a bare import above.
+	//e2e.RegisterStorageFlags()
 }
 
 func InitTest() {
@@ -164,6 +169,11 @@ func AnnotateTestSuite() {
 	}
 	sort.Strings(allLabels)
 
+	if e2e.TestContext.Provider != "" {
+		excludedTests = append(excludedTests, fmt.Sprintf(`\[Skipped:%s\]`, e2e.TestContext.Provider))
+	}
+	excludedTestsFilter := regexp.MustCompile(strings.Join(excludedTests, `|`))
+
 	ginkgo.WalkTests(func(name string, node types.TestNode) {
 		labels := ""
 		for {
@@ -261,6 +271,9 @@ func skipTestNamespaceCustomization() bool {
 
 // createTestingNS ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
 func createTestingNS(baseName string, c kclientset.Interface, labels map[string]string) (*kapiv1.Namespace, error) {
+	if !strings.HasPrefix(baseName, "e2e-") {
+		baseName = "e2e-" + baseName
+	}
 	ns, err := e2e.CreateTestingNS(baseName, c, labels)
 	if err != nil {
 		return ns, err
@@ -270,7 +283,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 	// Add anyuid and privileged permissions for upstream tests
 	if (isKubernetesE2ETest() && !skipTestNamespaceCustomization()) || isOriginUpgradeTest() {
-		clientConfig, err := testutil.GetClusterAdminClientConfig(KubeConfigPath())
+		clientConfig, err := getClientConfig(KubeConfigPath())
 		if err != nil {
 			return ns, err
 		}
@@ -334,7 +347,6 @@ var (
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
-			`CSI mock volume`, // mock volumes don't see work right.  Newly enabledin 1.14. sig-storage
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
@@ -345,17 +357,13 @@ var (
 			`\[Feature:ImageQuota\]`,                    // Quota isn't turned on by default, we should do that and then reenable these tests
 			`\[Feature:Audit\]`,                         // Needs special configuration
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
+			`\[sig-cluster-lifecycle\]`,                 // cluster lifecycle test require a different kind of upgrade hook.
+			`\[Feature:StatefulUpgrade\]`,               // related to cluster lifecycle (in e2e/lifecycle package) and requires an upgrade hook we don't use
 
 			`kube-dns-autoscaler`, // Don't run kube-dns
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
 			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
 
-			// vSphere tests can be skipped generally
-			`vsphere`,
-			`Cinder`, // requires an OpenStack cluster
-			// See the CanSupport implementation in upstream to determine wether these work.
-			`Ceph RBD`,                              // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
-			`GlusterFS`,                             // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
 			`authentication: OpenLDAP`,              // needs separate setup and bucketing for openldap bootstrapping
 			`NodeProblemDetector`,                   // requires a non-master node to run on
 			`Advanced Audit should audit API calls`, // expects to be able to call /logs
@@ -365,37 +373,32 @@ var (
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
-			`mount an API token into pods`,                                     // We add 6 secrets, not 1
-			`ServiceAccounts should ensure a single API token exists`,          // We create lots of secrets
-			`unchanging, static URL paths for kubernetes api services`,         // the test needs to exclude URLs that are not part of conformance (/logs)
-			"PersistentVolumes NFS when invoking the Recycle reclaim policy",   // failing for some reason
-			`Simple pod should handle in-cluster config`,                       // kubectl cp is not preserving executable bit
-			`Services should be able to up and down services`,                  // we don't have wget installed on nodes
-			`Network should set TCP CLOSE_WAIT timeout`,                        // possibly some difference between ubuntu and fedora
-			`Services should be able to create a functioning NodePort service`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
-			`\[NodeFeature:Sysctls\]`,                                          // needs SCC support
-			`should check kube-proxy urls`,                                     // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
-			`extremely long build/bc names are not problematic`,                // there's a problem in kubelet when creating log directory in vendor/k8s.io/kubernetes/pkg/kubelet/kuberuntime/helpers.go:181, this changed in https://github.com/kubernetes/kubernetes/pull/74441
-			`SSH`, // TRIAGE
-			`should implement service.kubernetes.io/service-proxy-name`, // this is an optional test that requires SSH. sig-network
-			`should idle the service and DeploymentConfig properly`,     // idling with a single service and DeploymentConfig [Conformance]
-			`\[Driver: rbd\]`,        // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
-			`\[Driver: csi-hostpath`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
+			`mount an API token into pods`,                                               // We add 6 secrets, not 1
+			`ServiceAccounts should ensure a single API token exists`,                    // We create lots of secrets
+			`unchanging, static URL paths for kubernetes api services`,                   // the test needs to exclude URLs that are not part of conformance (/logs)
+			`Simple pod should handle in-cluster config`,                                 // kubectl cp is not preserving executable bit
+			`Services should be able to up and down services`,                            // we don't have wget installed on nodes
+			`Network should set TCP CLOSE_WAIT timeout`,                                  // possibly some difference between ubuntu and fedora
+			`Services should be able to create a functioning NodePort service`,           // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
+			`\[NodeFeature:Sysctls\]`,                                                    // needs SCC support
+			`should check kube-proxy urls`,                                               // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
+			`SSH`,                                                                        // TRIAGE
+			`should implement service.kubernetes.io/service-proxy-name`,                  // this is an optional test that requires SSH. sig-network
+			`should idle the service and DeploymentConfig properly`,                      // idling with a single service and DeploymentConfig [Conformance]
+			`\[Driver: rbd\]`,                                                            // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
+			`\[Driver: csi-hostpath`,                                                     // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
 			`should answer endpoint and wildcard queries for the cluster`,                // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 			`should propagate mounts to the host`,                                        // requires SSH, https://bugzilla.redhat.com/show_bug.cgi?id=1711600
 			`should allow ingress access on one named port`,                              // https://bugzilla.redhat.com/show_bug.cgi?id=1711602
 			`ClusterDns \[Feature:Example\] should create pod that uses dns`,             // https://bugzilla.redhat.com/show_bug.cgi?id=1711601
 			`should be rejected when no endpoints exist`,                                 // https://bugzilla.redhat.com/show_bug.cgi?id=1711605
 			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
-			`TaintBasedEvictions`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
+			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 
 			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 			`\[Driver: ceph\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath`,
 
-			`\[Driver: aws\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
 			`\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
-
-			`Probing container should \*not\* be restarted with a non-local redirect http liveness probe`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711687
 
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
@@ -431,7 +434,49 @@ var (
 
 			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 		},
+		"[Skipped:azure]": {
+			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
+
+			// Azure storage tests are failing due to unknown errors. ref: https://bugzilla.redhat.com/show_bug.cgi?id=1723603
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should verify container cannot write to subpath readonly volumes`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should be able to unmount after the subpath directory is deleted`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support existing directories when readOnly specified in the volumeSource`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support existing directory`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support existing single file`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support file as subpath`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support non-existent path`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support readOnly directory specified in the volumeMount`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should support readOnly file specified in the volumeMount`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] subPath should verify container cannot write to subpath readonly volumes`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] volumes should allow exec of files on the volume`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(default fs\)\] volumes should be mountable`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(ext4\)\] volumes should allow exec of files on the volume`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Inline-volume \(ext4\)\] volumes should be mountable`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(block volmode\)] volumeMode should create sc, pod, pv, and pvc, read/write to the pv, and delete all created resources`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should be able to unmount after the subpath directory is deleted`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support existing directories when readOnly specified in the volumeSource`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support existing directory`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support existing single file`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support file as subpath`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support non-existent path`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support readOnly directory specified in the volumeMount`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should support readOnly file specified in the volumeMount`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath readonly volumes`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] volumes should allow exec of files on the volume`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(default fs\)\] volumes should be mountable`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(ext4\)\] volumes should allow exec of files on the volume`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(ext4\)\] volumes should be mountable`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)] volumeMode should create sc, pod, pv, and pvc, read/write to the pv, and delete all created resources`,
+		},
 		"[Suite:openshift/scalability]": {},
+		// tests that replace the old test-cmd script
+		"[Suite:openshift/test-cmd]": {
+			`\[Suite:openshift/test-cmd\]`,
+		},
+		"[Suite:openshift/csi]": {
+			`External Storage \[Driver:`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
@@ -444,9 +489,8 @@ var (
 		`\[Slow\]`,
 		`\[Flaky\]`,
 		`\[local\]`,
-		`\[Local\]`,
+		`\[Suite:openshift/test-cmd\]`,
 	}
-	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
 )
 
 // checkSyntheticInput selects tests based on synthetic skips or focuses
@@ -481,7 +525,7 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 		if ns.Annotations == nil {
 			ns.Annotations = make(map[string]string)
 		}
-		ns.Annotations["openshift.io/node-selector"] = ""
+		ns.Annotations[projectv1.ProjectNodeSelector] = ""
 		_, err = c.CoreV1().Namespaces().Update(ns)
 		return err
 	})
@@ -536,17 +580,17 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if isE2ENamespace(ns.Name) && ns.Status.Phase != kapiv1.NamespaceTerminating {
-				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
-				addRole := &policy.RoleModificationOptions{
-					RoleBindingNamespace: ns.Name,
-					RoleKind:             "ClusterRole",
-					RoleName:             roleName,
-					RbacClient:           rbacClient,
-					Users:                []string{sa},
-					PrintFlags:           genericclioptions.NewPrintFlags(""),
-					ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
-				}
-				if err := addRole.AddRole(); err != nil {
+				_, err := rbacClient.RoleBindings(ns.Name).Create(&rbacv1.RoleBinding{
+					ObjectMeta: metav1.ObjectMeta{GenerateName: "default-" + roleName, Namespace: ns.Name},
+					RoleRef: rbacv1.RoleRef{
+						Kind: "ClusterRole",
+						Name: roleName,
+					},
+					Subjects: []rbacv1.Subject{
+						{Name: "default", Namespace: ns.Name, Kind: rbacv1.ServiceAccountKind},
+					},
+				})
+				if err != nil {
 					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)
 				}
 			}

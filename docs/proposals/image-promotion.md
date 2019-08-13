@@ -22,20 +22,20 @@ This document describes the following ways to promote images:
   * [go.cd](http://go.cd)
   * [snap](http://snap-ci.com)
 
-Docker images can be promoted (and the use-cases are valid for):
+container images can be promoted (and the use-cases are valid for):
 
 * **Within a single Project**
 * **Between multiple Projects**
 * **Between multiple Clusters**
 
-The Docker image promotion can be done using the Docker [image
+The container image promotion can be done using the Docker [image
 tags](https://docs.docker.com/engine/reference/commandline/tag/)
-or Docker image [labels](https://docs.docker.com/engine/userguide/labels-custom-metadata/).
+or container image [labels](https://docs.docker.com/engine/userguide/labels-custom-metadata/).
 OpenShift also provides more features to add metadata, such as annotations or labels.
 Using them might allow users to develop complex conditional promotion scenarios, but
 this document does not describe them.
 
-In some cases, promoting just Docker images might not be enough and you want to promote
+In some cases, promoting just container images might not be enough and you want to promote
 the entire deployment or a project as a single unit of promotion. These scenarios
 are also not covered by this document.
 
@@ -46,7 +46,7 @@ are also not covered by this document.
       example:
     - `oc tag application/image:@sha256:02c104b application/image:qa-ready`
     This will tag the `application/image` with SHA256 tag `02c104b` as `qa-ready`.
-  * By importing the Docker image manually using OpenShift CLI after the image
+  * By importing the container image manually using OpenShift CLI after the image
     pass the verification process successfully. For example:
     - `oc import-image application --from=external:application`
     This will import the `external:application` image available in 'external'
@@ -76,7 +76,7 @@ are also not covered by this document.
     - Use Jenkins job to do `docker tag` and `docker push`
 * **Semi-automated (require human intervention for some steps)**
   * By using OpenShift or an external continuous-delivery tool
-    - Use Jenkins job to produce and verify the new Docker image, but require human
+    - Use Jenkins job to produce and verify the new container image, but require human
       intervention to import the image to OpenShift using `oc import` command
     - Use Jenkins job to do `oc tag` but have DeploymentConfig independent of
       the image change (require manual intervention to roll out a new deployment)
@@ -88,7 +88,7 @@ are also not covered by this document.
 
 As a developer of Rails application, when I update the source code and push it to a remote
 source code repository, I want to have my changes tested before deploying them to production.
-I also want to have the Docker image that contains applications with my changes to be promoted
+I also want to have the container image that contains applications with my changes to be promoted
 based on the verification results.
 
 #### Example of using Jenkins
@@ -156,7 +156,7 @@ application image, the command will promote the image by tagging it as *producti
 the `oc tag` command). The command might also notify me about the verification failure.
 
 The *frontend-production* DeploymentConfig has the ImageChangeTrigger set to watch changes
-in the *prod-ready* ImageStreamTag. When a new Docker image with this tag is available,
+in the *prod-ready* ImageStreamTag. When a new container image with this tag is available,
 it can automatically roll out a new production deployment. In case you don't want to roll out
 the *frontend-production* automatically, you can avoid specifying the ImageChangeTrigger and
 roll out the new deployment by hand.
@@ -202,7 +202,7 @@ verification of this deployment, or notify the testers to do it.
 Once we are happy with this image, we want to promote it for production:
 
 First, we have to allow the the "prod" service account to pull the image from
-the "stage" repository in Docker registry:
+the "stage" repository in container image registry:
 
 ```console
 $ oc policy add-role-to-user edit system:serviceaccount:stage:default -n prod
@@ -221,23 +221,23 @@ deployed in the "prod" project. Also we are making sure that the image we deploy
 "prod" is the same image as we tested in "stage".
 
 
-### Manual promotion using external Docker registry
+### Manual promotion using external container image registry
 
 As a developer of a Rails application, when I update the source code and OpenShift
 build my image I want to promote the image by passing it through QA and operation teams.
 
 #### Example
 
-* The image is passed to a remote QA team by pushing the image to a shared Docker registry
+* The image is passed to a remote QA team by pushing the image to a shared container image registry
 * Remote QA team pull the image and drive the testing and verification
-* Remote QA team push the verified image back to the shared Docker registry, tagged as "verified"
-* Remote devops team pull the image from shared Docker registry and make it available in "stage" cluster
+* Remote QA team push the verified image back to the shared container image registry, tagged as "verified"
+* Remote devops team pull the image from shared container image registry and make it available in "stage" cluster
 * Remote devops team promotes the image from "stage" to "production"
 
-### Manual promotion of builder image using external Docker registry
+### Manual promotion of builder image using external container image registry
 
 As a platform operator, I want to be able to promote the S2I builder image(s) when a new
-version is available in Red Hat Docker registry. I want to perform additional verifications
+version is available in Red Hat container image registry. I want to perform additional verifications
 (iow. deploy to "stage" first) before rolling a new image out to production which causes rebuild
 of a thousand applications.
 
@@ -246,7 +246,7 @@ of a thousand applications.
 * OpenShift engineering tag the `openshift/ruby-22-rhel7` image to internal CI registry
   * `oc import-image openshift/ruby-22-rhel7`
 * OpenShift QA team pull the image from the internal CI registry and run tests
-* OpenShift QA team sign-off the Docker image when tests pass and push it to "integration" registry
+* OpenShift QA team sign-off the container image when tests pass and push it to "integration" registry
 * OpenShift operations team pulls the image from "integration" registry and promote it to "stage" environment
 * OpenShift operations team manually promote the image to production
 
@@ -300,8 +300,8 @@ both the Jenkins server and the OpenShift to deliver updates to the application.
 
 ### CLI
 
-* Allow to export the ImageStreamTag together with the Docker image (`oc export-image`)
-* Allow to import the ImageStreamTag together with the Docker image (`oc import-image`)
-  * This will import the Docker image image to the Docker registry
+* Allow to export the ImageStreamTag together with the container image (`oc export-image`)
+* Allow to import the ImageStreamTag together with the container image (`oc import-image`)
+  * This will import the container image image to the container image registry
   * Create ImageStream for the image that is being imported, with all annotations
   * Create ImageStreamTag for the image

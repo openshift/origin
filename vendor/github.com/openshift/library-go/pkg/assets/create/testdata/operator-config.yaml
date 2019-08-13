@@ -4,3 +4,5 @@ metadata:
   name: instance
 spec:
   managementState: Managed
+status:
+  initializedValue: something

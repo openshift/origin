@@ -1,10 +1,10 @@
 # go-digest
 
-[![GoDoc](https://godoc.org/github.com/opencontainers/go-digest?status.svg)](https://godoc.org/github.com/opencontainers/go-digest) [![Go Report Card](https://goreportcard.com/badge/github.com/opencontainers/go-digest)](https://goreportcard.com/report/github.com/opencontainers/go-digest) [![Build Status](https://travis-ci.org/opencontainers/go-digest.svg?branch=master)](https://travis-ci.org/opencontainers/go-digest)
+[![GoDoc](https://godoc.org/github.com/docker/go-digest?status.svg)](https://godoc.org/github.com/docker/go-digest) [![Go Report Card](https://goreportcard.com/badge/github.com/docker/go-digest)](https://goreportcard.com/report/github.com/docker/go-digest) [![Build Status](https://travis-ci.org/docker/go-digest.svg?branch=master)](https://travis-ci.org/docker/go-digest)
 
 Common digest package used across the container ecosystem.
 
-Please see the [godoc](https://godoc.org/github.com/opencontainers/go-digest) for more information.
+Please see the [godoc](https://godoc.org/github.com/docker/go-digest) for more information.
 
 # What is a digest?
 
@@ -49,7 +49,7 @@ can power a rich, safe, content distribution system.
 
 # Usage
 
-While the [godoc](https://godoc.org/github.com/opencontainers/go-digest) is
+While the [godoc](https://godoc.org/github.com/docker/go-digest) is 
 considered the best resource, a few important items need to be called 
 out when using this package.
 
@@ -76,7 +76,7 @@ out when using this package.
 
 The Go API, at this stage, is considered stable, unless otherwise noted.
 
-As always, before using a package export, read the [godoc](https://godoc.org/github.com/opencontainers/go-digest).
+As always, before using a package export, read the [godoc](https://godoc.org/github.com/docker/go-digest).
 
 # Contributing
 
@@ -86,17 +86,19 @@ New additions will be met with skepticism. If you think there is a
 missing feature, please file a bug clearly describing the problem and 
 the alternatives you tried before submitting a PR.
 
-## Code of Conduct
+# Reporting security issues
 
-Participation in the OpenContainers community is governed by [OpenContainer's Code of Conduct][code-of-conduct].
+The maintainers take security seriously. If you discover a security 
+issue, please bring it to their attention right away!
 
-## Security
+Please DO NOT file a public issue, instead send your report privately
+to security@docker.com.
 
-If you find an issue, please follow the [security][security] protocol to report it.
+Security reports are greatly appreciated and we will publicly thank you 
+for it. We also like to send gifts—if you're into Docker schwag, make 
+sure to let us know. We currently do not offer a paid security bounty 
+program, but are not ruling it out in the future.
 
 # Copyright and license
 
-Copyright © 2016 Docker, Inc. All rights reserved, except as follows. Code is released under the [Apache 2.0 license](LICENSE). This `README.md` file and the [`CONTRIBUTING.md`](CONTRIBUTING.md) file are licensed under the Creative Commons Attribution 4.0 International License under the terms and conditions set forth in the file [`LICENSE.docs`](LICENSE.docs). You may obtain a duplicate copy of the same license, titled CC BY-SA 4.0, at http://creativecommons.org/licenses/by-sa/4.0/.
-
-[security]: https://github.com/opencontainers/org/blob/master/security
-[code-of-conduct]: https://github.com/opencontainers/org/blob/master/CODE_OF_CONDUCT.md
+Copyright © 2016 Docker, Inc. All rights reserved, except as follows. Code is released under the [Apache 2.0 license](LICENSE.code). This `README.md` file and the [`CONTRIBUTING.md`](CONTRIBUTING.md) file are licensed under the Creative Commons Attribution 4.0 International License under the terms and conditions set forth in the file [`LICENSE.docs`](LICENSE.docs). You may obtain a duplicate copy of the same license, titled CC BY-SA 4.0, at http://creativecommons.org/licenses/by-sa/4.0/.

@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	testexutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[Area:Networking] services", func() {
@@ -33,6 +34,8 @@ var _ = Describe("[Area:Networking] services", func() {
 		})
 	})
 
+	oc := testexutil.NewCLI("ns-global", testexutil.KubeConfigPath())
+
 	InIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
 		f2 := e2e.NewDefaultFramework("net-services2")
@@ -46,19 +49,19 @@ var _ = Describe("[Area:Networking] services", func() {
 		})
 
 		It("should allow connections to services in the default namespace from a pod in another namespace on the same node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(oc, f1.Namespace)
 			Expect(checkServiceConnectivity(f1, f2, SAME_NODE)).To(Succeed())
 		})
 		It("should allow connections to services in the default namespace from a pod in another namespace on a different node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(oc, f1.Namespace)
 			Expect(checkServiceConnectivity(f1, f2, DIFFERENT_NODE)).To(Succeed())
 		})
 		It("should allow connections from pods in the default namespace to a service in another namespace on the same node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(oc, f2.Namespace)
 			Expect(checkServiceConnectivity(f1, f2, SAME_NODE)).To(Succeed())
 		})
 		It("should allow connections from pods in the default namespace to a service in another namespace on a different node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(oc, f2.Namespace)
 			Expect(checkServiceConnectivity(f1, f2, DIFFERENT_NODE)).To(Succeed())
 		})
 	})

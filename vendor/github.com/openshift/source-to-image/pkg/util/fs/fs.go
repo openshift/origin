@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 )
 
-var glog = utilglog.StderrLog
+var log = utillog.StderrLog
 
 // FileSystem allows STI to work with the file system and
 // perform tasks such as creating and deleting directories
@@ -212,9 +212,9 @@ func handleSymlink(h FileSystem, source, dest string) (bool, error) {
 	if lstaterr == nil &&
 		lstatinfo.Mode()&os.ModeSymlink != 0 {
 		if os.IsNotExist(staterr) {
-			glog.V(5).Infof("(broken) L %q -> %q", source, dest)
+			log.V(5).Infof("(broken) L %q -> %q", source, dest)
 		} else if h.ShouldKeepSymlinks() {
-			glog.V(5).Infof("L %q -> %q", source, dest)
+			log.V(5).Infof("L %q -> %q", source, dest)
 		} else {
 			// symlink not handled here, will copy the file content
 			return false, nil
@@ -246,10 +246,10 @@ func doCopy(h FileSystem, source, dest string, filesToIgnore map[string]string) 
 	if sourceinfo.IsDir() {
 		_, ok := filesToIgnore[source]
 		if ok {
-			glog.V(5).Infof("Directory %q ignored", source)
+			log.V(5).Infof("Directory %q ignored", source)
 			return nil
 		}
-		glog.V(5).Infof("D %q -> %q", source, dest)
+		log.V(5).Infof("D %q -> %q", source, dest)
 		return h.CopyContents(source, dest, filesToIgnore)
 	}
 
@@ -264,10 +264,10 @@ func doCopy(h FileSystem, source, dest string, filesToIgnore map[string]string) 
 	defer destfile.Close()
 	_, ok := filesToIgnore[source]
 	if ok {
-		glog.V(5).Infof("File %q ignored", source)
+		log.V(5).Infof("File %q ignored", source)
 		return nil
 	}
-	glog.V(5).Infof("F %q -> %q", source, dest)
+	log.V(5).Infof("F %q -> %q", source, dest)
 	if _, err := io.Copy(destfile, sourcefile); err != nil {
 		return err
 	}
@@ -311,7 +311,7 @@ func (h *fs) CopyContents(src string, dest string, filesToIgnore map[string]stri
 
 // RemoveDirectory removes the specified directory and all its contents
 func (h *fs) RemoveDirectory(dir string) error {
-	glog.V(2).Infof("Removing directory '%s'", dir)
+	log.V(2).Infof("Removing directory '%s'", dir)
 
 	// HACK: If deleting a directory in windows, call out to the system to do the deletion
 	// TODO: Remove this workaround when we switch to go 1.7 -- os.RemoveAll should
@@ -320,7 +320,7 @@ func (h *fs) RemoveDirectory(dir string) error {
 		command := exec.Command("cmd.exe", "/c", fmt.Sprintf("rd /s /q %s", dir))
 		output, err := command.Output()
 		if err != nil {
-			glog.Errorf("Error removing directory %q: %v %s", dir, err, string(output))
+			log.Errorf("Error removing directory %q: %v %s", dir, err, string(output))
 			return err
 		}
 		return nil
@@ -328,7 +328,7 @@ func (h *fs) RemoveDirectory(dir string) error {
 
 	err := os.RemoveAll(dir)
 	if err != nil {
-		glog.Errorf("Error removing directory '%s': %v", dir, err)
+		log.Errorf("Error removing directory '%s': %v", dir, err)
 	}
 	return err
 }

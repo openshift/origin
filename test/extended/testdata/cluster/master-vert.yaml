@@ -1,6 +1,7 @@
 provider: local
 ClusterLoader:
   cleanup: true
+  ifexists: delete
   projects:
     - num: 1
       basename: clusterloader-cakephp-mysql
@@ -8,7 +9,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/cakephp-mysql.json
+          file: ./test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
   
     - num: 1
       basename: clusterloader-dancer-mysql
@@ -16,7 +17,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/dancer-mysql.json
+          file: ./test/extended/testdata/cluster/quickstarts/dancer-mysql.json
   
     - num: 1
       basename: clusterloader-django-postgresql
@@ -24,7 +25,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/django-postgresql.json
+          file: ./test/extended/testdata/cluster/quickstarts/django-postgresql.json
   
     - num: 1
       basename: clusterloader-nodejs-mongodb
@@ -32,7 +33,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/nodejs-mongodb.json
+          file: ./test/extended/testdata/cluster/quickstarts/nodejs-mongodb.json
   
     - num: 1
       basename: clusterloader-rails-postgresql
@@ -40,7 +41,7 @@ ClusterLoader:
       tuning: default
       templates:
         - num: 1
-          file: ./examples/quickstarts/rails-postgresql.json
+          file: ./test/extended/testdata/cluster/quickstarts/rails-postgresql.json
   
   tuningsets:
     - name: default

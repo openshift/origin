@@ -3,9 +3,12 @@ package authorization
 import (
 	"fmt"
 	"strings"
+	"time"
 
-	"k8s.io/client-go/kubernetes"
-
+	g "github.com/onsi/ginkgo"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 	kauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -17,13 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	g "github.com/onsi/ginkgo"
-	authorizationv1 "github.com/openshift/api/authorization/v1"
-	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	kauthorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
 )
 
 var _ = g.Describe("[Feature:OpenShiftAuthorization] RBAC proxy for openshift authz", func() {
@@ -604,6 +603,31 @@ func RunLegacyLocalRoleEndpoint(t g.GinkgoTInterface, authorizationClient author
 	}
 }
 
+// waitForClusterPolicyUpdate checks if the given client can perform the named verb and action.
+// If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
+func waitForClusterPolicyUpdate(c kauthorizationv1client.SelfSubjectAccessReviewsGetter, verb string, resource schema.GroupResource, allowed bool) error {
+	review := &kauthorizationv1.SelfSubjectAccessReview{
+		Spec: kauthorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &kauthorizationv1.ResourceAttributes{
+				Verb:     verb,
+				Group:    resource.Group,
+				Resource: resource.Resource,
+			},
+		},
+	}
+	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
+		response, err := c.SelfSubjectAccessReviews().Create(review)
+		if err != nil {
+			return false, err
+		}
+		if response.Status.Allowed != allowed {
+			return false, nil
+		}
+		return true, nil
+	})
+	return err
+}
+
 // RunLegacyEndpointConfirmNoEscalation tests that the authorization proxy endpoints cannot be used to bypass
 // the RBAC escalation checks.  It also makes sure that the GR in the returned error matches authorization v1.
 func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuthorizationClient, userAuthorizationClient authorizationv1client.AuthorizationV1Interface, kubeClient kubernetes.Interface, userName, namespace string) {
@@ -665,7 +689,7 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 		for _, verb := range rule.Verbs {
 			for _, group := range rule.APIGroups {
 				for _, resource := range rule.Resources {
-					if err := testutil.WaitForClusterPolicyUpdate(
+					if err := waitForClusterPolicyUpdate(
 						kubeClient.AuthorizationV1(),
 						verb,
 						schema.GroupResource{Group: group, Resource: resource},

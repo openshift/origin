@@ -8,13 +8,37 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/openshift-controller-manager/pkg/build/buildscheme"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", func() {
+var (
+	// Decoder understands groupified and non-groupfied.  It deals in internals for now, but will be updated later
+	Decoder runtime.Decoder
+
+	// EncoderScheme can identify types for serialization. We use this for the event recorder and other things that need to
+	// identify external kinds.
+	EncoderScheme = runtime.NewScheme()
+	// Encoder always encodes to groupfied.
+	Encoder runtime.Encoder
+)
+
+func init() {
+	annotationDecodingScheme := runtime.NewScheme()
+	utilruntime.Must(buildv1.Install(annotationDecodingScheme))
+	utilruntime.Must(buildv1.DeprecatedInstallWithoutGroup(annotationDecodingScheme))
+	annotationDecoderCodecFactory := serializer.NewCodecFactory(annotationDecodingScheme)
+	Decoder = annotationDecoderCodecFactory.UniversalDecoder(buildv1.GroupVersion)
+
+	utilruntime.Must(buildv1.Install(EncoderScheme))
+	annotationEncoderCodecFactory := serializer.NewCodecFactory(EncoderScheme)
+	Encoder = annotationEncoderCodecFactory.LegacyCodec(buildv1.GroupVersion)
+}
+
+var _ = g.Describe("[Feature:Builds][Slow] build can have container image source", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildConfigFixture = exutil.FixturePath("testdata", "builds", "test-imagesource-buildconfig.yaml")
@@ -72,7 +96,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 				g.By("expecting the pod to contain the file from the input image")
 				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "-R", "-l", "injected/opt/app-root").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(out).To(o.ContainSubstring("bin -> ../../rh/rh-ruby22/root/usr/bin"))
+				o.Expect(out).To(o.ContainSubstring("bin -> ../../rh/rh-ruby25/root/usr/bin"))
 			})
 		})
 		g.Describe("buildconfig with input source image and docker strategy", func() {
@@ -99,7 +123,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 				g.By("expecting the pod to contain the file from the input image")
 				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "-R", "-l", "injected/opt/app-root").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(out).To(o.ContainSubstring("bin -> ../../rh/rh-ruby22/root/usr/bin"))
+				o.Expect(out).To(o.ContainSubstring("bin -> ../../rh/rh-ruby25/root/usr/bin"))
 			})
 		})
 		g.Describe("creating a build with an input source image and s2i strategy", func() {
@@ -128,7 +152,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundEnv = true
 
-						obj, err := runtime.Decode(buildscheme.Decoder, []byte(env.Value))
+						obj, err := runtime.Decode(Decoder, []byte(env.Value))
 						o.Expect(err).NotTo(o.HaveOccurred())
 						build, ok := obj.(*buildv1.Build)
 						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object", env.Value)
@@ -173,7 +197,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundEnv = true
 
-						obj, err := runtime.Decode(buildscheme.Decoder, []byte(env.Value))
+						obj, err := runtime.Decode(Decoder, []byte(env.Value))
 						o.Expect(err).NotTo(o.HaveOccurred())
 						build, ok := obj.(*buildv1.Build)
 						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object", env.Value)
@@ -219,7 +243,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundBuildEnv = true
 
-						obj, err := runtime.Decode(buildscheme.Decoder, []byte(env.Value))
+						obj, err := runtime.Decode(Decoder, []byte(env.Value))
 						o.Expect(err).NotTo(o.HaveOccurred())
 						build, ok := obj.(*buildv1.Build)
 						o.Expect(ok).To(o.BeTrue(), "could not convert build env\n %s\n to a build object (%+v)", env.Value, obj)

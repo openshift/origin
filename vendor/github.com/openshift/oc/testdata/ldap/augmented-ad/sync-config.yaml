@@ -1,0 +1,18 @@
+kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: true
+augmentedActiveDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ mail ]
+    groupsQuery:
+        baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]

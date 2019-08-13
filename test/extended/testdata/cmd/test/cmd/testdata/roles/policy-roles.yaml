@@ -1,0 +1,65 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: "policy-roles-template"
+labels:
+  createdBy: "policy-roles-template"
+parameters:
+  - description: "The namespace to create roles in."
+    name: NAMESPACE
+    required: true
+objects:
+  - apiVersion: v1
+    kind: Role
+    metadata:
+      creationTimestamp: null
+      name: basic-user
+    rules:
+    - apiGroups: null
+      attributeRestrictions: null
+      resourceNames:
+      - "~"
+      resources:
+      - users
+      verbs:
+      - get
+    - apiGroups: null
+      attributeRestrictions: null
+      resources:
+      - projectrequests
+      verbs:
+      - list
+    - apiGroups: null
+      attributeRestrictions: null
+      resources:
+      - clusterroles
+      verbs:
+      - get
+      - list
+    - apiGroups: null
+      attributeRestrictions: null
+      resources:
+      - projects
+      verbs:
+      - list
+    - apiGroups:
+      - authorization.k8s.io
+      attributeRestrictions: null
+      resources:
+      - selfsubjectaccessreviews
+      verbs:
+      - create
+  - apiVersion: v1
+    groupNames:
+    - system:authenticated
+    kind: RoleBinding
+    metadata:
+      creationTimestamp: null
+      name: basic-users
+    roleRef:
+      name: basic-user
+      namespace: ${NAMESPACE}
+    subjects:
+    - kind: SystemGroup
+      name: system:authenticated
+    userNames: null

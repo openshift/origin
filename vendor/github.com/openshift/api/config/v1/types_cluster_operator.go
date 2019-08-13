@@ -17,6 +17,7 @@ type ClusterOperator struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// spec hold the intent of how this operator should behave.
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ClusterOperatorSpec `json:"spec"`
 

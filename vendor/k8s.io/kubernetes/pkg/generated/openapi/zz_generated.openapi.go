@@ -15296,7 +15296,7 @@ func schema_k8sio_api_core_v1_NodeStatus(ref common.ReferenceCallback) common.Op
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "List of addresses reachable to the node. Queried from cloud provider, if available. More info: https://kubernetes.io/docs/concepts/nodes/node/#addresses",
+							Description: "List of addresses reachable to the node. Queried from cloud provider, if available. More info: https://kubernetes.io/docs/concepts/nodes/node/#addresses Note: This field is declared as mergeable, but the merge key is not sufficiently unique, which can cause data corruption when it is merged. Callers should instead use a full-replacement patch. See http://pr.k8s.io/79391 for an example.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -37774,6 +37774,20 @@ func schema_k8sio_kubelet_config_v1beta1_KubeletConfiguration(ref common.Referen
 					"enforceNodeAllocatable": {
 						SchemaProps: spec.SchemaProps{
 							Description: "This flag specifies the various Node Allocatable enforcements that Kubelet needs to perform. This flag accepts a list of options. Acceptable options are `none`, `pods`, `system-reserved` & `kube-reserved`. If `none` is specified, no other options may be specified. Refer to [Node Allocatable](https://git.k8s.io/community/contributors/design-proposals/node/node-allocatable.md) doc for more information. Dynamic Kubelet Config (beta): If dynamically updating this field, consider that removing enforcements may reduce the stability of the node. Alternatively, adding enforcements may reduce the stability of components which were using more than the reserved amount of resources; for example, enforcing kube-reserved may cause Kubelets to OOM if it uses more than the reserved resources, and enforcing system-reserved may cause system daemons to OOM if they use more than the reserved resources. Default: [\"pods\"]",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"allowedUnsafeSysctls": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A comma separated whitelist of unsafe sysctls or sysctl patterns (ending in *). Unsafe sysctl groups are kernel.shm*, kernel.msg*, kernel.sem, fs.mqueue.*, and net.*. These sysctls are namespaced but not allowed by default.  For example: \"kernel.msg*,net.ipv4.route.min_pmtu\" Default: []",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

@@ -1,8 +1,9 @@
-hash: f8c9db6d1671d547982414b3645690d9b3c007aa8a50fdaf62b81cee9768f0fa
-updated: 2019-06-07T14:38:33.770236434-04:00
+hash: 14182a87b2489ea8cd2db705bf09aad592752d9c9f7cc6cc840a76bcb179a2e8
+updated: 2019-07-14T22:28:29.452706+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
+  vcs: hg
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
   subpackages:
@@ -150,7 +151,7 @@ imports:
   - pkg/term
   - pkg/term/windows
 - name: github.com/docker/go-connections
-  version: 2a820fca5f4346badd2e3db516dd911f361eec3d
+  version: fd1b1942c4d55f7f210a8387e612dc6ffee78ff6
   subpackages:
   - nat
 - name: github.com/docker/go-metrics
@@ -158,7 +159,7 @@ imports:
 - name: github.com/docker/go-units
   version: 519db1ee28dcc9fd2474ae59fca29a810482bfb1
 - name: github.com/docker/libnetwork
-  version: ce86291472a965c5cd6adaf2c83acaee6bab630a
+  version: 14f9d751adc2d51b38d14b4e14419b76466d3b94
   subpackages:
   - ipamutils
 - name: github.com/docker/libtrust
@@ -168,7 +169,7 @@ imports:
   subpackages:
   - log
 - name: github.com/evanphx/json-patch
-  version: aad56889c1abf591875aed4f81df25e920bf0f4d
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - name: github.com/fsouza/go-dockerclient
   version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
@@ -250,7 +251,7 @@ imports:
   - compiler
   - extensions
 - name: github.com/gorilla/mux
-  version: ed099d42384823742bba0bf9a72b53b55c9e2e38
+  version: d83b6ffe499a29cc05fc977988d0392851779620
 - name: github.com/grpc-ecosystem/go-grpc-prometheus
   version: 2500245aa6110c562d17020fb31a2c133d737799
 - name: github.com/hashicorp/golang-lru
@@ -280,7 +281,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/Microsoft/go-winio
-  version: 12afdbf8b879f9ce020255d4dea63525b16518f5
+  version: 881e3d46423d592d11da9873ff6581dc577a1d0f
   subpackages:
   - pkg/guid
 - name: github.com/modern-go/concurrent
@@ -301,12 +302,12 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: b4a0b1d7378808d73dfd7edf9a8d30eebefaf7b5
+  version: 6cccc1760d57d9e1bc856b96eeb7ee02b7b8101d
   subpackages:
   - libcontainer/system
   - libcontainer/user
 - name: github.com/openshift/api
-  version: 3ca714bc5b1b13c4e9381147d9994c0384b20e23
+  version: f15120709e0ac8de84e11616d8f0cac54e8f52e3
   subpackages:
   - apps
   - apps/v1
@@ -353,7 +354,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: f4b242dfe08529a11803996e325ab6dc127d4e1d
+  version: c44a8b61b9f46cd9e802384dfeda0bc9942db68a
   subpackages:
   - apps/clientset/versioned/scheme
   - apps/clientset/versioned/typed/apps/v1
@@ -926,6 +927,7 @@ imports:
   - tools/record
   - tools/record/util
   - tools/reference
+  - tools/watch
   - transport
   - util/cert
   - util/connrotation

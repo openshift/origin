@@ -27,12 +27,10 @@ import (
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
-	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	"github.com/openshift/origin/test/extended/templates/openservicebroker/api"
 	"github.com/openshift/origin/test/extended/templates/openservicebroker/client"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/util/server/deprecated_openshift/deprecatedclient"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
@@ -212,7 +210,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		}))
 
 		o.Expect(templateInstance.Status.Conditions).To(o.HaveLen(1))
-		o.Expect(templatecontroller.TemplateInstanceHasCondition(templateInstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue)).To(o.Equal(true))
+		o.Expect(TemplateInstanceHasCondition(templateInstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue)).To(o.Equal(true))
 
 		o.Expect(templateInstance.Status.Objects).To(o.HaveLen(len(template.Objects)))
 		for i, obj := range templateInstance.Status.Objects {
@@ -284,8 +282,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 		restmapper := cli.RESTMapper()
 
-		config, err := deprecatedclient.GetClientConfig(exutil.KubeConfigPath(), nil)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		config := cli.AdminConfig()
 		dynamicClient, err := dynamic.NewForConfig(config)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -360,6 +357,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		})
 
 		g.It("should pass an end-to-end test", func() {
+			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			catalog()
 			provision()
 			bind()

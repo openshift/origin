@@ -1,6 +1,6 @@
 package raven
 
-// https://docs.getsentry.com/hosted/clientdev/interfaces/#message-interface
+// Message defines Sentry's spec compliant interface holding Message information - https://docs.sentry.io/development/sdk-dev/interfaces/message/
 type Message struct {
 	// Required
 	Message string `json:"message"`
@@ -9,9 +9,10 @@ type Message struct {
 	Params []interface{} `json:"params,omitempty"`
 }
 
+// Class provides name of implemented Sentry's interface
 func (m *Message) Class() string { return "logentry" }
 
-// https://docs.getsentry.com/hosted/clientdev/interfaces/#template-interface
+// Template defines Sentry's spec compliant interface holding Template information - https://docs.sentry.io/development/sdk-dev/interfaces/template/
 type Template struct {
 	// Required
 	Filename    string `json:"filename"`
@@ -24,9 +25,10 @@ type Template struct {
 	AbsolutePath string   `json:"abs_path,omitempty"`
 }
 
+// Class provides name of implemented Sentry's interface
 func (t *Template) Class() string { return "template" }
 
-// https://docs.getsentry.com/hosted/clientdev/interfaces/#context-interfaces
+// User defines Sentry's spec compliant interface holding User information - https://docs.sentry.io/development/sdk-dev/interfaces/user/
 type User struct {
 	// All fields are optional
 	ID       string `json:"id,omitempty"`
@@ -35,9 +37,10 @@ type User struct {
 	IP       string `json:"ip_address,omitempty"`
 }
 
+// Class provides name of implemented Sentry's interface
 func (h *User) Class() string { return "user" }
 
-// https://docs.getsentry.com/hosted/clientdev/interfaces/#context-interfaces
+// Query defines Sentry's spec compliant interface holding Context information - https://docs.sentry.io/development/sdk-dev/interfaces/contexts/
 type Query struct {
 	// Required
 	Query string `json:"query"`
@@ -46,4 +49,5 @@ type Query struct {
 	Engine string `json:"engine,omitempty"`
 }
 
+// Class provides name of implemented Sentry's interface
 func (q *Query) Class() string { return "query" }

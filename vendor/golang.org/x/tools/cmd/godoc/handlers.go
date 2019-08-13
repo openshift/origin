@@ -21,7 +21,6 @@ import (
 	"text/template"
 
 	"golang.org/x/tools/godoc"
-	"golang.org/x/tools/godoc/env"
 	"golang.org/x/tools/godoc/redirect"
 	"golang.org/x/tools/godoc/vfs"
 )
@@ -31,20 +30,21 @@ var (
 	fs   = vfs.NameSpace{}
 )
 
+var enforceHosts = false // set true in production on app engine
+
 // hostEnforcerHandler redirects requests to "http://foo.golang.org/bar"
 // to "https://golang.org/bar".
-// It permits requests to the host "godoc-test.golang.org" for testing and
-// golang.google.cn for Chinese users.
+// It permits requests to the host "godoc-test.golang.org" for testing.
 type hostEnforcerHandler struct {
 	h http.Handler
 }
 
 func (h hostEnforcerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !env.EnforceHosts() {
+	if !enforceHosts {
 		h.h.ServeHTTP(w, r)
 		return
 	}
-	if !h.isHTTPS(r) || !h.validHost(r.Host) {
+	if r.TLS == nil || !h.validHost(r.Host) {
 		r.URL.Scheme = "https"
 		if h.validHost(r.Host) {
 			r.URL.Host = r.Host
@@ -54,21 +54,13 @@ func (h hostEnforcerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, r.URL.String(), http.StatusFound)
 		return
 	}
-	w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	w.Header().Set("Strict-Transport-Security", "max-age=31536000; preload")
 	h.h.ServeHTTP(w, r)
-}
-
-func (h hostEnforcerHandler) isHTTPS(r *http.Request) bool {
-	return r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
 }
 
 func (h hostEnforcerHandler) validHost(host string) bool {
 	switch strings.ToLower(host) {
-	case "golang.org", "golang.google.cn":
-		return true
-	}
-	if strings.HasSuffix(host, "-dot-golang-org.appspot.com") {
-		// staging/test
+	case "golang.org", "godoc-test.golang.org":
 		return true
 	}
 	return false
@@ -112,23 +104,27 @@ func readTemplate(name string) *template.Template {
 	return t
 }
 
-func readTemplates(p *godoc.Presentation) {
-	codewalkHTML = readTemplate("codewalk.html")
-	codewalkdirHTML = readTemplate("codewalkdir.html")
-	p.CallGraphHTML = readTemplate("callgraph.html")
-	p.DirlistHTML = readTemplate("dirlist.html")
-	p.ErrorHTML = readTemplate("error.html")
-	p.ExampleHTML = readTemplate("example.html")
-	p.GodocHTML = readTemplate("godoc.html")
-	p.ImplementsHTML = readTemplate("implements.html")
-	p.MethodSetHTML = readTemplate("methodset.html")
-	p.PackageHTML = readTemplate("package.html")
-	p.PackageRootHTML = readTemplate("packageroot.html")
-	p.SearchHTML = readTemplate("search.html")
-	p.SearchDocHTML = readTemplate("searchdoc.html")
-	p.SearchCodeHTML = readTemplate("searchcode.html")
-	p.SearchTxtHTML = readTemplate("searchtxt.html")
-	p.SearchDescXML = readTemplate("opensearch.xml")
+func readTemplates(p *godoc.Presentation, html bool) {
+	p.PackageText = readTemplate("package.txt")
+	p.SearchText = readTemplate("search.txt")
+
+	if html || p.HTMLMode {
+		codewalkHTML = readTemplate("codewalk.html")
+		codewalkdirHTML = readTemplate("codewalkdir.html")
+		p.CallGraphHTML = readTemplate("callgraph.html")
+		p.DirlistHTML = readTemplate("dirlist.html")
+		p.ErrorHTML = readTemplate("error.html")
+		p.ExampleHTML = readTemplate("example.html")
+		p.GodocHTML = readTemplate("godoc.html")
+		p.ImplementsHTML = readTemplate("implements.html")
+		p.MethodSetHTML = readTemplate("methodset.html")
+		p.PackageHTML = readTemplate("package.html")
+		p.SearchHTML = readTemplate("search.html")
+		p.SearchDocHTML = readTemplate("searchdoc.html")
+		p.SearchCodeHTML = readTemplate("searchcode.html")
+		p.SearchTxtHTML = readTemplate("searchtxt.html")
+		p.SearchDescXML = readTemplate("opensearch.xml")
+	}
 }
 
 type fmtResponse struct {

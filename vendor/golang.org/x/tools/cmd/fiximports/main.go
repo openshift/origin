@@ -491,18 +491,15 @@ func list(args ...string) ([]*listPackage, error) {
 	return pkgs, nil
 }
 
-// cwd contains the current working directory of the tool.
-//
-// It is initialized directly so that its value will be set for any other
-// package variables or init functions that depend on it, such as the gopath
-// variable in main_test.go.
-var cwd string = func() string {
-	cwd, err := os.Getwd()
+var cwd string
+
+func init() {
+	var err error
+	cwd, err = os.Getwd()
 	if err != nil {
 		log.Fatalf("os.Getwd: %v", err)
 	}
-	return cwd
-}()
+}
 
 // shortPath returns an absolute or relative name for path, whatever is shorter.
 // Plundered from $GOROOT/src/cmd/go/build.go.

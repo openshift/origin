@@ -7,7 +7,7 @@ package eg
 import (
 	"fmt"
 	"go/ast"
-	"go/constant"
+	exact "go/constant"
 	"go/token"
 	"go/types"
 	"log"
@@ -67,9 +67,9 @@ func (tr *Transformer) matchExpr(x, y ast.Expr) bool {
 
 	case *ast.BasicLit:
 		y := y.(*ast.BasicLit)
-		xval := constant.MakeFromLiteral(x.Value, x.Kind, 0)
-		yval := constant.MakeFromLiteral(y.Value, y.Kind, 0)
-		return constant.Compare(xval, token.EQL, yval)
+		xval := exact.MakeFromLiteral(x.Value, x.Kind, 0)
+		yval := exact.MakeFromLiteral(y.Value, y.Kind, 0)
+		return exact.Compare(xval, token.EQL, yval)
 
 	case *ast.FuncLit:
 		// func literals (and thus statement syntax) never match.

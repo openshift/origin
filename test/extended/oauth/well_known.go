@@ -17,7 +17,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Suite:openshift/oauth] The OAuth server well-known endpoint", func() {
+var _ = g.Describe("[Feature:OAuthServer] well-known endpoint", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("oauth-well-known", exutil.KubeConfigPath())

@@ -7,24 +7,12 @@
 package playground
 
 import (
-	"context"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 )
 
-func post(ctx context.Context, url, contentType string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest: %v", err)
-	}
-	req.Header.Set("Content-Type", contentType)
-	return http.DefaultClient.Do(req.WithContext(ctx))
-}
-
-func contextFunc(_ *http.Request) context.Context {
-	return context.Background()
+func client(r *http.Request) *http.Client {
+	return http.DefaultClient
 }
 
 func report(r *http.Request, err error) {

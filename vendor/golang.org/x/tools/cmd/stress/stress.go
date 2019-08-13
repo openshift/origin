@@ -4,14 +4,14 @@
 
 // +build !plan9
 
-// The stress utility is intended for catching sporadic failures.
+// The stress utility is intended for catching of episodic failures.
 // It runs a given process in parallel in a loop and collects any failures.
 // Usage:
 // 	$ stress ./fmt.test -test.run=TestSometing -test.cpu=10
 // You can also specify a number of parallel processes with -p flag;
 // instruct the utility to not kill hanged processes for gdb attach;
 // or specify the failure output you are looking for (if you want to
-// ignore some other sporadic failures).
+// ignore some other episodic failures).
 package main
 
 import (
@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"syscall"
@@ -33,26 +32,7 @@ var (
 	flagKill    = flag.Bool("kill", true, "kill timed out processes if true, otherwise just print pid (to attach with gdb)")
 	flagFailure = flag.String("failure", "", "fail only if output matches `regexp`")
 	flagIgnore  = flag.String("ignore", "", "ignore failure if output matches `regexp`")
-	flagOutput  = flag.String("o", defaultPrefix(), "output failure logs to `path` plus a unique suffix")
 )
-
-func init() {
-	flag.Usage = func() {
-		os.Stderr.WriteString(`The stress utility is intended for catching sporadic failures.
-It runs a given process in parallel in a loop and collects any failures.
-Usage:
-
-	$ stress ./fmt.test -test.run=TestSometing -test.cpu=10
-
-`)
-		flag.PrintDefaults()
-	}
-}
-
-func defaultPrefix() string {
-	date := time.Now().Format("go-stress-20060102T150405-")
-	return filepath.Join(os.TempDir(), date)
-}
 
 func main() {
 	flag.Parse()
@@ -122,8 +102,7 @@ func main() {
 				continue
 			}
 			fails++
-			dir, path := filepath.Split(*flagOutput)
-			f, err := ioutil.TempFile(dir, path)
+			f, err := ioutil.TempFile("", "go-stress")
 			if err != nil {
 				fmt.Printf("failed to create temp file: %v\n", err)
 				os.Exit(1)

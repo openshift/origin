@@ -50,7 +50,7 @@ oc login "${MASTER_ADDR}" -u new-app -p password --certificate-authority="${MAST
 oc new-project new-app
 oc delete all --all
 
-# create a local-only docker image for testing
+# create a local-only container image for testing
 # image is removed in cleanup()
 tmp=$(mktemp -d)
 pushd "${tmp}"
@@ -63,7 +63,7 @@ popd
 rm -rf "${tmp}"
 
 
-# ensure a local-only image gets a docker image(not imagestream) reference created.
+# ensure a local-only image gets a container image(not imagestream) reference created.
 VERBOSE=true os::cmd::expect_success "oc new-project test-scratchimage"
 os::cmd::expect_success "oc new-app test/scratchimage~https://github.com/openshift/ruby-hello-world.git --strategy=docker"
 os::cmd::expect_success_and_text "oc get bc ruby-hello-world -o jsonpath={.spec.strategy.dockerStrategy.from.kind}" "DockerImage"

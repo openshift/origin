@@ -163,13 +163,19 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 			continue
 		}
 
+		var resource dynamic.ResourceInterface
 		if mappings.Scope.Name() == meta.RESTScopeNameRoot {
-			_, err = client.Resource(mappings.Resource).Create(manifests[path], metav1.CreateOptions{})
+			resource = client.Resource(mappings.Resource)
 		} else {
-			_, err = client.Resource(mappings.Resource).Namespace(manifests[path].GetNamespace()).Create(manifests[path], metav1.CreateOptions{})
+			resource = client.Resource(mappings.Resource).Namespace(manifests[path].GetNamespace())
 		}
-
 		resourceString := mappings.Resource.Resource + "." + mappings.Resource.Version + "." + mappings.Resource.Group + "/" + manifests[path].GetName() + " -n " + manifests[path].GetNamespace()
+
+		incluster, err := resource.Create(manifests[path], metav1.CreateOptions{})
+
+		if err == nil && options.Verbose {
+			fmt.Fprintf(options.StdErr, "Created %q %s\n", path, resourceString)
+		}
 
 		// Resource already exists means we already succeeded
 		// This should never happen as we remove already created items from the manifest list, unless the resource existed beforehand.
@@ -177,22 +183,41 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 			if options.Verbose {
 				fmt.Fprintf(options.StdErr, "Skipped %q %s as it already exists\n", path, resourceString)
 			}
-			delete(manifests, path)
-			continue
+			incluster, err = resource.Get(manifests[path].GetName(), metav1.GetOptions{})
+			if err != nil {
+				if options.Verbose {
+					fmt.Fprintf(options.StdErr, "Failed to get already existing %q %s: %v\n", path, resourceString, err)
+				}
+				errs[path] = fmt.Errorf("failed to get %s: %v", resourceString, err)
+				continue
+			}
 		}
 
 		if err != nil {
 			if options.Verbose {
 				fmt.Fprintf(options.StdErr, "Failed to create %q %s: %v\n", path, resourceString, err)
 			}
-			errs[path] = fmt.Errorf("failed to create: %v", err)
+			errs[path] = fmt.Errorf("failed to create %s: %v", resourceString, err)
 			continue
 		}
 
-		if options.Verbose {
-			fmt.Fprintf(options.StdErr, "Created %q %s\n", path, resourceString)
+		if _, ok := manifests[path].Object["status"]; ok {
+			_, found := incluster.Object["status"]
+			if !found {
+				incluster.Object["status"] = manifests[path].Object["status"]
+				incluster, err = resource.UpdateStatus(incluster, metav1.UpdateOptions{})
+				if err != nil && !kerrors.IsNotFound(err) {
+					if options.Verbose {
+						fmt.Fprintf(options.StdErr, "Failed to update status for the %q %s: %v\n", path, resourceString, err)
+					}
+					errs[path] = fmt.Errorf("failed to update status for %s: %v", resourceString, err)
+					continue
+				}
+				if err == nil && options.Verbose {
+					fmt.Fprintf(options.StdErr, "Updated status for %q %s\n", path, resourceString)
+				}
+			}
 		}
-
 		// Creation succeeded lets remove the manifest from the list to avoid creating it second time
 		delete(manifests, path)
 	}

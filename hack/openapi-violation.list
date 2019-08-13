@@ -37,6 +37,8 @@ API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvi
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,GitLab
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,HTPasswd
 API rule violation: names_match,github.com/openshift/api/config/v1,InfrastructureStatus,APIServerInternalURL
+API rule violation: names_match,github.com/openshift/api/config/v1,PlatformStatus,BareMetal
+API rule violation: names_match,github.com/openshift/api/config/v1,PlatformStatus,OpenStack
 API rule violation: names_match,github.com/openshift/api/config/v1,RequestHeaderIdentityProvider,ClientCA
 API rule violation: names_match,github.com/openshift/api/image/v1,DockerImageReference,ID
 API rule violation: names_match,github.com/openshift/api/image/v1,DockerImageReference,Name

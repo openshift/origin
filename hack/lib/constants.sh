@@ -10,7 +10,7 @@ readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
 readonly OS_GLIDE_MINOR_VERSION="13"
 readonly OS_REQUIRED_GLIDE_VERSION="0.$OS_GLIDE_MINOR_VERSION"
 
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp no_openssl"
+readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
 readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_S390X="gssapi"
 readonly OS_GOFLAGS_TAGS_LINUX_ARM64="gssapi"
@@ -36,7 +36,7 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
 readonly OS_CROSS_COMPILE_TARGETS=(
-  cmd/oc
+  vendor/github.com/openshift/oc/cmd/oc
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -113,13 +113,6 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
 
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oauth-server/pkg/version.buildDate" "${buildDate}"))
-
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
@@ -140,13 +133,6 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.buildDate" "${buildDate}"))
-
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/sdn/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/sdn/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/sdn/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/sdn/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/sdn/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/sdn/pkg/version.buildDate" "${buildDate}"))
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMajor" "${KUBE_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMinor" "${KUBE_GIT_MINOR}"))
@@ -314,27 +300,20 @@ function os::build::generate_windows_versioninfo() {
        }
 }
 EOF
-  goversioninfo -o ${OS_ROOT}/cmd/oc/oc.syso ${windows_versioninfo_file}
+  goversioninfo -o ${OS_ROOT}/vendor/github.com/openshift/oc/cmd/oc/oc.syso ${windows_versioninfo_file}
 }
 readonly -f os::build::generate_windows_versioninfo
 
 # Removes the .syso file used to add compile-time VERSIONINFO metadata to the
 # Windows binary.
 function os::build::clean_windows_versioninfo() {
-  rm ${OS_ROOT}/cmd/oc/oc.syso
+  rm ${OS_ROOT}/vendor/github.com/openshift/oc/cmd/oc/oc.syso
 }
 readonly -f os::build::clean_windows_versioninfo
 
 # OS_ALL_IMAGES is the list of images built by os::build::images.
 readonly OS_ALL_IMAGES=(
-  origin-cli
-  origin-hypershift
   origin-hyperkube
-  origin-sdn
-  origin-deployer
-  origin-docker-builder
-  origin-recycler
-  origin-template-service-broker
   origin-tests
 )
 
@@ -391,18 +370,12 @@ function os::build::images() {
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
   # images that depend on "${tag_prefix}-source" or "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
-  ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
   ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
-  ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
-  ( os::build::image "${tag_prefix}-sdn"                     images/sdn ) &
 
   for i in `jobs -p`; do wait $i; done
 
   # images that depend on "${tag_prefix}-cli" or hyperkube
   ( os::build::image "${tag_prefix}-tests"          images/tests ) &
-  ( os::build::image "${tag_prefix}-deployer"       images/deployer ) &
-  ( os::build::image "${tag_prefix}-recycler"       images/recycler ) &
 
   for i in `jobs -p`; do wait $i; done
 }

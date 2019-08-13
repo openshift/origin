@@ -22,7 +22,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		host, ns string
 		oc       *exutil.CLI
 
-		configPath = exutil.FixturePath("testdata", "ingress.yaml")
+		configPath = exutil.FixturePath("testdata", "router", "ingress.yaml")
 	)
 
 	// this hook must be registered before the framework namespace teardown

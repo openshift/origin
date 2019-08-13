@@ -6,13 +6,16 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Console holds cluster-wide information about Console.  The canonical name is `cluster`
+// Console holds cluster-wide configuration for the web console, including the
+// logout URL, and reports the public URL of the console. The canonical name is
+// `cluster`.
 type Console struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ConsoleSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -20,11 +23,13 @@ type Console struct {
 	Status ConsoleStatus `json:"status"`
 }
 
+// ConsoleSpec is the specification of the desired behavior of the Console.
 type ConsoleSpec struct {
 	// +optional
 	Authentication ConsoleAuthentication `json:"authentication"`
 }
 
+// ConsoleStatus defines the observed status of the Console.
 type ConsoleStatus struct {
 	// The URL for the console. This will be derived from the host for the route that
 	// is created for the console.
@@ -40,6 +45,7 @@ type ConsoleList struct {
 	Items           []Console `json:"items"`
 }
 
+// ConsoleAuthentication defines a list of optional configuration for console authentication.
 type ConsoleAuthentication struct {
 	// An optional, absolute URL to redirect web browsers to after logging out of
 	// the console. If not specified, it will redirect to the default login page.

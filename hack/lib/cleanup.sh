@@ -85,7 +85,7 @@ function os::cleanup::internal::dump_etcd_v3() {
 	os::util::ensure::built_binary_exists 'etcdhelper' >&2
 
 	etcdhelper --cert "${ETCD_CLIENT_CERT}" --key "${ETCD_CLIENT_KEY}" \
-	           --cacert "${ETCD_CA_BUNDLE}" --endpoint "${full_url}" dump
+	           --cacert "${ETCD_CA_BUNDLE}" --endpoint "${full_url}" dump || true
 }
 readonly -f os::cleanup::internal::dump_etcd_v3
 

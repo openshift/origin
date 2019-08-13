@@ -65,7 +65,7 @@ func setMetadata(flags *mflag.FlagSet, action string, m storage.Store, args []st
 		paramMetadata = string(b)
 	}
 	if err := m.SetMetadata(args[0], paramMetadata); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		return 1
 	}
 	return 0

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/openshift/source-to-image/pkg/api/constants"
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utillog "github.com/openshift/source-to-image/pkg/util/log"
 )
 
 // Common S2I errors
@@ -268,9 +268,9 @@ func NewEmptyGitRepositoryError(source string) error {
 	}
 }
 
-// glog is a placeholder until the builders pass an output stream down
-// client facing libraries should not be using glog
-var glog = utilglog.StderrLog
+// log is a placeholder until the builders pass an output stream down
+// client facing libraries should not be using log
+var log = utillog.StderrLog
 
 // CheckError checks input error.
 // 1. if the input error is nil, the function does nothing but return.
@@ -283,17 +283,17 @@ func CheckError(err error) {
 	}
 
 	if e, ok := err.(Error); ok {
-		glog.Errorf("An error occurred: %v", e)
-		glog.Errorf("Suggested solution: %v", e.Suggestion)
+		log.Errorf("An error occurred: %v", e)
+		log.Errorf("Suggested solution: %v", e.Suggestion)
 		if e.Details != nil {
-			glog.V(1).Infof("Details: %v", e.Details)
+			log.V(1).Infof("Details: %v", e.Details)
 		}
-		glog.Error("If the problem persists consult the docs at https://github.com/openshift/source-to-image/tree/master/docs. " +
+		log.Error("If the problem persists consult the docs at https://github.com/openshift/source-to-image/tree/master/docs. " +
 			"Eventually reach us on freenode #openshift or file an issue at https://github.com/openshift/source-to-image/issues " +
 			"providing us with a log from your build using log output level 3.")
 		os.Exit(e.ErrorCode)
 	} else {
-		glog.Errorf("An error occurred: %v", err)
+		log.Errorf("An error occurred: %v", err)
 		os.Exit(1)
 	}
 }

@@ -21,7 +21,7 @@ import (
 
 func TestDegraded(t *testing.T) {
 
-	twoMinutesAgo := metav1.NewTime(time.Now().Add(-2 * time.Minute))
+	threeMinutesAgo := metav1.NewTime(time.Now().Add(-3 * time.Minute))
 	fiveSecondsAgo := metav1.NewTime(time.Now().Add(-2 * time.Second))
 	yesterday := metav1.NewTime(time.Now().Add(-24 * time.Hour))
 
@@ -53,7 +53,7 @@ func TestDegraded(t *testing.T) {
 		{
 			name: "one not failing/beyond threshold",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type a"},
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: threeMinutesAgo, Message: "a message from type a"},
 			},
 			expectedStatus: configv1.ConditionFalse,
 			expectedReason: "AsExpected",
@@ -75,7 +75,7 @@ func TestDegraded(t *testing.T) {
 		{
 			name: "one failing/beyond threshold",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, Message: "a message from type a", LastTransitionTime: twoMinutesAgo},
+				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, Message: "a message from type a", LastTransitionTime: threeMinutesAgo},
 			},
 			expectedStatus: configv1.ConditionTrue,
 			expectedReason: "TypeADegraded",
@@ -98,7 +98,7 @@ func TestDegraded(t *testing.T) {
 		{
 			name: "two present/one failing/beyond threshold",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type a"},
+				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type a"},
 				{Type: "TypeBDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
 			},
 			expectedStatus: configv1.ConditionTrue,
@@ -123,7 +123,7 @@ func TestDegraded(t *testing.T) {
 			name: "two present/second one failing/beyond threshold",
 			conditions: []operatorv1.OperatorCondition{
 				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
-				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type b"},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type b"},
 			},
 			expectedStatus: configv1.ConditionTrue,
 			expectedReason: "TypeBDegraded",
@@ -136,7 +136,7 @@ func TestDegraded(t *testing.T) {
 			conditions: []operatorv1.OperatorCondition{
 				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
 				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
-				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: threeMinutesAgo, Message: "a message from type c"},
 				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type d"},
 			},
 			expectedStatus: configv1.ConditionFalse,
@@ -153,8 +153,8 @@ func TestDegraded(t *testing.T) {
 			conditions: []operatorv1.OperatorCondition{
 				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
 				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
-				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type c"},
-				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type d"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: threeMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type d"},
 			},
 			expectedStatus: configv1.ConditionTrue,
 			expectedReason: "MultipleConditionsMatching",
@@ -168,9 +168,9 @@ func TestDegraded(t *testing.T) {
 			name: "many present/some failing/all beyond threshold",
 			conditions: []operatorv1.OperatorCondition{
 				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
-				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type b\nanother message from type b"},
-				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type c"},
-				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type d"},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type b\nanother message from type b"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: threeMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: threeMinutesAgo, Message: "a message from type d"},
 			},
 			expectedStatus: configv1.ConditionTrue,
 			expectedReason: "MultipleConditionsMatching",

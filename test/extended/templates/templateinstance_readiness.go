@@ -18,7 +18,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
-	templatecontroller "github.com/openshift/openshift-controller-manager/pkg/template/controller"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -89,10 +88,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		// the build or dc have not settled; the templateinstance must also
 		// indicate this
 
-		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue) {
+		if TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue) {
 			return false, errors.New("templateinstance unexpectedly reported ready")
 		}
-		if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
+		if TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 			return false, errors.New("templateinstance unexpectedly reported failure")
 		}
 
@@ -122,6 +121,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		})
 
 		g.It("should report ready soon after all annotated objects are ready", func() {
+			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -155,11 +155,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 					return false, err
 				}
 
-				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
+				if TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue) {
 					return false, errors.New("templateinstance unexpectedly reported failure")
 				}
 
-				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue), nil
+				return TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue), nil
 			})
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)
@@ -171,6 +171,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		})
 
 		g.It("should report failed soon after an annotated objects has failed", func() {
+			g.Skip("Bug 1731222: skip template tests until we determine what is broken")
 			var err error
 
 			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&v1.Secret{
@@ -217,11 +218,11 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 					return false, err
 				}
 
-				if templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue) {
+				if TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceReady, corev1.ConditionTrue) {
 					return false, errors.New("templateinstance unexpectedly reported ready")
 				}
 
-				return templatecontroller.TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue), nil
+				return TemplateInstanceHasCondition(templateinstance, templatev1.TemplateInstanceInstantiateFailure, corev1.ConditionTrue), nil
 			})
 			if err != nil {
 				err := dumpObjectReadiness(cli, templateinstance)

@@ -40,52 +40,27 @@ here's a skeleton implementation of a playground transport.
         }
 */
 
-// HTTPTransport is the default transport.
-// enableVet enables running vet if a program was compiled and ran successfully.
-// If vet returned any errors, display them before the output of a program.
-function HTTPTransport(enableVet) {
+function HTTPTransport() {
 	'use strict';
 
-	function playback(output, data) {
-		// Backwards compatibility: default values do not affect the output.
-		var events = data.Events || [];
-		var errors = data.Errors || "";
-		var status = data.Status || 0;
-		var isTest = data.IsTest || false;
-		var testsFailed = data.TestsFailed || 0;
+	// TODO(adg): support stderr
 
+	function playback(output, events) {
 		var timeout;
 		output({Kind: 'start'});
 		function next() {
 			if (!events || events.length === 0) {
-				if (isTest) {
-					if (testsFailed > 0) {
-						output({Kind: 'system', Body: '\n'+testsFailed+' test'+(testsFailed>1?'s':'')+' failed.'});
-					} else {
-						output({Kind: 'system', Body: '\nAll tests passed.'});
-					}
-				} else {
-					if (status > 0) {
-						output({Kind: 'end', Body: 'status ' + status + '.'});
-					} else {
-						if (errors !== "") {
-							// errors are displayed only in the case of timeout.
-							output({Kind: 'end', Body: errors + '.'});
-						} else {
-							output({Kind: 'end'});
-						}
-					}
-				}
+				output({Kind: 'end'});
 				return;
 			}
 			var e = events.shift();
 			if (e.Delay === 0) {
-				output({Kind: e.Kind, Body: e.Message});
+				output({Kind: 'stdout', Body: e.Message});
 				next();
 				return;
 			}
 			timeout = setTimeout(function() {
-				output({Kind: e.Kind, Body: e.Message});
+				output({Kind: 'stdout', Body: e.Message});
 				next();
 			}, e.Delay / 1000000);
 		}
@@ -94,19 +69,13 @@ function HTTPTransport(enableVet) {
 			Stop: function() {
 				clearTimeout(timeout);
 			}
-		};
+		}
 	}
 
 	function error(output, msg) {
 		output({Kind: 'start'});
 		output({Kind: 'stderr', Body: msg});
 		output({Kind: 'end'});
-	}
-
-	function buildFailed(output, msg) {
-		output({Kind: 'start'});
-		output({Kind: 'stderr', Body: msg});
-		output({Kind: 'system', Body: '\nGo build failed.'});
 	}
 
 	var seq = 0;
@@ -124,39 +93,10 @@ function HTTPTransport(enableVet) {
 					if (!data) return;
 					if (playing != null) playing.Stop();
 					if (data.Errors) {
-						if (data.Errors === 'process took too long') {
-							// Playback the output that was captured before the timeout.
-							playing = playback(output, data);
-						} else {
-							buildFailed(output, data.Errors);
-						}
+						error(output, data.Errors);
 						return;
 					}
-
-					if (!enableVet) {
-						playing = playback(output, data);
-						return;
-					}
-
-					$.ajax("/vet", {
-						data: {"body": body},
-						type: "POST",
-						dataType: "json",
-						success: function(dataVet) {
-							if (dataVet.Errors) {
-								if (!data.Events) {
-									data.Events = [];
-								}
-								// inject errors from the vet as the first events in the output
-								data.Events.unshift({Message: 'Go vet exited.\n\n', Kind: 'system', Delay: 0});
-								data.Events.unshift({Message: dataVet.Errors, Kind: 'stderr', Delay: 0});
-							}
-							playing = playback(output, data);
-						},
-						error: function() {
-							playing = playback(output, data);
-						}
-					});
+					playing = playback(output, data.Events);
 				},
 				error: function() {
 					error(output, 'Error communicating with remote server.');
@@ -178,16 +118,11 @@ function SocketTransport() {
 	var id = 0;
 	var outputs = {};
 	var started = {};
-	var websocket;
-	if (window.location.protocol == "http:") {
-		websocket = new WebSocket('ws://' + window.location.host + '/socket');
-	} else if (window.location.protocol == "https:") {
-		websocket = new WebSocket('wss://' + window.location.host + '/socket');
-	}
+	var websocket = new WebSocket('ws://' + window.location.host + '/socket');
 
 	websocket.onclose = function() {
 		console.log('websocket connection closed');
-	};
+	}
 
 	websocket.onmessage = function(e) {
 		var m = JSON.parse(e.data);
@@ -199,7 +134,7 @@ function SocketTransport() {
 			started[m.Id] = true;
 		}
 		output({Kind: m.Kind, Body: m.Body});
-	};
+	}
 
 	function send(m) {
 		websocket.send(JSON.stringify(m));
@@ -267,7 +202,7 @@ function PlaygroundOutput(el) {
 
 		if (needScroll)
 			el.scrollTop = el.scrollHeight - el.offsetHeight;
-	};
+	}
 }
 
 (function() {
@@ -283,7 +218,7 @@ function PlaygroundOutput(el) {
     return function(write) {
       if (write.Body) lineHighlight(write.Body);
       wrappedOutput(write);
-    };
+    }
   }
   function lineClear() {
     $(".lineerror").removeClass("lineerror");
@@ -302,10 +237,9 @@ function PlaygroundOutput(el) {
   //  enableHistory - enable using HTML5 history API (optional)
   //  transport - playground transport to use (default is HTTPTransport)
   //  enableShortcuts - whether to enable shortcuts (Ctrl+S/Cmd+S to save) (default is false)
-  //  enableVet - enable running vet and displaying its errors
   function playground(opts) {
     var code = $(opts.codeEl);
-    var transport = opts['transport'] || new HTTPTransport(opts['enableVet']);
+    var transport = opts['transport'] || new HTTPTransport();
     var running;
 
     // autoindent helpers.
@@ -469,7 +403,6 @@ function PlaygroundOutput(el) {
         processData: false,
         data: sharingData,
         type: "POST",
-        contentType: "text/plain; charset=utf-8",
         complete: function(xhr) {
           sharing = false;
           if (xhr.status != 200) {
