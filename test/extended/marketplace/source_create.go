@@ -10,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Marketplace] Marketplace", func() {
+var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 
 	defer g.GinkgoRecover()
 
@@ -40,7 +40,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace", func() {
 	})
 
 	//OCP-21953 ensure the marketplace-operator running on the master node
-	g.It("ensure the marketplace-operator pod running on the master node", func() {
+	/*g.It("ensure the marketplace-operator pod running on the master node", func() {
 		podName, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-n", marketplaceNs, "-l name=marketplace-operator", "-oname").Output()
 		//oc get pods -l name=marketplace-operator -o name
 		nodeName, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args(podName, "-n", marketplaceNs, "-o=jsonpath={.spec.nodeName}").Output()
@@ -50,7 +50,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace", func() {
 
 		//node-role.kubernetes.io/master
 		o.Expect(nodeRole).Should(o.ContainSubstring("master"))
-	})
+	})*/
 
 	//OCP-21405 create one opsrc,OCP-21419 create one csc,OCP-21479 sub to openshift-operators,OCP-21667 delete the csc
 	g.It("[ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
