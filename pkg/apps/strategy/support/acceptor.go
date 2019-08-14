@@ -6,6 +6,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -51,8 +52,14 @@ func (c *acceptAvailablePods) Accept(rc *corev1.ReplicationController) error {
 		}
 
 		_, err = watch.Until(c.timeout, watcher, func(event watch.Event) (bool, error) {
-			if t := event.Type; t != watch.Modified {
-				return false, fmt.Errorf("acceptAvailablePods failed watching for ReplicationController %s/%s: received event %v", rc.Namespace, rc.Name, t)
+			if event.Type != watch.Modified {
+				err := fmt.Errorf("acceptAvailablePods failed watching for ReplicationController %s/%s: ", rc.Namespace, rc.Name)
+				if event.Type == watch.Error {
+					err = fmt.Errorf("%v: %v", err, kerrors.FromObject(event.Object))
+				} else {
+					err = fmt.Errorf("%v: received unexpected event %v", err, event.Type)
+				}
+				return false, err
 			}
 			newRc, ok := event.Object.(*corev1.ReplicationController)
 			if !ok {
