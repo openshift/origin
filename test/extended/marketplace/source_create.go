@@ -39,25 +39,12 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		}
 	})
 
-	//OCP-21953 ensure the marketplace-operator running on the master node
-	/*g.It("ensure the marketplace-operator pod running on the master node", func() {
-		podName, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-n", marketplaceNs, "-l name=marketplace-operator", "-oname").Output()
-		//oc get pods -l name=marketplace-operator -o name
-		nodeName, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args(podName, "-n", marketplaceNs, "-o=jsonpath={.spec.nodeName}").Output()
-		//oc get pod/marketplace-operator-758c7d869b-hmkcj -o=jsonpath={.spec.nodeName}
-		nodeRole, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("nodes", nodeName, "-o=jsonpath={.metadata.labels}").Output()
-		//oc get nodes control-plane-0 -o=jsonpath={.metadata.labels}
-
-		//node-role.kubernetes.io/master
-		o.Expect(nodeRole).Should(o.ContainSubstring("master"))
-	})*/
-
 	//OCP-21405 create one opsrc,OCP-21419 create one csc,OCP-21479 sub to openshift-operators,OCP-21667 delete the csc
 	g.It("[ocp-21405 21419 21479 21667]create and delete the basic source,sub one operator", func() {
 
 		//create one opsrc
 		//opsrcYaml := exutil.FixturePath("testdata", "marketplace", "opsrc", "01-opsrc.yaml")
-		opsrcYaml, err := oc.AsAdmin().WithoutNamespace().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=jfan", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
+		opsrcYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", opsrcYamltem, "-p", "NAME=opsrctest", "NAMESPACE=jfan", fmt.Sprintf("MARKETPLACE=%s", marketplaceNs)).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = createResources(oc, opsrcYaml)
@@ -99,7 +86,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		o.Expect(packageEqual).Should(o.BeTrue())
 
 		//OCP-21419 create one csc
-		cscYaml, err := oc.AsAdmin().WithoutNamespace().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctest", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=descheduler-test").OutputToFile("config.json")
+		cscYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", cscYamltem, "-p", "NAME=csctest", fmt.Sprintf("NAMESPACE=%s", allNs), fmt.Sprintf("MARKETPLACE=%s", marketplaceNs), "PACKAGES=descheduler-test").OutputToFile("config.json")
 		err = createResources(oc, cscYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		time.Sleep(15 * time.Second)
@@ -119,7 +106,7 @@ var _ = g.Describe("[Feature:Marketplace] Marketplace basic", func() {
 		time.Sleep(30 * time.Second)
 		msgofpkg, _ := existResources(oc, "packagemanifest", "descheduler-test", "openshift-operators")
 		o.Expect(msgofpkg).Should(o.BeTrue())
-		subYaml, err := oc.AsAdmin().WithoutNamespace().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=descheduler-test", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=descheduler.v0.0.3").OutputToFile("config.json")
+		subYaml, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subYamltem, "-p", "NAME=descheduler-test", fmt.Sprintf("NAMESPACE=%s", allNs), "SOURCE=csctest", "CSV=descheduler.v0.0.3").OutputToFile("config.json")
 		err = createResources(oc, subYaml)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		time.Sleep(80 * time.Second)
