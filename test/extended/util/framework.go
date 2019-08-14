@@ -1,6 +1,8 @@
 package util
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,7 +39,9 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
@@ -52,23 +57,120 @@ import (
 func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	e2e.Logf("Waiting up to 2 minutes for the internal registry hostname to be published")
 	var registryHostname string
+	foundOCMLogs := false
+	isOCMProgressing := true
+	podLogs := map[string]string{}
 	err := wait.Poll(2*time.Second, 2*time.Minute, func() (bool, error) {
 		imageConfig, err := oc.AsAdmin().AdminConfigClient().ConfigV1().Images().Get("cluster", metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				e2e.Logf("Image config object not found")
+				return false, nil
+			}
+			e2e.Logf("Error accessing image config object: %#v", err)
+			return false, err
+		}
+		if imageConfig == nil {
+			e2e.Logf("Image config object nil")
+			return false, nil
+		}
+		registryHostname = imageConfig.Status.InternalRegistryHostname
+		if len(registryHostname) == 0 {
+			e2e.Logf("Internal Registry Hostname is not set in image config object")
+			return false, nil
+		}
+
+		// verify that the OCM config's internal registry hostname matches
+		// the image config's internal registry hostname
+		ocm, err := oc.AdminOperatorClient().OperatorV1().OpenShiftControllerManagers().Get("cluster", metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
 			}
 			return false, err
 		}
-		if imageConfig == nil {
+		observedConfig := map[string]interface{}{}
+		err = json.Unmarshal(ocm.Spec.ObservedConfig.Raw, &observedConfig)
+		if err != nil {
 			return false, nil
 		}
-		registryHostname = imageConfig.Status.InternalRegistryHostname
-		if len(registryHostname) == 0 {
+		internalRegistryHostnamePath := []string{"dockerPullSecret", "internalRegistryHostname"}
+		currentRegistryHostname, _, err := unstructured.NestedString(observedConfig, internalRegistryHostnamePath...)
+		if err != nil {
+			e2e.Logf("error procesing observed config %#v", err)
 			return false, nil
 		}
-		return true, nil
+		if currentRegistryHostname != registryHostname {
+			e2e.Logf("OCM observed config hostname %s does not match image config hostname %s", currentRegistryHostname, registryHostname)
+			return false, nil
+		}
+		// check pod logs for messages around image config's internal registry hostname has been observed and
+		// and that the build controller was started after that observation
+		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-controller-manager").List(metav1.ListOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		for _, pod := range pods.Items {
+			req := oc.AdminKubeClient().CoreV1().Pods("openshift-controller-manager").GetLogs(pod.Name, &corev1.PodLogOptions{})
+			readCloser, err := req.Stream()
+			if err == nil {
+				b, err := ioutil.ReadAll(readCloser)
+				if err == nil {
+					podLog := string(b)
+					podLogs[pod.Name] = podLog
+					scanner := bufio.NewScanner(strings.NewReader(podLog))
+					firstLog := false
+					for scanner.Scan() {
+						line := scanner.Text()
+						if strings.Contains(line, "docker_registry_service.go") && strings.Contains(line, registryHostname) {
+							firstLog = true
+							continue
+						}
+						if firstLog && strings.Contains(line, "build_controller.go") && strings.Contains(line, "Starting build controller") {
+							e2e.Logf("the OCM pod logs indicate the build controller was started after the internal registry hostname has been set in the OCM config")
+							foundOCMLogs = true
+							break
+						}
+					}
+				}
+			} else {
+				e2e.Logf("error getting pod logs: %#v", err)
+			}
+		}
+		if !foundOCMLogs {
+			e2e.Logf("did not find the sequence in the OCM pod logs around the build controller getting started after the internal registry hostname has been set in the OCM config")
+			return false, nil
+		}
+
+		if !isOCMProgressing {
+			return true, nil
+		}
+		// now cycle through the OCM operator conditions and make sure the Progressing condition is done
+		for _, condition := range ocm.Status.Conditions {
+			if condition.Type != operatorv1.OperatorStatusTypeProgressing {
+				continue
+			}
+			if condition.Status != operatorv1.ConditionFalse {
+				e2e.Logf("OCM rollout still progressing or in error: %v", condition.Status)
+				return false, nil
+			}
+			e2e.Logf("OCM rollout progressing status reports complete")
+			isOCMProgressing = true
+			return true, nil
+		}
+		e2e.Logf("OCM operator progressing condition not present yet")
+		return false, nil
 	})
+
+	if !foundOCMLogs {
+		e2e.Logf("dumping OCM pod logs since we never found the internal registry hostname and start build controller sequence")
+		for podName, podLog := range podLogs {
+			e2e.Logf("pod %s logs:\n%s", podName, podLog)
+		}
+	}
 	if err == wait.ErrWaitTimeout {
 		return "", fmt.Errorf("Timed out waiting for internal registry hostname to be published")
 	}
@@ -87,6 +189,36 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	}
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "mongodb", "jenkins"}
 	scan := func() bool {
+		// check the samples operator to see about imagestream import status
+		samplesOperatorConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get("openshift-samples", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Samples Operator ClusterOperator Error: %#v", err)
+			return false
+		}
+		for _, condition := range samplesOperatorConfig.Status.Conditions {
+			switch {
+			case condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue:
+				// if degraded, bail ... unexpected results can ensue
+				e2e.Logf("SamplesOperator degraded!!!")
+				return false
+			case condition.Type == configv1.OperatorProgressing:
+				if condition.Status == configv1.ConditionTrue {
+					// updates still in progress ... not "ready"
+					e2e.Logf("SamplesOperator still in progress")
+					return false
+				}
+				// if reason field set, that means an image import error occurred
+				if len(condition.Reason) > 0 {
+					e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
+					return false
+				}
+			case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
+				e2e.Logf("SamplesOperator not available")
+				return false
+			default:
+				e2e.Logf("SamplesOperator at steady state")
+			}
+		}
 		for _, lang := range langs {
 			e2e.Logf("Checking language %v \n", lang)
 			is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
