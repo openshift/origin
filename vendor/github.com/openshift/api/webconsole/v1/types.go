@@ -43,6 +43,10 @@ type ClusterInfo struct {
 	// LogoutPublicURL is an optional, absolute URL to redirect web browsers to after logging out of the web
 	// console. If not specified, the built-in logout page is shown.
 	LogoutPublicURL string `json:"logoutPublicURL" protobuf:"bytes,5,opt,name=logoutPublicURL"`
+
+	// AdminConsolePublicURL is an optional, public URL of the OpenShift admin console. If specified, the web
+	// console will add a link to the admin console in a context selector in its masthead.
+	AdminConsolePublicURL string `json:"adminConsolePublicURL" protobuf:"bytes,6,opt,name=adminConsolePublicURL"`
 }
 
 // FeaturesConfiguration defines various feature gates for the web console

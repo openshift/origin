@@ -18,6 +18,15 @@ func (in *ClusterNetwork) DeepCopyInto(out *ClusterNetwork) {
 		*out = make([]ClusterNetworkEntry, len(*in))
 		copy(*out, *in)
 	}
+	if in.VXLANPort != nil {
+		in, out := &in.VXLANPort, &out.VXLANPort
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(uint32)
+			**out = **in
+		}
+	}
 	return
 }
 

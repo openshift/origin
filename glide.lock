@@ -1,5 +1,5 @@
-hash: f6c313daf71c664707bed1f649639897c0690fd47c45615bed5abf7c4971e086
-updated: 2018-07-09T09:13:12.866398637-04:00
+hash: 26d34deec817217fb2aeaec3c688ea70a5cebb10b877f5e4a3ab69de1bab029e
+updated: 2019-08-14T09:41:38.796958+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -165,7 +165,7 @@ imports:
   - pkg/ns
   - pkg/utils/hwaddr
 - name: github.com/containers/image
-  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
+  version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
   repo: https://github.com/openshift/containers-image.git
   subpackages:
   - docker
@@ -326,7 +326,7 @@ imports:
   - registry/storage/cache/memory
   - uuid
 - name: github.com/docker/docker
-  version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
+  version: da810a85109d7bd7ccd8f2d622556cbcfc00386b
   repo: https://github.com/openshift/moby-moby.git
   subpackages:
   - api
@@ -500,7 +500,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: e89373fe6b4a7413d7acd6da1725b83ef713e6e4
+  version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
   version: 7de6d3a20159d0d4c404436989dcdbbcfb3b20ae
   repo: https://github.com/openshift/google-cadvisor.git
@@ -745,7 +745,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: 6e93088a6ab736ec6a12d10ef99962f8d9e435ee
+  version: 53ca7dc85f609e8aa3af7902f189ed5dca96dbb5
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -816,7 +816,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 6ef6704e604af539af656171d5c0bde774923a43
+  version: 7eef55a5dc24306c455777b9897ddc3cbeaf8b59
   subpackages:
   - apps/v1
   - authorization/v1
@@ -1323,7 +1323,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 7aef0029aaf37044a0afeca5ef27e4dbfc5415bc
+  version: 2b43a61ee529e52685711fe64342885016cdc9cb
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1beta1
@@ -1391,7 +1391,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: c1bb24dfabdac7cd8af922d4ad340b86977b8f3b
+  version: 100678d127826c3c7c2e6ca383f9e50333fb5f27
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1459,7 +1459,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 4c6cc85b0f68eaf541653156bad79866a46d5102
+  version: 293fea9d0ea11e8a665ae842c71fb68bf65b2c28
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1542,7 +1542,6 @@ imports:
   - pkg/storage/etcd/testing/testingcert
   - pkg/storage/etcd/util
   - pkg/storage/etcd3
-  - pkg/storage/etcd3/preflight
   - pkg/storage/names
   - pkg/storage/storagebackend
   - pkg/storage/storagebackend/factory
@@ -1570,7 +1569,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: f59bfc0a5f43d848e78c03060d2be1cd03251e52
+  version: ef1087e20aa6244408941abbcf242002f7093207
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1802,7 +1801,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: a745c520ef9f526306f56ae7bd27e33d5062cb59
+  version: f192690493ec6cd2f3fd19b35beeba685ebe1c9b
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2571,7 +2570,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: 4a67951624d9f54f108ffe953a967435d4e791ac
+  version: 1c406fdfc7d297d997685bc95edac0e1c493c62a
   repo: https://github.com/openshift/kubernetes-metrics.git
   subpackages:
   - pkg/apis/custom_metrics

@@ -184,7 +184,7 @@ import:
   version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
 # keep us up to date with latest DNS security fixes
 - package: github.com/miekg/dns
-  version: ~v1
+  version: 5a2b9fab83ff0f8bfc99684bd5f43a37abe560f1
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master

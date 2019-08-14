@@ -12,12 +12,13 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_ClusterInfo = map[string]string{
-	"":                 "ClusterInfo holds information the web console needs to talk to the cluster such as master public URL and metrics public URL",
-	"consolePublicURL": "ConsolePublicURL is where you can find the web console server (TODO do we really need this?)",
-	"masterPublicURL":  "MasterPublicURL is how the web console can access the OpenShift v1 server",
-	"loggingPublicURL": "LoggingPublicURL is the public endpoint for logging (optional)",
-	"metricsPublicURL": "MetricsPublicURL is the public endpoint for metrics (optional)",
-	"logoutPublicURL":  "LogoutPublicURL is an optional, absolute URL to redirect web browsers to after logging out of the web console. If not specified, the built-in logout page is shown.",
+	"":                      "ClusterInfo holds information the web console needs to talk to the cluster such as master public URL and metrics public URL",
+	"consolePublicURL":      "ConsolePublicURL is where you can find the web console server (TODO do we really need this?)",
+	"masterPublicURL":       "MasterPublicURL is how the web console can access the OpenShift v1 server",
+	"loggingPublicURL":      "LoggingPublicURL is the public endpoint for logging (optional)",
+	"metricsPublicURL":      "MetricsPublicURL is the public endpoint for metrics (optional)",
+	"logoutPublicURL":       "LogoutPublicURL is an optional, absolute URL to redirect web browsers to after logging out of the web console. If not specified, the built-in logout page is shown.",
+	"adminConsolePublicURL": "AdminConsolePublicURL is an optional, public URL of the OpenShift admin console. If specified, the web console will add a link to the admin console in a context selector in its masthead.",
 }
 
 func (ClusterInfo) SwaggerDoc() map[string]string {
