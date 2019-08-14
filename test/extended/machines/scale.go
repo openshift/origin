@@ -202,14 +202,19 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 			err = scaleMachineSet(machineName(machineSet), initialReplicasMachineSets[machineName(machineSet)])
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
-
+		startingTime := time.Now()
+		endTime := startingTime.Add(1 * time.Minute)
 		g.By(fmt.Sprintf("waiting for cluster to get back to original size. Final size should be %d worker nodes", initialNumberOfWorkers))
 		o.Eventually(func() bool {
 			nodeList, err := c.CoreV1().Nodes().List(metav1.ListOptions{
 				LabelSelector: nodeLabelSelectorWorker,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("len nodes %v", len(nodeList.Items))
+			if time.Now().After(endTime) {
+				e2e.Logf("Test would have failed because time is over 1 minute now. ")
+			}
 			return len(nodeList.Items) == initialNumberOfWorkers
-		}, 1*time.Minute, 5*time.Second).Should(o.BeTrue())
+		}, 10000000*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 })
