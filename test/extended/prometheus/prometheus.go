@@ -207,7 +207,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			tests := map[string][]metricTest{
 				// should be checking there is no more than 1 alerts firing.
 				// Checking for specific alert is done in "should have a Watchdog alert in firing state".
-				`sum(ALERTS{alertstate="firing"})`: {metricTest{greaterThanEqual: false, value: 2}},
+				`sum(ALERTS{alertstate="firing"})`: {metricTest{greaterThanEqual: false, value: 4}},
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
