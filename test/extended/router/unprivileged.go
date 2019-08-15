@@ -32,7 +32,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
-			exutil.DumpPodLogsStartingWith("unprivileged-router", oc)
+			exutil.DumpPodLogsStartingWith("router-", oc)
 		}
 	})
 
