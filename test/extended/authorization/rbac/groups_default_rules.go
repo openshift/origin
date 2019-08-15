@@ -54,35 +54,27 @@ const (
 	userGroup     = user.GroupName
 	consoleGroup  = console.GroupName
 
-	legacyGroup         = ""
-	legacyAuthzGroup    = ""
-	legacyBuildGroup    = ""
-	legacyImageGroup    = ""
-	legacyProjectGroup  = ""
-	legacyTemplateGroup = ""
-	legacyUserGroup     = ""
-	legacyOauthGroup    = ""
+	legacyGroup = ""
 )
 
 // Do not change any of these lists without approval from the auth and master teams
 // Most rules are copied from various cluster roles in bootstrap policy
 var (
 	allUnauthenticatedRules = []rbacv1.PolicyRule{
-		rbacv1helpers.NewRule("get", "create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/webhooks").RuleOrDie(),
+		rbacv1helpers.NewRule("get", "create").Groups(buildGroup).Resources("buildconfigs/webhooks").RuleOrDie(),
 
 		rbacv1helpers.NewRule("impersonate").Groups(kAuthnGroup).Resources("userextras/scopes.authorization.openshift.io").RuleOrDie(),
 
-		rbacv1helpers.NewRule("create").Groups(authzGroup, legacyAuthzGroup).Resources("selfsubjectrulesreviews").RuleOrDie(),
+		rbacv1helpers.NewRule("create").Groups(authzGroup).Resources("selfsubjectrulesreviews").RuleOrDie(),
 
 		rbacv1helpers.NewRule("create").Groups(kAuthzGroup).Resources("selfsubjectaccessreviews", "selfsubjectrulesreviews").RuleOrDie(),
 
-		rbacv1helpers.NewRule("delete").Groups(oauthGroup, legacyOauthGroup).Resources("oauthaccesstokens", "oauthauthorizetokens").RuleOrDie(),
+		rbacv1helpers.NewRule("delete").Groups(oauthGroup).Resources("oauthaccesstokens", "oauthauthorizetokens").RuleOrDie(),
 
 		// this is openshift specific
 		rbacv1helpers.NewRule("get").URLs(
-			"/healthz/",
-			"/version/*",
-			"/.well-known", "/.well-known/*",
+			"/version/openshift",
+			"/.well-known/oauth-authorization-server",
 		).RuleOrDie(),
 
 		// this needs to move upstream
@@ -94,30 +86,26 @@ var (
 		rbacv1helpers.NewRule("get").URLs(
 			"/healthz",
 			"/version",
+			"/version/",
 		).RuleOrDie(),
 	}
 
 	allAuthenticatedRules = append(
 		[]rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/docker", "builds/optimizeddocker").RuleOrDie(),
-			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/jenkinspipeline").RuleOrDie(),
-			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/source").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(buildGroup).Resources("builds/docker", "builds/optimizeddocker").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(buildGroup).Resources("builds/jenkinspipeline").RuleOrDie(),
+			rbacv1helpers.NewRule("create").Groups(buildGroup).Resources("builds/source").RuleOrDie(),
 
-			rbacv1helpers.NewRule("get").Groups(userGroup, legacyUserGroup).Resources("users").Names("~").RuleOrDie(),
-			rbacv1helpers.NewRule("list").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list").Groups(authzGroup, legacyAuthzGroup).Resources("clusterroles").RuleOrDie(),
+			rbacv1helpers.NewRule("get").Groups(userGroup).Resources("users").Names("~").RuleOrDie(),
+			rbacv1helpers.NewRule("list").Groups(projectGroup).Resources("projectrequests").RuleOrDie(),
+			rbacv1helpers.NewRule("get", "list").Groups(authzGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule(read...).Groups(rbacGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
-			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
+			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup).Resources("projects").RuleOrDie(),
 
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
 			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications").RuleOrDie(),
-
-			// this is openshift specific
-			rbacv1helpers.NewRule("get").URLs(
-				"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1", // TODO I think we can remove this
-			).RuleOrDie(),
 
 			// this is from upstream kube
 			rbacv1helpers.NewRule("get").URLs(
@@ -133,9 +121,9 @@ var (
 	groupNamespaceRules = map[string]map[string][]rbacv1.PolicyRule{
 		kuser.AllAuthenticated: {
 			"openshift": {
-				rbacv1helpers.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates").RuleOrDie(),
-				rbacv1helpers.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreams", "imagestreamtags", "imagestreamimages").RuleOrDie(),
-				rbacv1helpers.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(templateGroup).Resources("templates").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(imageGroup).Resources("imagestreams", "imagestreamtags", "imagestreamimages").RuleOrDie(),
+				rbacv1helpers.NewRule("get").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 			},
 			"openshift-config-managed": {
 				rbacv1helpers.NewRule("get").Groups(legacyGroup).Resources("configmaps").Names("console-public").RuleOrDie(),
@@ -186,7 +174,7 @@ var _ = g.Describe("[Feature:OpenShiftAuthorization] The default cluster RBAC po
 
 		g.By("should only allow the system:authenticated:oauth group to access certain policy rules", func() {
 			testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
+				rbacv1helpers.NewRule("create").Groups(projectGroup).Resources("projectrequests").RuleOrDie(),
 			}, namespaces.Items)
 		})
 
