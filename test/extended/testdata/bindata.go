@@ -53642,8 +53642,6 @@ kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
-- name: SCOPE
-  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
 objects:
 
 # a router that overrides domains
@@ -53664,7 +53662,12 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--name=test-override-domains", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-domains=null.ptr,void.str", "--hostname-template=${name}-${namespace}.apps.veto.test"]
+      args:
+      - "--name=test-override-domains"
+      - "--namespace=$(POD_NAMESPACE)"
+      - "--loglevel=4"
+      - "--override-domains=null.ptr,void.str"
+      - "--hostname-template=${name}-${namespace}.apps.veto.test"
       hostNetwork: false
       ports:
       - containerPort: 80
@@ -53700,8 +53703,6 @@ kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
-- name: SCOPE
-  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
 objects:
 
 # a router that overrides host
@@ -53722,7 +53723,12 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--name=test-override", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
+      args:
+      - "--name=test-override"
+      - "--namespace=$(POD_NAMESPACE)"
+      - "--loglevel=4"
+      - "--override-hostname"
+      - "--hostname-template=${name}-${namespace}.myapps.mycompany.com"
       hostNetwork: false
       ports:
       - containerPort: 80
@@ -53758,8 +53764,10 @@ kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
-- name: SCOPE
-  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
+- name: ROUTER_NAME
+  value: "test-scoped"
+- name: UPDATE_STATUS
+  value: "true"
 objects:
 # a scoped router
 - apiVersion: v1
@@ -53779,7 +53787,12 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: "${{SCOPE}}"
+      args:
+      - "--name=${ROUTER_NAME}"
+      - "--namespace=$(POD_NAMESPACE)"
+      - "--update-status=${UPDATE_STATUS}"
+      - "--loglevel=4"
+      - "--labels=select=first"
       hostNetwork: false
       ports:
       - containerPort: 80

@@ -56,7 +56,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
 			err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
 				`-p=IMAGE=`+routerImage,
-				`-p=SCOPE=["--name=test-unprivileged", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first", "--update-status=false"]`,
+				`-p=ROUTER_NAME=test-unprivileged`,
+				`-p=UPDATE_STATUS=false`,
 			).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
