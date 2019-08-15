@@ -21,10 +21,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1029,6 +1031,14 @@ func TestAttacherMountDevice(t *testing.T) {
 			spec:            volume.NewSpecFromPersistentVolume(makeTestPV(pvName, 10, testDriver, "test-vol1"), false),
 		},
 		{
+			testName:        "normal PV with mount options",
+			volName:         "test-vol1",
+			devicePath:      "path1",
+			deviceMountPath: "path2",
+			stageUnstageSet: true,
+			spec:            volume.NewSpecFromPersistentVolume(makeTestPVWithMountOptions(pvName, 10, testDriver, "test-vol1", []string{"test-op"}), false),
+		},
+		{
 			testName:        "no vol name",
 			volName:         "",
 			devicePath:      "path1",
@@ -1136,6 +1146,9 @@ func TestAttacherMountDevice(t *testing.T) {
 			}
 			if vol.Path != tc.deviceMountPath {
 				t.Errorf("expected mount path: %s. got: %s", tc.deviceMountPath, vol.Path)
+			}
+			if !reflect.DeepEqual(vol.MountFlags, tc.spec.PersistentVolume.Spec.MountOptions) {
+				t.Errorf("expected mount options: %v, got: %v", tc.spec.PersistentVolume.Spec.MountOptions, vol.MountFlags)
 			}
 		}
 	}
@@ -1468,4 +1481,10 @@ func newTestWatchPlugin(t *testing.T, fakeClient *fakeclient.Clientset) (*csiPlu
 	}
 
 	return csiPlug, fakeWatcher, tmpDir, fakeClient
+}
+
+func makeTestPVWithMountOptions(name string, sizeGig int, driverName, volID string, mountOptions []string) *v1.PersistentVolume {
+	pv := makeTestPV(name, sizeGig, driverName, volID)
+	pv.Spec.MountOptions = mountOptions
+	return pv
 }
