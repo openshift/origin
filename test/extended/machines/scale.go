@@ -210,7 +210,7 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 				LabelSelector: nodeLabelSelectorWorker,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.Logf("len nodes %v", len(nodeList.Items))
+			e2e.Logf(">>> len nodes %v", len(nodeList.Items))
 			if time.Now().After(endTime) {
 				e2e.Logf("Test would have failed because time is over 1 minute now. ")
 			}
