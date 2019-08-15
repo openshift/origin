@@ -216,6 +216,6 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("got %v nodes, expecting %v", len(nodeList.Items), initialNumberOfWorkers))
 			return len(nodeList.Items) == initialNumberOfWorkers
-		}, 1*time.Minute, 5*time.Second).Should(o.BeTrue())
+		}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 })
