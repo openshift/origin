@@ -34,6 +34,8 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	})
 
 	g.It("concurrently with templates", func() {
+		var namespaces []string
+
 		project := ConfigContext.ClusterLoader.Projects
 		if project == nil {
 			e2e.Failf("Invalid config file.\nFile: %v", project)
@@ -45,10 +47,11 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 
 		work := make(chan ProjectMeta, channelSize)
+		ns := make(chan string)
 		var wg sync.WaitGroup
 
 		for i := 0; i < numWorkers; i++ {
-			go clWorker(work, &wg, oc)
+			go clWorker(work, ns, &wg, oc)
 		}
 
 		for _, p := range project {
@@ -56,16 +59,23 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				wg.Add(1)
 				unit := ProjectMeta{j, p, viperConfig}
 				work <- unit
+				namespace := <-ns
+				namespaces = append(namespaces, namespace)
 			}
 		}
 
 		wg.Wait()
-		e2e.Logf("Closing channel")
+		e2e.Logf("Worker creations completed, closing channels.")
 		close(work)
+		close(ns)
+
+		if err := postCreateWait(oc, namespaces); err != nil {
+			e2e.Failf("Error in postCreateWait: %v", err)
+		}
 	})
 })
 
-func clWorker(in <-chan ProjectMeta, wg *sync.WaitGroup, oc *exutil.CLI) {
+func clWorker(in <-chan ProjectMeta, out chan<- string, wg *sync.WaitGroup, oc *exutil.CLI) {
 	for {
 		p, ok := <-in
 		if !ok {
@@ -109,6 +119,7 @@ func clWorker(in <-chan ProjectMeta, wg *sync.WaitGroup, oc *exutil.CLI) {
 				e2e.Logf("Error creating project: %v", err)
 
 			} else {
+				out <- nsName
 				e2e.Logf("Created new namespace: %v", nsName)
 			}
 		}
