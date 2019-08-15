@@ -233,8 +233,9 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSeconds int) error {
 	cmd := fmt.Sprintf(`
 		set -e
-		for i in $(seq 1 %d); do
-			code=$( curl -k -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
+		STOP=$(($(date '+%%s') + %d))
+		while [ $(date '+%%s') -lt $STOP ]; do
+			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
 				if [[ $code -eq 200 ]]; then
@@ -263,8 +264,9 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, statusCode int, times int) error {
 	cmd := fmt.Sprintf(`
 		set -e
-		for i in $(seq 1 %d); do
-			code=$( curl -s -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
+		STOP=$(($(date '+%%s') + %d))
+		while [ $(date '+%%s') -lt $STOP ]; do
+			code=$( curl -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
 				if [[ $code -ne %d ]]; then
