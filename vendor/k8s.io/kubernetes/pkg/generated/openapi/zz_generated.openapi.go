@@ -11510,7 +11510,7 @@ func schema_k8sio_api_core_v1_CinderPersistentVolumeSource(ref common.ReferenceC
 				Properties: map[string]spec.Schema{
 					"volumeID": {
 						SchemaProps: spec.SchemaProps{
-							Description: "volume id used to identify the volume in cinder More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
+							Description: "volume id used to identify the volume in cinder. More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -11553,7 +11553,7 @@ func schema_k8sio_api_core_v1_CinderVolumeSource(ref common.ReferenceCallback) c
 				Properties: map[string]spec.Schema{
 					"volumeID": {
 						SchemaProps: spec.SchemaProps{
-							Description: "volume id used to identify the volume in cinder More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
+							Description: "volume id used to identify the volume in cinder. More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -16009,7 +16009,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSource(ref common.ReferenceCallbac
 					},
 					"cinder": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
+							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine. More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 							Ref:         ref("k8s.io/api/core/v1.CinderPersistentVolumeSource"),
 						},
 					},
@@ -16170,7 +16170,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSpec(ref common.ReferenceCallback)
 					},
 					"cinder": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
+							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine. More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 							Ref:         ref("k8s.io/api/core/v1.CinderPersistentVolumeSource"),
 						},
 					},
@@ -20394,7 +20394,7 @@ func schema_k8sio_api_core_v1_Volume(ref common.ReferenceCallback) common.OpenAP
 					},
 					"cinder": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
+							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine. More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 							Ref:         ref("k8s.io/api/core/v1.CinderVolumeSource"),
 						},
 					},
@@ -20722,7 +20722,7 @@ func schema_k8sio_api_core_v1_VolumeSource(ref common.ReferenceCallback) common.
 					},
 					"cinder": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
+							Description: "Cinder represents a cinder volume attached and mounted on kubelets host machine. More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 							Ref:         ref("k8s.io/api/core/v1.CinderVolumeSource"),
 						},
 					},
