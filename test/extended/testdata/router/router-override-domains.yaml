@@ -29,6 +29,8 @@ objects:
       - "--loglevel=4"
       - "--override-domains=null.ptr,void.str"
       - "--hostname-template=${name}-${namespace}.apps.veto.test"
+      - "--stats-port=1936"
+      - "--metrics-type=haproxy"
       hostNetwork: false
       ports:
       - containerPort: 80

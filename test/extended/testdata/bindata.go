@@ -53668,6 +53668,8 @@ objects:
       - "--loglevel=4"
       - "--override-domains=null.ptr,void.str"
       - "--hostname-template=${name}-${namespace}.apps.veto.test"
+      - "--stats-port=1936"
+      - "--metrics-type=haproxy"
       hostNetwork: false
       ports:
       - containerPort: 80
@@ -53729,6 +53731,8 @@ objects:
       - "--loglevel=4"
       - "--override-hostname"
       - "--hostname-template=${name}-${namespace}.myapps.mycompany.com"
+      - "--stats-port=1936"
+      - "--metrics-type=haproxy"
       hostNetwork: false
       ports:
       - containerPort: 80
@@ -53793,6 +53797,8 @@ objects:
       - "--update-status=${UPDATE_STATUS}"
       - "--loglevel=4"
       - "--labels=select=first"
+      - "--stats-port=1936"
+      - "--metrics-type=haproxy"
       hostNetwork: false
       ports:
       - containerPort: 80

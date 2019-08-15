@@ -29,6 +29,8 @@ objects:
       - "--loglevel=4"
       - "--override-hostname"
       - "--hostname-template=${name}-${namespace}.myapps.mycompany.com"
+      - "--stats-port=1936"
+      - "--metrics-type=haproxy"
       hostNetwork: false
       ports:
       - containerPort: 80

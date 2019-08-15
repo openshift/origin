@@ -32,6 +32,8 @@ objects:
       - "--update-status=${UPDATE_STATUS}"
       - "--loglevel=4"
       - "--labels=select=first"
+      - "--stats-port=1936"
+      - "--metrics-type=haproxy"
       hostNetwork: false
       ports:
       - containerPort: 80
