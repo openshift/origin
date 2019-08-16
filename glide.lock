@@ -1,5 +1,5 @@
-hash: 1ed0811f212ed316fcb759046742b217c8e0289a37cab9fed9d8f5c5db5677fb
-updated: 2019-08-16T15:57:39.489055046-05:00
+hash: 7fd17f328c54a53ec499a89f8237c51737763dc6e02de1aae81831870ceb9faa
+updated: 2019-08-16T15:59:50.809151648-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -522,7 +522,8 @@ imports:
 - name: github.com/google/btree
   version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
-  version: 8949c822ea91fa6b4996614a5ad6ade840be24ee
+  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
+  repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
   - cache/memory
