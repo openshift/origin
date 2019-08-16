@@ -1,8 +1,8 @@
 make build
 fatal: No names found, cannot describe anything.
 fatal: No names found, cannot describe anything.
-go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
-go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
 [[ -f ./openshift ]]
 [[ -f ./oc ]]
 # test version is set correctly when linking
@@ -18,23 +18,32 @@ diff <( ./oc | grep -v -e 'clean' -e 'dirty' | sed '$d' ) <( \
 fatal: No names found, cannot describe anything.
 make clean
 rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
 rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
 [[ ! -f ./openshift ]]
 [[ ! -f ./oc ]]
-[[ ! -f ./_output/bin ]]
+make clean
+rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+[[ ! -d ./_output/ ]]
 make cross-build
 fatal: No names found, cannot describe anything.
 fatal: No names found, cannot describe anything.
 mkdir -p '_output/bin/darwin_amd64'
-go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/darwin_amd64/oc' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" -o '_output/bin/darwin_amd64/oc' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
 mkdir -p '_output/bin/darwin_amd64'
-go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/darwin_amd64/openshift' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" -o '_output/bin/darwin_amd64/openshift' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
 fatal: No names found, cannot describe anything.
 fatal: No names found, cannot describe anything.
 mkdir -p '_output/bin/windows_amd64'
-go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/windows_amd64/oc.exe' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" -o '_output/bin/windows_amd64/oc.exe' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
 mkdir -p '_output/bin/windows_amd64'
-go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" " -o '_output/bin/windows_amd64/openshift.exe' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.versionFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.commitFromGit="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.gitTreeState="<redacted_for_diff>" -X github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/pkg/version.buildDate="<redacted_for_diff>" -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n')" -o '_output/bin/windows_amd64/openshift.exe' github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
 [[ ! -f ./openshift ]]
 [[ ! -f ./oc ]]
 [[ -f ./_output/bin/darwin_amd64/openshift ]]
@@ -43,9 +52,34 @@ go build -ldflags "-s -w -X github.com/openshift/library-go/alpha-build-machiner
 [[ -f ./_output/bin/windows_amd64/oc.exe ]]
 make clean
 rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
 rm -f -r '_output/bin'
-[[ ! -f ./_output/bin/darwin_amd64/openshift ]]
-[[ ! -f ./_output/bin/darwin_amd64/oc ]]
-[[ ! -f ./_output/bin/windows_amd64/openshift.exe ]]
-[[ ! -f ./_output/bin/windows_amd64/oc.exe ]]
-[[ ! -f ./_output/bin ]]
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+[[ ! -d ./_output/ ]]
+make clean
+rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+[[ ! -d ./_output/ ]]
+make rpm-build
+rpmbuild -ba --define "_topdir /github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries" --define "go_package github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries" --quiet --define 'version 2.42.0' --define 'dist .el7' --define 'release 6' ocp.spec
+fatal: No names found, cannot describe anything.
+fatal: No names found, cannot describe anything.
+[[ -f ./_output/rpms/x86_64/openshift-2.42.0-6.el7.x86_64.rpm ]]
+[[ -f ./_output/srpms/openshift-2.42.0-6.el7.src.rpm ]]
+make clean
+rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+[[ ! -d ./_output/ ]]
+make clean
+rm -f oc openshift
+rm -f -r '/github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/_output/srpms'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi
+rm -f -r '_output/bin'
+if [ -d '_output' ]; then rmdir --ignore-fail-on-non-empty '_output'; fi

@@ -1,0 +1,14 @@
+# This Dockerfile builds an image containing the Mac and Windows version of oc
+# layered on top of the Linux cli image.
+FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.12 AS builder
+WORKDIR /go/src/github.com/openshift/oc
+COPY . .
+RUN yum install -y --setopt=skip_missing_names_on_install=False gpgme-devel libassuan-devel
+RUN make cross-build-darwin-amd64 cross-build-windows-amd64 --warn-undefined-variables
+
+FROM registry.svc.ci.openshift.org/ocp/4.2:cli
+COPY --from=builder /go/src/github.com/openshift/oc/_output/bin/darwin_amd64/oc /usr/share/openshift/mac/oc
+COPY --from=builder /go/src/github.com/openshift/oc/_output/bin/windows_amd64/oc.exe /usr/share/openshift/windows/oc.exe
+LABEL io.k8s.display-name="OpenShift Clients" \
+      io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
+      io.openshift.tags="openshift,cli"

@@ -644,9 +644,13 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		if err != nil {
 			return err
 		}
-	}
-	if len(roleBindings) == 0 {
-		return fmt.Errorf("unable to locate RoleBinding %s for %s %q", o.RoleBindingName, o.RoleKind, o.RoleName)
+		if len(roleBindings) == 0 {
+			bindingType := "ClusterRoleBinding"
+			if len(o.RoleBindingNamespace) > 0 {
+				bindingType = "RoleBinding"
+			}
+			return fmt.Errorf("unable to locate any %s for %s %q", bindingType, o.RoleKind, o.RoleName)
+		}
 	}
 
 	subjectsToRemove := authorizationutil.BuildRBACSubjects(o.Users, o.Groups)

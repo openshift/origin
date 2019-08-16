@@ -64,7 +64,7 @@ func (o *PruneOptions) Validate() error {
 		return fmt.Errorf("--resource-dir is required")
 	}
 	if o.MaxEligibleRevision == 0 {
-		return fmt.Errorf("--max-eligible-id is required")
+		return fmt.Errorf("--max-eligible-revision is required")
 	}
 	if len(o.StaticPodName) == 0 {
 		return fmt.Errorf("--static-pod-name is required")

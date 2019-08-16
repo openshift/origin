@@ -96,7 +96,7 @@ func (c *cloudProviderObserver) ObserveCloudProviderNames(genericListers configo
 	}
 
 	// we set cloudprovider configmap values only for some cloud providers.
-	validCloudProviders := sets.NewString("azure", "gce", "vsphere")
+	validCloudProviders := sets.NewString("azure", "gce", "openstack", "vsphere")
 	if !validCloudProviders.Has(cloudProvider) {
 		sourceCloudConfigMap = ""
 	}
@@ -152,8 +152,7 @@ func getPlatformName(platformType configv1.PlatformType, recorder events.Recorde
 		cloudProvider = "gce"
 	case configv1.LibvirtPlatformType:
 	case configv1.OpenStackPlatformType:
-		// TODO(flaper87): Enable this once we've figured out a way to write the cloud provider config in the master nodes
-		//cloudProvider = "openstack"
+		cloudProvider = "openstack"
 	case configv1.NonePlatformType:
 	default:
 		// the new doc on the infrastructure fields requires that we treat an unrecognized thing the same bare metal.

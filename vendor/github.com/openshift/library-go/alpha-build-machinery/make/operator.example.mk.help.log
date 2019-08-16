@@ -4,7 +4,7 @@ build
 clean
 clean-binaries
 help
-image-origin-cluster-openshift-apiserver-operator
+image-ocp-openshift-apiserver-operator
 images
 test
 test-unit

@@ -6,7 +6,8 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Scheduler holds cluster-wide information about Scheduler.  The canonical name is `cluster`
+// Scheduler holds cluster-wide config information to run the Kubernetes Scheduler
+// and influence its placement decisions. The canonical name for this config is `cluster`.
 type Scheduler struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.

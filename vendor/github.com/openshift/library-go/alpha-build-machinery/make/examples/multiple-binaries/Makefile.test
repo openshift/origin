@@ -1,6 +1,6 @@
 SHELL :=/bin/bash -euo pipefail
 
-test: test-build test-cross-build
+test: | test-build test-cross-build test-rpm
 .PHONY: test
 
 test-build:
@@ -22,10 +22,11 @@ test-build:
 	$(MAKE) clean
 	[[ ! -f ./openshift ]]
 	[[ ! -f ./oc ]]
+	$(MAKE) clean
 .PHONY: test-build
 
 test-cross-build:
-	[[ ! -f ./_output/bin ]]
+	[[ ! -d ./_output/ ]]
 	$(MAKE) cross-build
 	[[ ! -f ./openshift ]]
 	[[ ! -f ./oc ]]
@@ -35,9 +36,18 @@ test-cross-build:
 	[[ -f ./_output/bin/windows_amd64/oc.exe ]]
 
 	$(MAKE) clean
-	[[ ! -f ./_output/bin/darwin_amd64/openshift ]]
-	[[ ! -f ./_output/bin/darwin_amd64/oc ]]
-	[[ ! -f ./_output/bin/windows_amd64/openshift.exe ]]
-	[[ ! -f ./_output/bin/windows_amd64/oc.exe ]]
-	[[ ! -f ./_output/bin ]]
+	[[ ! -d ./_output/ ]]
+	$(MAKE) clean
 .PHONY: test-cross-build
+
+test-rpm:
+	[[ ! -d ./_output/ ]]
+
+	$(MAKE) rpm-build
+	[[ -f ./_output/rpms/x86_64/openshift-2.42.0-6.el7.x86_64.rpm ]]
+	[[ -f ./_output/srpms/openshift-2.42.0-6.el7.src.rpm ]]
+
+	$(MAKE) clean
+	[[ ! -d ./_output/ ]]
+	$(MAKE) clean
+.PHONY: test-rpm
