@@ -265,6 +265,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule(readWrite...).Groups(kapiGroup).Resources("persistentvolumes").RuleOrDie(),
 				rbacv1helpers.NewRule(readWrite...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("persistentvolumeclaims", "events").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("pods").RuleOrDie(),
 			},
 		},
 		{
