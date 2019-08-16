@@ -58,7 +58,7 @@ image_namespace, _, image_prefix = os_image_prefix.rpartition("/")
 # with no arguments
 image_config = {
     "cli": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "cli",
         "binaries": {
             "oc": "/usr/bin/oc",
@@ -66,7 +66,7 @@ image_config = {
         "files": {}
     },
     "control-plane": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "origin",
         "binaries": {
             "openshift": "/usr/bin/openshift",
@@ -75,7 +75,7 @@ image_config = {
         "files": {}
     },
     "hyperkube": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "hyperkube",
         "binaries": {
             "hyperkube": "/usr/bin/hyperkube",
@@ -83,7 +83,7 @@ image_config = {
         "files": {}
     },
     "hypershift": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "hypershift",
         "binaries": {
             "hypershift": "/usr/bin/hypershift",
@@ -91,7 +91,7 @@ image_config = {
         "files": {}
     },
     "deployer": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "deployer",
         "binaries": {
             "openshift-deploy": "/usr/bin/openshift-deploy",
@@ -100,7 +100,7 @@ image_config = {
         "files": {}
     },
     "recycler": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "recycler",
         "binaries": {
             "oc": "/usr/bin/oc"
@@ -108,7 +108,7 @@ image_config = {
         "files": {}
     },
     "docker-builder": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "builder/docker/docker-builder",
         "binaries": {
             "oc": "/usr/bin/oc"
@@ -116,7 +116,7 @@ image_config = {
         "files": {}
     },
     "f5-router": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "router/f5",
         "binaries": {
             "oc": "/usr/bin/oc"
@@ -124,7 +124,7 @@ image_config = {
         "files": {}
     },
     "haproxy-router": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "router/haproxy",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -134,7 +134,7 @@ image_config = {
         }
     },
     "keepalived-ipfailover": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "ipfailover/keepalived",
         "binaries": {
             "openshift": "/usr/bin/openshift"
@@ -144,7 +144,7 @@ image_config = {
         }
     },
     "node": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "node",
         "binaries": {
             "openshift": "/usr/bin/openshift",
@@ -154,7 +154,7 @@ image_config = {
         "files": {}
     },
     "template-service-broker": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "template-service-broker",
         "binaries": {
             "template-service-broker": "/usr/bin/template-service-broker"
