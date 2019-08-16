@@ -75,6 +75,7 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machi
 		return nil, fmt.Errorf("failed to list worker nodes: %v", err)
 	}
 
+	e2e.Logf("Machines found %v, nodes found: %v", machines, allWorkerNodes.Items)
 	machineToNodes, match := mapMachineNameToNodeName(machines, allWorkerNodes.Items)
 	if !match {
 		return nil, fmt.Errorf("not all machines have a node reference: %v", machineToNodes)
@@ -147,14 +148,15 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 				return false
 			}
 			e2e.Logf("node count : %v, expectedCount %v", len(nodes), expectedScaleOut)
+			notReady := false
 			for i := range nodes {
 				e2e.Logf("node: %v", nodes[i].Name)
 				if !isNodeReady(*nodes[i]) {
 					e2e.Logf("Node %q is not ready", nodes[i].Name)
-					return false
+					notReady = true
 				}
 			}
-			return len(nodes) == expectedScaleOut
+			return !notReady && len(nodes) == expectedScaleOut
 		}
 
 		cfg, err := e2e.LoadConfig()
@@ -178,6 +180,7 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		initialNumberOfWorkers := len(nodeList.Items)
+		g.By(fmt.Sprintf("initial cluster workers size is %v", initialNumberOfWorkers))
 
 		initialReplicasMachineSets := map[string]int{}
 
@@ -189,6 +192,8 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 			err = scaleMachineSet(machineName(machineSet), expectedScaleOut)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
+
+		g.By("checking scaled up worker nodes are ready")
 		for _, machineSet := range machineSets {
 			expectedScaleOut := initialReplicasMachineSets[machineName(machineSet)] + 1
 			o.Eventually(func() bool {
@@ -209,7 +214,8 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 				LabelSelector: nodeLabelSelectorWorker,
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("got %v nodes, expecting %v", len(nodeList.Items), initialNumberOfWorkers))
 			return len(nodeList.Items) == initialNumberOfWorkers
-		}, 1*time.Minute, 5*time.Second).Should(o.BeTrue())
+		}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 })
