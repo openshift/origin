@@ -417,7 +417,6 @@
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
 // test/extended/testdata/router/ingress.yaml
-// test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
@@ -53264,114 +53263,6 @@ func testExtendedTestdataRouterIngressYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterReencryptServingCertYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: serving-cert
-    labels:
-      app: serving-cert
-  spec:
-    containers:
-    - image: nginx:1.15.3
-      name: serve
-      command:
-        - /usr/sbin/nginx
-      args:
-        - -c
-        - /etc/nginx/nginx.conf
-      ports:
-      - containerPort: 8443
-        protocol: TCP
-      volumeMounts:
-      - name: cert
-        mountPath: /etc/serving-cert
-      - name: conf
-        mountPath: /etc/nginx
-      - name: tmp
-        mountPath: /var/cache/nginx
-      - name: tmp
-        mountPath: /var/run
-    volumes:
-    - name: conf
-      configMap:
-        name: serving-cert
-    - name: cert
-      secret:
-        secretName: serving-cert
-    - name: tmp
-      emptyDir: {}
-    - name: tmp2
-      emptyDir: {}
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: serving-cert
-  data:
-    nginx.conf: |
-      daemon off;
-      events { }
-      http {
-        server {
-            listen 8443;
-            ssl    on;
-            ssl_certificate     /etc/serving-cert/tls.crt;
-            ssl_certificate_key    /etc/serving-cert/tls.key;
-            server_name  "*.svc";
-            location / {
-                root   /usr/share/nginx/html;
-                index  index.html index.htm;
-            }
-            error_page   500 502 503 504  /50x.html;
-            location = /50x.html {
-                root   /usr/share/nginx/html;
-            }
-        }
-      }
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: serving-cert
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
-  spec:
-    selector:
-      app: serving-cert
-    ports:
-      - port: 443
-        name: https
-        targetPort: 8443
-        protocol: TCP
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: serving-cert
-  spec:
-    tls:
-      termination: Reencrypt
-      # no destination CA certificate needed
-    to:
-      kind: Service
-      name: serving-cert
-`)
-
-func testExtendedTestdataRouterReencryptServingCertYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterReencryptServingCertYaml, nil
-}
-
-func testExtendedTestdataRouterReencryptServingCertYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterReencryptServingCertYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRouterRouterCommonYaml = []byte(`apiVersion: v1
 kind: Template
 parameters:
@@ -57620,7 +57511,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
 	"test/extended/testdata/router/ingress.yaml": testExtendedTestdataRouterIngressYaml,
-	"test/extended/testdata/router/reencrypt-serving-cert.yaml": testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml": testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml": testExtendedTestdataRouterRouterConfigManagerYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml": testExtendedTestdataRouterRouterHttpEchoServerYaml,
@@ -58335,7 +58225,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"router": &bintree{nil, map[string]*bintree{
 					"ingress.yaml": &bintree{testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
-					"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
 					"router-common.yaml": &bintree{testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-config-manager.yaml": &bintree{testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
