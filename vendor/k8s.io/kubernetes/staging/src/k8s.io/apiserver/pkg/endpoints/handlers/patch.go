@@ -42,6 +42,11 @@ import (
 	utiltrace "k8s.io/apiserver/pkg/util/trace"
 )
 
+const (
+	// maximum number of operations a single json patch may contain.
+	maxJSONPatchOperations = 10000
+)
+
 // PatchResource returns a function that will handle a resource patch
 // TODO: Eventually PatchResource should just use GuaranteedUpdate and this routine should be a bit cleaner
 func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface, converter runtime.ObjectConvertor, patchTypes []string) http.HandlerFunc {
@@ -85,7 +90,7 @@ func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface
 			return
 		}
 
-	        patchJS, err := limitedReadBody(req, scope.MaxReq
+		patchJS, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
 		if err != nil {
 			scope.err(err, w, req)
 			return
@@ -411,6 +416,11 @@ func patchObjectJSON(
 		patchObj, err := jsonpatch.DecodePatch(patchJS)
 		if err != nil {
 			return nil, nil, err
+		}
+		if len(patchObj) > maxJSONPatchOperations {
+			return nil, nil, errors.NewRequestEntityTooLargeError(
+				fmt.Sprintf("The allowed maximum operations in a JSON patch is %d, got %d",
+					maxJSONPatchOperations, len(patchObj)))
 		}
 		if patchedObjJS, err = patchObj.Apply(originalObjJS); err != nil {
 			return nil, nil, err
