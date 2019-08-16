@@ -41,7 +41,6 @@ func (a apiserverV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
 	}
 
 	errs = append(errs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
-	errs = append(errs, validateAPIServerSpecCreate(obj.Spec)...)
 	errs = append(errs, a.validateSNINames(obj)...)
 
 	return errs
@@ -90,7 +89,6 @@ func (a apiserverV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runti
 	}
 
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
-	errs = append(errs, validateAPIServerSpecUpdate(obj.Spec, oldObj.Spec)...)
 	errs = append(errs, a.validateSNINames(obj)...)
 
 	return errs
@@ -109,28 +107,6 @@ func (apiserverV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj r
 	// TODO validate the obj.  remember that status validation should *never* fail on spec validation errors.
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
 	errs = append(errs, validateAPIServerStatus(obj.Status)...)
-
-	return errs
-}
-
-func validateAPIServerSpecCreate(spec configv1.APIServerSpec) field.ErrorList {
-	errs := field.ErrorList{}
-
-	// we rely on fall through for the service network
-	if len(spec.ServingCerts.DefaultServingCertificate.Name) > 0 {
-		errs = append(errs, field.Forbidden(field.NewPath("spec").Child("servingCerts").Child("defaultServingCertificate").Child("name"), "may not be set"))
-	}
-
-	return errs
-}
-
-func validateAPIServerSpecUpdate(newSpec, oldSpec configv1.APIServerSpec) field.ErrorList {
-	errs := field.ErrorList{}
-
-	// we rely on fall through for the service network
-	if len(newSpec.ServingCerts.DefaultServingCertificate.Name) > 0 {
-		errs = append(errs, field.Forbidden(field.NewPath("spec").Child("servingCerts").Child("defaultServingCertificate").Child("name"), "may not be set"))
-	}
 
 	return errs
 }
