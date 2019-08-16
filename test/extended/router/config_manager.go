@@ -139,8 +139,9 @@ func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string,
 	uri := fmt.Sprintf("%s://%s:%d%s", proto, host, port, abspath)
 	cmd := fmt.Sprintf(`
 		set -e
-		for i in $(seq 1 %d); do
-			code=$( curl -k -s -o /dev/null -w '%%{http_code}\n' --resolve %s:%d:%s %q ) || rc=$?
+		STOP=$(($(date '+%%s') + %d))
+		while [ $(date '+%%s') -lt $STOP ]; do
+			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --resolve %s:%d:%s %q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
 				if [[ $code -eq 200 ]]; then
