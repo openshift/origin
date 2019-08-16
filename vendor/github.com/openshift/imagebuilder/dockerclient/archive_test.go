@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -449,8 +450,8 @@ func Test_archiveFromContainer(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if path != testCase.path {
-				t.Errorf("unexpected path: %s", path)
+			if filepath.Clean(path) != testCase.path {
+				t.Errorf("unexpected path: %s != %s", filepath.Clean(path), testCase.path)
 			}
 			tr := tar.NewReader(r)
 			var found []string
