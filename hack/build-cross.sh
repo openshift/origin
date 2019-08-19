@@ -73,11 +73,6 @@ os::build::build_binaries "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]-}"
 OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
 
 if [[ "${OS_BUILD_RELEASE_ARCHIVES-}" != "n" ]]; then
-  # Make the primary client/server release.
-  OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
-  OS_RELEASE_ARCHIVE="openshift-origin" \
-    os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
-
   # Make the image binaries release.
   OS_BUILD_PLATFORMS=("${image_platforms[@]+"${image_platforms[@]}"}")
   OS_RELEASE_ARCHIVE="openshift-origin-image" \
@@ -86,8 +81,6 @@ if [[ "${OS_BUILD_RELEASE_ARCHIVES-}" != "n" ]]; then
   os::build::release_sha
 else
   # Place binaries only
-  OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
-  os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
   OS_BUILD_PLATFORMS=("${image_platforms[@]+"${image_platforms[@]}"}")
   os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
 fi

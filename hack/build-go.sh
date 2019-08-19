@@ -15,9 +15,9 @@ platform="$(os::build::host_platform)"
 build_targets=("$@")
 if [[ -z "$@" ]]; then
   if [[ "${platform}" == linux/* ]]; then
-    build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}" vendor/k8s.io/kubernetes/cmd/hyperkube)
+    build_targets=(vendor/k8s.io/kubernetes/cmd/hyperkube)
   else
-    build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}" vendor/k8s.io/kubernetes/cmd/hyperkube)
+    build_targets=(vendor/k8s.io/kubernetes/cmd/hyperkube)
   fi
 fi
 

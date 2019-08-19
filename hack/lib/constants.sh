@@ -35,26 +35,10 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
-readonly OS_CROSS_COMPILE_TARGETS=(
-)
-readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
-
 readonly OS_GOVET_BLACKLIST=(
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile
-readonly OPENSHIFT_BINARY_SYMLINKS=(
-)
-readonly OC_BINARY_SYMLINKS=(
-)
-readonly OC_BINARY_COPY=(
-)
-readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
-)
-readonly OS_BINARY_RELEASE_CLIENT_MAC=(
-)
-readonly OS_BINARY_RELEASE_CLIENT_LINUX=(
-)
 readonly OS_BINARY_RELEASE_SERVER_LINUX=(
   './*'
 )
