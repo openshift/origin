@@ -94,8 +94,6 @@ import:
   version: master
 - package: github.com/openshift/apiserver-library-go
   version: master
-- package: github.com/openshift/oc
-  version: master
 
 # forks third
 # master

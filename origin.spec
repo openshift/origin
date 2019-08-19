@@ -77,7 +77,6 @@ BuildRequires:  bsdtar
 BuildRequires:  golang >= %{golang_version}
 BuildRequires:  krb5-devel
 BuildRequires:  rsync
-Requires:       %{name}-clients = %{version}-%{release}
 
 #
 # The following Bundled Provides entries are populated automatically by the
@@ -109,26 +108,6 @@ Provides:       atomic-openshift-node
 
 %description hyperkube
 %{summary}
-
-%package clients
-Summary:        %{product_name} Client binaries for Linux
-Provides:       atomic-openshift-clients
-Obsoletes:      atomic-openshift-clients
-Requires:       bash-completion
-
-%description clients
-%{summary}
-
-%if 0%{?make_redistributable}
-%package clients-redistributable
-Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
-Provides:       atomic-openshift-clients-redistributable
-Obsoletes:      atomic-openshift-clients-redistributable
-BuildRequires:  goversioninfo
-
-%description clients-redistributable
-%{summary}
-%endif
 
 %prep
 %if 0%{do_prep}
@@ -168,62 +147,15 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc hyperkube
+for bin in hyperkube
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
-done
-
-%if 0%{?make_redistributable}
-# Install client executable for windows and mac
-install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
-install -p -m 755 _output/local/bin/linux/amd64/oc %{buildroot}%{_datadir}/%{name}/linux/oc
-install -p -m 755 _output/local/bin/linux/amd64/kubectl %{buildroot}%{_datadir}/%{name}/linux/kubectl
-install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
-install -p -m 755 _output/local/bin/darwin/amd64/kubectl %{buildroot}/%{_datadir}/%{name}/macosx/kubectl
-install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
-install -p -m 755 _output/local/bin/windows/amd64/kubectl.exe %{buildroot}/%{_datadir}/%{name}/windows/kubectl.exe
-%endif
-
-for cmd in \
-    kubectl
-do
-    ln -s oc %{buildroot}%{_bindir}/$cmd
-done
-
-# Install bash completions
-install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-for bin in oc kubectl
-do
-  echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
-  %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
-  chmod 644 %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
 done
 
 %files hyperkube
 %license LICENSE
 %{_bindir}/hyperkube
 %defattr(-,root,root,0700)
-
-%files clients
-%license LICENSE
-%{_bindir}/oc
-%{_bindir}/kubectl
-%{_sysconfdir}/bash_completion.d/oc
-%{_sysconfdir}/bash_completion.d/kubectl
-
-%if 0%{?make_redistributable}
-%files clients-redistributable
-%license LICENSE
-%dir %{_datadir}/%{name}/linux/
-%dir %{_datadir}/%{name}/macosx/
-%dir %{_datadir}/%{name}/windows/
-%{_datadir}/%{name}/linux/oc
-%{_datadir}/%{name}/linux/kubectl
-%{_datadir}/%{name}/macosx/oc
-%{_datadir}/%{name}/macosx/kubectl
-%{_datadir}/%{name}/windows/oc.exe
-%{_datadir}/%{name}/windows/kubectl.exe
-%endif
 
 %changelog
