@@ -397,15 +397,6 @@ func TestVerifyNetowrk(t *testing.T) {
 				"192.168.12.128/26",
 			},
 		},
-		&testVerifyNetwork{
-			CIDRBlock: "10.42.0.0/24",
-			CIDRList: []string{
-
-				"10.42.0.16/28",
-				"10.42.0.32/28",
-				"10.42.0.0/24",
-			},
-		},
 	}
 
 	for _, tc := range testCases {

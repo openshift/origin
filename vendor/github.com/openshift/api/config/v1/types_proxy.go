@@ -42,17 +42,17 @@ type ProxySpec struct {
 
 	// trustedCA is a reference to a ConfigMap containing a CA certificate bundle used
 	// for client egress HTTPS connections. The certificate bundle must be from the CA
-	// that signed the proxy's certificate and be signed for everything. trustedCA should
-	// only be consumed by a proxy validator. The validator is responsible for reading
-	// ConfigMapNameReference, validating the certificate and copying "ca-bundle.crt"
-	// from data to a ConfigMap in the namespace of an operator configured for proxy.
-	// The namespace for this ConfigMap is "openshift-config". Here is an example
-	// ConfigMap (in yaml):
+	// that signed the proxy's certificate and be signed for everything. The trustedCA
+	// field should only be consumed by a proxy validator. The validator is responsible
+	// for reading the certificate bundle from required key "ca-bundle.crt" and copying
+	// it to a ConfigMap named "trusted-ca-bundle" in the "openshift-config-managed"
+	// namespace. The namespace for the ConfigMap referenced by trustedCA is
+	// "openshift-config". Here is an example ConfigMap (in yaml):
 	//
 	// apiVersion: v1
 	// kind: ConfigMap
 	// metadata:
-	//  name: trusted-ca-bundle
+	//  name: user-ca-bundle
 	//  namespace: openshift-config
 	//  data:
 	//    ca-bundle.crt: |

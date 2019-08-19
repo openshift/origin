@@ -1,9 +1,0 @@
-#!/bin/sh
-touch /tmp/src/save-artifacts-invoked
-
-cd /tmp/src
-tar cf - .
-
-# Write some zeros to stdout to mimic the padding that Debian's tar adds
-# https://github.com/openshift/source-to-image/issues/301#issuecomment-263598586
-dd count=1 if=/dev/zero 2> /dev/null

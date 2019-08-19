@@ -142,8 +142,8 @@ func NewClient(endpoint string, options *ClientOptions, logger *log.Logger) (c *
 	}
 
 	restClient := &restClient{
-		httpClient:                &http.Client{Transport: tr},
-		logger:                    logger,
+		httpClient: &http.Client{Transport: tr},
+		logger:     logger,
 		UpdateAccessTokenCallback: tokenCallback,
 	}
 

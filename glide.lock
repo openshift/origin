@@ -1,5 +1,5 @@
-hash: 7622b75aea01706933f2e1470797c5cd1ceb7d1c97869ce895928386abb09a93
-updated: 2019-08-09T14:43:52.240397386-05:00
+hash: 401854ad46e02fa874a17049fec8d155a96641322670e60d2f8634301f27f70c
+updated: 2019-08-19T09:45:49.451597341-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -9,14 +9,8 @@ imports:
   subpackages:
   - compute/metadata
   - internal
-- name: github.com/alexbrainman/sspi
-  version: e580b900e9f5657daa5473021296289be6da2661
-  subpackages:
-  - negotiate
-- name: github.com/apcera/gssapi
-  version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
 - name: github.com/apparentlymart/go-cidr
-  version: 1755c023625ec3a84979b90841a1ab067ed6c071
+  version: b1115bf8e14a60131a196f908223e4506b0ddc35
   subpackages:
   - cidr
 - name: github.com/armon/circbuf
@@ -45,21 +39,17 @@ imports:
   - aws/session
   - aws/signer/v4
   - internal/ini
-  - internal/s3err
   - internal/sdkio
   - internal/sdkrand
   - internal/sdkuri
   - internal/shareddefaults
   - private/protocol
   - private/protocol/ec2query
-  - private/protocol/eventstream
-  - private/protocol/eventstream/eventstreamapi
   - private/protocol/json/jsonutil
   - private/protocol/jsonrpc
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
-  - private/protocol/restxml
   - private/protocol/xml/xmlutil
   - service/autoscaling
   - service/ec2
@@ -67,9 +57,6 @@ imports:
   - service/elb
   - service/elbv2
   - service/kms
-  - service/s3
-  - service/s3/s3iface
-  - service/s3/s3manager
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
   version: da91af54816b4cf72949c225a2d0980f51fab01b
@@ -201,7 +188,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: aaeac12a7ffcd198ae25440a9dff125c2e2703a7
+  version: f2a389ac0a02ce21c09edd7344677a601970f41c
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -213,25 +200,8 @@ imports:
   - pkg/types/020
   - pkg/types/current
   - pkg/version
-- name: github.com/containers/image
-  version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
-  repo: https://github.com/openshift/containers-image.git
-  subpackages:
-  - docker/policyconfiguration
-  - docker/reference
-  - manifest
-  - signature
-  - transports
-  - types
-  - version
 - name: github.com/containers/storage
   version: 912de200380ac2fd1e90f91b78c1495ed8d5beea
-  subpackages:
-  - pkg/fileutils
-  - pkg/homedir
-  - pkg/idtools
-  - pkg/mount
-  - pkg/system
 - name: github.com/coreos/bbolt
   version: 48ea1b39c25fc1bab3506fbc712ecbaa842c4d2d
 - name: github.com/coreos/etcd
@@ -352,19 +322,9 @@ imports:
   subpackages:
   - digestset
   - manifest
-  - manifest/manifestlist
   - manifest/schema1
   - manifest/schema2
-  - metrics
   - reference
-  - registry/api/errcode
-  - registry/api/v2
-  - registry/client
-  - registry/client/auth
-  - registry/client/auth/challenge
-  - registry/client/transport
-  - registry/storage/cache
-  - registry/storage/cache/memory
 - name: github.com/docker/docker
   version: a9fbbdc8dd8794b20af358382ab780559bca589d
   subpackages:
@@ -409,8 +369,6 @@ imports:
   - nat
   - sockets
   - tlsconfig
-- name: github.com/docker/go-metrics
-  version: b84716841b82eab644a0c64fc8b42d480e49add5
 - name: github.com/docker/go-units
   version: 9e638d38cf6977a37a8ea0078f3ee75a7cdb2dd1
 - name: github.com/docker/libnetwork
@@ -419,7 +377,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -447,7 +405,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: c977f96e109525a5d8fa10a19165341f601f38b0
 - name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  version: c7ce16629ff4cd059ed96ed06419dd3856fd3577
 - name: github.com/globalsign/mgo
   version: eeefdecb41b842af6dc652aaea4026e8403e62df
   subpackages:
@@ -552,13 +510,10 @@ imports:
   - formats/dot/internal/lexer
   - formats/dot/internal/parser
   - formats/dot/internal/token
-  - internal/linear
   - internal/ordered
   - internal/set
   - path
   - simple
-  - topo
-  - traverse
 - name: github.com/gonum/internal
   version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
   subpackages:
@@ -574,7 +529,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: 20236160a414454a9c64b6c8829381c6f4bddcaa
+  version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/cadvisor
   version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
   repo: https://github.com/openshift/google-cadvisor.git
@@ -675,8 +630,6 @@ imports:
   - openstack/networking/v2/ports
   - openstack/utils
   - pagination
-- name: github.com/gorilla/mux
-  version: e67b3c02c7195c052acff13261f0c9fd1ba53011
 - name: github.com/gorilla/websocket
   version: 4201258b820c74ac8e6922fc9e6b52f71fe46f8d
 - name: github.com/gregjones/httpcache
@@ -722,8 +675,6 @@ imports:
   version: 76bb4ee9f0ab50f77826f2a2ee7fb9d3880d6ec2
 - name: github.com/jmespath/go-jmespath
   version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
-- name: github.com/joho/godotenv
-  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 - name: github.com/jonboulle/clockwork
   version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
 - name: github.com/json-iterator/go
@@ -736,24 +687,16 @@ imports:
   version: 2de2192f9e35ce981c152a873ed943b93b79ced4
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
-- name: github.com/lestrrat-go/jspointer
-  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
-- name: github.com/lestrrat-go/jsref
-  version: 1b590508f37d3af76c77c8328e16978d2889b486
-  subpackages:
-  - provider
-- name: github.com/lestrrat-go/pdebug
-  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
-- name: github.com/lestrrat-go/structinfo
-  version: acd51874663bf3297433cb1f1015075c3cbe6130
 - name: github.com/lestrrat/go-jspointer
-  version: 82fadba7561c3a8d78133c2b957263c0963bb79d
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
   repo: https://github.com/lestrrat/go-jspointer.git
 - name: github.com/lestrrat/go-jsref
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
   repo: https://github.com/lestrrat/go-jsref.git
+  subpackages:
+  - provider
 - name: github.com/lestrrat/go-jsschema
-  version: 5c81c58ffcc359c4390d440b45f5462edb0107cb
+  version: a6a42341b50d8d7e2a733db922eefaa756321021
 - name: github.com/lestrrat/go-pdebug
   version: 569c97477ae8837e053e5a50bc739e15172b8ebe
   repo: https://github.com/lestrrat/go-pdebug.git
@@ -783,7 +726,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/MakeNowJust/heredoc
-  version: e9091a26100e9cfb2b6a8f470085bfa541931a91
+  version: bb23615498cded5e105af4ce27de75b089cbe851
 - name: github.com/marstr/guid
   version: 8bdf7d1a087ccc975cf37dd6507da50698fd19ca
 - name: github.com/mattn/go-shellwords
@@ -833,7 +776,7 @@ imports:
   - internal/timeout
   - internal/wclayer
 - name: github.com/miekg/dns
-  version: 5a2b9fab83ff0f8bfc99684bd5f43a37abe560f1
+  version: 5d001d020961ae1c184f9f8152fdc73810481677
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs
@@ -842,11 +785,6 @@ imports:
   version: ad45545899c7b13c020ea92b2072220eefad42b8
 - name: github.com/mitchellh/mapstructure
   version: 53818660ed4955e899c0bcafa97299a388bd7c8e
-- name: github.com/moby/buildkit
-  version: c3a857e3fca0a5cadd44ffd886a977559841aeaa
-  subpackages:
-  - frontend/dockerfile/command
-  - frontend/dockerfile/parser
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
@@ -855,8 +793,6 @@ imports:
   version: 491d3605edfb866af34a48075bd4355ac1bf46ca
 - name: github.com/mrunalp/fileutils
   version: 4ee1cc9a80582a0c75febdd5cfa779ee4361cbca
-- name: github.com/mtrmac/gpgme
-  version: b2432428689ca58c2b8e8dea9449d3295cf96fc9
 - name: github.com/munnerz/goautoneg
   version: a547fc61f48d567d5b4ec6f8aee5573d8efce11d
 - name: github.com/mxk/go-flowrate
@@ -942,7 +878,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 8f800d2391d0b451818fd5bfc348b16d7cc1e588
+  version: a94e914914f4228d0bcba6fc8a22614c5f5e2dad
   subpackages:
   - annotations
   - apps
@@ -1012,7 +948,7 @@ imports:
   - pkg/securitycontextconstraints/util
   - pkg/securitycontextconstraints/util/sort
 - name: github.com/openshift/client-go
-  version: e9678e3b850da36470c5554609c6cd110aace47e
+  version: 5a5508328169b8a6992ea4ef711add89ddce3c6d
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1113,7 +1049,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 211d32684d6cd8b9a50db92e213d4b6ea827bb63
+  version: 97bb8b699c927fbdb7a80d48865d89acc3980d94
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1122,12 +1058,8 @@ imports:
   - pkg/apps/appsserialization
   - pkg/apps/appsutil
   - pkg/authentication/bootstrapauthenticator
-  - pkg/authorization/authorizationutil
   - pkg/authorization/scopemetadata
-  - pkg/build/buildutil
-  - pkg/build/envresolve
   - pkg/build/naming
-  - pkg/certs
   - pkg/config/client
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1139,199 +1071,18 @@ imports:
   - pkg/image/internal/digest
   - pkg/image/internal/reference
   - pkg/image/reference
-  - pkg/image/referencemutator
-  - pkg/image/registryclient
-  - pkg/image/trigger
-  - pkg/legacyapi/legacygroupification
-  - pkg/network/networkapihelpers
   - pkg/network/networkutils
   - pkg/oauth/oauthdiscovery
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
   - pkg/operator/resource/resourceread
-  - pkg/operator/resource/retry
   - pkg/quota/clusterquotamapping
   - pkg/quota/quotautil
-  - pkg/security/ldapclient
-  - pkg/security/ldapquery
   - pkg/security/ldaputil
   - pkg/security/uid
   - pkg/serviceability
-  - pkg/template/generator
-  - pkg/template/templateprocessing
   - pkg/template/templateprocessingclient
-  - pkg/unidling/unidlingclient
-- name: github.com/openshift/oc
-  version: 8fdb79e549651c0f3c91d54349715309b5d149d3
-  subpackages:
-  - pkg/cli
-  - pkg/cli/admin
-  - pkg/cli/admin/buildchain
-  - pkg/cli/admin/cert
-  - pkg/cli/admin/createbootstrapprojecttemplate
-  - pkg/cli/admin/createerrortemplate
-  - pkg/cli/admin/createkubeconfig
-  - pkg/cli/admin/createlogintemplate
-  - pkg/cli/admin/createproviderselectiontemplate
-  - pkg/cli/admin/groups
-  - pkg/cli/admin/groups/new
-  - pkg/cli/admin/groups/sync
-  - pkg/cli/admin/groups/users
-  - pkg/cli/admin/migrate
-  - pkg/cli/admin/migrate/etcd
-  - pkg/cli/admin/migrate/images
-  - pkg/cli/admin/migrate/legacyhpa
-  - pkg/cli/admin/migrate/storage
-  - pkg/cli/admin/migrate/templateinstances
-  - pkg/cli/admin/mustgather
-  - pkg/cli/admin/network
-  - pkg/cli/admin/node
-  - pkg/cli/admin/policy
-  - pkg/cli/admin/project
-  - pkg/cli/admin/prune
-  - pkg/cli/admin/prune/auth
-  - pkg/cli/admin/prune/builds
-  - pkg/cli/admin/prune/deployments
-  - pkg/cli/admin/prune/imageprune
-  - pkg/cli/admin/prune/images
-  - pkg/cli/admin/release
-  - pkg/cli/admin/top
-  - pkg/cli/admin/upgrade
-  - pkg/cli/admin/verifyimagesignature
-  - pkg/cli/buildlogs
-  - pkg/cli/cancelbuild
-  - pkg/cli/create
-  - pkg/cli/create/route
-  - pkg/cli/debug
-  - pkg/cli/deployer
-  - pkg/cli/deployer/strategy
-  - pkg/cli/deployer/strategy/recreate
-  - pkg/cli/deployer/strategy/rolling
-  - pkg/cli/deployer/strategy/support
-  - pkg/cli/deployer/strategy/util
-  - pkg/cli/experimental/dockergc
-  - pkg/cli/expose
-  - pkg/cli/extract
-  - pkg/cli/idle
-  - pkg/cli/image
-  - pkg/cli/image/append
-  - pkg/cli/image/archive
-  - pkg/cli/image/extract
-  - pkg/cli/image/info
-  - pkg/cli/image/manifest
-  - pkg/cli/image/manifest/dockercredentials
-  - pkg/cli/image/mirror
-  - pkg/cli/image/workqueue
-  - pkg/cli/importimage
-  - pkg/cli/kubectlwrappers
-  - pkg/cli/login
-  - pkg/cli/logout
-  - pkg/cli/logs
-  - pkg/cli/newapp
-  - pkg/cli/newbuild
-  - pkg/cli/observe
-  - pkg/cli/options
-  - pkg/cli/policy
-  - pkg/cli/policy/cani
-  - pkg/cli/process
-  - pkg/cli/project
-  - pkg/cli/projects
-  - pkg/cli/recycle
-  - pkg/cli/registry
-  - pkg/cli/registry/info
-  - pkg/cli/registry/login
-  - pkg/cli/requestproject
-  - pkg/cli/rollback
-  - pkg/cli/rollout
-  - pkg/cli/rsh
-  - pkg/cli/rsync
-  - pkg/cli/rsync/fsnotification
-  - pkg/cli/secrets
-  - pkg/cli/serviceaccounts
-  - pkg/cli/set
-  - pkg/cli/startbuild
-  - pkg/cli/status
-  - pkg/cli/tag
-  - pkg/cli/version
-  - pkg/cli/whoami
-  - pkg/helpers/authorization
-  - pkg/helpers/build
-  - pkg/helpers/build/client/v1
-  - pkg/helpers/bulk
-  - pkg/helpers/clientcmd
-  - pkg/helpers/cmd
-  - pkg/helpers/conditions
-  - pkg/helpers/describe
-  - pkg/helpers/dot
-  - pkg/helpers/env
-  - pkg/helpers/errors
-  - pkg/helpers/file
-  - pkg/helpers/flagtypes
-  - pkg/helpers/graph/appsgraph
-  - pkg/helpers/graph/appsgraph/analysis
-  - pkg/helpers/graph/appsgraph/nodes
-  - pkg/helpers/graph/buildgraph
-  - pkg/helpers/graph/buildgraph/analysis
-  - pkg/helpers/graph/buildgraph/nodes
-  - pkg/helpers/graph/genericgraph
-  - pkg/helpers/graph/genericgraph/graphview
-  - pkg/helpers/graph/imagegraph
-  - pkg/helpers/graph/imagegraph/nodes
-  - pkg/helpers/graph/kubegraph
-  - pkg/helpers/graph/kubegraph/analysis
-  - pkg/helpers/graph/kubegraph/nodes
-  - pkg/helpers/graph/routegraph
-  - pkg/helpers/graph/routegraph/analysis
-  - pkg/helpers/graph/routegraph/nodes
-  - pkg/helpers/groupsync
-  - pkg/helpers/groupsync/ad
-  - pkg/helpers/groupsync/groupdetector
-  - pkg/helpers/groupsync/interfaces
-  - pkg/helpers/groupsync/ldap
-  - pkg/helpers/groupsync/rfc2307
-  - pkg/helpers/groupsync/syncerror
-  - pkg/helpers/image
-  - pkg/helpers/image/dockerlayer
-  - pkg/helpers/image/dockerlayer/add
-  - pkg/helpers/kubeconfig
-  - pkg/helpers/legacy
-  - pkg/helpers/newapp
-  - pkg/helpers/newapp/app
-  - pkg/helpers/newapp/cmd
-  - pkg/helpers/newapp/docker
-  - pkg/helpers/newapp/docker/dockerfile
-  - pkg/helpers/newapp/dockerfile
-  - pkg/helpers/newapp/jenkinsfile
-  - pkg/helpers/newapp/portutils
-  - pkg/helpers/newapp/source
-  - pkg/helpers/originkubeconfignames
-  - pkg/helpers/originpolymorphichelpers
-  - pkg/helpers/originpolymorphichelpers/deploymentconfigs
-  - pkg/helpers/parallel
-  - pkg/helpers/proc
-  - pkg/helpers/project
-  - pkg/helpers/quota
-  - pkg/helpers/route
-  - pkg/helpers/route/generator
-  - pkg/helpers/template/templateprocessorclient
-  - pkg/helpers/term
-  - pkg/helpers/tokencmd
-  - pkg/version
-- name: github.com/openshift/source-to-image
-  version: 2a579ecd66dfaf9ee21bbc860fcde8e4d1d12301
-  subpackages:
-  - pkg/api
-  - pkg/api/constants
-  - pkg/errors
-  - pkg/scm/git
-  - pkg/tar
-  - pkg/util
-  - pkg/util/cmd
-  - pkg/util/cygpath
-  - pkg/util/fs
-  - pkg/util/log
-  - pkg/util/user
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
@@ -1424,7 +1175,9 @@ imports:
 - name: github.com/spf13/cast
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
-  version: b80588d523ec50c7fee20218426cf2ff70920f06
+  version: c439c4fa093711d42e1b01acb1235b52004753c1
+  subpackages:
+  - doc
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1532,7 +1285,6 @@ imports:
   subpackages:
   - bcrypt
   - blowfish
-  - cast5
   - cryptobyte
   - cryptobyte/asn1
   - curve25519
@@ -1542,12 +1294,6 @@ imports:
   - internal/subtle
   - nacl/secretbox
   - ocsp
-  - openpgp
-  - openpgp/armor
-  - openpgp/elgamal
-  - openpgp/errors
-  - openpgp/packet
-  - openpgp/s2k
   - pkcs12
   - pkcs12/internal/rc2
   - poly1305
@@ -1557,7 +1303,6 @@ imports:
 - name: golang.org/x/net
   version: 65e2d4e15006aab9813ff8769e768bbf4bb667a0
   subpackages:
-  - bpf
   - context
   - context/ctxhttp
   - html
@@ -1567,14 +1312,10 @@ imports:
   - http2
   - http2/hpack
   - idna
-  - internal/iana
   - internal/nettest
-  - internal/socket
   - internal/socks
   - internal/sockstest
   - internal/timeseries
-  - ipv4
-  - ipv6
   - proxy
   - trace
   - websocket
@@ -1697,6 +1438,7 @@ imports:
   - credentials
   - encoding
   - encoding/proto
+  - grpclb/grpc_lb_v1/messages
   - grpclog
   - health
   - health/grpc_health_v1
@@ -1740,7 +1482,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
-  version: 5b6d4ec96213966713b65f5d4aa1ee1b765f2c7c
+  version: ffaba947a5e96ed8955a635a8bf105089e311cbc
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1beta1
@@ -1782,7 +1524,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: ef1fb026cb0ebf50e765bba38c951dc095f7fddf
+  version: e58a314b37491f6f889b761cd779b560f02e062b
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -2354,7 +2096,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: faf0538d61897caa1a1b8aea789d8def9d585e74
+  version: 379111049d2c950d6c3ea70c6d87930ca48124cc
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app

@@ -129,11 +129,7 @@ func VerifyNoOverlap(subnets []*net.IPNet, CIDRBlock *net.IPNet) error {
 		if !CIDRBlock.Contains(firstLastIP[i][0]) || !CIDRBlock.Contains(firstLastIP[i][1]) {
 			return fmt.Errorf("%s does not fully contain %s", CIDRBlock.String(), s.String())
 		}
-		for j := 0; j < len(subnets); j++ {
-			if i == j {
-				continue
-			}
-
+		for j := i + 1; j < len(subnets); j++ {
 			first := firstLastIP[j][0]
 			last := firstLastIP[j][1]
 			if s.Contains(first) || s.Contains(last) {
