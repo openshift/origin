@@ -1,9 +1,9 @@
 package genericoperatorclient
 
 import (
+	"reflect"
+	"strings"
 	"time"
-
-	"github.com/imdario/mergo"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -65,6 +65,9 @@ func (c dynamicOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *op
 	return spec, status, instance.GetResourceVersion(), nil
 }
 
+// UpdateOperatorSpec overwrites the operator object spec with the values given
+// in operatorv1.OperatorSpec while preserving pre-existing spec fields that have
+// no correspondence in operatorv1.OperatorSpec.
 func (c dynamicOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *operatorv1.OperatorSpec) (*operatorv1.OperatorSpec, string, error) {
 	uncastOriginal, err := c.informer.Lister().Get(globalConfigName)
 	if err != nil {
@@ -90,6 +93,9 @@ func (c dynamicOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *
 	return retSpec, ret.GetResourceVersion(), nil
 }
 
+// UpdateOperatorStatus overwrites the operator object status with the values given
+// in operatorv1.OperatorStatus while preserving pre-existing status fields that have
+// no correspondence in operatorv1.OperatorStatus.
 func (c dynamicOperatorClient) UpdateOperatorStatus(resourceVersion string, status *operatorv1.OperatorStatus) (*operatorv1.OperatorStatus, error) {
 	uncastOriginal, err := c.informer.Lister().Get(globalConfigName)
 	if err != nil {
@@ -132,24 +138,28 @@ func getOperatorSpecFromUnstructured(obj map[string]interface{}) (*operatorv1.Op
 }
 
 func setOperatorSpecFromUnstructured(obj map[string]interface{}, spec *operatorv1.OperatorSpec) error {
-	// we cannot simply set the entire map because doing so would stomp unknown fields, like say a static pod operator spec when cast as an operator spec
-	newUnstructuredSpec, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec)
+	// we cannot simply set the entire map because doing so would stomp unknown fields,
+	// like say a static pod operator spec when cast as an operator spec
+	newSpec, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec)
 	if err != nil {
 		return err
 	}
 
-	originalUnstructuredSpec, exists, err := unstructured.NestedMap(obj, "spec")
-	if !exists {
-		return unstructured.SetNestedMap(obj, newUnstructuredSpec, "spec")
-	}
+	origSpec, preExistingSpec, err := unstructured.NestedMap(obj, "spec")
 	if err != nil {
 		return err
 	}
-	if err := mergo.Merge(&originalUnstructuredSpec, newUnstructuredSpec, mergo.WithOverride); err != nil {
-		return err
+	if preExistingSpec {
+		flds := topLevelFields(*spec)
+		for k, v := range origSpec {
+			if !flds[k] {
+				if err := unstructured.SetNestedField(newSpec, v, k); err != nil {
+					return err
+				}
+			}
+		}
 	}
-
-	return unstructured.SetNestedMap(obj, originalUnstructuredSpec, "spec")
+	return unstructured.SetNestedMap(obj, newSpec, "spec")
 }
 
 func getOperatorStatusFromUnstructured(obj map[string]interface{}) (*operatorv1.OperatorStatus, error) {
@@ -168,23 +178,48 @@ func getOperatorStatusFromUnstructured(obj map[string]interface{}) (*operatorv1.
 	return ret, nil
 }
 
-func setOperatorStatusFromUnstructured(obj map[string]interface{}, spec *operatorv1.OperatorStatus) error {
-	// we cannot simply set the entire map because doing so would stomp unknown fields, like say a static pod operator spec when cast as an operator spec
-	newUnstructuredStatus, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec)
+func setOperatorStatusFromUnstructured(obj map[string]interface{}, status *operatorv1.OperatorStatus) error {
+	// we cannot simply set the entire map because doing so would stomp unknown fields,
+	// like say a static pod operator status when cast as an operator status
+	newStatus, err := runtime.DefaultUnstructuredConverter.ToUnstructured(status)
 	if err != nil {
 		return err
 	}
 
-	originalUnstructuredStatus, exists, err := unstructured.NestedMap(obj, "status")
-	if !exists {
-		return unstructured.SetNestedMap(obj, newUnstructuredStatus, "status")
-	}
+	origStatus, preExistingStatus, err := unstructured.NestedMap(obj, "status")
 	if err != nil {
 		return err
 	}
-	if err := mergo.Merge(&originalUnstructuredStatus, newUnstructuredStatus, mergo.WithOverride); err != nil {
-		return err
+	if preExistingStatus {
+		flds := topLevelFields(*status)
+		for k, v := range origStatus {
+			if !flds[k] {
+				if err := unstructured.SetNestedField(newStatus, v, k); err != nil {
+					return err
+				}
+			}
+		}
 	}
+	return unstructured.SetNestedMap(obj, newStatus, "status")
+}
 
-	return unstructured.SetNestedMap(obj, originalUnstructuredStatus, "status")
+func topLevelFields(obj interface{}) map[string]bool {
+	ret := map[string]bool{}
+	t := reflect.TypeOf(obj)
+	for i := 0; i < t.NumField(); i++ {
+		fld := t.Field(i)
+		fieldName := fld.Name
+		if jsonTag := fld.Tag.Get("json"); jsonTag == "-" {
+			continue
+		} else if jsonTag != "" {
+			// check for possible comma as in "...,omitempty"
+			var commaIdx int
+			if commaIdx = strings.Index(jsonTag, ","); commaIdx < 0 {
+				commaIdx = len(jsonTag)
+			}
+			fieldName = jsonTag[:commaIdx]
+		}
+		ret[fieldName] = true
+	}
+	return ret
 }

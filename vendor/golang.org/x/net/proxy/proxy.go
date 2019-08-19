@@ -15,6 +15,7 @@ import (
 )
 
 // A Dialer is a means to establish a connection.
+// Custom dialers should also implement ContextDialer.
 type Dialer interface {
 	// Dial connects to the given address via the proxy.
 	Dial(network, addr string) (c net.Conn, err error)

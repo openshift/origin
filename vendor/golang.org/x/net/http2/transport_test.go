@@ -130,43 +130,49 @@ func TestTransport(t *testing.T) {
 	tr := &Transport{TLSClientConfig: tlsConfigInsecure}
 	defer tr.CloseIdleConnections()
 
-	req, err := http.NewRequest("GET", st.ts.URL, nil)
+	u, err := url.Parse(st.ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := tr.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
+	for i, m := range []string{"GET", ""} {
+		req := &http.Request{
+			Method: m,
+			URL:    u,
+		}
+		res, err := tr.RoundTrip(req)
+		if err != nil {
+			t.Fatalf("%d: %s", i, err)
+		}
 
-	t.Logf("Got res: %+v", res)
-	if g, w := res.StatusCode, 200; g != w {
-		t.Errorf("StatusCode = %v; want %v", g, w)
-	}
-	if g, w := res.Status, "200 OK"; g != w {
-		t.Errorf("Status = %q; want %q", g, w)
-	}
-	wantHeader := http.Header{
-		"Content-Length": []string{"3"},
-		"Content-Type":   []string{"text/plain; charset=utf-8"},
-		"Date":           []string{"XXX"}, // see cleanDate
-	}
-	cleanDate(res)
-	if !reflect.DeepEqual(res.Header, wantHeader) {
-		t.Errorf("res Header = %v; want %v", res.Header, wantHeader)
-	}
-	if res.Request != req {
-		t.Errorf("Response.Request = %p; want %p", res.Request, req)
-	}
-	if res.TLS == nil {
-		t.Error("Response.TLS = nil; want non-nil")
-	}
-	slurp, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Errorf("Body read: %v", err)
-	} else if string(slurp) != body {
-		t.Errorf("Body = %q; want %q", slurp, body)
+		t.Logf("%d: Got res: %+v", i, res)
+		if g, w := res.StatusCode, 200; g != w {
+			t.Errorf("%d: StatusCode = %v; want %v", i, g, w)
+		}
+		if g, w := res.Status, "200 OK"; g != w {
+			t.Errorf("%d: Status = %q; want %q", i, g, w)
+		}
+		wantHeader := http.Header{
+			"Content-Length": []string{"3"},
+			"Content-Type":   []string{"text/plain; charset=utf-8"},
+			"Date":           []string{"XXX"}, // see cleanDate
+		}
+		cleanDate(res)
+		if !reflect.DeepEqual(res.Header, wantHeader) {
+			t.Errorf("%d: res Header = %v; want %v", i, res.Header, wantHeader)
+		}
+		if res.Request != req {
+			t.Errorf("%d: Response.Request = %p; want %p", i, res.Request, req)
+		}
+		if res.TLS == nil {
+			t.Errorf("%d: Response.TLS = nil; want non-nil", i)
+		}
+		slurp, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Errorf("%d: Body read: %v", i, err)
+		} else if string(slurp) != body {
+			t.Errorf("%d: Body = %q; want %q", i, slurp, body)
+		}
+		res.Body.Close()
 	}
 }
 

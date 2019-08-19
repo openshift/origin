@@ -1,5 +1,5 @@
-hash: 133600678bfced8f947d0b7797aa19e87a4b7cb279eab1c96799fd17aac36ec3
-updated: 2019-08-01T17:39:30.516109233+02:00
+hash: 99380f2882f9a03bb8d0cf8d814e527f9cd08aa49de1b96ed02740147cf9f11a
+updated: 2019-08-13T17:54:51.328602295-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -10,6 +10,7 @@ imports:
   - negotiate
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo: https://github.com/openshift/gssapi.git
 - name: github.com/aws/aws-sdk-go
   version: 81f3829f5a9d041041bdf56e55926691309d7699
   subpackages:
@@ -93,7 +94,7 @@ imports:
   - types
   - version
 - name: github.com/containers/storage
-  version: 1b2a0dcaf4e74170644c851ff75b8637dbd2af68
+  version: 69bcd96b85fe4fdda4a491cc279ff888522d9122
   subpackages:
   - pkg/fileutils
   - pkg/homedir
@@ -188,7 +189,7 @@ imports:
   - ipamutils
   - ipvs
 - name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/docker/spdystream
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
@@ -298,7 +299,7 @@ imports:
   - compiler
   - extensions
 - name: github.com/gorilla/mux
-  version: e67b3c02c7195c052acff13261f0c9fd1ba53011
+  version: 08e7f807d38d6a870193019bb439056118661505
 - name: github.com/gregjones/httpcache
   version: 787624de3eb7bd915c329cba748687a3b22666a6
   subpackages:
@@ -392,7 +393,7 @@ imports:
   - libcontainer/user
   - libcontainer/utils
 - name: github.com/openshift/api
-  version: 0922aa5a655be314e20a3e0e94f4f2b105100154
+  version: b5570061b31fed3b06c24077c534b1a1bf7ecf8b
   subpackages:
   - annotations
   - apps
@@ -440,7 +441,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: a85ea6a6b3a5d2dbe41582ee35695dd4683e1f02
+  version: 5a5508328169b8a6992ea4ef711add89ddce3c6d
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -504,7 +505,7 @@ imports:
   - user/clientset/versioned/typed/user/v1
   - user/clientset/versioned/typed/user/v1/fake
 - name: github.com/openshift/library-go
-  version: 1810ce5f54ff4a1a4fea05e06024896a4885eb05
+  version: 1eb1131507bff6d494f05b23c8ecf850836d7328
   subpackages:
   - pkg/apps/appsserialization
   - pkg/apps/appsutil
@@ -1291,7 +1292,7 @@ imports:
   - pkg/transformers/config/defaultconfig
   - pkg/types
 - name: sigs.k8s.io/yaml
-  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
+  version: 4cd0c284b15f1735b8cc247df097d262b8903f9f
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:

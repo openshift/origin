@@ -23,8 +23,7 @@ import (
 
 var (
 	// Used for flags.
-	cfgFile     string
-	userLicense string
+	cfgFile, userLicense string
 
 	rootCmd = &cobra.Command{
 		Use:   "cobra",
@@ -36,8 +35,8 @@ to quickly create a Cobra application.`,
 )
 
 // Execute executes the root command.
-func Execute() error {
-	return rootCmd.Execute()
+func Execute() {
+	rootCmd.Execute()
 }
 
 func init() {

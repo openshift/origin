@@ -146,6 +146,7 @@ import:
   version: fababb0555f21315d1a34af6615a16eaab44396b
 # auth (for oc kerberos on linux + mac)
 - package: github.com/apcera/gssapi
+  repo: https://github.com/openshift/gssapi.git
   version: release-2.6.3
 # auth (for oc kerberos on windows)
 - package: github.com/alexbrainman/sspi

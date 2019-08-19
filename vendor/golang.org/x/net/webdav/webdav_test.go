@@ -284,7 +284,7 @@ func TestFilenameEscape(t *testing.T) {
 		wantDisplayName: `こんにちわ世界`,
 	}, {
 		name:            `/Program Files/`,
-		wantHref:        `/Program%20Files`,
+		wantHref:        `/Program%20Files/`,
 		wantDisplayName: `Program Files`,
 	}, {
 		name:            `/go+lang`,

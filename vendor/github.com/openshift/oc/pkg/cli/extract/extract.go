@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -218,8 +219,12 @@ func extractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
 		for k, v := range t.Data {
 			out[k] = []byte(v)
 		}
+		for k, v := range t.BinaryData {
+			out[k] = []byte(v)
+		}
 		return out, true, nil
 	default:
+		klog.V(4).Infof("Ignoring object type %T", obj)
 		return nil, false, nil
 	}
 }

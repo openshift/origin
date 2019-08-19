@@ -66,6 +66,8 @@ type LogsOptions struct {
 	// --path=journal specific arguments
 	Grep              string
 	GrepCaseSensitive bool
+	Boot              int
+	BootChanaged      bool
 	Units             []string
 	SinceTime         string
 	UntilTime         string
@@ -113,6 +115,7 @@ func NewCmdLogs(baseName string, f kcmdutil.Factory, streams genericclioptions.I
 	cmd.Flags().BoolVar(&o.GrepCaseSensitive, "case-sensitive", o.GrepCaseSensitive, "Filters are case sensitive by default. Pass --case-sensitive=false to do a case insensitive filter.")
 	cmd.Flags().StringVar(&o.SinceTime, "since", o.SinceTime, "Return logs after a specific ISO timestamp or relative date. Only applies to node journal logs.")
 	cmd.Flags().StringVar(&o.UntilTime, "until", o.UntilTime, "Return logs before a specific ISO timestamp or relative date. Only applies to node journal logs.")
+	cmd.Flags().IntVar(&o.Boot, "boot", o.Boot, " Show messages from a specific boot. Use negative numbers, allowed [-100, 0], passing invalid boot offset will fail retrieving logs. Only applies to node journal logs.")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", o.Output, "Display journal logs in an alternate format (short, cat, json, short-unix). Only applies to node journal logs.")
 	cmd.Flags().IntVar(&o.Tail, "tail", o.Tail, "Return up to this many lines from the end of the log. Only applies to node journal logs.")
 
@@ -151,6 +154,7 @@ func (o *LogsOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		builder.ResourceTypes("nodes").LabelSelectorParam(o.Selector)
 	}
 	o.Builder = builder
+	o.BootChanaged = cmd.Flag("boot").Changed
 
 	return nil
 }
@@ -161,6 +165,9 @@ func (o LogsOptions) Validate() error {
 	}
 	if len(o.Resources) > 0 && len(o.Selector) > 0 {
 		return fmt.Errorf("node names and selector may not both be specified")
+	}
+	if o.BootChanaged && (o.Boot < -100 || o.Boot > 0) {
+		return fmt.Errorf("--boot accepts values [-100, 0]")
 	}
 	return nil
 }
@@ -257,6 +264,9 @@ func (o LogsOptions) RunLogs() error {
 			}
 			if len(o.Output) > 0 {
 				req.Param("output", o.Output)
+			}
+			if o.BootChanaged {
+				req.Param("boot", fmt.Sprintf("%d", o.Boot))
 			}
 			if len(o.Units) > 0 {
 				for _, unit := range o.Units {

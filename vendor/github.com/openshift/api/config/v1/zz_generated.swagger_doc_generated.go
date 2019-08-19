@@ -828,7 +828,7 @@ func (PlatformStatus) SwaggerDoc() map[string]string {
 }
 
 var map_Ingress = map[string]string{
-	"":         "Ingress holds cluster-wide information about Ingress.  The canonical name is `cluster`",
+	"":         "Ingress holds cluster-wide information about ingress, including the default ingress domain used for routes. The canonical name is `cluster`.",
 	"metadata": "Standard object's metadata.",
 	"spec":     "spec holds user settable values for configuration",
 	"status":   "status holds observed values from the cluster. They may not be overridden.",
@@ -847,7 +847,7 @@ func (IngressList) SwaggerDoc() map[string]string {
 }
 
 var map_IngressSpec = map[string]string{
-	"domain": "domain is used to generate a default host name for a route when the route's host name is empty.  The generated host name will follow this pattern: \"<route-name>.<route-namespace>.<domain>\".",
+	"domain": "domain is used to generate a default host name for a route when the route's host name is empty. The generated host name will follow this pattern: \"<route-name>.<route-namespace>.<domain>\".\n\nIt is also used as the default wildcard domain suffix for ingress. The default ingresscontroller domain will follow this pattern: \"*.<domain>\".\n\nOnce set, changing domain is not currently supported.",
 }
 
 func (IngressSpec) SwaggerDoc() map[string]string {
@@ -1183,8 +1183,9 @@ func (OperatorHubList) SwaggerDoc() map[string]string {
 }
 
 var map_OperatorHubSpec = map[string]string{
-	"":        "OperatorHubSpec defines the desired state of OperatorHub",
-	"sources": "sources is the list of default hub sources and their configuration. If the list is empty, it indicates that the default hub sources are enabled on the cluster. The list of default hub sources and their current state will always be reflected in the status block.",
+	"":                         "OperatorHubSpec defines the desired state of OperatorHub",
+	"disableAllDefaultSources": "disableAllDefaultSources allows you to disable all the default hub sources. If this is true, a specific entry in sources can be used to enable a default source. If this is false, a specific entry in sources can be used to disable or enable a default source.",
+	"sources":                  "sources is the list of default hub sources and their configuration. If the list is empty, it implies that the default hub sources are enabled on the cluster unless disableAllDefaultSources is true. If disableAllDefaultSources is true and sources is not empty, the configuration present in sources will take precedence. The list of default hub sources and their current state will always be reflected in the status block.",
 }
 
 func (OperatorHubSpec) SwaggerDoc() map[string]string {
@@ -1262,7 +1263,7 @@ var map_ProxySpec = map[string]string{
 	"httpsProxy":         "httpsProxy is the URL of the proxy for HTTPS requests.  Empty means unset and will not result in an env var.",
 	"noProxy":            "noProxy is a comma-separated list of hostnames and/or CIDRs for which the proxy should not be used. Empty means unset and will not result in an env var.",
 	"readinessEndpoints": "readinessEndpoints is a list of endpoints used to verify readiness of the proxy.",
-	"trustedCA":          "trustedCA is a reference to a ConfigMap containing a CA certificate bundle used for client egress HTTPS connections. The certificate bundle must be from the CA that signed the proxy's certificate and be signed for everything. trustedCA should only be consumed by a proxy validator. The validator is responsible for reading ConfigMapNameReference, validating the certificate and copying \"ca-bundle.crt\" from data to a ConfigMap in the namespace of an operator configured for proxy. The namespace for this ConfigMap is \"openshift-config\". Here is an example ConfigMap (in yaml):\n\napiVersion: v1 kind: ConfigMap metadata:\n name: trusted-ca-bundle\n namespace: openshift-config\n data:\n   ca-bundle.crt: |",
+	"trustedCA":          "trustedCA is a reference to a ConfigMap containing a CA certificate bundle used for client egress HTTPS connections. The certificate bundle must be from the CA that signed the proxy's certificate and be signed for everything. The trustedCA field should only be consumed by a proxy validator. The validator is responsible for reading the certificate bundle from required key \"ca-bundle.crt\" and copying it to a ConfigMap named \"trusted-ca-bundle\" in the \"openshift-config-managed\" namespace. The namespace for the ConfigMap referenced by trustedCA is \"openshift-config\". Here is an example ConfigMap (in yaml):\n\napiVersion: v1 kind: ConfigMap metadata:\n name: user-ca-bundle\n namespace: openshift-config\n data:\n   ca-bundle.crt: |",
 }
 
 func (ProxySpec) SwaggerDoc() map[string]string {

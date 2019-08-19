@@ -2708,6 +2708,26 @@ func TestServerDoS_MaxHeaderListSize(t *testing.T) {
 	}
 }
 
+func TestServer_Response_Stream_With_Missing_Trailer(t *testing.T) {
+	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Trailer", "test-trailer")
+		return nil
+	}, func(st *serverTester) {
+		getSlash(st)
+		hf := st.wantHeaders()
+		if !hf.HeadersEnded() {
+			t.Fatal("want END_HEADERS flag")
+		}
+		df := st.wantData()
+		if len(df.data) != 0 {
+			t.Fatal("did not want data")
+		}
+		if !df.StreamEnded() {
+			t.Fatal("want END_STREAM flag")
+		}
+	})
+}
+
 func TestCompressionErrorOnWrite(t *testing.T) {
 	const maxStrLen = 8 << 10
 	var serverConfig *http.Server
@@ -3526,7 +3546,7 @@ func TestCheckValidHTTP2Request(t *testing.T) {
 	}
 	for i, tt := range tests {
 		got := checkValidHTTP2RequestHeaders(tt.h)
-		if !reflect.DeepEqual(got, tt.want) {
+		if !equalError(got, tt.want) {
 			t.Errorf("%d. checkValidHTTP2Request = %v; want %v", i, got, tt.want)
 		}
 	}

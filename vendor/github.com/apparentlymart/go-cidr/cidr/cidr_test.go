@@ -139,6 +139,16 @@ func TestHost(t *testing.T) {
 			Num:   -5,
 			Error: true, // 4 address (0-3) in 2 bits; cannot accomodate 5
 		},
+		Case{
+			Range:  "fd9d:bc11:4020::/64",
+			Num:    2,
+			Output: "fd9d:bc11:4020::2",
+		},
+		Case{
+			Range:  "fd9d:bc11:4020::/64",
+			Num:    -2,
+			Output: "fd9d:bc11:4020:0:ffff:ffff:ffff:fffe",
+		},
 	}
 
 	for _, testCase := range cases {
