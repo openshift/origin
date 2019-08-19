@@ -33398,14 +33398,14 @@ os::cmd::expect_success_and_text 'oc policy who-can impersonate storage-admin' '
 # Test storage-admin can not do normal project scoped tasks
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pods --all-namespaces' 'no'
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create projects' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pods --all-namespaces' 'no'
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pvc' 'no'
 
-# Test storage-admin can read pvc and create pv and storageclass
+# Test storage-admin can read pvc and pods, and create pv and storageclass
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pvc --all-namespaces' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get storageclass' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create pv' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm create storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i --as=storage-adm get pods --all-namespaces' 'yes'
 
 # Test failure to change policy on users for storage-admin
 os::cmd::expect_failure_and_text 'oc policy --as=storage-adm add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
