@@ -15,8 +15,6 @@ platforms=(
 image_platforms=( )
 test_platforms=( "${host_platform}" )
 
-targets=( "${OS_CROSS_COMPILE_TARGETS[@]}" )
-
 # Special case ppc64le
 if [[ "${host_platform}" == "linux/ppc64le" ]]; then
   platforms+=( "linux/ppc64le" )
@@ -73,7 +71,6 @@ os::build::build_binaries "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]-}"
 
 # Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
-os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
 if [[ "${OS_BUILD_RELEASE_ARCHIVES-}" != "n" ]]; then
   # Make the primary client/server release.

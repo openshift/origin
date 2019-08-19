@@ -355,23 +355,13 @@ function os::build::place_bins() {
         for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
           cp "${file}" "${release_binpath}/"
         done
-        if [[ $platform == "windows" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::zip "${OS_BINARY_RELEASE_CLIENT_WINDOWS[@]}"
-        elif [[ $platform == "mac" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::zip "${OS_BINARY_RELEASE_CLIENT_MAC[@]}"
-        elif [[ $platform == "linux-32bit" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
-        elif [[ $platform == "linux-64bit" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+        if [[ $platform == "linux-64bit" ]]; then
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         elif [[ $platform == "linux-powerpc64" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         elif [[ $platform == "linux-arm64" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         elif [[ $platform == "linux-s390" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         else
           echo "++ ERROR: No release type defined for $platform"

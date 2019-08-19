@@ -125,12 +125,6 @@ function os::build::archive::detect_local_release_tars() {
     [[ -z "${WARN-}" ]] && return 2
   fi
 
-  local client=$(find ${OS_OUTPUT_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
-  if [[ $(echo "${client}" | wc -l) -ne 1 || -z "${client}" ]]; then
-    echo "There should be exactly one ${platform} client tar in $OS_OUTPUT_RELEASEPATH"
-    [[ -n "${WARN-}" ]] || return 2
-  fi
-
   local image=$(find ${OS_OUTPUT_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${image}" | wc -l) -ne 1 || -z "${image}" ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_OUTPUT_RELEASEPATH"
@@ -139,7 +133,6 @@ function os::build::archive::detect_local_release_tars() {
 
   export OS_PRIMARY_RELEASE_TAR="${primary}"
   export OS_IMAGE_RELEASE_TAR="${image}"
-  export OS_CLIENT_RELEASE_TAR="${client}"
   export OS_RELEASE_COMMIT="$(cat ${OS_OUTPUT_RELEASEPATH}/.commit)"
 }
 readonly -f os::build::archive::detect_local_release_tars
