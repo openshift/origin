@@ -21,14 +21,14 @@ os::cmd::expect_failure 'oc whoami --as=cluster-admin'
 # Test storage-admin can not do normal project scoped tasks
 os::cmd::expect_success_and_text 'oc policy can-i create pods --all-namespaces' 'no'
 os::cmd::expect_success_and_text 'oc policy can-i create projects' 'no'
-os::cmd::expect_success_and_text 'oc policy can-i get pods --all-namespaces' 'no'
 os::cmd::expect_success_and_text 'oc policy can-i create pvc' 'no'
 
-# Test storage-admin can read pvc and create pv and storageclass
+# Test storage-admin can read pvc and pods, and create pv and storageclass
 os::cmd::expect_success_and_text 'oc policy can-i get pvc --all-namespaces' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i get storageclass' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i create pv' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i create storageclass' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i get pods --all-namespaces' 'yes'
 
 # Test failure to change policy on users for storage-admin
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin storage-adm' ' cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"'
