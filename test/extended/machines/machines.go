@@ -98,6 +98,61 @@ var _ = g.Describe("[Feature:Machines][Smoke] Managed cluster should", func() {
 			e2e.Failf("Machine resources missing for nodes: %s", strings.Join(nodeNames.List(), ", "))
 		}
 	})
+
+	g.It("not have machine resources with provider APIVersion in k8s.io namespace", func() {
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c, err := e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dc, err := dynamic.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("checking for the openshift machine api operator")
+		// TODO: skip if platform != aws
+		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
+
+		g.By("ensuring every machine provider APIVersion is in the right namespace")
+		machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
+		var lastMachines []objx.Map
+		if err := wait.PollImmediate(3*time.Second, operatorWait, func() (bool, error) {
+			obj, err := machineClient.List(metav1.ListOptions{})
+			if err != nil {
+				e2e.Logf("Unable to check for machines: %v", err)
+				return false, nil
+			}
+			machines := objx.Map(obj.UnstructuredContent())
+			items := objects(machines.Get("items"))
+			if len(items) == 0 {
+				e2e.Logf("No machine objects found")
+				return true, nil
+			}
+
+			for _, machine := range items {
+				providerAPIVersion := providerAPIVersionFromMachine(machine)
+				e2e.Logf(providerAPIVersion)
+				if strings.Contains(providerAPIVersion, "k8s.io") {
+					e2e.Failf("Machine object found with provider APIVersion in k8s.io namespace")
+				}
+			}
+			return true, nil
+		}); err != nil {
+			buf := &bytes.Buffer{}
+			w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
+			fmt.Fprintf(w, "NAMESPACE\tNAME\tPROVIDER API VERSION\n")
+			for _, machine := range lastMachines {
+				ns := machine.Get("metadata.namespace").String()
+				name := machine.Get("metadata.name").String()
+				providerAPIVersion := providerAPIVersionFromMachine(machine)
+				fmt.Fprintf(w, "%s\t%s\t%s\n",
+					ns,
+					name,
+					providerAPIVersion,
+				)
+			}
+			w.Flush()
+			e2e.Logf("Machines:\n%s", buf.String())
+		}
+	})
 })
 
 func skipUnlessMachineAPIOperator(c coreclient.NamespaceInterface) {
@@ -132,4 +187,8 @@ func objects(from *objx.Value) []objx.Map {
 
 func nodeNameFromNodeRef(item objx.Map) string {
 	return item.Get("status.nodeRef.name").String()
+}
+
+func providerAPIVersionFromMachine(item objx.Map) string {
+	return item.Get("spec.providerSpec.value.apiVersion").String()
 }
