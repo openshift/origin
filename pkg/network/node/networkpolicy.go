@@ -373,15 +373,18 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 				return nil, fmt.Errorf("policy specifies unrecognized protocol %q", *port.Protocol)
 			}
 			var portNum int
-			if port.Port.Type == intstr.Int {
+			if port.Port == nil {
+				// FIXME: implement this?
+				return nil, fmt.Errorf("port fields with no port value are not implemented")
+			} else if port.Port.Type != intstr.Int {
+				// FIXME: implement this?
+				return nil, fmt.Errorf("named port values (%q) are not implemented", port.Port.StrVal)
+			} else {
 				portNum = int(port.Port.IntVal)
 				if portNum < 0 || portNum > 0xFFFF {
 					// FIXME: validation should catch this
 					return nil, fmt.Errorf("port value out of bounds %q", port.Port.IntVal)
 				}
-			} else {
-				// FIXME: implement this
-				return nil, fmt.Errorf("named port values (%q) are not yet implemented", port.Port.StrVal)
 			}
 			portFlows = append(portFlows, fmt.Sprintf("%s, tp_dst=%d, ", protocol, portNum))
 		}
