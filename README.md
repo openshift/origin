@@ -15,7 +15,7 @@ OKD: The Origin Community Distribution of Kubernetes
 **Features:**
 
 * Easily build applications with integrated service discovery and persistent storage.
-* Quickly and easily scale applications to handle periods of increased demand.
+* Quickly and easily scale applications to handle periods of increased demand
   * Support for automatic high availability, load balancing, health checking, and failover.
 * Push source code to your Git repository and automatically deploy containerized applications.
 * Web console and command-line client for building and monitoring applications.
