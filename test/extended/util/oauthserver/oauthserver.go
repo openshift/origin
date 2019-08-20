@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
@@ -81,6 +82,7 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 		if err := oc.AsAdmin().Run("create").Args("-f", path.Join(oauthServerDataDir, res)).Execute(); err != nil {
 			return nil, cleanupFunc, err
 		}
+		e2e.Logf("Created resources defined in %v", res)
 	}
 
 	kubeClient := oc.AdminKubeClient()
@@ -93,17 +95,20 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	cleanupFuncs = append(cleanupFuncs, func() {
 		_ = oc.AsAdmin().Run("delete").Args("clusterrolebindings.rbac.authorization.k8s.io", clusterRoleBinding.Name).Execute()
 	})
+	e2e.Logf("Created: %v %v", "ClusterRoleBinding", clusterRoleBinding.Name)
 
 	// create the secrets and configmaps the OAuth server config requires to get the server going
 	for _, cm := range configMaps {
 		if _, err := kubeClient.CoreV1().ConfigMaps(oc.Namespace()).Create(&cm); err != nil {
 			return nil, cleanupFunc, err
 		}
+		e2e.Logf("Created: %v %v/%v", "ConfigMap", oc.Namespace(), cm.Name)
 	}
 	for _, secret := range secrets {
 		if _, err := kubeClient.CoreV1().Secrets(oc.Namespace()).Create(&secret); err != nil {
 			return nil, cleanupFunc, err
 		}
+		e2e.Logf("Created: %v %v/%v", secret.Kind, secret.Namespace, secret.Name)
 	}
 
 	// generate a session secret for the oauth server
@@ -114,6 +119,7 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	if _, err := kubeClient.CoreV1().Secrets(oc.Namespace()).Create(sessionSecret); err != nil {
 		return nil, cleanupFunc, err
 	}
+	e2e.Logf("Created: %v %v/%v", "Secret", oc.Namespace(), sessionSecret.Name)
 
 	// get the route of the future OAuth server (defined in the oauth-network.yaml fixture above)
 	route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(RouteName, metav1.GetOptions{})
@@ -145,6 +151,7 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	if err != nil {
 		return nil, cleanupFunc, err
 	}
+	e2e.Logf("Created: %v %v/%v", "ConfigMap", oc.Namespace(), "oauth-config")
 
 	// get the OAuth server image that's used in the cluster
 	image, err := getImage(oc)
@@ -162,10 +169,12 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	if _, err := kubeClient.CoreV1().Pods(oc.Namespace()).Create(oauthServerPod); err != nil {
 		return nil, cleanupFunc, err
 	}
+	e2e.Logf("Created: %v %v/%v", "Pod", oc.Namespace(), oauthServerPod.Name)
 
 	if err := waitForOAuthServerReady(oc); err != nil {
 		return nil, cleanupFunc, err
 	}
+	e2e.Logf("OAuth server is ready")
 
 	oauthClient, err := createOAuthClient(oc, routeURL)
 	if err != nil {
@@ -174,6 +183,7 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	cleanupFuncs = append(cleanupFuncs, func() {
 		_ = oc.AsAdmin().Run("delete").Args("oauthclients.oauth.openshift.io", oauthClient.Name).Execute()
 	})
+	e2e.Logf("Created: %v %v/%v", oauthClient.Kind, oauthClient.Namespace, oauthClient.Name)
 
 	newRequestTokenOptionFunc := func(username, password string) *tokencmd.RequestTokenOptions {
 		return newRequestTokenOptions(restclient.AnonymousClientConfig(oc.AdminConfig()), routeURL, oc.Namespace(), username, password)
@@ -194,6 +204,7 @@ func waitForOAuthServerReady(oc *exutil.CLI) error {
 
 func waitForOAuthServerPodReady(oc *exutil.CLI) error {
 	return wait.PollImmediate(1*time.Second, 45*time.Second, func() (bool, error) {
+		e2e.Logf("Waiting for the OAuth server pod to be ready")
 		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get("test-oauth-server", metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -215,12 +226,23 @@ func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 		return err
 	}
 	return wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
+		e2e.Logf("Waiting for the OAuth server route to be ready")
 		transport, err := restclient.TransportFor(restclient.AnonymousClientConfig(oc.AdminConfig()))
 		if err != nil {
+			e2e.Logf("Error getting transport: %v", err)
 			return false, err
 		}
-		response, _ := transport.RoundTrip(request)
-		return response != nil && response.StatusCode == http.StatusOK, nil
+		response, err := transport.RoundTrip(request)
+		if response != nil && response.StatusCode == http.StatusOK {
+			return true, nil
+		}
+		if response != nil {
+			e2e.Logf("Waiting for the OAuth server route to be ready: %v", response.Status)
+		}
+		if err != nil {
+			e2e.Logf("Waiting for the OAuth server route to be ready: %v", err)
+		}
+		return false, nil
 	})
 }
 
