@@ -287,6 +287,15 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				}
 				return true, nil
 			})).NotTo(o.HaveOccurred())
+
+			g.By("verifying standard metrics keys")
+			queries := map[string][]metricTest{
+				`template_router_reload_seconds_count{job="router-internal-default"}`:    {metricTest{greaterThanEqual: true, value: 1}},
+				`haproxy_server_up{job="router-internal-default"}`:                       {metricTest{greaterThanEqual: true, value: 1}},
+				`template_router_reload_seconds_count{job="router-internal-prometheus"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				`haproxy_server_up{job="router-internal-prometheus"}`:                    {metricTest{greaterThanEqual: true, value: 1}},
+			}
+			runQueries(queries, oc, ns, execPodName, url, bearerToken)
 		})
 	})
 })
