@@ -43,8 +43,8 @@ func listWorkerMachineSets(dc dynamic.Interface) ([]objx.Map, error) {
 	}
 	machineSets := []objx.Map{}
 	for _, ms := range objects(objx.Map(obj.UnstructuredContent()).Get("items")) {
-		e2e.Logf("Labels %v", ms.Get("spec.selector.matchLabels"))
-		labels := (*ms.Get("spec.selector.matchLabels")).Data().(map[string]interface{})
+		e2e.Logf("Labels %v", ms.Get("spec.template.metadata.labels"))
+		labels := (*ms.Get("spec.template.metadata.labels")).Data().(map[string]interface{})
 		if val, ok := labels[machineLabelRole]; ok {
 			if val == "worker" {
 				machineSets = append(machineSets, ms)
