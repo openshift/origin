@@ -1705,9 +1705,16 @@ func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
+		e2e.Logf("Waiting for user '%v' to be authorized to %v the %v resource", user, verb, resource)
 		resp, err := oc.AdminKubeClient().AuthorizationV1().SubjectAccessReviews().Create(sar)
 		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil
+		}
+		if err != nil {
+			e2e.Logf("Error creating SubjectAccessReview: %v", err)
+		}
+		if resp != nil {
+			e2e.Logf("SubjectAccessReview.Status: %#v", resp.Status)
 		}
 		return false, err
 	})
