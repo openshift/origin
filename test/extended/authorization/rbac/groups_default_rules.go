@@ -86,6 +86,7 @@ var (
 			"/osapi", "/osapi/",
 			"/.well-known", "/.well-known/*",
 			"/",
+			"/.well-known/oauth-authorization-server",
 		).RuleOrDie(),
 
 		rbacv1helpers.NewRule("get").URLs(
