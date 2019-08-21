@@ -223,8 +223,12 @@ func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, na
 	}
 
 	// force test data to be cleaned up every so often but allow extra rules to not deadlock new changes
-	if cover, missing := validation.Covers(actualRules, expectedRules); !cover && len(missing) > 12 {
-		e2e.Failf("test data for %s has too many unnecessary permissions:\n%s", group, rulesToString(missing))
+	if cover, missing := validation.Covers(actualRules, expectedRules); !cover {
+		log := e2e.Logf
+		if len(missing) > 100 {
+			log = e2e.Failf
+		}
+		log("test data for %s has too many unnecessary permissions:\n%s", group, rulesToString(missing))
 	}
 }
 
