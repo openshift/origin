@@ -78,6 +78,7 @@ var (
 
 		rbacv1helpers.NewRule("delete").Groups(oauthGroup, legacyOauthGroup).Resources("oauthaccesstokens", "oauthauthorizetokens").RuleOrDie(),
 
+		// this is openshift specific
 		rbacv1helpers.NewRule("get").URLs(
 			"/healthz/",
 			"/version/*",
@@ -86,19 +87,27 @@ var (
 			"/osapi", "/osapi/",
 			"/.well-known", "/.well-known/*",
 			"/",
+			"/version/openshift",
 			"/.well-known/oauth-authorization-server",
+			// TODO: remove when dropped from openshift-apiserver
+			"/openapi", "/openapi/*",
+			"/api", "/api/*",
+			"/apis", "/apis/*",
 		).RuleOrDie(),
 
+		// TODO: remove with after 1.15 rebase
 		rbacv1helpers.NewRule("get").URLs(
 			"/readyz",
 		).RuleOrDie(),
 
+		// this is from upstream kube
 		rbacv1helpers.NewRule("get").URLs(
 			"/healthz",
 			"/version",
 			"/openapi", "/openapi/*",
 			"/api", "/api/*",
 			"/apis", "/apis/*",
+			"/version/",
 		).RuleOrDie(),
 	}
 
@@ -118,6 +127,13 @@ var (
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
 			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications").RuleOrDie(),
+
+			// this is from upstream kube
+			rbacv1helpers.NewRule("get").URLs(
+				"/openapi", "/openapi/*",
+				"/api", "/api/*",
+				"/apis", "/apis/*",
+			).RuleOrDie(),
 		},
 		allUnauthenticatedRules...,
 	)
