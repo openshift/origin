@@ -207,10 +207,11 @@ func clusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			// a role which provides unauthenticated access to /readyz.
-			// TODO: integrate into system:public-info-viewer (new in 1.14) when upstreaming
 			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:public-info-viewer"},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("get").URLs(
+					"/.well-known", "/.well-known/*",
+					// TODO: drop with 1.15 rebase
 					"/readyz",
 				).RuleOrDie(),
 			},
