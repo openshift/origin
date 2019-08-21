@@ -210,48 +210,35 @@ var _ = SIGDescribe("SchedulerPriorities [Serial]", func() {
 		// make the nodes have balanced cpu,mem usage ratio
 		err := createBalancedPodForNodes(f, cs, ns, nodeList.Items, podRequestedResource, 0.5)
 		framework.ExpectNoError(err)
-		//we need apply more taints on a node, because one match toleration only count 1
-		By("Trying to apply 10 taint on the nodes except first one.")
+		// Apply 10 taints to first node
 		nodeName := nodeList.Items[0].Name
 
-		for index, node := range nodeList.Items {
-			if index == 0 {
-				continue
-			}
-			for i := 0; i < 10; i++ {
-				testTaint := addRandomTaitToNode(cs, node.Name)
-				defer framework.RemoveTaintOffNode(cs, node.Name, *testTaint)
-			}
-		}
-		By("Create a pod without any tolerations")
-		tolerationPodName := "without-tolerations"
-		pod := createPausePod(f, pausePodConfig{
-			Name: tolerationPodName,
-		})
-		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
-
-		By("Pod should prefer scheduled to the node don't have the taint.")
-		tolePod, err := cs.CoreV1().Pods(ns).Get(tolerationPodName, metav1.GetOptions{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(tolePod.Spec.NodeName).To(Equal(nodeName))
-
-		By("Trying to apply 10 taint on the first node.")
+		By("Trying to apply 10 (tolerable) taints on the first node.")
 		var tolerations []v1.Toleration
 		for i := 0; i < 10; i++ {
-			testTaint := addRandomTaitToNode(cs, nodeName)
+			testTaint := addRandomTaintToNode(cs, nodeName)
 			tolerations = append(tolerations, v1.Toleration{Key: testTaint.Key, Value: testTaint.Value, Effect: testTaint.Effect})
 			defer framework.RemoveTaintOffNode(cs, nodeName, *testTaint)
 		}
-		tolerationPodName = "with-tolerations"
+		By("Adding 10 intolerable taints to all other nodes")
+		for i := 1; i < len(nodeList.Items); i++ {
+			node := nodeList.Items[i]
+			for i := 0; i < 10; i++ {
+				testTaint := addRandomTaintToNode(cs, node.Name)
+				defer framework.RemoveTaintOffNode(cs, node.Name, *testTaint)
+			}
+		}
+
+		tolerationPodName := "with-tolerations"
 		By("Create a pod that tolerates all the taints of the first node.")
-		pod = createPausePod(f, pausePodConfig{
+		pod := createPausePod(f, pausePodConfig{
 			Name:        tolerationPodName,
 			Tolerations: tolerations,
 		})
 		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
 
 		By("Pod should prefer scheduled to the node that pod can tolerate.")
-		tolePod, err = cs.CoreV1().Pods(ns).Get(tolerationPodName, metav1.GetOptions{})
+		tolePod, err := cs.CoreV1().Pods(ns).Get(tolerationPodName, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(tolePod.Spec.NodeName).To(Equal(nodeName))
 	})
@@ -401,7 +388,7 @@ func createRC(ns, rsName string, replicas int32, rcPodLabels map[string]string, 
 	return rc
 }
 
-func addRandomTaitToNode(cs clientset.Interface, nodeName string) *v1.Taint {
+func addRandomTaintToNode(cs clientset.Interface, nodeName string) *v1.Taint {
 	testTaint := v1.Taint{
 		Key:    fmt.Sprintf("kubernetes.io/e2e-taint-key-%s", string(uuid.NewUUID())),
 		Value:  fmt.Sprintf("testing-taint-value-%s", string(uuid.NewUUID())),
