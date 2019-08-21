@@ -425,7 +425,7 @@ func DumpPodLogsStartingWithInNamespace(prefix, namespace string, oc *CLI) {
 
 func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	for _, pod := range pods {
-		descOutput, err := oc.AsAdmin().Run("describe").Args("pod/" + pod.Name).Output()
+		descOutput, err := oc.AsAdmin().Run("describe").WithoutNamespace().Args("pod/"+pod.Name, "-n", pod.Namespace).Output()
 		if err == nil {
 			e2e.Logf("Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
