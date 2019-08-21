@@ -846,6 +846,14 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 	}
 	for _, tt := range tests {
 		g.By(tt.name, func() {
+			// always clean up in between tests
+			defer func() {
+				_ = clusterAdminAuthorizationClient.ClusterRoles().Delete(resourceName, nil)
+				_ = clusterAdminAuthorizationClient.ClusterRoleBindings().Delete(resourceName, nil)
+				_ = clusterAdminAuthorizationClient.Roles(namespace).Delete(resourceName, nil)
+				_ = clusterAdminAuthorizationClient.RoleBindings(namespace).Delete(resourceName, nil)
+			}()
+
 			err := tt.run()
 
 			if err == nil {
