@@ -22,8 +22,20 @@ var _ = g.Describe("[Feature:APIServer]", func() {
 
 	oc := exutil.NewCLI("apiserver", exutil.KubeConfigPath())
 
-	g.It("browsers should get a redirect from /", func() {
+	g.It("anonymous browsers should get a 403 from /", func() {
 		transport, err := anonymousHttpTransport(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		req, err := http.NewRequest("GET", oc.AdminConfig().Host, nil)
+		req.Header.Set("Accept", "*/*")
+		_, err = transport.RoundTrip(req)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		o.Expect(resp.StatusCode).Should(o.Equal(http.StatusForbidden))
+	})
+
+	g.It("authenticated browser should get a 200 from /", func() {
+		transport, err := rest.TransportFor(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		req, err := http.NewRequest("GET", oc.AdminConfig().Host, nil)
@@ -32,6 +44,7 @@ var _ = g.Describe("[Feature:APIServer]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(resp.StatusCode).Should(o.Equal(http.StatusOK))
+
 		o.Expect(resp.Header.Get("Content-Type")).Should(o.Equal("application/json"))
 		type result struct {
 			Paths []string
@@ -40,7 +53,8 @@ var _ = g.Describe("[Feature:APIServer]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var got result
-		json.Unmarshal(body, &got)
+		err = json.Unmarshal(body, &got)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
