@@ -127,11 +127,6 @@ var Cases = []Case{
 		`{ "foo": [ "all", "cows", "grass", "eat" ] }`,
 	},
 	{
-		`{ "foo": [ "a", "b", "c", "d", "e" ] }`,
-		`[ { "op": "move", "from": "/foo/1", "path": "/foo/2" } ]`,
-		`{ "foo": [ "a", "c", "b", "d", "e" ] }`,
-	},
-	{
 		`{ "foo": "bar" }`,
 		`[ { "op": "add", "path": "/child", "value": { "grandchild": { } } } ]`,
 		`{ "foo": "bar", "child": { "grandchild": { } } }`,

@@ -357,6 +357,9 @@ func newArchiveMapper(src, dst string, excludes []string, resetOwners bool, chec
 			prefix = path.Base(archiveRoot)
 		}
 	}
+	if !strings.HasSuffix(archiveRoot, "/") {
+		archiveRoot += "/"
+	}
 
 	mapperFn := archivePathMapper(srcPattern, dst, isDestDir)
 
