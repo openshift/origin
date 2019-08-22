@@ -1,6 +1,7 @@
 package images
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -21,7 +22,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -31,6 +34,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/pager"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -344,10 +348,21 @@ func (o PruneImagesOptions) Run() error {
 		limitRangesMap[limit.Namespace] = limits
 	}
 
-	allImages, err := o.ImageClient.Images().List(metav1.ListOptions{})
+	ctx := context.TODO()
+	allImagesUntyped, err := pager.New(func(ctx context.Context, opts metav1.ListOptions) (runtime.Object, error) {
+		return o.ImageClient.Images().List(opts)
+	}).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
+	allImages := &imagev1.ImageList{}
+	if err := meta.EachListItem(allImagesUntyped, func(obj runtime.Object) error {
+		allImages.Items = append(allImages.Items, *obj.(*imagev1.Image))
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	imageWatcher, err := o.ImageClient.Images().Watch(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("internal error: failed to watch for images: %v"+
