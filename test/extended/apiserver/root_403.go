@@ -31,7 +31,8 @@ var _ = g.Describe("[Feature:APIServer]", func() {
 		_, err = transport.RoundTrip(req)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(resp.StatusCode).Should(o.Equal(http.StatusForbidden))
+		// TODO: readd when unprivileged discovery has been disabled
+		// o.Expect(resp.StatusCode).Should(o.Equal(http.StatusForbidden))
 	})
 
 	g.It("authenticated browser should get a 200 from /", func() {
