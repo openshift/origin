@@ -229,7 +229,7 @@ func (c *CLI) SetupProject() {
 
 	var ctx context.Context
 	cancel := func() {}
-	defer cancel()
+	defer func() { cancel() }()
 	// Wait for default role bindings for those SAs
 	for _, name := range []string{"system:image-pullers", "system:image-builders", "system:deployers"} {
 		e2e.Logf("Waiting for RoleBinding %q to be provisioned...", name)
