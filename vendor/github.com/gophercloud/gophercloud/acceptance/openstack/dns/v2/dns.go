@@ -7,6 +7,7 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/recordsets"
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateRecordSet will create a RecordSet with a random name. An error will
@@ -37,6 +38,8 @@ func CreateRecordSet(t *testing.T, client *gophercloud.ServiceClient, zone *zone
 	}
 
 	t.Logf("Created record set: %s", newRS.Name)
+
+	th.AssertEquals(t, newRS.Name, zone.Name)
 
 	return rs, nil
 }
@@ -70,6 +73,10 @@ func CreateZone(t *testing.T, client *gophercloud.ServiceClient) (*zones.Zone, e
 	}
 
 	t.Logf("Created Zone: %s", zoneName)
+
+	th.AssertEquals(t, newZone.Name, zoneName)
+	th.AssertEquals(t, newZone.TTL, 7200)
+
 	return newZone, nil
 }
 
@@ -102,6 +109,10 @@ func CreateSecondaryZone(t *testing.T, client *gophercloud.ServiceClient) (*zone
 	}
 
 	t.Logf("Created Zone: %s", zoneName)
+
+	th.AssertEquals(t, newZone.Name, zoneName)
+	th.AssertEquals(t, newZone.Masters[0], "10.0.0.1")
+
 	return newZone, nil
 }
 
@@ -132,7 +143,7 @@ func DeleteZone(t *testing.T, client *gophercloud.ServiceClient, zone *zones.Zon
 // WaitForRecordSetStatus will poll a record set's status until it either matches
 // the specified status or the status becomes ERROR.
 func WaitForRecordSetStatus(client *gophercloud.ServiceClient, rs *recordsets.RecordSet, status string) error {
-	return gophercloud.WaitFor(60, func() (bool, error) {
+	return gophercloud.WaitFor(600, func() (bool, error) {
 		current, err := recordsets.Get(client, rs.ZoneID, rs.ID).Extract()
 		if err != nil {
 			return false, err
@@ -149,7 +160,7 @@ func WaitForRecordSetStatus(client *gophercloud.ServiceClient, rs *recordsets.Re
 // WaitForZoneStatus will poll a zone's status until it either matches
 // the specified status or the status becomes ERROR.
 func WaitForZoneStatus(client *gophercloud.ServiceClient, zone *zones.Zone, status string) error {
-	return gophercloud.WaitFor(60, func() (bool, error) {
+	return gophercloud.WaitFor(600, func() (bool, error) {
 		current, err := zones.Get(client, zone.ID).Extract()
 		if err != nil {
 			return false, err

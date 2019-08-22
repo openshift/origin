@@ -266,3 +266,39 @@ func TestAttachExistingVolume(t *testing.T) {
 
 	// TODO: volumes_attached extension
 }
+
+func TestBootFromNewCustomizedVolume(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test that requires server creation in short mode.")
+	}
+
+	client, err := clients.NewComputeV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a compute client: %v", err)
+	}
+
+	choices, err := clients.AcceptanceTestChoicesFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	blockDevices := []bootfromvolume.BlockDevice{
+		bootfromvolume.BlockDevice{
+			DeleteOnTermination: true,
+			DestinationType:     bootfromvolume.DestinationVolume,
+			SourceType:          bootfromvolume.SourceImage,
+			UUID:                choices.ImageID,
+			VolumeSize:          2,
+			DeviceType:          "disk",
+			DiskBus:             "virtio",
+		},
+	}
+
+	server, err := CreateBootableVolumeServer(t, client, blockDevices)
+	if err != nil {
+		t.Fatalf("Unable to create server: %v", err)
+	}
+	defer DeleteServer(t, client, server)
+
+	tools.PrintResource(t, server)
+}

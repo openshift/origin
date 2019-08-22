@@ -9,31 +9,27 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v2/tokens"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestTokenAuthenticate(t *testing.T) {
+	clients.RequireIdentityV2(t)
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV2UnauthenticatedClient()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	authOptions, err := openstack.AuthOptionsFromEnv()
-	if err != nil {
-		t.Fatalf("Unable to obtain authentication options: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	result := tokens.Create(client, authOptions)
 	token, err := result.ExtractToken()
-	if err != nil {
-		t.Fatalf("Unable to extract token: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, token)
 
 	catalog, err := result.ExtractServiceCatalog()
-	if err != nil {
-		t.Fatalf("Unable to extract service catalog: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	for _, entry := range catalog.Entries {
 		tools.PrintResource(t, entry)
@@ -41,29 +37,24 @@ func TestTokenAuthenticate(t *testing.T) {
 }
 
 func TestTokenValidate(t *testing.T) {
+	clients.RequireIdentityV2(t)
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV2Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	authOptions, err := openstack.AuthOptionsFromEnv()
-	if err != nil {
-		t.Fatalf("Unable to obtain authentication options: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	result := tokens.Create(client, authOptions)
 	token, err := result.ExtractToken()
-	if err != nil {
-		t.Fatalf("Unable to extract token: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, token)
 
 	getResult := tokens.Get(client, token.ID)
 	user, err := getResult.ExtractUser()
-	if err != nil {
-		t.Fatalf("Unable to extract user: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, user)
 }

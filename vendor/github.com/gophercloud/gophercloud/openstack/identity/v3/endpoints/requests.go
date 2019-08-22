@@ -61,11 +61,8 @@ type ListOpts struct {
 	// ServiceID is the ID of the service the Endpoint refers to.
 	ServiceID string `q:"service_id"`
 
-	// Page is a result page to reference in the results.
-	Page int `q:"page"`
-
-	// PerPage determines how many results per page are returned.
-	PerPage int `q:"per_page"`
+	// RegionID is the ID of the region the Endpoint refers to.
+	RegionID int `q:"region_id"`
 }
 
 // ToEndpointListParams builds a list request from the List options.

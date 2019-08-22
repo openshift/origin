@@ -50,11 +50,13 @@ func CreateVolume(t *testing.T, client *gophercloud.ServiceClient) (*volumes.Vol
 	}
 
 	volumeName := tools.RandomString("ACPTTEST", 16)
+	volumeDescription := tools.RandomString("ACPTTEST-DESC", 16)
 	t.Logf("Attempting to create volume: %s", volumeName)
 
 	createOpts := volumes.CreateOpts{
-		Size: 1,
-		Name: volumeName,
+		Size:        1,
+		Name:        volumeName,
+		Description: volumeDescription,
 	}
 
 	volume, err := volumes.Create(client, createOpts).Extract()

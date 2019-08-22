@@ -11,54 +11,26 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/extradhcpopts"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsecurity"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
-
-func TestPortsList(t *testing.T) {
-	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
-
-	allPages, err := ports.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list ports: %v", err)
-	}
-
-	allPorts, err := ports.ExtractPorts(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract ports: %v", err)
-	}
-
-	for _, port := range allPorts {
-		tools.PrintResource(t, port)
-	}
-}
 
 func TestPortsCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create port
 	port, err := CreatePort(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	if len(port.SecurityGroups) != 1 {
@@ -68,52 +40,60 @@ func TestPortsCRUD(t *testing.T) {
 	tools.PrintResource(t, port)
 
 	// Update port
-	newPortName := tools.RandomString("TESTACC-", 8)
+	newPortName := ""
+	newPortDescription := ""
 	updateOpts := ports.UpdateOpts{
-		Name: newPortName,
+		Name:        &newPortName,
+		Description: &newPortDescription,
 	}
 	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
+
+	th.AssertEquals(t, newPort.Name, newPortName)
+	th.AssertEquals(t, newPort.Description, newPortDescription)
+
+	allPages, err := ports.List(client, nil).AllPages()
+	th.AssertNoErr(t, err)
+
+	allPorts, err := ports.ExtractPorts(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, port := range allPorts {
+		if port.ID == newPort.ID {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
 }
 
 func TestPortsRemoveSecurityGroups(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create port
 	port, err := CreatePort(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
 
 	// Create a Security Group
 	group, err := extensions.CreateSecurityGroup(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create security group: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer extensions.DeleteSecurityGroup(t, client, group.ID)
 
 	// Add the group to the port
@@ -121,18 +101,14 @@ func TestPortsRemoveSecurityGroups(t *testing.T) {
 		SecurityGroups: &[]string{group.ID},
 	}
 	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Remove the group
 	updateOpts = ports.UpdateOpts{
 		SecurityGroups: &[]string{},
 	}
 	newPort, err = ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 
@@ -143,36 +119,26 @@ func TestPortsRemoveSecurityGroups(t *testing.T) {
 
 func TestPortsDontAlterSecurityGroups(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create a Security Group
 	group, err := extensions.CreateSecurityGroup(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create security group: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer extensions.DeleteSecurityGroup(t, client, group.ID)
 
 	// Create port
 	port, err := CreatePort(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
@@ -182,18 +148,15 @@ func TestPortsDontAlterSecurityGroups(t *testing.T) {
 		SecurityGroups: &[]string{group.ID},
 	}
 	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Update the port again
+	var name = "some_port"
 	updateOpts = ports.UpdateOpts{
-		Name: "some_port",
+		Name: &name,
 	}
 	newPort, err = ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 
@@ -204,29 +167,21 @@ func TestPortsDontAlterSecurityGroups(t *testing.T) {
 
 func TestPortsWithNoSecurityGroup(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create port
 	port, err := CreatePortWithNoSecurityGroup(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
@@ -238,29 +193,21 @@ func TestPortsWithNoSecurityGroup(t *testing.T) {
 
 func TestPortsRemoveAddressPair(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create port
 	port, err := CreatePort(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
@@ -272,18 +219,14 @@ func TestPortsRemoveAddressPair(t *testing.T) {
 		},
 	}
 	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Remove the address pair
 	updateOpts = ports.UpdateOpts{
 		AllowedAddressPairs: &[]ports.AddressPair{},
 	}
 	newPort, err = ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 
@@ -294,29 +237,21 @@ func TestPortsRemoveAddressPair(t *testing.T) {
 
 func TestPortsDontUpdateAllowedAddressPairs(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create port
 	port, err := CreatePort(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
@@ -328,20 +263,17 @@ func TestPortsDontUpdateAllowedAddressPairs(t *testing.T) {
 		},
 	}
 	newPort, err := ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 
 	// Remove the address pair
+	var name = "some_port"
 	updateOpts = ports.UpdateOpts{
-		Name: "some_port",
+		Name: &name,
 	}
 	newPort, err = ports.Update(client, port.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 
@@ -352,29 +284,21 @@ func TestPortsDontUpdateAllowedAddressPairs(t *testing.T) {
 
 func TestPortsPortSecurityCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create port
 	port, err := CreatePortWithoutPortSecurity(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	var portWithExt struct {
@@ -383,9 +307,7 @@ func TestPortsPortSecurityCRUD(t *testing.T) {
 	}
 
 	err = ports.Get(client, port.ID).ExtractInto(&portWithExt)
-	if err != nil {
-		t.Fatalf("Unable to create port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, portWithExt)
 
@@ -397,38 +319,28 @@ func TestPortsPortSecurityCRUD(t *testing.T) {
 	}
 
 	err = ports.Update(client, port.ID, updateOpts).ExtractInto(&portWithExt)
-	if err != nil {
-		t.Fatalf("Unable to update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, portWithExt)
 }
 
 func TestPortsWithExtraDHCPOptsCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	// Create a Network
 	network, err := CreateNetwork(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create a network: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteNetwork(t, client, network.ID)
 
 	// Create a Subnet
 	subnet, err := CreateSubnet(t, client, network.ID)
-	if err != nil {
-		t.Fatalf("Unable to create a subnet: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSubnet(t, client, subnet.ID)
 
 	// Create a port with extra DHCP options.
 	port, err := CreatePortWithExtraDHCPOpts(t, client, network.ID, subnet.ID)
-	if err != nil {
-		t.Fatalf("Unable to create a port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePort(t, client, port.ID)
 
 	tools.PrintResource(t, port)
@@ -436,7 +348,7 @@ func TestPortsWithExtraDHCPOptsCRUD(t *testing.T) {
 	// Update the port with extra DHCP options.
 	newPortName := tools.RandomString("TESTACC-", 8)
 	portUpdateOpts := ports.UpdateOpts{
-		Name: newPortName,
+		Name: &newPortName,
 	}
 
 	existingOpt := port.ExtraDHCPOpts[0]
@@ -458,9 +370,7 @@ func TestPortsWithExtraDHCPOptsCRUD(t *testing.T) {
 
 	newPort := &PortWithExtraDHCPOpts{}
 	err = ports.Update(client, port.ID, updateOpts).ExtractInto(newPort)
-	if err != nil {
-		t.Fatalf("Could not update port: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPort)
 }

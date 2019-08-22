@@ -8,51 +8,39 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/snapshots"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
-func TestSnapshotsList(t *testing.T) {
+func TestSnapshots(t *testing.T) {
+	clients.RequireLong(t)
+
 	client, err := clients.NewBlockStorageV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a blockstorage client: %v", err)
-	}
-
-	allPages, err := snapshots.List(client, snapshots.ListOpts{}).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to retrieve snapshots: %v", err)
-	}
-
-	allSnapshots, err := snapshots.ExtractSnapshots(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract snapshots: %v", err)
-	}
-
-	for _, snapshot := range allSnapshots {
-		tools.PrintResource(t, snapshot)
-	}
-}
-
-func TestSnapshotsCreateDelete(t *testing.T) {
-	client, err := clients.NewBlockStorageV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a blockstorage client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	volume, err := CreateVolume(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create volume: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteVolume(t, client, volume)
 
 	snapshot, err := CreateSnapshot(t, client, volume)
-	if err != nil {
-		t.Fatalf("Unable to create snapshot: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteSnapshot(t, client, snapshot)
 
 	newSnapshot, err := snapshots.Get(client, snapshot.ID).Extract()
-	if err != nil {
-		t.Errorf("Unable to retrieve snapshot: %v", err)
+	th.AssertNoErr(t, err)
+
+	allPages, err := snapshots.List(client, snapshots.ListOpts{}).AllPages()
+	th.AssertNoErr(t, err)
+
+	allSnapshots, err := snapshots.ExtractSnapshots(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, v := range allSnapshots {
+		tools.PrintResource(t, snapshot)
+		if v.ID == newSnapshot.ID {
+			found = true
+		}
 	}
 
-	tools.PrintResource(t, newSnapshot)
+	th.AssertEquals(t, found, true)
 }

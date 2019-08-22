@@ -115,9 +115,10 @@ func TestUpdate(t *testing.T) {
 
 	mockUpdateGroupResponse(t, groupID)
 
+	description := "new_desc"
 	opts := secgroups.UpdateOpts{
 		Name:        "new_name",
-		Description: "new_desc",
+		Description: &description,
 	}
 
 	group, err := secgroups.Update(client.ServiceClient(), groupID, opts).Extract()

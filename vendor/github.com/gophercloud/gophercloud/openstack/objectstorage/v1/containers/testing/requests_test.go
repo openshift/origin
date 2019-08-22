@@ -124,7 +124,10 @@ func TestGetContainer(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleGetContainerSuccessfully(t)
 
-	res := containers.Get(fake.ServiceClient(), "testContainer")
+	getOpts := containers.GetOpts{
+		Newest: true,
+	}
+	res := containers.Get(fake.ServiceClient(), "testContainer", getOpts)
 	_, err := res.ExtractMetadata()
 	th.CheckNoErr(t, err)
 

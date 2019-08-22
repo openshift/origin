@@ -98,8 +98,9 @@ func TestUpdatePool(t *testing.T) {
 	HandlePoolUpdateSuccessfully(t)
 
 	client := fake.ServiceClient()
+	name := "NewPoolName"
 	actual, err := pools.Update(client, "c3741b06-df4d-4715-b142-276b6bce75ab", pools.UpdateOpts{
-		Name:     "NewPoolName",
+		Name:     &name,
 		LBMethod: pools.LBMethodLeastConnections,
 	}).Extract()
 	if err != nil {
@@ -189,13 +190,14 @@ func TestCreateMember(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleMemberCreationSuccessfully(t, SingleMemberBody)
 
+	weight := 10
 	actual, err := pools.CreateMember(fake.ServiceClient(), "332abe93-f488-41ba-870b-2ac66be7f853", pools.CreateMemberOpts{
 		Name:         "db",
 		SubnetID:     "1981f108-3c48-48d2-b908-30f7d28532c9",
 		TenantID:     "2ffc6e22aae24e4795f87155d24c896f",
 		Address:      "10.0.2.11",
 		ProtocolPort: 80,
-		Weight:       10,
+		Weight:       &weight,
 	}).Extract()
 	th.AssertNoErr(t, err)
 
@@ -249,10 +251,12 @@ func TestUpdateMember(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleMemberUpdateSuccessfully(t)
 
+	weight := 4
 	client := fake.ServiceClient()
+	name := "newMemberName"
 	actual, err := pools.UpdateMember(client, "332abe93-f488-41ba-870b-2ac66be7f853", "2a280670-c202-4b0b-a562-34077415aabf", pools.UpdateMemberOpts{
-		Name:   "newMemberName",
-		Weight: 4,
+		Name:   &name,
+		Weight: &weight,
 	}).Extract()
 	if err != nil {
 		t.Fatalf("Unexpected Update error: %v", err)

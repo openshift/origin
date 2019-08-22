@@ -3,6 +3,7 @@
 package v3
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/gophercloud/gophercloud"
@@ -10,34 +11,38 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/endpoints"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/services"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestEndpointsList(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v")
-	}
+	th.AssertNoErr(t, err)
 
 	allPages, err := endpoints.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list endpoints: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allEndpoints, err := endpoints.ExtractEndpoints(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract endpoints: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
+	var found bool
 	for _, endpoint := range allEndpoints {
 		tools.PrintResource(t, endpoint)
+
+		if strings.Contains(endpoint.URL, "/v3") {
+			found = true
+		}
 	}
+
+	th.AssertEquals(t, found, true)
 }
 
 func TestEndpointsNavigateCatalog(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v")
-	}
+	th.AssertNoErr(t, err)
 
 	// Discover the service we're interested in.
 	serviceListOpts := services.ListOpts{
@@ -45,18 +50,12 @@ func TestEndpointsNavigateCatalog(t *testing.T) {
 	}
 
 	allPages, err := services.List(client, serviceListOpts).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to lookup compute service: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allServices, err := services.ExtractServices(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract service: %v")
-	}
+	th.AssertNoErr(t, err)
 
-	if len(allServices) != 1 {
-		t.Fatalf("Expected one service, got %d", len(allServices))
-	}
+	th.AssertEquals(t, len(allServices), 1)
 
 	computeService := allServices[0]
 	tools.PrintResource(t, computeService)
@@ -68,19 +67,12 @@ func TestEndpointsNavigateCatalog(t *testing.T) {
 	}
 
 	allPages, err = endpoints.List(client, endpointListOpts).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to lookup compute endpoint: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allEndpoints, err := endpoints.ExtractEndpoints(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract endpoint: %v")
-	}
+	th.AssertNoErr(t, err)
 
-	if len(allEndpoints) != 1 {
-		t.Fatalf("Expected one endpoint, got %d", len(allEndpoints))
-	}
+	th.AssertEquals(t, len(allServices), 1)
 
 	tools.PrintResource(t, allEndpoints[0])
-
 }

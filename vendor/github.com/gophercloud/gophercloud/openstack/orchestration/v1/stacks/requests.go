@@ -30,7 +30,7 @@ type CreateOpts struct {
 	// A structure that contains details for the environment of the stack.
 	EnvironmentOpts *Environment `json:"-"`
 	// User-defined parameters to pass to the template.
-	Parameters map[string]string `json:"parameters,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 	// The timeout for stack creation in minutes.
 	Timeout int `json:"timeout_mins,omitempty"`
 	// A list of tags to assosciate with the Stack
@@ -127,7 +127,7 @@ type AdoptOpts struct {
 	// A structure that contains details for the environment of the stack.
 	EnvironmentOpts *Environment `json:"-"`
 	// User-defined parameters to pass to the template.
-	Parameters map[string]string `json:"parameters,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // ToStackAdoptMap casts a CreateOpts struct to a map.
@@ -214,16 +214,54 @@ type ListOptsBuilder interface {
 
 // ListOpts allows the filtering and sorting of paginated collections through
 // the API. Filtering is achieved by passing in struct field values that map to
-// the network attributes you want to see returned. SortKey allows you to sort
-// by a particular network attribute. SortDir sets the direction, and is either
-// `asc' or `desc'. Marker and Limit are used for pagination.
+// the network attributes you want to see returned.
 type ListOpts struct {
-	Status  string  `q:"status"`
-	Name    string  `q:"name"`
-	Marker  string  `q:"marker"`
-	Limit   int     `q:"limit"`
+	// TenantID is the UUID of the tenant. A tenant is also known as
+	// a project.
+	TenantID string `q:"tenant_id"`
+
+	// ID filters the stack list by a stack ID
+	ID string `q:"id"`
+
+	// Status filters the stack list by a status.
+	Status string `q:"status"`
+
+	// Name filters the stack list by a name.
+	Name string `q:"name"`
+
+	// Marker is the ID of last-seen item.
+	Marker string `q:"marker"`
+
+	// Limit is an integer value for the limit of values to return.
+	Limit int `q:"limit"`
+
+	// SortKey allows you to sort by stack_name, stack_status, creation_time, or
+	// update_time key.
 	SortKey SortKey `q:"sort_keys"`
+
+	// SortDir sets the direction, and is either `asc` or `desc`.
 	SortDir SortDir `q:"sort_dir"`
+
+	// AllTenants is a bool to show all tenants.
+	AllTenants bool `q:"global_tenant"`
+
+	// ShowDeleted set to `true` to include deleted stacks in the list.
+	ShowDeleted bool `q:"show_deleted"`
+
+	// ShowNested set to `true` to include nested stacks in the list.
+	ShowNested bool `q:"show_nested"`
+
+	// Tags lists stacks that contain one or more simple string tags.
+	Tags string `q:"tags"`
+
+	// TagsAny lists stacks that contain one or more simple string tags.
+	TagsAny string `q:"tags_any"`
+
+	// NotTags lists stacks that do not contain one or more simple string tags.
+	NotTags string `q:"not_tags"`
+
+	// NotTagsAny lists stacks that do not contain one or more simple string tags.
+	NotTagsAny string `q:"not_tags_any"`
 }
 
 // ToStackListQuery formats a ListOpts into a query string.
@@ -259,48 +297,78 @@ func Get(c *gophercloud.ServiceClient, stackName, stackID string) (r GetResult) 
 	return
 }
 
+// Find retrieves a stack based on the stack name or stack ID.
+func Find(c *gophercloud.ServiceClient, stackIdentity string) (r GetResult) {
+	_, r.Err = c.Get(findURL(c, stackIdentity), &r.Body, nil)
+	return
+}
+
 // UpdateOptsBuilder is the interface options structs have to satisfy in order
 // to be used in the Update operation in this package.
 type UpdateOptsBuilder interface {
 	ToStackUpdateMap() (map[string]interface{}, error)
 }
 
+// UpdatePatchOptsBuilder is the interface options structs have to satisfy in order
+// to be used in the UpdatePatch operation in this package
+type UpdatePatchOptsBuilder interface {
+	ToStackUpdatePatchMap() (map[string]interface{}, error)
+}
+
 // UpdateOpts contains the common options struct used in this package's Update
-// operation.
+// and UpdatePatch operations.
 type UpdateOpts struct {
 	// A structure that contains either the template file or url. Call the
 	// associated methods to extract the information relevant to send in a create request.
-	TemplateOpts *Template `json:"-" required:"true"`
+	TemplateOpts *Template `json:"-"`
 	// A structure that contains details for the environment of the stack.
 	EnvironmentOpts *Environment `json:"-"`
 	// User-defined parameters to pass to the template.
-	Parameters map[string]string `json:"parameters,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 	// The timeout for stack creation in minutes.
 	Timeout int `json:"timeout_mins,omitempty"`
-	// A list of tags to assosciate with the Stack
+	// A list of tags to associate with the Stack
 	Tags []string `json:"-"`
 }
 
-// ToStackUpdateMap casts a CreateOpts struct to a map.
+// ToStackUpdateMap validates that a template was supplied and calls
+// the toStackUpdateMap private function.
 func (opts UpdateOpts) ToStackUpdateMap() (map[string]interface{}, error) {
+	if opts.TemplateOpts == nil {
+		return nil, ErrTemplateRequired{}
+	}
+	return toStackUpdateMap(opts)
+}
+
+// ToStackUpdatePatchMap calls the private function toStackUpdateMap
+// directly.
+func (opts UpdateOpts) ToStackUpdatePatchMap() (map[string]interface{}, error) {
+	return toStackUpdateMap(opts)
+}
+
+// ToStackUpdateMap casts a CreateOpts struct to a map.
+func toStackUpdateMap(opts UpdateOpts) (map[string]interface{}, error) {
 	b, err := gophercloud.BuildRequestBody(opts, "")
 	if err != nil {
 		return nil, err
 	}
 
-	if err := opts.TemplateOpts.Parse(); err != nil {
-		return nil, err
-	}
-
-	if err := opts.TemplateOpts.getFileContents(opts.TemplateOpts.Parsed, ignoreIfTemplate, true); err != nil {
-		return nil, err
-	}
-	opts.TemplateOpts.fixFileRefs()
-	b["template"] = string(opts.TemplateOpts.Bin)
-
 	files := make(map[string]string)
-	for k, v := range opts.TemplateOpts.Files {
-		files[k] = v
+
+	if opts.TemplateOpts != nil {
+		if err := opts.TemplateOpts.Parse(); err != nil {
+			return nil, err
+		}
+
+		if err := opts.TemplateOpts.getFileContents(opts.TemplateOpts.Parsed, ignoreIfTemplate, true); err != nil {
+			return nil, err
+		}
+		opts.TemplateOpts.fixFileRefs()
+		b["template"] = string(opts.TemplateOpts.Bin)
+
+		for k, v := range opts.TemplateOpts.Files {
+			files[k] = v
+		}
 	}
 
 	if opts.EnvironmentOpts != nil {
@@ -328,8 +396,8 @@ func (opts UpdateOpts) ToStackUpdateMap() (map[string]interface{}, error) {
 	return b, nil
 }
 
-// Update accepts an UpdateOpts struct and updates an existing stack using the values
-// provided.
+// Update accepts an UpdateOpts struct and updates an existing stack using the
+//  http PUT verb with the values provided. opts.TemplateOpts is required.
 func Update(c *gophercloud.ServiceClient, stackName, stackID string, opts UpdateOptsBuilder) (r UpdateResult) {
 	b, err := opts.ToStackUpdateMap()
 	if err != nil {
@@ -337,6 +405,18 @@ func Update(c *gophercloud.ServiceClient, stackName, stackID string, opts Update
 		return
 	}
 	_, r.Err = c.Put(updateURL(c, stackName, stackID), b, nil, nil)
+	return
+}
+
+// Update accepts an UpdateOpts struct and updates an existing stack using the
+//  http PATCH verb with the values provided. opts.TemplateOpts is not required.
+func UpdatePatch(c *gophercloud.ServiceClient, stackName, stackID string, opts UpdatePatchOptsBuilder) (r UpdateResult) {
+	b, err := opts.ToStackUpdatePatchMap()
+	if err != nil {
+		r.Err = err
+		return
+	}
+	_, r.Err = c.Patch(updateURL(c, stackName, stackID), b, nil, nil)
 	return
 }
 
@@ -369,7 +449,7 @@ type PreviewOpts struct {
 	// A structure that contains details for the environment of the stack.
 	EnvironmentOpts *Environment `json:"-"`
 	// User-defined parameters to pass to the template.
-	Parameters map[string]string `json:"parameters,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // ToStackPreviewMap casts a PreviewOpts struct to a map.

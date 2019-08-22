@@ -18,6 +18,7 @@ type ListOptsBuilder interface {
 // `asc' or `desc'. Marker and Limit are used for pagination.
 type ListOpts struct {
 	Name            string `q:"name"`
+	Description     string `q:"description"`
 	EnableDHCP      *bool  `q:"enable_dhcp"`
 	NetworkID       string `q:"network_id"`
 	TenantID        string `q:"tenant_id"`
@@ -33,6 +34,10 @@ type ListOpts struct {
 	Marker          string `q:"marker"`
 	SortKey         string `q:"sort_key"`
 	SortDir         string `q:"sort_dir"`
+	Tags            string `q:"tags"`
+	TagsAny         string `q:"tags-any"`
+	NotTags         string `q:"not-tags"`
+	NotTagsAny      string `q:"not-tags-any"`
 }
 
 // ToSubnetListQuery formats a ListOpts into a query string.
@@ -80,10 +85,13 @@ type CreateOpts struct {
 	NetworkID string `json:"network_id" required:"true"`
 
 	// CIDR is the address CIDR of the subnet.
-	CIDR string `json:"cidr" required:"true"`
+	CIDR string `json:"cidr,omitempty"`
 
 	// Name is a human-readable name of the subnet.
 	Name string `json:"name,omitempty"`
+
+	// Description of the subnet.
+	Description string `json:"description,omitempty"`
 
 	// The UUID of the project who owns the Subnet. Only administrative users
 	// can specify a project UUID other than their own.
@@ -123,6 +131,10 @@ type CreateOpts struct {
 
 	// SubnetPoolID is the id of the subnet pool that subnet should be associated to.
 	SubnetPoolID string `json:"subnetpool_id,omitempty"`
+
+	// Prefixlen is used when user creates a subnet from the subnetpool. It will
+	// overwrite the "default_prefixlen" value of the referenced subnetpool.
+	Prefixlen int `json:"prefixlen,omitempty"`
 }
 
 // ToSubnetCreateMap builds a request body from CreateOpts.
@@ -161,7 +173,10 @@ type UpdateOptsBuilder interface {
 // UpdateOpts represents the attributes used when updating an existing subnet.
 type UpdateOpts struct {
 	// Name is a human-readable name of the subnet.
-	Name string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
+
+	// Description of the subnet.
+	Description *string `json:"description,omitempty"`
 
 	// AllocationPools are IP Address pools that will be available for DHCP.
 	AllocationPools []AllocationPool `json:"allocation_pools,omitempty"`
@@ -173,10 +188,10 @@ type UpdateOpts struct {
 	GatewayIP *string `json:"gateway_ip,omitempty"`
 
 	// DNSNameservers are the nameservers to be set via DHCP.
-	DNSNameservers []string `json:"dns_nameservers,omitempty"`
+	DNSNameservers *[]string `json:"dns_nameservers,omitempty"`
 
 	// HostRoutes are any static host routes to be set via DHCP.
-	HostRoutes []HostRoute `json:"host_routes,omitempty"`
+	HostRoutes *[]HostRoute `json:"host_routes,omitempty"`
 
 	// EnableDHCP will either enable to disable the DHCP service.
 	EnableDHCP *bool `json:"enable_dhcp,omitempty"`
@@ -221,7 +236,12 @@ func Delete(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
 func IDFromName(client *gophercloud.ServiceClient, name string) (string, error) {
 	count := 0
 	id := ""
-	pages, err := List(client, nil).AllPages()
+
+	listOpts := ListOpts{
+		Name: name,
+	}
+
+	pages, err := List(client, listOpts).AllPages()
 	if err != nil {
 		return "", err
 	}

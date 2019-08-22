@@ -346,7 +346,7 @@ import:
 - package: github.com/googleapis/gnostic
   version: 0c5108395e2debce0d731cf0287ddf7242066aba
 - package: github.com/gophercloud/gophercloud
-  version: 781450b3c4fcb4f5182bcc5133adb4b2e4a09d1d
+  version: 0.1.0
 - package: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - package: github.com/gorilla/mux

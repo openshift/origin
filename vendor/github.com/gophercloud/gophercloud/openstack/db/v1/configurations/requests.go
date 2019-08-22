@@ -80,7 +80,7 @@ type UpdateOpts struct {
 	// Associates the configuration group with a particular datastore.
 	Datastore *DatastoreOpts `json:"datastore,omitempty"`
 	// A human-readable explanation for the group.
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 // ToConfigUpdateMap will cast an UpdateOpts struct into a JSON map.

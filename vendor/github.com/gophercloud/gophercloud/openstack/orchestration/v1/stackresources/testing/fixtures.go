@@ -12,6 +12,9 @@ import (
 	fake "github.com/gophercloud/gophercloud/testhelper/client"
 )
 
+var Create_time, _ = time.Parse(time.RFC3339, "2018-06-26T07:57:17Z")
+var Updated_time, _ = time.Parse(time.RFC3339, "2018-06-26T07:58:17Z")
+
 // FindExpected represents the expected object from a Find request.
 var FindExpected = []stackresources.Resource{
 	{
@@ -28,8 +31,8 @@ var FindExpected = []stackresources.Resource{
 		},
 		LogicalID:    "hello_world",
 		StatusReason: "state changed",
-		UpdatedTime:  time.Date(2015, 2, 5, 21, 33, 11, 0, time.UTC),
-		CreationTime: time.Date(2015, 2, 5, 21, 33, 10, 0, time.UTC),
+		UpdatedTime:  Updated_time,
+		CreationTime: Create_time,
 		RequiredBy:   []interface{}{},
 		Status:       "CREATE_IN_PROGRESS",
 		PhysicalID:   "49181cd6-169a-4130-9455-31185bbfc5bf",
@@ -59,8 +62,8 @@ const FindOutput = `
     ],
     "logical_resource_id": "hello_world",
     "resource_status_reason": "state changed",
-    "updated_time": "2015-02-05T21:33:11",
-	"creation_time": "2015-02-05T21:33:10",
+    "updated_time": "2018-06-26T07:58:17Z",
+	"creation_time": "2018-06-26T07:57:17Z",
     "required_by": [],
     "resource_status": "CREATE_IN_PROGRESS",
     "physical_resource_id": "49181cd6-169a-4130-9455-31185bbfc5bf",
@@ -99,8 +102,8 @@ var ListExpected = []stackresources.Resource{
 		},
 		LogicalID:    "hello_world",
 		StatusReason: "state changed",
-		UpdatedTime:  time.Date(2015, 2, 5, 21, 33, 11, 0, time.UTC),
-		CreationTime: time.Date(2015, 2, 5, 21, 33, 10, 0, time.UTC),
+		UpdatedTime:  Updated_time,
+		CreationTime: Create_time,
 		RequiredBy:   []interface{}{},
 		Status:       "CREATE_IN_PROGRESS",
 		PhysicalID:   "49181cd6-169a-4130-9455-31185bbfc5bf",
@@ -127,11 +130,11 @@ const ListOutput = `{
     ],
     "logical_resource_id": "hello_world",
     "resource_status_reason": "state changed",
-    "updated_time": "2015-02-05T21:33:11",
+    "updated_time": "2018-06-26T07:58:17Z",
+    "creation_time": "2018-06-26T07:57:17Z",
     "required_by": [],
     "resource_status": "CREATE_IN_PROGRESS",
     "physical_resource_id": "49181cd6-169a-4130-9455-31185bbfc5bf",
-	"creation_time": "2015-02-05T21:33:10",
     "resource_type": "OS::Nova::Server",
 	"attributes": {"SXSW": "atx"},
 	"description": "Some resource"
@@ -177,7 +180,7 @@ var GetExpected = &stackresources.Resource{
 	LogicalID:    "wordpress_instance",
 	Attributes:   map[string]interface{}{"SXSW": "atx"},
 	StatusReason: "state changed",
-	UpdatedTime:  time.Date(2014, 12, 10, 18, 34, 35, 0, time.UTC),
+	UpdatedTime:  Updated_time,
 	RequiredBy:   []interface{}{},
 	Status:       "CREATE_COMPLETE",
 	PhysicalID:   "00e3a2fe-c65d-403c-9483-4db9930dd194",
@@ -204,7 +207,7 @@ const GetOutput = `
     ],
     "logical_resource_id": "wordpress_instance",
     "resource_status": "CREATE_COMPLETE",
-    "updated_time": "2014-12-10T18:34:35",
+    "updated_time": "2018-06-26T07:58:17Z",
     "required_by": [],
     "resource_status_reason": "state changed",
     "physical_resource_id": "00e3a2fe-c65d-403c-9483-4db9930dd194",
@@ -436,5 +439,18 @@ func HandleGetTemplateSuccessfully(t *testing.T, output string) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, output)
+	})
+}
+
+// HandleMarkUnhealthySuccessfully creates an HTTP handler at `/stacks/teststack/0b1771bd-9336-4f2b-ae86-a80f971faf1e/resources/wordpress_instance`
+// on the test handler mux that responds with a `MarkUnhealthy` response.
+func HandleMarkUnhealthySuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/stacks/teststack/0b1771bd-9336-4f2b-ae86-a80f971faf1e/resources/wordpress_instance", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "PATCH")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Accept", "application/json")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 	})
 }

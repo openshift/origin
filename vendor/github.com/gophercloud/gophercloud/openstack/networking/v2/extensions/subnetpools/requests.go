@@ -36,6 +36,10 @@ type ListOpts struct {
 	Marker           string `q:"marker"`
 	SortKey          string `q:"sort_key"`
 	SortDir          string `q:"sort_dir"`
+	Tags             string `q:"tags"`
+	TagsAny          string `q:"tags-any"`
+	NotTags          string `q:"not-tags"`
+	NotTagsAny       string `q:"not-tags-any"`
 }
 
 // ToSubnetPoolListQuery formats a ListOpts into a query string.

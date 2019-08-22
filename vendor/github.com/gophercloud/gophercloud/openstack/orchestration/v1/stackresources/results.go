@@ -10,35 +10,57 @@ import (
 
 // Resource represents a stack resource.
 type Resource struct {
-	Attributes   map[string]interface{} `json:"attributes"`
-	CreationTime time.Time              `json:"-"`
-	Description  string                 `json:"description"`
-	Links        []gophercloud.Link     `json:"links"`
-	LogicalID    string                 `json:"logical_resource_id"`
-	Name         string                 `json:"resource_name"`
-	PhysicalID   string                 `json:"physical_resource_id"`
-	RequiredBy   []interface{}          `json:"required_by"`
-	Status       string                 `json:"resource_status"`
-	StatusReason string                 `json:"resource_status_reason"`
-	Type         string                 `json:"resource_type"`
-	UpdatedTime  time.Time              `json:"-"`
+	Attributes     map[string]interface{} `json:"attributes"`
+	CreationTime   time.Time              `json:"-"`
+	Description    string                 `json:"description"`
+	Links          []gophercloud.Link     `json:"links"`
+	LogicalID      string                 `json:"logical_resource_id"`
+	Name           string                 `json:"resource_name"`
+	PhysicalID     string                 `json:"physical_resource_id"`
+	RequiredBy     []interface{}          `json:"required_by"`
+	Status         string                 `json:"resource_status"`
+	StatusReason   string                 `json:"resource_status_reason"`
+	Type           string                 `json:"resource_type"`
+	UpdatedTime    time.Time              `json:"-"`
+	ParentResource string                 `json:"parent_resource"`
 }
 
 func (r *Resource) UnmarshalJSON(b []byte) error {
 	type tmp Resource
 	var s struct {
 		tmp
-		CreationTime gophercloud.JSONRFC3339NoZ `json:"creation_time"`
-		UpdatedTime  gophercloud.JSONRFC3339NoZ `json:"updated_time"`
+		CreationTime string `json:"creation_time"`
+		UpdatedTime  string `json:"updated_time"`
 	}
+
 	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
+
 	*r = Resource(s.tmp)
 
-	r.CreationTime = time.Time(s.CreationTime)
-	r.UpdatedTime = time.Time(s.UpdatedTime)
+	if s.CreationTime != "" {
+		t, err := time.Parse(time.RFC3339, s.CreationTime)
+		if err != nil {
+			t, err = time.Parse(gophercloud.RFC3339NoZ, s.CreationTime)
+			if err != nil {
+				return err
+			}
+		}
+		r.CreationTime = t
+	}
+
+	if s.UpdatedTime != "" {
+		t, err := time.Parse(time.RFC3339, s.UpdatedTime)
+		if err != nil {
+			t, err = time.Parse(gophercloud.RFC3339NoZ, s.UpdatedTime)
+			if err != nil {
+				return err
+			}
+		}
+		r.UpdatedTime = t
+	}
 
 	return nil
 }
@@ -182,4 +204,9 @@ func (r TemplateResult) Extract() ([]byte, error) {
 	}
 	template, err := json.MarshalIndent(r.Body, "", "  ")
 	return template, err
+}
+
+// MarkUnhealthyResult represents the result of a mark unhealthy operation.
+type MarkUnhealthyResult struct {
+	gophercloud.ErrResult
 }

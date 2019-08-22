@@ -5,58 +5,52 @@ package v1
 import (
 	"testing"
 
-	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/acceptance/clients"
+	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/orchestration/v1/stackresources"
-	"github.com/gophercloud/gophercloud/openstack/orchestration/v1/stacks"
-	"github.com/gophercloud/gophercloud/pagination"
 	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestStackResources(t *testing.T) {
-	// Create a provider client for making the HTTP requests.
-	// See common.go in this directory for more information.
-	client := newClient(t)
+	client, err := clients.NewOrchestrationV1Client()
+	th.AssertNoErr(t, err)
 
-	stackName := "postman_stack_2"
+	stack, err := CreateStack(t, client)
+	th.AssertNoErr(t, err)
+	defer DeleteStack(t, client, stack.Name, stack.ID)
 
-	createOpts := stacks.CreateOpts{
-		Name:     stackName,
-		Template: template,
-		Timeout:  5,
+	resource, err := stackresources.Get(client, stack.Name, stack.ID, basicTemplateResourceName).Extract()
+	th.AssertNoErr(t, err)
+	tools.PrintResource(t, resource)
+
+	metadata, err := stackresources.Metadata(client, stack.Name, stack.ID, basicTemplateResourceName).Extract()
+	th.AssertNoErr(t, err)
+	tools.PrintResource(t, metadata)
+
+	markUnhealthyOpts := &stackresources.MarkUnhealthyOpts{
+		MarkUnhealthy:        true,
+		ResourceStatusReason: "Wrong security policy is detected.",
 	}
-	stack, err := stacks.Create(client, createOpts).Extract()
+
+	err = stackresources.MarkUnhealthy(client, stack.Name, stack.ID, basicTemplateResourceName, markUnhealthyOpts).ExtractErr()
 	th.AssertNoErr(t, err)
-	t.Logf("Created stack: %+v\n", stack)
-	defer func() {
-		err := stacks.Delete(client, stackName, stack.ID).ExtractErr()
-		th.AssertNoErr(t, err)
-		t.Logf("Deleted stack (%s)", stackName)
-	}()
-	err = gophercloud.WaitFor(60, func() (bool, error) {
-		getStack, err := stacks.Get(client, stackName, stack.ID).Extract()
-		if err != nil {
-			return false, err
+
+	unhealthyResource, err := stackresources.Get(client, stack.Name, stack.ID, basicTemplateResourceName).Extract()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, "CHECK_FAILED", unhealthyResource.Status)
+	tools.PrintResource(t, unhealthyResource)
+
+	allPages, err := stackresources.List(client, stack.Name, stack.ID, nil).AllPages()
+	th.AssertNoErr(t, err)
+	allResources, err := stackresources.ExtractResources(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, v := range allResources {
+		if v.Name == basicTemplateResourceName {
+			found = true
 		}
-		if getStack.Status == "CREATE_COMPLETE" {
-			return true, nil
-		}
-		return false, nil
-	})
+	}
 
-	resourceName := "hello_world"
-	resource, err := stackresources.Get(client, stackName, stack.ID, resourceName).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Got stack resource: %+v\n", resource)
-
-	metadata, err := stackresources.Metadata(client, stackName, stack.ID, resourceName).Extract()
-	th.AssertNoErr(t, err)
-	t.Logf("Got stack resource metadata: %+v\n", metadata)
-
-	err = stackresources.List(client, stackName, stack.ID, stackresources.ListOpts{}).EachPage(func(page pagination.Page) (bool, error) {
-		resources, err := stackresources.ExtractResources(page)
-		th.AssertNoErr(t, err)
-		t.Logf("resources: %+v\n", resources)
-		return false, nil
-	})
-	th.AssertNoErr(t, err)
+	th.AssertEquals(t, found, true)
 }

@@ -45,9 +45,10 @@ func TestSecGroupsCRUD(t *testing.T) {
 	tools.PrintResource(t, securityGroup)
 
 	newName := tools.RandomString("secgroup_", 4)
+	description := ""
 	updateOpts := secgroups.UpdateOpts{
 		Name:        newName,
-		Description: tools.RandomString("dec_", 10),
+		Description: &description,
 	}
 	updatedSecurityGroup, err := secgroups.Update(client, securityGroup.ID, updateOpts).Extract()
 	th.AssertNoErr(t, err)
@@ -57,6 +58,7 @@ func TestSecGroupsCRUD(t *testing.T) {
 	t.Logf("Updated %s's name to %s", updatedSecurityGroup.ID, updatedSecurityGroup.Name)
 
 	th.AssertEquals(t, updatedSecurityGroup.Name, newName)
+	th.AssertEquals(t, updatedSecurityGroup.Description, description)
 }
 
 func TestSecGroupsRuleCreate(t *testing.T) {
@@ -100,10 +102,6 @@ func TestSecGroupsAddGroupToServer(t *testing.T) {
 	rule, err := CreateSecurityGroupRule(t, client, securityGroup.ID)
 	th.AssertNoErr(t, err)
 	defer DeleteSecurityGroupRule(t, client, rule.ID)
-
-	server, err = CreateServer(t, client)
-	th.AssertNoErr(t, err)
-	defer DeleteServer(t, client, server)
 
 	t.Logf("Adding group %s to server %s", securityGroup.ID, server.ID)
 	err = secgroups.AddServer(client, server.ID, securityGroup.Name).ExtractErr()

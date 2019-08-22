@@ -107,8 +107,8 @@ type UpdateOptsBuilder interface {
 
 // UpdateOpts contains the values used when updating a firewall policy.
 type UpdateOpts struct {
-	Name        string   `json:"name,omitempty"`
-	Description string   `json:"description,omitempty"`
+	Name        *string  `json:"name,omitempty"`
+	Description *string  `json:"description,omitempty"`
 	Shared      *bool    `json:"shared,omitempty"`
 	Audited     *bool    `json:"audited,omitempty"`
 	Rules       []string `json:"firewall_rules,omitempty"`

@@ -101,7 +101,7 @@ type UpdateOpts struct {
 	Name string `json:"name,omitempty"`
 
 	// Description is the description of the domain.
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 
 	// Enabled sets the domain status to enabled or disabled.
 	Enabled *bool `json:"enabled,omitempty"`

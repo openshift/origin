@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Client is an interface that expects a Get method similar to http.Get. This

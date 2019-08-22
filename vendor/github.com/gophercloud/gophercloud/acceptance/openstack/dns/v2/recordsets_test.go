@@ -8,98 +8,105 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/recordsets"
+	"github.com/gophercloud/gophercloud/pagination"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestRecordSetsListByZone(t *testing.T) {
+	clients.RequireDNS(t)
+
 	client, err := clients.NewDNSV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a DNS client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	zone, err := CreateZone(t, client)
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteZone(t, client, zone)
 
-	var allRecordSets []recordsets.RecordSet
 	allPages, err := recordsets.ListByZone(client, zone.ID, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to retrieve recordsets: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
-	allRecordSets, err = recordsets.ExtractRecordSets(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract recordsets: %v", err)
-	}
+	allRecordSets, err := recordsets.ExtractRecordSets(allPages)
+	th.AssertNoErr(t, err)
 
+	var found bool
 	for _, recordset := range allRecordSets {
 		tools.PrintResource(t, &recordset)
-	}
-}
 
-func TestRecordSetsListByZoneLimited(t *testing.T) {
-	client, err := clients.NewDNSV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a DNS client: %v", err)
+		if recordset.ZoneID == zone.ID {
+			found = true
+		}
 	}
 
-	zone, err := CreateZone(t, client)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer DeleteZone(t, client, zone)
+	th.AssertEquals(t, found, true)
 
-	var allRecordSets []recordsets.RecordSet
 	listOpts := recordsets.ListOpts{
 		Limit: 1,
 	}
-	allPages, err := recordsets.ListByZone(client, zone.ID, listOpts).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to retrieve recordsets: %v", err)
-	}
 
-	allRecordSets, err = recordsets.ExtractRecordSets(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract recordsets: %v", err)
-	}
-
-	for _, recordset := range allRecordSets {
-		tools.PrintResource(t, &recordset)
-	}
+	err = recordsets.ListByZone(client, zone.ID, listOpts).EachPage(
+		func(page pagination.Page) (bool, error) {
+			rr, err := recordsets.ExtractRecordSets(page)
+			th.AssertNoErr(t, err)
+			th.AssertEquals(t, len(rr), 1)
+			return true, nil
+		},
+	)
+	th.AssertNoErr(t, err)
 }
 
-func TestRecordSetCRUD(t *testing.T) {
+func TestRecordSetsCRUD(t *testing.T) {
+	clients.RequireDNS(t)
+
 	client, err := clients.NewDNSV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a DNS client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	zone, err := CreateZone(t, client)
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteZone(t, client, zone)
 
 	tools.PrintResource(t, &zone)
 
 	rs, err := CreateRecordSet(t, client, zone)
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteRecordSet(t, client, rs)
 
 	tools.PrintResource(t, &rs)
 
+	description := ""
 	updateOpts := recordsets.UpdateOpts{
-		Description: "New description",
-		TTL:         0,
+		Description: &description,
 	}
 
 	newRS, err := recordsets.Update(client, rs.ZoneID, rs.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, &newRS)
+
+	th.AssertEquals(t, newRS.Description, description)
+
+	records := []string{"10.1.0.3"}
+	updateOpts = recordsets.UpdateOpts{
+		Records: records,
+	}
+
+	newRS, err = recordsets.Update(client, rs.ZoneID, rs.ID, updateOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, &newRS)
+
+	th.AssertDeepEquals(t, newRS.Records, records)
+	th.AssertEquals(t, newRS.TTL, 3600)
+
+	ttl := 0
+	updateOpts = recordsets.UpdateOpts{
+		TTL: &ttl,
+	}
+
+	newRS, err = recordsets.Update(client, rs.ZoneID, rs.ID, updateOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, &newRS)
+
+	th.AssertDeepEquals(t, newRS.Records, records)
+	th.AssertEquals(t, newRS.TTL, ttl)
 }

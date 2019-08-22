@@ -78,6 +78,8 @@ func TestListWithExtensions(t *testing.T) {
 
 	th.AssertEquals(t, allNetworks[0].Status, "ACTIVE")
 	th.AssertEquals(t, allNetworks[0].PortSecurityEnabled, true)
+	th.AssertEquals(t, allNetworks[0].Subnets[0], "54d6f61d-db07-451c-9ab3-b9609b6b6f0b")
+	th.AssertEquals(t, allNetworks[1].Subnets[0], "08eae331-0402-425a-923c-34f7cfe39c1b")
 }
 
 func TestGet(t *testing.T) {
@@ -195,7 +197,8 @@ func TestUpdate(t *testing.T) {
 	})
 
 	iTrue, iFalse := true, false
-	options := networks.UpdateOpts{Name: "new_network_name", AdminStateUp: &iFalse, Shared: &iTrue}
+	name := "new_network_name"
+	options := networks.UpdateOpts{Name: &name, AdminStateUp: &iFalse, Shared: &iTrue}
 	n, err := networks.Update(fake.ServiceClient(), "4e8e5957-649f-477b-9e5b-f1f75b21c03c", options).Extract()
 	th.AssertNoErr(t, err)
 

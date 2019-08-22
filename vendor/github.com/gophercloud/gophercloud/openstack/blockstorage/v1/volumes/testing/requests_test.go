@@ -145,7 +145,8 @@ func TestUpdate(t *testing.T) {
 
 	MockUpdateResponse(t)
 
-	options := volumes.UpdateOpts{Name: "vol-002"}
+	var name = "vol-002"
+	options := volumes.UpdateOpts{Name: &name}
 	v, err := volumes.Update(client.ServiceClient(), "d32019d3-bc6e-4319-9c1d-6722fc136a22", options).Extract()
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, "vol-002", v.Name)
