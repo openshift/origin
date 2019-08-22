@@ -93,8 +93,6 @@ var (
 		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
 		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "mcoconfigs"},
 
-		{Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
-
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "consoles"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "dnses"},
@@ -226,21 +224,6 @@ var (
 			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
 			field:   "users.fullName",
 			pattern: `FIELD\: +fullName`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "clusternetworks.network",
-			pattern: `FIELD\: +network`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "hostsubnets.subnet",
-			pattern: `FIELD\: +subnet`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "netnamespaces.netname",
-			pattern: `FIELD\: +netname`,
 		},
 	}
 )
