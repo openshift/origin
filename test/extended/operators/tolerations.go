@@ -49,7 +49,7 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 				continue
 			}
 			for _, toleration := range pod.Spec.Tolerations {
-				if toleration.Operator == v1.TolerationOpExists {
+				if toleration.Operator == v1.TolerationOpExists && toleration.Effect == v1.TaintEffectNoExecute {
 					if toleration.Key == "" {
 						invalidPodTolerations.Insert(fmt.Sprintf("%s/%s tolerates all taints", pod.Namespace, pod.Name))
 					}
