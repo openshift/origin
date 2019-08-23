@@ -1563,7 +1563,7 @@ func RunOneShotCommandPod(
 		}
 
 		if podHasErrored(cmdPod) {
-			return true, fmt.Errorf("the pod errored trying to run the command")
+			return true, fmt.Errorf("the pod errored trying to run the command: %#v", cmdPod.Status)
 		}
 		return podHasCompleted(cmdPod), nil
 	})
