@@ -768,7 +768,11 @@ func (oc *ovsController) SetNamespaceEgressViaEgressIP(vnid uint32, nodeIP, mark
 		}
 		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,goto_table:101", vnid, oc.tunMAC, mark)
 	} else {
-		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", vnid, nodeIP)
+		commit := ""
+		if oc.useConnTrack {
+			commit = "ct(commit),"
+		}
+		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=%smove:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", vnid, commit, nodeIP)
 	}
 	return otx.Commit()
 }
