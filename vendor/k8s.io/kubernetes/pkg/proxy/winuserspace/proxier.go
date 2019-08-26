@@ -444,6 +444,22 @@ func (proxier *Proxier) OnServiceDelete(service *api.Service) {
 func (proxier *Proxier) OnServiceSynced() {
 }
 
+func (proxier *Proxier) OnEndpointsAdd(endpoints *api.Endpoints) {
+	proxier.loadBalancer.OnEndpointsAdd(endpoints)
+}
+
+func (proxier *Proxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints) {
+	proxier.loadBalancer.OnEndpointsUpdate(oldEndpoints, endpoints)
+}
+
+func (proxier *Proxier) OnEndpointsDelete(endpoints *api.Endpoints) {
+	proxier.loadBalancer.OnEndpointsDelete(endpoints)
+}
+
+func (proxier *Proxier) OnEndpointsSynced() {
+	proxier.loadBalancer.OnEndpointsSynced()
+}
+
 func sameConfig(info *serviceInfo, service *api.Service, protocol api.Protocol, listenPort int) bool {
 	return info.protocol == protocol && info.portal.port == listenPort && info.sessionAffinityType == service.Spec.SessionAffinity
 }

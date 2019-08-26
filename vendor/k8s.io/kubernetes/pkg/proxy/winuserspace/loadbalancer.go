@@ -19,6 +19,7 @@ package winuserspace
 import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/proxy"
+	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 	"net"
 )
 
@@ -30,4 +31,6 @@ type LoadBalancer interface {
 	NewService(service proxy.ServicePortName, sessionAffinityType api.ServiceAffinity, stickyMaxAgeMinutes int) error
 	DeleteService(service proxy.ServicePortName)
 	CleanupStaleStickySessions(service proxy.ServicePortName)
+
+	proxyconfig.EndpointsHandler
 }

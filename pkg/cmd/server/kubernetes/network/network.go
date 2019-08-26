@@ -77,8 +77,7 @@ func (c *NetworkConfig) RunProxy() {
 	iptInterface := utiliptables.New(execer, dbus, protocol)
 
 	var proxier proxy.ProxyProvider
-	var servicesHandler pconfig.ServiceHandler
-	var endpointsHandler pconfig.EndpointsHandler
+	var err error
 	var healthzServer *healthcheck.HealthzServer
 	if len(c.ProxyConfig.HealthzBindAddress) > 0 {
 		nodeRef := &v1.ObjectReference{
@@ -94,7 +93,6 @@ func (c *NetworkConfig) RunProxy() {
 	case kubeproxyconfig.ProxyModeIPTables:
 		glog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
-			var err error
 			bindAddr, err = getNodeIP(c.ExternalKubeClientset.CoreV1(), hostname)
 			if err != nil {
 				glog.Fatalf("Unable to get a bind address: %v", err)
@@ -104,7 +102,7 @@ func (c *NetworkConfig) RunProxy() {
 			// IPTablesMasqueradeBit must be specified or defaulted.
 			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
 		}
-		proxierIptables, err := iptables.NewProxier(
+		proxier, err = iptables.NewProxier(
 			iptInterface,
 			utilsysctl.New(),
 			execer,
@@ -124,23 +122,14 @@ func (c *NetworkConfig) RunProxy() {
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		proxier = proxierIptables
-		endpointsHandler = proxierIptables
-		servicesHandler = proxierIptables
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
 		glog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
 	case kubeproxyconfig.ProxyModeUserspace:
 		glog.V(0).Info("Using userspace Proxier.")
-		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
-		// our config.EndpointsHandler.
-		loadBalancer := userspace.NewLoadBalancerRR()
-		// set EndpointsHandler to our loadBalancer
-		endpointsHandler = loadBalancer
-
 		execer := utilexec.New()
-		proxierUserspace, err := userspace.NewProxier(
-			loadBalancer,
+		proxier, err = userspace.NewProxier(
+			userspace.NewLoadBalancerRR(),
 			bindAddr,
 			iptInterface,
 			execer,
@@ -153,8 +142,6 @@ func (c *NetworkConfig) RunProxy() {
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		proxier = proxierUserspace
-		servicesHandler = proxierUserspace
 		// Remove artifacts from the pure-iptables Proxier.
 		glog.V(0).Info("Tearing down pure-iptables proxy rules.")
 		iptables.CleanupLeftovers(iptInterface)
@@ -172,32 +159,30 @@ func (c *NetworkConfig) RunProxy() {
 	)
 
 	if c.EnableUnidling {
-		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
-		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTables.SyncPeriod.Duration, c.ProxyConfig.IPTables.MinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, c.ProxyConfig.NodePortAddresses, signaler)
+		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(userspace.NewLoadBalancerRR(), bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTables.SyncPeriod.Duration, c.ProxyConfig.IPTables.MinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, c.ProxyConfig.NodePortAddresses, signaler)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		hybridProxier, err := hybrid.NewHybridProxier(
-			unidlingLoadBalancer,
-			unidlingUserspaceProxy,
-			endpointsHandler,
-			servicesHandler,
-			proxier,
+		hp, ok := proxier.(hybrid.RunnableProxy)
+		if !ok {
+			// unreachable
+			glog.Fatalf("unidling proxy must be used in iptables mode")
+		}
+		proxier, err = hybrid.NewHybridProxier(
+			hp,
 			unidlingUserspaceProxy,
 			c.ProxyConfig.IPTables.SyncPeriod.Duration,
+			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
 		)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
-		endpointsHandler = hybridProxier
-		servicesHandler = hybridProxier
-		proxier = hybridProxier
 	}
 
 	iptInterface.AddReloadFunc(proxier.Sync)
-	serviceConfig.RegisterEventHandler(servicesHandler)
+	serviceConfig.RegisterEventHandler(proxier)
 	go serviceConfig.Run(utilwait.NeverStop)
 
 	endpointsConfig := pconfig.NewEndpointsConfig(
@@ -206,12 +191,12 @@ func (c *NetworkConfig) RunProxy() {
 	)
 	// customized handling registration that inserts a filter if needed
 	if c.SDNProxy != nil {
-		if err := c.SDNProxy.Start(endpointsHandler); err != nil {
+		if err := c.SDNProxy.Start(proxier); err != nil {
 			glog.Fatalf("error: node proxy plugin startup failed: %v", err)
 		}
-		endpointsHandler = c.SDNProxy
+		proxier = c.SDNProxy
 	}
-	endpointsConfig.RegisterEventHandler(endpointsHandler)
+	endpointsConfig.RegisterEventHandler(proxier)
 	go endpointsConfig.Run(utilwait.NeverStop)
 
 	// Start up healthz server
