@@ -159,7 +159,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					return false, nil
 				}
 				return true, nil
-			})).NotTo(o.HaveOccurred())
+			})).NotTo(o.HaveOccurred(), "possibly some services didn't register ServiceMonitors to allow metrics collection")
 		})
 		g.It("should have a Watchdog alert in firing state", func() {
 			oc.SetupProject()
@@ -286,7 +286,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					return false, nil
 				}
 				return true, nil
-			})).NotTo(o.HaveOccurred())
+			})).NotTo(o.HaveOccurred(), "ingress router cannot report metrics to monitoring system")
 
 			g.By("verifying standard metrics keys")
 			queries := map[string][]metricTest{
