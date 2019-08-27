@@ -813,18 +813,16 @@ func (s *Server) getPortForward(request *restful.Request, response *restful.Resp
 
 // ServeHTTP responds to HTTP requests on the Kubelet.
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	defer httplog.NewLogged(req, &w).StacktraceWhen(
-		httplog.StatusIsNot(
-			http.StatusOK,
-			http.StatusFound,
-			http.StatusMovedPermanently,
-			http.StatusTemporaryRedirect,
-			http.StatusBadRequest,
-			http.StatusNotFound,
-			http.StatusSwitchingProtocols,
-		),
-	).Log()
-	s.restfulCont.ServeHTTP(w, req)
+	handler := httplog.WithLogging(s.restfulCont, httplog.StatusIsNot(
+		http.StatusOK,
+		http.StatusFound,
+		http.StatusMovedPermanently,
+		http.StatusTemporaryRedirect,
+		http.StatusBadRequest,
+		http.StatusNotFound,
+		http.StatusSwitchingProtocols,
+	))
+	handler.ServeHTTP(w, req)
 }
 
 // prometheusHostAdapter adapts the HostInterface to the interface expected by the
