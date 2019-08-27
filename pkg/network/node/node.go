@@ -98,6 +98,7 @@ type OsdnNode struct {
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
+	masqueradeBit      uint32
 
 	// Synchronizes operations on egressPolicies
 	egressPoliciesLock sync.Mutex
@@ -153,6 +154,11 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 	}
 	oc := NewOVSController(ovsif, pluginId, useConnTrack, c.SelfIP)
 
+	masqBit := uint32(0)
+	if c.MasqueradeBit != nil {
+		masqBit = uint32(*c.MasqueradeBit)
+	}
+
 	plugin := &OsdnNode{
 		policy:             policy,
 		kClient:            c.KClient,
@@ -165,6 +171,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		useConnTrack:       useConnTrack,
 		iptablesSyncPeriod: c.IPTablesSyncPeriod,
 		mtu:                c.MTU,
+		masqueradeBit:      masqBit,
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
 		kubeInformers:      c.KubeInformers,
@@ -281,7 +288,7 @@ func (node *OsdnNode) Start() error {
 	for _, cn := range node.networkInfo.ClusterNetworks {
 		cidrList = append(cidrList, cn.ClusterCIDR.String())
 	}
-	nodeIPTables := newNodeIPTables(cidrList, node.iptablesSyncPeriod, !node.useConnTrack, node.networkInfo.VXLANPort)
+	nodeIPTables := newNodeIPTables(cidrList, node.iptablesSyncPeriod, !node.useConnTrack, node.networkInfo.VXLANPort, node.masqueradeBit)
 
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
