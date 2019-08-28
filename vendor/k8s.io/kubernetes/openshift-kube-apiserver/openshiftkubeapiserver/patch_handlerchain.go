@@ -7,7 +7,6 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
-	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/apiserver/httprequest"
 )
 
@@ -22,7 +21,6 @@ func BuildHandlerChain(userAgentMatchingConfig kubecontrolplanev1.UserAgentMatch
 
 			// these handlers are all before the normal kube chain
 			handler = translateLegacyScopeImpersonation(handler)
-			handler = apiserverconfig.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / and /console to consolePublicURL if you're using a browser
 			handler = withConsoleRedirect(handler, consolePublicURL)
