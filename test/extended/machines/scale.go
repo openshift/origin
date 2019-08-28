@@ -217,7 +217,9 @@ var _ = g.Describe("[Feature:Machines][Serial] Managed cluster should", func() {
 			g.By(fmt.Sprintf("got %v nodes, expecting %v", len(nodeList.Items), initialNumberOfWorkers))
 			return len(nodeList.Items) == initialNumberOfWorkers
 			// Azure actuator takes something over 3 minutes to delete a machine.
-			// Rounding to four minutes to accomodate for future new and slower cloud providers.
-		}, 4*time.Minute, 5*time.Second).Should(o.BeTrue())
+			// The worst observable case to delete a machine was 5m15s however.
+			// Also, there are two instances to be deleted.
+			// Rounding to 7 minutes to accomodate for future new and slower cloud providers.
+		}, 7*time.Minute, 5*time.Second).Should(o.BeTrue())
 	})
 })
