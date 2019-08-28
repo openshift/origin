@@ -107,16 +107,16 @@ var (
 	  %[1]s %[2]s --docker-image=myregistry.com/mycompany/mysql --name=private
 
 	  # Create an application from a remote repository using its beta4 branch
-	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta4
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world.git#beta4
 
 	  # Create an application based on a stored template, explicitly setting a parameter value
 	  %[1]s %[2]s --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
 	  # Create an application from a remote repository and specify a context directory
-	  %[1]s %[2]s https://github.com/youruser/yourgitrepo --context-dir=src/build
+	  %[1]s %[2]s https://github.com/youruser/yourgitrepo.git --context-dir=src/build
 
 	  # Create an application from a remote private repository and specify which existing secret to use
-	  %[1]s %[2]s https://github.com/youruser/yourgitrepo --source-secret=yoursecret
+	  %[1]s %[2]s https://github.com/youruser/yourgitrepo.git --source-secret=yoursecret
 
 	  # Create an application based on a template file, explicitly setting a parameter value
 	  %[1]s %[2]s --file=./example/myapp/template.json --param=MYSQL_USER=admin
