@@ -70,4 +70,35 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 			}
 		})
 	}
+	//OCP-21548 :OLM aggregates CR roles to standard admin/view/edit
+	//author: chuo@redhat.com
+	g.It("[ocp-21548]aggregates CR roles to standard admin/view/edit", func() {
+		oc.SetupProject()
+		user := oc.Username()
+		fmt.Printf("the user is %s", user)
+		msg, err := oc.Run("get").Args("rolebinding", "admin", "-o=jsonpath={.roleRef.kind}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(msg).To(o.Equal("ClusterRole"))
+
+		msg, err = oc.Run("get").Args("clusterrole", "admin", "-o", "jsonpath={.rules[0].resources[*]},{.rules[0].verbs[*]}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(msg).To(o.Equal("subscriptions,create update patch delete"))
+
+		msg, err = oc.Run("get").Args("clusterrole", "admin", "-o", "jsonpath={.rules[1].resources[*]},{.rules[1].verbs[*]}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(msg).To(o.Equal("clusterserviceversions catalogsources installplans subscriptions,delete"))
+
+		msg, err = oc.Run("get").Args("clusterrole", "admin", "-o", "jsonpath={.rules[2].resources[*]},{.rules[2].verbs[*]}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(msg).To(o.Equal("clusterserviceversions catalogsources installplans subscriptions operatorgroups,get list watch"))
+
+		msg, err = oc.Run("get").Args("clusterrole", "admin", "-o", "jsonpath={.rules[3].resources[0]},{.rules[3].verbs[*]}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(msg).To(o.Equal("packagemanifests,get list watch"))
+
+		msg, err = oc.Run("get").Args("clusterrole", "admin", "-o", "jsonpath={.rules[4].resources[*]},{.rules[4].verbs[*]}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(msg).To(o.Equal("packagemanifests,create update patch delete"))
+
+	})
 })
