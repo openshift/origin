@@ -80,19 +80,10 @@ var (
 
 		// this is openshift specific
 		rbacv1helpers.NewRule("get").URLs(
-			"/healthz/",
-			"/version/*",
-			"/oapi", "/oapi/*",
-			"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1",
-			"/osapi", "/osapi/",
-			"/.well-known", "/.well-known/*",
-			"/",
 			"/version/openshift",
+			"/.well-known",
+			"/.well-known/*",
 			"/.well-known/oauth-authorization-server",
-			// TODO: remove when dropped from openshift-apiserver
-			"/openapi", "/openapi/*",
-			"/api", "/api/*",
-			"/apis", "/apis/*",
 		).RuleOrDie(),
 
 		// TODO: remove with after 1.15 rebase
@@ -104,9 +95,6 @@ var (
 		rbacv1helpers.NewRule("get").URLs(
 			"/healthz",
 			"/version",
-			"/openapi", "/openapi/*",
-			"/api", "/api/*",
-			"/apis", "/apis/*",
 			"/version/",
 		).RuleOrDie(),
 	}
@@ -128,8 +116,19 @@ var (
 			// The console team is working on eliminating this exception in the near future
 			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications").RuleOrDie(),
 
+			// TODO: remove when openshift-apiserver has removed these
+			rbacv1helpers.NewRule("get").URLs(
+				"/healthz/",
+				"/oapi", "/oapi/*",
+				"/osapi", "/osapi/",
+				"/swaggerapi", "/swaggerapi/*", "/swagger.json", "/swagger-2.0.0.pb-v1",
+				"/version/*",
+				"/",
+			).RuleOrDie(),
+
 			// this is from upstream kube
 			rbacv1helpers.NewRule("get").URLs(
+				"/",
 				"/openapi", "/openapi/*",
 				"/api", "/api/*",
 				"/apis", "/apis/*",
@@ -225,7 +224,7 @@ func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, na
 	// force test data to be cleaned up every so often but allow extra rules to not deadlock new changes
 	if cover, missing := validation.Covers(actualRules, expectedRules); !cover {
 		log := e2e.Logf
-		if len(missing) > 100 {
+		if len(missing) > 15 {
 			log = e2e.Failf
 		}
 		log("test data for %s has too many unnecessary permissions:\n%s", group, rulesToString(missing))
