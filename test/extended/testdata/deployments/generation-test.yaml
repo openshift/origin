@@ -22,11 +22,11 @@ spec:
         name: generation-test
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
         - /bin/sleep
-        - "100"
+        - "infinity"
   triggers:
   - type: ConfigChange

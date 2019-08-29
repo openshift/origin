@@ -27,7 +27,7 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "openshift/origin-base:latest"
+      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
         command: [ "/bin/bash", "-c", "sleep infinity" ]
         imagePullPolicy: IfNotPresent
         name: myapp

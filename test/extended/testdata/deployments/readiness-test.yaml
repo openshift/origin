@@ -16,8 +16,8 @@ spec:
       containers:
       - command:
         - /bin/sleep
-        - "10000"
-        image: docker.io/centos:centos7
+        - "infinity"
+        image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
         imagePullPolicy: IfNotPresent
         name: never-ready
         readinessProbe:
