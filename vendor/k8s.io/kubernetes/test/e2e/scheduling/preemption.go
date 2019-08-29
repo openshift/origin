@@ -90,45 +90,67 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		var podRes v1.ResourceList
 		// Create one pod per node that uses a lot of the node's resources.
 		By("Create pods that use 60% of node resources.")
-		pods := make([]*v1.Pod, len(nodeList.Items))
+		pods := make([]*v1.Pod, 0)
 		allPods, err := cs.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
+		framework.ExpectNoError(err)
 		for i, node := range nodeList.Items {
 			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
 			framework.Logf("Current cpu and memory usage %v, %v", currentCpuUsage, currentMemUsage)
-			currentNode, err := cs.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			cpuAllocatable, found := currentNode.Status.Allocatable["cpu"]
+			cpuAllocatable, found := node.Status.Allocatable["cpu"]
 			Expect(found).To(Equal(true))
 			milliCPU := cpuAllocatable.MilliValue()
-			milliCPU = milliCPU * 40 / 100
-			memAllocatable, found := currentNode.Status.Allocatable["memory"]
+			// Just to be tolerant use 0.6 of resources available on the node
+			milliCPU = int64(float64(milliCPU-currentCpuUsage) * float64(0.6))
+			memAllocatable, found := node.Status.Allocatable["memory"]
 			Expect(found).To(Equal(true))
 			memory := memAllocatable.Value()
-			memory = memory * 60 / 100
+			// Just to be tolerant use 0.6 of resources available on the node
+			memory = int64(float64(memory-currentMemUsage) * float64(0.6))
 			podRes = v1.ResourceList{}
+			// If a node is already heavily utilized let not's create a pod there.
+			if milliCPU <= 0 {
+				framework.Logf("Node is heavily utilized, let's not create a pod here")
+				continue
+			}
 			podRes[v1.ResourceCPU] = *resource.NewMilliQuantity(int64(milliCPU), resource.DecimalSI)
-			podRes[v1.ResourceMemory] = *resource.NewQuantity(int64(memory), resource.BinarySI)
-
 			// make the first pod low priority and the rest medium priority.
 			priorityName := mediumPriorityClassName
 			if i == 0 {
 				priorityName = lowPriorityClassName
 			}
-			pods[i] = createPausePod(f, pausePodConfig{
-				Name:              fmt.Sprintf("pod%d-%v", i, priorityName),
+			currentPod := fmt.Sprintf("pod%d-%v", i, priorityName)
+			pods = append(pods, createPausePod(f, pausePodConfig{
+				Name:              currentPod,
 				PriorityClassName: priorityName,
 				Resources: &v1.ResourceRequirements{
 					Requests: podRes,
 				},
-			})
-			framework.Logf("Created pod: %v", pods[i].Name)
+				NodeName: node.Name,
+			}))
+			framework.Logf("Created pod: %v", currentPod)
+		}
+		if len(pods) < 2 {
+			framework.Skipf("We need atleast two pods to be created but" +
+				"all nodes are already heavily utilized, so preemption tests cannot be run")
 		}
 		By("Wait for pods to be scheduled.")
+		//podRes = v1.ResourceList{}
+		lowerPriorityPodExists := false
+		if pods[0].Spec.PriorityClassName == lowPriorityClassName {
+			lowerPriorityPodExists = true
+		}
 		for _, pod := range pods {
 			framework.ExpectNoError(framework.WaitForPodRunningInNamespace(cs, pod))
 		}
+		if lowerPriorityPodExists {
+			// We want this pod to be preempted
+			podRes = pods[0].Spec.Containers[0].Resources.Requests
+		} else {
+			// All the pods are medium priority pods, so it doesn't matter which one gets preempted.
+			podRes = pods[1].Spec.Containers[0].Resources.Requests
+		}
 
-		By("Run a high priority pod that use 60% of a node resources.")
+		By("Run a high priority pod that has same requirements as that of lower priority pod")
 		// Create a high priority pod and make sure it is scheduled.
 		runPausePod(f, pausePodConfig{
 			Name:              "preemptor-pod",
@@ -137,17 +159,25 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				Requests: podRes,
 			},
 		})
-		// Make sure that the lowest priority pod is deleted.
-		preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
-		podDeleted := (err != nil && errors.IsNotFound(err)) ||
-			(err == nil && preemptedPod.DeletionTimestamp != nil)
-		Expect(podDeleted).To(BeTrue())
-		// Other pods (mid priority ones) should be present.
-		for i := 1; i < len(pods); i++ {
-			livePod, err := cs.CoreV1().Pods(pods[i].Namespace).Get(pods[i].Name, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			Expect(livePod.DeletionTimestamp).To(BeNil())
+		podPreempted := false
+		if lowerPriorityPodExists {
+			// Make sure that the lowest priority pod is deleted.
+			preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
+			podPreempted = (err != nil && errors.IsNotFound(err)) ||
+				(err == nil && preemptedPod.DeletionTimestamp != nil)
+		} else {
+			// This means one of the medium priority pods got preempted
+			for i := 0; i < len(pods); i++ {
+				midPriority, err := cs.CoreV1().Pods(pods[i].Namespace).Get(pods[i].Name, metav1.GetOptions{})
+				podPreempted := (err != nil && errors.IsNotFound(err)) ||
+					(err == nil && midPriority.DeletionTimestamp != nil)
+				if podPreempted {
+					// We have atleast one pod that got preempted because of our pod
+					break
+				}
+			}
 		}
+		Expect(podPreempted).To(BeTrue())
 	})
 
 	// This test verifies that when a critical pod is created and no node with
@@ -156,46 +186,68 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 	It("[Flaky] validates lower priority pod preemption by critical pod", func() {
 		var podRes v1.ResourceList
 		// Create one pod per node that uses a lot of the node's resources.
-		By("Create pods that use 60% of node resources.")
-		pods := make([]*v1.Pod, len(nodeList.Items))
+		By("Create pods that use most of node resources.")
+		pods := make([]*v1.Pod, 0)
 		allPods, err := cs.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
+		framework.ExpectNoError(err)
 		for i, node := range nodeList.Items {
 			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
 			framework.Logf("Current cpu usage and memory usage is %v, %v", currentCpuUsage, currentMemUsage)
-			currentNode, err := cs.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			cpuAllocatable, found := currentNode.Status.Allocatable["cpu"]
+			cpuAllocatable, found := node.Status.Allocatable["cpu"]
 			Expect(found).To(Equal(true))
 			milliCPU := cpuAllocatable.MilliValue()
-			milliCPU = milliCPU * 40 / 100
-			memAllocatable, found := currentNode.Status.Allocatable["memory"]
+			/// Just to be tolerant use 0.6 of resources available on the node
+			milliCPU = int64(float64(milliCPU-currentCpuUsage) * float64(0.6))
+			memAllocatable, found := node.Status.Allocatable["memory"]
 			Expect(found).To(Equal(true))
 			memory := memAllocatable.Value()
-			memory = memory * 60 / 100
+			// Just to be tolerant use 0.6 of resources available on the node
+			memory = int64(float64(memory-currentMemUsage) * float64(0.6))
 			podRes = v1.ResourceList{}
+			// If a node is already heavily utilized let not's create a pod there.
+			if milliCPU <= 0 {
+				framework.Logf("Node is heavily utilized, let's not create a pod there")
+				continue
+			}
 			podRes[v1.ResourceCPU] = *resource.NewMilliQuantity(int64(milliCPU), resource.DecimalSI)
-			podRes[v1.ResourceMemory] = *resource.NewQuantity(int64(memory), resource.BinarySI)
 
 			// make the first pod low priority and the rest medium priority.
 			priorityName := mediumPriorityClassName
 			if i == 0 {
 				priorityName = lowPriorityClassName
 			}
-			pods[i] = createPausePod(f, pausePodConfig{
-				Name:              fmt.Sprintf("pod%d-%v", i, priorityName),
+			currentPod := fmt.Sprintf("pod%d-%v", i, priorityName)
+			pods = append(pods, createPausePod(f, pausePodConfig{
+				Name:              currentPod,
 				PriorityClassName: priorityName,
 				Resources: &v1.ResourceRequirements{
 					Requests: podRes,
 				},
-			})
-			framework.Logf("Created pod: %v", pods[i].Name)
+				NodeName: node.Name,
+			}))
+			framework.Logf("Created pod: %v", currentPod)
+		}
+		if len(pods) < 2 {
+			framework.Skipf("We need atleast two pods to be created but" +
+				"all nodes are already heavily utilized, so preemption tests cannot be run")
 		}
 		By("Wait for pods to be scheduled.")
+		//podRes = v1.ResourceList{}
+		lowerPriorityPodExists := false
+		if pods[0].Spec.PriorityClassName == lowPriorityClassName {
+			lowerPriorityPodExists = true
+		}
 		for _, pod := range pods {
 			framework.ExpectNoError(framework.WaitForPodRunningInNamespace(cs, pod))
 		}
-
-		By("Run a critical pod that use 60% of a node resources.")
+		if lowerPriorityPodExists {
+			// We want this pod to be preempted
+			podRes = pods[0].Spec.Containers[0].Resources.Requests
+		} else {
+			// All the pods are medium priority pods, so it doesn't matter which one gets preempted.
+			podRes = pods[1].Spec.Containers[0].Resources.Requests
+		}
+		By("Run a critical pod that use same resources as that of a lower priority pod")
 		// Create a critical pod and make sure it is scheduled.
 		runPausePod(f, pausePodConfig{
 			Name:              "critical-pod",
@@ -205,22 +257,31 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				Requests: podRes,
 			},
 		})
-		// Make sure that the lowest priority pod is deleted.
-		preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
+
 		defer func() {
 			// Clean-up the critical pod
 			err := f.ClientSet.CoreV1().Pods(metav1.NamespaceSystem).Delete("critical-pod", metav1.NewDeleteOptions(0))
 			framework.ExpectNoError(err)
 		}()
-		podDeleted := (err != nil && errors.IsNotFound(err)) ||
-			(err == nil && preemptedPod.DeletionTimestamp != nil)
-		Expect(podDeleted).To(BeTrue())
-		// Other pods (mid priority ones) should be present.
-		for i := 1; i < len(pods); i++ {
-			livePod, err := cs.CoreV1().Pods(pods[i].Namespace).Get(pods[i].Name, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			Expect(livePod.DeletionTimestamp).To(BeNil())
+		podPreempted := false
+		if lowerPriorityPodExists {
+			// Make sure that the lowest priority pod is deleted.
+			preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
+			podPreempted = (err != nil && errors.IsNotFound(err)) ||
+				(err == nil && preemptedPod.DeletionTimestamp != nil)
+		} else {
+			// This means one of the medium priority pods got preempted
+			for i := 0; i < len(pods); i++ {
+				midPriority, err := cs.CoreV1().Pods(pods[i].Namespace).Get(pods[i].Name, metav1.GetOptions{})
+				podPreempted := (err != nil && errors.IsNotFound(err)) ||
+					(err == nil && midPriority.DeletionTimestamp != nil)
+				if podPreempted {
+					// We have atleast one pod that got preempted because of our pod
+					break
+				}
+			}
 		}
+		Expect(podPreempted).To(BeTrue())
 	})
 
 	// This test verifies that when a high priority pod is pending and its
@@ -242,17 +303,23 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 			node := nodeList.Items[i]
 			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
 			framework.Logf("Current cpu usage and memory usage is %v, %v", currentCpuUsage, currentMemUsage)
-			currentNode, err := cs.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			cpuAllocatable, found := currentNode.Status.Allocatable["cpu"]
+			cpuAllocatable, found := node.Status.Allocatable["cpu"]
 			Expect(found).To(Equal(true))
 			milliCPU := cpuAllocatable.MilliValue()
-			milliCPU = milliCPU * 10 / 100
-			memAllocatable, found := currentNode.Status.Allocatable["memory"]
+			// Just to be tolerant use 0.6 of resources available on the node
+			milliCPU = int64(float64(milliCPU-currentCpuUsage) * float64(0.6))
+			memAllocatable, found := node.Status.Allocatable["memory"]
 			Expect(found).To(BeTrue())
 			memory := memAllocatable.Value()
-			memory = memory * 10 / 100
+			// Just to be tolerant use 0.6 of resources available on the node
+			memory = int64(float64(memory-currentMemUsage) * float64(0.6))
 			podRes = v1.ResourceList{}
+			// If a node is already heavily utilized let not's create a pod there.
+			if milliCPU <= 0 {
+				framework.Logf("Node is heavily utilized, let's not create a pod there")
+				continue
+			}
+
 			podRes[v1.ResourceCPU] = *resource.NewMilliQuantity(int64(milliCPU), resource.DecimalSI)
 			podRes[v1.ResourceMemory] = *resource.NewQuantity(int64(memory), resource.BinarySI)
 
@@ -271,6 +338,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				Resources: &v1.ResourceRequirements{
 					Requests: podRes,
 				},
+				NodeName: node.Name,
 				Affinity: &v1.Affinity{
 					PodAntiAffinity: &v1.PodAntiAffinity{
 						RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
@@ -312,11 +380,6 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				framework.RemoveLabelOffNode(cs, nodeList.Items[i].Name, "node")
 			}
 		}()
-
-		By("Wait for pods to be scheduled.")
-		for _, pod := range pods {
-			framework.ExpectNoError(framework.WaitForPodRunningInNamespace(cs, pod))
-		}
 
 		By("Run a high priority pod with node affinity to the first node.")
 		// Create a high priority pod and make sure it is scheduled.
@@ -644,10 +707,8 @@ func getCurrentPodUsageOnTheNode(nodeName string, pods []v1.Pod, resource *v1.Re
 	totalRequestedCpuResource := resource.Requests.Cpu().MilliValue()
 	totalRequestedMemResource := resource.Requests.Memory().Value()
 	for _, pod := range pods {
-		if pod.Spec.NodeName == nodeName {
-			if v1qos.GetPodQOS(&pod) == v1.PodQOSBestEffort {
-				continue
-			}
+		if pod.Spec.NodeName != nodeName || v1qos.GetPodQOS(&pod) == v1.PodQOSBestEffort {
+			continue
 		}
 		result := getNonZeroRequests(&pod)
 		totalRequestedCpuResource += result.MilliCPU
