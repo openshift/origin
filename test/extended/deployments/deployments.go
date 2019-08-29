@@ -1554,4 +1554,130 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())
 		})
 	})
+
+	g.Describe("adoption [Conformance]", func() {
+		dcName := "deployment-simple"
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("will orphan all RCs and adopt them back when recreated", func() {
+			namespace := oc.Namespace()
+
+			g.By("creating DC")
+			dc := exutil.ReadFixtureOrFail(simpleDeploymentFixture).(*appsv1.DeploymentConfig)
+			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(0))
+
+			g.By("waiting for initial deployment to complete")
+			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("modifying the template and triggering new deployment")
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(`{"spec": {"template": {"metadata": {"labels": {"rev": "2"}}}}}`))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			// LatestVersion is always 1 behind on api calls before the controller detects the change and raises it
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
+
+			g.By("waiting for the second deployment to complete")
+			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying the second deployment")
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Get(dc.Name, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(2))
+
+			g.By("deleting the DC and orphaning RCs")
+			deletePropagationOrphan := metav1.DeletePropagationOrphan
+			err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Delete(dc.Name, &metav1.DeleteOptions{
+				PropagationPolicy: &deletePropagationOrphan,
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Wait for deletion
+			w, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(metav1.SingleObject(dc.ObjectMeta))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ctx1, cancel1 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
+			defer cancel1()
+			_, err = watchtools.UntilWithoutRetry(ctx1, w, func(e watch.Event) (bool, error) {
+				switch e.Type {
+				case watch.Added, watch.Modified:
+					e2e.Logf("delete: LatestVersion: %d", e.Object.(*appsv1.DeploymentConfig).Status.LatestVersion)
+					return false, nil
+				case watch.Deleted:
+					return true, nil
+				case watch.Error:
+					return true, kerrors.FromObject(e.Object)
+				default:
+					return true, fmt.Errorf("unexpected event %#v", e)
+				}
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("recreating the DC")
+			dc.ResourceVersion = ""
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			// When a DC is recreated it has LatestVersion 0, it will get updated after adopting the Rcs
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(0))
+
+			g.By("waiting for DC.status.latestVersion to be raised after adopting RCs and availableReplicas to match replicas")
+			w, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(metav1.SingleObject(dc.ObjectMeta))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ctx2, cancel2 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
+			defer cancel2()
+			event, err := watchtools.UntilWithoutRetry(ctx2, w, func(e watch.Event) (bool, error) {
+				switch e.Type {
+				case watch.Added, watch.Modified:
+					evDC := e.Object.(*appsv1.DeploymentConfig)
+					e2e.Logf("wait: LatestVersion: %d", e.Object.(*appsv1.DeploymentConfig).Status.LatestVersion)
+					return evDC.Status.LatestVersion == 2 && evDC.Status.AvailableReplicas == evDC.Spec.Replicas, nil
+				case watch.Deleted:
+					return true, fmt.Errorf("dc deleted while waiting for latestVersion to be raised")
+				case watch.Error:
+					return true, kerrors.FromObject(e.Object)
+				default:
+					return true, fmt.Errorf("unexpected event %#v", e)
+				}
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			dc = event.Object.(*appsv1.DeploymentConfig)
+
+			g.By("making sure DC can be scaled")
+			newScale := dc.Spec.Replicas + 2
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newScale)))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			w, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Watch(metav1.SingleObject(dc.ObjectMeta))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ctx3, cancel3 := context.WithTimeout(context.TODO(), deploymentChangeTimeout)
+			defer cancel3()
+			event, err = watchtools.UntilWithoutRetry(ctx3, w, func(e watch.Event) (bool, error) {
+				switch e.Type {
+				case watch.Added, watch.Modified:
+					evDC := e.Object.(*appsv1.DeploymentConfig)
+					return evDC.Status.AvailableReplicas == evDC.Spec.Replicas, nil
+				case watch.Deleted:
+					return true, fmt.Errorf("dc deleted while waiting for latestVersion to be raised")
+				case watch.Error:
+					return true, kerrors.FromObject(e.Object)
+				default:
+					return true, fmt.Errorf("unexpected event %#v", e)
+				}
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			dc = event.Object.(*appsv1.DeploymentConfig)
+
+			g.By("rolling out new version")
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(2))
+
+			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(dcName, types.StrategicMergePatchType, []byte(fmt.Sprintf(`{"spec": {"template": {"metadata": {"labels": {"rev": "%d"}}}}}`, dc.Status.LatestVersion+1)))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+		})
+	})
 })
