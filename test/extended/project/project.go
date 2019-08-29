@@ -132,6 +132,9 @@ var _ = g.Describe("[Feature:ProjectAPI] ", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForAdd(ns01Name, beginningWatch)
 
+			// Background: in HA we have no guarantee that watch caches are synchronized and this test already broke on Azure.
+			// Ref: https://bugzilla.redhat.com/show_bug.cgi?id=1744105
+			time.Sleep(5 * time.Second)
 			fromNowWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			select {
