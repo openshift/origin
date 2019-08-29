@@ -15,9 +15,9 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
         - /bin/sleep
-        - "10000"
+        - "infinity"

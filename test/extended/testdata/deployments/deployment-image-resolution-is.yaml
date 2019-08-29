@@ -7,12 +7,12 @@ spec:
   - name: pullthrough
     from:
       kind: DockerImage
-      name: docker.io/centos:centos7
+      name: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
     referencePolicy:
       type: Local
   - name: direct
     from:
       kind: DockerImage
-      name: docker.io/centos:centos7
+      name: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
     referencePolicy:
      type: Source

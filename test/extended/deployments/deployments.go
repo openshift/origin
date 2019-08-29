@@ -419,8 +419,8 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
-			g.By("tagging the busybox:latest as test:v1 image")
-			_, err = oc.Run("tag").Args("docker.io/busybox:latest", "test:v1").Output()
+			g.By("tagging the ubi-minimal:latest as test:v1 image")
+			_, err = oc.Run("tag").Args("registry.access.redhat.com/ubi8/ubi-minimal:latest", "test:v1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			expectLatestVersion := func(version int) {
@@ -450,8 +450,8 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
-			g.By("tagging the busybox:1.25 as test:v2 image")
-			_, err = oc.Run("tag").Args("docker.io/busybox:1.25", "test:v2").Output()
+			g.By("tagging the ubi-minimal:8.0-127 as test:v2 image")
+			_, err = oc.Run("tag").Args("registry.access.redhat.com/ubi8/ubi-minimal:8.0-127", "test:v2").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("ensuring the deployment config latest version is 2 and rollout completed")
@@ -1500,8 +1500,8 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("tagging the busybox:latest as test:v1 image to create ImageStream")
-			out, err := oc.Run("tag").Args("docker.io/busybox:latest", "test:v1").Output()
+			g.By("tagging the ubi-minimal:latest as test:v1 image to create ImageStream")
+			out, err := oc.Run("tag").Args("registry.access.redhat.com/ubi8/ubi-minimal:latest", "test:v1").Output()
 			e2e.Logf("%s", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
