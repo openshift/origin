@@ -123,9 +123,11 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 				if condition(co, "Failing").Get("status").String() != "False" {
 					ns := co.Get("metadata.namespace").String()
 					name := co.Get("metadata.name").String()
-					unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
-					unavailable = append(unavailable, co)
-					break
+					if !inAvailableAndDegradedWhitelist(name) {
+						unavailableNames = append(unavailableNames, fmt.Sprintf("%s/%s", ns, name))
+						unavailable = append(unavailable, co)
+						break
+					}
 				}
 			}
 			if len(unavailable) > 0 {
@@ -146,7 +148,13 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 			if condition(co, "Available").Get("status").String() != "True" {
 				unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
 			} else {
-				available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
+				if condition(co, "Degraded").Get("status").String() != "False" {
+					if !inAvailableAndDegradedWhitelist(name) {
+						unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
+					}
+				} else {
+					available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
+				}
 			}
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
 				ns,
@@ -202,6 +210,15 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 		}
 	})
 })
+
+func inAvailableAndDegradedWhitelist(coName string) bool {
+	switch coName {
+	case "marketplace":
+		return true
+	default:
+		return false
+	}
+}
 
 func skipUnlessCVO(c coreclient.NamespaceInterface) {
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
