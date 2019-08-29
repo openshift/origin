@@ -154,7 +154,7 @@ func createExecPod(clientset kclientset.Interface, ns, name string) (string, err
 					ImagePullPolicy: v1.PullIfNotPresent,
 				},
 			},
-			HostNetwork:                   true,
+			HostNetwork:                   false,
 			TerminationGracePeriodSeconds: &immediate,
 		},
 	}

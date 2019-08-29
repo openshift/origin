@@ -1459,7 +1459,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 // TODO: expose upstream
 func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) string {
 	e2e.Logf("Creating new exec pod")
-	execPod := e2e.NewExecPodSpec(ns, name, true)
+	execPod := e2e.NewExecPodSpec(ns, name, false)
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(e2e.Poll, 5*time.Minute, func() (bool, error) {
