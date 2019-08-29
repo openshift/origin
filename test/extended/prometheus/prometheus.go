@@ -217,17 +217,6 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
-		g.It("should have machine api operator metrics", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
-			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
-
-			tests := map[string][]metricTest{
-				`mapi_machine_set_status_replicas`: {metricTest{greaterThanEqual: true, value: 1}},
-			}
-			runQueries(tests, oc, ns, execPodName, url, bearerToken)
-		})
 		g.It("should provide ingress metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
