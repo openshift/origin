@@ -15,7 +15,7 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
         imagePullPolicy: IfNotPresent
         command:
           - /bin/sleep
@@ -24,6 +24,6 @@ spec:
         readinessProbe:
           exec:
             command:
-            - uptime
+            - "true"
   triggers:
   - type: ConfigChange
