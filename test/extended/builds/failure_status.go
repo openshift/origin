@@ -197,6 +197,11 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 				br.AssertFailure()
 				br.DumpLogs()
 
+				// Bug 1746499: Image without tag should push with <imageid>:latest
+				logs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).NotTo(o.ContainSubstring("identifier is not an image"))
+
 				build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonPushImageToRegistryFailed))

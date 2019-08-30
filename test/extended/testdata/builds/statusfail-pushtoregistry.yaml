@@ -9,7 +9,8 @@ spec:
   output:
     to:
       kind: DockerImage
-      name: bogus.registry/image:latest
+      # Bug 1746499: Image without tag should push with <imageid>:latest
+      name: bogus.registry/image
   strategy:
     sourceStrategy:
       from:
