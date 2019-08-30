@@ -28,7 +28,7 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
-		excludeNamespaces := sets.NewString("openshift-marketplace", "openshift-operator-lifecycle-manager")
+		excludeNamespaces := sets.NewString("openshift-operator-lifecycle-manager")
 		excludePodPrefix := sets.NewString("revision-pruner-", "installer-")
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
