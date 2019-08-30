@@ -42,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/versioning"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/endpoints/handlers"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -123,6 +124,10 @@ func NewCustomResourceDefinitionHandler(
 	return ret
 }
 
+// possiblyAccrosAllNamespacesVerbs contains those verbs which can be per-namespace and accross all
+// namespaces for namespaces resources. I.e. for these an empty namespace in the requestInfo is fine.
+var possiblyAcrossAllNamespacesVerbs = sets.NewString("list", "watch")
+
 func (r *crdHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx, ok := r.requestContextMapper.Get(req)
 	if !ok {
@@ -162,6 +167,19 @@ func (r *crdHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// if the scope in the CRD and the scope in request differ (with exception of the verbs in possiblyAcrossAllNamespacesVerbs
+	// for namespaced resources), pass request to the delegate, which is supposed to lead to a 404.
+	namespacedCRD, namespacedReq := crd.Spec.Scope == apiextensions.NamespaceScoped, len(requestInfo.Namespace) > 0
+	if !namespacedCRD && namespacedReq {
+		r.delegate.ServeHTTP(w, req)
+		return
+	}
+	if namespacedCRD && !namespacedReq && !possiblyAcrossAllNamespacesVerbs.Has(requestInfo.Verb) {
+		r.delegate.ServeHTTP(w, req)
+		return
+	}
+
 	if crd.Spec.Version != requestInfo.APIVersion {
 		r.delegate.ServeHTTP(w, req)
 		return
