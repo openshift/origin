@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/020"
+	types020 "github.com/containernetworking/cni/pkg/types/020"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ip"
@@ -31,6 +32,15 @@ import (
 type cniPlugin struct {
 	socketPath string
 	hostNS     ns.NetNS
+}
+
+var logfile *os.File
+
+func log(message string) {
+	if logfile != nil {
+		fmt.Fprintln(logfile, message)
+		logfile.Sync()
+	}
 }
 
 func NewCNIPlugin(socketPath string, hostNS ns.NetNS) *cniPlugin {
@@ -116,6 +126,24 @@ func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
 }
 
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
+	logfile, _ = os.OpenFile("/tmp/cni-log-"+args.ContainerID, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	defer func() {
+		if logfile != nil {
+			logfile.Close()
+		}
+	}()
+
+	sigch := make(chan os.Signal, 10)
+	signal.Notify(sigch)
+	defer close(sigch)
+	go func() {
+		for s := range sigch {
+			if s != nil {
+				log("got signal " + s.String())
+			}
+		}
+	}()
+
 	req := newCNIRequest(args)
 	config, err := cniserver.ReadConfig(cniserver.CNIServerConfigFilePath)
 	if err != nil {
@@ -149,10 +177,16 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	defaultGW := result020.IP4.Gateway
 	result020.IP4.Gateway = nil
 
+	if len(defaultGW) == 0 {
+		return fmt.Errorf("nil default gateway!?")
+	}
+
 	result030, err := current.NewResultFromResult(result020)
 	if err != nil || len(result030.IPs) != 1 || result030.IPs[0].Version != "4" {
 		return fmt.Errorf("failed to convert IPAM result: %v", err)
 	}
+
+	log(fmt.Sprintf("cni add %s: %+v\n", args.ContainerID, result030))
 
 	// Add a sandbox interface record which ConfigureInterface expects.
 	// The only interface we report is the pod interface.
@@ -246,6 +280,34 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
+	// Last bit: check that routes were added
+
+	r, err := netlink.RouteGet(net.IP{1, 1, 1, 1})
+	if err != nil {
+		log("err1")
+		log(err.Error())
+	}
+	if len(r) == 0 {
+		log("no default route")
+	} else {
+		log("default route OK!")
+	}
+
+	time.Sleep(5 * time.Second)
+
+	log("route get")
+	r, err = netlink.RouteGet(net.IP{1, 1, 1, 1})
+	log("route got")
+	if err != nil {
+		log("err2")
+		log(err.Error())
+	}
+	if len(r) == 0 {
+		log("no default route")
+	} else {
+		log("default route OK!")
+	}
+	log("bye")
 	return result.Print()
 }
 
