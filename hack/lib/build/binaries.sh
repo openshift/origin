@@ -321,14 +321,6 @@ function os::build::place_bins() {
       if [[ $platform == "windows/amd64" ]]; then
         suffix=".exe"
       fi
-      if [[ "${OS_RELEASE_WITHOUT_LINKS-}" == "" ]]; then
-        for linkname in "${OC_BINARY_COPY[@]}"; do
-          local src="${OS_OUTPUT_BINPATH}/${platform}/oc${suffix}"
-          if [[ -f "${src}" ]]; then
-            ln -f "$src" "${OS_OUTPUT_BINPATH}/${platform}/${linkname}${suffix}"
-          fi
-        done
-      fi
 
       # If no release archive was requested, we're done.
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
@@ -341,37 +333,19 @@ function os::build::place_bins() {
         cp "${OS_OUTPUT_BINPATH}/${platform}/${binary}" "${release_binpath}/"
       done
 
-      # Create binary copies where specified.
-      for linkname in "${OC_BINARY_COPY[@]}"; do
-        local src="${release_binpath}/oc${suffix}"
-        if [[ -f "${src}" ]]; then
-          cp -f "${release_binpath}/oc${suffix}" "${release_binpath}/${linkname}${suffix}"
-        fi
-      done
-
       # Create the release archive.
       platform="$( os::build::host_platform_friendly "${platform}" )"
       if [[ ${OS_RELEASE_ARCHIVE} == "openshift-origin" ]]; then
         for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
           cp "${file}" "${release_binpath}/"
         done
-        if [[ $platform == "windows" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::zip "${OS_BINARY_RELEASE_CLIENT_WINDOWS[@]}"
-        elif [[ $platform == "mac" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::zip "${OS_BINARY_RELEASE_CLIENT_MAC[@]}"
-        elif [[ $platform == "linux-32bit" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
-        elif [[ $platform == "linux-64bit" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+        if [[ $platform == "linux-64bit" ]]; then
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         elif [[ $platform == "linux-powerpc64" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         elif [[ $platform == "linux-arm64" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         elif [[ $platform == "linux-s390" ]]; then
-          OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive::tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive::tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         else
           echo "++ ERROR: No release type defined for $platform"
@@ -402,25 +376,6 @@ readonly -f os::build::release_sha
 # binary in _output/local/bin/${platform}
 function os::build::make_openshift_binary_symlinks() {
   platform=$(os::build::host_platform)
-  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
-    if (( ${#OPENSHIFT_BINARY_SYMLINKS[@]} )); then
-      for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]##*/}"; do
-        ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
-      done
-    fi
-  fi
-  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
-    if (( ${#OC_BINARY_SYMLINKS[@]} )); then
-      for linkname in "${OC_BINARY_SYMLINKS[@]##*/}"; do
-        ln -sf oc "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
-      done
-    fi
-    if (( ${#OC_BINARY_COPY[@]} )); then
-      for linkname in "${OC_BINARY_COPY[@]##*/}"; do
-        ln -sf oc "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
-      done
-    fi
-  fi
 }
 readonly -f os::build::make_openshift_binary_symlinks
 

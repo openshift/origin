@@ -13,7 +13,6 @@ type testCase struct {
 }
 
 var tests = []testCase{
-	{"", ""},
 	{`
 		Foo
 		Bar

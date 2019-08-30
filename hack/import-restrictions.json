@@ -1,19 +1,5 @@
 [
   {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg",
-      "github.com/openshift/origin/test"
-    ],
-    "ignoredSubTrees": [],
-    "forbiddenImportPackageRoots": [
-      "vendor/github.com/openshift/oc"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor"
-    ]
-  },
-
-  {
   "checkedPackageRoots": [
     "github.com/openshift/origin"
   ],
@@ -21,5 +7,4 @@
     "k8s.io/kubernetes/staging"
   ]
   }
-
 ]

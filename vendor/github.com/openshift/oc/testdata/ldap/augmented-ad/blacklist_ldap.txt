@@ -1,2 +1,0 @@
-cn=group1,ou=groups,ou=adextended,dc=example,dc=com
-cn=group3,ou=groups,ou=adextended,dc=example,dc=com

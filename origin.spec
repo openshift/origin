@@ -77,7 +77,6 @@ BuildRequires:  bsdtar
 BuildRequires:  golang >= %{golang_version}
 BuildRequires:  krb5-devel
 BuildRequires:  rsync
-Requires:       %{name}-clients = %{version}-%{release}
 
 #
 # The following Bundled Provides entries are populated automatically by the

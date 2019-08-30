@@ -35,40 +35,10 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
-readonly OS_CROSS_COMPILE_TARGETS=(
-  vendor/github.com/openshift/oc/cmd/oc
-)
-readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
-
 readonly OS_GOVET_BLACKLIST=(
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile
-readonly OPENSHIFT_BINARY_SYMLINKS=(
-)
-readonly OC_BINARY_SYMLINKS=(
-)
-readonly OC_BINARY_COPY=(
-  kubectl
-)
-readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
-  oc.exe
-  kubectl.exe
-  README.md
-  ./LICENSE
-)
-readonly OS_BINARY_RELEASE_CLIENT_MAC=(
-  oc
-  kubectl
-  README.md
-  ./LICENSE
-)
-readonly OS_BINARY_RELEASE_CLIENT_LINUX=(
-  ./oc
-  ./kubectl
-  ./README.md
-  ./LICENSE
-)
 readonly OS_BINARY_RELEASE_SERVER_LINUX=(
   './*'
 )
@@ -103,36 +73,12 @@ function os::build::ldflags() {
     "-w"
   )
 
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/oc/clusterup.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
-
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
-
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/oc/pkg/version.buildDate" "${buildDate}"))
-
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-apiserver/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-apiserver/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-apiserver/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-apiserver/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-apiserver/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-apiserver/pkg/version.buildDate" "${buildDate}"))
-
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.gitTreeState" "${OS_GIT_TREE_STATE}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/github.com/openshift/openshift-controller-manager/pkg/version.buildDate" "${buildDate}"))
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMajor" "${KUBE_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitMinor" "${KUBE_GIT_MINOR}"))
@@ -337,14 +283,6 @@ function os::build::check_binaries() {
     fi
   fi
 
-  # enforce that certain binaries don't accidentally grow too large
-  # IMPORTANT: contact Clayton or another master team member before altering this code
-  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
-    size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/oc" | cut -f 1)
-    if [[ "${size}" -gt "118" ]]; then
-      os::log::fatal "oc binary has grown substantially to ${size}. You must have approval before bumping this limit."
-    fi
-  fi
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/pod" ]]; then
     size=$($duexe --apparent-size -m "${OS_OUTPUT_BINPATH}/${platform}/pod" | cut -f 1)
     if [[ "${size}" -gt "2" ]]; then

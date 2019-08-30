@@ -2,7 +2,6 @@ package dns
 
 import (
 	"bufio"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -26,13 +25,8 @@ func ClientConfigFromFile(resolvconf string) (*ClientConfig, error) {
 		return nil, err
 	}
 	defer file.Close()
-	return ClientConfigFromReader(file)
-}
-
-// ClientConfigFromReader works like ClientConfigFromFile but takes an io.Reader as argument
-func ClientConfigFromReader(resolvconf io.Reader) (*ClientConfig, error) {
 	c := new(ClientConfig)
-	scanner := bufio.NewScanner(resolvconf)
+	scanner := bufio.NewScanner(file)
 	c.Servers = make([]string, 0)
 	c.Search = make([]string, 0)
 	c.Port = "53"
@@ -79,10 +73,8 @@ func ClientConfigFromReader(resolvconf io.Reader) (*ClientConfig, error) {
 				switch {
 				case len(s) >= 6 && s[:6] == "ndots:":
 					n, _ := strconv.Atoi(s[6:])
-					if n < 0 {
-						n = 0
-					} else if n > 15 {
-						n = 15
+					if n < 1 {
+						n = 1
 					}
 					c.Ndots = n
 				case len(s) >= 8 && s[:8] == "timeout:":
@@ -91,7 +83,7 @@ func ClientConfigFromReader(resolvconf io.Reader) (*ClientConfig, error) {
 						n = 1
 					}
 					c.Timeout = n
-				case len(s) >= 9 && s[:9] == "attempts:":
+				case len(s) >= 8 && s[:9] == "attempts:":
 					n, _ := strconv.Atoi(s[9:])
 					if n < 1 {
 						n = 1
@@ -104,36 +96,4 @@ func ClientConfigFromReader(resolvconf io.Reader) (*ClientConfig, error) {
 		}
 	}
 	return c, nil
-}
-
-// NameList returns all of the names that should be queried based on the
-// config. It is based off of go's net/dns name building, but it does not
-// check the length of the resulting names.
-func (c *ClientConfig) NameList(name string) []string {
-	// if this domain is already fully qualified, no append needed.
-	if IsFqdn(name) {
-		return []string{name}
-	}
-
-	// Check to see if the name has more labels than Ndots. Do this before making
-	// the domain fully qualified.
-	hasNdots := CountLabel(name) > c.Ndots
-	// Make the domain fully qualified.
-	name = Fqdn(name)
-
-	// Make a list of names based off search.
-	names := []string{}
-
-	// If name has enough dots, try that first.
-	if hasNdots {
-		names = append(names, name)
-	}
-	for _, s := range c.Search {
-		names = append(names, Fqdn(name+s))
-	}
-	// If we didn't have enough dots, try after suffixes.
-	if !hasNdots {
-		names = append(names, name)
-	}
-	return names
 }

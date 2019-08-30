@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	schema "github.com/lestrrat-go/jsschema"
-	"github.com/lestrrat-go/jsschema/validator"
+	schema "github.com/lestrrat/go-jsschema"
+	"github.com/lestrrat/go-jsschema/validator"
 	"github.com/xeipuuv/gojsonschema"
 )
 

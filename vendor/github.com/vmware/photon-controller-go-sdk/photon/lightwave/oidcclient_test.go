@@ -66,7 +66,7 @@ var _ = Describe("OIDCClient", func() {
 			Context("when server responds with valid certificate", func() {
 				BeforeEach(func() {
 					template := &x509.Certificate{
-						IsCA:                  true,
+						IsCA: true,
 						BasicConstraintsValid: true,
 						SubjectKeyId:          []byte{1, 2, 3},
 						SerialNumber:          big.NewInt(1234),
