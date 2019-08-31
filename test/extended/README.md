@@ -38,7 +38,7 @@ $ openshift-tests run all --dry-run | grep -E "<REGEX>" | openshift-tests run -f
 Test labels
 -----------
 
-See [kinds of tests](https://github.com/kubernetes/community/blob/master/contributors/devel/e2e-tests.md#kinds-of-tests)
+See [kinds of tests](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-testing/e2e-tests.md#kinds-of-tests)
 for a full explanation of the labels used for each test spec.  In brief:
 
 - If a test has no labels, it is expected to run fast (under five minutes), be
