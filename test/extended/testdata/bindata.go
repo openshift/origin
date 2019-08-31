@@ -16935,15 +16935,34 @@ objects:
                 node {
                   stage("Build Image") {
                     unstash name:"war"
-                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}"
+                    def status = sh(returnStdout: true, script: "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}")
+
+                    def result = status.split("\n").find{ it.matches("^build.*started") }
+                    
+                    if(!result) {
+                      echo "ERROR: No started build found for ${appName}"
+                      currentBuild.result = 'FAILURE'
+                      return
+                    }
+                    
+                    // result can be:
+                    // - build "build-name" started
+                    // - build build.build.openshift.io/build-name started
+                    // - build "build.build.openshift.io/build-name" started
+                    // Goal is to isolate "build-name"
+                    def startedBuild = result.replaceAll("build [^0-9a-zA-Z]*", "").replaceAll("[^0-9a-zA-Z]* started", "").replaceFirst("^.*/", "")
+                    echo "Build ${startedBuild} has started. Now watching it ..."
+                    
                     timeout(time: 20, unit: 'MINUTES') {
                       openshift.withCluster() {
                         openshift.withProject() {
-                          def bc = openshift.selector('bc', "${appName}-docker")
-                          echo "Found 1 ${bc.count()} buildconfig"
-                          def blds = bc.related('builds')
-                          blds.untilEach {
-                            return it.object().status.phase == "Complete"
+                          def build = openshift.selector('builds', "${startedBuild}")
+                          build.untilEach {
+                            def object = it.object()
+                            if(object.status.phase == "Failed") {
+                              error("Build ${startedBuild} failed")
+                            }
+                            return object.status.phase == "Complete"
                           }
                         }
                       }  
