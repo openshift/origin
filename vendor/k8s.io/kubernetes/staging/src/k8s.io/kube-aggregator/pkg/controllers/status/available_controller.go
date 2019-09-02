@@ -158,9 +158,13 @@ func (c *AvailableConditionController) sync(key string) error {
 	restConfig := &rest.Config{
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: true,
-			CertData: c.proxyClientCert(),
-			KeyData:  c.proxyClientKey(),
 		},
+	}
+	if c.proxyClientCert != nil {
+		restConfig.TLSClientConfig.CertData = c.proxyClientCert()
+	}
+	if c.proxyClientKey != nil {
+		restConfig.TLSClientConfig.KeyData = c.proxyClientKey()
 	}
 	restTransport, err := rest.TransportFor(restConfig)
 	if err != nil {
