@@ -105,11 +105,9 @@ import:
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: origin-4.3
-# pod - sjenning
-# openshift-4.1-cadvisor-v0.32.0
 - package: github.com/google/cadvisor
   repo:    https://github.com/openshift/google-cadvisor.git
-  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
+  version: openshift-4.3-cadvisor-v0.33.2
 # these need to match the kubelet
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
@@ -122,50 +120,22 @@ import:
 - package: github.com/golang/glog
   repo:    https://github.com/openshift/golang-glog.git
   version: delegate-to-klog
-# retrieve latest version that fixes deadlock on kqueue
-- package: github.com/fsnotify/fsnotify
-  version: v1.4.7
 
 # mine: specific to openshift
 # master? for bindata
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 
-# to avoid go4.org website outages on glide update
-- package: go4.org
-  repo: https://github.com/go4org/go4
-  version: 03efcb870d84809319ea509714dd6d19a1498483
-  subpackages:
-  - errorutil
-
-# needed to get the
-- package: github.com/lestrrat/go-jspointer
-  repo:    https://github.com/lestrrat/go-jspointer.git
-- package: github.com/lestrrat/go-pdebug
-  repo:    https://github.com/lestrrat/go-pdebug.git
-- package: github.com/lestrrat/go-jsref
-  repo:    https://github.com/lestrrat/go-jsref.git
-  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
-- package: github.com/lestrrat/go-structinfo
-  repo:    https://github.com/lestrrat/go-structinfo.git
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
-
 # due to https://github.com/Masterminds/glide/issues/881 manually show where
 # to get gonum.org/v1/gonum from
 - package: gonum.org/v1/gonum
   repo: https://github.com/gonum/gonum.git
-  version: cebdade430ccb61c1feba4878085f6cf8cb3320e
 
 # set alias location for this package due to
 # https://github.com/Masterminds/glide/issues/1057; upstream did this in
 # https://github.com/kubernetes/kubernetes/pull/72138
 - package: bitbucket.org/ww/goautoneg
   repo: https://github.com/munnerz/goautoneg.git
-
-# yours that I suspect aren't pinning because vendor.conf is respected
-# yours: containers/image.  No idea why this isn't self-pinning.
-- package: github.com/containers/storage
-  version: 912de200380ac2fd1e90f91b78c1495ed8d5beea
 
 # help glide with go mod submodule tag
 - package: github.com/Azure/go-autorest
