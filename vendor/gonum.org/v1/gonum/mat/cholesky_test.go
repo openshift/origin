@@ -6,11 +6,11 @@ package mat
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	"golang.org/x/exp/rand"
 
-	"gonum.org/v1/gonum/blas/testblas"
 	"gonum.org/v1/gonum/floats"
 )
 
@@ -72,7 +72,37 @@ func TestCholesky(t *testing.T) {
 	}
 }
 
-func TestCholeskySolve(t *testing.T) {
+func TestCholeskyAt(t *testing.T) {
+	for _, test := range []*SymDense{
+		NewSymDense(3, []float64{
+			53, 59, 37,
+			59, 83, 71,
+			37, 71, 101,
+		}),
+	} {
+		var chol Cholesky
+		ok := chol.Factorize(test)
+		if !ok {
+			t.Fatalf("Matrix not positive definite")
+		}
+		n := test.Symmetric()
+		cn := chol.Symmetric()
+		if cn != n {
+			t.Errorf("Cholesky size does not match. Got %d, want %d", cn, n)
+		}
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				got := chol.At(i, j)
+				want := test.At(i, j)
+				if math.Abs(got-want) > 1e-12 {
+					t.Errorf("Cholesky at does not match at %d, %d. Got %v, want %v", i, j, got, want)
+				}
+			}
+		}
+	}
+}
+
+func TestCholeskySolveTo(t *testing.T) {
 	for _, test := range []struct {
 		a   *SymDense
 		b   *Dense
@@ -103,7 +133,7 @@ func TestCholeskySolve(t *testing.T) {
 		}
 
 		var x Dense
-		chol.Solve(&x, test.b)
+		chol.SolveTo(&x, test.b)
 		if !EqualApprox(&x, test.ans, 1e-12) {
 			t.Error("incorrect Cholesky solve solution")
 		}
@@ -116,7 +146,7 @@ func TestCholeskySolve(t *testing.T) {
 	}
 }
 
-func TestCholeskySolveChol(t *testing.T) {
+func TestCholeskySolveCholTo(t *testing.T) {
 	for _, test := range []struct {
 		a, b *SymDense
 	}{
@@ -164,7 +194,7 @@ func TestCholeskySolveChol(t *testing.T) {
 		}
 
 		var x Dense
-		chola.SolveChol(&x, &cholb)
+		chola.SolveCholTo(&x, &cholb)
 
 		var ans Dense
 		ans.Mul(test.a, &x)
@@ -177,7 +207,7 @@ func TestCholeskySolveChol(t *testing.T) {
 	}
 }
 
-func TestCholeskySolveVec(t *testing.T) {
+func TestCholeskySolveVecTo(t *testing.T) {
 	for _, test := range []struct {
 		a   *SymDense
 		b   *VecDense
@@ -208,7 +238,7 @@ func TestCholeskySolveVec(t *testing.T) {
 		}
 
 		var x VecDense
-		chol.SolveVec(&x, test.b)
+		chol.SolveVecTo(&x, test.b)
 		if !EqualApprox(&x, test.ans, 1e-12) {
 			t.Error("incorrect Cholesky solve solution")
 		}
@@ -458,7 +488,7 @@ func TestCholeskyExtendVecSym(t *testing.T) {
 		},
 	} {
 		n := test.a.Symmetric()
-		as := test.a.SliceSquare(0, n-1).(*SymDense)
+		as := test.a.SliceSym(0, n-1).(*SymDense)
 
 		// Compute the full factorization to use later (do the full factorization
 		// first to ensure the matrix is positive definite).
@@ -565,33 +595,82 @@ func equalApproxChol(a, b *Cholesky, matTol, condTol float64) bool {
 	return floats.EqualWithinAbsOrRel(a.cond, b.cond, condTol, condTol)
 }
 
-func BenchmarkCholeskySmall(b *testing.B) {
-	benchmarkCholesky(b, 2)
-}
+func BenchmarkCholeskyFactorize(b *testing.B) {
+	for _, n := range []int{10, 100, 1000} {
+		b.Run("n="+strconv.Itoa(n), func(b *testing.B) {
+			rnd := rand.New(rand.NewSource(1))
 
-func BenchmarkCholeskyMedium(b *testing.B) {
-	benchmarkCholesky(b, testblas.MediumMat)
-}
+			data := make([]float64, n*n)
+			for i := range data {
+				data[i] = rnd.NormFloat64()
+			}
+			var a SymDense
+			a.SymOuterK(1, NewDense(n, n, data))
 
-func BenchmarkCholeskyLarge(b *testing.B) {
-	benchmarkCholesky(b, testblas.LargeMat)
-}
-
-func benchmarkCholesky(b *testing.B, n int) {
-	base := make([]float64, n*n)
-	for i := range base {
-		base[i] = rand.Float64()
+			var chol Cholesky
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				ok := chol.Factorize(&a)
+				if !ok {
+					panic("not positive definite")
+				}
+			}
+		})
 	}
-	bm := NewDense(n, n, base)
-	bm.Mul(bm.T(), bm)
-	am := NewSymDense(n, bm.mat.Data)
+}
 
-	var chol Cholesky
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ok := chol.Factorize(am)
-		if !ok {
-			panic("not pos def")
-		}
+func BenchmarkCholeskyToSym(b *testing.B) {
+	for _, n := range []int{10, 100, 1000} {
+		b.Run("n="+strconv.Itoa(n), func(b *testing.B) {
+			rnd := rand.New(rand.NewSource(1))
+
+			data := make([]float64, n*n)
+			for i := range data {
+				data[i] = rnd.NormFloat64()
+			}
+			var a SymDense
+			a.SymOuterK(1, NewDense(n, n, data))
+
+			var chol Cholesky
+			ok := chol.Factorize(&a)
+			if !ok {
+				panic("not positive definite")
+			}
+
+			dst := NewSymDense(n, nil)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				chol.ToSym(dst)
+			}
+		})
+	}
+}
+
+func BenchmarkCholeskyInverseTo(b *testing.B) {
+	for _, n := range []int{10, 100, 1000} {
+		b.Run("n="+strconv.Itoa(n), func(b *testing.B) {
+			rnd := rand.New(rand.NewSource(1))
+
+			data := make([]float64, n*n)
+			for i := range data {
+				data[i] = rnd.NormFloat64()
+			}
+			var a SymDense
+			a.SymOuterK(1, NewDense(n, n, data))
+
+			var chol Cholesky
+			ok := chol.Factorize(&a)
+			if !ok {
+				panic("not positive definite")
+			}
+
+			dst := NewSymDense(n, nil)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				chol.InverseTo(dst)
+			}
+		})
 	}
 }

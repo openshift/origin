@@ -1,6 +1,6 @@
 types:
 - name: struct
-  struct:
+  map:
     fields:
     - name: fields
       type:
@@ -13,7 +13,7 @@ types:
       type:
         scalar: string
 - name: structField
-  struct:
+  map:
     fields:
     - name: name
       type:

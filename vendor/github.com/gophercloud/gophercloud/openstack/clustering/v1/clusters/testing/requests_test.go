@@ -475,3 +475,19 @@ func TestClusterCollect(t *testing.T) {
 	th.AssertNoErr(t, err)
 	th.AssertDeepEquals(t, ExpectedCollectAttributes, attributes)
 }
+
+func TestOperation(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	HandleOpsSuccessfully(t)
+
+	clusterOpts := clusters.OperationOpts{
+		Operation: clusters.PauseOperation,
+		Filters:   clusters.OperationFilters{"role": "slave"},
+		Params:    clusters.OperationParams{"type": "soft"},
+	}
+	actual, err := clusters.Ops(fake.ServiceClient(), "7d85f602-a948-4a30-afd4-e84f47471c15", clusterOpts).Extract()
+	th.AssertNoErr(t, err)
+	th.AssertDeepEquals(t, OperationExpectedActionID, actual)
+}

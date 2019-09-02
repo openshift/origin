@@ -22,12 +22,11 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// EndpointsClient is the use these APIs to manage Azure CDN resources through the Azure Resource Manager. You must
-// make sure that requests made to these resources are secure. For more information, see
-// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
+// EndpointsClient is the cdn Management Client
 type EndpointsClient struct {
 	BaseClient
 }
@@ -49,6 +48,16 @@ func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) Endpoi
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) Create(ctx context.Context, endpointName string, endpointProperties EndpointCreateParameters, profileName string, resourceGroupName string) (result EndpointsCreateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.Create")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: endpointProperties,
 			Constraints: []validation.Constraint{{Target: "endpointProperties.Location", Name: validation.Null, Rule: true, Chain: nil},
@@ -99,13 +108,9 @@ func (client EndpointsClient) CreatePreparer(ctx context.Context, endpointName s
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) CreateSender(req *http.Request) (future EndpointsCreateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -132,6 +137,16 @@ func (client EndpointsClient) CreateResponder(resp *http.Response) (result Endpo
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) DeleteIfExists(ctx context.Context, endpointName string, profileName string, resourceGroupName string) (result EndpointsDeleteIfExistsFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.DeleteIfExists")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteIfExistsPreparer(ctx, endpointName, profileName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "DeleteIfExists", nil, "Failure preparing request")
@@ -172,13 +187,9 @@ func (client EndpointsClient) DeleteIfExistsPreparer(ctx context.Context, endpoi
 // DeleteIfExistsSender sends the DeleteIfExists request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) DeleteIfExistsSender(req *http.Request) (future EndpointsDeleteIfExistsFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -204,6 +215,16 @@ func (client EndpointsClient) DeleteIfExistsResponder(resp *http.Response) (resu
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) Get(ctx context.Context, endpointName string, profileName string, resourceGroupName string) (result Endpoint, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, endpointName, profileName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Get", nil, "Failure preparing request")
@@ -250,8 +271,8 @@ func (client EndpointsClient) GetPreparer(ctx context.Context, endpointName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -272,6 +293,16 @@ func (client EndpointsClient) GetResponder(resp *http.Response) (result Endpoint
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) ListByProfile(ctx context.Context, profileName string, resourceGroupName string) (result EndpointListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.ListByProfile")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListByProfilePreparer(ctx, profileName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListByProfile", nil, "Failure preparing request")
@@ -317,8 +348,8 @@ func (client EndpointsClient) ListByProfilePreparer(ctx context.Context, profile
 // ListByProfileSender sends the ListByProfile request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) ListByProfileSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByProfileResponder handles the response to the ListByProfile request. The method always
@@ -341,6 +372,16 @@ func (client EndpointsClient) ListByProfileResponder(resp *http.Response) (resul
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) LoadContent(ctx context.Context, endpointName string, contentFilePaths LoadParameters, profileName string, resourceGroupName string) (result EndpointsLoadContentFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.LoadContent")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: contentFilePaths,
 			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -389,13 +430,9 @@ func (client EndpointsClient) LoadContentPreparer(ctx context.Context, endpointN
 // LoadContentSender sends the LoadContent request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) LoadContentSender(req *http.Request) (future EndpointsLoadContentFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -422,6 +459,16 @@ func (client EndpointsClient) LoadContentResponder(resp *http.Response) (result 
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) PurgeContent(ctx context.Context, endpointName string, contentFilePaths PurgeParameters, profileName string, resourceGroupName string) (result EndpointsPurgeContentFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.PurgeContent")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: contentFilePaths,
 			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -470,13 +517,9 @@ func (client EndpointsClient) PurgeContentPreparer(ctx context.Context, endpoint
 // PurgeContentSender sends the PurgeContent request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) PurgeContentSender(req *http.Request) (future EndpointsPurgeContentFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -502,6 +545,16 @@ func (client EndpointsClient) PurgeContentResponder(resp *http.Response) (result
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) Start(ctx context.Context, endpointName string, profileName string, resourceGroupName string) (result EndpointsStartFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.Start")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StartPreparer(ctx, endpointName, profileName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", nil, "Failure preparing request")
@@ -542,13 +595,9 @@ func (client EndpointsClient) StartPreparer(ctx context.Context, endpointName st
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) StartSender(req *http.Request) (future EndpointsStartFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -575,6 +624,16 @@ func (client EndpointsClient) StartResponder(resp *http.Response) (result Endpoi
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) Stop(ctx context.Context, endpointName string, profileName string, resourceGroupName string) (result EndpointsStopFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.Stop")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StopPreparer(ctx, endpointName, profileName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", nil, "Failure preparing request")
@@ -615,13 +674,9 @@ func (client EndpointsClient) StopPreparer(ctx context.Context, endpointName str
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) StopSender(req *http.Request) (future EndpointsStopFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -649,6 +704,16 @@ func (client EndpointsClient) StopResponder(resp *http.Response) (result Endpoin
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) Update(ctx context.Context, endpointName string, endpointProperties EndpointUpdateParameters, profileName string, resourceGroupName string) (result EndpointsUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, endpointName, endpointProperties, profileName, resourceGroupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", nil, "Failure preparing request")
@@ -691,13 +756,9 @@ func (client EndpointsClient) UpdatePreparer(ctx context.Context, endpointName s
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) UpdateSender(req *http.Request) (future EndpointsUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -725,6 +786,16 @@ func (client EndpointsClient) UpdateResponder(resp *http.Response) (result Endpo
 // profileName - name of the CDN profile within the resource group.
 // resourceGroupName - name of the resource group within the Azure subscription.
 func (client EndpointsClient) ValidateCustomDomain(ctx context.Context, endpointName string, customDomainProperties ValidateCustomDomainInput, profileName string, resourceGroupName string) (result ValidateCustomDomainOutput, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/EndpointsClient.ValidateCustomDomain")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: customDomainProperties,
 			Constraints: []validation.Constraint{{Target: "customDomainProperties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -779,8 +850,8 @@ func (client EndpointsClient) ValidateCustomDomainPreparer(ctx context.Context, 
 // ValidateCustomDomainSender sends the ValidateCustomDomain request. The method will close the
 // http.Response Body if it receives an error.
 func (client EndpointsClient) ValidateCustomDomainSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ValidateCustomDomainResponder handles the response to the ValidateCustomDomain request. The method always

@@ -10,6 +10,7 @@
 package glusterfs
 
 import (
+	"github.com/heketi/heketi/executors/injectexec"
 	"github.com/heketi/heketi/executors/kubeexec"
 	"github.com/heketi/heketi/executors/sshexec"
 )
@@ -19,12 +20,13 @@ type RetryLimitConfig struct {
 }
 
 type GlusterFSConfig struct {
-	DBfile     string              `json:"db"`
-	Executor   string              `json:"executor"`
-	Allocator  string              `json:"allocator"`
-	SshConfig  sshexec.SshConfig   `json:"sshexec"`
-	KubeConfig kubeexec.KubeConfig `json:"kubeexec"`
-	Loglevel   string              `json:"loglevel"`
+	DBfile       string                  `json:"db"`
+	Executor     string                  `json:"executor"`
+	Allocator    string                  `json:"allocator"`
+	SshConfig    sshexec.SshConfig       `json:"sshexec"`
+	KubeConfig   kubeexec.KubeConfig     `json:"kubeexec"`
+	InjectConfig injectexec.InjectConfig `json:"injectexec"`
+	Loglevel     string                  `json:"loglevel"`
 
 	// advanced settings
 	BrickMaxSize         int    `json:"brick_max_size_gb"`
@@ -33,6 +35,8 @@ type GlusterFSConfig struct {
 	AverageFileSize      uint64 `json:"average_file_size_kb"`
 	PreReqVolumeOptions  string `json:"pre_request_volume_options"`
 	PostReqVolumeOptions string `json:"post_request_volume_options"`
+	ZoneChecking         string `json:"zone_checking"`
+	MaxVolumesPerCluster int    `json:"max_volumes_per_cluster"`
 
 	//block settings
 	CreateBlockHostingVolumes bool   `json:"auto_create_block_hosting_volume"`
@@ -40,10 +44,14 @@ type GlusterFSConfig struct {
 	BlockHostingVolumeOptions string `json:"block_hosting_volume_options"`
 
 	// server behaviors
-	IgnoreStaleOperations          bool   `json:"ignore_stale_operations"`
+	DisableMonitorGlusterNodes     bool   `json:"disable_monitor_gluster_nodes"`
 	RefreshTimeMonitorGlusterNodes uint32 `json:"refresh_time_monitor_gluster_nodes"`
 	StartTimeMonitorGlusterNodes   uint32 `json:"start_time_monitor_gluster_nodes"`
 	MaxInflightOperations          uint64 `json:"max_inflight_operations"`
+
+	DisableBackgroundCleaner     bool   `json:"disable_background_cleaner"`
+	RefreshTimeBackgroundCleaner uint32 `json:"refresh_time_background_cleaner"`
+	StartTimeBackgroundCleaner   uint32 `json:"start_time_background_cleaner"`
 
 	// operation retry amounts
 	RetryLimits RetryLimitConfig `json:"operation_retry_limits"`

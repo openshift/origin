@@ -6,7 +6,7 @@
           "description": "View and manage its own configuration data in your Google Drive"
         },
         "https://www.googleapis.com/auth/games": {
-          "description": "Share your Google+ profile information and view and manage your game activity"
+          "description": "Create, edit, and delete your Google Play Games activity"
         }
       }
     }
@@ -18,7 +18,7 @@
   "description": "The API for Google Play Game Services.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/games/services/",
-  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/vVPYLWqLeM0tDot5C3vRSkQIwvo\"",
+  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/cP1OKHBfQLMgkwY7eEy0cEQ_wBo\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -1902,7 +1902,7 @@
       }
     }
   },
-  "revision": "20181127",
+  "revision": "20190516",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "AchievementDefinition": {

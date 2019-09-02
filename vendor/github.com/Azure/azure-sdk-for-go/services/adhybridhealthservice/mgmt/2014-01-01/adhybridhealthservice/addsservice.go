@@ -22,10 +22,11 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// AddsServiceClient is the REST APIs for Azure Active Drectory Connect Health
+// AddsServiceClient is the REST APIs for Azure Active Directory Connect Health
 type AddsServiceClient struct {
 	BaseClient
 }
@@ -49,6 +50,16 @@ func NewAddsServiceClientWithBaseURI(baseURI string) AddsServiceClient {
 // fromDate - the start date.
 // toDate - the end date.
 func (client AddsServiceClient) GetMetrics(ctx context.Context, serviceName string, metricName string, groupName string, groupKey string, fromDate *date.Time, toDate *date.Time) (result MetricSets, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AddsServiceClient.GetMetrics")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetMetricsPreparer(ctx, serviceName, metricName, groupName, groupKey, fromDate, toDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "adhybridhealthservice.AddsServiceClient", "GetMetrics", nil, "Failure preparing request")
@@ -103,8 +114,8 @@ func (client AddsServiceClient) GetMetricsPreparer(ctx context.Context, serviceN
 // GetMetricsSender sends the GetMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AddsServiceClient) GetMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMetricsResponder handles the response to the GetMetrics request. The method always

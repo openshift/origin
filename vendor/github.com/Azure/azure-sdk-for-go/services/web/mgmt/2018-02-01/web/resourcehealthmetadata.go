@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewResourceHealthMetadataClientWithBaseURI(baseURI string, subscriptionID s
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app
 func (client ResourceHealthMetadataClient) GetBySite(ctx context.Context, resourceGroupName string, name string) (result ResourceHealthMetadata, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.GetBySite")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -98,8 +109,8 @@ func (client ResourceHealthMetadataClient) GetBySitePreparer(ctx context.Context
 // GetBySiteSender sends the GetBySite request. The method will close the
 // http.Response Body if it receives an error.
 func (client ResourceHealthMetadataClient) GetBySiteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBySiteResponder handles the response to the GetBySite request. The method always
@@ -121,6 +132,16 @@ func (client ResourceHealthMetadataClient) GetBySiteResponder(resp *http.Respons
 // name - name of web app
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client ResourceHealthMetadataClient) GetBySiteSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ResourceHealthMetadata, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.GetBySiteSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -175,8 +196,8 @@ func (client ResourceHealthMetadataClient) GetBySiteSlotPreparer(ctx context.Con
 // GetBySiteSlotSender sends the GetBySiteSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client ResourceHealthMetadataClient) GetBySiteSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBySiteSlotResponder handles the response to the GetBySiteSlot request. The method always
@@ -194,6 +215,16 @@ func (client ResourceHealthMetadataClient) GetBySiteSlotResponder(resp *http.Res
 
 // List list all ResourceHealthMetadata for all sites in the subscription.
 func (client ResourceHealthMetadataClient) List(ctx context.Context) (result ResourceHealthMetadataCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.List")
+		defer func() {
+			sc := -1
+			if result.rhmc.Response.Response != nil {
+				sc = result.rhmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -238,8 +269,8 @@ func (client ResourceHealthMetadataClient) ListPreparer(ctx context.Context) (*h
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ResourceHealthMetadataClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -256,8 +287,8 @@ func (client ResourceHealthMetadataClient) ListResponder(resp *http.Response) (r
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ResourceHealthMetadataClient) listNextResults(lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
-	req, err := lastResults.resourceHealthMetadataCollectionPreparer()
+func (client ResourceHealthMetadataClient) listNextResults(ctx context.Context, lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
+	req, err := lastResults.resourceHealthMetadataCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.ResourceHealthMetadataClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -278,6 +309,16 @@ func (client ResourceHealthMetadataClient) listNextResults(lastResults ResourceH
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ResourceHealthMetadataClient) ListComplete(ctx context.Context) (result ResourceHealthMetadataCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -286,6 +327,16 @@ func (client ResourceHealthMetadataClient) ListComplete(ctx context.Context) (re
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 func (client ResourceHealthMetadataClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ResourceHealthMetadataCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.rhmc.Response.Response != nil {
+				sc = result.rhmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -339,8 +390,8 @@ func (client ResourceHealthMetadataClient) ListByResourceGroupPreparer(ctx conte
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ResourceHealthMetadataClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -357,8 +408,8 @@ func (client ResourceHealthMetadataClient) ListByResourceGroupResponder(resp *ht
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client ResourceHealthMetadataClient) listByResourceGroupNextResults(lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
-	req, err := lastResults.resourceHealthMetadataCollectionPreparer()
+func (client ResourceHealthMetadataClient) listByResourceGroupNextResults(ctx context.Context, lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
+	req, err := lastResults.resourceHealthMetadataCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.ResourceHealthMetadataClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -379,6 +430,16 @@ func (client ResourceHealthMetadataClient) listByResourceGroupNextResults(lastRe
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ResourceHealthMetadataClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result ResourceHealthMetadataCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -388,6 +449,16 @@ func (client ResourceHealthMetadataClient) ListByResourceGroupComplete(ctx conte
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client ResourceHealthMetadataClient) ListBySite(ctx context.Context, resourceGroupName string, name string) (result ResourceHealthMetadataCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.ListBySite")
+		defer func() {
+			sc := -1
+			if result.rhmc.Response.Response != nil {
+				sc = result.rhmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -442,8 +513,8 @@ func (client ResourceHealthMetadataClient) ListBySitePreparer(ctx context.Contex
 // ListBySiteSender sends the ListBySite request. The method will close the
 // http.Response Body if it receives an error.
 func (client ResourceHealthMetadataClient) ListBySiteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySiteResponder handles the response to the ListBySite request. The method always
@@ -460,8 +531,8 @@ func (client ResourceHealthMetadataClient) ListBySiteResponder(resp *http.Respon
 }
 
 // listBySiteNextResults retrieves the next set of results, if any.
-func (client ResourceHealthMetadataClient) listBySiteNextResults(lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
-	req, err := lastResults.resourceHealthMetadataCollectionPreparer()
+func (client ResourceHealthMetadataClient) listBySiteNextResults(ctx context.Context, lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
+	req, err := lastResults.resourceHealthMetadataCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.ResourceHealthMetadataClient", "listBySiteNextResults", nil, "Failure preparing next results request")
 	}
@@ -482,6 +553,16 @@ func (client ResourceHealthMetadataClient) listBySiteNextResults(lastResults Res
 
 // ListBySiteComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ResourceHealthMetadataClient) ListBySiteComplete(ctx context.Context, resourceGroupName string, name string) (result ResourceHealthMetadataCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.ListBySite")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySite(ctx, resourceGroupName, name)
 	return
 }
@@ -492,6 +573,16 @@ func (client ResourceHealthMetadataClient) ListBySiteComplete(ctx context.Contex
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client ResourceHealthMetadataClient) ListBySiteSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ResourceHealthMetadataCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.ListBySiteSlot")
+		defer func() {
+			sc := -1
+			if result.rhmc.Response.Response != nil {
+				sc = result.rhmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -547,8 +638,8 @@ func (client ResourceHealthMetadataClient) ListBySiteSlotPreparer(ctx context.Co
 // ListBySiteSlotSender sends the ListBySiteSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client ResourceHealthMetadataClient) ListBySiteSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySiteSlotResponder handles the response to the ListBySiteSlot request. The method always
@@ -565,8 +656,8 @@ func (client ResourceHealthMetadataClient) ListBySiteSlotResponder(resp *http.Re
 }
 
 // listBySiteSlotNextResults retrieves the next set of results, if any.
-func (client ResourceHealthMetadataClient) listBySiteSlotNextResults(lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
-	req, err := lastResults.resourceHealthMetadataCollectionPreparer()
+func (client ResourceHealthMetadataClient) listBySiteSlotNextResults(ctx context.Context, lastResults ResourceHealthMetadataCollection) (result ResourceHealthMetadataCollection, err error) {
+	req, err := lastResults.resourceHealthMetadataCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.ResourceHealthMetadataClient", "listBySiteSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -587,6 +678,16 @@ func (client ResourceHealthMetadataClient) listBySiteSlotNextResults(lastResults
 
 // ListBySiteSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ResourceHealthMetadataClient) ListBySiteSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result ResourceHealthMetadataCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ResourceHealthMetadataClient.ListBySiteSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySiteSlot(ctx, resourceGroupName, name, slot)
 	return
 }

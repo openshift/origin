@@ -127,6 +127,10 @@ type ClientConfigLoadingRules struct {
 	// DefaultClientConfig is an optional field indicating what rules to use to calculate a default configuration.
 	// This should match the overrides passed in to ClientConfig loader.
 	DefaultClientConfig ClientConfig
+
+	// WarnIfAllMissing indicates whether the configuration files pointed by KUBECONFIG environment variable are present or not.
+	// In case of missing files, it warns the user about the missing files.
+	WarnIfAllMissing bool
 }
 
 // ClientConfigLoadingRules implements the ClientConfigLoader interface.
@@ -136,20 +140,23 @@ var _ ClientConfigLoader = &ClientConfigLoadingRules{}
 // use this constructor
 func NewDefaultClientConfigLoadingRules() *ClientConfigLoadingRules {
 	chain := []string{}
+	warnIfAllMissing := false
 
 	envVarFiles := os.Getenv(RecommendedConfigPathEnvVar)
 	if len(envVarFiles) != 0 {
 		fileList := filepath.SplitList(envVarFiles)
 		// prevent the same path load multiple times
 		chain = append(chain, deduplicate(fileList)...)
+		warnIfAllMissing = true
 
 	} else {
 		chain = append(chain, RecommendedHomeFile)
 	}
 
 	return &ClientConfigLoadingRules{
-		Precedence:     chain,
-		MigrationRules: currentMigrationRules(),
+		Precedence:       chain,
+		MigrationRules:   currentMigrationRules(),
+		WarnIfAllMissing: warnIfAllMissing,
 	}
 }
 
@@ -172,6 +179,7 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 	}
 
 	errlist := []error{}
+	missingList := []string{}
 
 	kubeConfigFiles := []string{}
 
@@ -195,16 +203,24 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 		}
 
 		config, err := LoadFromFile(filename)
+
 		if os.IsNotExist(err) {
 			// skip missing files
+			// Add to the missing list to produce a warning
+			missingList = append(missingList, filename)
 			continue
 		}
+
 		if err != nil {
-			errlist = append(errlist, fmt.Errorf("Error loading config file \"%s\": %v", filename, err))
+			errlist = append(errlist, fmt.Errorf("error loading config file \"%s\": %v", filename, err))
 			continue
 		}
 
 		kubeconfigs = append(kubeconfigs, config)
+	}
+
+	if rules.WarnIfAllMissing && len(missingList) > 0 && len(kubeconfigs) == 0 {
+		klog.Warningf("Config not found: %s", strings.Join(missingList, ", "))
 	}
 
 	// first merge all of our maps
@@ -356,7 +372,7 @@ func LoadFromFile(filename string) (*clientcmdapi.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	klog.V(6).Infoln("Config loaded from file", filename)
+	klog.V(6).Infoln("Config loaded from file: ", filename)
 
 	// set LocationOfOrigin on every Cluster, User, and Context
 	for key, obj := range config.AuthInfos {
@@ -420,6 +436,33 @@ func WriteToFile(config clientcmdapi.Config, filename string) error {
 	return nil
 }
 
+func lockFile(filename string) error {
+	// TODO: find a way to do this with actual file locks. Will
+	// probably need separate solution for windows and Linux.
+
+	// Make sure the dir exists before we try to create a lock file.
+	dir := filepath.Dir(filename)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	}
+	f, err := os.OpenFile(lockName(filename), os.O_CREATE|os.O_EXCL, 0)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return nil
+}
+
+func unlockFile(filename string) error {
+	return os.Remove(lockName(filename))
+}
+
+func lockName(filename string) string {
+	return filename + ".lock"
+}
+
 // Write serializes the config to yaml.
 // Encapsulates serialization without assuming the destination is a file.
 func Write(config clientcmdapi.Config) ([]byte, error) {
@@ -440,7 +483,7 @@ func ResolveLocalPaths(config *clientcmdapi.Config) error {
 		}
 		base, err := filepath.Abs(filepath.Dir(cluster.LocationOfOrigin))
 		if err != nil {
-			return fmt.Errorf("Could not determine the absolute path of config file %s: %v", cluster.LocationOfOrigin, err)
+			return fmt.Errorf("could not determine the absolute path of config file %s: %v", cluster.LocationOfOrigin, err)
 		}
 
 		if err := ResolvePaths(GetClusterFileReferences(cluster), base); err != nil {
@@ -453,7 +496,7 @@ func ResolveLocalPaths(config *clientcmdapi.Config) error {
 		}
 		base, err := filepath.Abs(filepath.Dir(authInfo.LocationOfOrigin))
 		if err != nil {
-			return fmt.Errorf("Could not determine the absolute path of config file %s: %v", authInfo.LocationOfOrigin, err)
+			return fmt.Errorf("could not determine the absolute path of config file %s: %v", authInfo.LocationOfOrigin, err)
 		}
 
 		if err := ResolvePaths(GetAuthInfoFileReferences(authInfo), base); err != nil {

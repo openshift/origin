@@ -13,15 +13,15 @@ import (
 // Triangle represents a triangle distribution (https://en.wikipedia.org/wiki/Triangular_distribution).
 type Triangle struct {
 	a, b, c float64
-	Src     rand.Source
+	src     rand.Source
 }
 
 // NewTriangle constructs a new triangle distribution with lower limit a, upper limit b, and mode c.
 // Constraints are a < b and a ≤ c ≤ b.
 // This distribution is uncommon in nature, but may be useful for simulation.
-func NewTriangle(a, b, c float64) Triangle {
+func NewTriangle(a, b, c float64, src rand.Source) Triangle {
 	checkTriangleParameters(a, b, c)
-	return Triangle{a, b, c, nil}
+	return Triangle{a: a, b: b, c: c, src: src}
 }
 
 func checkTriangleParameters(a, b, c float64) {
@@ -125,10 +125,10 @@ func (t Triangle) Quantile(p float64) float64 {
 // Rand returns a random sample drawn from the distribution.
 func (t Triangle) Rand() float64 {
 	var rnd float64
-	if t.Src == nil {
+	if t.src == nil {
 		rnd = rand.Float64()
 	} else {
-		rnd = rand.New(t.Src).Float64()
+		rnd = rand.New(t.src).Float64()
 	}
 
 	return t.Quantile(rnd)

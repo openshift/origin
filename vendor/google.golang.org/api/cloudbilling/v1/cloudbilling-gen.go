@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package cloudbilling provides access to the Cloud Billing API.
 //
-// See https://cloud.google.com/billing/
+// For product documentation, see: https://cloud.google.com/billing/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/cloudbilling/v1"
 //   ...
-//   cloudbillingService, err := cloudbilling.New(oauthHttpClient)
+//   ctx := context.Background()
+//   cloudbillingService, err := cloudbilling.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   cloudbillingService, err := cloudbilling.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   cloudbillingService, err := cloudbilling.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package cloudbilling // import "google.golang.org/api/cloudbilling/v1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
+// NewService creates a new APIService.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*APIService, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new APIService. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*APIService, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -401,9 +451,8 @@ func (s *BillingAccount) MarshalJSON() ([]byte, error) {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
-	// Condition: Unimplemented. The condition that is associated with this
-	// binding.
-	// NOTE: an unsatisfied condition will not allow user access via
+	// Condition: The condition that is associated with this binding.
+	// NOTE: An unsatisfied condition will not allow user access via
 	// current
 	// binding. Different bindings, including their conditions, are
 	// examined
@@ -437,7 +486,7 @@ type Binding struct {
 	//    For example, `admins@example.com`.
 	//
 	//
-	// * `domain:{domain}`: A Google Apps domain name that represents all
+	// * `domain:{domain}`: The G Suite domain (primary) that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
 	// `example.com`.
@@ -1129,6 +1178,11 @@ func (s *ProjectBillingInfo) MarshalJSON() ([]byte, error) {
 
 // Service: Encapsulates a single service in Google Cloud Platform.
 type Service struct {
+	// BusinessEntityName: The business under which the service is
+	// offered.
+	// Ex. "businessEntities/GCP", "businessEntities/Maps"
+	BusinessEntityName string `json:"businessEntityName,omitempty"`
+
 	// DisplayName: A human readable display name for this service.
 	DisplayName string `json:"displayName,omitempty"`
 
@@ -1140,20 +1194,21 @@ type Service struct {
 	// Example: "DA34-426B-A397"
 	ServiceId string `json:"serviceId,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "DisplayName") to
-	// unconditionally include in API requests. By default, fields with
+	// ForceSendFields is a list of field names (e.g. "BusinessEntityName")
+	// to unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
 	// server regardless of whether the field is empty or not. This may be
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "DisplayName") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "BusinessEntityName") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
@@ -1834,8 +1889,10 @@ type BillingAccountsListCall struct {
 
 // List: Lists the billing accounts that the current authenticated user
 // has
-// permission to
-// [view](https://cloud.google.com/billing/docs/how-to/billing-access).
+// permission
+// to
+// [view](https://cloud.google.com/billing/docs/how-to/billing-access)
+// .
 func (r *BillingAccountsService) List() *BillingAccountsListCall {
 	c := &BillingAccountsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
@@ -1971,7 +2028,7 @@ func (c *BillingAccountsListCall) Do(opts ...googleapi.CallOption) (*ListBilling
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists the billing accounts that the current authenticated user has\npermission to [view](https://cloud.google.com/billing/docs/how-to/billing-access).",
+	//   "description": "Lists the billing accounts that the current authenticated user has\npermission to\n[view](https://cloud.google.com/billing/docs/how-to/billing-access).",
 	//   "flatPath": "v1/billingAccounts",
 	//   "httpMethod": "GET",
 	//   "id": "cloudbilling.billingAccounts.list",

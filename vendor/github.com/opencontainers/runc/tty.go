@@ -71,7 +71,7 @@ func inheritStdio(process *libcontainer.Process) error {
 	return nil
 }
 
-func (t *tty) recvtty(process *libcontainer.Process, socket *os.File) error {
+func (t *tty) recvtty(process *libcontainer.Process, socket *os.File) (Err error) {
 	f, err := utils.RecvFd(socket)
 	if err != nil {
 		return err
@@ -89,6 +89,11 @@ func (t *tty) recvtty(process *libcontainer.Process, socket *os.File) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if Err != nil {
+			epollConsole.Close()
+		}
+	}()
 	go epoller.Wait()
 	go io.Copy(epollConsole, os.Stdin)
 	t.wg.Add(1)
@@ -135,7 +140,7 @@ func (t *tty) ClosePostStart() error {
 	return nil
 }
 
-// Close closes all open fds for the tty and/or restores the orignal
+// Close closes all open fds for the tty and/or restores the original
 // stdin state to what it was prior to the container execution
 func (t *tty) Close() error {
 	// ensure that our side of the fds are always closed

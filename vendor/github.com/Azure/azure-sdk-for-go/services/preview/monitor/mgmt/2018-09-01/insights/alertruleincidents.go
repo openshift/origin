@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewAlertRuleIncidentsClientWithBaseURI(baseURI string, subscriptionID strin
 // ruleName - the name of the rule.
 // incidentName - the name of the incident to retrieve.
 func (client AlertRuleIncidentsClient) Get(ctx context.Context, resourceGroupName string, ruleName string, incidentName string) (result Incident, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AlertRuleIncidentsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, ruleName, incidentName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.AlertRuleIncidentsClient", "Get", nil, "Failure preparing request")
@@ -91,8 +102,8 @@ func (client AlertRuleIncidentsClient) GetPreparer(ctx context.Context, resource
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AlertRuleIncidentsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -113,6 +124,16 @@ func (client AlertRuleIncidentsClient) GetResponder(resp *http.Response) (result
 // resourceGroupName - the name of the resource group.
 // ruleName - the name of the rule.
 func (client AlertRuleIncidentsClient) ListByAlertRule(ctx context.Context, resourceGroupName string, ruleName string) (result IncidentListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AlertRuleIncidentsClient.ListByAlertRule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListByAlertRulePreparer(ctx, resourceGroupName, ruleName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.AlertRuleIncidentsClient", "ListByAlertRule", nil, "Failure preparing request")
@@ -158,8 +179,8 @@ func (client AlertRuleIncidentsClient) ListByAlertRulePreparer(ctx context.Conte
 // ListByAlertRuleSender sends the ListByAlertRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client AlertRuleIncidentsClient) ListByAlertRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByAlertRuleResponder handles the response to the ListByAlertRule request. The method always

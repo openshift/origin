@@ -16,6 +16,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	kubeapi "k8s.io/kubernetes/pkg/api/v1"
+	volutil "k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 func VolumeToPv(volume *api.VolumeInfoResponse,
@@ -49,6 +50,11 @@ func VolumeToPv(volume *api.VolumeInfoResponse,
 		pv.Spec.Glusterfs.EndpointsName = "TYPE ENDPOINT HERE"
 	} else {
 		pv.Spec.Glusterfs.EndpointsName = endpoint
+	}
+
+	gidStr := fmt.Sprintf("%v", volume.Gid)
+	pv.Annotations = map[string]string{
+		volutil.VolumeGidAnnotationKey: gidStr,
 	}
 
 	return pv

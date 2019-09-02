@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package admin provides access to the Admin Directory API.
 //
-// See https://developers.google.com/admin-sdk/directory/
+// For product documentation, see: https://developers.google.com/admin-sdk/directory/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/admin/directory/v1"
 //   ...
-//   adminService, err := admin.New(oauthHttpClient)
+//   ctx := context.Background()
+//   adminService, err := admin.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   adminService, err := admin.NewService(ctx, option.WithScopes(admin.AdminDirectoryUserschemaReadonlyScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   adminService, err := admin.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   adminService, err := admin.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package admin // import "google.golang.org/api/admin/directory/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -134,6 +162,58 @@ const (
 	AdminDirectoryUserschemaReadonlyScope = "https://www.googleapis.com/auth/admin.directory.userschema.readonly"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/admin.directory.customer",
+		"https://www.googleapis.com/auth/admin.directory.customer.readonly",
+		"https://www.googleapis.com/auth/admin.directory.device.chromeos",
+		"https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly",
+		"https://www.googleapis.com/auth/admin.directory.device.mobile",
+		"https://www.googleapis.com/auth/admin.directory.device.mobile.action",
+		"https://www.googleapis.com/auth/admin.directory.device.mobile.readonly",
+		"https://www.googleapis.com/auth/admin.directory.domain",
+		"https://www.googleapis.com/auth/admin.directory.domain.readonly",
+		"https://www.googleapis.com/auth/admin.directory.group",
+		"https://www.googleapis.com/auth/admin.directory.group.member",
+		"https://www.googleapis.com/auth/admin.directory.group.member.readonly",
+		"https://www.googleapis.com/auth/admin.directory.group.readonly",
+		"https://www.googleapis.com/auth/admin.directory.notifications",
+		"https://www.googleapis.com/auth/admin.directory.orgunit",
+		"https://www.googleapis.com/auth/admin.directory.orgunit.readonly",
+		"https://www.googleapis.com/auth/admin.directory.resource.calendar",
+		"https://www.googleapis.com/auth/admin.directory.resource.calendar.readonly",
+		"https://www.googleapis.com/auth/admin.directory.rolemanagement",
+		"https://www.googleapis.com/auth/admin.directory.rolemanagement.readonly",
+		"https://www.googleapis.com/auth/admin.directory.user",
+		"https://www.googleapis.com/auth/admin.directory.user.alias",
+		"https://www.googleapis.com/auth/admin.directory.user.alias.readonly",
+		"https://www.googleapis.com/auth/admin.directory.user.readonly",
+		"https://www.googleapis.com/auth/admin.directory.user.security",
+		"https://www.googleapis.com/auth/admin.directory.userschema",
+		"https://www.googleapis.com/auth/admin.directory.userschema.readonly",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -706,6 +786,11 @@ func (s *Asps) MarshalJSON() ([]byte, error) {
 
 // Building: JSON template for Building object in Directory API.
 type Building struct {
+	// Address: The postal address of the building. See PostalAddress for
+	// details. Note that only a single address line and region code are
+	// required.
+	Address *BuildingAddress `json:"address,omitempty"`
+
 	// BuildingId: Unique identifier for the building. The maximum length is
 	// 100 characters.
 	BuildingId string `json:"buildingId,omitempty"`
@@ -739,7 +824,7 @@ type Building struct {
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "BuildingId") to
+	// ForceSendFields is a list of field names (e.g. "Address") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -747,7 +832,7 @@ type Building struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "BuildingId") to include in
+	// NullFields is a list of field names (e.g. "Address") to include in
 	// API requests with the JSON null value. By default, fields with empty
 	// values are omitted from API requests. However, any field with an
 	// empty value appearing in NullFields will be sent to the server as
@@ -758,6 +843,60 @@ type Building struct {
 
 func (s *Building) MarshalJSON() ([]byte, error) {
 	type NoMethod Building
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// BuildingAddress: JSON template for the postal address of a building
+// in Directory API.
+type BuildingAddress struct {
+	// AddressLines: Unstructured address lines describing the lower levels
+	// of an address.
+	AddressLines []string `json:"addressLines,omitempty"`
+
+	// AdministrativeArea: Optional. Highest administrative subdivision
+	// which is used for postal addresses of a country or region.
+	AdministrativeArea string `json:"administrativeArea,omitempty"`
+
+	// LanguageCode: Optional. BCP-47 language code of the contents of this
+	// address (if known).
+	LanguageCode string `json:"languageCode,omitempty"`
+
+	// Locality: Optional. Generally refers to the city/town portion of the
+	// address. Examples: US city, IT comune, UK post town. In regions of
+	// the world where localities are not well defined or do not fit into
+	// this structure well, leave locality empty and use addressLines.
+	Locality string `json:"locality,omitempty"`
+
+	// PostalCode: Optional. Postal code of the address.
+	PostalCode string `json:"postalCode,omitempty"`
+
+	// RegionCode: Required. CLDR region code of the country/region of the
+	// address.
+	RegionCode string `json:"regionCode,omitempty"`
+
+	// Sublocality: Optional. Sublocality of the address.
+	Sublocality string `json:"sublocality,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AddressLines") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AddressLines") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *BuildingAddress) MarshalJSON() ([]byte, error) {
+	type NoMethod BuildingAddress
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -4188,7 +4327,7 @@ func (s *UserPhoto) MarshalJSON() ([]byte, error) {
 // UserPosixAccount: JSON template for a POSIX account entry.
 // Description of the field family: go/fbs-posix.
 type UserPosixAccount struct {
-	// AccountId: A POSIX account field identifier. (Read-only)
+	// AccountId: A POSIX account field identifier.
 	AccountId string `json:"accountId,omitempty"`
 
 	// Gecos: The GECOS (user information) for this account.
@@ -12948,6 +13087,22 @@ func (r *ResourcesBuildingsService) Insert(customer string, building *Building) 
 	return c
 }
 
+// CoordinatesSource sets the optional parameter "coordinatesSource":
+// Source from which Building.coordinates are derived.
+//
+// Possible values:
+//   "CLIENT_SPECIFIED" - Building.coordinates are set to the
+// coordinates included in the request.
+//   "RESOLVED_FROM_ADDRESS" - Building.coordinates are automatically
+// populated based on the postal address.
+//   "SOURCE_UNSPECIFIED" (default) - Defaults to RESOLVED_FROM_ADDRESS
+// if postal address is provided. Otherwise, defaults to
+// CLIENT_SPECIFIED if coordinates are provided.
+func (c *ResourcesBuildingsInsertCall) CoordinatesSource(coordinatesSource string) *ResourcesBuildingsInsertCall {
+	c.urlParams_.Set("coordinatesSource", coordinatesSource)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
@@ -13045,6 +13200,22 @@ func (c *ResourcesBuildingsInsertCall) Do(opts ...googleapi.CallOption) (*Buildi
 	//     "customer"
 	//   ],
 	//   "parameters": {
+	//     "coordinatesSource": {
+	//       "default": "SOURCE_UNSPECIFIED",
+	//       "description": "Source from which Building.coordinates are derived.",
+	//       "enum": [
+	//         "CLIENT_SPECIFIED",
+	//         "RESOLVED_FROM_ADDRESS",
+	//         "SOURCE_UNSPECIFIED"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Building.coordinates are set to the coordinates included in the request.",
+	//         "Building.coordinates are automatically populated based on the postal address.",
+	//         "Defaults to RESOLVED_FROM_ADDRESS if postal address is provided. Otherwise, defaults to CLIENT_SPECIFIED if coordinates are provided."
+	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
 	//     "customer": {
 	//       "description": "The unique ID for the customer's G Suite account. As an account administrator, you can also use the my_customer alias to represent your account's customer ID.",
 	//       "location": "path",
@@ -13277,6 +13448,22 @@ func (r *ResourcesBuildingsService) Patch(customer string, buildingId string, bu
 	return c
 }
 
+// CoordinatesSource sets the optional parameter "coordinatesSource":
+// Source from which Building.coordinates are derived.
+//
+// Possible values:
+//   "CLIENT_SPECIFIED" - Building.coordinates are set to the
+// coordinates included in the request.
+//   "RESOLVED_FROM_ADDRESS" - Building.coordinates are automatically
+// populated based on the postal address.
+//   "SOURCE_UNSPECIFIED" (default) - Defaults to RESOLVED_FROM_ADDRESS
+// if postal address is provided. Otherwise, defaults to
+// CLIENT_SPECIFIED if coordinates are provided.
+func (c *ResourcesBuildingsPatchCall) CoordinatesSource(coordinatesSource string) *ResourcesBuildingsPatchCall {
+	c.urlParams_.Set("coordinatesSource", coordinatesSource)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
@@ -13382,6 +13569,22 @@ func (c *ResourcesBuildingsPatchCall) Do(opts ...googleapi.CallOption) (*Buildin
 	//       "required": true,
 	//       "type": "string"
 	//     },
+	//     "coordinatesSource": {
+	//       "default": "SOURCE_UNSPECIFIED",
+	//       "description": "Source from which Building.coordinates are derived.",
+	//       "enum": [
+	//         "CLIENT_SPECIFIED",
+	//         "RESOLVED_FROM_ADDRESS",
+	//         "SOURCE_UNSPECIFIED"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Building.coordinates are set to the coordinates included in the request.",
+	//         "Building.coordinates are automatically populated based on the postal address.",
+	//         "Defaults to RESOLVED_FROM_ADDRESS if postal address is provided. Otherwise, defaults to CLIENT_SPECIFIED if coordinates are provided."
+	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
 	//     "customer": {
 	//       "description": "The unique ID for the customer's G Suite account. As an account administrator, you can also use the my_customer alias to represent your account's customer ID.",
 	//       "location": "path",
@@ -13421,6 +13624,22 @@ func (r *ResourcesBuildingsService) Update(customer string, buildingId string, b
 	c.customer = customer
 	c.buildingId = buildingId
 	c.building = building
+	return c
+}
+
+// CoordinatesSource sets the optional parameter "coordinatesSource":
+// Source from which Building.coordinates are derived.
+//
+// Possible values:
+//   "CLIENT_SPECIFIED" - Building.coordinates are set to the
+// coordinates included in the request.
+//   "RESOLVED_FROM_ADDRESS" - Building.coordinates are automatically
+// populated based on the postal address.
+//   "SOURCE_UNSPECIFIED" (default) - Defaults to RESOLVED_FROM_ADDRESS
+// if postal address is provided. Otherwise, defaults to
+// CLIENT_SPECIFIED if coordinates are provided.
+func (c *ResourcesBuildingsUpdateCall) CoordinatesSource(coordinatesSource string) *ResourcesBuildingsUpdateCall {
+	c.urlParams_.Set("coordinatesSource", coordinatesSource)
 	return c
 }
 
@@ -13527,6 +13746,22 @@ func (c *ResourcesBuildingsUpdateCall) Do(opts ...googleapi.CallOption) (*Buildi
 	//       "description": "The ID of the building to update.",
 	//       "location": "path",
 	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "coordinatesSource": {
+	//       "default": "SOURCE_UNSPECIFIED",
+	//       "description": "Source from which Building.coordinates are derived.",
+	//       "enum": [
+	//         "CLIENT_SPECIFIED",
+	//         "RESOLVED_FROM_ADDRESS",
+	//         "SOURCE_UNSPECIFIED"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Building.coordinates are set to the coordinates included in the request.",
+	//         "Building.coordinates are automatically populated based on the postal address.",
+	//         "Defaults to RESOLVED_FROM_ADDRESS if postal address is provided. Otherwise, defaults to CLIENT_SPECIFIED if coordinates are provided."
+	//       ],
+	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "customer": {

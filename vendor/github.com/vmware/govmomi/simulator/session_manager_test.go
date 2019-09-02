@@ -124,6 +124,49 @@ func TestSessionManagerAuth(t *testing.T) {
 		t.Errorf("UserAgent=%s", session.UserAgent)
 	}
 
+	active, err := c.SessionManager.SessionIsActive(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if active == false {
+		t.Error("not active")
+	}
+
+	{
+		req := types.SessionIsActive{
+			This:      c.SessionManager.Reference(),
+			SessionID: "enoent",
+			UserName:  "",
+		}
+
+		active, err := methods.SessionIsActive(ctx, c, &req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if active.Returnval {
+			t.Error("active")
+		}
+	}
+
+	{
+		req := types.SessionIsActive{
+			This:      c.SessionManager.Reference(),
+			SessionID: session.Key,
+			UserName:  "enoent",
+		}
+
+		active, err := methods.SessionIsActive(ctx, c, &req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if active.Returnval {
+			t.Error("active")
+		}
+	}
+
 	content = nil
 	err = opts.Properties(ctx, opts.Reference(), []string{"setting"}, &content)
 	if err != nil {

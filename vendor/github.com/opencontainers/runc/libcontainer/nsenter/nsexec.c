@@ -37,10 +37,13 @@ enum sync_t {
 	SYNC_RECVPID_ACK = 0x43,	/* PID was correctly received by parent. */
 	SYNC_GRANDCHILD = 0x44,	/* The grandchild is ready to run. */
 	SYNC_CHILD_READY = 0x45,	/* The child or grandchild is ready to return. */
-
-	/* XXX: This doesn't help with segfaults and other such issues. */
-	SYNC_ERR = 0xFF,	/* Fatal error, no turning back. The error code follows. */
 };
+
+/*
+ * Synchronisation value for cgroup namespace setup.
+ * The same constant is defined in process_linux.go as "createCgroupns".
+ */
+#define CREATECGROUPNS 0x80
 
 /* longjmp() arguments. */
 #define JUMP_PARENT 0x00
@@ -82,12 +85,21 @@ struct nlconfig_t {
 	uint8_t is_setgroup;
 
 	/* Rootless container settings. */
-	uint8_t is_rootless;
+	uint8_t is_rootless_euid;	/* boolean */
 	char *uidmappath;
 	size_t uidmappath_len;
 	char *gidmappath;
 	size_t gidmappath_len;
 };
+
+#define PANIC   "panic"
+#define FATAL   "fatal"
+#define ERROR   "error"
+#define WARNING "warning"
+#define INFO    "info"
+#define DEBUG   "debug"
+
+static int logfd = -1;
 
 /*
  * List of netlink message types sent to us as part of bootstrapping the init.
@@ -100,7 +112,7 @@ struct nlconfig_t {
 #define GIDMAP_ATTR			27284
 #define SETGROUP_ATTR		27285
 #define OOM_SCORE_ADJ_ATTR	27286
-#define ROOTLESS_ATTR	    27287
+#define ROOTLESS_EUID_ATTR	27287
 #define UIDMAPPATH_ATTR	    27288
 #define GIDMAPPATH_ATTR	    27289
 
@@ -125,22 +137,34 @@ int setns(int fd, int nstype)
 }
 #endif
 
+static void write_log_with_info(const char *level, const char *function, int line, const char *format, ...)
+{
+	char message[1024] = {};
+
+	va_list args;
+
+	if (logfd < 0 || level == NULL)
+		return;
+
+	va_start(args, format);
+	if (vsnprintf(message, sizeof(message), format, args) < 0)
+		return;
+	va_end(args);
+
+	if (dprintf(logfd, "{\"level\":\"%s\", \"msg\": \"%s:%d %s\"}\n", level, function, line, message) < 0)
+		return;
+}
+
+#define write_log(level, fmt, ...) \
+	write_log_with_info((level), __FUNCTION__, __LINE__, (fmt), ##__VA_ARGS__)
+
 /* XXX: This is ugly. */
 static int syncfd = -1;
 
-/* TODO(cyphar): Fix this so it correctly deals with syncT. */
-#define bail(fmt, ...)								\
-	do {									\
-		int ret = __COUNTER__ + 1;					\
-		fprintf(stderr, "nsenter: " fmt ": %m\n", ##__VA_ARGS__);	\
-		if (syncfd >= 0) {						\
-			enum sync_t s = SYNC_ERR;				\
-			if (write(syncfd, &s, sizeof(s)) != sizeof(s))		\
-				fprintf(stderr, "nsenter: failed: write(s)");	\
-			if (write(syncfd, &ret, sizeof(ret)) != sizeof(ret))	\
-				fprintf(stderr, "nsenter: failed: write(ret)");	\
-		}								\
-		exit(ret);							\
+#define bail(fmt, ...)                                       \
+	do {                                                       \
+		write_log(FATAL, "nsenter: " fmt ": %m", ##__VA_ARGS__); \
+		exit(1);                                                 \
 	} while(0)
 
 static int write_file(char *data, size_t data_len, char *pathfmt, ...)
@@ -211,7 +235,7 @@ static int try_mapping_tool(const char *app, int pid, char *map, size_t map_len)
 
 	/*
 	 * If @app is NULL, execve will segfault. Just check it here and bail (if
-	 * we're in this path, the caller is already getting desparate and there
+	 * we're in this path, the caller is already getting desperate and there
 	 * isn't a backup to this failing). This usually would be a configuration
 	 * or programming issue.
 	 */
@@ -346,6 +370,23 @@ static int initpipe(void)
 	return pipenum;
 }
 
+static void setup_logpipe(void)
+{
+	char *logpipe, *endptr;
+
+	logpipe = getenv("_LIBCONTAINER_LOGPIPE");
+	if (logpipe == NULL || *logpipe == '\0') {
+		return;
+	}
+
+	logfd = strtol(logpipe, &endptr, 10);
+	if (logpipe == endptr || *endptr != '\0') {
+		fprintf(stderr, "unable to parse _LIBCONTAINER_LOGPIPE, value: %s\n", logpipe);
+		/* It is too early to use bail */
+		exit(1);
+	}
+}
+
 /* Returns the clone(2) flag for a namespace, given the name of a namespace. */
 static int nsflag(char *name)
 {
@@ -419,8 +460,8 @@ static void nl_parse(int fd, struct nlconfig_t *config)
 		case CLONE_FLAGS_ATTR:
 			config->cloneflags = readint32(current);
 			break;
-		case ROOTLESS_ATTR:
-			config->is_rootless = readint8(current);
+		case ROOTLESS_EUID_ATTR:
+			config->is_rootless_euid = readint8(current);	/* boolean */
 			break;
 		case OOM_SCORE_ADJ_ATTR:
 			config->oom_score_adj = current;
@@ -528,6 +569,9 @@ void join_namespaces(char *nslist)
 	free(namespaces);
 }
 
+/* Defined in cloned_binary.c. */
+extern int ensure_cloned_binary(void);
+
 void nsexec(void)
 {
 	int pipenum;
@@ -536,12 +580,28 @@ void nsexec(void)
 	struct nlconfig_t config = { 0 };
 
 	/*
+	 * Setup a pipe to send logs to the parent. This should happen
+	 * first, because bail will use that pipe.
+	 */
+	setup_logpipe();
+
+	/*
 	 * If we don't have an init pipe, just return to the go routine.
 	 * We'll only get an init pipe for start or exec.
 	 */
 	pipenum = initpipe();
 	if (pipenum == -1)
 		return;
+
+	/*
+	 * We need to re-exec if we are not in a cloned binary. This is necessary
+	 * to ensure that containers won't be able to access the host binary
+	 * through /proc/self/exe. See CVE-2019-5736.
+	 */
+	if (ensure_cloned_binary() < 0)
+		bail("could not ensure we are a cloned binary");
+
+	write_log(DEBUG, "nsexec started");
 
 	/* Parse all of the netlink configuration. */
 	nl_parse(pipenum, &config);
@@ -640,7 +700,6 @@ void nsexec(void)
 	case JUMP_PARENT:{
 			int len;
 			pid_t child, first_child = -1;
-			char buf[JSON_MAX];
 			bool ready = false;
 
 			/* For debugging. */
@@ -660,7 +719,6 @@ void nsexec(void)
 			 */
 			while (!ready) {
 				enum sync_t s;
-				int ret;
 
 				syncfd = sync_child_pipe[1];
 				close(sync_child_pipe[0]);
@@ -669,12 +727,6 @@ void nsexec(void)
 					bail("failed to sync with child: next state");
 
 				switch (s) {
-				case SYNC_ERR:
-					/* We have to mirror the error code of the child. */
-					if (read(syncfd, &ret, sizeof(ret)) != sizeof(ret))
-						bail("failed to sync with child: read(error code)");
-
-					exit(ret);
 				case SYNC_USERMAP_PLS:
 					/*
 					 * Enable setgroups(2) if we've been asked to. But we also
@@ -687,7 +739,7 @@ void nsexec(void)
 					 * newuidmap/newgidmap shall be used.
 					 */
 
-					if (config.is_rootless && !config.is_setgroup)
+					if (config.is_rootless_euid && !config.is_setgroup)
 						update_setgroups(child, SETGROUPS_DENY);
 
 					/* Set up mappings. */
@@ -716,6 +768,18 @@ void nsexec(void)
 							kill(child, SIGKILL);
 							bail("failed to sync with child: write(SYNC_RECVPID_ACK)");
 						}
+
+						/* Send the init_func pid back to our parent.
+						 *
+						 * Send the init_func pid and the pid of the first child back to our parent.
+						 * We need to send both back because we can't reap the first child we created (CLONE_PARENT).
+						 * It becomes the responsibility of our parent to reap the first child.
+						 */
+						len = dprintf(pipenum, "{\"pid\": %d, \"pid_first\": %d}\n", child, first_child);
+						if (len < 0) {
+							kill(child, SIGKILL);
+							bail("unable to generate JSON for child pid");
+						}
 					}
 					break;
 				case SYNC_CHILD_READY:
@@ -731,7 +795,6 @@ void nsexec(void)
 			ready = false;
 			while (!ready) {
 				enum sync_t s;
-				int ret;
 
 				syncfd = sync_grandchild_pipe[1];
 				close(sync_grandchild_pipe[0]);
@@ -746,12 +809,6 @@ void nsexec(void)
 					bail("failed to sync with child: next state");
 
 				switch (s) {
-				case SYNC_ERR:
-					/* We have to mirror the error code of the child. */
-					if (read(syncfd, &ret, sizeof(ret)) != sizeof(ret))
-						bail("failed to sync with child: read(error code)");
-
-					exit(ret);
 				case SYNC_CHILD_READY:
 					ready = true;
 					break;
@@ -759,23 +816,6 @@ void nsexec(void)
 					bail("unexpected sync value: %u", s);
 				}
 			}
-
-			/*
-			 * Send the init_func pid and the pid of the first child back to our parent.
-			 *
-			 * We need to send both back because we can't reap the first child we created (CLONE_PARENT).
-			 * It becomes the responsibility of our parent to reap the first child.
-			 */
-			len = snprintf(buf, JSON_MAX, "{\"pid\": %d, \"pid_first\": %d}\n", child, first_child);
-			if (len < 0) {
-				kill(child, SIGKILL);
-				bail("unable to generate JSON for child pid");
-			}
-			if (write(pipenum, buf, len) != len) {
-				kill(child, SIGKILL);
-				bail("unable to send child pid to bootstrapper");
-			}
-
 			exit(0);
 		}
 
@@ -809,24 +849,29 @@ void nsexec(void)
 				join_namespaces(config.namespaces);
 
 			/*
-			 * Unshare all of the namespaces. Now, it should be noted that this
-			 * ordering might break in the future (especially with rootless
-			 * containers). But for now, it's not possible to split this into
-			 * CLONE_NEWUSER + [the rest] because of some RHEL SELinux issues.
-			 *
-			 * Note that we don't merge this with clone() because there were
-			 * some old kernel versions where clone(CLONE_PARENT | CLONE_NEWPID)
-			 * was broken, so we'll just do it the long way anyway.
-			 */
-			if (unshare(config.cloneflags) < 0)
-				bail("failed to unshare namespaces");
-
-			/*
 			 * Deal with user namespaces first. They are quite special, as they
 			 * affect our ability to unshare other namespaces and are used as
 			 * context for privilege checks.
+			 *
+			 * We don't unshare all namespaces in one go. The reason for this
+			 * is that, while the kernel documentation may claim otherwise,
+			 * there are certain cases where unsharing all namespaces at once
+			 * will result in namespace objects being owned incorrectly.
+			 * Ideally we should just fix these kernel bugs, but it's better to
+			 * be safe than sorry, and fix them separately.
+			 *
+			 * A specific case of this is that the SELinux label of the
+			 * internal kern-mount that mqueue uses will be incorrect if the
+			 * UTS namespace is cloned before the USER namespace is mapped.
+			 * I've also heard of similar problems with the network namespace
+			 * in some scenarios. This also mirrors how LXC deals with this
+			 * problem.
 			 */
 			if (config.cloneflags & CLONE_NEWUSER) {
+				if (unshare(CLONE_NEWUSER) < 0)
+					bail("failed to unshare user namespace");
+				config.cloneflags &= ~CLONE_NEWUSER;
+
 				/*
 				 * We don't have the privileges to do any mapping here (see the
 				 * clone_parent rant). So signal our parent to hook us up.
@@ -852,7 +897,23 @@ void nsexec(void)
 					if (prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) < 0)
 						bail("failed to set process as dumpable");
 				}
+
+				/* Become root in the namespace proper. */
+				if (setresuid(0, 0, 0) < 0)
+					bail("failed to become root in user namespace");
 			}
+			/*
+			 * Unshare all of the namespaces. Now, it should be noted that this
+			 * ordering might break in the future (especially with rootless
+			 * containers). But for now, it's not possible to split this into
+			 * CLONE_NEWUSER + [the rest] because of some RHEL SELinux issues.
+			 *
+			 * Note that we don't merge this with clone() because there were
+			 * some old kernel versions where clone(CLONE_PARENT | CLONE_NEWPID)
+			 * was broken, so we'll just do it the long way anyway.
+			 */
+			if (unshare(config.cloneflags & ~CLONE_NEWCGROUP) < 0)
+				bail("failed to unshare namespaces");
 
 			/*
 			 * TODO: What about non-namespace clone flags that we're dropping here?
@@ -935,9 +996,21 @@ void nsexec(void)
 			if (setgid(0) < 0)
 				bail("setgid failed");
 
-			if (!config.is_rootless && config.is_setgroup) {
+			if (!config.is_rootless_euid && config.is_setgroup) {
 				if (setgroups(0, NULL) < 0)
 					bail("setgroups failed");
+			}
+
+			/* ... wait until our topmost parent has finished cgroup setup in p.manager.Apply() ... */
+			if (config.cloneflags & CLONE_NEWCGROUP) {
+				uint8_t value;
+				if (read(pipenum, &value, sizeof(value)) != sizeof(value))
+					bail("read synchronisation value failed");
+				if (value == CREATECGROUPNS) {
+					if (unshare(CLONE_NEWCGROUP) < 0)
+						bail("failed to unshare cgroup namespace");
+				} else
+					bail("received unknown synchronisation value");
 			}
 
 			s = SYNC_CHILD_READY;

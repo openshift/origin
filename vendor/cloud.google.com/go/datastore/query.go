@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -23,8 +24,9 @@ import (
 	"strconv"
 	"strings"
 
+	"cloud.google.com/go/internal/trace"
 	wrapperspb "github.com/golang/protobuf/ptypes/wrappers"
-	"golang.org/x/net/context"
+	"google.golang.org/api/iterator"
 	pb "google.golang.org/genproto/googleapis/datastore/v1"
 )
 
@@ -93,13 +95,16 @@ type Query struct {
 	order      []order
 	projection []string
 
-	distinct bool
-	keysOnly bool
-	eventual bool
-	limit    int32
-	offset   int32
-	start    []byte
-	end      []byte
+	distinct   bool
+	distinctOn []string
+	keysOnly   bool
+	eventual   bool
+	limit      int32
+	offset     int32
+	start      []byte
+	end        []byte
+
+	namespace string
 
 	trans *Transaction
 
@@ -138,6 +143,17 @@ func (q *Query) Ancestor(ancestor *Key) *Query {
 func (q *Query) EventualConsistency() *Query {
 	q = q.clone()
 	q.eventual = true
+	return q
+}
+
+// Namespace returns a derivative query that is associated with the given
+// namespace.
+//
+// A namespace may be used to partition data for multi-tenant applications.
+// For details, see https://cloud.google.com/datastore/docs/concepts/multitenancy.
+func (q *Query) Namespace(ns string) *Query {
+	q = q.clone()
+	q.namespace = ns
 	return q
 }
 
@@ -248,10 +264,20 @@ func (q *Query) Project(fieldNames ...string) *Query {
 
 // Distinct returns a derivative query that yields de-duplicated entities with
 // respect to the set of projected fields. It is only used for projection
-// queries.
+// queries. Distinct cannot be used with DistinctOn.
 func (q *Query) Distinct() *Query {
 	q = q.clone()
 	q.distinct = true
+	return q
+}
+
+// DistinctOn returns a derivative query that yields de-duplicated entities with
+// respect to the set of the specified fields. It is only used for projection
+// queries. The field list should be a subset of the projected field list.
+// DistinctOn cannot be used with Distinct.
+func (q *Query) DistinctOn(fieldNames ...string) *Query {
+	q = q.clone()
+	q.distinctOn = fieldNames
 	return q
 }
 
@@ -310,6 +336,9 @@ func (q *Query) toProto(req *pb.RunQueryRequest) error {
 	if len(q.projection) != 0 && q.keysOnly {
 		return errors.New("datastore: query cannot both project and be keys-only")
 	}
+	if len(q.distinctOn) != 0 && q.distinct {
+		return errors.New("datastore: query cannot be both distinct and distinct-on")
+	}
 	dst := &pb.Query{}
 	if q.kind != "" {
 		dst.Kind = []*pb.KindExpression{{Name: q.kind}}
@@ -317,6 +346,10 @@ func (q *Query) toProto(req *pb.RunQueryRequest) error {
 	if q.projection != nil {
 		for _, propertyName := range q.projection {
 			dst.Projection = append(dst.Projection, &pb.Projection{Property: &pb.PropertyReference{Name: propertyName}})
+		}
+
+		for _, propertyName := range q.distinctOn {
+			dst.DistinctOn = append(dst.DistinctOn, &pb.PropertyReference{Name: propertyName})
 		}
 
 		if q.distinct {
@@ -348,23 +381,23 @@ func (q *Query) toProto(req *pb.RunQueryRequest) error {
 			Value:    v,
 		}
 		filters = append(filters, &pb.Filter{
-			FilterType: &pb.Filter_PropertyFilter{xf},
+			FilterType: &pb.Filter_PropertyFilter{PropertyFilter: xf},
 		})
 	}
 
 	if q.ancestor != nil {
 		filters = append(filters, &pb.Filter{
-			FilterType: &pb.Filter_PropertyFilter{&pb.PropertyFilter{
-				Property: &pb.PropertyReference{Name: "__key__"},
+			FilterType: &pb.Filter_PropertyFilter{PropertyFilter: &pb.PropertyFilter{
+				Property: &pb.PropertyReference{Name: keyFieldName},
 				Op:       pb.PropertyFilter_HAS_ANCESTOR,
-				Value:    &pb.Value{ValueType: &pb.Value_KeyValue{keyToProto(q.ancestor)}},
+				Value:    &pb.Value{ValueType: &pb.Value_KeyValue{KeyValue: keyToProto(q.ancestor)}},
 			}}})
 	}
 
 	if len(filters) == 1 {
 		dst.Filter = filters[0]
 	} else if len(filters) > 1 {
-		dst.Filter = &pb.Filter{FilterType: &pb.Filter_CompositeFilter{&pb.CompositeFilter{
+		dst.Filter = &pb.Filter{FilterType: &pb.Filter_CompositeFilter{CompositeFilter: &pb.CompositeFilter{
 			Op:      pb.CompositeFilter_AND,
 			Filters: filters,
 		}}}
@@ -381,7 +414,7 @@ func (q *Query) toProto(req *pb.RunQueryRequest) error {
 		dst.Order = append(dst.Order, xo)
 	}
 	if q.limit >= 0 {
-		dst.Limit = &wrapperspb.Int32Value{q.limit}
+		dst.Limit = &wrapperspb.Int32Value{Value: q.limit}
 	}
 	dst.Offset = q.offset
 	dst.StartCursor = q.start
@@ -395,25 +428,28 @@ func (q *Query) toProto(req *pb.RunQueryRequest) error {
 			return errors.New("datastore: cannot use EventualConsistency query in a transaction")
 		}
 		req.ReadOptions = &pb.ReadOptions{
-			ConsistencyType: &pb.ReadOptions_Transaction{t.id},
+			ConsistencyType: &pb.ReadOptions_Transaction{Transaction: t.id},
 		}
 	}
 
 	if q.eventual {
-		req.ReadOptions = &pb.ReadOptions{&pb.ReadOptions_ReadConsistency_{pb.ReadOptions_EVENTUAL}}
+		req.ReadOptions = &pb.ReadOptions{ConsistencyType: &pb.ReadOptions_ReadConsistency_{ReadConsistency: pb.ReadOptions_EVENTUAL}}
 	}
 
-	req.QueryType = &pb.RunQueryRequest_Query{dst}
+	req.QueryType = &pb.RunQueryRequest_Query{Query: dst}
 	return nil
 }
 
 // Count returns the number of results for the given query.
 //
 // The running time and number of API calls made by Count scale linearly with
-// with the sum of the query's offset and limit. Unless the result count is
+// the sum of the query's offset and limit. Unless the result count is
 // expected to be small, it is best to specify a limit; otherwise Count will
 // continue until it finishes counting or the provided context expires.
-func (c *Client) Count(ctx context.Context, q *Query) (int, error) {
+func (c *Client) Count(ctx context.Context, q *Query) (n int, err error) {
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/datastore.Query.Count")
+	defer func() { trace.EndSpan(ctx, err) }()
+
 	// Check that the query is well-formed.
 	if q.err != nil {
 		return 0, q.err
@@ -427,10 +463,9 @@ func (c *Client) Count(ctx context.Context, q *Query) (int, error) {
 	// Create an iterator and use it to walk through the batches of results
 	// directly.
 	it := c.Run(ctx, newQ)
-	n := 0
 	for {
 		err := it.nextBatch()
-		if err == Done {
+		if err == iterator.Done {
 			return n, nil
 		}
 		if err != nil {
@@ -460,7 +495,10 @@ func (c *Client) Count(ctx context.Context, q *Query) (int, error) {
 // expected to be small, it is best to specify a limit; otherwise GetAll will
 // continue until it finishes collecting results or the provided context
 // expires.
-func (c *Client) GetAll(ctx context.Context, q *Query, dst interface{}) ([]*Key, error) {
+func (c *Client) GetAll(ctx context.Context, q *Query, dst interface{}) (keys []*Key, err error) {
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/datastore.Query.GetAll")
+	defer func() { trace.EndSpan(ctx, err) }()
+
 	var (
 		dv               reflect.Value
 		mat              multiArgType
@@ -479,10 +517,9 @@ func (c *Client) GetAll(ctx context.Context, q *Query, dst interface{}) ([]*Key,
 		}
 	}
 
-	var keys []*Key
 	for t := c.Run(ctx, q); ; {
 		k, e, err := t.next()
-		if err == Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
@@ -506,7 +543,7 @@ func (c *Client) GetAll(ctx context.Context, q *Query, dst interface{}) ([]*Key,
 				x := reflect.MakeMap(elemType)
 				ev.Elem().Set(x)
 			}
-			if err = loadEntity(ev.Interface(), e); err != nil {
+			if err = loadEntityProto(ev.Interface(), e); err != nil {
 				if _, ok := err.(*ErrFieldMismatch); ok {
 					// We continue loading entities even in the face of field mismatch errors.
 					// If we encounter any other error, that other error is returned. Otherwise,
@@ -543,11 +580,13 @@ func (c *Client) Run(ctx context.Context, q *Query) *Iterator {
 			ProjectId: c.dataset,
 		},
 	}
-	if ns := ctxNamespace(ctx); ns != "" {
+
+	if q.namespace != "" {
 		t.req.PartitionId = &pb.PartitionId{
-			NamespaceId: ns,
+			NamespaceId: q.namespace,
 		}
 	}
+
 	if err := q.toProto(t.req); err != nil {
 		t.err = err
 	}
@@ -583,22 +622,19 @@ type Iterator struct {
 	entityCursor []byte
 }
 
-// Done is returned when a query iteration has completed.
-var Done = errors.New("datastore: query has no more results")
-
 // Next returns the key of the next result. When there are no more results,
-// Done is returned as the error.
+// iterator.Done is returned as the error.
 //
 // If the query is not keys only and dst is non-nil, it also loads the entity
 // stored for that key into the struct pointer or PropertyLoadSaver dst, with
 // the same semantics and possible errors as for the Get function.
-func (t *Iterator) Next(dst interface{}) (*Key, error) {
+func (t *Iterator) Next(dst interface{}) (k *Key, err error) {
 	k, e, err := t.next()
 	if err != nil {
 		return nil, err
 	}
 	if dst != nil && !t.keysOnly {
-		err = loadEntity(dst, e)
+		err = loadEntityProto(dst, e)
 	}
 	return k, err
 }
@@ -632,8 +668,12 @@ func (t *Iterator) next() (*Key, *pb.Entity, error) {
 
 // nextBatch makes a single call to the server for a batch of results.
 func (t *Iterator) nextBatch() error {
+	if t.err != nil {
+		return t.err
+	}
+
 	if t.limit == 0 {
-		return Done // Short-circuits the zero-item response.
+		return iterator.Done // Short-circuits the zero-item response.
 	}
 
 	// Adjust the query with the latest start cursor, limit and offset.
@@ -641,7 +681,7 @@ func (t *Iterator) nextBatch() error {
 	q.StartCursor = t.pageCursor
 	q.Offset = t.offset
 	if t.limit >= 0 {
-		q.Limit = &wrapperspb.Int32Value{t.limit}
+		q.Limit = &wrapperspb.Int32Value{Value: t.limit}
 	} else {
 		q.Limit = nil
 	}
@@ -695,13 +735,16 @@ func (t *Iterator) nextBatch() error {
 }
 
 // Cursor returns a cursor for the iterator's current location.
-func (t *Iterator) Cursor() (Cursor, error) {
+func (t *Iterator) Cursor() (c Cursor, err error) {
+	t.ctx = trace.StartSpan(t.ctx, "cloud.google.com/go/datastore.Query.Cursor")
+	defer func() { trace.EndSpan(t.ctx, err) }()
+
 	// If there is still an offset, we need to the skip those results first.
 	for t.err == nil && t.offset > 0 {
 		t.err = t.nextBatch()
 	}
 
-	if t.err != nil && t.err != Done {
+	if t.err != nil && t.err != iterator.Done {
 		return Cursor{}, t.err
 	}
 
@@ -727,7 +770,7 @@ func (c Cursor) String() string {
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(c.cc), "=")
 }
 
-// Decode decodes a cursor from its base-64 string representation.
+// DecodeCursor decodes a cursor from its base-64 string representation.
 func DecodeCursor(s string) (Cursor, error) {
 	if s == "" {
 		return Cursor{}, nil

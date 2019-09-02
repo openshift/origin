@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewSmartGroupsClientWithBaseURI(baseURI string, subscriptionID string, moni
 // smartGroupID - smart Group Id
 // newState - filter by state
 func (client SmartGroupsClient) ChangeState(ctx context.Context, smartGroupID string, newState AlertState) (result SmartGroup, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SmartGroupsClient.ChangeState")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ChangeStatePreparer(ctx, smartGroupID, newState)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "ChangeState", nil, "Failure preparing request")
@@ -90,8 +101,8 @@ func (client SmartGroupsClient) ChangeStatePreparer(ctx context.Context, smartGr
 // ChangeStateSender sends the ChangeState request. The method will close the
 // http.Response Body if it receives an error.
 func (client SmartGroupsClient) ChangeStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ChangeStateResponder handles the response to the ChangeState request. The method always
@@ -121,6 +132,16 @@ func (client SmartGroupsClient) ChangeStateResponder(resp *http.Response) (resul
 // sortOrder - sort the query results order in either ascending or descending, default value is 'desc' for time
 // fields and 'asc' for others.
 func (client SmartGroupsClient) GetAll(ctx context.Context, targetResource string, targetResourceGroup string, targetResourceType string, monitorCondition MonitorCondition, severity Severity, smartGroupState AlertState, timeRange TimeRange, pageCount *int32, sortBy SmartGroupsSortByFields, sortOrder string) (result SmartGroupsList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SmartGroupsClient.GetAll")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetAllPreparer(ctx, targetResource, targetResourceGroup, targetResourceType, monitorCondition, severity, smartGroupState, timeRange, pageCount, sortBy, sortOrder)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "GetAll", nil, "Failure preparing request")
@@ -197,8 +218,8 @@ func (client SmartGroupsClient) GetAllPreparer(ctx context.Context, targetResour
 // GetAllSender sends the GetAll request. The method will close the
 // http.Response Body if it receives an error.
 func (client SmartGroupsClient) GetAllSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAllResponder handles the response to the GetAll request. The method always
@@ -218,6 +239,16 @@ func (client SmartGroupsClient) GetAllResponder(resp *http.Response) (result Sma
 // Parameters:
 // smartGroupID - smart Group Id
 func (client SmartGroupsClient) GetByID(ctx context.Context, smartGroupID string) (result SmartGroup, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SmartGroupsClient.GetByID")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetByIDPreparer(ctx, smartGroupID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "GetByID", nil, "Failure preparing request")
@@ -262,8 +293,8 @@ func (client SmartGroupsClient) GetByIDPreparer(ctx context.Context, smartGroupI
 // GetByIDSender sends the GetByID request. The method will close the
 // http.Response Body if it receives an error.
 func (client SmartGroupsClient) GetByIDSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByIDResponder handles the response to the GetByID request. The method always
@@ -283,6 +314,16 @@ func (client SmartGroupsClient) GetByIDResponder(resp *http.Response) (result Sm
 // Parameters:
 // smartGroupID - smart Group Id
 func (client SmartGroupsClient) GetHistory(ctx context.Context, smartGroupID string) (result SmartGroupModification, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SmartGroupsClient.GetHistory")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetHistoryPreparer(ctx, smartGroupID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "alertsmanagement.SmartGroupsClient", "GetHistory", nil, "Failure preparing request")
@@ -327,8 +368,8 @@ func (client SmartGroupsClient) GetHistoryPreparer(ctx context.Context, smartGro
 // GetHistorySender sends the GetHistory request. The method will close the
 // http.Response Body if it receives an error.
 func (client SmartGroupsClient) GetHistorySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetHistoryResponder handles the response to the GetHistory request. The method always

@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewAPIDiagnosticLoggerClientWithBaseURI(baseURI string, subscriptionID stri
 // diagnosticID - diagnostic identifier. Must be unique in the current API Management service instance.
 // loggerid - logger identifier. Must be unique in the API Management service instance.
 func (client APIDiagnosticLoggerClient) CheckEntityExists(ctx context.Context, resourceGroupName string, serviceName string, apiid string, diagnosticID string, loggerid string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/APIDiagnosticLoggerClient.CheckEntityExists")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -115,8 +126,8 @@ func (client APIDiagnosticLoggerClient) CheckEntityExistsPreparer(ctx context.Co
 // CheckEntityExistsSender sends the CheckEntityExists request. The method will close the
 // http.Response Body if it receives an error.
 func (client APIDiagnosticLoggerClient) CheckEntityExistsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckEntityExistsResponder handles the response to the CheckEntityExists request. The method always
@@ -131,7 +142,7 @@ func (client APIDiagnosticLoggerClient) CheckEntityExistsResponder(resp *http.Re
 	return
 }
 
-// CreateOrUpdate attaches a logger to a dignostic for an API.
+// CreateOrUpdate attaches a logger to a diagnostic for an API.
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
@@ -139,6 +150,16 @@ func (client APIDiagnosticLoggerClient) CheckEntityExistsResponder(resp *http.Re
 // diagnosticID - diagnostic identifier. Must be unique in the current API Management service instance.
 // loggerid - logger identifier. Must be unique in the API Management service instance.
 func (client APIDiagnosticLoggerClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, apiid string, diagnosticID string, loggerid string) (result LoggerContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/APIDiagnosticLoggerClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -206,8 +227,8 @@ func (client APIDiagnosticLoggerClient) CreateOrUpdatePreparer(ctx context.Conte
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client APIDiagnosticLoggerClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -231,6 +252,16 @@ func (client APIDiagnosticLoggerClient) CreateOrUpdateResponder(resp *http.Respo
 // diagnosticID - diagnostic identifier. Must be unique in the current API Management service instance.
 // loggerid - logger identifier. Must be unique in the API Management service instance.
 func (client APIDiagnosticLoggerClient) Delete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, diagnosticID string, loggerid string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/APIDiagnosticLoggerClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -298,8 +329,8 @@ func (client APIDiagnosticLoggerClient) DeletePreparer(ctx context.Context, reso
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client APIDiagnosticLoggerClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -314,7 +345,7 @@ func (client APIDiagnosticLoggerClient) DeleteResponder(resp *http.Response) (re
 	return
 }
 
-// ListByService lists all loggers assosiated with the specified Diagnostic of an API.
+// ListByService lists all loggers associated with the specified Diagnostic of an API.
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
@@ -327,6 +358,16 @@ func (client APIDiagnosticLoggerClient) DeleteResponder(resp *http.Response) (re
 // top - number of records to return.
 // skip - number of records to skip.
 func (client APIDiagnosticLoggerClient) ListByService(ctx context.Context, resourceGroupName string, serviceName string, apiid string, diagnosticID string, filter string, top *int32, skip *int32) (result LoggerCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/APIDiagnosticLoggerClient.ListByService")
+		defer func() {
+			sc := -1
+			if result.lc.Response.Response != nil {
+				sc = result.lc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -406,8 +447,8 @@ func (client APIDiagnosticLoggerClient) ListByServicePreparer(ctx context.Contex
 // ListByServiceSender sends the ListByService request. The method will close the
 // http.Response Body if it receives an error.
 func (client APIDiagnosticLoggerClient) ListByServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByServiceResponder handles the response to the ListByService request. The method always
@@ -424,8 +465,8 @@ func (client APIDiagnosticLoggerClient) ListByServiceResponder(resp *http.Respon
 }
 
 // listByServiceNextResults retrieves the next set of results, if any.
-func (client APIDiagnosticLoggerClient) listByServiceNextResults(lastResults LoggerCollection) (result LoggerCollection, err error) {
-	req, err := lastResults.loggerCollectionPreparer()
+func (client APIDiagnosticLoggerClient) listByServiceNextResults(ctx context.Context, lastResults LoggerCollection) (result LoggerCollection, err error) {
+	req, err := lastResults.loggerCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.APIDiagnosticLoggerClient", "listByServiceNextResults", nil, "Failure preparing next results request")
 	}
@@ -446,6 +487,16 @@ func (client APIDiagnosticLoggerClient) listByServiceNextResults(lastResults Log
 
 // ListByServiceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client APIDiagnosticLoggerClient) ListByServiceComplete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, diagnosticID string, filter string, top *int32, skip *int32) (result LoggerCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/APIDiagnosticLoggerClient.ListByService")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByService(ctx, resourceGroupName, serviceName, apiid, diagnosticID, filter, top, skip)
 	return
 }

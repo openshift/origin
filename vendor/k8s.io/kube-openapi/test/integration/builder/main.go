@@ -26,7 +26,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
-	"k8s.io/kube-openapi/pkg/builder"
+	builderv2 "k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/test/integration/pkg/generated"
@@ -57,7 +57,7 @@ func main() {
 	config := createOpenAPIBuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
 	// Build the Paths using a simple WebService for the final spec
-	swagger, serr := builder.BuildOpenAPISpec(createWebServices(), config)
+	swagger, serr := builderv2.BuildOpenAPISpec(createWebServices(), config)
 	if serr != nil {
 		log.Fatalf("ERROR: %s", serr.Error())
 	}
@@ -109,6 +109,12 @@ func createWebServices() []*restful.WebService {
 	w.Route(buildRouteForType(w, "listtype", "AtomicList"))
 	w.Route(buildRouteForType(w, "listtype", "MapList"))
 	w.Route(buildRouteForType(w, "listtype", "SetList"))
+	w.Route(buildRouteForType(w, "uniontype", "TopLevelUnion"))
+	w.Route(buildRouteForType(w, "uniontype", "InlinedUnion"))
+	w.Route(buildRouteForType(w, "custom", "Bal"))
+	w.Route(buildRouteForType(w, "custom", "Bak"))
+	w.Route(buildRouteForType(w, "custom", "Bac"))
+	w.Route(buildRouteForType(w, "custom", "Bah"))
 	return []*restful.WebService{w}
 }
 

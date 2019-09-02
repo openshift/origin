@@ -67,7 +67,7 @@ func DormlqTest(t *testing.T, impl Dormlqer) {
 					// Generate a random matrix
 					lda := test.lda
 					if lda == 0 {
-						lda = na
+						lda = max(1, na)
 					}
 					a := make([]float64, ma*lda)
 					for i := range a {

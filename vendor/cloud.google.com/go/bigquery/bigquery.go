@@ -1,4 +1,4 @@
-// Copyright 2015 Google Inc. All Rights Reserved.
+// Copyright 2015 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,52 +14,44 @@
 
 package bigquery
 
-// TODO(mcgreevy): support dry-run mode when creating jobs.
-
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
 
-	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
-
-	"golang.org/x/net/context"
+	"cloud.google.com/go/internal"
+	"cloud.google.com/go/internal/version"
+	gax "github.com/googleapis/gax-go/v2"
 	bq "google.golang.org/api/bigquery/v2"
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
-const prodAddr = "https://www.googleapis.com/bigquery/v2/"
+const (
+	prodAddr = "https://www.googleapis.com/bigquery/v2/"
+	// Scope is the Oauth2 scope for the service.
+	Scope     = "https://www.googleapis.com/auth/bigquery"
+	userAgent = "gcloud-golang-bigquery/20160429"
+)
 
-// A Source is a source of data for the Copy function.
-type Source interface {
-	implementsSource()
+var xGoogHeader = fmt.Sprintf("gl-go/%s gccl/%s", version.Go(), version.Repo)
+
+func setClientHeader(headers http.Header) {
+	headers.Set("x-goog-api-client", xGoogHeader)
 }
-
-// A Destination is a destination of data for the Copy function.
-type Destination interface {
-	implementsDestination()
-}
-
-// An Option is an optional argument to Copy.
-type Option interface {
-	implementsOption()
-}
-
-// A ReadSource is a source of data for the Read function.
-type ReadSource interface {
-	implementsReadSource()
-}
-
-// A ReadOption is an optional argument to Read.
-type ReadOption interface {
-	customizeRead(conf *pagingConf)
-}
-
-const Scope = "https://www.googleapis.com/auth/bigquery"
-const userAgent = "gcloud-golang-bigquery/20160429"
 
 // Client may be used to perform BigQuery operations.
 type Client struct {
-	service   service
+	// Location, if set, will be used as the default location for all subsequent
+	// dataset creation and job operations. A location specified directly in one of
+	// those operations will override this value.
+	Location string
+
 	projectID string
+	bqs       *bq.Service
 }
 
 // NewClient constructs a new Client which can perform BigQuery operations.
@@ -71,105 +63,100 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 		option.WithUserAgent(userAgent),
 	}
 	o = append(o, opts...)
-	httpClient, endpoint, err := transport.NewHTTPClient(ctx, o...)
+	httpClient, endpoint, err := htransport.NewClient(ctx, o...)
 	if err != nil {
-		return nil, fmt.Errorf("dialing: %v", err)
+		return nil, fmt.Errorf("bigquery: dialing: %v", err)
 	}
-
-	s, err := newBigqueryService(httpClient, endpoint)
+	bqs, err := bq.New(httpClient)
 	if err != nil {
-		return nil, fmt.Errorf("constructing bigquery client: %v", err)
+		return nil, fmt.Errorf("bigquery: constructing client: %v", err)
 	}
-
+	bqs.BasePath = endpoint
 	c := &Client{
-		service:   s,
 		projectID: projectID,
+		bqs:       bqs,
 	}
 	return c, nil
 }
 
-// initJobProto creates and returns a bigquery Job proto.
-// The proto is customized using any jobOptions in options.
-// The list of Options is returned with the jobOptions removed.
-func initJobProto(projectID string, options []Option) (*bq.Job, []Option) {
-	job := &bq.Job{}
+// Close closes any resources held by the client.
+// Close should be called when the client is no longer needed.
+// It need not be called at program exit.
+func (c *Client) Close() error {
+	return nil
+}
 
-	var other []Option
-	for _, opt := range options {
-		if o, ok := opt.(jobOption); ok {
-			o.customizeJob(job, projectID)
-		} else {
-			other = append(other, opt)
-		}
+// Calls the Jobs.Insert RPC and returns a Job.
+func (c *Client) insertJob(ctx context.Context, job *bq.Job, media io.Reader) (*Job, error) {
+	call := c.bqs.Jobs.Insert(c.projectID, job).Context(ctx)
+	setClientHeader(call.Header())
+	if media != nil {
+		call.Media(media)
 	}
-	return job, other
-}
-
-// Copy starts a BigQuery operation to copy data from a Source to a Destination.
-func (c *Client) Copy(ctx context.Context, dst Destination, src Source, options ...Option) (*Job, error) {
-	switch dst := dst.(type) {
-	case *Table:
-		switch src := src.(type) {
-		case *GCSReference:
-			return c.load(ctx, dst, src, options)
-		case *Table:
-			return c.cp(ctx, dst, Tables{src}, options)
-		case Tables:
-			return c.cp(ctx, dst, src, options)
-		case *Query:
-			return c.query(ctx, dst, src, options)
-		}
-	case *GCSReference:
-		if src, ok := src.(*Table); ok {
-			return c.extract(ctx, dst, src, options)
-		}
+	var res *bq.Job
+	var err error
+	invoke := func() error {
+		res, err = call.Do()
+		return err
 	}
-	return nil, fmt.Errorf("no Copy operation matches dst/src pair: dst: %T ; src: %T", dst, src)
-}
-
-// Query creates a query with string q. You may optionally set
-// DefaultProjectID and DefaultDatasetID on the returned query before using it.
-func (c *Client) Query(q string) *Query {
-	return &Query{Q: q, client: c}
-}
-
-// Read submits a query for execution and returns the results via an Iterator.
-//
-// Read uses a temporary table to hold the results of the query job.
-//
-// For more control over how a query is performed, don't use this method but
-// instead pass the Query as a Source to Client.Copy, and call Read on the
-// resulting Job.
-func (q *Query) Read(ctx context.Context, options ...ReadOption) (*Iterator, error) {
-	dest := &Table{}
-	job, err := q.client.Copy(ctx, dest, q, WriteTruncate)
+	// A job with a client-generated ID can be retried; the presence of the
+	// ID makes the insert operation idempotent.
+	// We don't retry if there is media, because it is an io.Reader. We'd
+	// have to read the contents and keep it in memory, and that could be expensive.
+	// TODO(jba): Look into retrying if media != nil.
+	if job.JobReference != nil && media == nil {
+		err = runWithRetry(ctx, invoke)
+	} else {
+		err = invoke()
+	}
 	if err != nil {
 		return nil, err
 	}
-	return job.Read(ctx, options...)
+	return bqToJob(res, c)
 }
 
-// executeQuery submits a query for execution and returns the results via an Iterator.
-func (c *Client) executeQuery(ctx context.Context, q *Query, options ...ReadOption) (*Iterator, error) {
-	dest := &Table{}
-	job, err := c.Copy(ctx, dest, q, WriteTruncate)
-	if err != nil {
-		return nil, err
+// Convert a number of milliseconds since the Unix epoch to a time.Time.
+// Treat an input of zero specially: convert it to the zero time,
+// rather than the start of the epoch.
+func unixMillisToTime(m int64) time.Time {
+	if m == 0 {
+		return time.Time{}
 	}
-
-	return c.Read(ctx, job, options...)
+	return time.Unix(0, m*1e6)
 }
 
-// Dataset creates a handle to a BigQuery dataset in the client's project.
-func (c *Client) Dataset(id string) *Dataset {
-	return c.DatasetInProject(c.projectID, id)
-}
-
-// DatasetInProject creates a handle to a BigQuery dataset in the specified project.
-func (c *Client) DatasetInProject(projectID, datasetID string) *Dataset {
-	return &Dataset{
-		projectID: projectID,
-		id:        datasetID,
-		service:   c.service,
+// runWithRetry calls the function until it returns nil or a non-retryable error, or
+// the context is done.
+// See the similar function in ../storage/invoke.go. The main difference is the
+// reason for retrying.
+func runWithRetry(ctx context.Context, call func() error) error {
+	// These parameters match the suggestions in https://cloud.google.com/bigquery/sla.
+	backoff := gax.Backoff{
+		Initial:    1 * time.Second,
+		Max:        32 * time.Second,
+		Multiplier: 2,
 	}
+	return internal.Retry(ctx, backoff, func() (stop bool, err error) {
+		err = call()
+		if err == nil {
+			return true, nil
+		}
+		return !retryableError(err), err
+	})
+}
+
+// This is the correct definition of retryable according to the BigQuery team. It
+// also considers 502 ("Bad Gateway") and 503 ("Service Unavailable") errors
+// retryable; these are returned by systems between the client and the BigQuery
+// service.
+func retryableError(err error) bool {
+	e, ok := err.(*googleapi.Error)
+	if !ok {
+		return false
+	}
+	var reason string
+	if len(e.Errors) > 0 {
+		reason = e.Errors[0].Reason
+	}
+	return e.Code == http.StatusServiceUnavailable || e.Code == http.StatusBadGateway || reason == "backendError" || reason == "rateLimitExceeded"
 }

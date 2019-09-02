@@ -17,10 +17,9 @@ limitations under the License.
 package guest
 
 import (
+	"context"
 	"errors"
 	"flag"
-
-	"context"
 	"net/url"
 
 	"github.com/vmware/govmomi/govc/flags"

@@ -61,10 +61,10 @@ func (m OperationsManager) FileManager(ctx context.Context) (*FileManager, error
 
 	return &FileManager{
 		ManagedObjectReference: *g.FileManager,
-		vm:    m.vm,
-		c:     m.c,
-		mu:    new(sync.Mutex),
-		hosts: make(map[string]string),
+		vm:                     m.vm,
+		c:                      m.c,
+		mu:                     new(sync.Mutex),
+		hosts:                  make(map[string]string),
 	}, nil
 }
 

@@ -40,8 +40,8 @@ func TestIpPoolv4(t *testing.T) {
 
 	for _, test := range tests {
 		var ipPool = MustNewIpPool(&types.IpPool{
-			Id:   1,
-			Name: "ip-pool",
+			Id:                     1,
+			Name:                   "ip-pool",
 			AvailableIpv4Addresses: test.length,
 			AvailableIpv6Addresses: 0,
 			AllocatedIpv6Addresses: 0,
@@ -119,8 +119,8 @@ func TestIpPoolv6(t *testing.T) {
 
 	for _, test := range tests {
 		var ipPool = MustNewIpPool(&types.IpPool{
-			Id:   1,
-			Name: "ip-pool",
+			Id:                     1,
+			Name:                   "ip-pool",
 			AvailableIpv4Addresses: 0,
 			AvailableIpv6Addresses: test.length,
 			AllocatedIpv6Addresses: 0,
@@ -210,7 +210,7 @@ func TestIpPoolManagerLifecycle(t *testing.T) {
 	ref := types.ManagedObjectReference{Type: "IpPoolManager", Value: "IpPoolManager"}
 
 	var ipPool = &types.IpPool{
-		Name: "ip-pool",
+		Name:                   "ip-pool",
 		AvailableIpv4Addresses: 250,
 		AvailableIpv6Addresses: 250,
 		AllocatedIpv4Addresses: 0,

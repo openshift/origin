@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,11 +47,21 @@ func NewApplicationDefinitionsClientWithBaseURI(baseURI string, subscriptionID s
 // applicationDefinitionName - the name of the managed application definition.
 // parameters - parameters supplied to the create or update an managed application definition.
 func (client ApplicationDefinitionsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, applicationDefinitionName string, parameters ApplicationDefinition) (result ApplicationDefinitionsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}},
 		{TargetValue: applicationDefinitionName,
 			Constraints: []validation.Constraint{{Target: "applicationDefinitionName", Name: validation.MaxLength, Rule: 64, Chain: nil},
 				{Target: "applicationDefinitionName", Name: validation.MinLength, Rule: 3, Chain: nil}}},
@@ -101,9 +112,9 @@ func (client ApplicationDefinitionsClient) CreateOrUpdatePreparer(ctx context.Co
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) CreateOrUpdateSender(req *http.Request) (future ApplicationDefinitionsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -131,6 +142,16 @@ func (client ApplicationDefinitionsClient) CreateOrUpdateResponder(resp *http.Re
 // /subscriptions/{guid}/resourceGroups/{resource-group-name}/Microsoft.Solutions/applicationDefinitions/{applicationDefinition-name}
 // parameters - parameters supplied to the create or update a managed application definition.
 func (client ApplicationDefinitionsClient) CreateOrUpdateByID(ctx context.Context, applicationDefinitionID string, parameters ApplicationDefinition) (result ApplicationDefinitionsCreateOrUpdateByIDFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.CreateOrUpdateByID")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.ApplicationDefinitionProperties", Name: validation.Null, Rule: true,
@@ -177,9 +198,9 @@ func (client ApplicationDefinitionsClient) CreateOrUpdateByIDPreparer(ctx contex
 // CreateOrUpdateByIDSender sends the CreateOrUpdateByID request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) CreateOrUpdateByIDSender(req *http.Request) (future ApplicationDefinitionsCreateOrUpdateByIDFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -205,11 +226,21 @@ func (client ApplicationDefinitionsClient) CreateOrUpdateByIDResponder(resp *htt
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // applicationDefinitionName - the name of the managed application definition to delete.
 func (client ApplicationDefinitionsClient) Delete(ctx context.Context, resourceGroupName string, applicationDefinitionName string) (result ApplicationDefinitionsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}},
 		{TargetValue: applicationDefinitionName,
 			Constraints: []validation.Constraint{{Target: "applicationDefinitionName", Name: validation.MaxLength, Rule: 64, Chain: nil},
 				{Target: "applicationDefinitionName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
@@ -255,9 +286,9 @@ func (client ApplicationDefinitionsClient) DeletePreparer(ctx context.Context, r
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) DeleteSender(req *http.Request) (future ApplicationDefinitionsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -283,6 +314,16 @@ func (client ApplicationDefinitionsClient) DeleteResponder(resp *http.Response) 
 // managed application name and the managed application definition resource type. Use the format,
 // /subscriptions/{guid}/resourceGroups/{resource-group-name}/Microsoft.Solutions/applicationDefinitions/{applicationDefinition-name}
 func (client ApplicationDefinitionsClient) DeleteByID(ctx context.Context, applicationDefinitionID string) (result ApplicationDefinitionsDeleteByIDFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.DeleteByID")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteByIDPreparer(ctx, applicationDefinitionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "managedapplications.ApplicationDefinitionsClient", "DeleteByID", nil, "Failure preparing request")
@@ -320,9 +361,9 @@ func (client ApplicationDefinitionsClient) DeleteByIDPreparer(ctx context.Contex
 // DeleteByIDSender sends the DeleteByID request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) DeleteByIDSender(req *http.Request) (future ApplicationDefinitionsDeleteByIDFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -347,11 +388,21 @@ func (client ApplicationDefinitionsClient) DeleteByIDResponder(resp *http.Respon
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // applicationDefinitionName - the name of the managed application definition.
 func (client ApplicationDefinitionsClient) Get(ctx context.Context, resourceGroupName string, applicationDefinitionName string) (result ApplicationDefinition, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}},
 		{TargetValue: applicationDefinitionName,
 			Constraints: []validation.Constraint{{Target: "applicationDefinitionName", Name: validation.MaxLength, Rule: 64, Chain: nil},
 				{Target: "applicationDefinitionName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
@@ -403,8 +454,8 @@ func (client ApplicationDefinitionsClient) GetPreparer(ctx context.Context, reso
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -426,6 +477,16 @@ func (client ApplicationDefinitionsClient) GetResponder(resp *http.Response) (re
 // managed application name and the managed application definition resource type. Use the format,
 // /subscriptions/{guid}/resourceGroups/{resource-group-name}/Microsoft.Solutions/applicationDefinitions/{applicationDefinition-name}
 func (client ApplicationDefinitionsClient) GetByID(ctx context.Context, applicationDefinitionID string) (result ApplicationDefinition, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.GetByID")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetByIDPreparer(ctx, applicationDefinitionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "managedapplications.ApplicationDefinitionsClient", "GetByID", nil, "Failure preparing request")
@@ -469,8 +530,8 @@ func (client ApplicationDefinitionsClient) GetByIDPreparer(ctx context.Context, 
 // GetByIDSender sends the GetByID request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) GetByIDSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByIDResponder handles the response to the GetByID request. The method always
@@ -490,11 +551,21 @@ func (client ApplicationDefinitionsClient) GetByIDResponder(resp *http.Response)
 // Parameters:
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 func (client ApplicationDefinitionsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ApplicationDefinitionListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.adlr.Response.Response != nil {
+				sc = result.adlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("managedapplications.ApplicationDefinitionsClient", "ListByResourceGroup", err.Error())
 	}
 
@@ -543,8 +614,8 @@ func (client ApplicationDefinitionsClient) ListByResourceGroupPreparer(ctx conte
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationDefinitionsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -561,8 +632,8 @@ func (client ApplicationDefinitionsClient) ListByResourceGroupResponder(resp *ht
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client ApplicationDefinitionsClient) listByResourceGroupNextResults(lastResults ApplicationDefinitionListResult) (result ApplicationDefinitionListResult, err error) {
-	req, err := lastResults.applicationDefinitionListResultPreparer()
+func (client ApplicationDefinitionsClient) listByResourceGroupNextResults(ctx context.Context, lastResults ApplicationDefinitionListResult) (result ApplicationDefinitionListResult, err error) {
+	req, err := lastResults.applicationDefinitionListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "managedapplications.ApplicationDefinitionsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -583,6 +654,16 @@ func (client ApplicationDefinitionsClient) listByResourceGroupNextResults(lastRe
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ApplicationDefinitionsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result ApplicationDefinitionListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ApplicationDefinitionsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }

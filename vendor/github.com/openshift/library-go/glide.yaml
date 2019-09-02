@@ -1,21 +1,31 @@
 package: github.com/openshift/library-go
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.14.0
+  repo: https://github.com/openshift/kubernetes-apimachinery
+  version: origin-4.3-kubernetes-1.16.0-beta.1
 - package: k8s.io/api
-  version: kubernetes-1.14.0
+  repo: https://github.com/openshift/kubernetes-api
+  version: origin-4.3-kubernetes-1.16.0-beta.1
 - package: k8s.io/apiserver
-  version: kubernetes-1.14.0
+  repo: https://github.com/openshift/kubernetes-apiserver
+  version: origin-4.3-kubernetes-1.16.0-beta.1
 - package: k8s.io/apiextensions-apiserver
-  version: kubernetes-1.14.0
+  repo: https://github.com/openshift/kubernetes-apiextensions-apiserver
+  version: origin-4.3-kubernetes-1.16.0-beta.1
 - package: k8s.io/kube-aggregator
-  version: kubernetes-1.14.0
+  repo: https://github.com/openshift/kubernetes-kube-aggregator
+  version: origin-4.3-kubernetes-1.16.0-beta.1
 - package: k8s.io/client-go
-  version: kubernetes-1.14.0
+  repo: https://github.com/openshift/kubernetes-client-go
+  version: origin-4.3-kubernetes-1.16.0-beta.1
+- package: k8s.io/component-base
+  repo: https://github.com/openshift/kubernetes-component-base
+  version: origin-4.3-kubernetes-1.16.0-beta.1
+
 - package: github.com/openshift/api
-  version: master
+  version: prebase-1.16 # this is wrong, it should be prebase-1.16.0-beta.1
 - package: github.com/openshift/client-go
-  version: master
+  version: prebase-1.16.0-beta.1
 
 # sig-master - needed for file observer
 - package: github.com/sigma/go-inotify
@@ -34,15 +44,17 @@ import:
 
 # matches kube
 - package: github.com/spf13/cobra
-  version: c439c4fa093711d42e1b01acb1235b52004753c1
+  version: v0.0.4
 - package: github.com/spf13/pflag
-  version: 583c0c0531f06d5278b7d917446061adc344b5cd
+  version: 1.0.3
 - package: github.com/sirupsen/logrus
-  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+  version: v1.4.2
 - package: github.com/blang/semver
-  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
+  version: v3.5.0
 - package: github.com/imdario/mergo
-  version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
+  version: v0.3.5
+- package: sigs.k8s.io/structured-merge-diff
+  version: 0c1d754dd648 # matches 1.16.0-beta.1 go.mod
 
 
 # matches openshift/origin
@@ -53,9 +65,11 @@ import:
 - package: github.com/fsouza/go-dockerclient
   version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3 # matching origin 4.2 level
 - package: github.com/docker/distribution
-  version: 16128bbac47f75050e82f7e91b04df33775e0c23 # level currently used in origin to base the origin patches on.  See https://github.com/openshift/image-registry/pull/126/commits/eb32acef7827ac2227c3aeaddc444880ed98edb3 leading to https://github.com/openshift/docker-distribution/commits/image-registry-3.11
+  # See https://github.com/openshift/image-registry/pull/126/commits/eb32acef7827ac2227c3aeaddc444880ed98edb3 leading to https://github.com/openshift/docker-distribution/commits/image-registry-3.11
+  version: 16128bbac47f75050e82f7e91b04df33775e0c23 # level currently used in origin to base the origin patches on.
+- package: github.com/docker/libnetwork
+  version: 7f13a5c99f4bb76a4122035d495984b6a09739bb # required for docker/docker/opts
 
 # VCS issues
 - package: bitbucket.org/ww/goautoneg
   vcs: hg
-

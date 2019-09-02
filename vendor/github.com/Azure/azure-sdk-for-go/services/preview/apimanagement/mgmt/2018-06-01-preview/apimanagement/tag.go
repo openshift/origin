@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,8 +48,17 @@ func NewTagClientWithBaseURI(baseURI string, subscriptionID string) TagClient {
 // apiid - API revision identifier. Must be unique in the current API Management service instance. Non-current
 // revision has ;rev=n as a suffix where n is the revision number.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
-// ifMatch - eTag of the Entity. Not required when creating an entity, but required when updating an entity.
-func (client TagClient) AssignToAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string, ifMatch string) (result TagContract, err error) {
+func (client TagClient) AssignToAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.AssignToAPI")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -61,11 +71,11 @@ func (client TagClient) AssignToAPI(ctx context.Context, resourceGroupName strin
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "AssignToAPI", err.Error())
 	}
 
-	req, err := client.AssignToAPIPreparer(ctx, resourceGroupName, serviceName, apiid, tagID, ifMatch)
+	req, err := client.AssignToAPIPreparer(ctx, resourceGroupName, serviceName, apiid, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "AssignToAPI", nil, "Failure preparing request")
 		return
@@ -87,7 +97,7 @@ func (client TagClient) AssignToAPI(ctx context.Context, resourceGroupName strin
 }
 
 // AssignToAPIPreparer prepares the AssignToAPI request.
-func (client TagClient) AssignToAPIPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string, ifMatch string) (*http.Request, error) {
+func (client TagClient) AssignToAPIPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"apiId":             autorest.Encode("path", apiid),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -106,18 +116,14 @@ func (client TagClient) AssignToAPIPreparer(ctx context.Context, resourceGroupNa
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/apis/{apiId}/tags/{tagId}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
-	if len(ifMatch) > 0 {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithHeader("If-Match", autorest.String(ifMatch)))
-	}
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // AssignToAPISender sends the AssignToAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) AssignToAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AssignToAPIResponder handles the response to the AssignToAPI request. The method always
@@ -142,8 +148,17 @@ func (client TagClient) AssignToAPIResponder(resp *http.Response) (result TagCon
 // operationID - operation identifier within an API. Must be unique in the current API Management service
 // instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
-// ifMatch - eTag of the Entity. Not required when creating an entity, but required when updating an entity.
-func (client TagClient) AssignToOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string, ifMatch string) (result TagContract, err error) {
+func (client TagClient) AssignToOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.AssignToOperation")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -156,15 +171,15 @@ func (client TagClient) AssignToOperation(ctx context.Context, resourceGroupName
 		{TargetValue: operationID,
 			Constraints: []validation.Constraint{{Target: "operationID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "operationID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "operationID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "operationID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "AssignToOperation", err.Error())
 	}
 
-	req, err := client.AssignToOperationPreparer(ctx, resourceGroupName, serviceName, apiid, operationID, tagID, ifMatch)
+	req, err := client.AssignToOperationPreparer(ctx, resourceGroupName, serviceName, apiid, operationID, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "AssignToOperation", nil, "Failure preparing request")
 		return
@@ -186,7 +201,7 @@ func (client TagClient) AssignToOperation(ctx context.Context, resourceGroupName
 }
 
 // AssignToOperationPreparer prepares the AssignToOperation request.
-func (client TagClient) AssignToOperationPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string, ifMatch string) (*http.Request, error) {
+func (client TagClient) AssignToOperationPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"apiId":             autorest.Encode("path", apiid),
 		"operationId":       autorest.Encode("path", operationID),
@@ -206,18 +221,14 @@ func (client TagClient) AssignToOperationPreparer(ctx context.Context, resourceG
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/apis/{apiId}/operations/{operationId}/tags/{tagId}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
-	if len(ifMatch) > 0 {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithHeader("If-Match", autorest.String(ifMatch)))
-	}
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // AssignToOperationSender sends the AssignToOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) AssignToOperationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AssignToOperationResponder handles the response to the AssignToOperation request. The method always
@@ -239,25 +250,34 @@ func (client TagClient) AssignToOperationResponder(resp *http.Response) (result 
 // serviceName - the name of the API Management service.
 // productID - product identifier. Must be unique in the current API Management service instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
-// ifMatch - eTag of the Entity. Not required when creating an entity, but required when updating an entity.
-func (client TagClient) AssignToProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string, ifMatch string) (result TagContract, err error) {
+func (client TagClient) AssignToProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.AssignToProduct")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "serviceName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "serviceName", Name: validation.Pattern, Rule: `^[a-zA-Z](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$`, Chain: nil}}},
 		{TargetValue: productID,
-			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 80, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
 				{Target: "productID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "productID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "productID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "AssignToProduct", err.Error())
 	}
 
-	req, err := client.AssignToProductPreparer(ctx, resourceGroupName, serviceName, productID, tagID, ifMatch)
+	req, err := client.AssignToProductPreparer(ctx, resourceGroupName, serviceName, productID, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "AssignToProduct", nil, "Failure preparing request")
 		return
@@ -279,7 +299,7 @@ func (client TagClient) AssignToProduct(ctx context.Context, resourceGroupName s
 }
 
 // AssignToProductPreparer prepares the AssignToProduct request.
-func (client TagClient) AssignToProductPreparer(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string, ifMatch string) (*http.Request, error) {
+func (client TagClient) AssignToProductPreparer(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"productId":         autorest.Encode("path", productID),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -298,18 +318,14 @@ func (client TagClient) AssignToProductPreparer(ctx context.Context, resourceGro
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/products/{productId}/tags/{tagId}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
-	if len(ifMatch) > 0 {
-		preparer = autorest.DecoratePreparer(preparer,
-			autorest.WithHeader("If-Match", autorest.String(ifMatch)))
-	}
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // AssignToProductSender sends the AssignToProduct request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) AssignToProductSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AssignToProductResponder handles the response to the AssignToProduct request. The method always
@@ -331,7 +347,18 @@ func (client TagClient) AssignToProductResponder(resp *http.Response) (result Ta
 // serviceName - the name of the API Management service.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 // parameters - create parameters.
-func (client TagClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, tagID string, parameters TagCreateUpdateParameters) (result TagContract, err error) {
+// ifMatch - eTag of the Entity. Not required when creating an entity, but required when updating an entity.
+func (client TagClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, tagID string, parameters TagCreateUpdateParameters, ifMatch string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -340,7 +367,7 @@ func (client TagClient) CreateOrUpdate(ctx context.Context, resourceGroupName st
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.TagContractProperties", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "parameters.TagContractProperties.DisplayName", Name: validation.Null, Rule: true,
@@ -351,7 +378,7 @@ func (client TagClient) CreateOrUpdate(ctx context.Context, resourceGroupName st
 		return result, validation.NewError("apimanagement.TagClient", "CreateOrUpdate", err.Error())
 	}
 
-	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, serviceName, tagID, parameters)
+	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, serviceName, tagID, parameters, ifMatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "CreateOrUpdate", nil, "Failure preparing request")
 		return
@@ -373,7 +400,7 @@ func (client TagClient) CreateOrUpdate(ctx context.Context, resourceGroupName st
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client TagClient) CreateOrUpdatePreparer(ctx context.Context, resourceGroupName string, serviceName string, tagID string, parameters TagCreateUpdateParameters) (*http.Request, error) {
+func (client TagClient) CreateOrUpdatePreparer(ctx context.Context, resourceGroupName string, serviceName string, tagID string, parameters TagCreateUpdateParameters, ifMatch string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"serviceName":       autorest.Encode("path", serviceName),
@@ -393,14 +420,18 @@ func (client TagClient) CreateOrUpdatePreparer(ctx context.Context, resourceGrou
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/tags/{tagId}", pathParameters),
 		autorest.WithJSON(parameters),
 		autorest.WithQueryParameters(queryParameters))
+	if len(ifMatch) > 0 {
+		preparer = autorest.DecoratePreparer(preparer,
+			autorest.WithHeader("If-Match", autorest.String(ifMatch)))
+	}
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -424,6 +455,16 @@ func (client TagClient) CreateOrUpdateResponder(resp *http.Response) (result Tag
 // ifMatch - eTag of the Entity. ETag should match the current entity state from the header response of the GET
 // request or it should be * for unconditional update.
 func (client TagClient) Delete(ctx context.Context, resourceGroupName string, serviceName string, tagID string, ifMatch string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -432,7 +473,7 @@ func (client TagClient) Delete(ctx context.Context, resourceGroupName string, se
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "Delete", err.Error())
 	}
 
@@ -483,8 +524,8 @@ func (client TagClient) DeletePreparer(ctx context.Context, resourceGroupName st
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -506,9 +547,17 @@ func (client TagClient) DeleteResponder(resp *http.Response) (result autorest.Re
 // apiid - API revision identifier. Must be unique in the current API Management service instance. Non-current
 // revision has ;rev=n as a suffix where n is the revision number.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
-// ifMatch - eTag of the Entity. ETag should match the current entity state from the header response of the GET
-// request or it should be * for unconditional update.
-func (client TagClient) DetachFromAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string, ifMatch string) (result autorest.Response, err error) {
+func (client TagClient) DetachFromAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.DetachFromAPI")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -521,11 +570,11 @@ func (client TagClient) DetachFromAPI(ctx context.Context, resourceGroupName str
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "DetachFromAPI", err.Error())
 	}
 
-	req, err := client.DetachFromAPIPreparer(ctx, resourceGroupName, serviceName, apiid, tagID, ifMatch)
+	req, err := client.DetachFromAPIPreparer(ctx, resourceGroupName, serviceName, apiid, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "DetachFromAPI", nil, "Failure preparing request")
 		return
@@ -547,7 +596,7 @@ func (client TagClient) DetachFromAPI(ctx context.Context, resourceGroupName str
 }
 
 // DetachFromAPIPreparer prepares the DetachFromAPI request.
-func (client TagClient) DetachFromAPIPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string, ifMatch string) (*http.Request, error) {
+func (client TagClient) DetachFromAPIPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"apiId":             autorest.Encode("path", apiid),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -565,16 +614,15 @@ func (client TagClient) DetachFromAPIPreparer(ctx context.Context, resourceGroup
 		autorest.AsDelete(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/apis/{apiId}/tags/{tagId}", pathParameters),
-		autorest.WithQueryParameters(queryParameters),
-		autorest.WithHeader("If-Match", autorest.String(ifMatch)))
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // DetachFromAPISender sends the DetachFromAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) DetachFromAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DetachFromAPIResponder handles the response to the DetachFromAPI request. The method always
@@ -598,9 +646,17 @@ func (client TagClient) DetachFromAPIResponder(resp *http.Response) (result auto
 // operationID - operation identifier within an API. Must be unique in the current API Management service
 // instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
-// ifMatch - eTag of the Entity. ETag should match the current entity state from the header response of the GET
-// request or it should be * for unconditional update.
-func (client TagClient) DetachFromOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string, ifMatch string) (result autorest.Response, err error) {
+func (client TagClient) DetachFromOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.DetachFromOperation")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -613,15 +669,15 @@ func (client TagClient) DetachFromOperation(ctx context.Context, resourceGroupNa
 		{TargetValue: operationID,
 			Constraints: []validation.Constraint{{Target: "operationID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "operationID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "operationID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "operationID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "DetachFromOperation", err.Error())
 	}
 
-	req, err := client.DetachFromOperationPreparer(ctx, resourceGroupName, serviceName, apiid, operationID, tagID, ifMatch)
+	req, err := client.DetachFromOperationPreparer(ctx, resourceGroupName, serviceName, apiid, operationID, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "DetachFromOperation", nil, "Failure preparing request")
 		return
@@ -643,7 +699,7 @@ func (client TagClient) DetachFromOperation(ctx context.Context, resourceGroupNa
 }
 
 // DetachFromOperationPreparer prepares the DetachFromOperation request.
-func (client TagClient) DetachFromOperationPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string, ifMatch string) (*http.Request, error) {
+func (client TagClient) DetachFromOperationPreparer(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"apiId":             autorest.Encode("path", apiid),
 		"operationId":       autorest.Encode("path", operationID),
@@ -662,16 +718,15 @@ func (client TagClient) DetachFromOperationPreparer(ctx context.Context, resourc
 		autorest.AsDelete(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/apis/{apiId}/operations/{operationId}/tags/{tagId}", pathParameters),
-		autorest.WithQueryParameters(queryParameters),
-		autorest.WithHeader("If-Match", autorest.String(ifMatch)))
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // DetachFromOperationSender sends the DetachFromOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) DetachFromOperationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DetachFromOperationResponder handles the response to the DetachFromOperation request. The method always
@@ -692,26 +747,34 @@ func (client TagClient) DetachFromOperationResponder(resp *http.Response) (resul
 // serviceName - the name of the API Management service.
 // productID - product identifier. Must be unique in the current API Management service instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
-// ifMatch - eTag of the Entity. ETag should match the current entity state from the header response of the GET
-// request or it should be * for unconditional update.
-func (client TagClient) DetachFromProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string, ifMatch string) (result autorest.Response, err error) {
+func (client TagClient) DetachFromProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.DetachFromProduct")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "serviceName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "serviceName", Name: validation.Pattern, Rule: `^[a-zA-Z](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$`, Chain: nil}}},
 		{TargetValue: productID,
-			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 80, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
 				{Target: "productID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "productID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "productID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "DetachFromProduct", err.Error())
 	}
 
-	req, err := client.DetachFromProductPreparer(ctx, resourceGroupName, serviceName, productID, tagID, ifMatch)
+	req, err := client.DetachFromProductPreparer(ctx, resourceGroupName, serviceName, productID, tagID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "DetachFromProduct", nil, "Failure preparing request")
 		return
@@ -733,7 +796,7 @@ func (client TagClient) DetachFromProduct(ctx context.Context, resourceGroupName
 }
 
 // DetachFromProductPreparer prepares the DetachFromProduct request.
-func (client TagClient) DetachFromProductPreparer(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string, ifMatch string) (*http.Request, error) {
+func (client TagClient) DetachFromProductPreparer(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"productId":         autorest.Encode("path", productID),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -751,16 +814,15 @@ func (client TagClient) DetachFromProductPreparer(ctx context.Context, resourceG
 		autorest.AsDelete(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ApiManagement/service/{serviceName}/products/{productId}/tags/{tagId}", pathParameters),
-		autorest.WithQueryParameters(queryParameters),
-		autorest.WithHeader("If-Match", autorest.String(ifMatch)))
+		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
 // DetachFromProductSender sends the DetachFromProduct request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) DetachFromProductSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DetachFromProductResponder handles the response to the DetachFromProduct request. The method always
@@ -781,6 +843,16 @@ func (client TagClient) DetachFromProductResponder(resp *http.Response) (result 
 // serviceName - the name of the API Management service.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) Get(ctx context.Context, resourceGroupName string, serviceName string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -789,7 +861,7 @@ func (client TagClient) Get(ctx context.Context, resourceGroupName string, servi
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "Get", err.Error())
 	}
 
@@ -839,8 +911,8 @@ func (client TagClient) GetPreparer(ctx context.Context, resourceGroupName strin
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -864,6 +936,16 @@ func (client TagClient) GetResponder(resp *http.Response) (result TagContract, e
 // revision has ;rev=n as a suffix where n is the revision number.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetByAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetByAPI")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -876,7 +958,7 @@ func (client TagClient) GetByAPI(ctx context.Context, resourceGroupName string, 
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetByAPI", err.Error())
 	}
 
@@ -927,8 +1009,8 @@ func (client TagClient) GetByAPIPreparer(ctx context.Context, resourceGroupName 
 // GetByAPISender sends the GetByAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetByAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByAPIResponder handles the response to the GetByAPI request. The method always
@@ -954,6 +1036,16 @@ func (client TagClient) GetByAPIResponder(resp *http.Response) (result TagContra
 // instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetByOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetByOperation")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -966,11 +1058,11 @@ func (client TagClient) GetByOperation(ctx context.Context, resourceGroupName st
 		{TargetValue: operationID,
 			Constraints: []validation.Constraint{{Target: "operationID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "operationID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "operationID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "operationID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetByOperation", err.Error())
 	}
 
@@ -1022,8 +1114,8 @@ func (client TagClient) GetByOperationPreparer(ctx context.Context, resourceGrou
 // GetByOperationSender sends the GetByOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetByOperationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByOperationResponder handles the response to the GetByOperation request. The method always
@@ -1046,19 +1138,29 @@ func (client TagClient) GetByOperationResponder(resp *http.Response) (result Tag
 // productID - product identifier. Must be unique in the current API Management service instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetByProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string) (result TagContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetByProduct")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "serviceName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "serviceName", Name: validation.Pattern, Rule: `^[a-zA-Z](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$`, Chain: nil}}},
 		{TargetValue: productID,
-			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 80, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
 				{Target: "productID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "productID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "productID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetByProduct", err.Error())
 	}
 
@@ -1109,8 +1211,8 @@ func (client TagClient) GetByProductPreparer(ctx context.Context, resourceGroupN
 // GetByProductSender sends the GetByProduct request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetByProductSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByProductResponder handles the response to the GetByProduct request. The method always
@@ -1132,6 +1234,16 @@ func (client TagClient) GetByProductResponder(resp *http.Response) (result TagCo
 // serviceName - the name of the API Management service.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetEntityState(ctx context.Context, resourceGroupName string, serviceName string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetEntityState")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1140,7 +1252,7 @@ func (client TagClient) GetEntityState(ctx context.Context, resourceGroupName st
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetEntityState", err.Error())
 	}
 
@@ -1190,8 +1302,8 @@ func (client TagClient) GetEntityStatePreparer(ctx context.Context, resourceGrou
 // GetEntityStateSender sends the GetEntityState request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetEntityStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetEntityStateResponder handles the response to the GetEntityState request. The method always
@@ -1214,6 +1326,16 @@ func (client TagClient) GetEntityStateResponder(resp *http.Response) (result aut
 // revision has ;rev=n as a suffix where n is the revision number.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetEntityStateByAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetEntityStateByAPI")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1226,7 +1348,7 @@ func (client TagClient) GetEntityStateByAPI(ctx context.Context, resourceGroupNa
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetEntityStateByAPI", err.Error())
 	}
 
@@ -1277,8 +1399,8 @@ func (client TagClient) GetEntityStateByAPIPreparer(ctx context.Context, resourc
 // GetEntityStateByAPISender sends the GetEntityStateByAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetEntityStateByAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetEntityStateByAPIResponder handles the response to the GetEntityStateByAPI request. The method always
@@ -1303,6 +1425,16 @@ func (client TagClient) GetEntityStateByAPIResponder(resp *http.Response) (resul
 // instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetEntityStateByOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetEntityStateByOperation")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1315,11 +1447,11 @@ func (client TagClient) GetEntityStateByOperation(ctx context.Context, resourceG
 		{TargetValue: operationID,
 			Constraints: []validation.Constraint{{Target: "operationID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "operationID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "operationID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "operationID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetEntityStateByOperation", err.Error())
 	}
 
@@ -1371,8 +1503,8 @@ func (client TagClient) GetEntityStateByOperationPreparer(ctx context.Context, r
 // GetEntityStateByOperationSender sends the GetEntityStateByOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetEntityStateByOperationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetEntityStateByOperationResponder handles the response to the GetEntityStateByOperation request. The method always
@@ -1394,19 +1526,29 @@ func (client TagClient) GetEntityStateByOperationResponder(resp *http.Response) 
 // productID - product identifier. Must be unique in the current API Management service instance.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagClient) GetEntityStateByProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.GetEntityStateByProduct")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "serviceName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "serviceName", Name: validation.Pattern, Rule: `^[a-zA-Z](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$`, Chain: nil}}},
 		{TargetValue: productID,
-			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 80, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
 				{Target: "productID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "productID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "productID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "GetEntityStateByProduct", err.Error())
 	}
 
@@ -1457,8 +1599,8 @@ func (client TagClient) GetEntityStateByProductPreparer(ctx context.Context, res
 // GetEntityStateByProductSender sends the GetEntityStateByProduct request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) GetEntityStateByProductSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetEntityStateByProductResponder handles the response to the GetEntityStateByProduct request. The method always
@@ -1479,13 +1621,24 @@ func (client TagClient) GetEntityStateByProductResponder(resp *http.Response) (r
 // serviceName - the name of the API Management service.
 // apiid - API revision identifier. Must be unique in the current API Management service instance. Non-current
 // revision has ;rev=n as a suffix where n is the revision number.
-// filter - | Field       | Supported operators    | Supported functions                         |
-// |-------------|------------------------|---------------------------------------------|
-// | id          | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | name        | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// filter - | Field       | Supported operators    | Supported functions               |
+// |-------------|------------------------|-----------------------------------|
+//
+// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
 // top - number of records to return.
 // skip - number of records to skip.
 func (client TagClient) ListByAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (result TagCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByAPI")
+		defer func() {
+			sc := -1
+			if result.tc.Response.Response != nil {
+				sc = result.tc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1560,8 +1713,8 @@ func (client TagClient) ListByAPIPreparer(ctx context.Context, resourceGroupName
 // ListByAPISender sends the ListByAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) ListByAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByAPIResponder handles the response to the ListByAPI request. The method always
@@ -1578,8 +1731,8 @@ func (client TagClient) ListByAPIResponder(resp *http.Response) (result TagColle
 }
 
 // listByAPINextResults retrieves the next set of results, if any.
-func (client TagClient) listByAPINextResults(lastResults TagCollection) (result TagCollection, err error) {
-	req, err := lastResults.tagCollectionPreparer()
+func (client TagClient) listByAPINextResults(ctx context.Context, lastResults TagCollection) (result TagCollection, err error) {
+	req, err := lastResults.tagCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.TagClient", "listByAPINextResults", nil, "Failure preparing next results request")
 	}
@@ -1600,6 +1753,16 @@ func (client TagClient) listByAPINextResults(lastResults TagCollection) (result 
 
 // ListByAPIComplete enumerates all values, automatically crossing page boundaries as required.
 func (client TagClient) ListByAPIComplete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (result TagCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByAPI")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByAPI(ctx, resourceGroupName, serviceName, apiid, filter, top, skip)
 	return
 }
@@ -1612,16 +1775,24 @@ func (client TagClient) ListByAPIComplete(ctx context.Context, resourceGroupName
 // revision has ;rev=n as a suffix where n is the revision number.
 // operationID - operation identifier within an API. Must be unique in the current API Management service
 // instance.
-// filter - | Field       | Supported operators    | Supported functions                         |
-// |-------------|------------------------|---------------------------------------------|
-// | id          | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | name        | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | method     | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | description | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | urlTemplate | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// filter - | Field       | Supported operators    | Supported functions               |
+// |-------------|------------------------|-----------------------------------|
+//
+// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
 // top - number of records to return.
 // skip - number of records to skip.
 func (client TagClient) ListByOperation(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, filter string, top *int32, skip *int32) (result TagCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByOperation")
+		defer func() {
+			sc := -1
+			if result.tc.Response.Response != nil {
+				sc = result.tc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1634,7 +1805,7 @@ func (client TagClient) ListByOperation(ctx context.Context, resourceGroupName s
 		{TargetValue: operationID,
 			Constraints: []validation.Constraint{{Target: "operationID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "operationID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "operationID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "operationID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}},
@@ -1701,8 +1872,8 @@ func (client TagClient) ListByOperationPreparer(ctx context.Context, resourceGro
 // ListByOperationSender sends the ListByOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) ListByOperationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByOperationResponder handles the response to the ListByOperation request. The method always
@@ -1719,8 +1890,8 @@ func (client TagClient) ListByOperationResponder(resp *http.Response) (result Ta
 }
 
 // listByOperationNextResults retrieves the next set of results, if any.
-func (client TagClient) listByOperationNextResults(lastResults TagCollection) (result TagCollection, err error) {
-	req, err := lastResults.tagCollectionPreparer()
+func (client TagClient) listByOperationNextResults(ctx context.Context, lastResults TagCollection) (result TagCollection, err error) {
+	req, err := lastResults.tagCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.TagClient", "listByOperationNextResults", nil, "Failure preparing next results request")
 	}
@@ -1741,6 +1912,16 @@ func (client TagClient) listByOperationNextResults(lastResults TagCollection) (r
 
 // ListByOperationComplete enumerates all values, automatically crossing page boundaries as required.
 func (client TagClient) ListByOperationComplete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, operationID string, filter string, top *int32, skip *int32) (result TagCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByOperation")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByOperation(ctx, resourceGroupName, serviceName, apiid, operationID, filter, top, skip)
 	return
 }
@@ -1750,22 +1931,33 @@ func (client TagClient) ListByOperationComplete(ctx context.Context, resourceGro
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
 // productID - product identifier. Must be unique in the current API Management service instance.
-// filter - | Field       | Supported operators    | Supported functions                         |
-// |-------------|------------------------|---------------------------------------------|
-// | id          | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | name        | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// filter - | Field       | Supported operators    | Supported functions               |
+// |-------------|------------------------|-----------------------------------|
+//
+// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
 // top - number of records to return.
 // skip - number of records to skip.
 func (client TagClient) ListByProduct(ctx context.Context, resourceGroupName string, serviceName string, productID string, filter string, top *int32, skip *int32) (result TagCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByProduct")
+		defer func() {
+			sc := -1
+			if result.tc.Response.Response != nil {
+				sc = result.tc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "serviceName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "serviceName", Name: validation.Pattern, Rule: `^[a-zA-Z](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$`, Chain: nil}}},
 		{TargetValue: productID,
-			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 80, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "productID", Name: validation.MaxLength, Rule: 256, Chain: nil},
 				{Target: "productID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "productID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "productID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: top,
 			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil}}}}},
@@ -1831,8 +2023,8 @@ func (client TagClient) ListByProductPreparer(ctx context.Context, resourceGroup
 // ListByProductSender sends the ListByProduct request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) ListByProductSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByProductResponder handles the response to the ListByProduct request. The method always
@@ -1849,8 +2041,8 @@ func (client TagClient) ListByProductResponder(resp *http.Response) (result TagC
 }
 
 // listByProductNextResults retrieves the next set of results, if any.
-func (client TagClient) listByProductNextResults(lastResults TagCollection) (result TagCollection, err error) {
-	req, err := lastResults.tagCollectionPreparer()
+func (client TagClient) listByProductNextResults(ctx context.Context, lastResults TagCollection) (result TagCollection, err error) {
+	req, err := lastResults.tagCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.TagClient", "listByProductNextResults", nil, "Failure preparing next results request")
 	}
@@ -1871,6 +2063,16 @@ func (client TagClient) listByProductNextResults(lastResults TagCollection) (res
 
 // ListByProductComplete enumerates all values, automatically crossing page boundaries as required.
 func (client TagClient) ListByProductComplete(ctx context.Context, resourceGroupName string, serviceName string, productID string, filter string, top *int32, skip *int32) (result TagCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByProduct")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByProduct(ctx, resourceGroupName, serviceName, productID, filter, top, skip)
 	return
 }
@@ -1879,13 +2081,25 @@ func (client TagClient) ListByProductComplete(ctx context.Context, resourceGroup
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
-// filter - | Field       | Supported operators    | Supported functions                         |
-// |-------------|------------------------|---------------------------------------------|
-// | id          | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | name        | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// filter - | Field       | Supported operators    | Supported functions               |
+// |-------------|------------------------|-----------------------------------|
+//
+// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
 // top - number of records to return.
 // skip - number of records to skip.
-func (client TagClient) ListByService(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32) (result TagCollectionPage, err error) {
+// scope - scope like 'apis', 'products' or 'apis/{apiId}
+func (client TagClient) ListByService(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32, scope string) (result TagCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByService")
+		defer func() {
+			sc := -1
+			if result.tc.Response.Response != nil {
+				sc = result.tc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -1901,7 +2115,7 @@ func (client TagClient) ListByService(ctx context.Context, resourceGroupName str
 	}
 
 	result.fn = client.listByServiceNextResults
-	req, err := client.ListByServicePreparer(ctx, resourceGroupName, serviceName, filter, top, skip)
+	req, err := client.ListByServicePreparer(ctx, resourceGroupName, serviceName, filter, top, skip, scope)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "apimanagement.TagClient", "ListByService", nil, "Failure preparing request")
 		return
@@ -1923,7 +2137,7 @@ func (client TagClient) ListByService(ctx context.Context, resourceGroupName str
 }
 
 // ListByServicePreparer prepares the ListByService request.
-func (client TagClient) ListByServicePreparer(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32) (*http.Request, error) {
+func (client TagClient) ListByServicePreparer(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32, scope string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"serviceName":       autorest.Encode("path", serviceName),
@@ -1943,6 +2157,9 @@ func (client TagClient) ListByServicePreparer(ctx context.Context, resourceGroup
 	if skip != nil {
 		queryParameters["$skip"] = autorest.Encode("query", *skip)
 	}
+	if len(scope) > 0 {
+		queryParameters["scope"] = autorest.Encode("query", scope)
+	}
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
@@ -1955,8 +2172,8 @@ func (client TagClient) ListByServicePreparer(ctx context.Context, resourceGroup
 // ListByServiceSender sends the ListByService request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) ListByServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByServiceResponder handles the response to the ListByService request. The method always
@@ -1973,8 +2190,8 @@ func (client TagClient) ListByServiceResponder(resp *http.Response) (result TagC
 }
 
 // listByServiceNextResults retrieves the next set of results, if any.
-func (client TagClient) listByServiceNextResults(lastResults TagCollection) (result TagCollection, err error) {
-	req, err := lastResults.tagCollectionPreparer()
+func (client TagClient) listByServiceNextResults(ctx context.Context, lastResults TagCollection) (result TagCollection, err error) {
+	req, err := lastResults.tagCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.TagClient", "listByServiceNextResults", nil, "Failure preparing next results request")
 	}
@@ -1994,8 +2211,18 @@ func (client TagClient) listByServiceNextResults(lastResults TagCollection) (res
 }
 
 // ListByServiceComplete enumerates all values, automatically crossing page boundaries as required.
-func (client TagClient) ListByServiceComplete(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32) (result TagCollectionIterator, err error) {
-	result.page, err = client.ListByService(ctx, resourceGroupName, serviceName, filter, top, skip)
+func (client TagClient) ListByServiceComplete(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32, scope string) (result TagCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.ListByService")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListByService(ctx, resourceGroupName, serviceName, filter, top, skip, scope)
 	return
 }
 
@@ -2008,6 +2235,16 @@ func (client TagClient) ListByServiceComplete(ctx context.Context, resourceGroup
 // ifMatch - eTag of the Entity. ETag should match the current entity state from the header response of the GET
 // request or it should be * for unconditional update.
 func (client TagClient) Update(ctx context.Context, resourceGroupName string, serviceName string, tagID string, parameters TagCreateUpdateParameters, ifMatch string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -2016,7 +2253,7 @@ func (client TagClient) Update(ctx context.Context, resourceGroupName string, se
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagClient", "Update", err.Error())
 	}
 
@@ -2069,8 +2306,8 @@ func (client TagClient) UpdatePreparer(ctx context.Context, resourceGroupName st
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

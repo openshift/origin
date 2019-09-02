@@ -34,6 +34,8 @@ syntax = "proto2";
 // This package holds interesting messages.
 package my.test;  // dotted package name
 
+option go_package = "github.com/gogo/protobuf/protoc-gen-gogo/testdata/my_test;test";
+
 //import "imp.proto";
 import "multi/multi1.proto";  // unused import
 
@@ -83,6 +85,13 @@ message Request {
   optional int32 reset = 12;
   // This field should not conflict with any getters.
   optional string get_key = 16;
+
+  optional float float_ninf = 20 [default=-inf];
+  optional float float_pinf = 21 [default=inf];
+  optional float float_exp = 22 [default=1e9];
+  optional double double_ninf = 23 [default=-inf];
+  optional double double_pinf = 24 [default=inf];
+  optional double double_exp = 25 [default=1e9];
 }
 
 message Reply {
@@ -145,7 +154,7 @@ message Communique {
     Days today = 10;
     bool maybe = 11;
     sint32 delta = 12;  // name will conflict with Delta below
-    Reply msg = 13;
+    Reply msg = 16;  // requires two bytes to encode field tag
     group SomeGroup = 14 {
       optional string member = 15;
     }

@@ -152,12 +152,10 @@ func (cmd *login) issueToken(ctx context.Context, vc *vim25.Client) (string, err
 		Certificate: c.Certificate(),
 		Userinfo:    cmd.Userinfo(),
 		Renewable:   true,
+		Delegatable: true,
+		ActAs:       cmd.token != "",
 		Token:       cmd.token,
 		Lifetime:    cmd.life,
-	}
-
-	if req.Certificate == nil {
-		req.Delegatable = true // Bearer token request
 	}
 
 	issue := c.Issue

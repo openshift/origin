@@ -59,27 +59,6 @@ Examples:
   govc tags.category.ls -json | jq .`
 }
 
-func withClient(ctx context.Context, cmd *flags.ClientFlag, f func(*rest.Client) error) error {
-	vc, err := cmd.Client()
-	if err != nil {
-		return err
-	}
-	tagsURL := vc.URL()
-	tagsURL.User = cmd.Userinfo()
-
-	c := rest.NewClient(vc)
-	if err != nil {
-		return err
-	}
-
-	if err = c.Login(ctx, tagsURL.User); err != nil {
-		return err
-	}
-	defer c.Logout(ctx)
-
-	return f(c)
-}
-
 type lsResult []tags.Category
 
 func (r lsResult) Write(w io.Writer) error {
@@ -90,7 +69,7 @@ func (r lsResult) Write(w io.Writer) error {
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		l, err := tags.NewManager(c).GetCategories(ctx)
 		if err != nil {
 			return err

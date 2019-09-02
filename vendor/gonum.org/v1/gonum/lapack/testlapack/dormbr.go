@@ -16,14 +16,14 @@ import (
 )
 
 type Dormbrer interface {
-	Dormbr(vect lapack.DecompUpdate, side blas.Side, trans blas.Transpose, m, n, k int, a []float64, lda int, tau, c []float64, ldc int, work []float64, lwork int)
+	Dormbr(vect lapack.ApplyOrtho, side blas.Side, trans blas.Transpose, m, n, k int, a []float64, lda int, tau, c []float64, ldc int, work []float64, lwork int)
 	Dgebrder
 }
 
 func DormbrTest(t *testing.T, impl Dormbrer) {
 	rnd := rand.New(rand.NewSource(1))
 	bi := blas64.Implementation()
-	for _, vect := range []lapack.DecompUpdate{lapack.ApplyQ, lapack.ApplyP} {
+	for _, vect := range []lapack.ApplyOrtho{lapack.ApplyQ, lapack.ApplyP} {
 		for _, side := range []blas.Side{blas.Left, blas.Right} {
 			for _, trans := range []blas.Transpose{blas.NoTrans, blas.Trans} {
 				for _, wl := range []worklen{minimumWork, mediumWork, optimumWork} {

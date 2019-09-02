@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,8 +42,18 @@ func NewLocationsClientWithBaseURI(baseURI string, subscriptionID string) Locati
 
 // GetCapabilities gets the capabilities for the specified location.
 // Parameters:
-// location - the location.
+// location - the Azure location (region) for which to make the request.
 func (client LocationsClient) GetCapabilities(ctx context.Context, location string) (result CapabilitiesResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LocationsClient.GetCapabilities")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetCapabilitiesPreparer(ctx, location)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.LocationsClient", "GetCapabilities", nil, "Failure preparing request")
@@ -87,8 +98,8 @@ func (client LocationsClient) GetCapabilitiesPreparer(ctx context.Context, locat
 // GetCapabilitiesSender sends the GetCapabilities request. The method will close the
 // http.Response Body if it receives an error.
 func (client LocationsClient) GetCapabilitiesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetCapabilitiesResponder handles the response to the GetCapabilities request. The method always
@@ -104,10 +115,95 @@ func (client LocationsClient) GetCapabilitiesResponder(resp *http.Response) (res
 	return
 }
 
+// ListBillingSpecs lists the billingSpecs for the specified subscription and location.
+// Parameters:
+// location - the Azure location (region) for which to make the request.
+func (client LocationsClient) ListBillingSpecs(ctx context.Context, location string) (result BillingResponseListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LocationsClient.ListBillingSpecs")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	req, err := client.ListBillingSpecsPreparer(ctx, location)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "hdinsight.LocationsClient", "ListBillingSpecs", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListBillingSpecsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "hdinsight.LocationsClient", "ListBillingSpecs", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListBillingSpecsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "hdinsight.LocationsClient", "ListBillingSpecs", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListBillingSpecsPreparer prepares the ListBillingSpecs request.
+func (client LocationsClient) ListBillingSpecsPreparer(ctx context.Context, location string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"location":       autorest.Encode("path", location),
+		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2015-03-01-preview"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.HDInsight/locations/{location}/billingSpecs", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListBillingSpecsSender sends the ListBillingSpecs request. The method will close the
+// http.Response Body if it receives an error.
+func (client LocationsClient) ListBillingSpecsSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListBillingSpecsResponder handles the response to the ListBillingSpecs request. The method always
+// closes the http.Response Body.
+func (client LocationsClient) ListBillingSpecsResponder(resp *http.Response) (result BillingResponseListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // ListUsages lists the usages for the specified location.
 // Parameters:
-// location - the location.
+// location - the Azure location (region) for which to make the request.
 func (client LocationsClient) ListUsages(ctx context.Context, location string) (result UsagesListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LocationsClient.ListUsages")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListUsagesPreparer(ctx, location)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.LocationsClient", "ListUsages", nil, "Failure preparing request")
@@ -152,8 +248,8 @@ func (client LocationsClient) ListUsagesPreparer(ctx context.Context, location s
 // ListUsagesSender sends the ListUsages request. The method will close the
 // http.Response Body if it receives an error.
 func (client LocationsClient) ListUsagesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListUsagesResponder handles the response to the ListUsages request. The method always

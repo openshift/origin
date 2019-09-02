@@ -49,6 +49,7 @@ type ClientConfigService struct {
 	Name      string
 	Namespace string
 	Path      string
+	Port      int32
 }
 
 // ClientManager builds REST clients to talk to webhooks. It caches the clients
@@ -61,19 +62,21 @@ type ClientManager struct {
 }
 
 // NewClientManager creates a clientManager.
-func NewClientManager(gv schema.GroupVersion, addToSchemaFunc func(s *runtime.Scheme) error) (ClientManager, error) {
+func NewClientManager(gvs []schema.GroupVersion, addToSchemaFuncs ...func(s *runtime.Scheme) error) (ClientManager, error) {
 	cache, err := lru.New(defaultCacheSize)
 	if err != nil {
 		return ClientManager{}, err
 	}
 	hookScheme := runtime.NewScheme()
-	if err := addToSchemaFunc(hookScheme); err != nil {
-		return ClientManager{}, err
+	for _, addToSchemaFunc := range addToSchemaFuncs {
+		if err := addToSchemaFunc(hookScheme); err != nil {
+			return ClientManager{}, err
+		}
 	}
 	return ClientManager{
 		cache: cache,
 		negotiatedSerializer: serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
-			Serializer: serializer.NewCodecFactory(hookScheme).LegacyCodec(gv),
+			Serializer: serializer.NewCodecFactory(hookScheme).LegacyCodec(gvs...),
 		}),
 	}, nil
 }
@@ -133,6 +136,11 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		}
 		cfg.TLSClientConfig.CAData = append(cfg.TLSClientConfig.CAData, cc.CABundle...)
 
+		// Use http/1.1 instead of http/2.
+		// This is a workaround for http/2-enabled clients not load-balancing concurrent requests to multiple backends.
+		// See http://issue.k8s.io/75791 for details.
+		cfg.NextProtos = []string{"http/1.1"}
+
 		cfg.ContentConfig.NegotiatedSerializer = cm.negotiatedSerializer
 		cfg.ContentConfig.ContentType = runtime.ContentTypeJSON
 		client, err := rest.UnversionedRESTClientFor(cfg)
@@ -164,7 +172,11 @@ func (cm *ClientManager) HookClient(cc ClientConfig) (*rest.RESTClient, error) {
 		}
 		cfg.Dial = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			if addr == host {
-				u, err := cm.serviceResolver.ResolveEndpoint(cc.Service.Namespace, cc.Service.Name)
+				port := cc.Service.Port
+				if port == 0 {
+					port = 443
+				}
+				u, err := cm.serviceResolver.ResolveEndpoint(cc.Service.Namespace, cc.Service.Name, port)
 				if err != nil {
 					return nil, err
 				}

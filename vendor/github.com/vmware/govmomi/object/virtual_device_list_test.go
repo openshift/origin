@@ -203,7 +203,7 @@ var devices = VirtualDeviceList([]types.BaseVirtualDevice{
 			ControllerKey: 100,
 			UnitNumber:    intPtrValue(17),
 		},
-		Id: 1754519335,
+		Id:                             1754519335,
 		AllowUnrestrictedCommunication: types.NewBool(false),
 	},
 	&types.VirtualLsiLogicController{

@@ -45,7 +45,23 @@ func TestDVS(t *testing.T) {
 	finder.SetDatacenter(dc[0])
 	folders, _ := dc[0].Folders(ctx)
 	hosts, _ := finder.HostSystemList(ctx, "*/*")
-	dvs0 := object.NewDistributedVirtualSwitch(c, Map.Any("DistributedVirtualSwitch").Reference())
+	vswitch := Map.Any("DistributedVirtualSwitch").(*DistributedVirtualSwitch)
+	dvs0 := object.NewDistributedVirtualSwitch(c, vswitch.Reference())
+
+	if len(vswitch.Summary.HostMember) == 0 {
+		t.Fatal("no host member")
+	}
+
+	for _, ref := range vswitch.Summary.HostMember {
+		host := Map.Get(ref).(*HostSystem)
+		if len(host.Network) == 0 {
+			t.Fatalf("%s.Network=%v", ref, host.Network)
+		}
+		parent := hostParent(&host.HostSystem)
+		if len(parent.Network) != len(host.Network) {
+			t.Fatalf("%s.Network=%v", parent.Reference(), parent.Network)
+		}
+	}
 
 	var spec types.DVSCreateSpec
 	spec.ConfigSpec = &types.VMwareDVSConfigSpec{}

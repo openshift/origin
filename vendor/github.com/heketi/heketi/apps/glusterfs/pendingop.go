@@ -91,3 +91,57 @@ func (a PendingOperationAction) ExpandSize() (int, error) {
 	}
 	return 0, fmt.Errorf("Action delta for ExpandSize is missing/invalid")
 }
+
+// Name returns the pending operation type as a brief string.
+// NOTE: Stringer was considered but not used as the literal
+// names of the variables were not desired. Thus to avoid
+// conflict with possible future use of stringer for other
+// purposes, this was called Name.
+func (v PendingOperationType) Name() string {
+	switch v {
+	case OperationCreateVolume:
+		return "create-volume"
+	case OperationDeleteVolume:
+		return "delete-volume"
+	case OperationExpandVolume:
+		return "expand-volume"
+	case OperationCreateBlockVolume:
+		return "create-block-volume"
+	case OperationDeleteBlockVolume:
+		return "delete-block-volume"
+	case OperationRemoveDevice:
+		return "remove-device"
+	case OperationCloneVolume:
+		return "clone-volume"
+	}
+	return "unknown"
+}
+
+// Name returns a short description of a change action.
+func (c PendingChangeType) Name() string {
+	switch c {
+	case OpAddBrick:
+		return "Add brick"
+	case OpAddVolume:
+		return "Add volume"
+	case OpDeleteBrick:
+		return "Delete brick"
+	case OpDeleteVolume:
+		return "Delete volume"
+	case OpExpandVolume:
+		return "Expand volume"
+	case OpAddBlockVolume:
+		return "Add block volume"
+	case OpDeleteBlockVolume:
+		return "Delete block volume"
+	case OpRemoveDevice:
+		return "Remove device"
+	case OpCloneVolume:
+		return "Clone volume from"
+	case OpSnapshotVolume:
+		return "Snapshot volume"
+	case OpAddVolumeClone:
+		return "Expand volume to"
+	}
+	return "Unknown"
+}

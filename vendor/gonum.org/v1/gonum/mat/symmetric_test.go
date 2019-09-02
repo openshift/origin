@@ -129,6 +129,48 @@ func TestSymAtSet(t *testing.T) {
 	}
 }
 
+func TestSymDenseZero(t *testing.T) {
+	// Elements that equal 1 should be set to zero, elements that equal -1
+	// should remain unchanged.
+	for _, test := range []*SymDense{
+		{
+			mat: blas64.Symmetric{
+				Uplo:   blas.Upper,
+				N:      4,
+				Stride: 5,
+				Data: []float64{
+					1, 1, 1, 1, -1,
+					-1, 1, 1, 1, -1,
+					-1, -1, 1, 1, -1,
+					-1, -1, -1, 1, -1,
+				},
+			},
+		},
+	} {
+		dataCopy := make([]float64, len(test.mat.Data))
+		copy(dataCopy, test.mat.Data)
+		test.Zero()
+		for i, v := range test.mat.Data {
+			if dataCopy[i] != -1 && v != 0 {
+				t.Errorf("Matrix not zeroed in bounds")
+			}
+			if dataCopy[i] == -1 && v != -1 {
+				t.Errorf("Matrix zeroed out of bounds")
+			}
+		}
+	}
+}
+
+func TestSymDiagView(t *testing.T) {
+	for cas, test := range []*SymDense{
+		NewSymDense(1, []float64{1}),
+		NewSymDense(2, []float64{1, 2, 2, 3}),
+		NewSymDense(3, []float64{1, 2, 3, 2, 4, 5, 3, 5, 6}),
+	} {
+		testDiagView(t, cas, test)
+	}
+}
+
 func TestSymAdd(t *testing.T) {
 	for _, test := range []struct {
 		n int
@@ -566,7 +608,7 @@ func TestViewGrowSquare(t *testing.T) {
 		// Take a subset and check the view matches.
 		start1 := test.start1
 		span1 := test.span1
-		v := s.SliceSquare(start1, start1+span1).(*SymDense)
+		v := s.SliceSym(start1, start1+span1).(*SymDense)
 		for i := 0; i < span1; i++ {
 			for j := i; j < span1; j++ {
 				if v.At(i, j) != s.At(start1+i, start1+j) {
@@ -577,7 +619,7 @@ func TestViewGrowSquare(t *testing.T) {
 
 		start2 := test.start2
 		span2 := test.span2
-		v2 := v.SliceSquare(start2, start2+span2).(*SymDense)
+		v2 := v.SliceSym(start2, start2+span2).(*SymDense)
 
 		for i := 0; i < span2; i++ {
 			for j := i; j < span2; j++ {
@@ -595,7 +637,7 @@ func TestViewGrowSquare(t *testing.T) {
 
 		// Grow the matrix back to the original view
 		gn := n - start1 - start2
-		g := v2.GrowSquare(gn - v2.Symmetric()).(*SymDense)
+		g := v2.GrowSym(gn - v2.Symmetric()).(*SymDense)
 		g.SetSym(1, 1, 2.2)
 
 		for i := 0; i < gn; i++ {
@@ -611,9 +653,9 @@ func TestViewGrowSquare(t *testing.T) {
 		}
 
 		// View g, then grow it and make sure all the elements were copied.
-		gv := g.SliceSquare(0, gn-1).(*SymDense)
+		gv := g.SliceSym(0, gn-1).(*SymDense)
 
-		gg := gv.GrowSquare(2)
+		gg := gv.GrowSym(2)
 		for i := 0; i < gn; i++ {
 			for j := 0; j < gn; j++ {
 				if g.At(i, j) != gg.At(i, j) {

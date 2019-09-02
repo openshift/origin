@@ -65,7 +65,7 @@ func (f *fakeAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Bad encoded API request: %v", err), 500)
 		return
 	}
-	if *apiReq.RequestId != "s3cr3t" {
+	if *apiReq.RequestId != "s3cr3t" && *apiReq.RequestId != DefaultTicket() {
 		writeResponse(&remotepb.Response{
 			RpcError: &remotepb.RpcError{
 				Code:   proto.Int32(int32(remotepb.RpcError_SECURITY_VIOLATION)),
@@ -176,6 +176,26 @@ func TestAPICall(t *testing.T) {
 	}
 }
 
+func TestAPICallTicketUnavailable(t *testing.T) {
+	resetEnv := SetTestEnv()
+	defer resetEnv()
+	_, c, cleanup := setup()
+	defer cleanup()
+
+	c.req.Header.Set(ticketHeader, "")
+	req := &basepb.StringProto{
+		Value: proto.String("Doctor Who"),
+	}
+	res := &basepb.StringProto{}
+	err := Call(toContext(c), "actordb", "LookupActor", req, res)
+	if err != nil {
+		t.Fatalf("API call failed: %v", err)
+	}
+	if got, want := *res.Value, "David Tennant"; got != want {
+		t.Errorf("Response is %q, want %q", got, want)
+	}
+}
+
 func TestAPICallRPCFailure(t *testing.T) {
 	f, c, cleanup := setup()
 	defer cleanup()
@@ -230,6 +250,52 @@ func TestDelayedLogFlushing(t *testing.T) {
 	f, c, cleanup := setup()
 	defer cleanup()
 
+	http.HandleFunc("/slow_log", func(w http.ResponseWriter, r *http.Request) {
+		logC := WithContext(netcontext.Background(), r)
+		fromContext(logC).apiURL = c.apiURL // Otherwise it will try to use the default URL.
+		Logf(logC, 1, "It's a lovely day.")
+		w.WriteHeader(200)
+		time.Sleep(1200 * time.Millisecond)
+		w.Write(make([]byte, 100<<10)) // write 100 KB to force HTTP flush
+	})
+
+	r := &http.Request{
+		Method: "GET",
+		URL: &url.URL{
+			Scheme: "http",
+			Path:   "/slow_log",
+		},
+		Header: c.req.Header,
+		Body:   ioutil.NopCloser(bytes.NewReader(nil)),
+	}
+	w := httptest.NewRecorder()
+
+	handled := make(chan struct{})
+	go func() {
+		defer close(handled)
+		handleHTTP(w, r)
+	}()
+	// Check that the log flush eventually comes in.
+	time.Sleep(1200 * time.Millisecond)
+	if f := atomic.LoadInt32(&f.LogFlushes); f != 1 {
+		t.Errorf("After 1.2s: f.LogFlushes = %d, want 1", f)
+	}
+
+	<-handled
+	const hdr = "X-AppEngine-Log-Flush-Count"
+	if got, want := w.HeaderMap.Get(hdr), "1"; got != want {
+		t.Errorf("%s header = %q, want %q", hdr, got, want)
+	}
+	if got, want := atomic.LoadInt32(&f.LogFlushes), int32(2); got != want {
+		t.Errorf("After HTTP response: f.LogFlushes = %d, want %d", got, want)
+	}
+
+}
+
+func TestLogFlushing(t *testing.T) {
+	f, c, cleanup := setup()
+	defer cleanup()
+
 	http.HandleFunc("/quick_log", func(w http.ResponseWriter, r *http.Request) {
 		logC := WithContext(netcontext.Background(), r)
 		fromContext(logC).apiURL = c.apiURL // Otherwise it will try to use the default URL.
@@ -249,24 +315,13 @@ func TestDelayedLogFlushing(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 
-	// Check that log flushing does not hold up the HTTP response.
-	start := time.Now()
 	handleHTTP(w, r)
-	if d := time.Since(start); d > 10*time.Millisecond {
-		t.Errorf("handleHTTP took %v, want under 10ms", d)
-	}
 	const hdr = "X-AppEngine-Log-Flush-Count"
-	if h := w.HeaderMap.Get(hdr); h != "1" {
-		t.Errorf("%s header = %q, want %q", hdr, h, "1")
+	if got, want := w.HeaderMap.Get(hdr), "1"; got != want {
+		t.Errorf("%s header = %q, want %q", hdr, got, want)
 	}
-	if f := atomic.LoadInt32(&f.LogFlushes); f != 0 {
-		t.Errorf("After HTTP response: f.LogFlushes = %d, want 0", f)
-	}
-
-	// Check that the log flush eventually comes in.
-	time.Sleep(100 * time.Millisecond)
-	if f := atomic.LoadInt32(&f.LogFlushes); f != 1 {
-		t.Errorf("After 100ms: f.LogFlushes = %d, want 1", f)
+	if got, want := atomic.LoadInt32(&f.LogFlushes), int32(1); got != want {
+		t.Errorf("After HTTP response: f.LogFlushes = %d, want %d", got, want)
 	}
 }
 
@@ -360,8 +415,7 @@ func TestAPICallAllocations(t *testing.T) {
 	}
 
 	// Lots of room for improvement...
-	// TODO(djd): Reduce maximum to 85 once the App Engine SDK is based on 1.6.
-	const min, max float64 = 70, 90
+	const min, max float64 = 60, 85
 	if avg < min || max < avg {
 		t.Errorf("Allocations per API call = %g, want in [%g,%g]", avg, min, max)
 	}
@@ -429,29 +483,8 @@ func TestHelperProcess(*testing.T) {
 }
 
 func TestBackgroundContext(t *testing.T) {
-	environ := []struct {
-		key, value string
-	}{
-		{"GAE_LONG_APP_ID", "my-app-id"},
-		{"GAE_MINOR_VERSION", "067924799508853122"},
-		{"GAE_MODULE_INSTANCE", "0"},
-		{"GAE_MODULE_NAME", "default"},
-		{"GAE_MODULE_VERSION", "20150612t184001"},
-	}
-	for _, v := range environ {
-		old := os.Getenv(v.key)
-		os.Setenv(v.key, v.value)
-		v.value = old
-	}
-	defer func() { // Restore old environment after the test completes.
-		for _, v := range environ {
-			if v.value == "" {
-				os.Unsetenv(v.key)
-				continue
-			}
-			os.Setenv(v.key, v.value)
-		}
-	}()
+	resetEnv := SetTestEnv()
+	defer resetEnv()
 
 	ctx, key := fromContext(BackgroundContext()), "X-Magic-Ticket-Header"
 	if g, w := ctx.req.Header.Get(key), "my-app-id/default.20150612t184001.0"; g != w {

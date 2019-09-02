@@ -3,7 +3,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -18,8 +17,10 @@ import (
 	"github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 
 	"github.com/coreos/go-systemd/activation"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
@@ -38,6 +39,13 @@ func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
 	// We default to cgroupfs, and can only use systemd if the system is a
 	// systemd box.
 	cgroupManager := libcontainer.Cgroupfs
+	rootlessCg, err := shouldUseRootlessCgroupManager(context)
+	if err != nil {
+		return nil, err
+	}
+	if rootlessCg {
+		cgroupManager = libcontainer.RootlessCgroupfs
+	}
 	if context.GlobalBool("systemd-cgroup") {
 		if systemd.UseSystemd() {
 			cgroupManager = libcontainer.SystemdCgroups
@@ -47,7 +55,7 @@ func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
 	}
 
 	intelRdtManager := libcontainer.IntelRdtFs
-	if !intelrdt.IsEnabled() {
+	if !intelrdt.IsCatEnabled() && !intelrdt.IsMbaEnabled() {
 		intelRdtManager = nil
 	}
 
@@ -97,7 +105,7 @@ func getDefaultImagePath(context *cli.Context) string {
 
 // newProcess returns a new libcontainer Process with the arguments from the
 // spec and stdio from the current process.
-func newProcess(p specs.Process) (*libcontainer.Process, error) {
+func newProcess(p specs.Process, init bool, logLevel string) (*libcontainer.Process, error) {
 	lp := &libcontainer.Process{
 		Args: p.Args,
 		Env:  p.Env,
@@ -107,6 +115,8 @@ func newProcess(p specs.Process) (*libcontainer.Process, error) {
 		Label:           p.SelinuxLabel,
 		NoNewPrivileges: &p.NoNewPrivileges,
 		AppArmorProfile: p.ApparmorProfile,
+		Init:            init,
+		LogLevel:        logLevel,
 	}
 
 	if p.ConsoleSize != nil {
@@ -217,19 +227,19 @@ func createPidFile(path string, process *libcontainer.Process) error {
 	return os.Rename(tmpName, path)
 }
 
-// XXX: Currently we autodetect rootless mode.
-func isRootless() bool {
-	return os.Geteuid() != 0
-}
-
 func createContainer(context *cli.Context, id string, spec *specs.Spec) (libcontainer.Container, error) {
+	rootlessCg, err := shouldUseRootlessCgroupManager(context)
+	if err != nil {
+		return nil, err
+	}
 	config, err := specconv.CreateLibcontainerConfig(&specconv.CreateOpts{
 		CgroupName:       id,
 		UseSystemdCgroup: context.GlobalBool("systemd-cgroup"),
 		NoPivotRoot:      context.Bool("no-pivot"),
 		NoNewKeyring:     context.Bool("no-new-keyring"),
 		Spec:             spec,
-		Rootless:         isRootless(),
+		RootlessEUID:     os.Geteuid() != 0,
+		RootlessCgroups:  rootlessCg,
 	})
 	if err != nil {
 		return nil, err
@@ -243,6 +253,7 @@ func createContainer(context *cli.Context, id string, spec *specs.Spec) (libcont
 }
 
 type runner struct {
+	init            bool
 	enableSubreaper bool
 	shouldDestroy   bool
 	detach          bool
@@ -254,16 +265,21 @@ type runner struct {
 	action          CtAct
 	notifySocket    *notifySocket
 	criuOpts        *libcontainer.CriuOpts
+	logLevel        string
 }
 
 func (r *runner) run(config *specs.Process) (int, error) {
-	if err := r.checkTerminal(config); err != nil {
-		r.destroy()
+	var err error
+	defer func() {
+		if err != nil {
+			r.destroy()
+		}
+	}()
+	if err = r.checkTerminal(config); err != nil {
 		return -1, err
 	}
-	process, err := newProcess(*config)
+	process, err := newProcess(*config, r.init, r.logLevel)
 	if err != nil {
-		r.destroy()
 		return -1, err
 	}
 	if len(r.listenFDs) > 0 {
@@ -272,16 +288,18 @@ func (r *runner) run(config *specs.Process) (int, error) {
 	}
 	baseFd := 3 + len(process.ExtraFiles)
 	for i := baseFd; i < baseFd+r.preserveFDs; i++ {
+		_, err = os.Stat(fmt.Sprintf("/proc/self/fd/%d", i))
+		if err != nil {
+			return -1, errors.Wrapf(err, "please check that preserved-fd %d (of %d) is present", i-baseFd, r.preserveFDs)
+		}
 		process.ExtraFiles = append(process.ExtraFiles, os.NewFile(uintptr(i), "PreserveFD:"+strconv.Itoa(i)))
 	}
 	rootuid, err := r.container.Config().HostRootUID()
 	if err != nil {
-		r.destroy()
 		return -1, err
 	}
 	rootgid, err := r.container.Config().HostRootGID()
 	if err != nil {
-		r.destroy()
 		return -1, err
 	}
 	var (
@@ -293,7 +311,6 @@ func (r *runner) run(config *specs.Process) (int, error) {
 	handler := newSignalHandler(r.enableSubreaper, r.notifySocket)
 	tty, err := setupIO(process, rootuid, rootgid, config.Terminal, detach, r.consoleSocket)
 	if err != nil {
-		r.destroy()
 		return -1, err
 	}
 	defer tty.Close()
@@ -309,23 +326,19 @@ func (r *runner) run(config *specs.Process) (int, error) {
 		panic("Unknown action")
 	}
 	if err != nil {
-		r.destroy()
 		return -1, err
 	}
-	if err := tty.waitConsole(); err != nil {
+	if err = tty.waitConsole(); err != nil {
 		r.terminate(process)
-		r.destroy()
 		return -1, err
 	}
 	if err = tty.ClosePostStart(); err != nil {
 		r.terminate(process)
-		r.destroy()
 		return -1, err
 	}
 	if r.pidFile != "" {
 		if err = createPidFile(r.pidFile, process); err != nil {
 			r.terminate(process)
-			r.destroy()
 			return -1, err
 		}
 	}
@@ -373,6 +386,9 @@ func validateProcessSpec(spec *specs.Process) error {
 	if len(spec.Args) == 0 {
 		return fmt.Errorf("args must not be empty")
 	}
+	if spec.SelinuxLabel != "" && !selinux.GetEnabled() {
+		return fmt.Errorf("selinux label is specified in config, but selinux is disabled or not supported")
+	}
 	return nil
 }
 
@@ -412,6 +428,12 @@ func startContainer(context *cli.Context, spec *specs.Spec, action CtAct, criuOp
 	if os.Getenv("LISTEN_FDS") != "" {
 		listenFDs = activation.Files(false)
 	}
+
+	logLevel := "info"
+	if context.GlobalBool("debug") {
+		logLevel = "debug"
+	}
+
 	r := &runner{
 		enableSubreaper: !context.Bool("no-subreaper"),
 		shouldDestroy:   true,
@@ -424,6 +446,8 @@ func startContainer(context *cli.Context, spec *specs.Spec, action CtAct, criuOp
 		preserveFDs:     context.Int("preserve-fds"),
 		action:          action,
 		criuOpts:        criuOpts,
+		init:            true,
+		logLevel:        logLevel,
 	}
 	return r.run(spec.Process)
 }

@@ -21,6 +21,8 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -42,11 +44,31 @@ func NewProactiveDetectionConfigurationsClientWithBaseURI(baseURI string, subscr
 
 // Get get the ProactiveDetection configuration for this configuration id.
 // Parameters:
-// resourceGroupName - the name of the resource group.
+// resourceGroupName - the name of the resource group. The name is case insensitive.
 // resourceName - the name of the Application Insights component resource.
 // configurationID - the ProactiveDetection configuration ID. This is unique within a Application Insights
 // component.
 func (client ProactiveDetectionConfigurationsClient) Get(ctx context.Context, resourceGroupName string, resourceName string, configurationID string) (result ApplicationInsightsComponentProactiveDetectionConfiguration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProactiveDetectionConfigurationsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("insights.ProactiveDetectionConfigurationsClient", "Get", err.Error())
+	}
+
 	req, err := client.GetPreparer(ctx, resourceGroupName, resourceName, configurationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.ProactiveDetectionConfigurationsClient", "Get", nil, "Failure preparing request")
@@ -93,8 +115,8 @@ func (client ProactiveDetectionConfigurationsClient) GetPreparer(ctx context.Con
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProactiveDetectionConfigurationsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -112,9 +134,29 @@ func (client ProactiveDetectionConfigurationsClient) GetResponder(resp *http.Res
 
 // List gets a list of ProactiveDetection configurations of an Application Insights component.
 // Parameters:
-// resourceGroupName - the name of the resource group.
+// resourceGroupName - the name of the resource group. The name is case insensitive.
 // resourceName - the name of the Application Insights component resource.
 func (client ProactiveDetectionConfigurationsClient) List(ctx context.Context, resourceGroupName string, resourceName string) (result ListApplicationInsightsComponentProactiveDetectionConfiguration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProactiveDetectionConfigurationsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("insights.ProactiveDetectionConfigurationsClient", "List", err.Error())
+	}
+
 	req, err := client.ListPreparer(ctx, resourceGroupName, resourceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.ProactiveDetectionConfigurationsClient", "List", nil, "Failure preparing request")
@@ -160,8 +202,8 @@ func (client ProactiveDetectionConfigurationsClient) ListPreparer(ctx context.Co
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProactiveDetectionConfigurationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -179,13 +221,33 @@ func (client ProactiveDetectionConfigurationsClient) ListResponder(resp *http.Re
 
 // Update update the ProactiveDetection configuration for this configuration id.
 // Parameters:
-// resourceGroupName - the name of the resource group.
+// resourceGroupName - the name of the resource group. The name is case insensitive.
 // resourceName - the name of the Application Insights component resource.
 // configurationID - the ProactiveDetection configuration ID. This is unique within a Application Insights
 // component.
 // proactiveDetectionProperties - properties that need to be specified to update the ProactiveDetection
 // configuration.
 func (client ProactiveDetectionConfigurationsClient) Update(ctx context.Context, resourceGroupName string, resourceName string, configurationID string, proactiveDetectionProperties ApplicationInsightsComponentProactiveDetectionConfiguration) (result ApplicationInsightsComponentProactiveDetectionConfiguration, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProactiveDetectionConfigurationsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("insights.ProactiveDetectionConfigurationsClient", "Update", err.Error())
+	}
+
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, resourceName, configurationID, proactiveDetectionProperties)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "insights.ProactiveDetectionConfigurationsClient", "Update", nil, "Failure preparing request")
@@ -234,8 +296,8 @@ func (client ProactiveDetectionConfigurationsClient) UpdatePreparer(ctx context.
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProactiveDetectionConfigurationsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

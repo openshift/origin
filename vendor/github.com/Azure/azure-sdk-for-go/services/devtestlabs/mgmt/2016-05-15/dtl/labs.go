@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewLabsClientWithBaseURI(baseURI string, subscriptionID string) LabsClient 
 // resourceGroupName - the name of the resource group.
 // name - the name of the lab.
 func (client LabsClient) ClaimAnyVM(ctx context.Context, resourceGroupName string, name string) (result LabsClaimAnyVMFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ClaimAnyVM")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ClaimAnyVMPreparer(ctx, resourceGroupName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "ClaimAnyVM", nil, "Failure preparing request")
@@ -84,13 +95,9 @@ func (client LabsClient) ClaimAnyVMPreparer(ctx context.Context, resourceGroupNa
 // ClaimAnyVMSender sends the ClaimAnyVM request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ClaimAnyVMSender(req *http.Request) (future LabsClaimAnyVMFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -116,6 +123,16 @@ func (client LabsClient) ClaimAnyVMResponder(resp *http.Response) (result autore
 // name - the name of the lab.
 // labVirtualMachineCreationParameter - properties for creating a virtual machine.
 func (client LabsClient) CreateEnvironment(ctx context.Context, resourceGroupName string, name string, labVirtualMachineCreationParameter LabVirtualMachineCreationParameter) (result LabsCreateEnvironmentFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.CreateEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: labVirtualMachineCreationParameter,
 			Constraints: []validation.Constraint{{Target: "labVirtualMachineCreationParameter.LabVirtualMachineCreationParameterProperties", Name: validation.Null, Rule: false,
@@ -172,13 +189,9 @@ func (client LabsClient) CreateEnvironmentPreparer(ctx context.Context, resource
 // CreateEnvironmentSender sends the CreateEnvironment request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) CreateEnvironmentSender(req *http.Request) (future LabsCreateEnvironmentFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -204,6 +217,16 @@ func (client LabsClient) CreateEnvironmentResponder(resp *http.Response) (result
 // name - the name of the lab.
 // lab - a lab.
 func (client LabsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, name string, lab Lab) (result LabsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, name, lab)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -245,13 +268,9 @@ func (client LabsClient) CreateOrUpdatePreparer(ctx context.Context, resourceGro
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) CreateOrUpdateSender(req *http.Request) (future LabsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -277,6 +296,16 @@ func (client LabsClient) CreateOrUpdateResponder(resp *http.Response) (result La
 // resourceGroupName - the name of the resource group.
 // name - the name of the lab.
 func (client LabsClient) Delete(ctx context.Context, resourceGroupName string, name string) (result LabsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "Delete", nil, "Failure preparing request")
@@ -316,13 +345,9 @@ func (client LabsClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) DeleteSender(req *http.Request) (future LabsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -349,6 +374,16 @@ func (client LabsClient) DeleteResponder(resp *http.Response) (result autorest.R
 // name - the name of the lab.
 // exportResourceUsageParameters - the parameters of the export operation.
 func (client LabsClient) ExportResourceUsage(ctx context.Context, resourceGroupName string, name string, exportResourceUsageParameters ExportResourceUsageParameters) (result LabsExportResourceUsageFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ExportResourceUsage")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ExportResourceUsagePreparer(ctx, resourceGroupName, name, exportResourceUsageParameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "ExportResourceUsage", nil, "Failure preparing request")
@@ -390,13 +425,9 @@ func (client LabsClient) ExportResourceUsagePreparer(ctx context.Context, resour
 // ExportResourceUsageSender sends the ExportResourceUsage request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ExportResourceUsageSender(req *http.Request) (future LabsExportResourceUsageFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -422,6 +453,16 @@ func (client LabsClient) ExportResourceUsageResponder(resp *http.Response) (resu
 // name - the name of the lab.
 // generateUploadURIParameter - properties for generating an upload URI.
 func (client LabsClient) GenerateUploadURI(ctx context.Context, resourceGroupName string, name string, generateUploadURIParameter GenerateUploadURIParameter) (result GenerateUploadURIResponse, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.GenerateUploadURI")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GenerateUploadURIPreparer(ctx, resourceGroupName, name, generateUploadURIParameter)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "GenerateUploadURI", nil, "Failure preparing request")
@@ -469,8 +510,8 @@ func (client LabsClient) GenerateUploadURIPreparer(ctx context.Context, resource
 // GenerateUploadURISender sends the GenerateUploadURI request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) GenerateUploadURISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GenerateUploadURIResponder handles the response to the GenerateUploadURI request. The method always
@@ -492,6 +533,16 @@ func (client LabsClient) GenerateUploadURIResponder(resp *http.Response) (result
 // name - the name of the lab.
 // expand - specify the $expand query. Example: 'properties($select=defaultStorageAccount)'
 func (client LabsClient) Get(ctx context.Context, resourceGroupName string, name string, expand string) (result Lab, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, name, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "Get", nil, "Failure preparing request")
@@ -540,8 +591,8 @@ func (client LabsClient) GetPreparer(ctx context.Context, resourceGroupName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -565,6 +616,16 @@ func (client LabsClient) GetResponder(resp *http.Response) (result Lab, err erro
 // top - the maximum number of resources to return from the operation.
 // orderby - the ordering expression for the results, using OData notation.
 func (client LabsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.rwcl.Response.Response != nil {
+				sc = result.rwcl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, expand, filter, top, orderby)
 	if err != nil {
@@ -622,8 +683,8 @@ func (client LabsClient) ListByResourceGroupPreparer(ctx context.Context, resour
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -640,8 +701,8 @@ func (client LabsClient) ListByResourceGroupResponder(resp *http.Response) (resu
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client LabsClient) listByResourceGroupNextResults(lastResults ResponseWithContinuationLab) (result ResponseWithContinuationLab, err error) {
-	req, err := lastResults.responseWithContinuationLabPreparer()
+func (client LabsClient) listByResourceGroupNextResults(ctx context.Context, lastResults ResponseWithContinuationLab) (result ResponseWithContinuationLab, err error) {
+	req, err := lastResults.responseWithContinuationLabPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.LabsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -662,6 +723,16 @@ func (client LabsClient) listByResourceGroupNextResults(lastResults ResponseWith
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client LabsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, expand, filter, top, orderby)
 	return
 }
@@ -673,6 +744,16 @@ func (client LabsClient) ListByResourceGroupComplete(ctx context.Context, resour
 // top - the maximum number of resources to return from the operation.
 // orderby - the ordering expression for the results, using OData notation.
 func (client LabsClient) ListBySubscription(ctx context.Context, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.rwcl.Response.Response != nil {
+				sc = result.rwcl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx, expand, filter, top, orderby)
 	if err != nil {
@@ -729,8 +810,8 @@ func (client LabsClient) ListBySubscriptionPreparer(ctx context.Context, expand 
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -747,8 +828,8 @@ func (client LabsClient) ListBySubscriptionResponder(resp *http.Response) (resul
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client LabsClient) listBySubscriptionNextResults(lastResults ResponseWithContinuationLab) (result ResponseWithContinuationLab, err error) {
-	req, err := lastResults.responseWithContinuationLabPreparer()
+func (client LabsClient) listBySubscriptionNextResults(ctx context.Context, lastResults ResponseWithContinuationLab) (result ResponseWithContinuationLab, err error) {
+	req, err := lastResults.responseWithContinuationLabPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.LabsClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -769,6 +850,16 @@ func (client LabsClient) listBySubscriptionNextResults(lastResults ResponseWithC
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client LabsClient) ListBySubscriptionComplete(ctx context.Context, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySubscription(ctx, expand, filter, top, orderby)
 	return
 }
@@ -778,6 +869,16 @@ func (client LabsClient) ListBySubscriptionComplete(ctx context.Context, expand 
 // resourceGroupName - the name of the resource group.
 // name - the name of the lab.
 func (client LabsClient) ListVhds(ctx context.Context, resourceGroupName string, name string) (result ResponseWithContinuationLabVhdPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ListVhds")
+		defer func() {
+			sc := -1
+			if result.rwclv.Response.Response != nil {
+				sc = result.rwclv.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listVhdsNextResults
 	req, err := client.ListVhdsPreparer(ctx, resourceGroupName, name)
 	if err != nil {
@@ -824,8 +925,8 @@ func (client LabsClient) ListVhdsPreparer(ctx context.Context, resourceGroupName
 // ListVhdsSender sends the ListVhds request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ListVhdsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListVhdsResponder handles the response to the ListVhds request. The method always
@@ -842,8 +943,8 @@ func (client LabsClient) ListVhdsResponder(resp *http.Response) (result Response
 }
 
 // listVhdsNextResults retrieves the next set of results, if any.
-func (client LabsClient) listVhdsNextResults(lastResults ResponseWithContinuationLabVhd) (result ResponseWithContinuationLabVhd, err error) {
-	req, err := lastResults.responseWithContinuationLabVhdPreparer()
+func (client LabsClient) listVhdsNextResults(ctx context.Context, lastResults ResponseWithContinuationLabVhd) (result ResponseWithContinuationLabVhd, err error) {
+	req, err := lastResults.responseWithContinuationLabVhdPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.LabsClient", "listVhdsNextResults", nil, "Failure preparing next results request")
 	}
@@ -864,6 +965,16 @@ func (client LabsClient) listVhdsNextResults(lastResults ResponseWithContinuatio
 
 // ListVhdsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client LabsClient) ListVhdsComplete(ctx context.Context, resourceGroupName string, name string) (result ResponseWithContinuationLabVhdIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.ListVhds")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListVhds(ctx, resourceGroupName, name)
 	return
 }
@@ -874,6 +985,16 @@ func (client LabsClient) ListVhdsComplete(ctx context.Context, resourceGroupName
 // name - the name of the lab.
 // lab - a lab.
 func (client LabsClient) Update(ctx context.Context, resourceGroupName string, name string, lab LabFragment) (result Lab, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/LabsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, name, lab)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.LabsClient", "Update", nil, "Failure preparing request")
@@ -921,8 +1042,8 @@ func (client LabsClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

@@ -131,7 +131,7 @@
       }
     }
   },
-  "revision": "20181128",
+  "revision": "20190425",
   "rootUrl": "https://driveactivity.googleapis.com/",
   "schemas": {
     "Action": {
@@ -444,6 +444,25 @@
       },
       "type": "object"
     },
+    "Drive": {
+      "description": "Information about a shared drive.",
+      "id": "Drive",
+      "properties": {
+        "name": {
+          "description": "The resource name of the shared drive. The format is\n\"COLLECTION_ID/DRIVE_ID\". Clients should not assume a specific collection\nID for this resource name.",
+          "type": "string"
+        },
+        "root": {
+          "$ref": "DriveItem",
+          "description": "The root of this shared drive."
+        },
+        "title": {
+          "description": "The title of the shared drive.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "DriveActivity": {
       "description": "A single Drive activity comprising one or more Actions by one or more\nActors on one or more Targets. Some Action groupings occur spontaneously,\nsuch as moving an item into a shared folder triggering a permission change.\nOther groupings of related Actions, such as multiple Actors editing one item\nor moving multiple files into a new folder, are controlled by the selection\nof a ConsolidationStrategy in the QueryDriveActivityRequest.",
       "id": "DriveActivity",
@@ -467,7 +486,7 @@
           "description": "Key information about the primary action for this activity. This is either\nrepresentative, or the most important, of all actions in the activity,\naccording to the ConsolidationStrategy in the request."
         },
         "targets": {
-          "description": "All Drive objects this activity is about (e.g. file, folder, Team Drive).\nThis represents the state of the target immediately after the actions\noccurred.",
+          "description": "All Google Drive objects this activity is about (e.g. file, folder, drive).\nThis represents the state of the target immediately after the actions\noccurred.",
           "items": {
             "$ref": "Target"
           },
@@ -485,17 +504,54 @@
       },
       "type": "object"
     },
+    "DriveFile": {
+      "description": "A Drive item which is a file.",
+      "id": "DriveFile",
+      "properties": {},
+      "type": "object"
+    },
+    "DriveFolder": {
+      "description": "A Drive item which is a folder.",
+      "id": "DriveFolder",
+      "properties": {
+        "type": {
+          "description": "The type of Drive folder.",
+          "enum": [
+            "TYPE_UNSPECIFIED",
+            "MY_DRIVE_ROOT",
+            "SHARED_DRIVE_ROOT",
+            "STANDARD_FOLDER"
+          ],
+          "enumDescriptions": [
+            "The folder type is unknown.",
+            "The folder is the root of a user's MyDrive.",
+            "The folder is the root of a shared drive.",
+            "The folder is a standard, non-root, folder."
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "DriveItem": {
       "description": "A Drive item, such as a file or folder.",
       "id": "DriveItem",
       "properties": {
+        "driveFile": {
+          "$ref": "DriveFile",
+          "description": "The Drive item is a file."
+        },
+        "driveFolder": {
+          "$ref": "DriveFolder",
+          "description": "The Drive item is a folder."
+        },
         "file": {
           "$ref": "File",
-          "description": "The Drive item is a file."
+          "description": "This field is deprecated; please use the `driveFile` field instead."
         },
         "folder": {
           "$ref": "Folder",
-          "description": "The Drive item is a folder."
+          "description": "This field is deprecated; please use the `driveFolder` field instead."
         },
         "mimeType": {
           "description": "The MIME type of the Drive item.  See\nhttps://developers.google.com/drive/v3/web/mime-types.",
@@ -520,13 +576,21 @@
       "description": "A lightweight reference to a Drive item, such as a file or folder.",
       "id": "DriveItemReference",
       "properties": {
+        "driveFile": {
+          "$ref": "DriveFile",
+          "description": "The Drive item is a file."
+        },
+        "driveFolder": {
+          "$ref": "DriveFolder",
+          "description": "The Drive item is a folder."
+        },
         "file": {
           "$ref": "File",
-          "description": "The Drive item is a file."
+          "description": "This field is deprecated; please use the `driveFile` field instead."
         },
         "folder": {
           "$ref": "Folder",
-          "description": "The Drive item is a folder."
+          "description": "This field is deprecated; please use the `driveFolder` field instead."
         },
         "name": {
           "description": "The target Drive item. The format is \"items/ITEM_ID\".",
@@ -539,6 +603,21 @@
       },
       "type": "object"
     },
+    "DriveReference": {
+      "description": "A lightweight reference to a shared drive.",
+      "id": "DriveReference",
+      "properties": {
+        "name": {
+          "description": "The resource name of the shared drive. The format is\n\"COLLECTION_ID/DRIVE_ID\". Clients should not assume a specific collection\nID for this resource name.",
+          "type": "string"
+        },
+        "title": {
+          "description": "The title of the shared drive.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "Edit": {
       "description": "An empty message indicating an object was edited.",
       "id": "Edit",
@@ -546,7 +625,7 @@
       "type": "object"
     },
     "File": {
-      "description": "A Drive item which is a file.",
+      "description": "This item is deprecated; please see `DriveFile` instead.",
       "id": "File",
       "properties": {},
       "type": "object"
@@ -575,11 +654,11 @@
       "type": "object"
     },
     "Folder": {
-      "description": "A Drive item which is a folder.",
+      "description": "This item is deprecated; please see `DriveFolder` instead.",
       "id": "Folder",
       "properties": {
         "type": {
-          "description": "The type of Drive folder.",
+          "description": "This field is deprecated; please see `DriveFolder.type` instead.",
           "enum": [
             "TYPE_UNSPECIFIED",
             "MY_DRIVE_ROOT",
@@ -587,10 +666,10 @@
             "STANDARD_FOLDER"
           ],
           "enumDescriptions": [
-            "The folder type is unknown.",
-            "The folder is the root of a user's MyDrive.",
-            "The folder is the root of a Team Drive. Note that this folder is\na Drive item, and is a distinct entity from the Team Drive itself.",
-            "The folder is a standard, non-root, folder."
+            "This item is deprecated; please see `DriveFolder.Type` instead.",
+            "This item is deprecated; please see `DriveFolder.Type` instead.",
+            "This item is deprecated; please see `DriveFolder.Type` instead.",
+            "This item is deprecated; please see `DriveFolder.Type` instead."
           ],
           "type": "string"
         }
@@ -685,9 +764,13 @@
           "$ref": "Domain",
           "description": "The domain of the Drive item owner."
         },
+        "drive": {
+          "$ref": "DriveReference",
+          "description": "The drive that owns the item."
+        },
         "teamDrive": {
           "$ref": "TeamDriveReference",
-          "description": "The Team Drive that owns the Drive item."
+          "description": "This field is deprecated; please use the `drive` field instead."
         },
         "user": {
           "$ref": "User",
@@ -992,6 +1075,10 @@
       "description": "Information about the target of activity.",
       "id": "Target",
       "properties": {
+        "drive": {
+          "$ref": "Drive",
+          "description": "The target is a shared drive."
+        },
         "driveItem": {
           "$ref": "DriveItem",
           "description": "The target is a Drive item."
@@ -1002,7 +1089,7 @@
         },
         "teamDrive": {
           "$ref": "TeamDrive",
-          "description": "The target is a Team Drive."
+          "description": "This field is deprecated; please use the `drive` field instead."
         }
       },
       "type": "object"
@@ -1011,46 +1098,50 @@
       "description": "A lightweight reference to the target of activity.",
       "id": "TargetReference",
       "properties": {
+        "drive": {
+          "$ref": "DriveReference",
+          "description": "The target is a shared drive."
+        },
         "driveItem": {
           "$ref": "DriveItemReference",
           "description": "The target is a Drive item."
         },
         "teamDrive": {
           "$ref": "TeamDriveReference",
-          "description": "The target is a Team Drive."
+          "description": "This field is deprecated; please use the `drive` field instead."
         }
       },
       "type": "object"
     },
     "TeamDrive": {
-      "description": "Information about a Team Drive.",
+      "description": "This item is deprecated; please see `Drive` instead.",
       "id": "TeamDrive",
       "properties": {
         "name": {
-          "description": "The resource name of the Team Drive. The format is\n\"teamDrives/TEAM_DRIVE_ID\".",
+          "description": "This field is deprecated; please see `Drive.name` instead.",
           "type": "string"
         },
         "root": {
           "$ref": "DriveItem",
-          "description": "The root of this Team Drive."
+          "description": "This field is deprecated; please see `Drive.root` instead."
         },
         "title": {
-          "description": "The title of the Team Drive.",
+          "description": "This field is deprecated; please see `Drive.title` instead.",
           "type": "string"
         }
       },
       "type": "object"
     },
     "TeamDriveReference": {
-      "description": "A lightweight reference to a Team Drive.",
+      "description": "This item is deprecated; please see `DriveReference` instead.",
       "id": "TeamDriveReference",
       "properties": {
         "name": {
-          "description": "The resource name of the Team Drive. The format is\n\"teamDrives/TEAM_DRIVE_ID\".",
+          "description": "This field is deprecated; please see `DriveReference.name` instead.",
           "type": "string"
         },
         "title": {
-          "description": "The title of the Team Drive.",
+          "description": "This field is deprecated; please see `DriveReference.title` instead.",
           "type": "string"
         }
       },

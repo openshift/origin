@@ -23,8 +23,8 @@ func NewTestApp(dbfile string) *App {
 		BlockHostingVolumeSize:    1100,
 		MaxInflightOperations:     64, // avoid throttling test code
 	}
-	app := NewApp(appConfig)
-	godbc.Check(app != nil)
+	app, err := NewApp(appConfig)
+	godbc.Check(err == nil)
 
 	return app
 }

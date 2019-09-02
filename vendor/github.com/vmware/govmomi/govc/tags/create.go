@@ -64,27 +64,6 @@ Examples:
   govc tags.create -d "Kubernetes Zone US CA1" -c k8s-zone k8s-zone-us-ca1`
 }
 
-func withClient(ctx context.Context, cmd *flags.ClientFlag, f func(*rest.Client) error) error {
-	vc, err := cmd.Client()
-	if err != nil {
-		return err
-	}
-	tagsURL := vc.URL()
-	tagsURL.User = cmd.Userinfo()
-
-	c := rest.NewClient(vc)
-	if err != nil {
-		return err
-	}
-
-	if err = c.Login(ctx, tagsURL.User); err != nil {
-		return err
-	}
-	defer c.Logout(ctx)
-
-	return f(c)
-}
-
 func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
 	if f.NArg() != 1 || cmd.tag.CategoryID == "" {
 		return flag.ErrHelp
@@ -92,7 +71,7 @@ func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
 
 	cmd.tag.Name = f.Arg(0)
 
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		id, err := tags.NewManager(c).CreateTag(ctx, &cmd.tag)
 		if err != nil {
 			return err

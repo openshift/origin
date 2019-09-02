@@ -14,8 +14,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/heketi/heketi/executors"
 	"github.com/lpabon/godbc"
+
+	"github.com/heketi/heketi/executors"
+	rex "github.com/heketi/heketi/pkg/remoteexec"
 )
 
 func (s *CmdExecutor) BlockVolumeCreate(host string,
@@ -42,29 +44,53 @@ func (s *CmdExecutor) BlockVolumeCreate(host string,
 		auth_set = "disable"
 	}
 
-	cmd := fmt.Sprintf("gluster-block create %v/%v  ha %v auth %v prealloc full %v %vGiB --json",
-		volume.GlusterVolumeName, volume.Name, volume.Hacount, auth_set, strings.Join(volume.BlockHosts, ","), volume.Size)
+	cmd := fmt.Sprintf(
+		"gluster-block create %v/%v ha %v auth %v prealloc %v %v %vGiB --json",
+		volume.GlusterVolumeName,
+		volume.Name,
+		volume.Hacount,
+		auth_set,
+		s.BlockVolumeDefaultPrealloc(),
+		strings.Join(volume.BlockHosts, ","),
+		volume.Size)
 
 	// Initialize the commands with the create command
 	commands := []string{cmd}
 
 	// Execute command
-	output, err := s.RemoteExecutor.RemoteCommandExecute(host, commands, 10)
+	results, err := s.RemoteExecutor.ExecCommands(host, commands, 10)
 	if err != nil {
-		s.BlockVolumeDestroy(host, volume.GlusterVolumeName, volume.Name)
 		return nil, err
 	}
 
-	var blockVolumeCreate CliOutput
-	err = json.Unmarshal([]byte(output[0]), &blockVolumeCreate)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get the block volume create info for block volume %v", volume.Name)
+	output := results[0].Output
+	if output == "" {
+		output = results[0].ErrOutput
 	}
 
-	if blockVolumeCreate.Result == "FAIL" {
-		s.BlockVolumeDestroy(host, volume.GlusterVolumeName, volume.Name)
-		logger.LogError("%v", blockVolumeCreate.ErrMsg)
-		return nil, fmt.Errorf("%v", blockVolumeCreate.ErrMsg)
+	var blockVolumeCreate CliOutput
+	err = json.Unmarshal([]byte(output), &blockVolumeCreate)
+	if err != nil {
+		logger.Warning("Unable to parse gluster-block output [%v]: %v",
+			output, err)
+		err = fmt.Errorf(
+			"Unparsable error during block volume create: %v",
+			output)
+	} else if blockVolumeCreate.Result == "FAIL" {
+		// the fail flag was set in the output json
+		err = fmt.Errorf("Failed to create block volume: %v",
+			blockVolumeCreate.ErrMsg)
+	} else if !results.Ok() {
+		// the fail flag is not set but the command still
+		// exited non-zero for some reason
+		err = fmt.Errorf("Failed to create block volume: %v",
+			results[0].Error())
+	}
+
+	// if any of the cases above set err, log it and return
+	if err != nil {
+		logger.LogError("%v", err)
+		return nil, err
 	}
 
 	var blockVolumeInfo executors.BlockVolumeInfo
@@ -115,21 +141,54 @@ func (s *CmdExecutor) BlockVolumeDestroy(host string, blockHostingVolumeName str
 	}
 	var blockVolumeDelete CliOutput
 	if e := json.Unmarshal([]byte(errOutput), &blockVolumeDelete); e != nil {
-		parseErr := logger.LogError(
-			"Unable to parse output from block volume delete: %v",
-			blockVolumeName)
-		if r.Err == nil {
-			return parseErr
-		} else {
-			return r.Err
+		logger.LogError("Failed to unmarshal response from block "+
+			"volume delete for volume %v", blockVolumeName)
+		if r.Err != nil {
+			return logger.Err(r.Err)
 		}
+
+		return logger.LogError("Unable to parse output from block "+
+			"volume delete: %v", e)
 	}
+
 	if blockVolumeDelete.Result == "FAIL" {
-		if strings.Contains(blockVolumeDelete.ErrMsg, "doesn't exist") &&
-			strings.Contains(blockVolumeDelete.ErrMsg, blockVolumeName) {
+		errHas := func(s string) bool {
+			return strings.Contains(blockVolumeDelete.ErrMsg, s)
+		}
+
+		if (errHas("doesn't exist") && errHas(blockVolumeName)) ||
+			(errHas("does not exist") && errHas(blockHostingVolumeName)) {
 			return &executors.VolumeDoesNotExistErr{Name: blockVolumeName}
 		}
 		return logger.LogError("%v", blockVolumeDelete.ErrMsg)
 	}
 	return r.Err
+}
+
+func (c *CmdExecutor) ListBlockVolumes(host string, blockhostingvolume string) ([]string, error) {
+	godbc.Require(host != "")
+	godbc.Require(blockhostingvolume != "")
+
+	commands := []string{fmt.Sprintf("gluster-block list %v --json", blockhostingvolume)}
+
+	results, err := c.RemoteExecutor.ExecCommands(host, commands, 10)
+	if err := rex.AnyError(results, err); err != nil {
+		logger.Err(err)
+		return nil, fmt.Errorf("unable to list blockvolumes on block hosting volume %v : %v", blockhostingvolume, err)
+	}
+
+	type BlockVolumeListOutput struct {
+		Blocks []string `json:"blocks"`
+		RESULT string   `json:"RESULT"`
+	}
+
+	var blockVolumeList BlockVolumeListOutput
+
+	err = json.Unmarshal([]byte(results[0].Output), &blockVolumeList)
+	if err != nil {
+		logger.Err(err)
+		return nil, fmt.Errorf("Unable to get the block volume list for block hosting volume %v : %v", blockhostingvolume, err)
+	}
+
+	return blockVolumeList.Blocks, nil
 }

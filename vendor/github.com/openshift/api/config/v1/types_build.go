@@ -9,7 +9,10 @@ import (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Build holds cluster-wide information on how to handle builds. The canonical name is `cluster`
+// Build configures the behavior of OpenShift builds for the entire cluster.
+// This includes default settings that can be overridden in BuildConfig objects, and overrides which are applied to all builds.
+//
+// The canonical name is "cluster"
 type Build struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -23,6 +26,10 @@ type BuildSpec struct {
 	// AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that
 	// should be trusted for image pushes and pulls during builds.
 	// The namespace for this config map is openshift-config.
+	//
+	// DEPRECATED: Additional CAs for image pull and push should be set on
+	// image.config.openshift.io/cluster instead.
+	//
 	// +optional
 	AdditionalTrustedCA ConfigMapNameReference `json:"additionalTrustedCA"`
 	// BuildDefaults controls the default information for Builds

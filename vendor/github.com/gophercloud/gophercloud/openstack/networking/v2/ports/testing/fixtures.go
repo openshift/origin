@@ -21,6 +21,14 @@ const ListResponse = `
             ],
             "id": "d80b1a3b-4fc1-49f3-952e-1e2ab7081d8b",
             "security_groups": [],
+            "dns_name": "test-port",
+            "dns_assignment": [
+              {
+                "hostname": "test-port",
+                "ip_address": "172.24.4.2",
+                "fqdn": "test-port.openstack.local."
+              }
+            ],
             "device_id": "9ae135f4-b6e0-4dad-9e91-3c223e385824",
             "port_security_enabled": false
         }
@@ -57,6 +65,14 @@ const GetResponse = `
         ],
         "id": "46d4bfb9-b26e-41f3-bd2e-e6dcc1ccedb2",
         "security_groups": [],
+        "dns_name": "test-port",
+        "dns_assignment": [
+          {
+            "hostname": "test-port",
+            "ip_address": "172.24.4.2",
+            "fqdn": "test-port.openstack.local."
+          }
+        ],
         "device_id": "5e3898d7-11be-483e-9732-b2f5eccd2b2e"
     }
 }

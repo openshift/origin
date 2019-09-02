@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewTransformsClientWithBaseURI(baseURI string, subscriptionID string) Trans
 // transformName - the Transform name.
 // parameters - the request parameters
 func (client TransformsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, accountName string, transformName string, parameters Transform) (result Transform, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransformsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.TransformProperties", Name: validation.Null, Rule: false,
@@ -102,8 +113,8 @@ func (client TransformsClient) CreateOrUpdatePreparer(ctx context.Context, resou
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client TransformsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -125,6 +136,16 @@ func (client TransformsClient) CreateOrUpdateResponder(resp *http.Response) (res
 // accountName - the Media Services account name.
 // transformName - the Transform name.
 func (client TransformsClient) Delete(ctx context.Context, resourceGroupName string, accountName string, transformName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransformsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName, transformName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.TransformsClient", "Delete", nil, "Failure preparing request")
@@ -171,8 +192,8 @@ func (client TransformsClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client TransformsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -193,6 +214,16 @@ func (client TransformsClient) DeleteResponder(resp *http.Response) (result auto
 // accountName - the Media Services account name.
 // transformName - the Transform name.
 func (client TransformsClient) Get(ctx context.Context, resourceGroupName string, accountName string, transformName string) (result Transform, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransformsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName, transformName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.TransformsClient", "Get", nil, "Failure preparing request")
@@ -239,8 +270,8 @@ func (client TransformsClient) GetPreparer(ctx context.Context, resourceGroupNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client TransformsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -261,13 +292,20 @@ func (client TransformsClient) GetResponder(resp *http.Response) (result Transfo
 // resourceGroupName - the name of the resource group within the Azure subscription.
 // accountName - the Media Services account name.
 // filter - restricts the set of items returned.
-// top - specifies a non-negative integer n that limits the number of items returned from a collection. The
-// service returns the number of available items up to but not greater than the specified value n.
-// skip - specifies a non-negative integer n that excludes the first n items of the queried collection from the
-// result. The service returns items starting at position n+1.
-func (client TransformsClient) List(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, skip *int32) (result TransformCollectionPage, err error) {
+// orderby - specifies the key by which the result collection should be ordered.
+func (client TransformsClient) List(ctx context.Context, resourceGroupName string, accountName string, filter string, orderby string) (result TransformCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransformsClient.List")
+		defer func() {
+			sc := -1
+			if result.tc.Response.Response != nil {
+				sc = result.tc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
-	req, err := client.ListPreparer(ctx, resourceGroupName, accountName, filter, top, skip)
+	req, err := client.ListPreparer(ctx, resourceGroupName, accountName, filter, orderby)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.TransformsClient", "List", nil, "Failure preparing request")
 		return
@@ -289,7 +327,7 @@ func (client TransformsClient) List(ctx context.Context, resourceGroupName strin
 }
 
 // ListPreparer prepares the List request.
-func (client TransformsClient) ListPreparer(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, skip *int32) (*http.Request, error) {
+func (client TransformsClient) ListPreparer(ctx context.Context, resourceGroupName string, accountName string, filter string, orderby string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"accountName":       autorest.Encode("path", accountName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -303,11 +341,8 @@ func (client TransformsClient) ListPreparer(ctx context.Context, resourceGroupNa
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
 	}
-	if top != nil {
-		queryParameters["$top"] = autorest.Encode("query", *top)
-	}
-	if skip != nil {
-		queryParameters["$skip"] = autorest.Encode("query", *skip)
+	if len(orderby) > 0 {
+		queryParameters["$orderby"] = autorest.Encode("query", orderby)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -321,8 +356,8 @@ func (client TransformsClient) ListPreparer(ctx context.Context, resourceGroupNa
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client TransformsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -339,8 +374,8 @@ func (client TransformsClient) ListResponder(resp *http.Response) (result Transf
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client TransformsClient) listNextResults(lastResults TransformCollection) (result TransformCollection, err error) {
-	req, err := lastResults.transformCollectionPreparer()
+func (client TransformsClient) listNextResults(ctx context.Context, lastResults TransformCollection) (result TransformCollection, err error) {
+	req, err := lastResults.transformCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "media.TransformsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -360,8 +395,18 @@ func (client TransformsClient) listNextResults(lastResults TransformCollection) 
 }
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
-func (client TransformsClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string, filter string, top *int32, skip *int32) (result TransformCollectionIterator, err error) {
-	result.page, err = client.List(ctx, resourceGroupName, accountName, filter, top, skip)
+func (client TransformsClient) ListComplete(ctx context.Context, resourceGroupName string, accountName string, filter string, orderby string) (result TransformCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransformsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.List(ctx, resourceGroupName, accountName, filter, orderby)
 	return
 }
 
@@ -372,6 +417,16 @@ func (client TransformsClient) ListComplete(ctx context.Context, resourceGroupNa
 // transformName - the Transform name.
 // parameters - the request parameters
 func (client TransformsClient) Update(ctx context.Context, resourceGroupName string, accountName string, transformName string, parameters Transform) (result Transform, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TransformsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, accountName, transformName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "media.TransformsClient", "Update", nil, "Failure preparing request")
@@ -420,8 +475,8 @@ func (client TransformsClient) UpdatePreparer(ctx context.Context, resourceGroup
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client TransformsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

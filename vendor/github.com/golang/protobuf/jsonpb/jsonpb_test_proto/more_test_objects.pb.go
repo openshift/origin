@@ -3,9 +3,11 @@
 
 package jsonpb
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Numeral int32
 
@@ -31,6 +33,7 @@ var Numeral_name = map[int32]string{
 	1: "ARABIC",
 	2: "ROMAN",
 }
+
 var Numeral_value = map[string]int32{
 	"UNKNOWN": 0,
 	"ARABIC":  1,
@@ -40,12 +43,13 @@ var Numeral_value = map[string]int32{
 func (x Numeral) String() string {
 	return proto.EnumName(Numeral_name, int32(x))
 }
+
 func (Numeral) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_more_test_objects_bef0d79b901f4c4a, []int{0}
+	return fileDescriptor_e6c135db3023e377, []int{0}
 }
 
 type Simple3 struct {
-	Dub                  float64  `protobuf:"fixed64,1,opt,name=dub" json:"dub,omitempty"`
+	Dub                  float64  `protobuf:"fixed64,1,opt,name=dub,proto3" json:"dub,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -55,16 +59,17 @@ func (m *Simple3) Reset()         { *m = Simple3{} }
 func (m *Simple3) String() string { return proto.CompactTextString(m) }
 func (*Simple3) ProtoMessage()    {}
 func (*Simple3) Descriptor() ([]byte, []int) {
-	return fileDescriptor_more_test_objects_bef0d79b901f4c4a, []int{0}
+	return fileDescriptor_e6c135db3023e377, []int{0}
 }
+
 func (m *Simple3) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Simple3.Unmarshal(m, b)
 }
 func (m *Simple3) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Simple3.Marshal(b, m, deterministic)
 }
-func (dst *Simple3) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Simple3.Merge(dst, src)
+func (m *Simple3) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Simple3.Merge(m, src)
 }
 func (m *Simple3) XXX_Size() int {
 	return xxx_messageInfo_Simple3.Size(m)
@@ -83,7 +88,7 @@ func (m *Simple3) GetDub() float64 {
 }
 
 type SimpleSlice3 struct {
-	Slices               []string `protobuf:"bytes,1,rep,name=slices" json:"slices,omitempty"`
+	Slices               []string `protobuf:"bytes,1,rep,name=slices,proto3" json:"slices,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -93,16 +98,17 @@ func (m *SimpleSlice3) Reset()         { *m = SimpleSlice3{} }
 func (m *SimpleSlice3) String() string { return proto.CompactTextString(m) }
 func (*SimpleSlice3) ProtoMessage()    {}
 func (*SimpleSlice3) Descriptor() ([]byte, []int) {
-	return fileDescriptor_more_test_objects_bef0d79b901f4c4a, []int{1}
+	return fileDescriptor_e6c135db3023e377, []int{1}
 }
+
 func (m *SimpleSlice3) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SimpleSlice3.Unmarshal(m, b)
 }
 func (m *SimpleSlice3) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SimpleSlice3.Marshal(b, m, deterministic)
 }
-func (dst *SimpleSlice3) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SimpleSlice3.Merge(dst, src)
+func (m *SimpleSlice3) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SimpleSlice3.Merge(m, src)
 }
 func (m *SimpleSlice3) XXX_Size() int {
 	return xxx_messageInfo_SimpleSlice3.Size(m)
@@ -121,7 +127,7 @@ func (m *SimpleSlice3) GetSlices() []string {
 }
 
 type SimpleMap3 struct {
-	Stringy              map[string]string `protobuf:"bytes,1,rep,name=stringy" json:"stringy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Stringy              map[string]string `protobuf:"bytes,1,rep,name=stringy,proto3" json:"stringy,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -131,16 +137,17 @@ func (m *SimpleMap3) Reset()         { *m = SimpleMap3{} }
 func (m *SimpleMap3) String() string { return proto.CompactTextString(m) }
 func (*SimpleMap3) ProtoMessage()    {}
 func (*SimpleMap3) Descriptor() ([]byte, []int) {
-	return fileDescriptor_more_test_objects_bef0d79b901f4c4a, []int{2}
+	return fileDescriptor_e6c135db3023e377, []int{2}
 }
+
 func (m *SimpleMap3) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SimpleMap3.Unmarshal(m, b)
 }
 func (m *SimpleMap3) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SimpleMap3.Marshal(b, m, deterministic)
 }
-func (dst *SimpleMap3) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SimpleMap3.Merge(dst, src)
+func (m *SimpleMap3) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SimpleMap3.Merge(m, src)
 }
 func (m *SimpleMap3) XXX_Size() int {
 	return xxx_messageInfo_SimpleMap3.Size(m)
@@ -159,7 +166,7 @@ func (m *SimpleMap3) GetStringy() map[string]string {
 }
 
 type SimpleNull3 struct {
-	Simple               *Simple3 `protobuf:"bytes,1,opt,name=simple" json:"simple,omitempty"`
+	Simple               *Simple3 `protobuf:"bytes,1,opt,name=simple,proto3" json:"simple,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -169,16 +176,17 @@ func (m *SimpleNull3) Reset()         { *m = SimpleNull3{} }
 func (m *SimpleNull3) String() string { return proto.CompactTextString(m) }
 func (*SimpleNull3) ProtoMessage()    {}
 func (*SimpleNull3) Descriptor() ([]byte, []int) {
-	return fileDescriptor_more_test_objects_bef0d79b901f4c4a, []int{3}
+	return fileDescriptor_e6c135db3023e377, []int{3}
 }
+
 func (m *SimpleNull3) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SimpleNull3.Unmarshal(m, b)
 }
 func (m *SimpleNull3) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SimpleNull3.Marshal(b, m, deterministic)
 }
-func (dst *SimpleNull3) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SimpleNull3.Merge(dst, src)
+func (m *SimpleNull3) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SimpleNull3.Merge(m, src)
 }
 func (m *SimpleNull3) XXX_Size() int {
 	return xxx_messageInfo_SimpleNull3.Size(m)
@@ -197,16 +205,16 @@ func (m *SimpleNull3) GetSimple() *Simple3 {
 }
 
 type Mappy struct {
-	Nummy                map[int64]int32    `protobuf:"bytes,1,rep,name=nummy" json:"nummy,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	Strry                map[string]string  `protobuf:"bytes,2,rep,name=strry" json:"strry,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Objjy                map[int32]*Simple3 `protobuf:"bytes,3,rep,name=objjy" json:"objjy,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Buggy                map[int64]string   `protobuf:"bytes,4,rep,name=buggy" json:"buggy,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Booly                map[bool]bool      `protobuf:"bytes,5,rep,name=booly" json:"booly,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	Enumy                map[string]Numeral `protobuf:"bytes,6,rep,name=enumy" json:"enumy,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value,enum=jsonpb.Numeral"`
-	S32Booly             map[int32]bool     `protobuf:"bytes,7,rep,name=s32booly" json:"s32booly,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	S64Booly             map[int64]bool     `protobuf:"bytes,8,rep,name=s64booly" json:"s64booly,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	U32Booly             map[uint32]bool    `protobuf:"bytes,9,rep,name=u32booly" json:"u32booly,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	U64Booly             map[uint64]bool    `protobuf:"bytes,10,rep,name=u64booly" json:"u64booly,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	Nummy                map[int64]int32    `protobuf:"bytes,1,rep,name=nummy,proto3" json:"nummy,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	Strry                map[string]string  `protobuf:"bytes,2,rep,name=strry,proto3" json:"strry,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Objjy                map[int32]*Simple3 `protobuf:"bytes,3,rep,name=objjy,proto3" json:"objjy,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Buggy                map[int64]string   `protobuf:"bytes,4,rep,name=buggy,proto3" json:"buggy,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Booly                map[bool]bool      `protobuf:"bytes,5,rep,name=booly,proto3" json:"booly,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	Enumy                map[string]Numeral `protobuf:"bytes,6,rep,name=enumy,proto3" json:"enumy,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3,enum=jsonpb.Numeral"`
+	S32Booly             map[int32]bool     `protobuf:"bytes,7,rep,name=s32booly,proto3" json:"s32booly,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	S64Booly             map[int64]bool     `protobuf:"bytes,8,rep,name=s64booly,proto3" json:"s64booly,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	U32Booly             map[uint32]bool    `protobuf:"bytes,9,rep,name=u32booly,proto3" json:"u32booly,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	U64Booly             map[uint64]bool    `protobuf:"bytes,10,rep,name=u64booly,proto3" json:"u64booly,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -216,16 +224,17 @@ func (m *Mappy) Reset()         { *m = Mappy{} }
 func (m *Mappy) String() string { return proto.CompactTextString(m) }
 func (*Mappy) ProtoMessage()    {}
 func (*Mappy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_more_test_objects_bef0d79b901f4c4a, []int{4}
+	return fileDescriptor_e6c135db3023e377, []int{4}
 }
+
 func (m *Mappy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mappy.Unmarshal(m, b)
 }
 func (m *Mappy) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Mappy.Marshal(b, m, deterministic)
 }
-func (dst *Mappy) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Mappy.Merge(dst, src)
+func (m *Mappy) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Mappy.Merge(m, src)
 }
 func (m *Mappy) XXX_Size() int {
 	return xxx_messageInfo_Mappy.Size(m)
@@ -307,6 +316,7 @@ func (m *Mappy) GetU64Booly() map[uint64]bool {
 }
 
 func init() {
+	proto.RegisterEnum("jsonpb.Numeral", Numeral_name, Numeral_value)
 	proto.RegisterType((*Simple3)(nil), "jsonpb.Simple3")
 	proto.RegisterType((*SimpleSlice3)(nil), "jsonpb.SimpleSlice3")
 	proto.RegisterType((*SimpleMap3)(nil), "jsonpb.SimpleMap3")
@@ -323,14 +333,11 @@ func init() {
 	proto.RegisterMapType((map[string]string)(nil), "jsonpb.Mappy.StrryEntry")
 	proto.RegisterMapType((map[uint32]bool)(nil), "jsonpb.Mappy.U32boolyEntry")
 	proto.RegisterMapType((map[uint64]bool)(nil), "jsonpb.Mappy.U64boolyEntry")
-	proto.RegisterEnum("jsonpb.Numeral", Numeral_name, Numeral_value)
 }
 
-func init() {
-	proto.RegisterFile("more_test_objects.proto", fileDescriptor_more_test_objects_bef0d79b901f4c4a)
-}
+func init() { proto.RegisterFile("more_test_objects.proto", fileDescriptor_e6c135db3023e377) }
 
-var fileDescriptor_more_test_objects_bef0d79b901f4c4a = []byte{
+var fileDescriptor_e6c135db3023e377 = []byte{
 	// 526 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0xdd, 0x6b, 0xdb, 0x3c,
 	0x14, 0x87, 0x5f, 0x27, 0xf5, 0xd7, 0x49, 0xfb, 0x2e, 0x88, 0xb1, 0x99, 0xf4, 0x62, 0xc5, 0xb0,

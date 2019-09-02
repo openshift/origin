@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewWorkflowRunActionRepetitionsClientWithBaseURI(baseURI string, subscripti
 // actionName - the workflow action name.
 // repetitionName - the workflow repetition.
 func (client WorkflowRunActionRepetitionsClient) Get(ctx context.Context, resourceGroupName string, workflowName string, runName string, actionName string, repetitionName string) (result WorkflowRunActionRepetitionDefinition, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionRepetitionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, workflowName, runName, actionName, repetitionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowRunActionRepetitionsClient", "Get", nil, "Failure preparing request")
@@ -96,8 +107,8 @@ func (client WorkflowRunActionRepetitionsClient) GetPreparer(ctx context.Context
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowRunActionRepetitionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -120,6 +131,16 @@ func (client WorkflowRunActionRepetitionsClient) GetResponder(resp *http.Respons
 // runName - the workflow run name.
 // actionName - the workflow action name.
 func (client WorkflowRunActionRepetitionsClient) List(ctx context.Context, resourceGroupName string, workflowName string, runName string, actionName string) (result WorkflowRunActionRepetitionDefinitionCollection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionRepetitionsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListPreparer(ctx, resourceGroupName, workflowName, runName, actionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowRunActionRepetitionsClient", "List", nil, "Failure preparing request")
@@ -167,8 +188,8 @@ func (client WorkflowRunActionRepetitionsClient) ListPreparer(ctx context.Contex
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowRunActionRepetitionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -192,6 +213,16 @@ func (client WorkflowRunActionRepetitionsClient) ListResponder(resp *http.Respon
 // actionName - the workflow action name.
 // repetitionName - the workflow repetition.
 func (client WorkflowRunActionRepetitionsClient) ListExpressionTraces(ctx context.Context, resourceGroupName string, workflowName string, runName string, actionName string, repetitionName string) (result ExpressionTraces, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/WorkflowRunActionRepetitionsClient.ListExpressionTraces")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListExpressionTracesPreparer(ctx, resourceGroupName, workflowName, runName, actionName, repetitionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "logic.WorkflowRunActionRepetitionsClient", "ListExpressionTraces", nil, "Failure preparing request")
@@ -240,8 +271,8 @@ func (client WorkflowRunActionRepetitionsClient) ListExpressionTracesPreparer(ct
 // ListExpressionTracesSender sends the ListExpressionTraces request. The method will close the
 // http.Response Body if it receives an error.
 func (client WorkflowRunActionRepetitionsClient) ListExpressionTracesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListExpressionTracesResponder handles the response to the ListExpressionTraces request. The method always

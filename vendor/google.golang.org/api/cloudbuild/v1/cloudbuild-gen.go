@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package cloudbuild provides access to the Cloud Build API.
 //
-// See https://cloud.google.com/cloud-build/docs/
+// For product documentation, see: https://cloud.google.com/cloud-build/docs/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/cloudbuild/v1"
 //   ...
-//   cloudbuildService, err := cloudbuild.New(oauthHttpClient)
+//   ctx := context.Background()
+//   cloudbuildService, err := cloudbuild.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   cloudbuildService, err := cloudbuild.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   cloudbuildService, err := cloudbuild.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package cloudbuild // import "google.golang.org/api/cloudbuild/v1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -797,6 +847,11 @@ type BuildTrigger struct {
 	// template.
 	Filename string `json:"filename,omitempty"`
 
+	// Github: GitHubEventsConfig describes the configuration of a trigger
+	// that creates
+	// a build whenever a GitHub event is received.
+	Github *GitHubEventsConfig `json:"github,omitempty"`
+
 	// Id: Output only. Unique identifier of the trigger.
 	Id string `json:"id,omitempty"`
 
@@ -831,6 +886,9 @@ type BuildTrigger struct {
 
 	// Substitutions: Substitutions data for Build resource.
 	Substitutions map[string]string `json:"substitutions,omitempty"`
+
+	// Tags: Tags for annotation of a `BuildTrigger`
+	Tags []string `json:"tags,omitempty"`
 
 	// TriggerTemplate: Template describing the types of source changes to
 	// trigger a build.
@@ -915,6 +973,12 @@ type CancelBuildRequest struct {
 type CancelOperationRequest struct {
 }
 
+// CheckSuiteFilter: A CheckSuiteFilter is a filter that indicates that
+// we should build on all
+// check suite events.
+type CheckSuiteFilter struct {
+}
+
 // Empty: A generic empty message that you can re-use to avoid defining
 // duplicated
 // empty messages in your APIs. A typical example is to use it as the
@@ -964,6 +1028,55 @@ func (s *FileHashes) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// GitHubEventsConfig: GitHubEventsConfig describes the configuration of
+// a trigger that creates a
+// build whenever a GitHub event is received.
+//
+// This message is experimental.
+type GitHubEventsConfig struct {
+	// CheckSuite: Output only. Indicates that a build was generated from a
+	// check suite
+	// event.
+	CheckSuite *CheckSuiteFilter `json:"checkSuite,omitempty"`
+
+	// InstallationId: The installationID that emmits the GitHub event.
+	InstallationId int64 `json:"installationId,omitempty,string"`
+
+	// Name: Name of the repository.
+	Name string `json:"name,omitempty"`
+
+	// Owner: Owner of the repository.
+	Owner string `json:"owner,omitempty"`
+
+	// PullRequest: filter to match changes in pull requests.
+	PullRequest *PullRequestFilter `json:"pullRequest,omitempty"`
+
+	// Push: filter to match changes in refs like branches, tags.
+	Push *PushFilter `json:"push,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "CheckSuite") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "CheckSuite") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *GitHubEventsConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GitHubEventsConfig
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Hash: Container message for hash values.
 type Hash struct {
 	// Type: The type of hash that was performed.
@@ -1003,6 +1116,9 @@ func (s *Hash) MarshalJSON() ([]byte, error) {
 // ListBuildTriggersResponse: Response containing existing
 // `BuildTriggers`.
 type ListBuildTriggersResponse struct {
+	// NextPageToken: Token to receive the next page of results.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
 	// Triggers: `BuildTriggers` for the project, sorted by `create_time`
 	// descending.
 	Triggers []*BuildTrigger `json:"triggers,omitempty"`
@@ -1011,7 +1127,7 @@ type ListBuildTriggersResponse struct {
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "Triggers") to
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -1019,10 +1135,10 @@ type ListBuildTriggersResponse struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Triggers") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
+	// NullFields is a list of field names (e.g. "NextPageToken") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
 	// This may be used to include null fields in Patch requests.
 	NullFields []string `json:"-"`
@@ -1134,7 +1250,8 @@ type Operation struct {
 	// service that
 	// originally returns it. If you use the default HTTP mapping,
 	// the
-	// `name` should have the format of `operations/some/unique/name`.
+	// `name` should be a resource name ending with
+	// `operations/{unique_id}`.
 	Name string `json:"name,omitempty"`
 
 	// Response: The normal response of the operation in case of success.
@@ -1177,6 +1294,92 @@ type Operation struct {
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PullRequestFilter: PullRequestFilter contains filter properties for
+// matching GitHub Pull
+// Requests.
+type PullRequestFilter struct {
+	// Branch: Regex of branches to match.
+	//
+	// The syntax of the regular expressions accepted is the syntax accepted
+	// by
+	// RE2 and described at https://github.com/google/re2/wiki/Syntax
+	Branch string `json:"branch,omitempty"`
+
+	// CommentControl: Whether to block builds on a "/gcbrun" comment from a
+	// repository owner or
+	// collaborator.
+	//
+	// Possible values:
+	//   "COMMENTS_DISABLED" - Do not require comments on Pull Requests
+	// before builds are triggered.
+	//   "COMMENTS_ENABLED" - Enforce that repository owners or
+	// collaborators must comment on Pull
+	// Requests before builds are triggered.
+	CommentControl string `json:"commentControl,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Branch") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Branch") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PullRequestFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod PullRequestFilter
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PushFilter: Push contains filter properties for matching GitHub git
+// pushes.
+type PushFilter struct {
+	// Branch: Regexes of branches to match.
+	//
+	// The syntax of the regular expressions accepted is the syntax accepted
+	// by
+	// RE2 and described at https://github.com/google/re2/wiki/Syntax
+	Branch string `json:"branch,omitempty"`
+
+	// Tag: Regexes of tags to match.
+	//
+	// The syntax of the regular expressions accepted is the syntax accepted
+	// by
+	// RE2 and described at https://github.com/google/re2/wiki/Syntax
+	Tag string `json:"tag,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Branch") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Branch") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PushFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod PushFilter
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1239,6 +1442,9 @@ type Results struct {
 	// ArtifactManifest: Path to the artifact manifest. Only populated when
 	// artifacts are uploaded.
 	ArtifactManifest string `json:"artifactManifest,omitempty"`
+
+	// ArtifactTiming: Time to push all non-container artifacts.
+	ArtifactTiming *TimeSpan `json:"artifactTiming,omitempty"`
 
 	// BuildStepImages: List of build step digests, in the order
 	// corresponding to build step
@@ -1373,9 +1579,9 @@ func (s *Source) MarshalJSON() ([]byte, error) {
 type SourceProvenance struct {
 	// FileHashes: Output only. Hash(es) of the build source, which can be
 	// used to verify that
-	// the originalsource integrity was maintained in the build. Note
+	// the original source integrity was maintained in the build. Note
 	// that
-	// `FileHashes` willonly be populated if `BuildOptions` has requested
+	// `FileHashes` will only be populated if `BuildOptions` has requested
 	// a
 	// `SourceProvenanceHash`.
 	//
@@ -1422,84 +1628,17 @@ func (s *SourceProvenance) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for different
-// programming environments, including REST APIs and RPC APIs. It is
-// used by
-// [gRPC](https://github.com/grpc). The error model is designed to
-// be:
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). Each `Status` message
+// contains
+// three pieces of data: error code, error message, and error
+// details.
 //
-// - Simple to use and understand for most users
-// - Flexible enough to meet unexpected needs
-//
-// # Overview
-//
-// The `Status` message contains three pieces of data: error code, error
-// message,
-// and error details. The error code should be an enum value
-// of
-// google.rpc.Code, but it may accept additional error codes if needed.
-// The
-// error message should be a developer-facing English message that
-// helps
-// developers *understand* and *resolve* the error. If a localized
-// user-facing
-// error message is needed, put the localized message in the error
-// details or
-// localize it in the client. The optional error details may contain
-// arbitrary
-// information about the error. There is a predefined set of error
-// detail types
-// in the package `google.rpc` that can be used for common error
-// conditions.
-//
-// # Language mapping
-//
-// The `Status` message is the logical representation of the error
-// model, but it
-// is not necessarily the actual wire format. When the `Status` message
-// is
-// exposed in different client libraries and different wire protocols,
-// it can be
-// mapped differently. For example, it will likely be mapped to some
-// exceptions
-// in Java, but more likely mapped to some error codes in C.
-//
-// # Other uses
-//
-// The error model and the `Status` message can be used in a variety
-// of
-// environments, either with or without APIs, to provide a
-// consistent developer experience across different
-// environments.
-//
-// Example uses of this error model include:
-//
-// - Partial errors. If a service needs to return partial errors to the
-// client,
-//     it may embed the `Status` in the normal response to indicate the
-// partial
-//     errors.
-//
-// - Workflow errors. A typical workflow has multiple steps. Each step
-// may
-//     have a `Status` message for error reporting.
-//
-// - Batch operations. If a client uses batch request and batch
-// response, the
-//     `Status` message should be used directly inside batch response,
-// one for
-//     each error sub-response.
-//
-// - Asynchronous operations. If an API call embeds asynchronous
-// operation
-//     results in its response, the status of those operations should
-// be
-//     represented directly using the `Status` message.
-//
-// - Logging. If some API errors are stored in logs, the message
-// `Status` could
-//     be used directly after any stripping needed for security/privacy
-// reasons.
+// You can find out more about this error model and how to work with it
+// in the
+// [API Design Guide](https://cloud.google.com/apis/design/errors).
 type Status struct {
 	// Code: The status code, which should be an enum value of
 	// google.rpc.Code.
@@ -3471,6 +3610,20 @@ func (r *ProjectsTriggersService) List(projectId string) *ProjectsTriggersListCa
 	return c
 }
 
+// PageSize sets the optional parameter "pageSize": Number of results to
+// return in the list.
+func (c *ProjectsTriggersListCall) PageSize(pageSize int64) *ProjectsTriggersListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": Token to provide
+// to skip to a particular spot in the list.
+func (c *ProjectsTriggersListCall) PageToken(pageToken string) *ProjectsTriggersListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
@@ -3577,6 +3730,17 @@ func (c *ProjectsTriggersListCall) Do(opts ...googleapi.CallOption) (*ListBuildT
 	//     "projectId"
 	//   ],
 	//   "parameters": {
+	//     "pageSize": {
+	//       "description": "Number of results to return in the list.",
+	//       "format": "int32",
+	//       "location": "query",
+	//       "type": "integer"
+	//     },
+	//     "pageToken": {
+	//       "description": "Token to provide to skip to a particular spot in the list.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
 	//     "projectId": {
 	//       "description": "ID of the project for which to list BuildTriggers.",
 	//       "location": "path",
@@ -3593,6 +3757,27 @@ func (c *ProjectsTriggersListCall) Do(opts ...googleapi.CallOption) (*ListBuildT
 	//   ]
 	// }
 
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsTriggersListCall) Pages(ctx context.Context, f func(*ListBuildTriggersResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
 }
 
 // method id "cloudbuild.projects.triggers.patch":

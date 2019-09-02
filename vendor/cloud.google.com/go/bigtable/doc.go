@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google Inc. All Rights Reserved.
+Copyright 2015 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ Package bigtable is an API to Google Cloud Bigtable.
 
 See https://cloud.google.com/bigtable/docs/ for general product documentation.
 
+See https://godoc.org/cloud.google.com/go for authentication, timeouts,
+connection pooling and similar aspects of this package.
+
+
 Setup and Credentials
 
 Use NewClient or NewAdminClient to create a client that can be used to access
@@ -31,7 +35,7 @@ is the simplest option. Those credentials will be used by default when NewClient
 
 To use alternate credentials, pass them to NewClient or NewAdminClient using option.WithTokenSource.
 For instance, you can use service account credentials by visiting
-https://cloud.google.com/console/project/MYPROJECT/apiui/credential,
+https://cloud.google.com/console/project/_/apiui/credential,
 creating a new OAuth "Client ID", storing the JSON key somewhere accessible, and writing
 	jsonKey, err := ioutil.ReadFile(pathToKeyFile)
 	...
@@ -112,7 +116,7 @@ const (
 
 // clientUserAgent identifies the version of this package.
 // It should be bumped upon significant changes only.
-const clientUserAgent = "cbt-go/20160628"
+const clientUserAgent = "cbt-go/20180601"
 
 // resourcePrefixHeader is the name of the metadata header used to indicate
 // the resource being operated on.
