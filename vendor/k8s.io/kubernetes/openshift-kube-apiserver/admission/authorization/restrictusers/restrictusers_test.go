@@ -1,6 +1,7 @@
 package restrictusers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -382,11 +383,12 @@ func TestAdmission(t *testing.T) {
 			tc.resource,
 			tc.subresource,
 			admission.Create,
+			nil,
 			false,
 			&user.DefaultInfo{},
 		)
 
-		err = plugin.(admission.ValidationInterface).Validate(attributes, nil)
+		err = plugin.(admission.ValidationInterface).Validate(context.TODO(), attributes, nil)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil:

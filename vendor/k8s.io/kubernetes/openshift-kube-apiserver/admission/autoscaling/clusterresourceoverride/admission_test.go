@@ -2,15 +2,13 @@ package clusterresourceoverride
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"reflect"
 	"testing"
 
 	"github.com/openshift/library-go/pkg/config/helpers"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride"
-	clusterresourceoverridev1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/validation"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +18,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride"
+	clusterresourceoverridev1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/v1"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/apis/clusterresourceoverride/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -329,18 +330,18 @@ func TestLimitRequestAdmission(t *testing.T) {
 				},
 			}
 			c.(*clusterResourceOverridePlugin).nsLister = fakeNamespaceLister(test.namespace)
-			attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, fakeUser())
+			attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, fakeUser())
 			clone := test.pod.DeepCopy()
-			if err = c.(admission.MutationInterface).Admit(attrs, nil); err != nil {
+			if err = c.(admission.MutationInterface).Admit(context.TODO(), attrs, nil); err != nil {
 				t.Fatalf("%s: admission controller returned error: %v", test.name, err)
 			}
-			if err = c.(admission.ValidationInterface).Validate(attrs, nil); err != nil {
+			if err = c.(admission.ValidationInterface).Validate(context.TODO(), attrs, nil); err != nil {
 				t.Fatalf("%s: admission controller returned error: %v", test.name, err)
 			}
 
 			if !reflect.DeepEqual(test.pod, clone) {
-				attrs := admission.NewAttributesRecord(clone, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, fakeUser())
-				if err = c.(admission.ValidationInterface).Validate(attrs, nil); err == nil {
+				attrs := admission.NewAttributesRecord(clone, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, fakeUser())
+				if err = c.(admission.ValidationInterface).Validate(context.TODO(), attrs, nil); err == nil {
 					t.Fatalf("%s: admission controller returned no error, but should", test.name)
 				}
 			}
