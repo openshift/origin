@@ -71,7 +71,6 @@ func getResourceByPath(oc *exutil.CLI, resourcetype string, name string, path st
 		if strings.Contains(errstring, "NotFound") {
 			return msg, nil
 		}
-
 		e2e.Failf("Can't get resource:%s", name)
 		return msg, err
 	}
