@@ -109,6 +109,7 @@ import:
   repo:    https://github.com/openshift/google-cadvisor.git
   version: openshift-4.3-cadvisor-v0.33.2
 # these need to match the kubelet
+# TODO(node): recheck these levels
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
   version: image-registry-3.11
