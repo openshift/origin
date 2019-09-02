@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubectl/util/templates"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
 
