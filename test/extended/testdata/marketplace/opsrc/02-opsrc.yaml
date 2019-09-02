@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${MARKETPLACE}"
+    labels:
+      opsrc-provider: "${LABEL}"
+  spec:
+    type: appregistry
+    endpoint: "https://quay.io/cnr"
+    registryNamespace: "${NAMESPACE}"
+    displayName: "${DISPLAYNAME}"
+    publisher: "${PUBLISHER}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: MARKETPLACE
+- name: LABEL
+- name: DISPLAYNAME
+- name: PUBLISHER

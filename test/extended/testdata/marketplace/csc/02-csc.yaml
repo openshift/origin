@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: csc-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: CatalogSourceConfig
+  metadata:
+    name: "${NAME}"
+    namespace: "${MARKETPLACE}"
+  spec:
+    targetNamespace: "${NAMESPACE}"
+    source: ""
+    packages: "${PACKAGES}"
+    csDisplayName: "${DISPLAYNAME}"
+    csPublisher: "${PUBLISHER}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: MARKETPLACE
+- name: PACKAGES
+- name: DISPLAYNAME
+- name: PUBLISHER
