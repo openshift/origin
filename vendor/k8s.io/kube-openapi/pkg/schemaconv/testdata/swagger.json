@@ -78578,6 +78578,12 @@
    },
    "io.k8s.api.apps.v1beta1.DeploymentStrategy": {
     "description": "DeploymentStrategy describes how to replace existing pods with new ones.",
+    "x-kubernetes-unions": [{
+     "discriminator": "type",
+     "fields-to-discriminateBy": {
+      "rollingUpdate": "RollingUpdate"
+     }
+    }],
     "properties": {
      "rollingUpdate": {
       "description": "Rolling update config params. Present only if DeploymentStrategyType = RollingUpdate.",
@@ -87522,6 +87528,37 @@
    },
    "io.k8s.api.core.v1.Volume": {
     "description": "Volume represents a named volume in a pod that may be accessed by any container in the pod.",
+    "x-kubernetes-unions": [{
+     "fields-to-discriminateBy": {
+      "awsElasticBlockStore": "AWSElasticBlockStore",
+      "azureDisk": "AzureDisk",
+      "azureFile": "AzureFile",
+      "cephfs": "CephFS",
+      "cinder": "Cinder",
+      "configMap": "ConfigMap",
+      "downwardAPI": "DownwardAPI",
+      "emptyDir": "EmptyDir",
+      "fc": "FC",
+      "flexVolume": "FlexVolume",
+      "flocker": "Flocker",
+      "gcePersistentDisk": "GCEPersistentDisk",
+      "gitRepo": "GitRepo",
+      "glusterfs": "Glusterfs",
+      "hostPath": "HostPath",
+      "iscsi": "ISCSI",
+      "nfs": "NFS",
+      "persistentVolumeClaim": "PersistentVolumeClaim",
+      "photonPersistentDisk": "PhotonPersistentDisk",
+      "portworxVolume": "PortworxVolume",
+      "projected": "Projected",
+      "quobyte": "Quobyte",
+      "rbd": "RBD",
+      "scaleIO": "ScaleIO",
+      "secret": "Secret",
+      "storageos": "StorageOS",
+      "vsphereVolume": "VsphereVolume"
+     }
+    }],
     "required": [
      "name"
     ],

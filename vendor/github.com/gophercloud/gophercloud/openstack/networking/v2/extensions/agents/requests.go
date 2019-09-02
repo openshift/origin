@@ -18,14 +18,14 @@ type ListOptsBuilder interface {
 // SortDir sets the direction, and is either `asc' or `desc'.
 // Marker and Limit are used for the pagination.
 type ListOpts struct {
-	ID               string `json:"id"`
-	AgentType        string `json:"agent_type"`
-	Alive            *bool  `json:"alive"`
-	AvailabilityZone string `json:"availability_zone"`
-	Binary           string `json:"binary"`
-	Description      string `json:"description"`
-	Host             string `json:"host"`
-	Topic            string `json:"topic"`
+	ID               string `q:"id"`
+	AgentType        string `q:"agent_type"`
+	Alive            *bool  `q:"alive"`
+	AvailabilityZone string `q:"availability_zone"`
+	Binary           string `q:"binary"`
+	Description      string `q:"description"`
+	Host             string `q:"host"`
+	Topic            string `q:"topic"`
 	Limit            int    `q:"limit"`
 	Marker           string `q:"marker"`
 	SortKey          string `q:"sort_key"`

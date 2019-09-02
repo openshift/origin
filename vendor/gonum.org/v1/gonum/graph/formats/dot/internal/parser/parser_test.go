@@ -11,8 +11,10 @@
 package parser_test
 
 import (
+	"archive/zip"
 	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"gonum.org/v1/gonum/graph/formats/dot"
@@ -83,6 +85,38 @@ func TestParseFile(t *testing.T) {
 		if got != want {
 			t.Errorf("%q: graph mismatch; expected `%s`, got `%s`", g.in, want, got)
 		}
+	}
+}
+
+func TestParseFuzz(t *testing.T) {
+	r, err := zip.OpenReader("../../fuzz/corpus.zip")
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Skip("no corpus")
+		}
+		t.Fatalf("failed to open corpus: %v", err)
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatalf("failed to open %q: %v", f.Name, err)
+		}
+		func() {
+			defer func() {
+				p := recover()
+				if p != nil {
+					t.Errorf("unexpected panic parsing %q: %v", f.Name, p)
+				}
+			}()
+
+			_, err = dot.Parse(rc)
+			if err != nil {
+				t.Errorf("unexpected error parsing %q: %v", f.Name, err)
+			}
+		}()
+		rc.Close()
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package firebaserules provides access to the Firebase Rules API.
 //
-// See https://firebase.google.com/docs/storage/security
+// For product documentation, see: https://firebase.google.com/docs/storage/security
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/firebaserules/v1"
 //   ...
-//   firebaserulesService, err := firebaserules.New(oauthHttpClient)
+//   ctx := context.Background()
+//   firebaserulesService, err := firebaserules.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   firebaserulesService, err := firebaserules.NewService(ctx, option.WithScopes(firebaserules.FirebaseReadonlyScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   firebaserulesService, err := firebaserules.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   firebaserulesService, err := firebaserules.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package firebaserules // import "google.golang.org/api/firebaserules/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -62,6 +90,34 @@ const (
 	FirebaseReadonlyScope = "https://www.googleapis.com/auth/firebase.readonly"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/firebase",
+		"https://www.googleapis.com/auth/firebase.readonly",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -835,9 +891,19 @@ type TestResult struct {
 	//   "FAILURE" - Test is a failure.
 	State string `json:"state,omitempty"`
 
-	// VisitedExpressions: The set of visited expressions for a given test.
-	// This returns positions
-	// and evaluation results of all visited expressions.
+	// VisitedExpressions: The set of visited permission expressions for a
+	// given test. This returns
+	// the positions and evaluation results of all visited
+	// permission
+	// expressions which were relevant to the test case, e.g.
+	// ```
+	// match /path {
+	//   allow read if: <expr>
+	// }
+	// ```
+	// For a detailed report of the intermediate evaluation states, see
+	// the
+	// `expression_reports` field
 	VisitedExpressions []*VisitedExpression `json:"visitedExpressions,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "DebugMessages") to
@@ -2682,7 +2748,7 @@ func (r *ProjectsRulesetsService) List(name string) *ProjectsRulesetsListCall {
 // parses strings that conform to the RFC 3339 date/time
 // specifications.
 //
-// Example: `create_time > date("2017-01-01") AND name=UUID-*`
+// Example: `create_time > date("2017-01-01T00:00:00Z") AND name=UUID-*`
 func (c *ProjectsRulesetsListCall) Filter(filter string) *ProjectsRulesetsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -2814,7 +2880,7 @@ func (c *ProjectsRulesetsListCall) Do(opts ...googleapi.CallOption) (*ListRulese
 	//   ],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "`Ruleset` filter. The list method supports filters with restrictions on\n`Ruleset.name`.\n\nFilters on `Ruleset.create_time` should use the `date` function which\nparses strings that conform to the RFC 3339 date/time specifications.\n\nExample: `create_time \u003e date(\"2017-01-01\") AND name=UUID-*`",
+	//       "description": "`Ruleset` filter. The list method supports filters with restrictions on\n`Ruleset.name`.\n\nFilters on `Ruleset.create_time` should use the `date` function which\nparses strings that conform to the RFC 3339 date/time specifications.\n\nExample: `create_time \u003e date(\"2017-01-01T00:00:00Z\") AND name=UUID-*`",
 	//       "location": "query",
 	//       "type": "string"
 	//     },

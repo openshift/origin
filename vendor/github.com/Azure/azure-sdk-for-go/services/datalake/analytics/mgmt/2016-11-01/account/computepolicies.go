@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,6 +50,16 @@ func NewComputePoliciesClientWithBaseURI(baseURI string, subscriptionID string) 
 // parameters - parameters supplied to create or update the compute policy. The max degree of parallelism per
 // job property, min priority per job property, or both must be present.
 func (client ComputePoliciesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, accountName string, computePolicyName string, parameters CreateOrUpdateComputePolicyParameters) (result ComputePolicy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputePoliciesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.CreateOrUpdateComputePolicyProperties", Name: validation.Null, Rule: true,
@@ -109,8 +120,8 @@ func (client ComputePoliciesClient) CreateOrUpdatePreparer(ctx context.Context, 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputePoliciesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -132,6 +143,16 @@ func (client ComputePoliciesClient) CreateOrUpdateResponder(resp *http.Response)
 // accountName - the name of the Data Lake Analytics account.
 // computePolicyName - the name of the compute policy to delete.
 func (client ComputePoliciesClient) Delete(ctx context.Context, resourceGroupName string, accountName string, computePolicyName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputePoliciesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, accountName, computePolicyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.ComputePoliciesClient", "Delete", nil, "Failure preparing request")
@@ -178,8 +199,8 @@ func (client ComputePoliciesClient) DeletePreparer(ctx context.Context, resource
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputePoliciesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -200,6 +221,16 @@ func (client ComputePoliciesClient) DeleteResponder(resp *http.Response) (result
 // accountName - the name of the Data Lake Analytics account.
 // computePolicyName - the name of the compute policy to retrieve.
 func (client ComputePoliciesClient) Get(ctx context.Context, resourceGroupName string, accountName string, computePolicyName string) (result ComputePolicy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputePoliciesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, accountName, computePolicyName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.ComputePoliciesClient", "Get", nil, "Failure preparing request")
@@ -246,8 +277,8 @@ func (client ComputePoliciesClient) GetPreparer(ctx context.Context, resourceGro
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputePoliciesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -269,6 +300,16 @@ func (client ComputePoliciesClient) GetResponder(resp *http.Response) (result Co
 // resourceGroupName - the name of the Azure resource group.
 // accountName - the name of the Data Lake Analytics account.
 func (client ComputePoliciesClient) ListByAccount(ctx context.Context, resourceGroupName string, accountName string) (result ComputePolicyListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputePoliciesClient.ListByAccount")
+		defer func() {
+			sc := -1
+			if result.cplr.Response.Response != nil {
+				sc = result.cplr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByAccountNextResults
 	req, err := client.ListByAccountPreparer(ctx, resourceGroupName, accountName)
 	if err != nil {
@@ -315,8 +356,8 @@ func (client ComputePoliciesClient) ListByAccountPreparer(ctx context.Context, r
 // ListByAccountSender sends the ListByAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputePoliciesClient) ListByAccountSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByAccountResponder handles the response to the ListByAccount request. The method always
@@ -333,8 +374,8 @@ func (client ComputePoliciesClient) ListByAccountResponder(resp *http.Response) 
 }
 
 // listByAccountNextResults retrieves the next set of results, if any.
-func (client ComputePoliciesClient) listByAccountNextResults(lastResults ComputePolicyListResult) (result ComputePolicyListResult, err error) {
-	req, err := lastResults.computePolicyListResultPreparer()
+func (client ComputePoliciesClient) listByAccountNextResults(ctx context.Context, lastResults ComputePolicyListResult) (result ComputePolicyListResult, err error) {
+	req, err := lastResults.computePolicyListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "account.ComputePoliciesClient", "listByAccountNextResults", nil, "Failure preparing next results request")
 	}
@@ -355,6 +396,16 @@ func (client ComputePoliciesClient) listByAccountNextResults(lastResults Compute
 
 // ListByAccountComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ComputePoliciesClient) ListByAccountComplete(ctx context.Context, resourceGroupName string, accountName string) (result ComputePolicyListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputePoliciesClient.ListByAccount")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByAccount(ctx, resourceGroupName, accountName)
 	return
 }
@@ -366,6 +417,16 @@ func (client ComputePoliciesClient) ListByAccountComplete(ctx context.Context, r
 // computePolicyName - the name of the compute policy to update.
 // parameters - parameters supplied to update the compute policy.
 func (client ComputePoliciesClient) Update(ctx context.Context, resourceGroupName string, accountName string, computePolicyName string, parameters *UpdateComputePolicyParameters) (result ComputePolicy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputePoliciesClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, accountName, computePolicyName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "account.ComputePoliciesClient", "Update", nil, "Failure preparing request")
@@ -417,8 +478,8 @@ func (client ComputePoliciesClient) UpdatePreparer(ctx context.Context, resource
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputePoliciesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

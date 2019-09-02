@@ -25,8 +25,6 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/kubernetes/pkg/controller/certificates/csrsuicider"
-
 	capi "k8s.io/api/certificates/v1beta1"
 	certificatesinformers "k8s.io/client-go/informers/certificates/v1beta1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -81,8 +79,6 @@ func newCFSSLSigner(caFile, caKeyFile string, client clientset.Interface, certif
 		return nil, fmt.Errorf("error parsing CA cert file %q: %v", caFile, err)
 	}
 
-	csrsuicider.StartingCertValues(csrsuicider.NewFile(caFile, ca), csrsuicider.NewFile(caKeyFile, cakey))
-
 	strPassword := os.Getenv("CFSSL_CA_PK_PASSWORD")
 	password := []byte(strPassword)
 	if strPassword == "" {
@@ -91,7 +87,7 @@ func newCFSSLSigner(caFile, caKeyFile string, client clientset.Interface, certif
 
 	priv, err := helpers.ParsePrivateKeyPEMWithPassword(cakey, password)
 	if err != nil {
-		return nil, fmt.Errorf("Malformed private key %v", err)
+		return nil, fmt.Errorf("malformed private key %v", err)
 	}
 	return &cfsslSigner{
 		priv:                priv,

@@ -17,10 +17,9 @@ limitations under the License.
 package guest
 
 import (
+	"context"
 	"flag"
 	"io"
-
-	"context"
 	"os"
 
 	"github.com/vmware/govmomi/govc/cli"

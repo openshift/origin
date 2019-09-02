@@ -26,7 +26,7 @@ import (
 
 // Reset random reader to original value
 func resetRandReader() {
-	randReader = rand.Reader
+	RandReader = rand.Reader
 }
 
 // Build big int from hex-encoded string. Strips whitespace (for testing).
@@ -63,6 +63,16 @@ func fromHexBytes(base16 string) []byte {
 func fromBase64Bytes(b64 string) []byte {
 	re := regexp.MustCompile(`\s+`)
 	val, err := base64.StdEncoding.DecodeString(re.ReplaceAllString(b64, ""))
+	if err != nil {
+		panic("Invalid test data")
+	}
+	return val
+}
+
+// Decode base64-urlencoded string into byte array. Strips whitespace (for testing).
+func fromBase64URLBytes(b64 string) []byte {
+	re := regexp.MustCompile(`\s+`)
+	val, err := base64.RawURLEncoding.DecodeString(re.ReplaceAllString(b64, ""))
 	if err != nil {
 		panic("Invalid test data")
 	}

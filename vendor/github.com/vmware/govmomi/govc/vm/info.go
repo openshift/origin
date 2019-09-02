@@ -17,6 +17,7 @@ limitations under the License.
 package vm
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -24,14 +25,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"context"
-
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
-
 	"github.com/vmware/govmomi/units"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"

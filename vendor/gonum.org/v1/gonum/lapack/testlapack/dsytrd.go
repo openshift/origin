@@ -124,7 +124,7 @@ func DsytrdTest(t *testing.T, impl Dsytrder) {
 						impl.Dorgqr(n-1, n-1, n-1, q.Data[q.Stride+1:], q.Stride, tau, work, len(work))
 					}
 				}
-				if !isOrthonormal(q) {
+				if !isOrthogonal(q) {
 					t.Errorf("%v: Q not orthogonal", prefix)
 				}
 

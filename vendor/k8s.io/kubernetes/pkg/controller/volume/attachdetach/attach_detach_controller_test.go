@@ -21,11 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
+	kcache "k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	controllervolumetesting "k8s.io/kubernetes/pkg/controller/volume/attachdetach/testing"
@@ -45,6 +46,7 @@ func Test_NewAttachDetachController_Positive(t *testing.T) {
 		informerFactory.Core().V1().PersistentVolumeClaims(),
 		informerFactory.Core().V1().PersistentVolumes(),
 		informerFactory.Storage().V1beta1().CSINodes(),
+		informerFactory.Storage().V1beta1().CSIDrivers(),
 		nil, /* cloud */
 		nil, /* plugins */
 		nil, /* prober */
@@ -178,7 +180,7 @@ func attachDetachRecoveryTestCase(t *testing.T, extraPods1 []*v1.Pod, extraPods2
 
 	informerFactory.Start(stopCh)
 
-	if !controller.WaitForCacheSync("attach detach", stopCh,
+	if !kcache.WaitForNamedCacheSync("attach detach", stopCh,
 		informerFactory.Core().V1().Pods().Informer().HasSynced,
 		informerFactory.Core().V1().Nodes().Informer().HasSynced) {
 		t.Fatalf("Error waiting for the informer caches to sync")
@@ -220,6 +222,7 @@ func attachDetachRecoveryTestCase(t *testing.T, extraPods1 []*v1.Pod, extraPods2
 		informerFactory.Core().V1().PersistentVolumeClaims(),
 		informerFactory.Core().V1().PersistentVolumes(),
 		informerFactory.Storage().V1beta1().CSINodes(),
+		informerFactory.Storage().V1beta1().CSIDrivers(),
 		nil, /* cloud */
 		plugins,
 		prober,

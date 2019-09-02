@@ -470,6 +470,7 @@ func CreateSecretWithPayload(t *testing.T, client *gophercloud.ServiceClient, pa
 
 	t.Logf("Attempting to create secret %s", secretName)
 
+	expiration := time.Date(2049, 1, 1, 1, 1, 1, 0, time.UTC)
 	createOpts := secrets.CreateOpts{
 		Algorithm:          "aes",
 		BitLength:          256,
@@ -478,6 +479,7 @@ func CreateSecretWithPayload(t *testing.T, client *gophercloud.ServiceClient, pa
 		Payload:            payload,
 		PayloadContentType: "text/plain",
 		SecretType:         secrets.OpaqueSecret,
+		Expiration:         &expiration,
 	}
 
 	secret, err := secrets.Create(client, createOpts).Extract()
@@ -501,6 +503,7 @@ func CreateSecretWithPayload(t *testing.T, client *gophercloud.ServiceClient, pa
 
 	th.AssertEquals(t, secret.Name, secretName)
 	th.AssertEquals(t, secret.Algorithm, "aes")
+	th.AssertEquals(t, secret.Expiration, expiration)
 
 	return secret, nil
 }

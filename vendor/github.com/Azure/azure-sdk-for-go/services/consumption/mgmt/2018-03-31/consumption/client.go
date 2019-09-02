@@ -24,6 +24,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -58,6 +59,16 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 // Parameters:
 // billingAccountID - billingAccount ID
 func (client BaseClient) GetBalancesByBillingAccount(ctx context.Context, billingAccountID string) (result Balance, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/BaseClient.GetBalancesByBillingAccount")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetBalancesByBillingAccountPreparer(ctx, billingAccountID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.BaseClient", "GetBalancesByBillingAccount", nil, "Failure preparing request")
@@ -101,8 +112,8 @@ func (client BaseClient) GetBalancesByBillingAccountPreparer(ctx context.Context
 // GetBalancesByBillingAccountSender sends the GetBalancesByBillingAccount request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetBalancesByBillingAccountSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBalancesByBillingAccountResponder handles the response to the GetBalancesByBillingAccount request. The method always

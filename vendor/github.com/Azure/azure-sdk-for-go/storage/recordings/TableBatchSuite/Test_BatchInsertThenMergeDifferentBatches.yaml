@@ -1,6 +1,5 @@
 ---
 version: 1
-rwmutex: {}
 interactions:
 - request:
     body: |
@@ -12,7 +11,7 @@ interactions:
       Accept-Charset:
       - UTF-8
       Authorization:
-      - SharedKey golangrocksonazure:+tQ0CHBBr8KqtfNJZ9ipZgZ9CxD0Cuof10snosZI2GY=
+      - SharedKey golangrocksonazure:dtcC3wSMuK4W9SYTiGjiH2R7zkevmJsRIdu8aCBqg40=
       Content-Length:
       - "49"
       Content-Type:
@@ -20,12 +19,12 @@ interactions:
       Prefer:
       - return-no-content
       User-Agent:
-      - Go/go1.9beta1 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31
+      - Go/go1.12.4 (amd64-windows) azure-storage-go/latest api-version/2018-03-28
         table
       x-ms-date:
-      - Thu, 20 Jul 2017 23:34:12 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       x-ms-version:
-      - 2016-05-31
+      - "2018-03-28"
     url: https://golangrocksonazure.table.core.windows.net/Tables?timeout=30
     method: POST
   response:
@@ -38,7 +37,7 @@ interactions:
       Dataserviceid:
       - https://golangrocksonazure.table.core.windows.net/Tables('table57tablebatchsuitetestbatchi')
       Date:
-      - Thu, 20 Jul 2017 23:34:11 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       Location:
       - https://golangrocksonazure.table.core.windows.net/Tables('table57tablebatchsuitetestbatchi')
       Preference-Applied:
@@ -48,99 +47,102 @@ interactions:
       X-Content-Type-Options:
       - nosniff
       X-Ms-Request-Id:
-      - 875b83a1-0002-0036-14b0-0102e5000000
+      - ac81104c-6002-0062-55a5-153a2a000000
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     status: 204 No Content
     code: 204
+    duration: ""
 - request:
-    body: "--batch_ef502eae-6da3-11e7-98b2-6c3be5272b75\r\nContent-Type: multipart/mixed;
-      boundary=changeset_ef502eae-6da3-11e7-98b1-6c3be5272b75\r\n\r\n\r\n--changeset_ef502eae-6da3-11e7-98b1-6c3be5272b75\r\nContent-Transfer-Encoding:
+    body: "--batch_b8457413-5546-4582-be6a-23ca5f95ef9e\r\nContent-Type: multipart/mixed;
+      boundary=changeset_73be3eec-8962-496e-a3ca-d5fd1d6cd971\r\n\r\n\r\n--changeset_73be3eec-8962-496e-a3ca-d5fd1d6cd971\r\nContent-Transfer-Encoding:
       binary\r\nContent-Type: application/http\r\n\r\nPUT https://golangrocksonazure.table.core.windows.net/table57tablebatchsuitetestbatchi%28PartitionKey=%27mypartitionkey%27,%20RowKey=%27myrowkey%27%29
       HTTP/1.1\r\nAccept: application/json;odata=minimalmetadata\r\nContent-Type:
-      application/json\r\nPrefer: return-no-content\r\n\r\n{\"AmountDue\":200.23,\"CustomerCode\":\"c9da6455-213d-42c9-9a79-3e9149a57833\",\"CustomerCode@odata.type\":\"Edm.Guid\",\"CustomerSince\":\"1992-12-20T21:55:00Z\",\"CustomerSince@odata.type\":\"Edm.DateTime\",\"IsActive\":true,\"NumberOfOrders\":\"255\",\"NumberOfOrders@odata.type\":\"Edm.Int64\",\"PartitionKey\":\"mypartitionkey\",\"RowKey\":\"myrowkey\"}\r\n--changeset_ef502eae-6da3-11e7-98b1-6c3be5272b75--\r\n\r\n--batch_ef502eae-6da3-11e7-98b2-6c3be5272b75--\r\n"
+      application/json\r\nPrefer: return-no-content\r\n\r\n{\"AmountDue\":\"200.23\",\"AmountDue@odata.type\":\"Edm.Double\",\"CustomerCode\":\"c9da6455-213d-42c9-9a79-3e9149a57833\",\"CustomerCode@odata.type\":\"Edm.Guid\",\"CustomerSince\":\"1992-12-20T21:55:00Z\",\"CustomerSince@odata.type\":\"Edm.DateTime\",\"IsActive\":true,\"NumberOfOrders\":\"255\",\"NumberOfOrders@odata.type\":\"Edm.Int64\",\"PartitionKey\":\"mypartitionkey\",\"RowKey\":\"myrowkey\"}\r\n--changeset_73be3eec-8962-496e-a3ca-d5fd1d6cd971--\r\n\r\n--batch_b8457413-5546-4582-be6a-23ca5f95ef9e--\r\n"
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:p4aDPSDWPtWHLxL0afiP2BTiTAzqqUJJsmo/+gH51VU=
+      - SharedKey golangrocksonazure:056vHDcvZppDdQPzbw75WDEucb6Xx6sVf2T2qumb8vQ=
       Content-Type:
-      - multipart/mixed; boundary=batch_ef502eae-6da3-11e7-98b2-6c3be5272b75
+      - multipart/mixed; boundary=batch_b8457413-5546-4582-be6a-23ca5f95ef9e
       User-Agent:
-      - Go/go1.9beta1 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31
+      - Go/go1.12.4 (amd64-windows) azure-storage-go/latest api-version/2018-03-28
         table
       X-Ms-Date:
-      - Thu, 20 Jul 2017 23:34:12 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     url: https://golangrocksonazure.table.core.windows.net/$batch
     method: POST
   response:
-    body: "--batchresponse_0092b400-1327-4adb-898f-f4d6e46c73ac\r\nContent-Type: multipart/mixed;
-      boundary=changesetresponse_5825ce38-5ad0-4180-ab9b-4a6a45daab73\r\n\r\n--changesetresponse_5825ce38-5ad0-4180-ab9b-4a6a45daab73\r\nContent-Type:
+    body: "--batchresponse_c1d3691c-db3d-438a-8afd-7e9fb8301118\r\nContent-Type: multipart/mixed;
+      boundary=changesetresponse_735ecae1-c44e-432e-906f-1a5c5b33285d\r\n\r\n--changesetresponse_735ecae1-c44e-432e-906f-1a5c5b33285d\r\nContent-Type:
       application/http\r\nContent-Transfer-Encoding: binary\r\n\r\nHTTP/1.1 204 No
       Content\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache\r\nPreference-Applied:
-      return-no-content\r\nDataServiceVersion: 3.0;\r\nETag: W/\"datetime'2017-07-20T23%3A34%3A11.5165989Z'\"\r\n\r\n\r\n--changesetresponse_5825ce38-5ad0-4180-ab9b-4a6a45daab73--\r\n--batchresponse_0092b400-1327-4adb-898f-f4d6e46c73ac--\r\n"
+      return-no-content\r\nDataServiceVersion: 3.0;\r\nETag: W/\"datetime'2019-05-28T22%3A36%3A11.5519983Z'\"\r\n\r\n\r\n--changesetresponse_735ecae1-c44e-432e-906f-1a5c5b33285d--\r\n--batchresponse_c1d3691c-db3d-438a-8afd-7e9fb8301118--\r\n"
     headers:
       Cache-Control:
       - no-cache
       Content-Type:
-      - multipart/mixed; boundary=batchresponse_0092b400-1327-4adb-898f-f4d6e46c73ac
+      - multipart/mixed; boundary=batchresponse_c1d3691c-db3d-438a-8afd-7e9fb8301118
       Date:
-      - Thu, 20 Jul 2017 23:34:11 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       Server:
       - Windows-Azure-Table/1.0 Microsoft-HTTPAPI/2.0
       X-Content-Type-Options:
       - nosniff
       X-Ms-Request-Id:
-      - 875b83a3-0002-0036-15b0-0102e5000000
+      - ac81104f-6002-0062-57a5-153a2a000000
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     status: 202 Accepted
     code: 202
+    duration: ""
 - request:
-    body: "--batch_ef522a6a-6da3-11e7-98b2-6c3be5272b75\r\nContent-Type: multipart/mixed;
-      boundary=changeset_ef520338-6da3-11e7-98b2-6c3be5272b75\r\n\r\n\r\n--changeset_ef520338-6da3-11e7-98b2-6c3be5272b75\r\nContent-Transfer-Encoding:
+    body: "--batch_1358b69e-0bc1-49e2-a22d-d91161d812cb\r\nContent-Type: multipart/mixed;
+      boundary=changeset_d5ad89eb-06a7-4d68-8a6b-7bbd1cc8e870\r\n\r\n\r\n--changeset_d5ad89eb-06a7-4d68-8a6b-7bbd1cc8e870\r\nContent-Transfer-Encoding:
       binary\r\nContent-Type: application/http\r\n\r\nPUT https://golangrocksonazure.table.core.windows.net/table57tablebatchsuitetestbatchi%28PartitionKey=%27mypartitionkey%27,%20RowKey=%27myrowkey%27%29
       HTTP/1.1\r\nAccept: application/json;odata=minimalmetadata\r\nContent-Type:
-      application/json\r\nPrefer: return-no-content\r\n\r\n{\"AmountDue\":200.23,\"CustomerCode\":\"c9da6455-213d-42c9-9a79-3e9149a57833\",\"CustomerCode@odata.type\":\"Edm.Guid\",\"CustomerSince\":\"1992-12-20T21:55:00Z\",\"CustomerSince@odata.type\":\"Edm.DateTime\",\"DifferentField\":123,\"NumberOfOrders\":\"255\",\"NumberOfOrders@odata.type\":\"Edm.Int64\",\"PartitionKey\":\"mypartitionkey\",\"RowKey\":\"myrowkey\"}\r\n--changeset_ef520338-6da3-11e7-98b2-6c3be5272b75--\r\n\r\n--batch_ef522a6a-6da3-11e7-98b2-6c3be5272b75--\r\n"
+      application/json\r\nPrefer: return-no-content\r\n\r\n{\"AmountDue\":\"200.23\",\"AmountDue@odata.type\":\"Edm.Double\",\"CustomerCode\":\"c9da6455-213d-42c9-9a79-3e9149a57833\",\"CustomerCode@odata.type\":\"Edm.Guid\",\"CustomerSince\":\"1992-12-20T21:55:00Z\",\"CustomerSince@odata.type\":\"Edm.DateTime\",\"DifferentField\":123,\"NumberOfOrders\":\"255\",\"NumberOfOrders@odata.type\":\"Edm.Int64\",\"PartitionKey\":\"mypartitionkey\",\"RowKey\":\"myrowkey\"}\r\n--changeset_d5ad89eb-06a7-4d68-8a6b-7bbd1cc8e870--\r\n\r\n--batch_1358b69e-0bc1-49e2-a22d-d91161d812cb--\r\n"
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:tNel1+I2hXiwPgAE4BX1cNQDJbzRL4box0r2zilI/W0=
+      - SharedKey golangrocksonazure:MU6sBlXVwQsGmO9sukCgpZyEhCbFUmeZ7G1RZv6TZv0=
       Content-Type:
-      - multipart/mixed; boundary=batch_ef522a6a-6da3-11e7-98b2-6c3be5272b75
+      - multipart/mixed; boundary=batch_1358b69e-0bc1-49e2-a22d-d91161d812cb
       User-Agent:
-      - Go/go1.9beta1 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31
+      - Go/go1.12.4 (amd64-windows) azure-storage-go/latest api-version/2018-03-28
         table
       X-Ms-Date:
-      - Thu, 20 Jul 2017 23:34:12 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     url: https://golangrocksonazure.table.core.windows.net/$batch
     method: POST
   response:
-    body: "--batchresponse_f49b1e9e-5cfc-4fd2-9e82-1a380a311169\r\nContent-Type: multipart/mixed;
-      boundary=changesetresponse_7f7984b9-5bac-401f-af1a-2636add0a36f\r\n\r\n--changesetresponse_7f7984b9-5bac-401f-af1a-2636add0a36f\r\nContent-Type:
+    body: "--batchresponse_4433e6e0-8b1f-49d5-b4f4-caafb829408f\r\nContent-Type: multipart/mixed;
+      boundary=changesetresponse_70adb7bc-0b10-4b71-a379-9b7149e4722e\r\n\r\n--changesetresponse_70adb7bc-0b10-4b71-a379-9b7149e4722e\r\nContent-Type:
       application/http\r\nContent-Transfer-Encoding: binary\r\n\r\nHTTP/1.1 204 No
       Content\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache\r\nPreference-Applied:
-      return-no-content\r\nDataServiceVersion: 3.0;\r\nETag: W/\"datetime'2017-07-20T23%3A34%3A11.5276068Z'\"\r\n\r\n\r\n--changesetresponse_7f7984b9-5bac-401f-af1a-2636add0a36f--\r\n--batchresponse_f49b1e9e-5cfc-4fd2-9e82-1a380a311169--\r\n"
+      return-no-content\r\nDataServiceVersion: 3.0;\r\nETag: W/\"datetime'2019-05-28T22%3A36%3A11.5660082Z'\"\r\n\r\n\r\n--changesetresponse_70adb7bc-0b10-4b71-a379-9b7149e4722e--\r\n--batchresponse_4433e6e0-8b1f-49d5-b4f4-caafb829408f--\r\n"
     headers:
       Cache-Control:
       - no-cache
       Content-Type:
-      - multipart/mixed; boundary=batchresponse_f49b1e9e-5cfc-4fd2-9e82-1a380a311169
+      - multipart/mixed; boundary=batchresponse_4433e6e0-8b1f-49d5-b4f4-caafb829408f
       Date:
-      - Thu, 20 Jul 2017 23:34:11 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       Server:
       - Windows-Azure-Table/1.0 Microsoft-HTTPAPI/2.0
       X-Content-Type-Options:
       - nosniff
       X-Ms-Request-Id:
-      - 875b83a4-0002-0036-16b0-0102e5000000
+      - ac811052-6002-0062-5aa5-153a2a000000
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     status: 202 Accepted
     code: 202
+    duration: ""
 - request:
     body: ""
     form: {}
@@ -148,35 +150,36 @@ interactions:
       Accept:
       - application/json;odata=fullmetadata
       Authorization:
-      - SharedKey golangrocksonazure:91TdtgFChPr0gK/hnB5RCDztq97MUR2YuMLGqTbHZQE=
+      - SharedKey golangrocksonazure:31nO9f4UinEeX7wreYpiYjmOijL3lAsarQBIYRlTcFs=
       User-Agent:
-      - Go/go1.9beta1 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31
+      - Go/go1.12.4 (amd64-windows) azure-storage-go/latest api-version/2018-03-28
         table
       x-ms-date:
-      - Thu, 20 Jul 2017 23:34:12 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       x-ms-version:
-      - 2016-05-31
+      - "2018-03-28"
     url: https://golangrocksonazure.table.core.windows.net/table57tablebatchsuitetestbatchi?%24top=2&timeout=30
     method: GET
   response:
-    body: '{"odata.metadata":"https://golangrocksonazure.table.core.windows.net/$metadata#table57tablebatchsuitetestbatchi","value":[{"odata.type":"golangrocksonazure.table57tablebatchsuitetestbatchi","odata.id":"https://golangrocksonazure.table.core.windows.net/table57tablebatchsuitetestbatchi(PartitionKey=''mypartitionkey'',RowKey=''myrowkey'')","odata.etag":"W/\"datetime''2017-07-20T23%3A34%3A11.5276068Z''\"","odata.editLink":"table57tablebatchsuitetestbatchi(PartitionKey=''mypartitionkey'',RowKey=''myrowkey'')","PartitionKey":"mypartitionkey","RowKey":"myrowkey","Timestamp@odata.type":"Edm.DateTime","Timestamp":"2017-07-20T23:34:11.5276068Z","AmountDue":200.23,"CustomerCode@odata.type":"Edm.Guid","CustomerCode":"c9da6455-213d-42c9-9a79-3e9149a57833","CustomerSince@odata.type":"Edm.DateTime","CustomerSince":"1992-12-20T21:55:00Z","DifferentField":123,"NumberOfOrders@odata.type":"Edm.Int64","NumberOfOrders":"255"}]}'
+    body: '{"odata.metadata":"https://golangrocksonazure.table.core.windows.net/$metadata#table57tablebatchsuitetestbatchi","value":[{"odata.type":"golangrocksonazure.table57tablebatchsuitetestbatchi","odata.id":"https://golangrocksonazure.table.core.windows.net/table57tablebatchsuitetestbatchi(PartitionKey=''mypartitionkey'',RowKey=''myrowkey'')","odata.etag":"W/\"datetime''2019-05-28T22%3A36%3A11.5660082Z''\"","odata.editLink":"table57tablebatchsuitetestbatchi(PartitionKey=''mypartitionkey'',RowKey=''myrowkey'')","PartitionKey":"mypartitionkey","RowKey":"myrowkey","Timestamp@odata.type":"Edm.DateTime","Timestamp":"2019-05-28T22:36:11.5660082Z","AmountDue":200.23,"CustomerCode@odata.type":"Edm.Guid","CustomerCode":"c9da6455-213d-42c9-9a79-3e9149a57833","CustomerSince@odata.type":"Edm.DateTime","CustomerSince":"1992-12-20T21:55:00Z","DifferentField":123,"NumberOfOrders@odata.type":"Edm.Int64","NumberOfOrders":"255"}]}'
     headers:
       Cache-Control:
       - no-cache
       Content-Type:
       - application/json;odata=fullmetadata;streaming=true;charset=utf-8
       Date:
-      - Thu, 20 Jul 2017 23:34:11 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       Server:
       - Windows-Azure-Table/1.0 Microsoft-HTTPAPI/2.0
       X-Content-Type-Options:
       - nosniff
       X-Ms-Request-Id:
-      - 875b83a5-0002-0036-17b0-0102e5000000
+      - ac811054-6002-0062-5ca5-153a2a000000
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     status: 200 OK
     code: 200
+    duration: ""
 - request:
     body: ""
     form: {}
@@ -184,16 +187,16 @@ interactions:
       Accept:
       - application/json;odata=nometadata
       Authorization:
-      - SharedKey golangrocksonazure:9wdQsmwPzbYol+61CfE3hgAHLI+vtwG4PMjZ6VoMtZk=
+      - SharedKey golangrocksonazure:vaAZbSkPX1FUePXMSwm4ByX+VXrRu9qKp/NQMnjtGf0=
       Prefer:
       - return-no-content
       User-Agent:
-      - Go/go1.9beta1 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31
+      - Go/go1.12.4 (amd64-windows) azure-storage-go/latest api-version/2018-03-28
         table
       x-ms-date:
-      - Thu, 20 Jul 2017 23:34:12 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       x-ms-version:
-      - 2016-05-31
+      - "2018-03-28"
     url: https://golangrocksonazure.table.core.windows.net/Tables%28%27table57tablebatchsuitetestbatchi%27%29?timeout=30
     method: DELETE
   response:
@@ -204,14 +207,15 @@ interactions:
       Content-Length:
       - "0"
       Date:
-      - Thu, 20 Jul 2017 23:34:11 GMT
+      - Tue, 28 May 2019 22:36:11 GMT
       Server:
       - Windows-Azure-Table/1.0 Microsoft-HTTPAPI/2.0
       X-Content-Type-Options:
       - nosniff
       X-Ms-Request-Id:
-      - 875b83a6-0002-0036-18b0-0102e5000000
+      - ac811056-6002-0062-5ea5-153a2a000000
       X-Ms-Version:
-      - 2016-05-31
+      - "2018-03-28"
     status: 204 No Content
     code: 204
+    duration: ""

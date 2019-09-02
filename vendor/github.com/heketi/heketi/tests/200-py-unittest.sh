@@ -38,17 +38,23 @@ if ! command -v tox &>/dev/null; then
 fi
 
 TOXENVS="py27"
-if command -v python3.5 &>/dev/null; then
-	TOXENVS="${TOXENVS},py35"
-	if command -v pyenv &>/dev/null; then
-		pyenv global system 3.5
+
+for v in "3.5" "3.6" "3.7"; do
+	vflat="${v/.}"
+	if command -v python"$v" &>/dev/null; then
+		if command -v pyenv &>/dev/null; then
+			if pyenv global system "$v"; then
+				TOXENVS="${TOXENVS},py${vflat}"
+			fi
+		else
+			TOXENVS="${TOXENVS},py${vflat}"
+		fi
 	fi
-fi
-if command -v python3.6 &>/dev/null; then
-	TOXENVS="${TOXENVS},py36"
-	if command -v pyenv &>/dev/null; then
-		pyenv global system 3.6
-	fi
+done
+
+if ! echo "${TOXENVS}" | grep -q py3 ; then
+	echo "error: no python3 environment found. Python 3 is required."
+	exit 1
 fi
 
 require_server

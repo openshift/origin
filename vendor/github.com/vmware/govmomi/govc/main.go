@@ -19,15 +19,15 @@ package main
 import (
 	"os"
 
-	"github.com/vmware/govmomi/govc/cli"
-
 	_ "github.com/vmware/govmomi/govc/about"
+	"github.com/vmware/govmomi/govc/cli"
 	_ "github.com/vmware/govmomi/govc/cluster"
 	_ "github.com/vmware/govmomi/govc/cluster/group"
 	_ "github.com/vmware/govmomi/govc/cluster/override"
 	_ "github.com/vmware/govmomi/govc/cluster/rule"
 	_ "github.com/vmware/govmomi/govc/datacenter"
 	_ "github.com/vmware/govmomi/govc/datastore"
+	_ "github.com/vmware/govmomi/govc/datastore/cluster"
 	_ "github.com/vmware/govmomi/govc/datastore/disk"
 	_ "github.com/vmware/govmomi/govc/datastore/vsan"
 	_ "github.com/vmware/govmomi/govc/device"
@@ -36,6 +36,8 @@ import (
 	_ "github.com/vmware/govmomi/govc/device/scsi"
 	_ "github.com/vmware/govmomi/govc/device/serial"
 	_ "github.com/vmware/govmomi/govc/device/usb"
+	_ "github.com/vmware/govmomi/govc/disk"
+	_ "github.com/vmware/govmomi/govc/disk/snapshot"
 	_ "github.com/vmware/govmomi/govc/dvs"
 	_ "github.com/vmware/govmomi/govc/dvs/portgroup"
 	_ "github.com/vmware/govmomi/govc/env"
@@ -82,6 +84,7 @@ import (
 	_ "github.com/vmware/govmomi/govc/vm/disk"
 	_ "github.com/vmware/govmomi/govc/vm/guest"
 	_ "github.com/vmware/govmomi/govc/vm/network"
+	_ "github.com/vmware/govmomi/govc/vm/option"
 	_ "github.com/vmware/govmomi/govc/vm/rdm"
 	_ "github.com/vmware/govmomi/govc/vm/snapshot"
 )

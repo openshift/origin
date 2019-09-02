@@ -92,7 +92,7 @@ func (in *ServiceCertSignerOperatorConfig) DeepCopyObject() runtime.Object {
 func (in *ServiceCertSignerOperatorConfigList) DeepCopyInto(out *ServiceCertSignerOperatorConfigList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ServiceCertSignerOperatorConfig, len(*in))

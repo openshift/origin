@@ -23,7 +23,7 @@ import (
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/clock"
@@ -85,6 +85,7 @@ func TestRunOnce(t *testing.T) {
 		hostname:         testKubeletHostname,
 		nodeName:         testKubeletHostname,
 		runtimeState:     newRuntimeState(time.Second),
+		hostutil:         &mount.FakeHostUtil{},
 	}
 	kb.containerManager = cm.NewStubContainerManager()
 
@@ -103,10 +104,12 @@ func TestRunOnce(t *testing.T) {
 		kb.volumePluginMgr,
 		fakeRuntime,
 		kb.mounter,
+		kb.hostutil,
 		kb.getPodsDir(),
 		kb.recorder,
 		false, /* experimentalCheckNodeCapabilitiesBeforeMount */
-		false /* keepTerminatedPodVolumes */)
+		false, /* keepTerminatedPodVolumes */
+		volumetest.NewBlockVolumePathHandler())
 
 	// TODO: Factor out "StatsProvider" from Kubelet so we don't have a cyclic dependency
 	volumeStatsAggPeriod := time.Second * 10

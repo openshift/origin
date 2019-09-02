@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewUserAssignedIdentitiesClientWithBaseURI(baseURI string, subscriptionID s
 // resourceName - the name of the identity resource.
 // parameters - parameters to create or update the identity
 func (client UserAssignedIdentitiesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, resourceName string, parameters Identity) (result Identity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, resourceName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "msi.UserAssignedIdentitiesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -79,6 +90,9 @@ func (client UserAssignedIdentitiesClient) CreateOrUpdatePreparer(ctx context.Co
 		"api-version": APIVersion,
 	}
 
+	parameters.ID = nil
+	parameters.Name = nil
+	parameters.Type = ""
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -92,8 +106,8 @@ func (client UserAssignedIdentitiesClient) CreateOrUpdatePreparer(ctx context.Co
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserAssignedIdentitiesClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -114,6 +128,16 @@ func (client UserAssignedIdentitiesClient) CreateOrUpdateResponder(resp *http.Re
 // resourceGroupName - the name of the Resource Group to which the identity belongs.
 // resourceName - the name of the identity resource.
 func (client UserAssignedIdentitiesClient) Delete(ctx context.Context, resourceGroupName string, resourceName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, resourceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "msi.UserAssignedIdentitiesClient", "Delete", nil, "Failure preparing request")
@@ -159,8 +183,8 @@ func (client UserAssignedIdentitiesClient) DeletePreparer(ctx context.Context, r
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserAssignedIdentitiesClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -180,6 +204,16 @@ func (client UserAssignedIdentitiesClient) DeleteResponder(resp *http.Response) 
 // resourceGroupName - the name of the Resource Group to which the identity belongs.
 // resourceName - the name of the identity resource.
 func (client UserAssignedIdentitiesClient) Get(ctx context.Context, resourceGroupName string, resourceName string) (result Identity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, resourceName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "msi.UserAssignedIdentitiesClient", "Get", nil, "Failure preparing request")
@@ -225,8 +259,8 @@ func (client UserAssignedIdentitiesClient) GetPreparer(ctx context.Context, reso
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserAssignedIdentitiesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -246,6 +280,16 @@ func (client UserAssignedIdentitiesClient) GetResponder(resp *http.Response) (re
 // Parameters:
 // resourceGroupName - the name of the Resource Group to which the identity belongs.
 func (client UserAssignedIdentitiesClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result UserAssignedIdentitiesListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.uailr.Response.Response != nil {
+				sc = result.uailr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -291,8 +335,8 @@ func (client UserAssignedIdentitiesClient) ListByResourceGroupPreparer(ctx conte
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserAssignedIdentitiesClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -309,8 +353,8 @@ func (client UserAssignedIdentitiesClient) ListByResourceGroupResponder(resp *ht
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client UserAssignedIdentitiesClient) listByResourceGroupNextResults(lastResults UserAssignedIdentitiesListResult) (result UserAssignedIdentitiesListResult, err error) {
-	req, err := lastResults.userAssignedIdentitiesListResultPreparer()
+func (client UserAssignedIdentitiesClient) listByResourceGroupNextResults(ctx context.Context, lastResults UserAssignedIdentitiesListResult) (result UserAssignedIdentitiesListResult, err error) {
+	req, err := lastResults.userAssignedIdentitiesListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "msi.UserAssignedIdentitiesClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -331,12 +375,32 @@ func (client UserAssignedIdentitiesClient) listByResourceGroupNextResults(lastRe
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client UserAssignedIdentitiesClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result UserAssignedIdentitiesListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
 
 // ListBySubscription lists all the userAssignedIdentities available under the specified subscription.
 func (client UserAssignedIdentitiesClient) ListBySubscription(ctx context.Context) (result UserAssignedIdentitiesListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.uailr.Response.Response != nil {
+				sc = result.uailr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx)
 	if err != nil {
@@ -381,8 +445,8 @@ func (client UserAssignedIdentitiesClient) ListBySubscriptionPreparer(ctx contex
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserAssignedIdentitiesClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -399,8 +463,8 @@ func (client UserAssignedIdentitiesClient) ListBySubscriptionResponder(resp *htt
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client UserAssignedIdentitiesClient) listBySubscriptionNextResults(lastResults UserAssignedIdentitiesListResult) (result UserAssignedIdentitiesListResult, err error) {
-	req, err := lastResults.userAssignedIdentitiesListResultPreparer()
+func (client UserAssignedIdentitiesClient) listBySubscriptionNextResults(ctx context.Context, lastResults UserAssignedIdentitiesListResult) (result UserAssignedIdentitiesListResult, err error) {
+	req, err := lastResults.userAssignedIdentitiesListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "msi.UserAssignedIdentitiesClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -421,6 +485,16 @@ func (client UserAssignedIdentitiesClient) listBySubscriptionNextResults(lastRes
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client UserAssignedIdentitiesClient) ListBySubscriptionComplete(ctx context.Context) (result UserAssignedIdentitiesListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySubscription(ctx)
 	return
 }
@@ -431,6 +505,16 @@ func (client UserAssignedIdentitiesClient) ListBySubscriptionComplete(ctx contex
 // resourceName - the name of the identity resource.
 // parameters - parameters to update the identity
 func (client UserAssignedIdentitiesClient) Update(ctx context.Context, resourceGroupName string, resourceName string, parameters Identity) (result Identity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserAssignedIdentitiesClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, resourceName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "msi.UserAssignedIdentitiesClient", "Update", nil, "Failure preparing request")
@@ -465,6 +549,9 @@ func (client UserAssignedIdentitiesClient) UpdatePreparer(ctx context.Context, r
 		"api-version": APIVersion,
 	}
 
+	parameters.ID = nil
+	parameters.Name = nil
+	parameters.Type = ""
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
@@ -478,8 +565,8 @@ func (client UserAssignedIdentitiesClient) UpdatePreparer(ctx context.Context, r
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserAssignedIdentitiesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

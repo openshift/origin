@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net"
 	"path/filepath"
+	"runtime"
 	"sync"
 
 	"github.com/containernetworking/cni/pkg/types"
@@ -61,6 +62,9 @@ func (e Example) Build() (string, error) {
 	}
 
 	outBinPath := filepath.Join(buildDir, e.Name)
+	if runtime.GOOS == "windows" {
+		outBinPath += ".exe"
+	}
 
 	if err := testhelpers.BuildAt([]byte(e.PluginSource), e.CNIRepoGitRef, outBinPath); err != nil {
 		return "", err

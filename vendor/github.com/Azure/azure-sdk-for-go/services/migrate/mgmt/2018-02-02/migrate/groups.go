@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -52,6 +53,16 @@ func NewGroupsClientWithBaseURI(baseURI string, subscriptionID string, acceptLan
 // groupName - unique name of a group within a project.
 // group - new or Updated Group object.
 func (client GroupsClient) Create(ctx context.Context, resourceGroupName string, projectName string, groupName string, group *Group) (result Group, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/GroupsClient.Create")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: group,
 			Constraints: []validation.Constraint{{Target: "group", Name: validation.Null, Rule: false,
@@ -96,6 +107,9 @@ func (client GroupsClient) CreatePreparer(ctx context.Context, resourceGroupName
 		"api-version": APIVersion,
 	}
 
+	group.ID = nil
+	group.Name = nil
+	group.Type = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -116,8 +130,8 @@ func (client GroupsClient) CreatePreparer(ctx context.Context, resourceGroupName
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client GroupsClient) CreateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -143,6 +157,16 @@ func (client GroupsClient) CreateResponder(resp *http.Response) (result Group, e
 // projectName - name of the Azure Migrate project.
 // groupName - unique name of a group within a project.
 func (client GroupsClient) Delete(ctx context.Context, resourceGroupName string, projectName string, groupName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/GroupsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, projectName, groupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.GroupsClient", "Delete", nil, "Failure preparing request")
@@ -193,8 +217,8 @@ func (client GroupsClient) DeletePreparer(ctx context.Context, resourceGroupName
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client GroupsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -216,6 +240,16 @@ func (client GroupsClient) DeleteResponder(resp *http.Response) (result autorest
 // projectName - name of the Azure Migrate project.
 // groupName - unique name of a group within a project.
 func (client GroupsClient) Get(ctx context.Context, resourceGroupName string, projectName string, groupName string) (result Group, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/GroupsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, projectName, groupName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.GroupsClient", "Get", nil, "Failure preparing request")
@@ -266,8 +300,8 @@ func (client GroupsClient) GetPreparer(ctx context.Context, resourceGroupName st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client GroupsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -289,6 +323,16 @@ func (client GroupsClient) GetResponder(resp *http.Response) (result Group, err 
 // resourceGroupName - name of the Azure Resource Group that project is part of.
 // projectName - name of the Azure Migrate project.
 func (client GroupsClient) ListByProject(ctx context.Context, resourceGroupName string, projectName string) (result GroupResultList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/GroupsClient.ListByProject")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListByProjectPreparer(ctx, resourceGroupName, projectName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "migrate.GroupsClient", "ListByProject", nil, "Failure preparing request")
@@ -338,8 +382,8 @@ func (client GroupsClient) ListByProjectPreparer(ctx context.Context, resourceGr
 // ListByProjectSender sends the ListByProject request. The method will close the
 // http.Response Body if it receives an error.
 func (client GroupsClient) ListByProjectSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByProjectResponder handles the response to the ListByProject request. The method always

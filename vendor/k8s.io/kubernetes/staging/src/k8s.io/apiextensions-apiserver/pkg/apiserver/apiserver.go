@@ -24,15 +24,16 @@ import (
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	_ "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset"
 	_ "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
-	_ "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	internalinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	"k8s.io/apiextensions-apiserver/pkg/controller/apiapproval"
 	"k8s.io/apiextensions-apiserver/pkg/controller/establish"
 	"k8s.io/apiextensions-apiserver/pkg/controller/finalizer"
+	"k8s.io/apiextensions-apiserver/pkg/controller/nonstructuralschema"
 	openapicontroller "k8s.io/apiextensions-apiserver/pkg/controller/openapi"
 	"k8s.io/apiextensions-apiserver/pkg/controller/status"
 	apiextensionsfeatures "k8s.io/apiextensions-apiserver/pkg/features"
@@ -151,7 +152,16 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		storage["customresourcedefinitions"] = customResourceDefintionStorage
 		storage["customresourcedefinitions/status"] = customresourcedefinition.NewStatusREST(Scheme, customResourceDefintionStorage)
 
-		apiGroupInfo.VersionedResourcesStorageMap["v1beta1"] = storage
+		apiGroupInfo.VersionedResourcesStorageMap[v1beta1.SchemeGroupVersion.Version] = storage
+	}
+	if apiResourceConfig.VersionEnabled(v1.SchemeGroupVersion) {
+		storage := map[string]rest.Storage{}
+		// customresourcedefinitions
+		customResourceDefintionStorage := customresourcedefinition.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter)
+		storage["customresourcedefinitions"] = customResourceDefintionStorage
+		storage["customresourcedefinitions/status"] = customresourcedefinition.NewStatusREST(Scheme, customResourceDefintionStorage)
+
+		apiGroupInfo.VersionedResourcesStorageMap[v1.SchemeGroupVersion.Version] = storage
 	}
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
@@ -193,6 +203,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		c.ExtraConfig.MasterCount,
 		s.GenericAPIServer.Authorizer,
 		c.GenericConfig.RequestTimeout,
+		time.Duration(c.GenericConfig.MinRequestTimeout)*time.Second,
 	)
 	if err != nil {
 		return nil, err
@@ -202,6 +213,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 
 	crdController := NewDiscoveryController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(), versionDiscoveryHandler, groupDiscoveryHandler)
 	namingController := status.NewNamingConditionController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(), crdClient.Apiextensions())
+	nonStructuralSchemaController := nonstructuralschema.NewConditionController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(), crdClient.Apiextensions())
 	apiApprovalController := apiapproval.NewKubernetesAPIApprovalPolicyConformantConditionController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(), crdClient.Apiextensions())
 	finalizingController := finalizer.NewCRDFinalizer(
 		s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
@@ -218,13 +230,18 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHookOrDie("start-apiextensions-controllers", func(context genericapiserver.PostStartHookContext) error {
-		if utilfeature.DefaultFeatureGate.Enabled(apiextensionsfeatures.CustomResourcePublishOpenAPI) {
+		// OpenAPIVersionedService and StaticOpenAPISpec are populated in generic apiserver PrepareRun().
+		// Together they serve the /openapi/v2 endpoint on a generic apiserver. A generic apiserver may
+		// choose to not enable OpenAPI by having null openAPIConfig, and thus OpenAPIVersionedService
+		// and StaticOpenAPISpec are both null. In that case we don't run the CRD OpenAPI controller.
+		if utilfeature.DefaultFeatureGate.Enabled(apiextensionsfeatures.CustomResourcePublishOpenAPI) && s.GenericAPIServer.OpenAPIVersionedService != nil && s.GenericAPIServer.StaticOpenAPISpec != nil {
 			go openapiController.Run(s.GenericAPIServer.StaticOpenAPISpec, s.GenericAPIServer.OpenAPIVersionedService, context.StopCh)
 		}
 
 		go crdController.Run(context.StopCh)
 		go namingController.Run(context.StopCh)
 		go establishingController.Run(context.StopCh)
+		go nonStructuralSchemaController.Run(5, context.StopCh)
 		go apiApprovalController.Run(5, context.StopCh)
 		go finalizingController.Run(5, context.StopCh)
 		return nil
@@ -308,6 +325,7 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	// NOTE: GroupVersions listed here will be enabled by default. Don't put alpha versions in the list.
 	ret.EnableVersions(
 		v1beta1.SchemeGroupVersion,
+		v1.SchemeGroupVersion,
 	)
 
 	return ret

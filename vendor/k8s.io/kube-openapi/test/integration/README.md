@@ -18,7 +18,12 @@ to print API rule violations to the file, the generator will return error to std
 on API rule violations.
 
 ```bash
-$ go run ../../cmd/openapi-gen/openapi-gen.go -i "k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/dummytype" -o pkg -p generated -O openapi_generated -r ./testdata/golden.report
+$ go run ../../cmd/openapi-gen/openapi-gen.go \
+  -i "k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype" \
+  -o pkg \
+  -p generated \
+  -O openapi_generated \
+  -r ./testdata/golden.report
 ```
 The generated file `pkg/generated/openapi_generated.go` should have been created.
 

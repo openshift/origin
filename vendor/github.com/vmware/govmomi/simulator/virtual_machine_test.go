@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"testing"
 
@@ -608,8 +609,21 @@ func TestCreateVmWithDevices(t *testing.T) {
 			Backing: new(types.VirtualDiskFlatVer2BackingInfo), // Leave fields empty to test defaults
 		},
 	}
+	disk2 := &types.VirtualDisk{
+		CapacityInKB: 1024,
+		VirtualDevice: types.VirtualDevice{
+			Backing: &types.VirtualDiskFlatVer2BackingInfo{
+				VirtualDeviceFileBackingInfo: types.VirtualDeviceFileBackingInfo{
+					FileName: "[LocalDS_0]",
+				},
+			},
+		},
+	}
+	devices = append(devices, ide, cdrom, scsi)
 	devices.AssignController(disk, scsi.(*types.VirtualLsiLogicController))
-	devices = append(devices, ide, cdrom, scsi, disk)
+	devices = append(devices, disk)
+	devices.AssignController(disk2, scsi.(*types.VirtualLsiLogicController))
+	devices = append(devices, disk2)
 	create, _ := devices.ConfigSpec(types.VirtualDeviceConfigSpecOperationAdd)
 
 	spec := types.VirtualMachineConfigSpec{
@@ -617,7 +631,7 @@ func TestCreateVmWithDevices(t *testing.T) {
 		GuestId:      string(types.VirtualMachineGuestOsIdentifierOtherGuest),
 		DeviceChange: create,
 		Files: &types.VirtualMachineFileInfo{
-			VmPathName: "[LocalDS_0] foo/foo.vmx",
+			VmPathName: "[LocalDS_0]",
 		},
 	}
 
@@ -648,7 +662,7 @@ func TestCreateVmWithDevices(t *testing.T) {
 			}
 		}
 	}
-	if 1 != ndisk {
+	if 2 != ndisk {
 		t.Errorf("expected 1 disk, got %d", ndisk)
 	}
 }
@@ -853,5 +867,245 @@ func TestVmMarkAsTemplate(t *testing.T) {
 	_, err = vm.PowerOn(ctx)
 	if err == nil {
 		t.Fatal("cannot PowerOn a template")
+	}
+}
+
+func TestVmRefreshStorageInfo(t *testing.T) {
+	ctx := context.Background()
+
+	m := ESX()
+	defer m.Remove()
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	c, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vmm := Map.Any("VirtualMachine").(*VirtualMachine)
+	vm := object.NewVirtualMachine(c.Client, vmm.Reference())
+
+	// take snapshot
+	task, err := vm.CreateSnapshot(ctx, "root", "description", true, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = task.Wait(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	snapshot, err := vm.FindSnapshot(ctx, "root")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check vm.Layout.Snapshot
+	found := false
+	for _, snapLayout := range vmm.Layout.Snapshot {
+		if snapLayout.Key == *snapshot {
+			found = true
+		}
+	}
+
+	if found == false {
+		t.Fatal("could not find new snapshot in vm.Layout.Snapshot")
+	}
+
+	// check vm.LayoutEx.Snapshot
+	found = false
+	for _, snapLayoutEx := range vmm.LayoutEx.Snapshot {
+		if snapLayoutEx.Key == *snapshot {
+			found = true
+		}
+	}
+
+	if found == false {
+		t.Fatal("could not find new snapshot in vm.LayoutEx.Snapshot")
+	}
+
+	// remove snapshot
+	task, err = vm.RemoveAllSnapshot(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = task.Wait(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(vmm.Layout.Snapshot) != 0 {
+		t.Fatal("expected vm.Layout.Snapshot to be empty")
+	}
+
+	if len(vmm.LayoutEx.Snapshot) != 0 {
+		t.Fatal("expected vm.LayoutEx.Snapshot to be empty")
+	}
+
+	device, err := vm.Device(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	disks := device.SelectByType((*types.VirtualDisk)(nil))
+	if len(disks) < 1 {
+		t.Fatal("expected VM to have at least 1 disk")
+	}
+
+	findDiskFile := func(vmdkName string) *types.VirtualMachineFileLayoutExFileInfo {
+		for _, dFile := range vmm.LayoutEx.File {
+			if dFile.Name == vmdkName {
+				return &dFile
+			}
+		}
+
+		return nil
+	}
+
+	findDsStorage := func(dsName string) *types.VirtualMachineUsageOnDatastore {
+		host := Map.Get(*vmm.Runtime.Host).(*HostSystem)
+		ds := Map.FindByName(dsName, host.Datastore).(*Datastore)
+
+		for _, dsUsage := range vmm.Storage.PerDatastoreUsage {
+			if dsUsage.Datastore == ds.Self {
+				return &dsUsage
+			}
+		}
+
+		return nil
+	}
+
+	for _, d := range disks {
+		disk := d.(*types.VirtualDisk)
+		info := disk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+		diskLayoutCount := len(vmm.Layout.Disk)
+		summaryStorageNew := vmm.Summary.Storage
+
+		p, fault := parseDatastorePath(info.FileName)
+		if fault != nil {
+			t.Fatalf("could not parse datastore path for disk file: %s", info.FileName)
+		}
+
+		storageNew := findDsStorage(p.Datastore)
+		if storageNew == nil {
+			t.Fatalf("could not find vm usage on datastore: %s", p.Datastore)
+		}
+
+		diskFile := findDiskFile(info.FileName)
+		if diskFile == nil {
+			t.Fatal("could not find disk file in vm.LayoutEx.File")
+		}
+
+		// remove disk
+		if err = vm.RemoveDevice(ctx, false, d); err != nil {
+			t.Error(err)
+		}
+
+		summaryStorageOld := summaryStorageNew
+		summaryStorageNew = vmm.Summary.Storage
+
+		storageOld := storageNew
+		storageNew = findDsStorage(p.Datastore)
+		if storageNew == nil {
+			t.Fatalf("could not find vm usage on datastore: %s", p.Datastore)
+		}
+
+		tests := []struct {
+			got      int64
+			expected int64
+		}{
+			{int64(len(vmm.Layout.Disk)), int64(diskLayoutCount - 1)},
+			{summaryStorageNew.Committed, summaryStorageOld.Committed - diskFile.Size},
+			{summaryStorageNew.Unshared, summaryStorageOld.Unshared - diskFile.Size},
+			{summaryStorageNew.Uncommitted, summaryStorageOld.Uncommitted - disk.CapacityInBytes + diskFile.Size},
+			{storageNew.Committed, storageOld.Committed - diskFile.Size},
+			{storageNew.Unshared, storageOld.Unshared - diskFile.Size},
+			{storageNew.Uncommitted, storageOld.Uncommitted - disk.CapacityInBytes + diskFile.Size},
+		}
+
+		for _, test := range tests {
+			if test.got != test.expected {
+				t.Errorf("expected %d, got %d", test.expected, test.got)
+			}
+		}
+
+		// add disk
+		disk.CapacityInBytes = 1000000000
+		if err = vm.AddDevice(ctx, d); err != nil {
+			t.Error(err)
+		}
+
+		summaryStorageOld = summaryStorageNew
+		summaryStorageNew = vmm.Summary.Storage
+
+		storageOld = storageNew
+		storageNew = findDsStorage(p.Datastore)
+		if storageNew == nil {
+			t.Fatalf("could not find vm usage on datastore: %s", p.Datastore)
+		}
+
+		diskFile = findDiskFile(info.FileName)
+		if diskFile == nil {
+			t.Fatal("could not find disk file in vm.LayoutEx.File")
+		}
+
+		tests = []struct {
+			got      int64
+			expected int64
+		}{
+			{int64(len(vmm.Layout.Disk)), int64(diskLayoutCount)},
+			{summaryStorageNew.Committed, summaryStorageOld.Committed + diskFile.Size},
+			{summaryStorageNew.Unshared, summaryStorageOld.Unshared + diskFile.Size},
+			{summaryStorageNew.Uncommitted, summaryStorageOld.Uncommitted + disk.CapacityInBytes - diskFile.Size},
+			{storageNew.Committed, storageOld.Committed + diskFile.Size},
+			{storageNew.Unshared, storageOld.Unshared + diskFile.Size},
+			{storageNew.Uncommitted, storageOld.Uncommitted + disk.CapacityInBytes - diskFile.Size},
+		}
+
+		for _, test := range tests {
+			if test.got != test.expected {
+				t.Errorf("expected %d, got %d", test.expected, test.got)
+			}
+		}
+	}
+
+	// manually create log file
+	fileLayoutExCount := len(vmm.LayoutEx.File)
+
+	p, fault := parseDatastorePath(vmm.Config.Files.LogDirectory)
+	if fault != nil {
+		t.Fatalf("could not parse datastore path: %s", vmm.Config.Files.LogDirectory)
+	}
+
+	f, fault := vmm.createFile(p.String(), "test.log", false)
+	if fault != nil {
+		t.Fatal("could not create log file")
+	}
+
+	if len(vmm.LayoutEx.File) != fileLayoutExCount {
+		t.Errorf("expected %d, got %d", fileLayoutExCount, len(vmm.LayoutEx.File))
+	}
+
+	vm.RefreshStorageInfo(ctx)
+
+	if len(vmm.LayoutEx.File) != fileLayoutExCount+1 {
+		t.Errorf("expected %d, got %d", fileLayoutExCount+1, len(vmm.LayoutEx.File))
+	}
+
+	_ = f.Close()
+	_ = os.Remove(f.Name())
+
+	vm.RefreshStorageInfo(ctx)
+
+	if len(vmm.LayoutEx.File) != fileLayoutExCount {
+		t.Errorf("expected %d, got %d", fileLayoutExCount, len(vmm.LayoutEx.File))
 	}
 }

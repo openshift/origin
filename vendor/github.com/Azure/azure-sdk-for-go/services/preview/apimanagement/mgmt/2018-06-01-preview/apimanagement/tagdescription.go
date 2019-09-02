@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -40,7 +41,7 @@ func NewTagDescriptionClientWithBaseURI(baseURI string, subscriptionID string) T
 	return TagDescriptionClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate create/Update tag fescription in scope of the Api.
+// CreateOrUpdate create/Update tag description in scope of the Api.
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
@@ -50,6 +51,16 @@ func NewTagDescriptionClientWithBaseURI(baseURI string, subscriptionID string) T
 // parameters - create parameters.
 // ifMatch - eTag of the Entity. Not required when creating an entity, but required when updating an entity.
 func (client TagDescriptionClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string, parameters TagDescriptionCreateParameters, ifMatch string) (result TagDescriptionContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagDescriptionClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -62,7 +73,7 @@ func (client TagDescriptionClient) CreateOrUpdate(ctx context.Context, resourceG
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}},
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}},
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.TagDescriptionBaseProperties", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "parameters.TagDescriptionBaseProperties.ExternalDocsURL", Name: validation.Null, Rule: false,
@@ -124,8 +135,8 @@ func (client TagDescriptionClient) CreateOrUpdatePreparer(ctx context.Context, r
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagDescriptionClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -151,6 +162,16 @@ func (client TagDescriptionClient) CreateOrUpdateResponder(resp *http.Response) 
 // ifMatch - eTag of the Entity. ETag should match the current entity state from the header response of the GET
 // request or it should be * for unconditional update.
 func (client TagDescriptionClient) Delete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string, ifMatch string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagDescriptionClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -163,7 +184,7 @@ func (client TagDescriptionClient) Delete(ctx context.Context, resourceGroupName
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagDescriptionClient", "Delete", err.Error())
 	}
 
@@ -215,8 +236,8 @@ func (client TagDescriptionClient) DeletePreparer(ctx context.Context, resourceG
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagDescriptionClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -231,7 +252,7 @@ func (client TagDescriptionClient) DeleteResponder(resp *http.Response) (result 
 	return
 }
 
-// Get get tag associated with the API.
+// Get get Tag description in scope of API
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
@@ -239,6 +260,16 @@ func (client TagDescriptionClient) DeleteResponder(resp *http.Response) (result 
 // revision has ;rev=n as a suffix where n is the revision number.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagDescriptionClient) Get(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (result TagDescriptionContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagDescriptionClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -251,7 +282,7 @@ func (client TagDescriptionClient) Get(ctx context.Context, resourceGroupName st
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagDescriptionClient", "Get", err.Error())
 	}
 
@@ -302,8 +333,8 @@ func (client TagDescriptionClient) GetPreparer(ctx context.Context, resourceGrou
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagDescriptionClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -327,6 +358,16 @@ func (client TagDescriptionClient) GetResponder(resp *http.Response) (result Tag
 // revision has ;rev=n as a suffix where n is the revision number.
 // tagID - tag identifier. Must be unique in the current API Management service instance.
 func (client TagDescriptionClient) GetEntityState(ctx context.Context, resourceGroupName string, serviceName string, apiid string, tagID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagDescriptionClient.GetEntityState")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -339,7 +380,7 @@ func (client TagDescriptionClient) GetEntityState(ctx context.Context, resourceG
 		{TargetValue: tagID,
 			Constraints: []validation.Constraint{{Target: "tagID", Name: validation.MaxLength, Rule: 80, Chain: nil},
 				{Target: "tagID", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "tagID", Name: validation.Pattern, Rule: `(^[\w]+$)|(^[\w][\w\-]+[\w]$)`, Chain: nil}}}}); err != nil {
+				{Target: "tagID", Name: validation.Pattern, Rule: `^[^*#&+:<>?]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("apimanagement.TagDescriptionClient", "GetEntityState", err.Error())
 	}
 
@@ -390,8 +431,8 @@ func (client TagDescriptionClient) GetEntityStatePreparer(ctx context.Context, r
 // GetEntityStateSender sends the GetEntityState request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagDescriptionClient) GetEntityStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetEntityStateResponder handles the response to the GetEntityState request. The method always
@@ -413,13 +454,24 @@ func (client TagDescriptionClient) GetEntityStateResponder(resp *http.Response) 
 // serviceName - the name of the API Management service.
 // apiid - API revision identifier. Must be unique in the current API Management service instance. Non-current
 // revision has ;rev=n as a suffix where n is the revision number.
-// filter - | Field       | Supported operators    | Supported functions                         |
-// |-------------|------------------------|---------------------------------------------|
-// | id          | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
-// | name        | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith |
+// filter - | Field       | Supported operators    | Supported functions               |
+// |-------------|------------------------|-----------------------------------|
+//
+// |displayName | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
+// |name | ge, le, eq, ne, gt, lt | substringof, contains, startswith, endswith|
 // top - number of records to return.
 // skip - number of records to skip.
 func (client TagDescriptionClient) ListByAPI(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (result TagDescriptionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagDescriptionClient.ListByAPI")
+		defer func() {
+			sc := -1
+			if result.tdc.Response.Response != nil {
+				sc = result.tdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -494,8 +546,8 @@ func (client TagDescriptionClient) ListByAPIPreparer(ctx context.Context, resour
 // ListByAPISender sends the ListByAPI request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagDescriptionClient) ListByAPISender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByAPIResponder handles the response to the ListByAPI request. The method always
@@ -512,8 +564,8 @@ func (client TagDescriptionClient) ListByAPIResponder(resp *http.Response) (resu
 }
 
 // listByAPINextResults retrieves the next set of results, if any.
-func (client TagDescriptionClient) listByAPINextResults(lastResults TagDescriptionCollection) (result TagDescriptionCollection, err error) {
-	req, err := lastResults.tagDescriptionCollectionPreparer()
+func (client TagDescriptionClient) listByAPINextResults(ctx context.Context, lastResults TagDescriptionCollection) (result TagDescriptionCollection, err error) {
+	req, err := lastResults.tagDescriptionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.TagDescriptionClient", "listByAPINextResults", nil, "Failure preparing next results request")
 	}
@@ -534,6 +586,16 @@ func (client TagDescriptionClient) listByAPINextResults(lastResults TagDescripti
 
 // ListByAPIComplete enumerates all values, automatically crossing page boundaries as required.
 func (client TagDescriptionClient) ListByAPIComplete(ctx context.Context, resourceGroupName string, serviceName string, apiid string, filter string, top *int32, skip *int32) (result TagDescriptionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagDescriptionClient.ListByAPI")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByAPI(ctx, resourceGroupName, serviceName, apiid, filter, top, skip)
 	return
 }

@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,10 +49,20 @@ func NewFunctionsClientWithBaseURI(baseURI string, subscriptionID string) Functi
 // jobName - the name of the streaming job.
 // functionName - the name of the function.
 // ifMatch - the ETag of the function. Omit this value to always overwrite the current function. Specify the
-// last-seen ETag value to prevent accidentally overwritting concurrent changes.
+// last-seen ETag value to prevent accidentally overwriting concurrent changes.
 // ifNoneMatch - set to '*' to allow a new function to be created, but to prevent updating an existing
 // function. Other values will result in a 412 Pre-condition Failed response.
 func (client FunctionsClient) CreateOrReplace(ctx context.Context, function Function, resourceGroupName string, jobName string, functionName string, ifMatch string, ifNoneMatch string) (result Function, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.CreateOrReplace")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrReplacePreparer(ctx, function, resourceGroupName, jobName, functionName, ifMatch, ifNoneMatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "CreateOrReplace", nil, "Failure preparing request")
@@ -108,8 +119,8 @@ func (client FunctionsClient) CreateOrReplacePreparer(ctx context.Context, funct
 // CreateOrReplaceSender sends the CreateOrReplace request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) CreateOrReplaceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrReplaceResponder handles the response to the CreateOrReplace request. The method always
@@ -132,6 +143,16 @@ func (client FunctionsClient) CreateOrReplaceResponder(resp *http.Response) (res
 // jobName - the name of the streaming job.
 // functionName - the name of the function.
 func (client FunctionsClient) Delete(ctx context.Context, resourceGroupName string, jobName string, functionName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, jobName, functionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "Delete", nil, "Failure preparing request")
@@ -178,8 +199,8 @@ func (client FunctionsClient) DeletePreparer(ctx context.Context, resourceGroupN
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -201,6 +222,16 @@ func (client FunctionsClient) DeleteResponder(resp *http.Response) (result autor
 // jobName - the name of the streaming job.
 // functionName - the name of the function.
 func (client FunctionsClient) Get(ctx context.Context, resourceGroupName string, jobName string, functionName string) (result Function, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, jobName, functionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "Get", nil, "Failure preparing request")
@@ -247,8 +278,8 @@ func (client FunctionsClient) GetPreparer(ctx context.Context, resourceGroupName
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -273,6 +304,16 @@ func (client FunctionsClient) GetResponder(resp *http.Response) (result Function
 // to include in the response, or "*" to include all properties. By default, all properties are returned except
 // diagnostics. Currently only accepts '*' as a valid value.
 func (client FunctionsClient) ListByStreamingJob(ctx context.Context, resourceGroupName string, jobName string, selectParameter string) (result FunctionListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.ListByStreamingJob")
+		defer func() {
+			sc := -1
+			if result.flr.Response.Response != nil {
+				sc = result.flr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByStreamingJobNextResults
 	req, err := client.ListByStreamingJobPreparer(ctx, resourceGroupName, jobName, selectParameter)
 	if err != nil {
@@ -322,8 +363,8 @@ func (client FunctionsClient) ListByStreamingJobPreparer(ctx context.Context, re
 // ListByStreamingJobSender sends the ListByStreamingJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) ListByStreamingJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByStreamingJobResponder handles the response to the ListByStreamingJob request. The method always
@@ -340,8 +381,8 @@ func (client FunctionsClient) ListByStreamingJobResponder(resp *http.Response) (
 }
 
 // listByStreamingJobNextResults retrieves the next set of results, if any.
-func (client FunctionsClient) listByStreamingJobNextResults(lastResults FunctionListResult) (result FunctionListResult, err error) {
-	req, err := lastResults.functionListResultPreparer()
+func (client FunctionsClient) listByStreamingJobNextResults(ctx context.Context, lastResults FunctionListResult) (result FunctionListResult, err error) {
+	req, err := lastResults.functionListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "listByStreamingJobNextResults", nil, "Failure preparing next results request")
 	}
@@ -362,6 +403,16 @@ func (client FunctionsClient) listByStreamingJobNextResults(lastResults Function
 
 // ListByStreamingJobComplete enumerates all values, automatically crossing page boundaries as required.
 func (client FunctionsClient) ListByStreamingJobComplete(ctx context.Context, resourceGroupName string, jobName string, selectParameter string) (result FunctionListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.ListByStreamingJob")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByStreamingJob(ctx, resourceGroupName, jobName, selectParameter)
 	return
 }
@@ -375,6 +426,16 @@ func (client FunctionsClient) ListByStreamingJobComplete(ctx context.Context, re
 // functionRetrieveDefaultDefinitionParameters - parameters used to specify the type of function to retrieve
 // the default definition for.
 func (client FunctionsClient) RetrieveDefaultDefinition(ctx context.Context, resourceGroupName string, jobName string, functionName string, functionRetrieveDefaultDefinitionParameters *BasicFunctionRetrieveDefaultDefinitionParameters) (result Function, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.RetrieveDefaultDefinition")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.RetrieveDefaultDefinitionPreparer(ctx, resourceGroupName, jobName, functionName, functionRetrieveDefaultDefinitionParameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "RetrieveDefaultDefinition", nil, "Failure preparing request")
@@ -426,8 +487,8 @@ func (client FunctionsClient) RetrieveDefaultDefinitionPreparer(ctx context.Cont
 // RetrieveDefaultDefinitionSender sends the RetrieveDefaultDefinition request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) RetrieveDefaultDefinitionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RetrieveDefaultDefinitionResponder handles the response to the RetrieveDefaultDefinition request. The method always
@@ -456,6 +517,16 @@ func (client FunctionsClient) RetrieveDefaultDefinitionResponder(resp *http.Resp
 // corresponding properties in the existing function (exactly like a PATCH operation) and the resulting
 // function will be tested.
 func (client FunctionsClient) Test(ctx context.Context, resourceGroupName string, jobName string, functionName string, function *Function) (result FunctionsTestFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.Test")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.TestPreparer(ctx, resourceGroupName, jobName, functionName, function)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "Test", nil, "Failure preparing request")
@@ -501,13 +572,9 @@ func (client FunctionsClient) TestPreparer(ctx context.Context, resourceGroupNam
 // TestSender sends the Test request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) TestSender(req *http.Request) (future FunctionsTestFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -540,8 +607,18 @@ func (client FunctionsClient) TestResponder(resp *http.Response) (result Resourc
 // jobName - the name of the streaming job.
 // functionName - the name of the function.
 // ifMatch - the ETag of the function. Omit this value to always overwrite the current function. Specify the
-// last-seen ETag value to prevent accidentally overwritting concurrent changes.
+// last-seen ETag value to prevent accidentally overwriting concurrent changes.
 func (client FunctionsClient) Update(ctx context.Context, function Function, resourceGroupName string, jobName string, functionName string, ifMatch string) (result Function, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FunctionsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, function, resourceGroupName, jobName, functionName, ifMatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsClient", "Update", nil, "Failure preparing request")
@@ -594,8 +671,8 @@ func (client FunctionsClient) UpdatePreparer(ctx context.Context, function Funct
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client FunctionsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

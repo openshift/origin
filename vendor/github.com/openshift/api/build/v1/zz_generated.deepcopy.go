@@ -128,7 +128,7 @@ func (in *BuildConfig) DeepCopyObject() runtime.Object {
 func (in *BuildConfigList) DeepCopyInto(out *BuildConfigList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]BuildConfig, len(*in))
@@ -211,7 +211,7 @@ func (in *BuildConfigStatus) DeepCopy() *BuildConfigStatus {
 func (in *BuildList) DeepCopyInto(out *BuildList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Build, len(*in))

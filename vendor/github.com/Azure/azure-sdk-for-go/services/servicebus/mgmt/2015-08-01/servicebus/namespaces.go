@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewNamespacesClientWithBaseURI(baseURI string, subscriptionID string) Names
 // Parameters:
 // parameters - parameters to check availability of the given namespace name
 func (client NamespacesClient) CheckNameAvailabilityMethod(ctx context.Context, parameters CheckNameAvailability) (result CheckNameAvailabilityResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.CheckNameAvailabilityMethod")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -95,8 +106,8 @@ func (client NamespacesClient) CheckNameAvailabilityMethodPreparer(ctx context.C
 // CheckNameAvailabilityMethodSender sends the CheckNameAvailabilityMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) CheckNameAvailabilityMethodSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckNameAvailabilityMethodResponder handles the response to the CheckNameAvailabilityMethod request. The method always
@@ -119,6 +130,16 @@ func (client NamespacesClient) CheckNameAvailabilityMethodResponder(resp *http.R
 // namespaceName - the namespace name.
 // parameters - parameters supplied to create a namespace resource.
 func (client NamespacesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, namespaceName string, parameters NamespaceCreateOrUpdateParameters) (result NamespacesCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -169,9 +190,9 @@ func (client NamespacesClient) CreateOrUpdatePreparer(ctx context.Context, resou
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) CreateOrUpdateSender(req *http.Request) (future NamespacesCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -196,9 +217,19 @@ func (client NamespacesClient) CreateOrUpdateResponder(resp *http.Response) (res
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
-// authorizationRuleName - the authorizationrule name.
+// authorizationRuleName - the authorization rule name.
 // parameters - the shared access authorization rule.
 func (client NamespacesClient) CreateOrUpdateAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.CreateOrUpdateAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -263,8 +294,8 @@ func (client NamespacesClient) CreateOrUpdateAuthorizationRulePreparer(ctx conte
 // CreateOrUpdateAuthorizationRuleSender sends the CreateOrUpdateAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) CreateOrUpdateAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateAuthorizationRuleResponder handles the response to the CreateOrUpdateAuthorizationRule request. The method always
@@ -285,6 +316,16 @@ func (client NamespacesClient) CreateOrUpdateAuthorizationRuleResponder(resp *ht
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
 func (client NamespacesClient) Delete(ctx context.Context, resourceGroupName string, namespaceName string) (result NamespacesDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -334,9 +375,9 @@ func (client NamespacesClient) DeletePreparer(ctx context.Context, resourceGroup
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) DeleteSender(req *http.Request) (future NamespacesDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -360,8 +401,18 @@ func (client NamespacesClient) DeleteResponder(resp *http.Response) (result auto
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
-// authorizationRuleName - the authorizationrule name.
+// authorizationRuleName - the authorization rule name.
 func (client NamespacesClient) DeleteAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.DeleteAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -421,8 +472,8 @@ func (client NamespacesClient) DeleteAuthorizationRulePreparer(ctx context.Conte
 // DeleteAuthorizationRuleSender sends the DeleteAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) DeleteAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteAuthorizationRuleResponder handles the response to the DeleteAuthorizationRule request. The method always
@@ -442,6 +493,16 @@ func (client NamespacesClient) DeleteAuthorizationRuleResponder(resp *http.Respo
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
 func (client NamespacesClient) Get(ctx context.Context, resourceGroupName string, namespaceName string) (result NamespaceResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -497,8 +558,8 @@ func (client NamespacesClient) GetPreparer(ctx context.Context, resourceGroupNam
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -518,8 +579,18 @@ func (client NamespacesClient) GetResponder(resp *http.Response) (result Namespa
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
-// authorizationRuleName - the authorizationrule name.
+// authorizationRuleName - the authorization rule name.
 func (client NamespacesClient) GetAuthorizationRule(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.GetAuthorizationRule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -579,8 +650,8 @@ func (client NamespacesClient) GetAuthorizationRulePreparer(ctx context.Context,
 // GetAuthorizationRuleSender sends the GetAuthorizationRule request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) GetAuthorizationRuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAuthorizationRuleResponder handles the response to the GetAuthorizationRule request. The method always
@@ -601,6 +672,16 @@ func (client NamespacesClient) GetAuthorizationRuleResponder(resp *http.Response
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
 func (client NamespacesClient) ListAuthorizationRules(ctx context.Context, resourceGroupName string, namespaceName string) (result SharedAccessAuthorizationRuleListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListAuthorizationRules")
+		defer func() {
+			sc := -1
+			if result.saarlr.Response.Response != nil {
+				sc = result.saarlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -657,8 +738,8 @@ func (client NamespacesClient) ListAuthorizationRulesPreparer(ctx context.Contex
 // ListAuthorizationRulesSender sends the ListAuthorizationRules request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) ListAuthorizationRulesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAuthorizationRulesResponder handles the response to the ListAuthorizationRules request. The method always
@@ -675,8 +756,8 @@ func (client NamespacesClient) ListAuthorizationRulesResponder(resp *http.Respon
 }
 
 // listAuthorizationRulesNextResults retrieves the next set of results, if any.
-func (client NamespacesClient) listAuthorizationRulesNextResults(lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
-	req, err := lastResults.sharedAccessAuthorizationRuleListResultPreparer()
+func (client NamespacesClient) listAuthorizationRulesNextResults(ctx context.Context, lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
+	req, err := lastResults.sharedAccessAuthorizationRuleListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "listAuthorizationRulesNextResults", nil, "Failure preparing next results request")
 	}
@@ -697,6 +778,16 @@ func (client NamespacesClient) listAuthorizationRulesNextResults(lastResults Sha
 
 // ListAuthorizationRulesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client NamespacesClient) ListAuthorizationRulesComplete(ctx context.Context, resourceGroupName string, namespaceName string) (result SharedAccessAuthorizationRuleListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListAuthorizationRules")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAuthorizationRules(ctx, resourceGroupName, namespaceName)
 	return
 }
@@ -705,6 +796,16 @@ func (client NamespacesClient) ListAuthorizationRulesComplete(ctx context.Contex
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.
 func (client NamespacesClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result NamespaceListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.nlr.Response.Response != nil {
+				sc = result.nlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -757,8 +858,8 @@ func (client NamespacesClient) ListByResourceGroupPreparer(ctx context.Context, 
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -775,8 +876,8 @@ func (client NamespacesClient) ListByResourceGroupResponder(resp *http.Response)
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client NamespacesClient) listByResourceGroupNextResults(lastResults NamespaceListResult) (result NamespaceListResult, err error) {
-	req, err := lastResults.namespaceListResultPreparer()
+func (client NamespacesClient) listByResourceGroupNextResults(ctx context.Context, lastResults NamespaceListResult) (result NamespaceListResult, err error) {
+	req, err := lastResults.namespaceListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -797,12 +898,32 @@ func (client NamespacesClient) listByResourceGroupNextResults(lastResults Namesp
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client NamespacesClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result NamespaceListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
 
 // ListBySubscription gets all the available namespaces within the subscription, irrespective of the resource groups.
 func (client NamespacesClient) ListBySubscription(ctx context.Context) (result NamespaceListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.nlr.Response.Response != nil {
+				sc = result.nlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx)
 	if err != nil {
@@ -847,8 +968,8 @@ func (client NamespacesClient) ListBySubscriptionPreparer(ctx context.Context) (
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -865,8 +986,8 @@ func (client NamespacesClient) ListBySubscriptionResponder(resp *http.Response) 
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client NamespacesClient) listBySubscriptionNextResults(lastResults NamespaceListResult) (result NamespaceListResult, err error) {
-	req, err := lastResults.namespaceListResultPreparer()
+func (client NamespacesClient) listBySubscriptionNextResults(ctx context.Context, lastResults NamespaceListResult) (result NamespaceListResult, err error) {
+	req, err := lastResults.namespaceListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.NamespacesClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -887,6 +1008,16 @@ func (client NamespacesClient) listBySubscriptionNextResults(lastResults Namespa
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client NamespacesClient) ListBySubscriptionComplete(ctx context.Context) (result NamespaceListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySubscription(ctx)
 	return
 }
@@ -895,8 +1026,18 @@ func (client NamespacesClient) ListBySubscriptionComplete(ctx context.Context) (
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
-// authorizationRuleName - the authorizationrule name.
+// authorizationRuleName - the authorization rule name.
 func (client NamespacesClient) ListKeys(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string) (result ResourceListKeys, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.ListKeys")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -956,8 +1097,8 @@ func (client NamespacesClient) ListKeysPreparer(ctx context.Context, resourceGro
 // ListKeysSender sends the ListKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) ListKeysSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListKeysResponder handles the response to the ListKeys request. The method always
@@ -977,9 +1118,19 @@ func (client NamespacesClient) ListKeysResponder(resp *http.Response) (result Re
 // Parameters:
 // resourceGroupName - name of the Resource group within the Azure subscription.
 // namespaceName - the namespace name
-// authorizationRuleName - the authorizationrule name.
+// authorizationRuleName - the authorization rule name.
 // parameters - parameters supplied to regenerate the authorization rule.
 func (client NamespacesClient) RegenerateKeys(ctx context.Context, resourceGroupName string, namespaceName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.RegenerateKeys")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1041,8 +1192,8 @@ func (client NamespacesClient) RegenerateKeysPreparer(ctx context.Context, resou
 // RegenerateKeysSender sends the RegenerateKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) RegenerateKeysSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RegenerateKeysResponder handles the response to the RegenerateKeys request. The method always
@@ -1065,6 +1216,16 @@ func (client NamespacesClient) RegenerateKeysResponder(resp *http.Response) (res
 // namespaceName - the namespace name
 // parameters - parameters supplied to update a namespace resource.
 func (client NamespacesClient) Update(ctx context.Context, resourceGroupName string, namespaceName string, parameters NamespaceUpdateParameters) (result NamespaceResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/NamespacesClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1122,8 +1283,8 @@ func (client NamespacesClient) UpdatePreparer(ctx context.Context, resourceGroup
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client NamespacesClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

@@ -62,7 +62,7 @@ func (cmd *rm) Run(ctx context.Context, f *flag.FlagSet) error {
 	}
 	categoryID := f.Arg(0)
 
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		m := tags.NewManager(c)
 		cat, err := m.GetCategory(ctx, categoryID)
 		if err != nil {

@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -43,6 +44,7 @@ import (
 	coordinationapiv1 "k8s.io/api/coordination/v1"
 	coordinationapiv1beta1 "k8s.io/api/coordination/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
+	discoveryv1alpha1 "k8s.io/api/discovery/v1alpha1"
 	eventsv1beta1 "k8s.io/api/events/v1beta1"
 	extensionsapiv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingapiv1 "k8s.io/api/networking/v1"
@@ -93,6 +95,7 @@ import (
 	certificatesrest "k8s.io/kubernetes/pkg/registry/certificates/rest"
 	coordinationrest "k8s.io/kubernetes/pkg/registry/coordination/rest"
 	corerest "k8s.io/kubernetes/pkg/registry/core/rest"
+	discoveryrest "k8s.io/kubernetes/pkg/registry/discovery/rest"
 	eventsrest "k8s.io/kubernetes/pkg/registry/events/rest"
 	extensionsrest "k8s.io/kubernetes/pkg/registry/extensions/rest"
 	networkingrest "k8s.io/kubernetes/pkg/registry/networking/rest"
@@ -131,6 +134,13 @@ type ExtraConfig struct {
 	ServiceIPRange net.IPNet
 	// The IP address for the GenericAPIServer service (must be inside ServiceIPRange)
 	APIServerServiceIP net.IP
+
+	// dual stack services, the range represents an alternative IP range for service IP
+	// must be of different family than primary (ServiceIPRange)
+	SecondaryServiceIPRange net.IPNet
+	// the secondary IP address the GenericAPIServer service (must be inside SecondaryServiceIPRange)
+	SecondaryAPIServerServiceIP net.IP
+
 	// Port for the apiserver service.
 	APIServerServicePort int
 
@@ -322,13 +332,16 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			KubeletClientConfig:         c.ExtraConfig.KubeletClientConfig,
 			EventTTL:                    c.ExtraConfig.EventTTL,
 			ServiceIPRange:              c.ExtraConfig.ServiceIPRange,
+			SecondaryServiceIPRange:     c.ExtraConfig.SecondaryServiceIPRange,
 			ServiceNodePortRange:        c.ExtraConfig.ServiceNodePortRange,
 			LoopbackClientConfig:        c.GenericConfig.LoopbackClientConfig,
 			ServiceAccountIssuer:        c.ExtraConfig.ServiceAccountIssuer,
 			ServiceAccountMaxExpiration: c.ExtraConfig.ServiceAccountMaxExpiration,
 			APIAudiences:                c.GenericConfig.Authentication.APIAudiences,
 		}
-		m.InstallLegacyAPI(&c, c.GenericConfig.RESTOptionsGetter, legacyRESTStorageProvider)
+		if err := m.InstallLegacyAPI(&c, c.GenericConfig.RESTOptionsGetter, legacyRESTStorageProvider); err != nil {
+			return nil, err
+		}
 	}
 
 	// The order here is preserved in discovery.
@@ -346,6 +359,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		batchrest.RESTStorageProvider{},
 		certificatesrest.RESTStorageProvider{},
 		coordinationrest.RESTStorageProvider{},
+		discoveryrest.StorageProvider{},
 		extensionsrest.RESTStorageProvider{},
 		networkingrest.RESTStorageProvider{},
 		noderest.RESTStorageProvider{},
@@ -360,7 +374,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		admissionregistrationrest.RESTStorageProvider{},
 		eventsrest.RESTStorageProvider{TTL: c.ExtraConfig.EventTTL},
 	}
-	m.InstallAPIs(c.ExtraConfig.APIResourceConfigSource, c.GenericConfig.RESTOptionsGetter, restStorageProviders...)
+	if err := m.InstallAPIs(c.ExtraConfig.APIResourceConfigSource, c.GenericConfig.RESTOptionsGetter, restStorageProviders...); err != nil {
+		return nil, err
+	}
 
 	if c.ExtraConfig.Tunneler != nil {
 		m.installTunneler(c.ExtraConfig.Tunneler, corev1client.NewForConfigOrDie(c.GenericConfig.LoopbackClientConfig).Nodes())
@@ -371,10 +387,10 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	return m, nil
 }
 
-func (m *Master) InstallLegacyAPI(c *completedConfig, restOptionsGetter generic.RESTOptionsGetter, legacyRESTStorageProvider corerest.LegacyRESTStorageProvider) {
+func (m *Master) InstallLegacyAPI(c *completedConfig, restOptionsGetter generic.RESTOptionsGetter, legacyRESTStorageProvider corerest.LegacyRESTStorageProvider) error {
 	legacyRESTStorage, apiGroupInfo, err := legacyRESTStorageProvider.NewLegacyRESTStorage(restOptionsGetter)
 	if err != nil {
-		klog.Fatalf("Error building core storage: %v", err)
+		return fmt.Errorf("Error building core storage: %v", err)
 	}
 
 	controllerName := "bootstrap-controller"
@@ -384,13 +400,14 @@ func (m *Master) InstallLegacyAPI(c *completedConfig, restOptionsGetter generic.
 	m.GenericAPIServer.AddPreShutdownHookOrDie(controllerName, bootstrapController.PreShutdownHook)
 
 	if err := m.GenericAPIServer.InstallLegacyAPIGroup(genericapiserver.DefaultLegacyAPIPrefix, &apiGroupInfo); err != nil {
-		klog.Fatalf("Error in registering group versions: %v", err)
+		return fmt.Errorf("Error in registering group versions: %v", err)
 	}
+	return nil
 }
 
 func (m *Master) installTunneler(nodeTunneler tunneler.Tunneler, nodeClient corev1client.NodeInterface) {
 	nodeTunneler.Run(nodeAddressProvider{nodeClient}.externalAddresses)
-	m.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("SSH Tunnel Check", tunneler.TunnelSyncHealthChecker(nodeTunneler)))
+	m.GenericAPIServer.AddHealthChecks(healthz.NamedCheck("SSH Tunnel Check", tunneler.TunnelSyncHealthChecker(nodeTunneler)))
 	prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "apiserver_proxy_tunnel_sync_duration_seconds",
 		Help: "The time since the last successful synchronization of the SSH tunnels for proxy requests.",
@@ -404,11 +421,11 @@ func (m *Master) installTunneler(nodeTunneler tunneler.Tunneler, nodeClient core
 // RESTStorageProvider is a factory type for REST storage.
 type RESTStorageProvider interface {
 	GroupName() string
-	NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool)
+	NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool, error)
 }
 
 // InstallAPIs will install the APIs for the restStorageProviders if they are enabled.
-func (m *Master) InstallAPIs(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter, restStorageProviders ...RESTStorageProvider) {
+func (m *Master) InstallAPIs(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter, restStorageProviders ...RESTStorageProvider) error {
 	apiGroupsInfo := []*genericapiserver.APIGroupInfo{}
 
 	for _, restStorageBuilder := range restStorageProviders {
@@ -417,9 +434,12 @@ func (m *Master) InstallAPIs(apiResourceConfigSource serverstorage.APIResourceCo
 			klog.V(1).Infof("Skipping disabled API group %q.", groupName)
 			continue
 		}
-		apiGroupInfo, enabled := restStorageBuilder.NewRESTStorage(apiResourceConfigSource, restOptionsGetter)
+		apiGroupInfo, enabled, err := restStorageBuilder.NewRESTStorage(apiResourceConfigSource, restOptionsGetter)
+		if err != nil {
+			return fmt.Errorf("problem initializing API group %q : %v.", groupName, err)
+		}
 		if !enabled {
-			klog.Warningf("Problem initializing API group %q, skipping.", groupName)
+			klog.Warningf("API group %q is not enabled, skipping.", groupName)
 			continue
 		}
 		klog.V(1).Infof("Enabling API group %q.", groupName)
@@ -436,8 +456,9 @@ func (m *Master) InstallAPIs(apiResourceConfigSource serverstorage.APIResourceCo
 	}
 
 	if err := m.GenericAPIServer.InstallAPIGroups(apiGroupsInfo...); err != nil {
-		klog.Fatalf("Error in registering group versions: %v", err)
+		return fmt.Errorf("Error in registering group versions: %v", err)
 	}
+	return nil
 }
 
 type nodeAddressProvider struct {
@@ -479,6 +500,7 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret := serverstorage.NewResourceConfig()
 	// NOTE: GroupVersions listed here will be enabled by default. Don't put alpha versions in the list.
 	ret.EnableVersions(
+		admissionregistrationv1.SchemeGroupVersion,
 		admissionregistrationv1beta1.SchemeGroupVersion,
 		apiv1.SchemeGroupVersion,
 		appsv1.SchemeGroupVersion,
@@ -511,8 +533,8 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret.EnableResources(
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("ingresses"),
 	)
-	// enable deprecated beta resources in extensions/v1beta1 explicitly so we have a full list of what's possible to serve
-	ret.EnableResources(
+	// disable deprecated beta resources in extensions/v1beta1 explicitly so we have a full list of what's possible to serve
+	ret.DisableResources(
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("daemonsets"),
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("deployments"),
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("networkpolicies"),
@@ -520,8 +542,8 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("replicasets"),
 		extensionsapiv1beta1.SchemeGroupVersion.WithResource("replicationcontrollers"),
 	)
-	// enable deprecated beta versions explicitly so we have a full list of what's possible to serve
-	ret.EnableVersions(
+	// disable deprecated beta versions explicitly so we have a full list of what's possible to serve
+	ret.DisableVersions(
 		appsv1beta1.SchemeGroupVersion,
 		appsv1beta2.SchemeGroupVersion,
 	)
@@ -529,6 +551,7 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret.DisableVersions(
 		auditregistrationv1alpha1.SchemeGroupVersion,
 		batchapiv2alpha1.SchemeGroupVersion,
+		discoveryv1alpha1.SchemeGroupVersion,
 		nodev1alpha1.SchemeGroupVersion,
 		rbacv1alpha1.SchemeGroupVersion,
 		schedulingv1alpha1.SchemeGroupVersion,

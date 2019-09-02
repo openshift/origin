@@ -65,6 +65,13 @@ message ProjectSpec {
 // ProjectStatus is information about the current status of a Project
 message ProjectStatus {
   // Phase is the current lifecycle phase of the project
+  // +optional
   optional string phase = 1;
+
+  // Represents the latest available observations of the project current state.
+  // +optional
+  // +patchMergeKey=type
+  // +patchStrategy=merge
+  repeated k8s.io.api.core.v1.NamespaceCondition conditions = 2;
 }
 

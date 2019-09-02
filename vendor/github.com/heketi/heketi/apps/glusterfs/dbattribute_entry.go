@@ -17,6 +17,15 @@ import (
 	"github.com/lpabon/godbc"
 )
 
+var (
+	dbAttributeKeys = []string{
+		DB_BRICK_HAS_SUBTYPE_FIELD,
+		DB_CLUSTER_HAS_FILE_BLOCK_FLAG,
+		DB_GENERATION_ID,
+		DB_HAS_PENDING_OPS_BUCKET,
+	}
+)
+
 type DbAttributeEntry struct {
 	Key   string
 	Value string
@@ -79,4 +88,31 @@ func DbAttributeList(tx *bolt.Tx) ([]string, error) {
 		return nil, ErrAccessList
 	}
 	return list, nil
+}
+
+// validDbAttributeKeys returns true if all dbattribute keys in the
+// database match keys in knownKeys map.
+func validDbAttributeKeys(tx *bolt.Tx, knownKeys map[string]bool) bool {
+	list := EntryKeys(tx, BOLTDB_BUCKET_DBATTRIBUTE)
+	if list == nil {
+		logger.LogError("unable to list keys in dbattribute bucket")
+		return false
+	}
+	for _, key := range list {
+		if !knownKeys[key] {
+			logger.LogError("unknown dbattribute key: %+v", key)
+			return false
+		}
+	}
+	return true
+}
+
+// mapDbAtrributeKeys returns a map equivalent of dbAttributeKeys
+// for fast lookup.
+func mapDbAtrributeKeys() map[string]bool {
+	m := map[string]bool{}
+	for _, k := range dbAttributeKeys {
+		m[k] = true
+	}
+	return m
 }

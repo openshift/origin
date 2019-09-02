@@ -40,7 +40,7 @@ func (in *BrokerTemplateInstance) DeepCopyObject() runtime.Object {
 func (in *BrokerTemplateInstanceList) DeepCopyInto(out *BrokerTemplateInstanceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]BrokerTemplateInstance, len(*in))
@@ -222,7 +222,7 @@ func (in *TemplateInstanceCondition) DeepCopy() *TemplateInstanceCondition {
 func (in *TemplateInstanceList) DeepCopyInto(out *TemplateInstanceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]TemplateInstance, len(*in))
@@ -363,7 +363,7 @@ func (in *TemplateInstanceStatus) DeepCopy() *TemplateInstanceStatus {
 func (in *TemplateList) DeepCopyInto(out *TemplateList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Template, len(*in))

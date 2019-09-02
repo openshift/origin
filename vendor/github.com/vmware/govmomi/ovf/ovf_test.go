@@ -25,14 +25,14 @@ import (
 )
 
 func testFile(t *testing.T) *os.File {
-	n := os.Getenv("OVF_TEST_FILE")
-	if n == "" {
-		t.Skip("Please specify OVF_TEST_FILE")
+	fn := os.Getenv("OVF_TEST_FILE")
+	if fn == "" {
+		t.Skip("OVF_TEST_FILE not specified")
 	}
 
-	f, err := os.Open(n)
+	f, err := os.Open(fn)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("error opening %s %s", fn, err)
 	}
 
 	return f
@@ -44,11 +44,11 @@ func testEnvelope(t *testing.T) *Envelope {
 
 	e, err := Unmarshal(f)
 	if err != nil {
-		t.Fatal(f)
+		t.Fatalf("error unmarshaling test file %s", err)
 	}
 
 	if e == nil {
-		t.Fatal("Empty envelope")
+		t.Fatal("empty envelope")
 	}
 
 	return e
@@ -62,7 +62,7 @@ func TestDeploymentOptions(t *testing.T) {
 	e := testEnvelope(t)
 
 	if e.DeploymentOption == nil {
-		t.Fatal("Missing DeploymentOptionSection")
+		t.Fatal("DeploymentOptionSection empty")
 	}
 
 	var b bytes.Buffer

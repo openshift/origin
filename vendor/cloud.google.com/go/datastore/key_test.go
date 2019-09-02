@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,38 +19,9 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"testing"
-
-	"golang.org/x/net/context"
 )
 
-func TestNamespace(t *testing.T) {
-	c := context.Background()
-	k := NewIncompleteKey(c, "foo", nil)
-	if got, want := k.Namespace(), ""; got != want {
-		t.Errorf("No namespace, k.Namespace() = %q, want %q", got, want)
-	}
-
-	c = WithNamespace(c, "gopherspace")
-	k = NewIncompleteKey(c, "foo", nil)
-	if got, want := k.Namespace(), "gopherspace"; got != want {
-		t.Errorf("No namespace, k.Namespace() = %q, want %q", got, want)
-	}
-}
-
-func TestParent(t *testing.T) {
-	c := context.Background()
-	k := NewIncompleteKey(c, "foo", nil)
-	par := NewKey(c, "foomum", "", 1248, nil)
-	k.SetParent(par)
-	if got := k.Parent(); got != par {
-		t.Errorf("k.Parent() = %v; want %v", got, par)
-	}
-}
-
 func TestEqual(t *testing.T) {
-	c := context.Background()
-	cN := WithNamespace(c, "gopherspace")
-
 	testCases := []struct {
 		x, y  *Key
 		equal bool
@@ -61,53 +32,53 @@ func TestEqual(t *testing.T) {
 			equal: true,
 		},
 		{
-			x:     NewKey(c, "kindA", "", 0, nil),
-			y:     NewIncompleteKey(c, "kindA", nil),
+			x:     &Key{Kind: "kindA"},
+			y:     &Key{Kind: "kindA"},
 			equal: true,
 		},
 		{
-			x:     NewKey(c, "kindA", "nameA", 0, nil),
-			y:     NewKey(c, "kindA", "nameA", 0, nil),
+			x:     &Key{Kind: "kindA", Name: "nameA"},
+			y:     &Key{Kind: "kindA", Name: "nameA"},
 			equal: true,
 		},
 		{
-			x:     NewKey(cN, "kindA", "nameA", 0, nil),
-			y:     NewKey(cN, "kindA", "nameA", 0, nil),
+			x:     &Key{Kind: "kindA", Name: "nameA", Namespace: "gopherspace"},
+			y:     &Key{Kind: "kindA", Name: "nameA", Namespace: "gopherspace"},
 			equal: true,
 		},
 		{
-			x:     NewKey(c, "kindA", "", 1337, NewKey(c, "kindX", "nameX", 0, nil)),
-			y:     NewKey(c, "kindA", "", 1337, NewKey(c, "kindX", "nameX", 0, nil)),
+			x:     &Key{Kind: "kindA", ID: 1337, Parent: &Key{Kind: "kindX", Name: "nameX"}},
+			y:     &Key{Kind: "kindA", ID: 1337, Parent: &Key{Kind: "kindX", Name: "nameX"}},
 			equal: true,
 		},
 		{
-			x:     NewKey(c, "kindA", "nameA", 0, nil),
-			y:     NewKey(c, "kindB", "nameA", 0, nil),
+			x:     &Key{Kind: "kindA", Name: "nameA"},
+			y:     &Key{Kind: "kindB", Name: "nameA"},
 			equal: false,
 		},
 		{
-			x:     NewKey(c, "kindA", "nameA", 0, nil),
-			y:     NewKey(c, "kindA", "nameB", 0, nil),
+			x:     &Key{Kind: "kindA", Name: "nameA"},
+			y:     &Key{Kind: "kindA", Name: "nameB"},
 			equal: false,
 		},
 		{
-			x:     NewKey(c, "kindA", "nameA", 0, nil),
-			y:     NewKey(c, "kindA", "", 1337, nil),
+			x:     &Key{Kind: "kindA", Name: "nameA"},
+			y:     &Key{Kind: "kindA", ID: 1337},
 			equal: false,
 		},
 		{
-			x:     NewKey(c, "kindA", "nameA", 0, nil),
-			y:     NewKey(cN, "kindA", "nameA", 0, nil),
+			x:     &Key{Kind: "kindA", Name: "nameA"},
+			y:     &Key{Kind: "kindA", Name: "nameA", Namespace: "gopherspace"},
 			equal: false,
 		},
 		{
-			x:     NewKey(c, "kindA", "", 1337, NewKey(c, "kindX", "nameX", 0, nil)),
-			y:     NewKey(c, "kindA", "", 1337, NewKey(c, "kindY", "nameX", 0, nil)),
+			x:     &Key{Kind: "kindA", ID: 1337, Parent: &Key{Kind: "kindX", Name: "nameX"}},
+			y:     &Key{Kind: "kindA", ID: 1337, Parent: &Key{Kind: "kindY", Name: "nameX"}},
 			equal: false,
 		},
 		{
-			x:     NewKey(c, "kindA", "", 1337, NewKey(c, "kindX", "nameX", 0, nil)),
-			y:     NewKey(c, "kindA", "", 1337, nil),
+			x:     &Key{Kind: "kindA", ID: 1337, Parent: &Key{Kind: "kindX", Name: "nameX"}},
+			y:     &Key{Kind: "kindA", ID: 1337},
 			equal: false,
 		},
 	}
@@ -123,9 +94,6 @@ func TestEqual(t *testing.T) {
 }
 
 func TestEncoding(t *testing.T) {
-	c := context.Background()
-	cN := WithNamespace(c, "gopherspace")
-
 	testCases := []struct {
 		k     *Key
 		valid bool
@@ -135,39 +103,39 @@ func TestEncoding(t *testing.T) {
 			valid: false,
 		},
 		{
-			k:     NewKey(c, "", "", 0, nil),
+			k:     &Key{},
 			valid: false,
 		},
 		{
-			k:     NewKey(c, "kindA", "", 0, nil),
+			k:     &Key{Kind: "kindA"},
 			valid: true,
 		},
 		{
-			k:     NewKey(cN, "kindA", "", 0, nil),
+			k:     &Key{Kind: "kindA", Namespace: "gopherspace"},
 			valid: true,
 		},
 		{
-			k:     NewKey(c, "kindA", "nameA", 0, nil),
+			k:     &Key{Kind: "kindA", Name: "nameA"},
 			valid: true,
 		},
 		{
-			k:     NewKey(c, "kindA", "", 1337, nil),
+			k:     &Key{Kind: "kindA", ID: 1337},
 			valid: true,
 		},
 		{
-			k:     NewKey(c, "kindA", "nameA", 1337, nil),
+			k:     &Key{Kind: "kindA", Name: "nameA", ID: 1337},
 			valid: false,
 		},
 		{
-			k:     NewKey(c, "kindA", "", 0, NewKey(c, "kindB", "nameB", 0, nil)),
+			k:     &Key{Kind: "kindA", Parent: &Key{Kind: "kindB", Name: "nameB"}},
 			valid: true,
 		},
 		{
-			k:     NewKey(c, "kindA", "", 0, NewKey(c, "kindB", "", 0, nil)),
+			k:     &Key{Kind: "kindA", Parent: &Key{Kind: "kindB"}},
 			valid: false,
 		},
 		{
-			k:     NewKey(c, "kindA", "", 0, NewKey(cN, "kindB", "nameB", 0, nil)),
+			k:     &Key{Kind: "kindA", Parent: &Key{Kind: "kindB", Name: "nameB", Namespace: "gopherspace"}},
 			valid: false,
 		},
 	}
@@ -225,7 +193,7 @@ func TestEncoding(t *testing.T) {
 
 func TestInvalidKeyDecode(t *testing.T) {
 	// Check that decoding an invalid key returns an err and doesn't panic.
-	enc := NewKey(context.Background(), "Kind", "Foo", 0, nil).Encode()
+	enc := NameKey("Kind", "Foo", nil).Encode()
 
 	invalid := []string{
 		"",

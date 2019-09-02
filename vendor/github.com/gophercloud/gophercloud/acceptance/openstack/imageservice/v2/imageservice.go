@@ -157,3 +157,14 @@ func DeleteImageFile(t *testing.T, filepath string) {
 
 	t.Logf("Successfully deleted image file %s", filepath)
 }
+
+// ImportImage will import image data from the remote source to the Imageservice.
+func ImportImage(t *testing.T, client *gophercloud.ServiceClient, imageID string) error {
+	importOpts := imageimport.CreateOpts{
+		Name: imageimport.WebDownloadMethod,
+		URI:  ImportImageURL,
+	}
+
+	t.Logf("Attempting to import image data for %s from %s", imageID, importOpts.URI)
+	return imageimport.Create(client, imageID, importOpts).ExtractErr()
+}

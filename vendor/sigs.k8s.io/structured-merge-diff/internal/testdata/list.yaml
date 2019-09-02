@@ -1,6 +1,6 @@
 types:
 - name: list
-  struct:
+  map:
     fields:
     - name: elementType
       type:

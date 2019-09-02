@@ -33,6 +33,35 @@ type Db struct {
 	PendingOperations map[string]PendingOperationEntry `json:"pendingoperations"`
 }
 
+//DbEntryCheckResponse ... is summary of check on a db entry.
+type DbEntryCheckResponse struct {
+	Pending         bool     `json:"pending"`
+	Inconsistencies []string `json:"inconsistencies"`
+}
+
+//DbBucketCheckResponse ... is summary of check on a db bucket.
+type DbBucketCheckResponse struct {
+	Total           int      `json:"total"`
+	Pending         int      `json:"pending"`
+	Ok              int      `json:"ok"`
+	NotOk           int      `json:"notok"`
+	Inconsistencies []string `json:"inconsistencies"`
+}
+
+//DbCheckResponse ... is the output of db check. It lists a summary of db state
+//and inconsistencies related to each bucket, if any.
+type DbCheckResponse struct {
+	Clusters             DbBucketCheckResponse `json:"clusters"`
+	Volumes              DbBucketCheckResponse `json:"volumes"`
+	Bricks               DbBucketCheckResponse `json:"bricks"`
+	Nodes                DbBucketCheckResponse `json:"nodes"`
+	Devices              DbBucketCheckResponse `json:"devices"`
+	BlockVolumes         DbBucketCheckResponse `json:"blockvolumes"`
+	DbAttributes         DbBucketCheckResponse `json:"dbattributes"`
+	PendingOperations    DbBucketCheckResponse `json:"pendingoperations"`
+	TotalInconsistencies int                   `json:"totalinconsistencies"`
+}
+
 func initializeBuckets(tx *bolt.Tx) error {
 	// Create Cluster Bucket
 	_, err := tx.CreateBucketIfNotExists([]byte(BOLTDB_BUCKET_CLUSTER))
@@ -146,7 +175,7 @@ func UpgradeDB(tx *bolt.Tx) error {
 	err = fixBlockHostingReservedSize(tx)
 	if err != nil {
 		logger.LogError(
-			"Failed to reserved sizes for block hosting volumes %v", err)
+			"Failed to fix reserved sizes for block hosting volumes %v", err)
 		return err
 	}
 
@@ -204,8 +233,8 @@ func fixIncorrectBlockHostingFreeSize(tx *bolt.Tx) error {
 		if err != nil {
 			return err
 		}
-		if !vol.Info.Block {
-			continue // ignore non-block hosting volumes
+		if !vol.Info.Block || vol.Pending.Id != "" {
+			continue // ignore non-BHVs and pending BHVs
 		}
 		bvsum, err := vol.TotalSizeBlockVolumes(tx)
 		if err != nil {

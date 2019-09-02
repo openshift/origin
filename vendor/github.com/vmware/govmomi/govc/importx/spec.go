@@ -129,14 +129,16 @@ func (cmd *spec) Map(e *ovf.Envelope) (res []Property) {
 }
 
 func (cmd *spec) Spec(fpath string) error {
-	d, err := cmd.ReadOvf(fpath)
-	if err != nil {
-		return err
-	}
+	e := &ovf.Envelope{}
+	if fpath != "" {
+		d, err := cmd.ReadOvf(fpath)
+		if err != nil {
+			return err
+		}
 
-	e, err := cmd.ReadEnvelope(d)
-	if err != nil {
-		return err
+		if e, err = cmd.ReadEnvelope(d); err != nil {
+			return err
+		}
 	}
 
 	var deploymentOptions []string

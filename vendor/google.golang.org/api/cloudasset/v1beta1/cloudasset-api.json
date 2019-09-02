@@ -14,7 +14,7 @@
   "canonicalName": "Cloud Asset",
   "description": "The cloud asset API manages the history and inventory of cloud resources.",
   "discoveryVersion": "v1",
-  "documentationLink": "https://console.cloud.google.com/apis/api/cloudasset.googleapis.com/overview",
+  "documentationLink": "https://cloud.google.com/resource-manager/docs/cloud-asset-inventory/quickstart-cloud-asset-inventory",
   "fullyEncodeReservedExpansion": true,
   "icons": {
     "x16": "http://www.google.com/images/icons/product/search-16.gif",
@@ -104,10 +104,73 @@
   },
   "protocol": "rest",
   "resources": {
+    "folders": {
+      "methods": {
+        "exportAssets": {
+          "description": "Exports assets with time and resource types to a given Cloud Storage\nlocation. The output format is newline-delimited JSON.\nThis API implements the google.longrunning.Operation API allowing you\nto keep track of the export.",
+          "flatPath": "v1beta1/folders/{foldersId}:exportAssets",
+          "httpMethod": "POST",
+          "id": "cloudasset.folders.exportAssets",
+          "parameterOrder": [
+            "parent"
+          ],
+          "parameters": {
+            "parent": {
+              "description": "Required. The relative name of the root asset. This can only be an\norganization number (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), a project number (such as \"projects/12345\"), or\na folder number (such as \"folders/123\").",
+              "location": "path",
+              "pattern": "^folders/[^/]+$",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "v1beta1/{+parent}:exportAssets",
+          "request": {
+            "$ref": "ExportAssetsRequest"
+          },
+          "response": {
+            "$ref": "Operation"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/cloud-platform"
+          ]
+        }
+      },
+      "resources": {
+        "operations": {
+          "methods": {
+            "get": {
+              "description": "Gets the latest state of a long-running operation.  Clients can use this\nmethod to poll the operation result at intervals as recommended by the API\nservice.",
+              "flatPath": "v1beta1/folders/{foldersId}/operations/{operationsId}/{operationsId1}",
+              "httpMethod": "GET",
+              "id": "cloudasset.folders.operations.get",
+              "parameterOrder": [
+                "name"
+              ],
+              "parameters": {
+                "name": {
+                  "description": "The name of the operation resource.",
+                  "location": "path",
+                  "pattern": "^folders/[^/]+/operations/[^/]+/.+$",
+                  "required": true,
+                  "type": "string"
+                }
+              },
+              "path": "v1beta1/{+name}",
+              "response": {
+                "$ref": "Operation"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/cloud-platform"
+              ]
+            }
+          }
+        }
+      }
+    },
     "organizations": {
       "methods": {
         "batchGetAssetsHistory": {
-          "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.",
+          "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.\nIf a specified asset does not exist, this API returns an INVALID_ARGUMENT\nerror.",
           "flatPath": "v1beta1/organizations/{organizationsId}:batchGetAssetsHistory",
           "httpMethod": "GET",
           "id": "cloudasset.organizations.batchGetAssetsHistory",
@@ -116,7 +179,7 @@
           ],
           "parameters": {
             "assetNames": {
-              "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
+              "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource\nNames](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
               "location": "query",
               "repeated": true,
               "type": "string"
@@ -169,7 +232,7 @@
           ],
           "parameters": {
             "parent": {
-              "description": "Required. The relative name of the root asset. This can only be an organization\nnumber (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), or a project number (such as \"projects/12345\").",
+              "description": "Required. The relative name of the root asset. This can only be an\norganization number (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), a project number (such as \"projects/12345\"), or\na folder number (such as \"folders/123\").",
               "location": "path",
               "pattern": "^organizations/[^/]+$",
               "required": true,
@@ -203,7 +266,7 @@
                 "name": {
                   "description": "The name of the operation resource.",
                   "location": "path",
-                  "pattern": "^organizations/[^/]+/operations/[^/]+/[^/]+$",
+                  "pattern": "^organizations/[^/]+/operations/[^/]+/.+$",
                   "required": true,
                   "type": "string"
                 }
@@ -223,7 +286,7 @@
     "projects": {
       "methods": {
         "batchGetAssetsHistory": {
-          "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.",
+          "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.\nIf a specified asset does not exist, this API returns an INVALID_ARGUMENT\nerror.",
           "flatPath": "v1beta1/projects/{projectsId}:batchGetAssetsHistory",
           "httpMethod": "GET",
           "id": "cloudasset.projects.batchGetAssetsHistory",
@@ -232,7 +295,7 @@
           ],
           "parameters": {
             "assetNames": {
-              "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
+              "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource\nNames](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
               "location": "query",
               "repeated": true,
               "type": "string"
@@ -285,7 +348,7 @@
           ],
           "parameters": {
             "parent": {
-              "description": "Required. The relative name of the root asset. This can only be an organization\nnumber (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), or a project number (such as \"projects/12345\").",
+              "description": "Required. The relative name of the root asset. This can only be an\norganization number (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), a project number (such as \"projects/12345\"), or\na folder number (such as \"folders/123\").",
               "location": "path",
               "pattern": "^projects/[^/]+$",
               "required": true,
@@ -319,7 +382,7 @@
                 "name": {
                   "description": "The name of the operation resource.",
                   "location": "path",
-                  "pattern": "^projects/[^/]+/operations/[^/]+/[^/]+$",
+                  "pattern": "^projects/[^/]+/operations/[^/]+/.+$",
                   "required": true,
                   "type": "string"
                 }
@@ -337,7 +400,7 @@
       }
     }
   },
-  "revision": "20181211",
+  "revision": "20190424",
   "rootUrl": "https://cloudasset.googleapis.com/",
   "schemas": {
     "Asset": {
@@ -350,10 +413,10 @@
         },
         "iamPolicy": {
           "$ref": "Policy",
-          "description": "Representation of the actual Cloud IAM policy set on a cloud resource. For each\nresource, there must be at most one Cloud IAM policy set on it."
+          "description": "Representation of the actual Cloud IAM policy set on a cloud resource. For\neach resource, there must be at most one Cloud IAM policy set on it."
         },
         "name": {
-          "description": "The full name of the asset. For example: `//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more information.",
+          "description": "The full name of the asset. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource\nNames](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more information.",
           "type": "string"
         },
         "resource": {
@@ -431,10 +494,10 @@
       "properties": {
         "condition": {
           "$ref": "Expr",
-          "description": "Unimplemented. The condition that is associated with this binding.\nNOTE: an unsatisfied condition will not allow user access via current\nbinding. Different bindings, including their conditions, are examined\nindependently."
+          "description": "The condition that is associated with this binding.\nNOTE: An unsatisfied condition will not allow user access via current\nbinding. Different bindings, including their conditions, are examined\nindependently."
         },
         "members": {
-          "description": "Specifies the identities requesting access for a Cloud Platform resource.\n`members` can have the following values:\n\n* `allUsers`: A special identifier that represents anyone who is\n   on the internet; with or without a Google account.\n\n* `allAuthenticatedUsers`: A special identifier that represents anyone\n   who is authenticated with a Google account or a service account.\n\n* `user:{emailid}`: An email address that represents a specific Google\n   account. For example, `alice@gmail.com` .\n\n\n* `serviceAccount:{emailid}`: An email address that represents a service\n   account. For example, `my-other-app@appspot.gserviceaccount.com`.\n\n* `group:{emailid}`: An email address that represents a Google group.\n   For example, `admins@example.com`.\n\n\n* `domain:{domain}`: A Google Apps domain name that represents all the\n   users of that domain. For example, `google.com` or `example.com`.\n\n",
+          "description": "Specifies the identities requesting access for a Cloud Platform resource.\n`members` can have the following values:\n\n* `allUsers`: A special identifier that represents anyone who is\n   on the internet; with or without a Google account.\n\n* `allAuthenticatedUsers`: A special identifier that represents anyone\n   who is authenticated with a Google account or a service account.\n\n* `user:{emailid}`: An email address that represents a specific Google\n   account. For example, `alice@gmail.com` .\n\n\n* `serviceAccount:{emailid}`: An email address that represents a service\n   account. For example, `my-other-app@appspot.gserviceaccount.com`.\n\n* `group:{emailid}`: An email address that represents a Google group.\n   For example, `admins@example.com`.\n\n\n* `domain:{domain}`: The G Suite domain (primary) that represents all the\n   users of that domain. For example, `google.com` or `example.com`.\n\n",
           "items": {
             "type": "string"
           },
@@ -513,6 +576,10 @@
       "properties": {
         "uri": {
           "description": "The uri of the Cloud Storage object. It's the same uri that is used by\ngsutil. For example: \"gs://bucket_name/object_name\". See [Viewing and\nEditing Object\nMetadata](https://cloud.google.com/storage/docs/viewing-editing-metadata)\nfor more information.",
+          "type": "string"
+        },
+        "uriPrefix": {
+          "description": "The uri prefix of all generated Cloud Storage objects. For example:\n\"gs://bucket_name/object_name_prefix\". Each object uri is in format:\n\"gs://bucket_name/object_name_prefix/\u003casset type\u003e/\u003cshard number\u003e and only\ncontains assets for that type. \u003cshard number\u003e starts from 0. For example:\n\"gs://bucket_name/object_name_prefix/google.compute.disk/0\" is the first\nshard of output objects containing all google.compute.disk assets.\nAn INVALID_ARGUMENT error will be returned if file with the same name\n\"gs://bucket_name/object_name_prefix\" already exists.",
           "type": "string"
         }
       },
@@ -616,7 +683,7 @@
           "type": "string"
         },
         "parent": {
-          "description": "The full name of the immediate parent of this resource. See\n[Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more information.\n\nFor GCP assets, it is the parent resource defined in the [Cloud IAM policy\nhierarchy](https://cloud.google.com/iam/docs/overview#policy_hierarchy).\nFor example: `\"//cloudresourcemanager.googleapis.com/projects/my_project_123\"`.\n\nFor third-party assets, it is up to the users to define.",
+          "description": "The full name of the immediate parent of this resource. See\n[Resource\nNames](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more information.\n\nFor GCP assets, it is the parent resource defined in the [Cloud IAM policy\nhierarchy](https://cloud.google.com/iam/docs/overview#policy_hierarchy).\nFor example:\n`\"//cloudresourcemanager.googleapis.com/projects/my_project_123\"`.\n\nFor third-party assets, it is up to the users to define.",
           "type": "string"
         },
         "resourceUrl": {
@@ -631,7 +698,7 @@
       "type": "object"
     },
     "Status": {
-      "description": "The `Status` type defines a logical error model that is suitable for different\nprogramming environments, including REST APIs and RPC APIs. It is used by\n[gRPC](https://github.com/grpc). The error model is designed to be:\n\n- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error message,\nand error details. The error code should be an enum value of\ngoogle.rpc.Code, but it may accept additional error codes if needed.  The\nerror message should be a developer-facing English message that helps\ndevelopers *understand* and *resolve* the error. If a localized user-facing\nerror message is needed, put the localized message in the error details or\nlocalize it in the client. The optional error details may contain arbitrary\ninformation about the error. There is a predefined set of error detail types\nin the package `google.rpc` that can be used for common error conditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). The error model is designed to be:\n\n- Simple to use and understand for most users\n- Flexible enough to meet unexpected needs\n\n# Overview\n\nThe `Status` message contains three pieces of data: error code, error\nmessage, and error details. The error code should be an enum value of\ngoogle.rpc.Code, but it may accept additional error codes if needed.  The\nerror message should be a developer-facing English message that helps\ndevelopers *understand* and *resolve* the error. If a localized user-facing\nerror message is needed, put the localized message in the error details or\nlocalize it in the client. The optional error details may contain arbitrary\ninformation about the error. There is a predefined set of error detail types\nin the package `google.rpc` that can be used for common error conditions.\n\n# Language mapping\n\nThe `Status` message is the logical representation of the error model, but it\nis not necessarily the actual wire format. When the `Status` message is\nexposed in different client libraries and different wire protocols, it can be\nmapped differently. For example, it will likely be mapped to some exceptions\nin Java, but more likely mapped to some error codes in C.\n\n# Other uses\n\nThe error model and the `Status` message can be used in a variety of\nenvironments, either with or without APIs, to provide a\nconsistent developer experience across different environments.\n\nExample uses of this error model include:\n\n- Partial errors. If a service needs to return partial errors to the client,\n    it may embed the `Status` in the normal response to indicate the partial\n    errors.\n\n- Workflow errors. A typical workflow has multiple steps. Each step may\n    have a `Status` message for error reporting.\n\n- Batch operations. If a client uses batch request and batch response, the\n    `Status` message should be used directly inside batch response, one for\n    each error sub-response.\n\n- Asynchronous operations. If an API call embeds asynchronous operation\n    results in its response, the status of those operations should be\n    represented directly using the `Status` message.\n\n- Logging. If some API errors are stored in logs, the message `Status` could\n    be used directly after any stripping needed for security/privacy reasons.",
       "id": "Status",
       "properties": {
         "code": {

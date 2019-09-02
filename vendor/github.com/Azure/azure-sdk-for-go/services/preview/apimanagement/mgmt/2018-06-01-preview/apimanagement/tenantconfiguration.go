@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewTenantConfigurationClientWithBaseURI(baseURI string, subscriptionID stri
 // serviceName - the name of the API Management service.
 // parameters - deploy Configuration parameters.
 func (client TenantConfigurationClient) Deploy(ctx context.Context, resourceGroupName string, serviceName string, parameters DeployConfigurationParameters) (result TenantConfigurationDeployFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TenantConfigurationClient.Deploy")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -99,13 +110,9 @@ func (client TenantConfigurationClient) DeployPreparer(ctx context.Context, reso
 // DeploySender sends the Deploy request. The method will close the
 // http.Response Body if it receives an error.
 func (client TenantConfigurationClient) DeploySender(req *http.Request) (future TenantConfigurationDeployFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -132,6 +139,16 @@ func (client TenantConfigurationClient) DeployResponder(resp *http.Response) (re
 // resourceGroupName - the name of the resource group.
 // serviceName - the name of the API Management service.
 func (client TenantConfigurationClient) GetSyncState(ctx context.Context, resourceGroupName string, serviceName string) (result TenantConfigurationSyncStateContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TenantConfigurationClient.GetSyncState")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -186,8 +203,8 @@ func (client TenantConfigurationClient) GetSyncStatePreparer(ctx context.Context
 // GetSyncStateSender sends the GetSyncState request. The method will close the
 // http.Response Body if it receives an error.
 func (client TenantConfigurationClient) GetSyncStateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSyncStateResponder handles the response to the GetSyncState request. The method always
@@ -210,6 +227,16 @@ func (client TenantConfigurationClient) GetSyncStateResponder(resp *http.Respons
 // serviceName - the name of the API Management service.
 // parameters - save Configuration parameters.
 func (client TenantConfigurationClient) Save(ctx context.Context, resourceGroupName string, serviceName string, parameters SaveConfigurationParameter) (result TenantConfigurationSaveFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TenantConfigurationClient.Save")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -262,13 +289,9 @@ func (client TenantConfigurationClient) SavePreparer(ctx context.Context, resour
 // SaveSender sends the Save request. The method will close the
 // http.Response Body if it receives an error.
 func (client TenantConfigurationClient) SaveSender(req *http.Request) (future TenantConfigurationSaveFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -296,6 +319,16 @@ func (client TenantConfigurationClient) SaveResponder(resp *http.Response) (resu
 // serviceName - the name of the API Management service.
 // parameters - validate Configuration parameters.
 func (client TenantConfigurationClient) Validate(ctx context.Context, resourceGroupName string, serviceName string, parameters DeployConfigurationParameters) (result TenantConfigurationValidateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TenantConfigurationClient.Validate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -348,13 +381,9 @@ func (client TenantConfigurationClient) ValidatePreparer(ctx context.Context, re
 // ValidateSender sends the Validate request. The method will close the
 // http.Response Body if it receives an error.
 func (client TenantConfigurationClient) ValidateSender(req *http.Request) (future TenantConfigurationValidateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}

@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestGammaInc(t *testing.T) {
+func TestGammaIncReg(t *testing.T) {
 	for i, test := range []struct {
 		a, x, want float64
 	}{
@@ -35,13 +35,13 @@ func TestGammaInc(t *testing.T) {
 		{10, 5, 0.031828057306204811},
 		{25, 10, 4.6949381426799868e-05},
 	} {
-		if got := GammaInc(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
-			t.Errorf("test %d GammaInc(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
+		if got := GammaIncReg(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
+			t.Errorf("test %d GammaIncReg(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
 		}
 	}
 }
 
-func TestGammaIncComp(t *testing.T) {
+func TestGammaIncRegComp(t *testing.T) {
 	for i, test := range []struct {
 		a, x, want float64
 	}{
@@ -67,13 +67,13 @@ func TestGammaIncComp(t *testing.T) {
 		{500, 500, 0.49405285382921321},
 		{500, 550, 0.014614408126291296},
 	} {
-		if got := GammaIncComp(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
-			t.Errorf("test %d GammaIncComp(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
+		if got := GammaIncRegComp(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
+			t.Errorf("test %d GammaIncRegComp(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
 		}
 	}
 }
 
-func TestGammaIncInv(t *testing.T) {
+func TestGammaIncRegInv(t *testing.T) {
 	for i, test := range []struct {
 		a, x, want float64
 	}{
@@ -99,13 +99,13 @@ func TestGammaIncInv(t *testing.T) {
 		{1000, 0.99, 1075.0328320864389},
 		{10000, 0.5, 9999.6666686420485},
 	} {
-		if got := GammaIncInv(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
-			t.Errorf("test %d GammaIncInv(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
+		if got := GammaIncRegInv(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
+			t.Errorf("test %d GammaIncRegInv(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
 		}
 	}
 }
 
-func TestGammaIncCompInv(t *testing.T) {
+func TestGammaIncRegCompInv(t *testing.T) {
 	for i, test := range []struct {
 		a, x, want float64
 	}{
@@ -131,8 +131,8 @@ func TestGammaIncCompInv(t *testing.T) {
 		{1000, 0.99, 927.90815979664251},
 		{10000, 0.5, 9999.6666686420485},
 	} {
-		if got := GammaIncCompInv(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
-			t.Errorf("test %d GammaIncCompInv(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
+		if got := GammaIncRegCompInv(test.a, test.x); math.Abs(got-test.want) > 1e-10 {
+			t.Errorf("test %d GammaIncRegCompInv(%g, %g) failed: got %g want %g", i, test.a, test.x, got, test.want)
 		}
 	}
 }

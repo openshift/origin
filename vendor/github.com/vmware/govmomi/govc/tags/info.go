@@ -33,6 +33,7 @@ type info struct {
 	*flags.ClientFlag
 	*flags.OutputFlag
 	c string
+	C bool
 }
 
 func init() {
@@ -45,6 +46,7 @@ func (cmd *info) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.ClientFlag.Register(ctx, f)
 	cmd.OutputFlag.Register(ctx, f)
 	f.StringVar(&cmd.c, "c", "", "Category name")
+	f.BoolVar(&cmd.C, "C", true, "Display category name instead of ID")
 }
 
 func (cmd *info) Process(ctx context.Context) error {
@@ -78,7 +80,7 @@ func (t infoResult) Write(w io.Writer) error {
 		fmt.Fprintf(tw, "Name:\t%s\n", item.Name)
 		fmt.Fprintf(tw, "  ID:\t%s\n", item.ID)
 		fmt.Fprintf(tw, "  Description:\t%s\n", item.Description)
-		fmt.Fprintf(tw, "  CategoryID:\t%s\n", item.CategoryID)
+		fmt.Fprintf(tw, "  Category:\t%s\n", item.CategoryID)
 		fmt.Fprintf(tw, "  UsedBy: %s\n", item.UsedBy)
 	}
 
@@ -86,7 +88,7 @@ func (t infoResult) Write(w io.Writer) error {
 }
 
 func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		m := tags.NewManager(c)
 		var res lsResult
 		var err error
@@ -112,6 +114,20 @@ func (cmd *info) Run(ctx context.Context, f *flag.FlagSet) error {
 			}
 			if len(res) == 0 {
 				return fmt.Errorf("tag %q not found", arg)
+			}
+		}
+
+		if cmd.C {
+			categories, err := m.GetCategories(ctx)
+			if err != nil {
+				return err
+			}
+			m := make(map[string]tags.Category)
+			for _, category := range categories {
+				m[category.ID] = category
+			}
+			for i := range res {
+				res[i].CategoryID = m[res[i].CategoryID].Name
 			}
 		}
 

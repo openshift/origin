@@ -23,9 +23,21 @@ rm -rf ./kubernetes/; rm -f kubernetes.tar.gz; rm -f ~/.kube/config
 # if you're working with multiple projects and don't want to repeatedly switch
 # between gcloud config configurations.
 export CLOUDSDK_CORE_PROJECT=<your_project_name>
+
+# To run e2e test locally, make sure "Application Default Credentials" is set in any of the places:
+# References: https://cloud.google.com/sdk/docs/authorizing#authorizing_with_a_service_account
+#             https://cloud.google.com/sdk/gcloud/reference/auth/application-default/
+#    1. $HOME/.config/gcloud/application_default_credentials.json, if doesn't exist, run this command:
+gcloud auth application-default login
+# Or 2. Create a json format credential file as per http://cloud/docs/authentication/production,
+#       then export to environment variable
+export GOOGLE_APPLICATION_CREDENTIAL=[path_to_the_json_file]
 ```
 
 ### 1. Build Kubernetes
+
+NOTE: this step is only needed if you want to test local changes you made to
+the codebase.
 
 The most straightforward approach to build those binaries is to run `make
 release`. However, that builds binaries for all supported platforms, and can be
@@ -33,9 +45,9 @@ slow. You can speed up the process by following the instructions below to only
 build the necessary binaries.
 
 ```
-# Apply https://github.com/pjh/kubernetes/pull/43 to your tree:
+# Apply https://github.com/yujuhong/kubernetes/commit/27e608a050a997be5ab736a7cdeb29aa68f3b7ee to your tree:
 curl \
-  https://patch-diff.githubusercontent.com/raw/pjh/kubernetes/pull/43.patch | \
+  https://github.com/yujuhong/kubernetes/commit/27e608a050a997be5ab736a7cdeb29aa68f3b7ee.patch | \
   git apply
 
 # Build binaries for both Linux and Windows:
@@ -62,6 +74,8 @@ plane only runs on Linux.
 export NUM_NODES=2  # number of Linux nodes
 export NUM_WINDOWS_NODES=2
 export KUBE_GCE_ENABLE_IP_ALIASES=true
+export KUBERNETES_NODE_PLATFORM=windows
+export LOGGING_STACKDRIVER_RESOURCE_TYPES=new
 ```
 
 Now bring up a cluster using one of the following two methods:
@@ -83,8 +97,18 @@ PROJECT=${CLOUDSDK_CORE_PROJECT} KUBERNETES_SKIP_CONFIRM=y ./cluster/kube-down.s
 
 #### 2b. Create a Kubernetes end-to-end (E2E) test cluster
 
+If you have built your own release binaries following step 1, run the following
+command:
 ```
 PROJECT=${CLOUDSDK_CORE_PROJECT} go run ./hack/e2e.go  -- --up
+```
+
+Otherwise, you can specify what branch from which to get the release artifacts:
+```
+# Get the latest build from the stable1 branch
+PROJECT=${CLOUDSDK_CORE_PROJECT} go run ./hack/e2e.go  -- --up --extract=ci/k8s-stable1
+# Or Get the latest build from master
+PROJECT=${CLOUDSDK_CORE_PROJECT} go run ./hack/e2e.go  -- --up --extract=ci-cross/latest
 ```
 
 This command, by default, tears down any existing E2E cluster and creates a new

@@ -34,6 +34,7 @@ import (
 )
 
 func main() {
+	klog.InitFlags(nil)
 	arguments := args.Default()
 	if err := arguments.Execute(
 		generators.NameSystems(),

@@ -35,20 +35,22 @@ var (
 
 func TestNewFromSets(t *testing.T) {
 	got := merge.ConflictsFromManagers(fieldpath.ManagedFields{
-		"Bob": &fieldpath.VersionedSet{
-			Set: _NS(
+		"Bob": fieldpath.NewVersionedSet(
+			_NS(
 				_P("key"),
 				_P("list", _KBF("key", _SV("a"), "id", _IV(2)), "id"),
 			),
-			APIVersion: "v1",
-		},
-		"Alice": &fieldpath.VersionedSet{
-			Set: _NS(
+			"v1",
+			false,
+		),
+		"Alice": fieldpath.NewVersionedSet(
+			_NS(
 				_P("value"),
 				_P("list", _KBF("key", _SV("a"), "id", _IV(2)), "key"),
 			),
-			APIVersion: "v1",
-		},
+			"v1",
+			false,
+		),
 	})
 	wanted := `conflicts with "Alice":
 - .value

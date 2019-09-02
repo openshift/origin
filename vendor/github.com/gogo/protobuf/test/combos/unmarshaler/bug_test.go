@@ -209,7 +209,7 @@ func TestRepeatedExtensionsMsgsIssue161(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !input.Equal(output) {
-		t.Fatal("expected equal")
+		t.Fatalf("want %#v but got %#v", input, output)
 	}
 	data2, err2 := proto.Marshal(output)
 	if err2 != nil {
@@ -240,7 +240,7 @@ func TestRepeatedExtensionsFieldsIssue161(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !input.Equal(output) {
-		t.Fatal("expected equal")
+		t.Fatalf("want %#v but got %#v", input, output)
 	}
 	data2, err2 := proto.Marshal(output)
 	if err2 != nil {

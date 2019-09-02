@@ -156,7 +156,7 @@ func Dlahr2Test(t *testing.T, impl Dlahr2er) {
 
 				// Construct Q directly from the first nb columns of a.
 				q := constructQ("QR", n-k, nb, a.Data[k*a.Stride:], a.Stride, tau)
-				if !isOrthonormal(q) {
+				if !isOrthogonal(q) {
 					t.Errorf("%v: Q is not orthogonal", prefix)
 				}
 				// Construct Q as the product Q = I - V*T*V^T.
@@ -170,7 +170,7 @@ func Dlahr2Test(t *testing.T, impl Dlahr2er) {
 					qwant.Data[i*qwant.Stride+i] = 1
 				}
 				blas64.Gemm(blas.NoTrans, blas.Trans, -1, vt, v, 1, qwant)
-				if !isOrthonormal(qwant) {
+				if !isOrthogonal(qwant) {
 					t.Errorf("%v: Q = I - V*T*V^T is not orthogonal", prefix)
 				}
 

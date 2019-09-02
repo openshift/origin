@@ -1,4 +1,4 @@
-// Copyright 2013 The Gonum Authors. All rights reserved.
+// Copyright ©2013 The Gonum Authors. All rights reserved.
 // Use of this code is governed by a BSD-style
 // license that can be found in the LICENSE file
 
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	EqTolerance = 1E-14
+	EqTolerance = 1e-14
 	Small       = 10
 	Medium      = 1000
 	Large       = 100000
@@ -1001,7 +1001,7 @@ func TestNearestIdx(t *testing.T) {
 			in:    []float64{math.NaN(), math.Inf(-1)},
 			query: 1,
 			want:  1,
-			desc:  "Wrong index returned when query is a number and single NaN preceeds -Inf",
+			desc:  "Wrong index returned when query is a number and single NaN precedes -Inf",
 		},
 	} {
 		ind := NearestIdx(test.in, test.query)
@@ -1339,6 +1339,22 @@ func TestScale(t *testing.T) {
 	truth := []float64{15, 20, 5, 35, 25}
 	Scale(c, s)
 	areSlicesEqual(t, truth, s, "Bad scaling")
+}
+
+func TestScaleTo(t *testing.T) {
+	s := []float64{3, 4, 1, 7, 5}
+	sCopy := make([]float64, len(s))
+	copy(sCopy, s)
+	c := 5.0
+	truth := []float64{15, 20, 5, 35, 25}
+	dst := make([]float64, len(s))
+	ScaleTo(dst, c, s)
+	if !Same(dst, truth) {
+		t.Errorf("Scale to does not match. Got %v, want %v", dst, truth)
+	}
+	if !Same(s, sCopy) {
+		t.Errorf("Source modified during call. Got %v, want %v", s, sCopy)
+	}
 }
 
 func TestSpan(t *testing.T) {

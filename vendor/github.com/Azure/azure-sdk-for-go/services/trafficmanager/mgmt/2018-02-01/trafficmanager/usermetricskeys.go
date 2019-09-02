@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,6 +42,16 @@ func NewUserMetricsKeysClientWithBaseURI(baseURI string, subscriptionID string) 
 
 // CreateOrUpdate create or update a subscription-level key used for Real User Metrics collection.
 func (client UserMetricsKeysClient) CreateOrUpdate(ctx context.Context) (result UserMetricsKeyModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserMetricsKeysClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdatePreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "trafficmanager.UserMetricsKeysClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -84,8 +95,8 @@ func (client UserMetricsKeysClient) CreateOrUpdatePreparer(ctx context.Context) 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserMetricsKeysClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -103,6 +114,16 @@ func (client UserMetricsKeysClient) CreateOrUpdateResponder(resp *http.Response)
 
 // Delete delete a subscription-level key used for Real User Metrics collection.
 func (client UserMetricsKeysClient) Delete(ctx context.Context) (result DeleteOperationResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserMetricsKeysClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "trafficmanager.UserMetricsKeysClient", "Delete", nil, "Failure preparing request")
@@ -146,8 +167,8 @@ func (client UserMetricsKeysClient) DeletePreparer(ctx context.Context) (*http.R
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserMetricsKeysClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -165,6 +186,16 @@ func (client UserMetricsKeysClient) DeleteResponder(resp *http.Response) (result
 
 // Get get the subscription-level key used for Real User Metrics collection.
 func (client UserMetricsKeysClient) Get(ctx context.Context) (result UserMetricsKeyModel, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/UserMetricsKeysClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "trafficmanager.UserMetricsKeysClient", "Get", nil, "Failure preparing request")
@@ -208,8 +239,8 @@ func (client UserMetricsKeysClient) GetPreparer(ctx context.Context) (*http.Requ
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client UserMetricsKeysClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always

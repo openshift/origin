@@ -107,6 +107,8 @@ To add ExtraConfig variables that can read within the guest, use the 'guestinfo.
 Examples:
   govc vm.change -vm $vm -mem.reservation 2048
   govc vm.change -vm $vm -e smc.present=TRUE -e ich7m.present=TRUE
+  # Enable both cpu and memory hotplug on a guest:
+  govc vm.change -vm $vm -e vcpu.hotadd=true -e mem.hotadd=true
   govc vm.change -vm $vm -e guestinfo.vmname $vm
   # Read the variable set above inside the guest:
   vmware-rpctool "info-get guestinfo.vmname"`

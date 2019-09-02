@@ -37,7 +37,13 @@ type ProjectSpec struct {
 // ProjectStatus is information about the current status of a Project
 type ProjectStatus struct {
 	// Phase is the current lifecycle phase of the project
+	// +optional
 	Phase corev1.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/api/core/v1.NamespacePhase"`
+	// Represents the latest available observations of the project current state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []corev1.NamespaceCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
 }
 
 // +genclient

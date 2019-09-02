@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewWidgetTypesClientWithBaseURI(baseURI string, subscriptionID string) Widg
 // hubName - the name of the hub.
 // widgetTypeName - the name of the widget type.
 func (client WidgetTypesClient) Get(ctx context.Context, resourceGroupName string, hubName string, widgetTypeName string) (result WidgetTypeResourceFormat, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/WidgetTypesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, hubName, widgetTypeName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.WidgetTypesClient", "Get", nil, "Failure preparing request")
@@ -93,8 +104,8 @@ func (client WidgetTypesClient) GetPreparer(ctx context.Context, resourceGroupNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client WidgetTypesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -115,6 +126,16 @@ func (client WidgetTypesClient) GetResponder(resp *http.Response) (result Widget
 // resourceGroupName - the name of the resource group.
 // hubName - the name of the hub.
 func (client WidgetTypesClient) ListByHub(ctx context.Context, resourceGroupName string, hubName string) (result WidgetTypeListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/WidgetTypesClient.ListByHub")
+		defer func() {
+			sc := -1
+			if result.wtlr.Response.Response != nil {
+				sc = result.wtlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByHubNextResults
 	req, err := client.ListByHubPreparer(ctx, resourceGroupName, hubName)
 	if err != nil {
@@ -161,8 +182,8 @@ func (client WidgetTypesClient) ListByHubPreparer(ctx context.Context, resourceG
 // ListByHubSender sends the ListByHub request. The method will close the
 // http.Response Body if it receives an error.
 func (client WidgetTypesClient) ListByHubSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByHubResponder handles the response to the ListByHub request. The method always
@@ -179,8 +200,8 @@ func (client WidgetTypesClient) ListByHubResponder(resp *http.Response) (result 
 }
 
 // listByHubNextResults retrieves the next set of results, if any.
-func (client WidgetTypesClient) listByHubNextResults(lastResults WidgetTypeListResult) (result WidgetTypeListResult, err error) {
-	req, err := lastResults.widgetTypeListResultPreparer()
+func (client WidgetTypesClient) listByHubNextResults(ctx context.Context, lastResults WidgetTypeListResult) (result WidgetTypeListResult, err error) {
+	req, err := lastResults.widgetTypeListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "customerinsights.WidgetTypesClient", "listByHubNextResults", nil, "Failure preparing next results request")
 	}
@@ -201,6 +222,16 @@ func (client WidgetTypesClient) listByHubNextResults(lastResults WidgetTypeListR
 
 // ListByHubComplete enumerates all values, automatically crossing page boundaries as required.
 func (client WidgetTypesClient) ListByHubComplete(ctx context.Context, resourceGroupName string, hubName string) (result WidgetTypeListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/WidgetTypesClient.ListByHub")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByHub(ctx, resourceGroupName, hubName)
 	return
 }

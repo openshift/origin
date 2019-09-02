@@ -21,6 +21,9 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
@@ -39,6 +42,26 @@ type info struct {
 	uplinkPort bool
 	vlanID     int
 	count      int
+	dvsRules   bool
+}
+
+var protocols = map[int32]string{
+	1:  "icmp",
+	2:  "igmp",
+	6:  "tcp",
+	17: "udp",
+	58: "ipv6-icmp",
+}
+
+type trafficRule struct {
+	Description        string
+	Direction          string
+	Action             string
+	Protocol           string
+	SourceAddress      string
+	SourceIpPort       string
+	DestinationAddress string
+	DestinationIpPort  string
 }
 
 func init() {
@@ -56,6 +79,7 @@ func (cmd *info) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.uplinkPort, "uplinkPort", false, "Filter for uplink ports")
 	f.IntVar(&cmd.vlanID, "vlan", 0, "Filter by VLAN ID (0 = unfiltered)")
 	f.IntVar(&cmd.count, "count", 0, "Number of matches to return (0 = unlimited)")
+	f.BoolVar(&cmd.dvsRules, "r", false, "Show DVS rules")
 }
 
 func (cmd *info) Usage() string {
@@ -76,8 +100,95 @@ type infoResult struct {
 	cmd  *info
 }
 
+func printPort(port types.BaseDvsIpPort) string {
+	if port != nil {
+		switch port.(type) {
+		case *types.DvsSingleIpPort:
+			return fmt.Sprintf("%d", port.(*types.DvsSingleIpPort).PortNumber)
+		case *types.DvsIpPortRange:
+			return fmt.Sprintf("%d-%d", port.(*types.DvsIpPortRange).StartPortNumber, port.(*types.DvsIpPortRange).EndPortNumber)
+		}
+	}
+	return "Any"
+}
+
+func printAddress(address types.BaseIpAddress) string {
+	if address != nil {
+		switch (address).(type) {
+		case *types.SingleIp:
+			return fmt.Sprintf("%s", address.(*types.SingleIp).Address)
+		case *types.IpRange:
+			return fmt.Sprintf("%s/%d", address.(*types.IpRange).AddressPrefix, address.(*types.IpRange).PrefixLength)
+		}
+	}
+	return "Any"
+}
+
+func printAction(action types.BaseDvsNetworkRuleAction) string {
+	if action != nil {
+		switch (action).(type) {
+		case *types.DvsAcceptNetworkRuleAction:
+			return fmt.Sprintf("Accept")
+		case *types.DvsDropNetworkRuleAction:
+			return fmt.Sprintf("Drop")
+		}
+	}
+	return "n/a"
+}
+
+func printTable(trafficRuleSet map[int]map[int]trafficRule, portID int) {
+	if len(trafficRuleSet[portID]) == 0 {
+		return
+	}
+
+	keys := []int{}
+	for k := range trafficRuleSet[portID] {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	tabWidthInt := 22
+	tabWidth := fmt.Sprintf("%d", tabWidthInt)
+	headLen := 9*(tabWidthInt+2) - 1
+	fmt.Printf("+" + strings.Repeat("-", headLen) + "+\n")
+	format := "| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s| %-" + tabWidth +
+		"s|\n"
+	fmt.Printf(format,
+		"Sequence",
+		"Description",
+		"Direction",
+		"Action",
+		"Protocol",
+		"SourceAddress",
+		"SourceIpPort",
+		"DestinationAddress",
+		"DestinationIpPort")
+	fmt.Printf("+" + strings.Repeat("-", headLen) + "+\n")
+	for _, id := range keys {
+		fmt.Printf(format,
+			fmt.Sprintf("%d", id),
+			trafficRuleSet[portID][id].Description,
+			trafficRuleSet[portID][id].Direction,
+			trafficRuleSet[portID][id].Action,
+			trafficRuleSet[portID][id].Protocol,
+			trafficRuleSet[portID][id].SourceAddress,
+			trafficRuleSet[portID][id].SourceIpPort,
+			trafficRuleSet[portID][id].DestinationAddress,
+			trafficRuleSet[portID][id].DestinationIpPort)
+	}
+	fmt.Printf("+" + strings.Repeat("-", headLen) + "+\n")
+}
+
 func (r *infoResult) Write(w io.Writer) error {
-	for _, port := range r.Port {
+	trafficRuleSet := make(map[int]map[int]trafficRule)
+	for portID, port := range r.Port {
 		var vlanID int32
 		setting := port.Config.Setting.(*types.VMwareDVSPortSetting)
 
@@ -95,8 +206,65 @@ func (r *infoResult) Write(w io.Writer) error {
 			fmt.Printf("DvsUuid:      %s\n", port.DvsUuid)
 			fmt.Printf("VlanId:       %d\n", vlanID)
 			fmt.Printf("PortKey:      %s\n\n", port.Key)
+
+			trafficRuleSet[portID] = make(map[int]trafficRule)
+
+			if r.cmd.dvsRules && setting.FilterPolicy != nil &&
+				setting.FilterPolicy.FilterConfig != nil &&
+				len(setting.FilterPolicy.FilterConfig) > 0 {
+
+				rules := setting.FilterPolicy.FilterConfig[0].GetDvsTrafficFilterConfig()
+				if rules != nil && rules.TrafficRuleset != nil && rules.TrafficRuleset.Rules != nil {
+					for _, rule := range rules.TrafficRuleset.Rules {
+						for _, q := range rule.Qualifier {
+							var protocol string
+							if val, ok := protocols[q.GetDvsIpNetworkRuleQualifier().Protocol.Value]; ok {
+								protocol = val
+							} else {
+								protocol = fmt.Sprintf("%d", q.GetDvsIpNetworkRuleQualifier().Protocol.Value)
+							}
+
+							trafficRuleSet[portID][int(rule.Sequence)] = trafficRule{
+								Description:        rule.Description,
+								Direction:          rule.Direction,
+								Action:             printAction(rule.Action),
+								Protocol:           protocol,
+								SourceAddress:      printAddress(q.GetDvsIpNetworkRuleQualifier().SourceAddress),
+								SourceIpPort:       printPort(q.GetDvsIpNetworkRuleQualifier().SourceIpPort),
+								DestinationAddress: printAddress(q.GetDvsIpNetworkRuleQualifier().DestinationAddress),
+								DestinationIpPort:  printPort(q.GetDvsIpNetworkRuleQualifier().DestinationIpPort),
+							}
+						}
+					}
+				}
+			}
 		}
 	}
+
+	if r.cmd.dvsRules && len(r.Port) > 0 {
+		eq := 0
+		for i, _ := range r.Port {
+			if i > 0 {
+				reflect.DeepEqual(trafficRuleSet[i-1], trafficRuleSet[i])
+				if reflect.DeepEqual(trafficRuleSet[i-1], trafficRuleSet[i]) {
+					eq++
+				} else {
+					fmt.Printf("%s and %s port rules are unequal\n", r.Port[i-1].Key, r.Port[i].Key)
+					break
+				}
+			}
+		}
+
+		if eq == len(trafficRuleSet)-1 {
+			printTable(trafficRuleSet, 0)
+		} else {
+			for portID, port := range r.Port {
+				fmt.Printf("\nPortKey:      %s\n", port.Key)
+				printTable(trafficRuleSet, portID)
+			}
+		}
+	}
+
 	return nil
 }
 

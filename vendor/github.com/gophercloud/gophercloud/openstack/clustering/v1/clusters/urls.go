@@ -52,3 +52,7 @@ func nodeURL(client *gophercloud.ServiceClient, id string) string {
 func collectURL(client *gophercloud.ServiceClient, clusterID string, path string) string {
 	return client.ServiceURL(apiVersion, apiName, clusterID, "attrs", path)
 }
+
+func opsURL(client *gophercloud.ServiceClient, id string) string {
+	return client.ServiceURL(apiVersion, apiName, id, "ops")
+}

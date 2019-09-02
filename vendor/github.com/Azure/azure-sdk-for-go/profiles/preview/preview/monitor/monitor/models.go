@@ -1,6 +1,6 @@
 // +build go1.9
 
-// Copyright 2018 Microsoft Corporation
+// Copyright 2019 Microsoft Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,8 +25,6 @@ const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
-type MetricsClient = original.MetricsClient
 type APIError = original.APIError
 type APIFailureResponse = original.APIFailureResponse
 type AzureMetricsBaseData = original.AzureMetricsBaseData
@@ -34,18 +32,20 @@ type AzureMetricsData = original.AzureMetricsData
 type AzureMetricsDocument = original.AzureMetricsDocument
 type AzureMetricsResult = original.AzureMetricsResult
 type AzureTimeSeriesData = original.AzureTimeSeriesData
+type BaseClient = original.BaseClient
+type MetricsClient = original.MetricsClient
 
 func New() BaseClient {
 	return original.New()
-}
-func NewWithBaseURI(baseURI string) BaseClient {
-	return original.NewWithBaseURI(baseURI)
 }
 func NewMetricsClient() MetricsClient {
 	return original.NewMetricsClient()
 }
 func NewMetricsClientWithBaseURI(baseURI string) MetricsClient {
 	return original.NewMetricsClientWithBaseURI(baseURI)
+}
+func NewWithBaseURI(baseURI string) BaseClient {
+	return original.NewWithBaseURI(baseURI)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

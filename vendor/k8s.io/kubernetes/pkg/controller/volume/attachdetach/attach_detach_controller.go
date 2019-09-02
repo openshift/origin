@@ -24,7 +24,7 @@ import (
 	"time"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,7 +43,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/metrics"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/populator"
@@ -106,6 +105,7 @@ func NewAttachDetachController(
 	pvcInformer coreinformers.PersistentVolumeClaimInformer,
 	pvInformer coreinformers.PersistentVolumeInformer,
 	csiNodeInformer storageinformers.CSINodeInformer,
+	csiDriverInformer storageinformers.CSIDriverInformer,
 	cloud cloudprovider.Interface,
 	plugins []volume.VolumePlugin,
 	prober volume.DynamicPluginProber,
@@ -145,6 +145,11 @@ func NewAttachDetachController(
 		utilfeature.DefaultFeatureGate.Enabled(features.CSINodeInfo) {
 		adc.csiNodeLister = csiNodeInformer.Lister()
 		adc.csiNodeSynced = csiNodeInformer.Informer().HasSynced
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.CSIDriverRegistry) {
+		adc.csiDriverLister = csiDriverInformer.Lister()
+		adc.csiDriversSynced = csiDriverInformer.Informer().HasSynced
 	}
 
 	if err := adc.volumePluginMgr.InitPlugins(plugins, prober, adc); err != nil {
@@ -271,6 +276,12 @@ type attachDetachController struct {
 	csiNodeLister storagelisters.CSINodeLister
 	csiNodeSynced kcache.InformerSynced
 
+	// csiDriverLister is the shared CSIDriver lister used to fetch and store
+	// CSIDriver objects from the API server. It is shared with other controllers
+	// and therefore the CSIDriver objects in its store should be treated as immutable.
+	csiDriverLister  storagelisters.CSIDriverLister
+	csiDriversSynced kcache.InformerSynced
+
 	// cloud provider used by volume host
 	cloud cloudprovider.Interface
 
@@ -327,8 +338,11 @@ func (adc *attachDetachController) Run(stopCh <-chan struct{}) {
 	if adc.csiNodeSynced != nil {
 		synced = append(synced, adc.csiNodeSynced)
 	}
+	if adc.csiDriversSynced != nil {
+		synced = append(synced, adc.csiDriversSynced)
+	}
 
-	if !controller.WaitForCacheSync("attach detach", stopCh, synced...) {
+	if !kcache.WaitForNamedCacheSync("attach detach", stopCh, synced...) {
 		return
 	}
 
@@ -669,6 +683,10 @@ func (adc *attachDetachController) CSINodeLister() storagelisters.CSINodeLister 
 	return adc.csiNodeLister
 }
 
+func (adc *attachDetachController) CSIDriverLister() storagelisters.CSIDriverLister {
+	return adc.csiDriverLister
+}
+
 func (adc *attachDetachController) IsAttachDetachController() bool {
 	return true
 }
@@ -760,7 +778,7 @@ func (adc *attachDetachController) DeleteServiceAccountTokenFunc() func(types.UI
 }
 
 func (adc *attachDetachController) GetExec(pluginName string) mount.Exec {
-	return mount.NewOsExec()
+	return mount.NewOSExec()
 }
 
 func (adc *attachDetachController) addNodeToDswp(node *v1.Node, nodeName types.NodeName) {
@@ -792,4 +810,8 @@ func (adc *attachDetachController) GetEventRecorder() record.EventRecorder {
 func (adc *attachDetachController) GetSubpather() subpath.Interface {
 	// Subpaths not needed in attachdetach controller
 	return nil
+}
+
+func (adc *attachDetachController) GetCSIDriverLister() storagelisters.CSIDriverLister {
+	return adc.csiDriverLister
 }

@@ -31,9 +31,10 @@ func (a *App) TopologyInfo() (*api.TopologyInfoResponse, error) {
 				return err
 			}
 			cluster := api.Cluster{
-				Id:      clusterInfo.Id,
-				Volumes: make([]api.VolumeInfoResponse, 0),
-				Nodes:   make([]api.NodeInfoResponse, 0),
+				Id:           clusterInfo.Id,
+				Volumes:      make([]api.VolumeInfoResponse, 0),
+				BlockVolumes: make([]api.BlockVolumeInfoResponse, 0),
+				Nodes:        make([]api.NodeInfoResponse, 0),
 				ClusterFlags: api.ClusterFlags{
 					Block: clusterInfo.Block,
 					File:  clusterInfo.File,
@@ -48,7 +49,13 @@ func (a *App) TopologyInfo() (*api.TopologyInfoResponse, error) {
 				}
 				cluster.Volumes = append(cluster.Volumes, *volumeInfo)
 			}
-
+			for _, blockVol := range clusterInfo.BlockVolumes {
+				blkVolumeInfo, err := blockVolumeInfo(tx, blockVol)
+				if err != nil {
+					return err
+				}
+				cluster.BlockVolumes = append(cluster.BlockVolumes, *blkVolumeInfo)
+			}
 			for _, node := range clusterInfo.Nodes {
 				nodei, err := nodeInfo(tx, string(node))
 				if err != nil {
@@ -85,6 +92,19 @@ func volumeInfo(tx *bolt.Tx, id string) (*api.VolumeInfoResponse, error) {
 	var info *api.VolumeInfoResponse
 
 	entry, err := NewVolumeEntryFromId(tx, id)
+	if err != nil {
+		return info, err
+	}
+
+	info, err = entry.NewInfoResponse(tx)
+
+	return info, err
+}
+
+func blockVolumeInfo(tx *bolt.Tx, id string) (*api.BlockVolumeInfoResponse, error) {
+	var info *api.BlockVolumeInfoResponse
+
+	entry, err := NewBlockVolumeEntryFromId(tx, id)
 	if err != nil {
 		return info, err
 	}

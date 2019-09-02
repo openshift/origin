@@ -104,23 +104,23 @@ func Test_Interfaces(t *testing.T) {
 	}{
 		{"SomeInterface", exports.Interface{
 			Methods: map[string]exports.Func{
-				"One": exports.Func{
+				"One": {
 					Params:  nil,
 					Returns: nil,
 				},
-				"Two": exports.Func{
+				"Two": {
 					Params:  strPtr("bool"),
 					Returns: nil,
 				},
-				"Three": exports.Func{
+				"Three": {
 					Params:  nil,
 					Returns: strPtr("string"),
 				},
-				"Four": exports.Func{
+				"Four": {
 					Params:  strPtr("int"),
 					Returns: strPtr("error"),
 				},
-				"Five": exports.Func{
+				"Five": {
 					Params:  strPtr("int,bool"),
 					Returns: strPtr("int,error"),
 				},

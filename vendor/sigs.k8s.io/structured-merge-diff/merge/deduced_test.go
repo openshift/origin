@@ -53,12 +53,13 @@ func TestDeduced(t *testing.T) {
 				bool: false
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": &fieldpath.VersionedSet{
-					Set: _NS(
+				"default": fieldpath.NewVersionedSet(
+					_NS(
 						_P("numeric"), _P("string"), _P("bool"),
 					),
-					APIVersion: "v1",
-				},
+					"v1",
+					false,
+				),
 			},
 		},
 		"leaf_apply_update_apply_no_conflict": {
@@ -95,18 +96,20 @@ func TestDeduced(t *testing.T) {
 				bool: true
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": &fieldpath.VersionedSet{
-					Set: _NS(
+				"default": fieldpath.NewVersionedSet(
+					_NS(
 						_P("numeric"), _P("string"),
 					),
-					APIVersion: "v1",
-				},
-				"controller": &fieldpath.VersionedSet{
-					Set: _NS(
+					"v1",
+					false,
+				),
+				"controller": fieldpath.NewVersionedSet(
+					_NS(
 						_P("bool"),
 					),
-					APIVersion: "v1",
-				},
+					"v1",
+					false,
+				),
 			},
 		},
 		"leaf_apply_update_apply_with_conflict": {
@@ -154,21 +157,23 @@ func TestDeduced(t *testing.T) {
 				bool: true
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": &fieldpath.VersionedSet{
-					Set: _NS(
+				"default": fieldpath.NewVersionedSet(
+					_NS(
 						_P("numeric"), _P("string"),
 					),
-					APIVersion: "v1",
-				},
-				"controller": &fieldpath.VersionedSet{
-					Set: _NS(
+					"v1",
+					false,
+				),
+				"controller": fieldpath.NewVersionedSet(
+					_NS(
 						_P("bool"),
 					),
-					APIVersion: "v1",
-				},
+					"v1",
+					false,
+				),
 			},
 		},
-		"leaf_apply_twice_dangling": {
+		"leaf_apply_twice_remove": {
 			Ops: []Operation{
 				Apply{
 					Manager:    "default",
@@ -188,17 +193,16 @@ func TestDeduced(t *testing.T) {
 				},
 			},
 			Object: `
-				numeric: 1
 				string: "new string"
-				bool: false
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": &fieldpath.VersionedSet{
-					Set: _NS(
+				"default": fieldpath.NewVersionedSet(
+					_NS(
 						_P("string"),
 					),
-					APIVersion: "v1",
-				},
+					"v1",
+					false,
+				),
 			},
 		},
 		"leaf_update_remove_empty_set": {
@@ -222,12 +226,13 @@ func TestDeduced(t *testing.T) {
 				string: "new string"
 			`,
 			Managed: fieldpath.ManagedFields{
-				"controller": &fieldpath.VersionedSet{
-					Set: _NS(
+				"controller": fieldpath.NewVersionedSet(
+					_NS(
 						_P("string"),
 					),
-					APIVersion: "v1",
-				},
+					"v1",
+					false,
+				),
 			},
 		},
 		"apply_twice_list_is_atomic": {
@@ -261,10 +266,11 @@ func TestDeduced(t *testing.T) {
 				- b
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": &fieldpath.VersionedSet{
-					Set:        _NS(_P("list")),
-					APIVersion: "v1",
-				},
+				"default": fieldpath.NewVersionedSet(
+					_NS(_P("list")),
+					"v1",
+					false,
+				),
 			},
 		},
 		"apply_update_apply_list": {
@@ -307,10 +313,11 @@ func TestDeduced(t *testing.T) {
 				- c
 			`,
 			Managed: fieldpath.ManagedFields{
-				"default": &fieldpath.VersionedSet{
-					Set:        _NS(_P("list")),
-					APIVersion: "v1",
-				},
+				"default": fieldpath.NewVersionedSet(
+					_NS(_P("list")),
+					"v1",
+					false,
+				),
 			},
 		},
 		"leaf_apply_remove_empty_set": {
@@ -328,9 +335,7 @@ func TestDeduced(t *testing.T) {
 					Object:     ``,
 				},
 			},
-			Object: `
-				string: "string"
-			`,
+			Object:  ``,
 			Managed: fieldpath.ManagedFields{},
 		},
 		"apply_update_apply_nested": {
@@ -523,9 +528,304 @@ func TestDeduced(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if err := test.Test(typed.DeducedParseableType{}); err != nil {
+			if err := test.Test(typed.DeducedParseableType); err != nil {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func BenchmarkDeducedSimple(b *testing.B) {
+	test := TestCase{
+		Ops: []Operation{
+			Apply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+						numeric: 1
+						string: "string"
+					`,
+			},
+			Update{
+				Manager:    "controller",
+				APIVersion: "v1",
+				Object: `
+						numeric: 1
+						string: "controller string"
+						bool: true
+					`,
+			},
+			Apply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+						numeric: 2
+						string: "user string"
+					`,
+				Conflicts: merge.Conflicts{
+					merge.Conflict{Manager: "controller", Path: _P("string")},
+				},
+			},
+			ForceApply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+						numeric: 2
+						string: "user string"
+					`,
+			},
+		},
+		Object: `
+				numeric: 2
+				string: "user string"
+				bool: true
+			`,
+		Managed: fieldpath.ManagedFields{
+			"default": fieldpath.NewVersionedSet(
+				_NS(
+					_P("numeric"), _P("string"),
+				),
+				"v1",
+				false,
+			),
+			"controller": fieldpath.NewVersionedSet(
+				_NS(
+					_P("bool"),
+				),
+				"v1",
+				false,
+			),
+		},
+	}
+
+	// Make sure this passes...
+	if err := test.Test(typed.DeducedParseableType); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := test.Bench(typed.DeducedParseableType); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkDeducedNested(b *testing.B) {
+	test := TestCase{
+		Ops: []Operation{
+			Apply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+						a: 1
+						b:
+						  c:
+						    d: 2
+						    e:
+						    - 1
+						    - 2
+						    - 3
+						    f:
+						    - name: n
+						      value: 1
+					`,
+			},
+			Update{
+				Manager:    "controller",
+				APIVersion: "v1",
+				Object: `
+						a: 1
+						b:
+						  c:
+						    d: 3
+						    e:
+						    - 1
+						    - 2
+						    - 3
+						    - 4
+						    f:
+						    - name: n
+						      value: 2
+						g: 5
+					`,
+			},
+			Apply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+						a: 2
+						b:
+						  c:
+						    d: 2
+						    e:
+						    - 3
+						    - 2
+						    - 1
+						    f:
+						    - name: n
+						      value: 1
+					`,
+				Conflicts: merge.Conflicts{
+					merge.Conflict{Manager: "controller", Path: _P("b", "c", "d")},
+					merge.Conflict{Manager: "controller", Path: _P("b", "c", "e")},
+					merge.Conflict{Manager: "controller", Path: _P("b", "c", "f")},
+				},
+			},
+			ForceApply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+						a: 2
+						b:
+						  c:
+						    d: 2
+						    e:
+						    - 3
+						    - 2
+						    - 1
+						    f:
+						    - name: n
+						      value: 1
+					`,
+			},
+		},
+		Object: `
+				a: 2
+				b:
+				  c:
+				    d: 2
+				    e:
+				    - 3
+				    - 2
+				    - 1
+				    f:
+				    - name: n
+				      value: 1
+				g: 5
+			`,
+	}
+
+	// Make sure this passes...
+	if err := test.Test(typed.DeducedParseableType); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := test.Bench(typed.DeducedParseableType); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkDeducedNestedAcrossVersion(b *testing.B) {
+	test := TestCase{
+		Ops: []Operation{
+			Apply{
+				Manager:    "default",
+				APIVersion: "v1",
+				Object: `
+					a: 1
+					b:
+					  c:
+					    d: 2
+					    e:
+					    - 1
+					    - 2
+					    - 3
+					    f:
+					    - name: n
+					      value: 1
+				`,
+			},
+			Update{
+				Manager:    "controller",
+				APIVersion: "v2",
+				Object: `
+					a: 1
+					b:
+					  c:
+					    d: 3
+					    e:
+					    - 1
+					    - 2
+					    - 3
+					    - 4
+					    f:
+					    - name: n
+					      value: 2
+					g: 5
+				`,
+			},
+			Apply{
+				Manager:    "default",
+				APIVersion: "v3",
+				Object: `
+					a: 2
+					b:
+					  c:
+					    d: 2
+					    e:
+					    - 3
+					    - 2
+					    - 1
+					    f:
+					    - name: n
+					      value: 1
+				`,
+				Conflicts: merge.Conflicts{
+					merge.Conflict{Manager: "controller", Path: _P("b", "c", "d")},
+					merge.Conflict{Manager: "controller", Path: _P("b", "c", "e")},
+					merge.Conflict{Manager: "controller", Path: _P("b", "c", "f")},
+				},
+			},
+			ForceApply{
+				Manager:    "default",
+				APIVersion: "v3",
+				Object: `
+					a: 2
+					b:
+					  c:
+					    d: 2
+					    e:
+					    - 3
+					    - 2
+					    - 1
+					    f:
+					    - name: n
+					      value: 1
+				`,
+			},
+		},
+		Object: `
+			a: 2
+			b:
+			  c:
+			    d: 2
+			    e:
+			    - 3
+			    - 2
+			    - 1
+			    f:
+			    - name: n
+			      value: 1
+			g: 5
+		`,
+	}
+
+	// Make sure this passes...
+	if err := test.Test(typed.DeducedParseableType); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := test.Bench(typed.DeducedParseableType); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

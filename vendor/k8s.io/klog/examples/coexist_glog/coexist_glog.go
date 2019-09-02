@@ -2,27 +2,29 @@ package main
 
 import (
 	"flag"
-	"github.com/dims/klog"
+
 	"github.com/golang/glog"
+	"k8s.io/klog"
 )
-
-type glogWriter struct{}
-
-func (file *glogWriter) Write(data []byte) (n int, err error) {
-	glog.InfoDepth(0, string(data))
-	return len(data), nil
-}
 
 func main() {
 	flag.Set("alsologtostderr", "true")
-
-	var flags flag.FlagSet
-	klog.InitFlags(&flags)
-	flags.Set("skip_headers", "true")
 	flag.Parse()
 
-	klog.SetOutput(&glogWriter{})
-	klog.Info("nice to meet you")
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+
+	// Sync the glog and klog flags.
+	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
+		f2 := klogFlags.Lookup(f1.Name)
+		if f2 != nil {
+			value := f1.Value.String()
+			f2.Value.Set(value)
+		}
+	})
+
+	glog.Info("hello from glog!")
+	klog.Info("nice to meet you, I'm klog")
 	glog.Flush()
 	klog.Flush()
 }

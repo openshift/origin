@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewTagsClientWithBaseURI(baseURI string, subscriptionID string) TagsClient 
 // Parameters:
 // billingAccountID - billingAccount ID
 func (client TagsClient) Get(ctx context.Context, billingAccountID string) (result Tags, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TagsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, billingAccountID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "consumption.TagsClient", "Get", nil, "Failure preparing request")
@@ -87,8 +98,8 @@ func (client TagsClient) GetPreparer(ctx context.Context, billingAccountID strin
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client TagsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always

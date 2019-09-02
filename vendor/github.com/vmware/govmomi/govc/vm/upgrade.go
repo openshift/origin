@@ -3,7 +3,6 @@ package vm
 import (
 	"context"
 	"flag"
-
 	"fmt"
 
 	"github.com/vmware/govmomi/govc/cli"

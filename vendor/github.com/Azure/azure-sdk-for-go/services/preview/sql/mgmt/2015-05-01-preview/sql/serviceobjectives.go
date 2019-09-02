@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewServiceObjectivesClientWithBaseURI(baseURI string, subscriptionID string
 // serverName - the name of the server.
 // serviceObjectiveName - the name of the service objective to retrieve.
 func (client ServiceObjectivesClient) Get(ctx context.Context, resourceGroupName string, serverName string, serviceObjectiveName string) (result ServiceObjective, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceObjectivesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, serverName, serviceObjectiveName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServiceObjectivesClient", "Get", nil, "Failure preparing request")
@@ -94,8 +105,8 @@ func (client ServiceObjectivesClient) GetPreparer(ctx context.Context, resourceG
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceObjectivesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -117,6 +128,16 @@ func (client ServiceObjectivesClient) GetResponder(resp *http.Response) (result 
 // from the Azure Resource Manager API or the portal.
 // serverName - the name of the server.
 func (client ServiceObjectivesClient) ListByServer(ctx context.Context, resourceGroupName string, serverName string) (result ServiceObjectiveListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ServiceObjectivesClient.ListByServer")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListByServerPreparer(ctx, resourceGroupName, serverName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ServiceObjectivesClient", "ListByServer", nil, "Failure preparing request")
@@ -162,8 +183,8 @@ func (client ServiceObjectivesClient) ListByServerPreparer(ctx context.Context, 
 // ListByServerSender sends the ListByServer request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceObjectivesClient) ListByServerSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByServerResponder handles the response to the ListByServer request. The method always

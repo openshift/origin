@@ -1,27 +1,35 @@
-hash: 595563cffda70c75833adcf07415011d115db7218cbbddc4c14f1684ad39638a
-updated: 2019-08-13T12:05:19.648281606-04:00
+hash: 5bf9d387d4cd230a53eac7120965e72b5065668b65e0516a1ed70544cd5ebbc1
+updated: 2019-08-29T17:02:25.5963+02:00
 imports:
 - name: github.com/davecgh/go-spew
-  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
   subpackages:
   - spew
 - name: github.com/evanphx/json-patch
   version: 5858425f75500d40c52783dce87d085a483ce135
 - name: github.com/gogo/protobuf
-  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
+  version: 65acae22fc9d1fe290b33faa2bd64cdc20a463a0
   subpackages:
   - proto
   - sortkeys
 - name: github.com/golang/protobuf
-  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
+  version: aa810b61a9c79d51363740d207bb46cf8e620ed5
   subpackages:
   - proto
   - ptypes
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/google/go-cmp
+  version: 6f77996f0c42f7b84e5a2b252227263f93432e9b
+  subpackages:
+  - cmp
+  - cmp/internal/diff
+  - cmp/internal/flags
+  - cmp/internal/function
+  - cmp/internal/value
 - name: github.com/google/gofuzz
-  version: 24818f796faf91cd76ec7bddd72458fbced7a6c1
+  version: f140a6486e521aad38f5917de355cbf147cc0496
 - name: github.com/googleapis/gnostic
   version: 0c5108395e2debce0d731cf0287ddf7242066aba
   subpackages:
@@ -35,13 +43,13 @@ imports:
 - name: github.com/imdario/mergo
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/json-iterator/go
-  version: ab8a2e0c74be9d3be70b3184d9acc634935ded82
+  version: 27518f6661eba504be5a7a9a9f6d9460d892ade3
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
   version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
 - name: github.com/openshift/api
-  version: b5570061b31fed3b06c24077c534b1a1bf7ecf8b
+  version: 58aab2885e38fd7f4fd57f2615f5f9fe38039e22
   subpackages:
   - apps/v1
   - authorization/v1
@@ -63,13 +71,13 @@ imports:
   - template/v1
   - user/v1
 - name: github.com/spf13/pflag
-  version: 583c0c0531f06d5278b7d917446061adc344b5cd
+  version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: golang.org/x/crypto
-  version: de0752318171da717af4ce24d0a2e8626afaeb11
+  version: e84da0312774c21d64ee2317962ef669b27ffb41
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 65e2d4e15006aab9813ff8769e768bbf4bb667a0
+  version: cdfb69ac37fc6fa907650654115ebebb3aae2087
   subpackages:
   - context
   - context/ctxhttp
@@ -78,19 +86,16 @@ imports:
   - http2/hpack
   - idna
 - name: golang.org/x/oauth2
-  version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
+  version: 9f3314589c9a9136388751d9adae6b0ed400978a
   subpackages:
-  - google
   - internal
-  - jws
-  - jwt
 - name: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  version: 3b5209105503162ded1863c307ac66fec31120dd
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: b19bf474d317b857955b12035d2c5acb57ce8b01
+  version: e6919f6577db79269a6443b9dc46d18f2238fb5d
   subpackages:
   - secure/bidirule
   - transform
@@ -105,7 +110,7 @@ imports:
   subpackages:
   - imports
 - name: google.golang.org/appengine
-  version: fb139bde60fa77cede04f226b4d5a3cf68dcce27
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/base
@@ -117,10 +122,11 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
 - name: k8s.io/api
-  version: 40a48860b5abbba9aa891b02b32da429b08d96a0
+  version: 6185379c914ac524c99740fc4be563ad68f31b20
   subpackages:
+  - admissionregistration/v1
   - admissionregistration/v1beta1
   - apps/v1
   - apps/v1beta1
@@ -158,7 +164,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: d7deff9243b165ee192f5551710ea4285dcfd615
+  version: 31b1e1ea64dcd6d47a3b0066ccacf721f864d295
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -203,7 +209,7 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 6ee68ca5fd8355d024d02f9db0b3b667e8357a0f
+  version: 0a74433fb22231a88db9119f88ac494411c3594e
   subpackages:
   - discovery
   - discovery/fake
@@ -232,18 +238,18 @@ imports:
   - util/keyutil
   - util/retry
 - name: k8s.io/code-generator
-  version: f40157d9638d05ebf65421a9bbad5a7f68878b65
+  version: 33967b46c7b634d8c26d2d2e7fb8d73e6acfbfd1
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/gengo
   version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
 - name: k8s.io/klog
-  version: 8e90cee79f823779174776412c13478955131846
+  version: 3ca30a56d8a775276f9cdae009ba326fdc05af7f
 - name: k8s.io/kube-openapi
-  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
+  version: 33be087ad058f99c78e067996202b60230737e49
   subpackages:
   - pkg/util/proto
 - name: k8s.io/utils
-  version: c2654d5206da6b7b6ace12841e8f359bb89b443c
+  version: 581e00157fb1a0435d4fac54a52d1ca1e481d60e
   subpackages:
   - buffer
   - integer
