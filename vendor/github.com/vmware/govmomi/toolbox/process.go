@@ -94,13 +94,14 @@ type ProcessIO struct {
 
 // ProcessState is the toolbox representation of the GuestProcessInfo type
 type ProcessState struct {
-	Name      string
-	Args      string
-	Owner     string
-	Pid       int64
-	ExitCode  int32
-	StartTime int64
-	EndTime   int64
+	StartTime int64 // (keep first to ensure 64-bit alignment)
+	EndTime   int64 // (keep first to ensure 64-bit alignment)
+
+	Name     string
+	Args     string
+	Owner    string
+	Pid      int64
+	ExitCode int32
 
 	IO *ProcessIO
 }
@@ -472,7 +473,7 @@ func NewProcessFunc(run func(ctx context.Context, args string) error) *Process {
 
 // ProcessFuncIO is the Context key to access optional ProcessIO
 var ProcessFuncIO = struct {
-	key int
+	key int64
 }{vix.CommandMagicWord}
 
 func (f *processFunc) start(p *Process, r *vix.StartProgramRequest) (int64, error) {

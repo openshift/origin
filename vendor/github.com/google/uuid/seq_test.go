@@ -16,7 +16,7 @@ var regressions = flag.Bool("regressions", false, "run uuid regression tests")
 
 // TestClockSeqRace tests for a particular race condition of returning two
 // identical Version1 UUIDs.  The duration of 1 minute was chosen as the race
-// condition, before being fixed, nearly always occured in under 30 seconds.
+// condition, before being fixed, nearly always occurred in under 30 seconds.
 func TestClockSeqRace(t *testing.T) {
 	if !*regressions {
 		t.Skip("skipping regression tests")

@@ -94,6 +94,21 @@ func IPv6Value(v *strfmt.IPv6) strfmt.IPv6 {
 	return *v
 }
 
+// CIDR returns a pointer to of the CIDR value passed in.
+func CIDR(v strfmt.CIDR) *strfmt.CIDR {
+	return &v
+}
+
+// CIDRValue returns the value of the CIDR pointer passed in or
+// the default value if the pointer is nil.
+func CIDRValue(v *strfmt.CIDR) strfmt.CIDR {
+	if v == nil {
+		return strfmt.CIDR("")
+	}
+
+	return *v
+}
+
 // MAC returns a pointer to of the MAC value passed in.
 func MAC(v strfmt.MAC) *strfmt.MAC {
 	return &v

@@ -1,6 +1,6 @@
 // +build go1.9
 
-// Copyright 2018 Microsoft Corporation
+// Copyright 2019 Microsoft Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,27 +19,16 @@
 
 package storsimple
 
-import original "github.com/Azure/azure-sdk-for-go/services/storsimple1200series/mgmt/2016-10-01/storsimple"
+import (
+	"context"
 
-type AccessControlRecordsClient = original.AccessControlRecordsClient
-type AlertsClient = original.AlertsClient
-type AvailableProviderOperationsClient = original.AvailableProviderOperationsClient
-type BackupsClient = original.BackupsClient
-type BackupScheduleGroupsClient = original.BackupScheduleGroupsClient
-type ChapSettingsClient = original.ChapSettingsClient
+	original "github.com/Azure/azure-sdk-for-go/services/storsimple1200series/mgmt/2016-10-01/storsimple"
+)
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
-type DevicesClient = original.DevicesClient
-type FileServersClient = original.FileServersClient
-type FileSharesClient = original.FileSharesClient
-type IscsiDisksClient = original.IscsiDisksClient
-type IscsiServersClient = original.IscsiServersClient
-type JobsClient = original.JobsClient
-type ManagersClient = original.ManagersClient
 type AlertEmailNotificationStatus = original.AlertEmailNotificationStatus
 
 const (
@@ -342,6 +331,7 @@ const (
 type AccessControlRecord = original.AccessControlRecord
 type AccessControlRecordList = original.AccessControlRecordList
 type AccessControlRecordProperties = original.AccessControlRecordProperties
+type AccessControlRecordsClient = original.AccessControlRecordsClient
 type AccessControlRecordsCreateOrUpdateFuture = original.AccessControlRecordsCreateOrUpdateFuture
 type AccessControlRecordsDeleteFuture = original.AccessControlRecordsDeleteFuture
 type Alert = original.Alert
@@ -354,10 +344,12 @@ type AlertProperties = original.AlertProperties
 type AlertSettings = original.AlertSettings
 type AlertSettingsProperties = original.AlertSettingsProperties
 type AlertSource = original.AlertSource
+type AlertsClient = original.AlertsClient
 type AsymmetricEncryptedSecret = original.AsymmetricEncryptedSecret
 type AvailableProviderOperation = original.AvailableProviderOperation
 type AvailableProviderOperationDisplay = original.AvailableProviderOperationDisplay
 type AvailableProviderOperations = original.AvailableProviderOperations
+type AvailableProviderOperationsClient = original.AvailableProviderOperationsClient
 type AvailableProviderOperationsIterator = original.AvailableProviderOperationsIterator
 type AvailableProviderOperationsPage = original.AvailableProviderOperationsPage
 type Backup = original.Backup
@@ -371,13 +363,17 @@ type BackupProperties = original.BackupProperties
 type BackupScheduleGroup = original.BackupScheduleGroup
 type BackupScheduleGroupList = original.BackupScheduleGroupList
 type BackupScheduleGroupProperties = original.BackupScheduleGroupProperties
+type BackupScheduleGroupsClient = original.BackupScheduleGroupsClient
 type BackupScheduleGroupsCreateOrUpdateFuture = original.BackupScheduleGroupsCreateOrUpdateFuture
 type BackupScheduleGroupsDeleteFuture = original.BackupScheduleGroupsDeleteFuture
+type BackupsClient = original.BackupsClient
 type BackupsCloneFuture = original.BackupsCloneFuture
 type BackupsDeleteFuture = original.BackupsDeleteFuture
+type BaseClient = original.BaseClient
 type BaseModel = original.BaseModel
 type ChapProperties = original.ChapProperties
 type ChapSettings = original.ChapSettings
+type ChapSettingsClient = original.ChapSettingsClient
 type ChapSettingsCreateOrUpdateFuture = original.ChapSettingsCreateOrUpdateFuture
 type ChapSettingsDeleteFuture = original.ChapSettingsDeleteFuture
 type ChapSettingsList = original.ChapSettingsList
@@ -389,6 +385,7 @@ type DeviceDetails = original.DeviceDetails
 type DeviceList = original.DeviceList
 type DevicePatch = original.DevicePatch
 type DeviceProperties = original.DeviceProperties
+type DevicesClient = original.DevicesClient
 type DevicesCreateOrUpdateAlertSettingsFuture = original.DevicesCreateOrUpdateAlertSettingsFuture
 type DevicesCreateOrUpdateSecuritySettingsFuture = original.DevicesCreateOrUpdateSecuritySettingsFuture
 type DevicesDeactivateFuture = original.DevicesDeactivateFuture
@@ -406,23 +403,27 @@ type FileServer = original.FileServer
 type FileServerList = original.FileServerList
 type FileServerProperties = original.FileServerProperties
 type FileServersBackupNowFuture = original.FileServersBackupNowFuture
+type FileServersClient = original.FileServersClient
 type FileServersCreateOrUpdateFuture = original.FileServersCreateOrUpdateFuture
 type FileServersDeleteFuture = original.FileServersDeleteFuture
 type FileShare = original.FileShare
 type FileShareList = original.FileShareList
 type FileShareProperties = original.FileShareProperties
+type FileSharesClient = original.FileSharesClient
 type FileSharesCreateOrUpdateFuture = original.FileSharesCreateOrUpdateFuture
 type FileSharesDeleteFuture = original.FileSharesDeleteFuture
 type IPConfig = original.IPConfig
 type ISCSIDisk = original.ISCSIDisk
 type ISCSIDiskList = original.ISCSIDiskList
 type ISCSIDiskProperties = original.ISCSIDiskProperties
-type IscsiDisksCreateOrUpdateFuture = original.IscsiDisksCreateOrUpdateFuture
-type IscsiDisksDeleteFuture = original.IscsiDisksDeleteFuture
 type ISCSIServer = original.ISCSIServer
 type ISCSIServerList = original.ISCSIServerList
 type ISCSIServerProperties = original.ISCSIServerProperties
+type IscsiDisksClient = original.IscsiDisksClient
+type IscsiDisksCreateOrUpdateFuture = original.IscsiDisksCreateOrUpdateFuture
+type IscsiDisksDeleteFuture = original.IscsiDisksDeleteFuture
 type IscsiServersBackupNowFuture = original.IscsiServersBackupNowFuture
+type IscsiServersClient = original.IscsiServersClient
 type IscsiServersCreateOrUpdateFuture = original.IscsiServersCreateOrUpdateFuture
 type IscsiServersDeleteFuture = original.IscsiServersDeleteFuture
 type Item = original.Item
@@ -436,6 +437,7 @@ type JobListPage = original.JobListPage
 type JobProperties = original.JobProperties
 type JobStage = original.JobStage
 type JobStats = original.JobStats
+type JobsClient = original.JobsClient
 type Manager = original.Manager
 type ManagerExtendedInfo = original.ManagerExtendedInfo
 type ManagerExtendedInfoProperties = original.ManagerExtendedInfoProperties
@@ -444,6 +446,7 @@ type ManagerList = original.ManagerList
 type ManagerPatch = original.ManagerPatch
 type ManagerProperties = original.ManagerProperties
 type ManagerSku = original.ManagerSku
+type ManagersClient = original.ManagersClient
 type Message = original.Message
 type MetricAvailablity = original.MetricAvailablity
 type MetricData = original.MetricData
@@ -468,11 +471,13 @@ type SendTestAlertEmailRequest = original.SendTestAlertEmailRequest
 type StorageAccountCredential = original.StorageAccountCredential
 type StorageAccountCredentialList = original.StorageAccountCredentialList
 type StorageAccountCredentialProperties = original.StorageAccountCredentialProperties
+type StorageAccountCredentialsClient = original.StorageAccountCredentialsClient
 type StorageAccountCredentialsCreateOrUpdateFuture = original.StorageAccountCredentialsCreateOrUpdateFuture
 type StorageAccountCredentialsDeleteFuture = original.StorageAccountCredentialsDeleteFuture
 type StorageDomain = original.StorageDomain
 type StorageDomainList = original.StorageDomainList
 type StorageDomainProperties = original.StorageDomainProperties
+type StorageDomainsClient = original.StorageDomainsClient
 type StorageDomainsCreateOrUpdateFuture = original.StorageDomainsCreateOrUpdateFuture
 type StorageDomainsDeleteFuture = original.StorageDomainsDeleteFuture
 type SymmetricEncryptedSecret = original.SymmetricEncryptedSecret
@@ -485,14 +490,21 @@ type Updates = original.Updates
 type UpdatesProperties = original.UpdatesProperties
 type UploadCertificateRequest = original.UploadCertificateRequest
 type UploadCertificateResponse = original.UploadCertificateResponse
-type StorageAccountCredentialsClient = original.StorageAccountCredentialsClient
-type StorageDomainsClient = original.StorageDomainsClient
 
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
 func NewAccessControlRecordsClient(subscriptionID string) AccessControlRecordsClient {
 	return original.NewAccessControlRecordsClient(subscriptionID)
 }
 func NewAccessControlRecordsClientWithBaseURI(baseURI string, subscriptionID string) AccessControlRecordsClient {
 	return original.NewAccessControlRecordsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewAlertListIterator(page AlertListPage) AlertListIterator {
+	return original.NewAlertListIterator(page)
+}
+func NewAlertListPage(getNextPage func(context.Context, AlertList) (AlertList, error)) AlertListPage {
+	return original.NewAlertListPage(getNextPage)
 }
 func NewAlertsClient(subscriptionID string) AlertsClient {
 	return original.NewAlertsClient(subscriptionID)
@@ -506,11 +518,17 @@ func NewAvailableProviderOperationsClient(subscriptionID string) AvailableProvid
 func NewAvailableProviderOperationsClientWithBaseURI(baseURI string, subscriptionID string) AvailableProviderOperationsClient {
 	return original.NewAvailableProviderOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewBackupsClient(subscriptionID string) BackupsClient {
-	return original.NewBackupsClient(subscriptionID)
+func NewAvailableProviderOperationsIterator(page AvailableProviderOperationsPage) AvailableProviderOperationsIterator {
+	return original.NewAvailableProviderOperationsIterator(page)
 }
-func NewBackupsClientWithBaseURI(baseURI string, subscriptionID string) BackupsClient {
-	return original.NewBackupsClientWithBaseURI(baseURI, subscriptionID)
+func NewAvailableProviderOperationsPage(getNextPage func(context.Context, AvailableProviderOperations) (AvailableProviderOperations, error)) AvailableProviderOperationsPage {
+	return original.NewAvailableProviderOperationsPage(getNextPage)
+}
+func NewBackupListIterator(page BackupListPage) BackupListIterator {
+	return original.NewBackupListIterator(page)
+}
+func NewBackupListPage(getNextPage func(context.Context, BackupList) (BackupList, error)) BackupListPage {
+	return original.NewBackupListPage(getNextPage)
 }
 func NewBackupScheduleGroupsClient(subscriptionID string) BackupScheduleGroupsClient {
 	return original.NewBackupScheduleGroupsClient(subscriptionID)
@@ -518,17 +536,17 @@ func NewBackupScheduleGroupsClient(subscriptionID string) BackupScheduleGroupsCl
 func NewBackupScheduleGroupsClientWithBaseURI(baseURI string, subscriptionID string) BackupScheduleGroupsClient {
 	return original.NewBackupScheduleGroupsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewBackupsClient(subscriptionID string) BackupsClient {
+	return original.NewBackupsClient(subscriptionID)
+}
+func NewBackupsClientWithBaseURI(baseURI string, subscriptionID string) BackupsClient {
+	return original.NewBackupsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewChapSettingsClient(subscriptionID string) ChapSettingsClient {
 	return original.NewChapSettingsClient(subscriptionID)
 }
 func NewChapSettingsClientWithBaseURI(baseURI string, subscriptionID string) ChapSettingsClient {
 	return original.NewChapSettingsClientWithBaseURI(baseURI, subscriptionID)
-}
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func NewDevicesClient(subscriptionID string) DevicesClient {
 	return original.NewDevicesClient(subscriptionID)
@@ -560,6 +578,12 @@ func NewIscsiServersClient(subscriptionID string) IscsiServersClient {
 func NewIscsiServersClientWithBaseURI(baseURI string, subscriptionID string) IscsiServersClient {
 	return original.NewIscsiServersClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewJobListIterator(page JobListPage) JobListIterator {
+	return original.NewJobListIterator(page)
+}
+func NewJobListPage(getNextPage func(context.Context, JobList) (JobList, error)) JobListPage {
+	return original.NewJobListPage(getNextPage)
+}
 func NewJobsClient(subscriptionID string) JobsClient {
 	return original.NewJobsClient(subscriptionID)
 }
@@ -571,6 +595,21 @@ func NewManagersClient(subscriptionID string) ManagersClient {
 }
 func NewManagersClientWithBaseURI(baseURI string, subscriptionID string) ManagersClient {
 	return original.NewManagersClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewStorageAccountCredentialsClient(subscriptionID string) StorageAccountCredentialsClient {
+	return original.NewStorageAccountCredentialsClient(subscriptionID)
+}
+func NewStorageAccountCredentialsClientWithBaseURI(baseURI string, subscriptionID string) StorageAccountCredentialsClient {
+	return original.NewStorageAccountCredentialsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewStorageDomainsClient(subscriptionID string) StorageDomainsClient {
+	return original.NewStorageDomainsClient(subscriptionID)
+}
+func NewStorageDomainsClientWithBaseURI(baseURI string, subscriptionID string) StorageDomainsClient {
+	return original.NewStorageDomainsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func PossibleAlertEmailNotificationStatusValues() []AlertEmailNotificationStatus {
 	return original.PossibleAlertEmailNotificationStatusValues()
@@ -667,18 +706,6 @@ func PossibleTargetTypeValues() []TargetType {
 }
 func PossibleUpdateOperationValues() []UpdateOperation {
 	return original.PossibleUpdateOperationValues()
-}
-func NewStorageAccountCredentialsClient(subscriptionID string) StorageAccountCredentialsClient {
-	return original.NewStorageAccountCredentialsClient(subscriptionID)
-}
-func NewStorageAccountCredentialsClientWithBaseURI(baseURI string, subscriptionID string) StorageAccountCredentialsClient {
-	return original.NewStorageAccountCredentialsClientWithBaseURI(baseURI, subscriptionID)
-}
-func NewStorageDomainsClient(subscriptionID string) StorageDomainsClient {
-	return original.NewStorageDomainsClient(subscriptionID)
-}
-func NewStorageDomainsClientWithBaseURI(baseURI string, subscriptionID string) StorageDomainsClient {
-	return original.NewStorageDomainsClientWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

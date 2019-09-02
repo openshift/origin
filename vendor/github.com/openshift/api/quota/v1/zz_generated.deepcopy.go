@@ -41,7 +41,7 @@ func (in *AppliedClusterResourceQuota) DeepCopyObject() runtime.Object {
 func (in *AppliedClusterResourceQuotaList) DeepCopyInto(out *AppliedClusterResourceQuotaList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AppliedClusterResourceQuota, len(*in))
@@ -102,7 +102,7 @@ func (in *ClusterResourceQuota) DeepCopyObject() runtime.Object {
 func (in *ClusterResourceQuotaList) DeepCopyInto(out *ClusterResourceQuotaList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ClusterResourceQuota, len(*in))

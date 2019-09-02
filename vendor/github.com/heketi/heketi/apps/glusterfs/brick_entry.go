@@ -12,6 +12,7 @@ package glusterfs
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -20,6 +21,7 @@ import (
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/idgen"
 	"github.com/heketi/heketi/pkg/paths"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/lpabon/godbc"
 )
 
@@ -189,12 +191,7 @@ func (b *BrickEntry) brickRequest(path string, create bool) *executors.BrickRequ
 	return req
 }
 
-func (b *BrickEntry) Create(db wdb.RODB, executor executors.Executor) error {
-	godbc.Require(db != nil)
-	godbc.Require(b.TpSize > 0)
-	godbc.Require(b.Info.Size > 0)
-	godbc.Require(b.Info.Path != "")
-
+func (b *BrickEntry) host(db wdb.RODB) (string, error) {
 	// Get node hostname
 	var host string
 	err := db.View(func(tx *bolt.Tx) error {
@@ -207,14 +204,25 @@ func (b *BrickEntry) Create(db wdb.RODB, executor executors.Executor) error {
 		godbc.Check(host != "")
 		return nil
 	})
+	return host, err
+}
+
+func (b *BrickEntry) createReq() *executors.BrickRequest {
+	return b.brickRequest(b.Info.Path, true)
+}
+
+func (b *BrickEntry) Create(db wdb.RODB, executor executors.Executor) error {
+	godbc.Require(db != nil)
+	godbc.Require(b.TpSize > 0)
+	godbc.Require(b.Info.Size > 0)
+	godbc.Require(b.Info.Path != "")
+
+	host, err := b.host(db)
 	if err != nil {
 		return err
 	}
 
-	req := b.brickRequest(b.Info.Path, true)
-	// remove this some time post-refactoring
-	godbc.Require(req.Path == paths.BrickPath(req.VgId, req.Name))
-
+	req := b.createReq()
 	// Create brick on node
 	logger.Info("Creating brick %v", b.Info.Id)
 	_, err = executor.BrickCreate(host, req)
@@ -224,30 +232,21 @@ func (b *BrickEntry) Create(db wdb.RODB, executor executors.Executor) error {
 	return nil
 }
 
+func (b *BrickEntry) destroyReq() *executors.BrickRequest {
+	return b.brickRequest(strings.TrimSuffix(b.Info.Path, "/brick"), false)
+}
+
 func (b *BrickEntry) Destroy(db wdb.RODB, executor executors.Executor) (bool, error) {
 
 	godbc.Require(db != nil)
 	godbc.Require(b.TpSize > 0)
 	godbc.Require(b.Info.Size > 0)
 
-	// Get node hostname
-	var host string
-	err := db.View(func(tx *bolt.Tx) error {
-		node, err := NewNodeEntryFromId(tx, b.Info.NodeId)
-		if err != nil {
-			return err
-		}
-
-		host = node.ManageHostName()
-		godbc.Check(host != "")
-		return nil
-	})
+	host, err := b.host(db)
 	if err != nil {
 		return false, err
 	}
-
-	req := b.brickRequest(
-		strings.TrimSuffix(b.Info.Path, "/brick"), false)
+	req := b.destroyReq()
 
 	// Delete brick on node
 	logger.Info("Deleting brick %v", b.Info.Id)
@@ -257,28 +256,6 @@ func (b *BrickEntry) Destroy(db wdb.RODB, executor executors.Executor) (bool, er
 	}
 
 	return spaceReclaimed, nil
-}
-
-func (b *BrickEntry) DestroyCheck(db wdb.RODB, executor executors.Executor) error {
-	godbc.Require(db != nil)
-	godbc.Require(b.TpSize > 0)
-	godbc.Require(b.Info.Size > 0)
-
-	// Get node hostname
-	var host string
-	err := db.View(func(tx *bolt.Tx) error {
-		node, err := NewNodeEntryFromId(tx, b.Info.NodeId)
-		if err != nil {
-			return err
-		}
-
-		host = node.ManageHostName()
-		godbc.Check(host != "")
-		return nil
-	})
-
-	// TODO: any additional checks in the DB? The detection of the VG/LV and its users is done in cmdexec.BrickDestroy()
-	return err
 }
 
 // Size consumed on device
@@ -397,4 +374,94 @@ func (b *BrickEntry) LvName() string {
 // brick formatting, etc.
 func (b *BrickEntry) BrickType() BrickSubType {
 	return b.SubType
+}
+
+// remove deletes a brick and the links to that brick in the db.
+func (b *BrickEntry) remove(tx *bolt.Tx, v *VolumeEntry) error {
+	err := b.RemoveFromDevice(tx)
+	if err != nil {
+		logger.Err(err)
+		return err
+	}
+
+	// Delete brick from volume entry
+	v.BrickDelete(b.Info.Id)
+	err = v.Save(tx)
+	if err != nil {
+		logger.Err(err)
+		return err
+	}
+
+	// Delete brick entry from db
+	err = b.Delete(tx)
+	if err != nil {
+		logger.Err(err)
+		return err
+	}
+	return nil
+}
+
+// removeAndFree deletes a brick and the links to that brick, as well
+// as updating the size counters on the associated device.
+func (b *BrickEntry) removeAndFree(
+	tx *bolt.Tx, v *VolumeEntry, reclaim bool) error {
+
+	if err := b.remove(tx, v); err != nil {
+		return err
+	}
+	if reclaim {
+		device, err := NewDeviceEntryFromId(tx, b.Info.DeviceId)
+		if err != nil {
+			logger.Err(err)
+			return err
+		}
+
+		// Deallocate space on device
+		device.StorageFree(device.SpaceNeeded(b.Info.Size, float64(v.Info.Snapshot.Factor)).Total)
+		if err := device.Save(tx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// consistencyCheck ... verifies that a brickEntry is consistent with rest of the database.
+// It is a method on brickEntry and needs rest of the database as its input.
+func (b *BrickEntry) consistencyCheck(db Db) (response DbEntryCheckResponse) {
+
+	// PendingId
+	if b.Pending.Id != "" {
+		response.Pending = true
+		if _, found := db.PendingOperations[b.Pending.Id]; !found {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Brick %v marked pending but no pending op %v", b.Info.Id, b.Pending.Id))
+		}
+		// TODO: Validate back the pending operations' relationship to the brick
+		// This is skipped because some of it is handled in auto cleanup code.
+	}
+
+	// Node
+	if _, found := db.Nodes[b.Info.NodeId]; !found {
+		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Brick %v unknown node %v", b.Info.Id, b.Info.NodeId))
+	}
+
+	// Volume
+	if volumeEntry, found := db.Volumes[b.Info.VolumeId]; !found {
+		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Brick %v unknown volume %v", b.Info.Id, b.Info.VolumeId))
+	} else {
+		if !sortedstrings.Has(volumeEntry.Bricks, b.Info.Id) {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Brick %v no link back to brick from volume %v", b.Info.Id, b.Info.VolumeId))
+		}
+	}
+
+	// Device
+	if deviceEntry, found := db.Devices[b.Info.DeviceId]; !found {
+		response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Brick %v unknown device %v", b.Info.Id, b.Info.DeviceId))
+	} else {
+		if !sortedstrings.Has(deviceEntry.Bricks, b.Info.Id) {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Brick %v no link back to brick from device %v", b.Info.Id, b.Info.DeviceId))
+		}
+	}
+
+	return
+
 }

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Azure/go-autorest/autorest/adal"
@@ -26,6 +27,9 @@ import (
 
 const (
 	TestTenantID                = "TestTenantID"
+	TestAuxTenent1              = "aux1"
+	TestAuxTenent2              = "aux2"
+	TestAuxTenent3              = "aux3"
 	TestActiveDirectoryEndpoint = "https://login/test.com/"
 )
 
@@ -226,5 +230,218 @@ func TestCognitivesServicesAuthorization(t *testing.T) {
 		t.Fatalf("azure: CognitiveServicesAuthorizer#WithAuthorization failed to set %s header", bingAPISdkHeader)
 	} else if req.Header.Get(http.CanonicalHeaderKey(apiKeyAuthorizerHeader)) != subscriptionKey {
 		t.Fatalf("azure: CognitiveServicesAuthorizer#WithAuthorization failed to set %s header", apiKeyAuthorizerHeader)
+	}
+}
+
+func TestBasicAuthorization(t *testing.T) {
+	ba := NewBasicAuthorizer("Aladdin", "open sesame")
+	req, err := Prepare(mocks.NewRequest(), ba.WithAuthorization())
+
+	if err != nil {
+		t.Fatalf("BasicAuthorizer#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey(authorization)) != basic+" QWxhZGRpbjpvcGVuIHNlc2FtZQ==" {
+		t.Fatalf("BasicAuthorizer#WithAuthorization failed to set %s header", authorization)
+	}
+}
+
+func TestBasicAuthorizationPasswordOnly(t *testing.T) {
+	ba := NewBasicAuthorizer("", "dummyKey")
+	req, err := Prepare(mocks.NewRequest(), ba.WithAuthorization())
+
+	if err != nil {
+		t.Fatalf("BasicAuthorizer#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey(authorization)) != basic+" OmR1bW15S2V5" {
+		t.Fatalf("BasicAuthorizer#WithAuthorization failed to set %s header", authorization)
+	}
+}
+
+type mockMTSPTProvider struct {
+	p string
+	a []string
+}
+
+func (m mockMTSPTProvider) PrimaryOAuthToken() string {
+	return m.p
+}
+
+func (m mockMTSPTProvider) AuxiliaryOAuthTokens() []string {
+	return m.a
+}
+
+func TestMultitenantAuthorizationOne(t *testing.T) {
+	mtSPTProvider := mockMTSPTProvider{
+		p: "primary",
+		a: []string{TestAuxTenent1},
+	}
+	mt := NewMultiTenantServicePrincipalTokenAuthorizer(mtSPTProvider)
+	req, err := Prepare(mocks.NewRequest(), mt.WithAuthorization())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if primary := req.Header.Get(headerAuthorization); primary != "Bearer primary" {
+		t.Fatalf("bad primary authorization header %s", primary)
+	}
+	if aux := req.Header.Get(headerAuxAuthorization); aux != "Bearer aux1" {
+		t.Fatalf("bad auxiliary authorization header %s", aux)
+	}
+}
+
+func TestMultitenantAuthorizationThree(t *testing.T) {
+	mtSPTProvider := mockMTSPTProvider{
+		p: "primary",
+		a: []string{TestAuxTenent1, TestAuxTenent2, TestAuxTenent3},
+	}
+	mt := NewMultiTenantServicePrincipalTokenAuthorizer(mtSPTProvider)
+	req, err := Prepare(mocks.NewRequest(), mt.WithAuthorization())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if primary := req.Header.Get(headerAuthorization); primary != "Bearer primary" {
+		t.Fatalf("bad primary authorization header %s", primary)
+	}
+	if aux := req.Header.Get(headerAuxAuthorization); aux != "Bearer aux1; Bearer aux2; Bearer aux3" {
+		t.Fatalf("bad auxiliary authorization header %s", aux)
+	}
+}
+
+func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) {
+	multiTenantCfg, err := adal.NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, []string{TestAuxTenent1, TestAuxTenent2, TestAuxTenent3}, adal.OAuthOptions{})
+	if err != nil {
+		t.Fatalf("azure: adal#NewMultiTenantOAuthConfig returned an error (%v)", err)
+	}
+	mtSpt, err := adal.NewMultiTenantServicePrincipalToken(multiTenantCfg, "id", "secret", "resource")
+	if err != nil {
+		t.Fatalf("azure: adal#NewMultiTenantServicePrincipalToken returned an error (%v)", err)
+	}
+
+	primaryToken := `{
+		"access_token" : "primary token refreshed",
+		"expires_in"   : "3600",
+		"expires_on"   : "test",
+		"not_before"   : "test",
+		"resource"     : "test",
+		"token_type"   : "Bearer"
+	}`
+
+	auxToken1 := `{
+		"access_token" : "aux token 1 refreshed",
+		"expires_in"   : "3600",
+		"expires_on"   : "test",
+		"not_before"   : "test",
+		"resource"     : "test",
+		"token_type"   : "Bearer"
+	}`
+
+	auxToken2 := `{
+		"access_token" : "aux token 2 refreshed",
+		"expires_in"   : "3600",
+		"expires_on"   : "test",
+		"not_before"   : "test",
+		"resource"     : "test",
+		"token_type"   : "Bearer"
+	}`
+
+	auxToken3 := `{
+		"access_token" : "aux token 3 refreshed",
+		"expires_in"   : "3600",
+		"expires_on"   : "test",
+		"not_before"   : "test",
+		"resource"     : "test",
+		"token_type"   : "Bearer"
+	}`
+
+	s := mocks.NewSender()
+	s.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(primaryToken), http.StatusOK, "OK"))
+	s.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(auxToken1), http.StatusOK, "OK"))
+	s.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(auxToken2), http.StatusOK, "OK"))
+	s.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(auxToken3), http.StatusOK, "OK"))
+
+	mtSpt.PrimaryToken.SetSender(s)
+	for _, aux := range mtSpt.AuxiliaryTokens {
+		aux.SetSender(s)
+	}
+
+	mta := NewMultiTenantServicePrincipalTokenAuthorizer(mtSpt)
+	req, err := Prepare(mocks.NewRequest(), mta.WithAuthorization())
+	if err != nil {
+		t.Fatalf("azure: multiTenantSPTAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+	if ah := req.Header.Get(http.CanonicalHeaderKey("Authorization")); ah != fmt.Sprintf("Bearer %s", mtSpt.PrimaryOAuthToken()) {
+		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization failed to set Authorization header for primary token")
+	} else if ah != "Bearer primary token refreshed" {
+		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization primary token value doesn't match")
+	}
+	auxTokens := mtSpt.AuxiliaryOAuthTokens()
+	for i := range auxTokens {
+		auxTokens[i] = fmt.Sprintf("Bearer %s", auxTokens[i])
+	}
+	auxHeader := req.Header.Get(http.CanonicalHeaderKey(headerAuxAuthorization))
+	if auxHeader != strings.Join(auxTokens, "; ") {
+		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization failed to set Authorization header for auxiliary tokens")
+	}
+	for i := range auxTokens {
+		if auxTokens[i] != fmt.Sprintf("Bearer aux token %d refreshed", i+1) {
+			t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization auxiliary token value doesn't match")
+		}
+	}
+}
+
+func TestMultiTenantServicePrincipalTokenWithAuthorizationRefreshFail1(t *testing.T) {
+	multiTenantCfg, err := adal.NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, []string{TestAuxTenent1, TestAuxTenent2, TestAuxTenent3}, adal.OAuthOptions{})
+	if err != nil {
+		t.Fatalf("azure: adal#NewMultiTenantOAuthConfig returned an error (%v)", err)
+	}
+	mtSpt, err := adal.NewMultiTenantServicePrincipalToken(multiTenantCfg, "id", "secret", "resource")
+	if err != nil {
+		t.Fatalf("azure: adal#NewMultiTenantServicePrincipalToken returned an error (%v)", err)
+	}
+
+	s := mocks.NewSender()
+	s.AppendResponse(mocks.NewResponseWithStatus("access denied", http.StatusForbidden))
+
+	mtSpt.PrimaryToken.SetSender(s)
+	for _, aux := range mtSpt.AuxiliaryTokens {
+		aux.SetSender(s)
+	}
+
+	mta := NewMultiTenantServicePrincipalTokenAuthorizer(mtSpt)
+	_, err = Prepare(mocks.NewRequest(), mta.WithAuthorization())
+	if err == nil {
+		t.Fatalf("azure: multiTenantSPTAuthorizer#WithAuthorization unexpected nil error")
+	}
+}
+
+func TestMultiTenantServicePrincipalTokenWithAuthorizationRefreshFail2(t *testing.T) {
+	multiTenantCfg, err := adal.NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, []string{TestAuxTenent1, TestAuxTenent2, TestAuxTenent3}, adal.OAuthOptions{})
+	if err != nil {
+		t.Fatalf("azure: adal#NewMultiTenantOAuthConfig returned an error (%v)", err)
+	}
+	mtSpt, err := adal.NewMultiTenantServicePrincipalToken(multiTenantCfg, "id", "secret", "resource")
+	if err != nil {
+		t.Fatalf("azure: adal#NewMultiTenantServicePrincipalToken returned an error (%v)", err)
+	}
+
+	primaryToken := `{
+		"access_token" : "primary token refreshed",
+		"expires_in"   : "3600",
+		"expires_on"   : "test",
+		"not_before"   : "test",
+		"resource"     : "test",
+		"token_type"   : "Bearer"
+	}`
+
+	s := mocks.NewSender()
+	s.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(primaryToken), http.StatusOK, "OK"))
+	s.AppendResponse(mocks.NewResponseWithStatus("access denied", http.StatusForbidden))
+
+	mtSpt.PrimaryToken.SetSender(s)
+	for _, aux := range mtSpt.AuxiliaryTokens {
+		aux.SetSender(s)
+	}
+
+	mta := NewMultiTenantServicePrincipalTokenAuthorizer(mtSpt)
+	_, err = Prepare(mocks.NewRequest(), mta.WithAuthorization())
+	if err == nil {
+		t.Fatalf("azure: multiTenantSPTAuthorizer#WithAuthorization unexpected nil error")
 	}
 }

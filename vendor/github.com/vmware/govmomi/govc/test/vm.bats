@@ -250,6 +250,22 @@ load test_helper
   assert_success
 }
 
+@test "vm.create -datastore-cluster" {
+  vcsim_env -pod 1 -ds 3
+
+  pod=/DC0/datastore/DC0_POD0
+  id=$(new_id)
+
+  run govc vm.create -disk 10M -datastore-cluster $pod "$id"
+  assert_failure
+
+  run govc object.mv /DC0/datastore/LocalDS_{1,2} $pod
+  assert_success
+
+  run govc vm.create -disk 10M -datastore-cluster $pod "$id"
+  assert_success
+}
+
 @test "vm.info" {
   vcsim_env -esx
 
@@ -776,13 +792,30 @@ load test_helper
 }
 
 @test "vm.upgrade" {
-  esx_env
+  vcsim_env
 
-  vm=$(new_empty_vm)
+  vm=$(new_id)
 
-  govc vm.upgrade -vm "$vm"
+  run govc vm.create -on=false -version 0.5 "$vm"
+  assert_failure
+
+  run govc vm.create -on=false -version 5.5 "$vm"
   assert_success
 
+  run govc object.collect -s "vm/$vm" config.version
+  assert_success "vmx-10"
+
+  run govc vm.upgrade -vm "$vm"
+  assert_success
+
+  version=$(govc object.collect -s "vm/$vm" config.version)
+  [[ "$version" > "vmx-10" ]]
+
+  run govc vm.upgrade -vm "$vm"
+  assert_success
+
+  run govc vm.create -on=false -version vmx-11 "$(new_id)"
+  assert_success
 }
 
 @test "vm.markastemplate" {
@@ -804,4 +837,17 @@ load test_helper
 
   run govc vm.power -on "$id"
   assert_failure
+}
+
+@test "vm.option.info" {
+  vcsim_env
+
+  run govc vm.option.info -host "$GOVC_HOST"
+  assert_success
+
+  run govc vm.option.info -cluster "$(dirname "$GOVC_HOST")"
+  assert_success
+
+  run govc vm.option.info -vm DC0_H0_VM0
+  assert_success
 }

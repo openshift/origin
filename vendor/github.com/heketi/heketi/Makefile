@@ -161,7 +161,30 @@ linux_arm64_dist:
 
 release: deps_tarball linux_arm64_dist linux_arm_dist linux_amd64_dist
 
+DESTDIR:=
+prefix:=/usr/local
+bindir:=$(prefix)/bin
+datarootdir:=$(prefix)/share
+hekdir:=$(datarootdir)/heketi
+mandir:=$(datarootdir)/man
+
+INSTALL:=install -D -p
+INSTALL_PROGRAM:=$(INSTALL) -m 0755
+INSTALL_DATA:=$(INSTALL) -m 0644
+install:
+	$(INSTALL_PROGRAM) client/cli/go/heketi-cli \
+		$(DESTDIR)$(bindir)/heketi-cli
+	$(INSTALL_PROGRAM) heketi \
+		$(DESTDIR)$(bindir)/heketi
+	$(INSTALL_DATA) docs/man/heketi-cli.8 \
+		$(DESTDIR)$(mandir)/man8/heketi-cli.8
+	$(INSTALL_PROGRAM) extras/container/heketi-start.sh \
+		$(DESTDIR)$(hekdir)/container/heketi-start.sh
+	$(INSTALL_DATA) extras/container/heketi.json \
+		$(DESTDIR)$(hekdir)/container/heketi.json
+
+
 .PHONY: server client test clean name run version release \
 	linux_arm_dist linux_amd64_dist linux_arm64_dist \
 	heketi clean_vendor deps_tarball all dist \
-	test-functional
+	test-functional install

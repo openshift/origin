@@ -3,8 +3,9 @@ package conv
 import (
 	"testing"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-openapi/strfmt"
 )
 
 func TestDurationValue(t *testing.T) {

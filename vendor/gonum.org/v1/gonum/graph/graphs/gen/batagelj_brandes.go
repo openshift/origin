@@ -14,15 +14,17 @@ import (
 	"golang.org/x/exp/rand"
 
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 )
 
-// Gnp constructs a Gilbert’s model graph in the destination, dst, of order n. Edges
+// Gnp constructs a Gilbert’s model subgraph in the destination, dst, of order n. Edges
 // between nodes are formed with the probability, p. If src is not nil it is used
 // as the random source, otherwise rand.Float64 is used. The graph is constructed
 // in O(n+m) time where m is the number of edges added.
-func Gnp(dst GraphBuilder, n int, p float64, src rand.Source) error {
+func Gnp(dst graph.Builder, n int, p float64, src rand.Source) error {
 	if p == 0 {
+		for i := 0; i < n; i++ {
+			dst.AddNode(dst.NewNode())
+		}
 		return nil
 	}
 	if p < 0 || p > 1 {
@@ -35,10 +37,11 @@ func Gnp(dst GraphBuilder, n int, p float64, src rand.Source) error {
 		r = rand.New(src).Float64
 	}
 
-	for i := 0; i < n; i++ {
-		if !dst.Has(int64(i)) {
-			dst.AddNode(simple.Node(i))
-		}
+	nodes := make([]graph.Node, n)
+	for i := range nodes {
+		u := dst.NewNode()
+		dst.AddNode(u)
+		nodes[i] = u
 	}
 
 	lp := math.Log(1 - p)
@@ -51,7 +54,7 @@ func Gnp(dst GraphBuilder, n int, p float64, src rand.Source) error {
 			v++
 		}
 		if v < n {
-			dst.SetEdge(simple.Edge{F: simple.Node(w), T: simple.Node(v)})
+			dst.SetEdge(dst.NewEdge(nodes[w], nodes[v]))
 		}
 	}
 
@@ -66,29 +69,22 @@ func Gnp(dst GraphBuilder, n int, p float64, src rand.Source) error {
 			v++
 		}
 		if v < n {
-			dst.SetEdge(simple.Edge{F: simple.Node(v), T: simple.Node(w)})
+			dst.SetEdge(dst.NewEdge(nodes[v], nodes[w]))
 		}
 	}
 
 	return nil
 }
 
-// edgeNodesFor returns the pair of nodes for the ith edge in a simple
-// undirected graph. The pair is returned such that w.ID < v.ID.
-func edgeNodesFor(i int) (v, w simple.Node) {
-	// This is an algebraic simplification of the expressions described
-	// on p3 of http://algo.uni-konstanz.de/publications/bb-eglrn-05.pdf
-	v = simple.Node(0.5 + math.Sqrt(float64(1+8*i))/2)
-	w = simple.Node(i) - v*(v-1)/2
-	return v, w
-}
-
-// Gnm constructs a Erdős-Rényi model graph in the destination, dst, of
+// Gnm constructs a Erdős-Rényi model subgraph in the destination, dst, of
 // order n and size m. If src is not nil it is used as the random source,
 // otherwise rand.Intn is used. The graph is constructed in O(m) expected
 // time for m ≤ (n choose 2)/2.
 func Gnm(dst GraphBuilder, n, m int, src rand.Source) error {
 	if m == 0 {
+		for i := 0; i < n; i++ {
+			dst.AddNode(dst.NewNode())
+		}
 		return nil
 	}
 
@@ -111,19 +107,19 @@ func Gnm(dst GraphBuilder, n, m int, src rand.Source) error {
 		rnd = rand.New(src).Intn
 	}
 
-	for i := 0; i < n; i++ {
-		if !dst.Has(int64(i)) {
-			dst.AddNode(simple.Node(i))
-		}
+	nodes := make([]graph.Node, n)
+	for i := range nodes {
+		u := dst.NewNode()
+		dst.AddNode(u)
+		nodes[i] = u
 	}
 
 	// Add forward edges for all graphs.
 	for i := 0; i < m; i++ {
 		for {
-			v, w := edgeNodesFor(rnd(nChoose2))
-			e := simple.Edge{F: w, T: v}
-			if !hasEdge(e.F.ID(), e.T.ID()) {
-				dst.SetEdge(e)
+			v, w := edgeNodesFor(rnd(nChoose2), nodes)
+			if !hasEdge(w.ID(), v.ID()) {
+				dst.SetEdge(dst.NewEdge(w, v))
 				break
 			}
 		}
@@ -135,10 +131,9 @@ func Gnm(dst GraphBuilder, n, m int, src rand.Source) error {
 	}
 	for i := 0; i < m; i++ {
 		for {
-			v, w := edgeNodesFor(rnd(nChoose2))
-			e := simple.Edge{F: v, T: w}
-			if !hasEdge(e.F.ID(), e.T.ID()) {
-				dst.SetEdge(e)
+			v, w := edgeNodesFor(rnd(nChoose2), nodes)
+			if !hasEdge(v.ID(), w.ID()) {
+				dst.SetEdge(dst.NewEdge(v, w))
 				break
 			}
 		}
@@ -147,7 +142,7 @@ func Gnm(dst GraphBuilder, n, m int, src rand.Source) error {
 	return nil
 }
 
-// SmallWorldsBB constructs a small worlds graph of order n in the destination, dst.
+// SmallWorldsBB constructs a small worlds subgraph of order n in the destination, dst.
 // Node degree is specified by d and edge replacement by the probability, p.
 // If src is not nil it is used as the random source, otherwise rand.Float64 is used.
 // The graph is constructed in O(nd) time.
@@ -158,6 +153,9 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 		return fmt.Errorf("gen: bad degree: d=%d", d)
 	}
 	if p == 0 {
+		for i := 0; i < n; i++ {
+			dst.AddNode(dst.NewNode())
+		}
 		return nil
 	}
 	if p < 0 || p >= 1 {
@@ -182,10 +180,11 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 		hasEdge = dg.HasEdgeFromTo
 	}
 
-	for i := 0; i < n; i++ {
-		if !dst.Has(int64(i)) {
-			dst.AddNode(simple.Node(i))
-		}
+	nodes := make([]graph.Node, n)
+	for i := range nodes {
+		u := dst.NewNode()
+		dst.AddNode(u)
+		nodes[i] = u
 	}
 
 	nChoose2 := (n - 1) * n / 2
@@ -200,16 +199,24 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 		for i := 1; i <= d; i++ {
 			if k > 0 {
 				j := v*(v-1)/2 + (v+i)%n
-				var ej simple.Edge
-				ej.T, ej.F = edgeNodesFor(j)
-				if !hasEdge(ej.From().ID(), ej.To().ID()) {
-					dst.SetEdge(ej)
+				if v, u := edgeNodesFor(j, nodes); !hasEdge(u.ID(), v.ID()) {
+					dst.SetEdge(dst.NewEdge(u, v))
 				}
 				k--
 				m++
-				var em simple.Edge
-				em.T, em.F = edgeNodesFor(m)
-				if !hasEdge(em.From().ID(), em.To().ID()) {
+
+				// For small graphs, m may be an
+				// edge that has an end that is
+				// not in the subgraph.
+				if m >= nChoose2 {
+					// Since m is monotonically
+					// increasing, no m edges from
+					// here on are valid, so don't
+					// add them to replace.
+					continue
+				}
+
+				if v, u := edgeNodesFor(m, nodes); !hasEdge(u.ID(), v.ID()) {
 					replace[j] = m
 				} else {
 					replace[j] = replace[m]
@@ -221,19 +228,12 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 	}
 	for i := m + 1; i <= n*d && i < nChoose2; i++ {
 		r := rndN(nChoose2-i) + i
-		var er simple.Edge
-		er.T, er.F = edgeNodesFor(r)
-		if !hasEdge(er.From().ID(), er.To().ID()) {
-			dst.SetEdge(er)
-		} else {
-			er.T, er.F = edgeNodesFor(replace[r])
-			if !hasEdge(er.From().ID(), er.To().ID()) {
-				dst.SetEdge(er)
-			}
+		if v, u := edgeNodesFor(r, nodes); !hasEdge(u.ID(), v.ID()) {
+			dst.SetEdge(dst.NewEdge(u, v))
+		} else if v, u = edgeNodesFor(replace[r], nodes); !hasEdge(u.ID(), v.ID()) {
+			dst.SetEdge(dst.NewEdge(u, v))
 		}
-		var ei simple.Edge
-		ei.T, ei.F = edgeNodesFor(i)
-		if !hasEdge(ei.From().ID(), ei.To().ID()) {
+		if v, u := edgeNodesFor(i, nodes); !hasEdge(u.ID(), v.ID()) {
 			replace[r] = i
 		} else {
 			replace[r] = replace[i]
@@ -251,14 +251,24 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 		for i := 1; i <= d; i++ {
 			if k > 0 {
 				j := v*(v-1)/2 + (v+i)%n
-				var ej simple.Edge
-				ej.F, ej.T = edgeNodesFor(j)
-				if !hasEdge(ej.From().ID(), ej.To().ID()) {
-					dst.SetEdge(ej)
+				if u, v := edgeNodesFor(j, nodes); !hasEdge(u.ID(), v.ID()) {
+					dst.SetEdge(dst.NewEdge(u, v))
 				}
 				k--
 				m++
-				if u, v := edgeNodesFor(m); !hasEdge(u.ID(), v.ID()) {
+
+				// For small graphs, m may be an
+				// edge that has an end that is
+				// not in the subgraph.
+				if m >= nChoose2 {
+					// Since m is monotonically
+					// increasing, no m edges from
+					// here on are valid, so don't
+					// add them to replace.
+					continue
+				}
+
+				if u, v := edgeNodesFor(m, nodes); !hasEdge(u.ID(), v.ID()) {
 					replace[j] = m
 				} else {
 					replace[j] = replace[m]
@@ -270,17 +280,12 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 	}
 	for i := m + 1; i <= n*d && i < nChoose2; i++ {
 		r := rndN(nChoose2-i) + i
-		var er simple.Edge
-		er.F, er.T = edgeNodesFor(r)
-		if !hasEdge(er.From().ID(), er.To().ID()) {
-			dst.SetEdge(er)
-		} else {
-			er.F, er.T = edgeNodesFor(replace[r])
-			if !hasEdge(er.From().ID(), er.To().ID()) {
-				dst.SetEdge(er)
-			}
+		if u, v := edgeNodesFor(r, nodes); !hasEdge(u.ID(), v.ID()) {
+			dst.SetEdge(dst.NewEdge(u, v))
+		} else if u, v = edgeNodesFor(replace[r], nodes); !hasEdge(u.ID(), v.ID()) {
+			dst.SetEdge(dst.NewEdge(u, v))
 		}
-		if u, v := edgeNodesFor(i); !hasEdge(u.ID(), v.ID()) {
+		if u, v := edgeNodesFor(i, nodes); !hasEdge(u.ID(), v.ID()) {
 			replace[r] = i
 		} else {
 			replace[r] = replace[i]
@@ -288,6 +293,17 @@ func SmallWorldsBB(dst GraphBuilder, n, d int, p float64, src rand.Source) error
 	}
 
 	return nil
+}
+
+// edgeNodesFor returns the pair of nodes for the ith edge in a simple
+// undirected graph. The pair is returned such that the index of w in
+// nodes is less than the index of v in nodes.
+func edgeNodesFor(i int, nodes []graph.Node) (v, w graph.Node) {
+	// This is an algebraic simplification of the expressions described
+	// on p3 of http://algo.uni-konstanz.de/publications/bb-eglrn-05.pdf
+	vi := int(0.5 + math.Sqrt(float64(1+8*i))/2)
+	wi := i - vi*(vi-1)/2
+	return nodes[vi], nodes[wi]
 }
 
 // Multigraph generators.

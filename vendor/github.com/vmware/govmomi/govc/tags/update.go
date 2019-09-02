@@ -28,7 +28,9 @@ import (
 
 type update struct {
 	*flags.ClientFlag
+
 	tag tags.Tag
+	cat string
 }
 
 func init() {
@@ -38,8 +40,10 @@ func init() {
 func (cmd *update) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.ClientFlag, ctx = flags.NewClientFlag(ctx)
 	cmd.ClientFlag.Register(ctx, f)
+
 	f.StringVar(&cmd.tag.Name, "n", "", "Name of tag")
 	f.StringVar(&cmd.tag.Description, "d", "", "Description of tag")
+	f.StringVar(&cmd.cat, "c", "", "Tag category")
 }
 
 func (cmd *update) Usage() string {
@@ -50,7 +54,8 @@ func (cmd *update) Description() string {
 	return `Update tag.
 
 Examples:
-  govc tags.update -d "K8s zone US-CA1" k8s-zone-us-ca1`
+  govc tags.update -d "K8s zone US-CA1" k8s-zone-us-ca1
+  govc tags.update -d "K8s zone US-CA1" -c k8s-zone us-ca1`
 }
 
 func (cmd *update) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -59,9 +64,9 @@ func (cmd *update) Run(ctx context.Context, f *flag.FlagSet) error {
 	}
 	arg := f.Arg(0)
 
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		m := tags.NewManager(c)
-		tag, err := m.GetTag(ctx, arg)
+		tag, err := m.GetTagForCategory(ctx, arg, cmd.cat)
 		if err != nil {
 			return err
 		}

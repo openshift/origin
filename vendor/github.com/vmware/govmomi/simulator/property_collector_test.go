@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -450,6 +451,115 @@ func TestIncrementalWaitForUpdates(t *testing.T) {
 	wg.Wait() // wait for Delete to be reported
 }
 
+func TestWaitForUpdatesOneUpdateCalculation(t *testing.T) {
+	/*
+	 * In this test, we use WaitForUpdatesEx in non-blocking way
+	 * by setting the MaxWaitSeconds to 0.
+	 * We filter on 'runtime.powerState'
+	 * Once we get the first 'enter' update, we change the
+	 * power state of the VM to generate a 'modify' update.
+	 * Once we get the modify, we can stop.
+	 */
+	ctx := context.Background()
+
+	m := VPX()
+	defer m.Remove()
+
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	c, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wait := make(chan bool)
+	pc := property.DefaultCollector(c.Client)
+	obj := Map.Any("VirtualMachine").(*VirtualMachine)
+	ref := obj.Reference()
+	vm := object.NewVirtualMachine(c.Client, ref)
+	filter := new(property.WaitFilter).Add(ref, ref.Type, []string{"runtime.powerState"})
+	// WaitOptions.maxWaitSeconds:
+	// A value of 0 causes WaitForUpdatesEx to do one update calculation and return any results.
+	filter.Options = &types.WaitOptions{
+		MaxWaitSeconds: types.NewInt32(0),
+	}
+	// toggle power state to generate updates
+	state := map[types.VirtualMachinePowerState]func(context.Context) (*object.Task, error){
+		types.VirtualMachinePowerStatePoweredOff: vm.PowerOn,
+		types.VirtualMachinePowerStatePoweredOn:  vm.PowerOff,
+	}
+
+	err = pc.CreateFilter(ctx, filter.CreateFilter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := types.WaitForUpdatesEx{
+		This:    pc.Reference(),
+		Options: filter.Options,
+	}
+
+	go func() {
+		for {
+			res, err := methods.WaitForUpdatesEx(ctx, c.Client, &req)
+			if err != nil {
+				if ctx.Err() == context.Canceled {
+					werr := pc.CancelWaitForUpdates(context.Background())
+					t.Error(werr)
+					return
+				}
+				t.Error(err)
+				return
+			}
+
+			set := res.Returnval
+			if set == nil {
+				// Retry if the result came back empty
+				// Thats a normal case when MaxWaitSeconds is set to 0.
+				// It means we have no updates for now
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+
+			req.Version = set.Version
+
+			for _, fs := range set.FilterSet {
+				// We expect the enter of VM first
+				if fs.ObjectSet[0].Kind == types.ObjectUpdateKindEnter {
+					wait <- true
+					// Keep going
+					continue
+				}
+
+				// We also expect a modify due to the power state change
+				if fs.ObjectSet[0].Kind == types.ObjectUpdateKindModify {
+					wait <- true
+					// Now we can return to stop the routine
+					return
+				}
+			}
+		}
+	}()
+
+	// wait for the enter update.
+	<-wait
+
+	// Now change the VM power state, to generate a modify update
+	_, err = state[obj.Runtime.PowerState](ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// wait for the modify update.
+	<-wait
+}
+
 func TestPropertyCollectorWithUnsetValues(t *testing.T) {
 	ctx := context.Background()
 
@@ -476,9 +586,9 @@ func TestPropertyCollectorWithUnsetValues(t *testing.T) {
 	vmRef := vm.Reference()
 
 	propSets := [][]string{
-		{"parentVApp"},                                                         // unset string by default (not returned by RetrievePropertiesEx)
-		{"rootSnapshot"},                                                       // unset VirtualMachineSnapshot[] by default (returned by RetrievePropertiesEx)
-		{"config.networkShaper.enabled"},                                       // unset at config.networkShaper level by default (not returned by RetrievePropertiesEx)
+		{"parentVApp"},                   // unset string by default (not returned by RetrievePropertiesEx)
+		{"rootSnapshot"},                 // unset VirtualMachineSnapshot[] by default (returned by RetrievePropertiesEx)
+		{"config.networkShaper.enabled"}, // unset at config.networkShaper level by default (not returned by RetrievePropertiesEx)
 		{"parentVApp", "rootSnapshot", "config.networkShaper.enabled"},         // (not returned by RetrievePropertiesEx)
 		{"name", "parentVApp", "rootSnapshot", "config.networkShaper.enabled"}, // (only name returned by RetrievePropertiesEx)
 		{"name", "config.guestFullName"},                                       // both set (and returned by RetrievePropertiesEx))
@@ -1351,5 +1461,201 @@ func TestPropertyCollectorSession(t *testing.T) { // aka issue-923
 		if err = c.Logout(ctx); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestPropertyCollectorNoPathSet(t *testing.T) {
+	ctx := context.Background()
+
+	m := VPX()
+	m.Datacenter = 3
+	m.Folder = 2
+
+	defer m.Remove()
+
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	client, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// request from https://github.com/vmware/govmomi/issues/1199
+	req := &types.RetrieveProperties{
+		This: client.ServiceContent.PropertyCollector,
+		SpecSet: []types.PropertyFilterSpec{
+			{
+				PropSet: []types.PropertySpec{
+					{
+						Type:    "Datacenter",
+						All:     types.NewBool(false),
+						PathSet: nil,
+					},
+				},
+				ObjectSet: []types.ObjectSpec{
+					{
+						Obj:  client.ServiceContent.RootFolder,
+						Skip: types.NewBool(false),
+						SelectSet: []types.BaseSelectionSpec{
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "resourcePoolTraversalSpec",
+								},
+								Type: "ResourcePool",
+								Path: "resourcePool",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "resourcePoolTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "resourcePoolVmTraversalSpec",
+									},
+								},
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "resourcePoolVmTraversalSpec",
+								},
+								Type:      "ResourcePool",
+								Path:      "vm",
+								Skip:      types.NewBool(false),
+								SelectSet: nil,
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "computeResourceRpTraversalSpec",
+								},
+								Type: "ComputeResource",
+								Path: "resourcePool",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "resourcePoolTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "resourcePoolVmTraversalSpec",
+									},
+								},
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "computeResourceHostTraversalSpec",
+								},
+								Type:      "ComputeResource",
+								Path:      "host",
+								Skip:      types.NewBool(false),
+								SelectSet: nil,
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "datacenterVmTraversalSpec",
+								},
+								Type: "Datacenter",
+								Path: "vmFolder",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "folderTraversalSpec",
+									},
+								},
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "datacenterHostTraversalSpec",
+								},
+								Type: "Datacenter",
+								Path: "hostFolder",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "folderTraversalSpec",
+									},
+								},
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "hostVmTraversalSpec",
+								},
+								Type: "HostSystem",
+								Path: "vm",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "folderTraversalSpec",
+									},
+								},
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "datacenterDatastoreTraversalSpec",
+								},
+								Type: "Datacenter",
+								Path: "datastoreFolder",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "folderTraversalSpec",
+									},
+								},
+							},
+							&types.TraversalSpec{
+								SelectionSpec: types.SelectionSpec{
+									Name: "folderTraversalSpec",
+								},
+								Type: "Folder",
+								Path: "childEntity",
+								Skip: types.NewBool(false),
+								SelectSet: []types.BaseSelectionSpec{
+									&types.SelectionSpec{
+										Name: "folderTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "datacenterHostTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "datacenterVmTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "computeResourceRpTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "computeResourceHostTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "hostVmTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "resourcePoolVmTraversalSpec",
+									},
+									&types.SelectionSpec{
+										Name: "datacenterDatastoreTraversalSpec",
+									},
+								},
+							},
+						},
+					},
+				},
+				ReportMissingObjectsInResults: (*bool)(nil),
+			},
+		},
+	}
+
+	res, err := methods.RetrieveProperties(ctx, client, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := res.Returnval
+	count := m.Count()
+
+	if len(content) != count.Datacenter {
+		t.Fatalf("len(content)=%d", len(content))
 	}
 }

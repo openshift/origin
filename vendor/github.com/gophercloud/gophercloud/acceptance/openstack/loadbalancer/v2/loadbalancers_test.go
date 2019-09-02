@@ -31,6 +31,69 @@ func TestLoadbalancersList(t *testing.T) {
 	}
 }
 
+func TestLoadbalancersListByTags(t *testing.T) {
+	netClient, err := clients.NewNetworkV2Client()
+	th.AssertNoErr(t, err)
+
+	lbClient, err := clients.NewLoadBalancerV2Client()
+	th.AssertNoErr(t, err)
+
+	network, err := networking.CreateNetwork(t, netClient)
+	th.AssertNoErr(t, err)
+	defer networking.DeleteNetwork(t, netClient, network.ID)
+
+	subnet, err := networking.CreateSubnet(t, netClient, network.ID)
+	th.AssertNoErr(t, err)
+	defer networking.DeleteSubnet(t, netClient, subnet.ID)
+
+	// Add "test" tag intentionally to test the "not-tags" parameter. Because "test" tag is also used in other test
+	// cases, we use "test" tag to exclude load balancers created by other test case.
+	tags := []string{"tag1", "tag2", "test"}
+	lb, err := CreateLoadBalancer(t, lbClient, subnet.ID, tags)
+	th.AssertNoErr(t, err)
+	defer DeleteLoadBalancer(t, lbClient, lb.ID)
+
+	tags = []string{"tag1"}
+	listOpts := loadbalancers.ListOpts{
+		Tags: tags,
+	}
+	allPages, err := loadbalancers.List(lbClient, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+	allLoadbalancers, err := loadbalancers.ExtractLoadBalancers(allPages)
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, 1, len(allLoadbalancers))
+
+	tags = []string{"test"}
+	listOpts = loadbalancers.ListOpts{
+		TagsNot: tags,
+	}
+	allPages, err = loadbalancers.List(lbClient, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+	allLoadbalancers, err = loadbalancers.ExtractLoadBalancers(allPages)
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, 0, len(allLoadbalancers))
+
+	tags = []string{"tag1", "tag3"}
+	listOpts = loadbalancers.ListOpts{
+		TagsAny: tags,
+	}
+	allPages, err = loadbalancers.List(lbClient, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+	allLoadbalancers, err = loadbalancers.ExtractLoadBalancers(allPages)
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, 1, len(allLoadbalancers))
+
+	tags = []string{"tag1", "test"}
+	listOpts = loadbalancers.ListOpts{
+		TagsNotAny: tags,
+	}
+	allPages, err = loadbalancers.List(lbClient, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+	allLoadbalancers, err = loadbalancers.ExtractLoadBalancers(allPages)
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, 0, len(allLoadbalancers))
+}
+
 func TestLoadbalancersCRUD(t *testing.T) {
 	netClient, err := clients.NewNetworkV2Client()
 	th.AssertNoErr(t, err)
@@ -46,7 +109,8 @@ func TestLoadbalancersCRUD(t *testing.T) {
 	th.AssertNoErr(t, err)
 	defer networking.DeleteSubnet(t, netClient, subnet.ID)
 
-	lb, err := CreateLoadBalancer(t, lbClient, subnet.ID)
+	tags := []string{"test"}
+	lb, err := CreateLoadBalancer(t, lbClient, subnet.ID, tags)
 	th.AssertNoErr(t, err)
 	defer DeleteLoadBalancer(t, lbClient, lb.ID)
 
@@ -336,7 +400,8 @@ func TestLoadbalancersCascadeCRUD(t *testing.T) {
 	th.AssertNoErr(t, err)
 	defer networking.DeleteSubnet(t, netClient, subnet.ID)
 
-	lb, err := CreateLoadBalancer(t, lbClient, subnet.ID)
+	tags := []string{"test"}
+	lb, err := CreateLoadBalancer(t, lbClient, subnet.ID, tags)
 	th.AssertNoErr(t, err)
 	defer CascadeDeleteLoadBalancer(t, lbClient, lb.ID)
 

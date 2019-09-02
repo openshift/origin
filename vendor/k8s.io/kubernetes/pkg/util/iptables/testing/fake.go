@@ -34,6 +34,7 @@ const (
 	ToDest      = "--to-destination "
 	Recent      = "recent "
 	MatchSet    = "--match-set "
+	SrcType     = "--src-type "
 )
 
 type Rule map[string]string
@@ -45,10 +46,6 @@ type FakeIPTables struct {
 
 func NewFake() *FakeIPTables {
 	return &FakeIPTables{}
-}
-
-func (*FakeIPTables) GetVersion() (string, error) {
-	return "0.0.0", nil
 }
 
 func (*FakeIPTables) EnsureChain(table iptables.Table, chain iptables.Chain) (bool, error) {
@@ -113,7 +110,7 @@ func (f *FakeIPTables) GetRules(chainName string) (rules []Rule) {
 	for _, l := range strings.Split(string(f.Lines), "\n") {
 		if strings.Contains(l, fmt.Sprintf("-A %v", chainName)) {
 			newRule := Rule(map[string]string{})
-			for _, arg := range []string{Destination, Source, DPort, Protocol, Jump, ToDest, Recent, MatchSet} {
+			for _, arg := range []string{Destination, Source, DPort, Protocol, Jump, ToDest, Recent, MatchSet, SrcType} {
 				tok := getToken(l, arg)
 				if tok != "" {
 					newRule[arg] = tok

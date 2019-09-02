@@ -22,10 +22,11 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
-// AlertsClient is the REST APIs for Azure Active Drectory Connect Health
+// AlertsClient is the REST APIs for Azure Active Directory Connect Health
 type AlertsClient struct {
 	BaseClient
 }
@@ -48,6 +49,16 @@ func NewAlertsClientWithBaseURI(baseURI string) AlertsClient {
 // from - the start date to query for.
 // toParameter - the end date till when to query for.
 func (client AlertsClient) ListAddsAlerts(ctx context.Context, serviceName string, filter string, state string, from *date.Time, toParameter *date.Time) (result AlertsPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AlertsClient.ListAddsAlerts")
+		defer func() {
+			sc := -1
+			if result.a.Response.Response != nil {
+				sc = result.a.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listAddsAlertsNextResults
 	req, err := client.ListAddsAlertsPreparer(ctx, serviceName, filter, state, from, toParameter)
 	if err != nil {
@@ -104,8 +115,8 @@ func (client AlertsClient) ListAddsAlertsPreparer(ctx context.Context, serviceNa
 // ListAddsAlertsSender sends the ListAddsAlerts request. The method will close the
 // http.Response Body if it receives an error.
 func (client AlertsClient) ListAddsAlertsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAddsAlertsResponder handles the response to the ListAddsAlerts request. The method always
@@ -122,8 +133,8 @@ func (client AlertsClient) ListAddsAlertsResponder(resp *http.Response) (result 
 }
 
 // listAddsAlertsNextResults retrieves the next set of results, if any.
-func (client AlertsClient) listAddsAlertsNextResults(lastResults Alerts) (result Alerts, err error) {
-	req, err := lastResults.alertsPreparer()
+func (client AlertsClient) listAddsAlertsNextResults(ctx context.Context, lastResults Alerts) (result Alerts, err error) {
+	req, err := lastResults.alertsPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "adhybridhealthservice.AlertsClient", "listAddsAlertsNextResults", nil, "Failure preparing next results request")
 	}
@@ -144,6 +155,16 @@ func (client AlertsClient) listAddsAlertsNextResults(lastResults Alerts) (result
 
 // ListAddsAlertsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AlertsClient) ListAddsAlertsComplete(ctx context.Context, serviceName string, filter string, state string, from *date.Time, toParameter *date.Time) (result AlertsIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AlertsClient.ListAddsAlerts")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAddsAlerts(ctx, serviceName, filter, state, from, toParameter)
 	return
 }

@@ -1,5 +1,45 @@
 # changelog
 
+### 0.20.0 (2018-02-06)
+
+* Add license.label.set command
+
+* Add vm.option.info command
+
+* Add device.ls '-json' support
+
+* Add device name match support to device.ls and device.remove
+
+* Add vm.keystrokes command
+
+* Add '-c' (category) flag to relevant tags commands
+
+* Add vm.disk.attach '-mode' flag
+
+* Add vm.create '-version' flag
+
+* Add fields.info '-add' flag
+
+* Add '-wait' flag to vm.power command
+
+* Display category name instead of ID in govc tags.info
+
+* Add datastore.cluster.change and datastore.cluster.info commands
+
+* Add govc disk.* commands (First Class Disk)
+
+### 0.19.0 (2018-09-30)
+
+* Print DVS rules for dvportgroup
+
+* Show details for ClusterVmHostRuleInfo in cluster.rule.ls
+
+* Fixed govc host.info logical CPU count
+
+* Add tags.* commands
+
+* Add option to mark VM as template to ovf.import and ova.import commands
+
 ### 0.18.0 (2018-05-24)
 
 * The import.ovf pool flag is now optional if host is specified

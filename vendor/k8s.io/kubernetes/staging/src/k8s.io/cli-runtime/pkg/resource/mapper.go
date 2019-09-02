@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
 )
 
 // Mapper is a convenience struct for holding references to the interfaces
@@ -44,7 +43,6 @@ func (m *mapper) infoForData(data []byte, source string) (*Info, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode %q: %v", source, err)
 	}
-	openshiftpatch.FixOAPIGroupKind(obj, gvk)
 
 	name, _ := metadataAccessor.Name(obj)
 	namespace, _ := metadataAccessor.Namespace(obj)
@@ -93,7 +91,6 @@ func (m *mapper) infoForObject(obj runtime.Object, typer runtime.ObjectTyper, pr
 	if len(groupVersionKinds) > 1 && len(preferredGVKs) > 0 {
 		gvk = preferredObjectKind(groupVersionKinds, preferredGVKs)
 	}
-	openshiftpatch.FixOAPIGroupKind(obj, &gvk)
 
 	name, _ := metadataAccessor.Name(obj)
 	namespace, _ := metadataAccessor.Namespace(obj)

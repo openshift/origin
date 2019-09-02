@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package sheets provides access to the Google Sheets API.
 //
-// See https://developers.google.com/sheets/
+// For product documentation, see: https://developers.google.com/sheets/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/sheets/v4"
 //   ...
-//   sheetsService, err := sheets.New(oauthHttpClient)
+//   ctx := context.Background()
+//   sheetsService, err := sheets.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   sheetsService, err := sheets.NewService(ctx, option.WithScopes(sheets.SpreadsheetsReadonlyScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   sheetsService, err := sheets.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   sheetsService, err := sheets.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package sheets // import "google.golang.org/api/sheets/v4"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -69,6 +97,36 @@ const (
 	SpreadsheetsReadonlyScope = "https://www.googleapis.com/auth/spreadsheets.readonly"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/drive",
+		"https://www.googleapis.com/auth/drive.file",
+		"https://www.googleapis.com/auth/drive.readonly",
+		"https://www.googleapis.com/auth/spreadsheets",
+		"https://www.googleapis.com/auth/spreadsheets.readonly",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -204,7 +262,8 @@ type AddChartRequest struct {
 	// where it should be placed. The chartId
 	// field is optional; if one is not set, an id will be randomly
 	// generated. (It
-	// is an error to specify the ID of a chart that already exists.)
+	// is an error to specify the ID of an embedded object that already
+	// exists.)
 	Chart *EmbeddedChart `json:"chart,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Chart") to
@@ -1095,7 +1154,8 @@ type BasicChartSeries struct {
 	//   "COMBO" - A <a
 	// href="/chart/interactive/docs/gallery/combochart">combo chart</a>.
 	//   "STEPPED_AREA" - A <a
-	// href="/chart/interactive/docs/gallery/steppedareachart">stepped area
+	// href="/chart/interactive/docs/gallery/steppedareachart">stepped
+	// area
 	// chart</a>.
 	Type string `json:"type,omitempty"`
 
@@ -1147,7 +1207,8 @@ type BasicChartSpec struct {
 	//   "COMBO" - A <a
 	// href="/chart/interactive/docs/gallery/combochart">combo chart</a>.
 	//   "STEPPED_AREA" - A <a
-	// href="/chart/interactive/docs/gallery/steppedareachart">stepped area
+	// href="/chart/interactive/docs/gallery/steppedareachart">stepped
+	// area
 	// chart</a>.
 	ChartType string `json:"chartType,omitempty"`
 
@@ -2469,7 +2530,8 @@ func (s *BubbleChartSpec) UnmarshalJSON(data []byte) error {
 
 // CandlestickChartSpec: A <a
 // href="/chart/interactive/docs/gallery/candlestickchart">candlestick
-// chart</a>.
+// ch
+// art</a>.
 type CandlestickChartSpec struct {
 	// Data: The Candlestick chart data.
 	// Only one CandlestickData is supported.
@@ -3125,8 +3187,15 @@ func (s *ClearValuesResponse) MarshalJSON() ([]byte, error) {
 // "+colorWithRed:green:blue:alpha"
 // method in iOS; and, with just a little work, it can be easily
 // formatted into
-// a CSS "rgba()" string in JavaScript, as well. Here are some
-// examples:
+// a CSS "rgba()" string in JavaScript, as well.
+//
+// Note: this proto does not carry information about the absolute color
+// space
+// that should be used to interpret the RGB value (e.g. sRGB, Adobe
+// RGB,
+// DCI-P3, BT.2020, etc.). By default, applications SHOULD assume the
+// sRGB color
+// space.
 //
 // Example (Java):
 //
@@ -6282,8 +6351,8 @@ type NumberFormat struct {
 	// pattern based on
 	// the user's locale will be used if necessary for the given type.
 	// See the [Date and Number Formats guide](/sheets/api/guides/formats)
-	// for more
-	// information about the supported patterns.
+	// for
+	// more information about the supported patterns.
 	Pattern string `json:"pattern,omitempty"`
 
 	// Type: The type of the number format.
@@ -8152,9 +8221,11 @@ type TextRotation struct {
 	// Positive
 	// angles are angled upwards, negative are angled downwards.
 	//
-	// Note: For LTR text direction positive angles are in the
-	// counterclockwise
-	// direction, whereas for RTL they are in the clockwise direction
+	// Note: For LTR text direction positive angles are in
+	// the
+	// counterclockwise direction, whereas for RTL they are in the
+	// clockwise
+	// direction
 	Angle int64 `json:"angle,omitempty"`
 
 	// Vertical: If true, text reads top to bottom, but the orientation of

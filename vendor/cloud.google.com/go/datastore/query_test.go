@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,16 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
 
+	"cloud.google.com/go/internal/testutil"
 	"github.com/golang/protobuf/proto"
-	"golang.org/x/net/context"
+	"github.com/google/go-cmp/cmp"
 	pb "google.golang.org/genproto/googleapis/datastore/v1"
 	"google.golang.org/grpc"
 )
@@ -32,7 +34,7 @@ var (
 		Path: []*pb.Key_PathElement{
 			{
 				Kind:   "Gopher",
-				IdType: &pb.Key_PathElement_Id{6},
+				IdType: &pb.Key_PathElement_Id{Id: 6},
 			},
 		},
 	}
@@ -40,11 +42,11 @@ var (
 		Path: []*pb.Key_PathElement{
 			{
 				Kind:   "Gopher",
-				IdType: &pb.Key_PathElement_Id{6},
+				IdType: &pb.Key_PathElement_Id{Id: 6},
 			},
 			{
 				Kind:   "Gopher",
-				IdType: &pb.Key_PathElement_Id{8},
+				IdType: &pb.Key_PathElement_Id{Id: 8},
 			},
 		},
 	}
@@ -66,7 +68,7 @@ func (c *fakeClient) Commit(_ context.Context, req *pb.CommitRequest, _ ...grpc.
 
 func fakeRunQuery(in *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
 	expectedIn := &pb.RunQueryRequest{
-		QueryType: &pb.RunQueryRequest_Query{&pb.Query{
+		QueryType: &pb.RunQueryRequest_Query{Query: &pb.Query{
 			Kind: []*pb.KindExpression{{Name: "Gopher"}},
 		}},
 	}
@@ -82,8 +84,8 @@ func fakeRunQuery(in *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
 					Entity: &pb.Entity{
 						Key: key1,
 						Properties: map[string]*pb.Value{
-							"Name":   {ValueType: &pb.Value_StringValue{"George"}},
-							"Height": {ValueType: &pb.Value_IntegerValue{32}},
+							"Name":   {ValueType: &pb.Value_StringValue{StringValue: "George"}},
+							"Height": {ValueType: &pb.Value_IntegerValue{IntegerValue: 32}},
 						},
 					},
 				},
@@ -91,7 +93,7 @@ func fakeRunQuery(in *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
 					Entity: &pb.Entity{
 						Key: key2,
 						Properties: map[string]*pb.Value{
-							"Name": {ValueType: &pb.Value_StringValue{"Rufus"}},
+							"Name": {ValueType: &pb.Value_StringValue{StringValue: "Rufus"}},
 							// No height for Rufus.
 						},
 					},
@@ -311,10 +313,10 @@ func TestSimpleQuery(t *testing.T) {
 			continue
 		}
 
-		key1 := NewKey(ctx, "Gopher", "", 6, nil)
+		key1 := IDKey("Gopher", 6, nil)
 		expectedKeys := []*Key{
 			key1,
-			NewKey(ctx, "Gopher", "", 8, key1),
+			IDKey("Gopher", 8, key1),
 		}
 		if l1, l2 := len(keys), len(expectedKeys); l1 != l2 {
 			t.Errorf("dst type %T: got %d keys, want %d keys", tc.dst, l1, l2)
@@ -334,7 +336,7 @@ func TestSimpleQuery(t *testing.T) {
 			}
 		}
 
-		if !reflect.DeepEqual(tc.dst, tc.want) {
+		if !testutil.Equal(tc.dst, tc.want) {
 			t.Errorf("dst type %T: Entities\ngot  %+v\nwant %+v", tc.dst, tc.dst, tc.want)
 			continue
 		}
@@ -344,10 +346,10 @@ func TestSimpleQuery(t *testing.T) {
 // keysEqual is like (*Key).Equal, but ignores the App ID.
 func keysEqual(a, b *Key) bool {
 	for a != nil && b != nil {
-		if a.Kind() != b.Kind() || a.Name() != b.Name() || a.ID() != b.ID() {
+		if a.Kind != b.Kind || a.Name != b.Name || a.ID != b.ID {
 			return false
 		}
-		a, b = a.Parent(), b.Parent()
+		a, b = a.Parent, b.Parent
 	}
 	return a == b
 }
@@ -357,10 +359,10 @@ func TestQueriesAreImmutable(t *testing.T) {
 	q0 := NewQuery("foo")
 	q1 := NewQuery("foo")
 	q2 := q1.Offset(2)
-	if !reflect.DeepEqual(q0, q1) {
+	if !testutil.Equal(q0, q1, cmp.AllowUnexported(Query{})) {
 		t.Errorf("q0 and q1 were not equal")
 	}
-	if reflect.DeepEqual(q1, q2) {
+	if testutil.Equal(q1, q2, cmp.AllowUnexported(Query{})) {
 		t.Errorf("q1 and q2 were equal")
 	}
 
@@ -381,10 +383,10 @@ func TestQueriesAreImmutable(t *testing.T) {
 	q4 := f()
 	q5 := q4.Order("y")
 	q6 := q4.Order("z")
-	if !reflect.DeepEqual(q3, q5) {
+	if !testutil.Equal(q3, q5, cmp.AllowUnexported(Query{})) {
 		t.Errorf("q3 and q5 were not equal")
 	}
-	if reflect.DeepEqual(q5, q6) {
+	if testutil.Equal(q5, q6, cmp.AllowUnexported(Query{})) {
 		t.Errorf("q5 and q6 were equal")
 	}
 }
@@ -472,6 +474,7 @@ func TestNamespaceQuery(t *testing.T) {
 
 	var gs []Gopher
 
+	// Ignore errors for the rest of this test.
 	client.GetAll(ctx, NewQuery("gopher"), &gs)
 	if got, want := <-gotNamespace, ""; got != want {
 		t.Errorf("GetAll: got namespace %q, want %q", got, want)
@@ -482,13 +485,11 @@ func TestNamespaceQuery(t *testing.T) {
 	}
 
 	const ns = "not_default"
-	ctx = WithNamespace(ctx, ns)
-
-	client.GetAll(ctx, NewQuery("gopher"), &gs)
+	client.GetAll(ctx, NewQuery("gopher").Namespace(ns), &gs)
 	if got, want := <-gotNamespace, ns; got != want {
 		t.Errorf("GetAll: got namespace %q, want %q", got, want)
 	}
-	client.Count(ctx, NewQuery("gopher"))
+	client.Count(ctx, NewQuery("gopher").Namespace(ns))
 	if got, want := <-gotNamespace, ns; got != want {
 		t.Errorf("Count: got namespace %q, want %q", got, want)
 	}
@@ -509,12 +510,20 @@ func TestReadOptions(t *testing.T) {
 			want: nil,
 		},
 		{
-			q:    NewQuery("").Transaction(&Transaction{id: tid}),
-			want: &pb.ReadOptions{&pb.ReadOptions_Transaction{tid}},
+			q: NewQuery("").Transaction(&Transaction{id: tid}),
+			want: &pb.ReadOptions{
+				ConsistencyType: &pb.ReadOptions_Transaction{
+					Transaction: tid,
+				},
+			},
 		},
 		{
-			q:    NewQuery("").EventualConsistency(),
-			want: &pb.ReadOptions{&pb.ReadOptions_ReadConsistency_{pb.ReadOptions_EVENTUAL}},
+			q: NewQuery("").EventualConsistency(),
+			want: &pb.ReadOptions{
+				ConsistencyType: &pb.ReadOptions_ReadConsistency_{
+					ReadConsistency: pb.ReadOptions_EVENTUAL,
+				},
+			},
 		},
 	} {
 		req := &pb.RunQueryRequest{}
@@ -532,6 +541,29 @@ func TestReadOptions(t *testing.T) {
 	} {
 		req := &pb.RunQueryRequest{}
 		if err := q.toProto(req); err == nil {
+			t.Errorf("%+v: got nil, wanted error", q)
+		}
+	}
+}
+
+func TestInvalidFilters(t *testing.T) {
+	client := &Client{
+		client: &fakeClient{
+			queryFn: func(req *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
+				return fakeRunQuery(req)
+			},
+		},
+	}
+
+	// Used for an invalid type
+	type MyType int
+	var v MyType = 1
+
+	for _, q := range []*Query{
+		NewQuery("SomeKey").Filter("", 0),
+		NewQuery("SomeKey").Filter("fld=", v),
+	} {
+		if _, err := client.Count(context.Background(), q); err == nil {
 			t.Errorf("%+v: got nil, wanted error", q)
 		}
 	}

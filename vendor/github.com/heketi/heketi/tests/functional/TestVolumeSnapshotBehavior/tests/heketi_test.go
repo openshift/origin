@@ -17,7 +17,7 @@ import (
 	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/logging"
-	"github.com/heketi/heketi/pkg/remoteexec/ssh"
+	"github.com/heketi/heketi/pkg/testutils"
 	"github.com/heketi/heketi/pkg/utils"
 	"github.com/heketi/tests"
 )
@@ -239,6 +239,7 @@ func TestConnection(t *testing.T) {
 }
 
 func TestHeketiVolumeSnapshotBehavior(t *testing.T) {
+	na := testutils.RequireNodeAccess(t)
 
 	// Setup the VM storage topology
 	teardownCluster(t)
@@ -257,7 +258,7 @@ func TestHeketiVolumeSnapshotBehavior(t *testing.T) {
 	tests.Assert(t, err == nil, err)
 
 	// SSH into system and execute gluster command to create a snapshot
-	exec := ssh.NewSshExecWithKeyFile(logger, "vagrant", "../config/insecure_private_key")
+	exec := na.Use(logger)
 	cmd := []string{
 		fmt.Sprintf("sudo gluster --mode=script snapshot create mysnap %v no-timestamp", volInfo.Name),
 		"sudo gluster --mode=script snapshot activate mysnap",

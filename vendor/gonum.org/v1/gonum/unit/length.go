@@ -10,33 +10,34 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"unicode/utf8"
 )
 
-// Length represents a length in meters
+// Length represents a length in metres.
 type Length float64
 
 const (
-	Yottameter Length = 1e24
-	Zettameter Length = 1e21
-	Exameter   Length = 1e18
-	Petameter  Length = 1e15
-	Terameter  Length = 1e12
-	Gigameter  Length = 1e9
-	Megameter  Length = 1e6
-	Kilometer  Length = 1e3
-	Hectometer Length = 1e2
-	Decameter  Length = 1e1
-	Meter      Length = 1.0
-	Decimeter  Length = 1e-1
-	Centimeter Length = 1e-2
-	Millimeter Length = 1e-3
-	Micrometer Length = 1e-6
-	Nanometer  Length = 1e-9
-	Picometer  Length = 1e-12
-	Femtometer Length = 1e-15
-	Attometer  Length = 1e-18
-	Zeptometer Length = 1e-21
-	Yoctometer Length = 1e-24
+	Yottametre Length = 1e24
+	Zettametre Length = 1e21
+	Exametre   Length = 1e18
+	Petametre  Length = 1e15
+	Terametre  Length = 1e12
+	Gigametre  Length = 1e9
+	Megametre  Length = 1e6
+	Kilometre  Length = 1e3
+	Hectometre Length = 1e2
+	Decametre  Length = 1e1
+	Metre      Length = 1.0
+	Decimetre  Length = 1e-1
+	Centimetre Length = 1e-2
+	Millimetre Length = 1e-3
+	Micrometre Length = 1e-6
+	Nanometre  Length = 1e-9
+	Picometre  Length = 1e-12
+	Femtometre Length = 1e-15
+	Attometre  Length = 1e-18
+	Zeptometre Length = 1e-21
+	Yoctometre Length = 1e-24
 )
 
 // Unit converts the Length to a *Unit
@@ -54,7 +55,7 @@ func (l Length) Length() Length {
 // From converts the unit into the receiver. From returns an
 // error if there is a mismatch in dimension
 func (l *Length) From(u Uniter) error {
-	if !DimensionsMatch(u, Meter) {
+	if !DimensionsMatch(u, Metre) {
 		*l = Length(math.NaN())
 		return errors.New("Dimension mismatch")
 	}
@@ -73,17 +74,18 @@ func (l Length) Format(fs fmt.State, c rune) {
 	case 'e', 'E', 'f', 'F', 'g', 'G':
 		p, pOk := fs.Precision()
 		w, wOk := fs.Width()
+		const unit = " m"
 		switch {
 		case pOk && wOk:
-			fmt.Fprintf(fs, "%*.*"+string(c), w, p, float64(l))
+			fmt.Fprintf(fs, "%*.*"+string(c), pos(w-utf8.RuneCount([]byte(unit))), p, float64(l))
 		case pOk:
 			fmt.Fprintf(fs, "%.*"+string(c), p, float64(l))
 		case wOk:
-			fmt.Fprintf(fs, "%*"+string(c), w, float64(l))
+			fmt.Fprintf(fs, "%*"+string(c), pos(w-utf8.RuneCount([]byte(unit))), float64(l))
 		default:
 			fmt.Fprintf(fs, "%"+string(c), float64(l))
 		}
-		fmt.Fprint(fs, " m")
+		fmt.Fprint(fs, unit)
 	default:
 		fmt.Fprintf(fs, "%%!%c(%T=%g m)", c, l, float64(l))
 	}

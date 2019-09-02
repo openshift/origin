@@ -40,6 +40,7 @@ type power struct {
 	Suspend  bool
 	Force    bool
 	Multi    bool
+	Wait     bool
 }
 
 func init() {
@@ -61,6 +62,7 @@ func (cmd *power) Register(ctx context.Context, f *flag.FlagSet) {
 	f.BoolVar(&cmd.Shutdown, "s", false, "Shutdown guest")
 	f.BoolVar(&cmd.Force, "force", false, "Force (ignore state error and hard shutdown/reboot if tools unavailable)")
 	f.BoolVar(&cmd.Multi, "M", false, "Use Datacenter.PowerOnMultiVM method instead of VirtualMachine.PowerOnVM")
+	f.BoolVar(&cmd.Wait, "wait", true, "Wait for the operation to complete")
 }
 
 func (cmd *power) Process(ctx context.Context) error {
@@ -134,11 +136,13 @@ func (cmd *power) Run(ctx context.Context, f *flag.FlagSet) error {
 			return nil
 		}
 
-		logger := cmd.ProgressLogger(msg)
-		defer logger.Wait()
+		if cmd.Wait {
+			logger := cmd.ProgressLogger(msg)
+			defer logger.Wait()
 
-		_, err = task.WaitForResult(ctx, logger)
-		return err
+			_, err = task.WaitForResult(ctx, logger)
+			return err
+		}
 	}
 
 	for _, vm := range vms {
@@ -177,7 +181,7 @@ func (cmd *power) Run(ctx context.Context, f *flag.FlagSet) error {
 			return err
 		}
 
-		if task != nil {
+		if cmd.Wait && task != nil {
 			err = task.Wait(ctx)
 		}
 		if err == nil {

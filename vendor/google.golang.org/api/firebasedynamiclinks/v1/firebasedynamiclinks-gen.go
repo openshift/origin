@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package firebasedynamiclinks provides access to the Firebase Dynamic Links API.
 //
-// See https://firebase.google.com/docs/dynamic-links/
+// For product documentation, see: https://firebase.google.com/docs/dynamic-links/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/firebasedynamiclinks/v1"
 //   ...
-//   firebasedynamiclinksService, err := firebasedynamiclinks.New(oauthHttpClient)
+//   ctx := context.Background()
+//   firebasedynamiclinksService, err := firebasedynamiclinks.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   firebasedynamiclinksService, err := firebasedynamiclinks.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   firebasedynamiclinksService, err := firebasedynamiclinks.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package firebasedynamiclinks // import "google.golang.org/api/firebasedynamiclinks/v1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	FirebaseScope = "https://www.googleapis.com/auth/firebase"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/firebase",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -193,8 +243,8 @@ type CreateManagedShortLinkRequest struct {
 	// DynamicLinkInfo: Information about the Dynamic Link to be
 	// shortened.
 	// [Learn
-	// more](https://firebase.google.com/docs/reference/dynamic-links/link-sh
-	// ortener).
+	// more](https://firebase.google.com/docs/reference/dyn
+	// amic-links/link-shortener).
 	DynamicLinkInfo *DynamicLinkInfo `json:"dynamicLinkInfo,omitempty"`
 
 	// LongDynamicLink: Full long Dynamic Link URL with desired query
@@ -204,8 +254,8 @@ type CreateManagedShortLinkRequest struct {
 	// "https://sample.app.goo.gl/?link=http://www.google.com&apn=co
 	// m.sample",
 	// [Learn
-	// more](https://firebase.google.com/docs/reference/dynamic-links/link-sh
-	// ortener).
+	// more](https://firebase.google.com/docs/reference/dyn
+	// amic-links/link-shortener).
 	LongDynamicLink string `json:"longDynamicLink,omitempty"`
 
 	// Name: Link name to associate with the link. It's used for marketer to
@@ -294,8 +344,8 @@ type CreateShortDynamicLinkRequest struct {
 	// DynamicLinkInfo: Information about the Dynamic Link to be
 	// shortened.
 	// [Learn
-	// more](https://firebase.google.com/docs/reference/dynamic-links/link-sh
-	// ortener).
+	// more](https://firebase.google.com/docs/reference/dyn
+	// amic-links/link-shortener).
 	DynamicLinkInfo *DynamicLinkInfo `json:"dynamicLinkInfo,omitempty"`
 
 	// LongDynamicLink: Full long Dynamic Link URL with desired query
@@ -305,8 +355,8 @@ type CreateShortDynamicLinkRequest struct {
 	// "https://sample.app.goo.gl/?link=http://www.google.com&apn=co
 	// m.sample",
 	// [Learn
-	// more](https://firebase.google.com/docs/reference/dynamic-links/link-sh
-	// ortener).
+	// more](https://firebase.google.com/docs/reference/dyn
+	// amic-links/link-shortener).
 	LongDynamicLink string `json:"longDynamicLink,omitempty"`
 
 	// SdkVersion: Google SDK version. Version takes the form
@@ -555,9 +605,9 @@ type DynamicLinkInfo struct {
 	// DynamicLinkDomain: Dynamic Links domain that the project owns, e.g.
 	// abcd.app.goo.gl
 	// [Learn
-	// more](https://firebase.google.com/docs/dynamic-links/android/receive)
-	//
-	// on how to set up Dynamic Link domain associated with your Firebase
+	// more](https://firebase.google.com/docs/dynamic-
+	// links/android/receive) on
+	// how to set up Dynamic Link domain associated with your Firebase
 	// project.
 	//
 	// Required if missing domain_uri_prefix.
@@ -907,6 +957,10 @@ type GetIosPostInstallAttributionResponse struct {
 	// at post-install.
 	UtmCampaign string `json:"utmCampaign,omitempty"`
 
+	// UtmContent: Scion content value to be propagated by iSDK to Scion at
+	// app-reopen.
+	UtmContent string `json:"utmContent,omitempty"`
+
 	// UtmMedium: Scion medium value to be propagated by iSDK to Scion at
 	// post-install.
 	UtmMedium string `json:"utmMedium,omitempty"`
@@ -914,6 +968,10 @@ type GetIosPostInstallAttributionResponse struct {
 	// UtmSource: Scion source value to be propagated by iSDK to Scion at
 	// post-install.
 	UtmSource string `json:"utmSource,omitempty"`
+
+	// UtmTerm: Scion term value to be propagated by iSDK to Scion at
+	// app-reopen.
+	UtmTerm string `json:"utmTerm,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
@@ -1001,6 +1059,11 @@ type GetIosReopenAttributionResponse struct {
 	// FDL links.
 	InvitationId string `json:"invitationId,omitempty"`
 
+	// IosMinAppVersion: FDL input value of the "&imv=" parameter, minimum
+	// app version to be
+	// returned to Google Firebase SDK running on iOS-9.
+	IosMinAppVersion string `json:"iosMinAppVersion,omitempty"`
+
 	// ResolvedLink: The entire FDL, expanded from a short link. It is the
 	// same as the
 	// requested_link, if it is long.
@@ -1010,6 +1073,10 @@ type GetIosReopenAttributionResponse struct {
 	// at app-reopen.
 	UtmCampaign string `json:"utmCampaign,omitempty"`
 
+	// UtmContent: Scion content value to be propagated by iSDK to Scion at
+	// app-reopen.
+	UtmContent string `json:"utmContent,omitempty"`
+
 	// UtmMedium: Scion medium value to be propagated by iSDK to Scion at
 	// app-reopen.
 	UtmMedium string `json:"utmMedium,omitempty"`
@@ -1017,6 +1084,10 @@ type GetIosReopenAttributionResponse struct {
 	// UtmSource: Scion source value to be propagated by iSDK to Scion at
 	// app-reopen.
 	UtmSource string `json:"utmSource,omitempty"`
+
+	// UtmTerm: Scion term value to be propagated by iSDK to Scion at
+	// app-reopen.
+	UtmTerm string `json:"utmTerm,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
@@ -1048,15 +1119,16 @@ func (s *GetIosReopenAttributionResponse) MarshalJSON() ([]byte, error) {
 // GooglePlayAnalytics: Parameters for Google Play Campaign
 // Measurements.
 // [Learn
-// more](https://developers.google.com/analytics/devguides/collection/and
-// roid/v4/campaigns#campaign-params)
+// more](https://developers.google.com/analytics/dev
+// guides/collection/android/v4/campaigns#campaign-params)
 type GooglePlayAnalytics struct {
-	// Gclid: [AdWords autotagging
-	// parameter](https://support.google.com/analytics/answer/1033981?hl=en);
-	//
-	// used to measure Google AdWords ads. This value is generated
-	// dynamically
-	// and should never be modified.
+	// Gclid: [AdWords
+	// autotagging
+	// parameter](https://support.google.com/analytics/answer/103
+	// 3981?hl=en); used
+	// to measure Google AdWords ads. This value is generated dynamically
+	// and
+	// should never be modified.
 	Gclid string `json:"gclid,omitempty"`
 
 	// UtmCampaign: Campaign name; used for keyword analysis to identify a

@@ -23,6 +23,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -58,6 +59,16 @@ func NewFileClientWithBaseURI(baseURI string) FileClient {
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client FileClient) DeleteFromComputeNode(ctx context.Context, poolID string, nodeID string, filePath string, recursive *bool, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.DeleteFromComputeNode")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteFromComputeNodePreparer(ctx, poolID, nodeID, filePath, recursive, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.FileClient", "DeleteFromComputeNode", nil, "Failure preparing request")
@@ -126,8 +137,8 @@ func (client FileClient) DeleteFromComputeNodePreparer(ctx context.Context, pool
 // DeleteFromComputeNodeSender sends the DeleteFromComputeNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) DeleteFromComputeNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteFromComputeNodeResponder handles the response to the DeleteFromComputeNode request. The method always
@@ -158,6 +169,16 @@ func (client FileClient) DeleteFromComputeNodeResponder(resp *http.Response) (re
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client FileClient) DeleteFromTask(ctx context.Context, jobID string, taskID string, filePath string, recursive *bool, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.DeleteFromTask")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteFromTaskPreparer(ctx, jobID, taskID, filePath, recursive, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.FileClient", "DeleteFromTask", nil, "Failure preparing request")
@@ -226,8 +247,8 @@ func (client FileClient) DeleteFromTaskPreparer(ctx context.Context, jobID strin
 // DeleteFromTaskSender sends the DeleteFromTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) DeleteFromTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteFromTaskResponder handles the response to the DeleteFromTask request. The method always
@@ -262,6 +283,16 @@ func (client FileClient) DeleteFromTaskResponder(resp *http.Response) (result au
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client FileClient) GetFromComputeNode(ctx context.Context, poolID string, nodeID string, filePath string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ocpRange string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.GetFromComputeNode")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetFromComputeNodePreparer(ctx, poolID, nodeID, filePath, timeout, clientRequestID, returnClientRequestID, ocpDate, ocpRange, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.FileClient", "GetFromComputeNode", nil, "Failure preparing request")
@@ -339,8 +370,8 @@ func (client FileClient) GetFromComputeNodePreparer(ctx context.Context, poolID 
 // GetFromComputeNodeSender sends the GetFromComputeNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) GetFromComputeNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetFromComputeNodeResponder handles the response to the GetFromComputeNode request. The method always
@@ -375,6 +406,16 @@ func (client FileClient) GetFromComputeNodeResponder(resp *http.Response) (resul
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client FileClient) GetFromTask(ctx context.Context, jobID string, taskID string, filePath string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ocpRange string, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.GetFromTask")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetFromTaskPreparer(ctx, jobID, taskID, filePath, timeout, clientRequestID, returnClientRequestID, ocpDate, ocpRange, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.FileClient", "GetFromTask", nil, "Failure preparing request")
@@ -452,8 +493,8 @@ func (client FileClient) GetFromTaskPreparer(ctx context.Context, jobID string, 
 // GetFromTaskSender sends the GetFromTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) GetFromTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetFromTaskResponder handles the response to the GetFromTask request. The method always
@@ -486,6 +527,16 @@ func (client FileClient) GetFromTaskResponder(resp *http.Response) (result ReadC
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client FileClient) GetPropertiesFromComputeNode(ctx context.Context, poolID string, nodeID string, filePath string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.GetPropertiesFromComputeNode")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPropertiesFromComputeNodePreparer(ctx, poolID, nodeID, filePath, timeout, clientRequestID, returnClientRequestID, ocpDate, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.FileClient", "GetPropertiesFromComputeNode", nil, "Failure preparing request")
@@ -559,8 +610,8 @@ func (client FileClient) GetPropertiesFromComputeNodePreparer(ctx context.Contex
 // GetPropertiesFromComputeNodeSender sends the GetPropertiesFromComputeNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) GetPropertiesFromComputeNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPropertiesFromComputeNodeResponder handles the response to the GetPropertiesFromComputeNode request. The method always
@@ -593,6 +644,16 @@ func (client FileClient) GetPropertiesFromComputeNodeResponder(resp *http.Respon
 // operation will be performed only if the resource on the service has not been modified since the specified
 // time.
 func (client FileClient) GetPropertiesFromTask(ctx context.Context, jobID string, taskID string, filePath string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123, ifModifiedSince *date.TimeRFC1123, ifUnmodifiedSince *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.GetPropertiesFromTask")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPropertiesFromTaskPreparer(ctx, jobID, taskID, filePath, timeout, clientRequestID, returnClientRequestID, ocpDate, ifModifiedSince, ifUnmodifiedSince)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.FileClient", "GetPropertiesFromTask", nil, "Failure preparing request")
@@ -666,8 +727,8 @@ func (client FileClient) GetPropertiesFromTaskPreparer(ctx context.Context, jobI
 // GetPropertiesFromTaskSender sends the GetPropertiesFromTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) GetPropertiesFromTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPropertiesFromTaskResponder handles the response to the GetPropertiesFromTask request. The method always
@@ -698,6 +759,16 @@ func (client FileClient) GetPropertiesFromTaskResponder(resp *http.Response) (re
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client FileClient) ListFromComputeNode(ctx context.Context, poolID string, nodeID string, filter string, recursive *bool, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result NodeFileListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.ListFromComputeNode")
+		defer func() {
+			sc := -1
+			if result.nflr.Response.Response != nil {
+				sc = result.nflr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -783,8 +854,8 @@ func (client FileClient) ListFromComputeNodePreparer(ctx context.Context, poolID
 // ListFromComputeNodeSender sends the ListFromComputeNode request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) ListFromComputeNodeSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListFromComputeNodeResponder handles the response to the ListFromComputeNode request. The method always
@@ -801,8 +872,8 @@ func (client FileClient) ListFromComputeNodeResponder(resp *http.Response) (resu
 }
 
 // listFromComputeNodeNextResults retrieves the next set of results, if any.
-func (client FileClient) listFromComputeNodeNextResults(lastResults NodeFileListResult) (result NodeFileListResult, err error) {
-	req, err := lastResults.nodeFileListResultPreparer()
+func (client FileClient) listFromComputeNodeNextResults(ctx context.Context, lastResults NodeFileListResult) (result NodeFileListResult, err error) {
+	req, err := lastResults.nodeFileListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.FileClient", "listFromComputeNodeNextResults", nil, "Failure preparing next results request")
 	}
@@ -823,6 +894,16 @@ func (client FileClient) listFromComputeNodeNextResults(lastResults NodeFileList
 
 // ListFromComputeNodeComplete enumerates all values, automatically crossing page boundaries as required.
 func (client FileClient) ListFromComputeNodeComplete(ctx context.Context, poolID string, nodeID string, filter string, recursive *bool, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result NodeFileListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.ListFromComputeNode")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListFromComputeNode(ctx, poolID, nodeID, filter, recursive, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -844,6 +925,16 @@ func (client FileClient) ListFromComputeNodeComplete(ctx context.Context, poolID
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client FileClient) ListFromTask(ctx context.Context, jobID string, taskID string, filter string, recursive *bool, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result NodeFileListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.ListFromTask")
+		defer func() {
+			sc := -1
+			if result.nflr.Response.Response != nil {
+				sc = result.nflr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -929,8 +1020,8 @@ func (client FileClient) ListFromTaskPreparer(ctx context.Context, jobID string,
 // ListFromTaskSender sends the ListFromTask request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileClient) ListFromTaskSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListFromTaskResponder handles the response to the ListFromTask request. The method always
@@ -947,8 +1038,8 @@ func (client FileClient) ListFromTaskResponder(resp *http.Response) (result Node
 }
 
 // listFromTaskNextResults retrieves the next set of results, if any.
-func (client FileClient) listFromTaskNextResults(lastResults NodeFileListResult) (result NodeFileListResult, err error) {
-	req, err := lastResults.nodeFileListResultPreparer()
+func (client FileClient) listFromTaskNextResults(ctx context.Context, lastResults NodeFileListResult) (result NodeFileListResult, err error) {
+	req, err := lastResults.nodeFileListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.FileClient", "listFromTaskNextResults", nil, "Failure preparing next results request")
 	}
@@ -969,6 +1060,16 @@ func (client FileClient) listFromTaskNextResults(lastResults NodeFileListResult)
 
 // ListFromTaskComplete enumerates all values, automatically crossing page boundaries as required.
 func (client FileClient) ListFromTaskComplete(ctx context.Context, jobID string, taskID string, filter string, recursive *bool, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result NodeFileListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileClient.ListFromTask")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListFromTask(ctx, jobID, taskID, filter, recursive, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }

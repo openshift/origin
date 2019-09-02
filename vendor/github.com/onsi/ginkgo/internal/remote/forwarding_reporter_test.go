@@ -2,6 +2,7 @@ package remote_test
 
 import (
 	"encoding/json"
+
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/ginkgo/internal/remote"
@@ -29,7 +30,7 @@ var _ = Describe("ForwardingReporter", func() {
 			InterceptedOutput: "The intercepted output!",
 		}
 
-		reporter = NewForwardingReporter(serverHost, poster, interceptor)
+		reporter = NewForwardingReporter(config.DefaultReporterConfigType{}, serverHost, poster, interceptor, nil, "")
 
 		suiteSummary = &types.SuiteSummary{
 			SuiteDescription: "My Test Suite",

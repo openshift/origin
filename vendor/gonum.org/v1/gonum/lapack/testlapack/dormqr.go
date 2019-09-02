@@ -114,7 +114,7 @@ func DormqrTest(t *testing.T, impl Dormqrer) {
 
 				// Try with the optimum amount of work
 				copy(c, cCopy)
-				impl.Dormqr(side, trans, mc, nc, k, nil, lda, nil, nil, ldc, work, -1)
+				impl.Dormqr(side, trans, mc, nc, k, a, lda, tau, c, ldc, work, -1)
 				work = make([]float64, int(work[0]))
 				for i := range work {
 					work[i] = rnd.Float64()

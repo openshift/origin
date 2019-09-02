@@ -7,7 +7,8 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
    stable"
 
 apt-get update
-apt-get -y upgrade
+DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+apt-get -y install nfs-kernel-server
 apt-get -y install docker-ce
 
 usermod -aG docker vagrant

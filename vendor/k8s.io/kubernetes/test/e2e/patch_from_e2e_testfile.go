@@ -47,13 +47,13 @@ func ViperizeFlags(viperConfig string) {
 
 }
 
-var viperConfig = ""
+var localViperConfig = ""
 
 // we appear to set ours via env-var, not flag
 func GetViperConfig() string {
-	return viperConfig
+	return localViperConfig
 }
 
 func SetViperConfig(val string) {
-	viperConfig = val
+	localViperConfig = val
 }

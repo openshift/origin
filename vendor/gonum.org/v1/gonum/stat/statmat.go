@@ -138,7 +138,7 @@ func Mahalanobis(x, y mat.Vector, chol *mat.Cholesky) float64 {
 	var diff mat.VecDense
 	diff.SubVec(x, y)
 	var tmp mat.VecDense
-	err := chol.SolveVec(&tmp, &diff)
+	err := chol.SolveVecTo(&tmp, &diff)
 	if err != nil {
 		return math.NaN()
 	}

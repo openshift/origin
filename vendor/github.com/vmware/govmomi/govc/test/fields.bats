@@ -9,6 +9,9 @@ load test_helper
   run govc vm.create $vm_id
   assert_success
 
+  run govc fields.info vm/$vm_id host/*
+  assert_success
+
   field=$(new_id)
 
   result=$(govc fields.ls | grep $field | wc -l)
@@ -23,6 +26,12 @@ load test_helper
 
   val="foo"
   run govc fields.set $field $val vm/$vm_id
+  assert_success
+
+  run govc fields.info vm/$vm_id
+  assert_success
+
+  run govc fields.info -n $val vm/$vm_id
   assert_success
 
   info=$(govc vm.info -json $vm_id | jq .VirtualMachines[0].CustomValue[0])

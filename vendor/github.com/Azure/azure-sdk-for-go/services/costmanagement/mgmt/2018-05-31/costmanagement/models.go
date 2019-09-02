@@ -18,12 +18,17 @@ package costmanagement
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
+
+// The package's fully qualified name.
+const fqdn = "github.com/Azure/azure-sdk-for-go/services/costmanagement/mgmt/2018-05-31/costmanagement"
 
 // FormatType enumerates the values for format type.
 type FormatType string
@@ -122,13 +127,13 @@ func PossibleTimeframeTypeValues() []TimeframeType {
 // Dimension ...
 type Dimension struct {
 	*DimensionProperties `json:"properties,omitempty"`
-	// ID - Resource Id.
+	// ID - READ-ONLY; Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name.
+	// Name - READ-ONLY; Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type.
+	// Type - READ-ONLY; Resource type.
 	Type *string `json:"type,omitempty"`
-	// Tags - Resource tags.
+	// Tags - READ-ONLY; Resource tags.
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -137,18 +142,6 @@ func (d Dimension) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if d.DimensionProperties != nil {
 		objectMap["properties"] = d.DimensionProperties
-	}
-	if d.ID != nil {
-		objectMap["id"] = d.ID
-	}
-	if d.Name != nil {
-		objectMap["name"] = d.Name
-	}
-	if d.Type != nil {
-		objectMap["type"] = d.Type
-	}
-	if d.Tags != nil {
-		objectMap["tags"] = d.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -226,20 +219,20 @@ type DimensionProperties struct {
 // DimensionsListResult result of listing dimensions. It contains a list of available dimensions.
 type DimensionsListResult struct {
 	autorest.Response `json:"-"`
-	// Value - The list of dimensions.
+	// Value - READ-ONLY; The list of dimensions.
 	Value *[]Dimension `json:"value,omitempty"`
 }
 
 // ErrorDetails the details of the error.
 type ErrorDetails struct {
-	// Code - Error code.
+	// Code - READ-ONLY; Error code.
 	Code *string `json:"code,omitempty"`
-	// Message - Error message indicating why the operation failed.
+	// Message - READ-ONLY; Error message indicating why the operation failed.
 	Message *string `json:"message,omitempty"`
 }
 
-// ErrorResponse error response indicates that the service is not able to process the incoming request. The reason
-// is provided in the error message.
+// ErrorResponse error response indicates that the service is not able to process the incoming request. The
+// reason is provided in the error message.
 type ErrorResponse struct {
 	// Error - The details of the error.
 	Error *ErrorDetails `json:"error,omitempty"`
@@ -247,7 +240,7 @@ type ErrorResponse struct {
 
 // Operation a Cost management REST API operation.
 type Operation struct {
-	// Name - Operation name: {provider}/{resource}/{operation}.
+	// Name - READ-ONLY; Operation name: {provider}/{resource}/{operation}.
 	Name *string `json:"name,omitempty"`
 	// Display - The object that represents the operation.
 	Display *OperationDisplay `json:"display,omitempty"`
@@ -255,21 +248,21 @@ type Operation struct {
 
 // OperationDisplay the object that represents the operation.
 type OperationDisplay struct {
-	// Provider - Service provider: Microsoft.CostManagement.
+	// Provider - READ-ONLY; Service provider: Microsoft.CostManagement.
 	Provider *string `json:"provider,omitempty"`
-	// Resource - Resource on which the operation is performed: Dimensions, Query.
+	// Resource - READ-ONLY; Resource on which the operation is performed: Dimensions, Query.
 	Resource *string `json:"resource,omitempty"`
-	// Operation - Operation type: Read, write, delete, etc.
+	// Operation - READ-ONLY; Operation type: Read, write, delete, etc.
 	Operation *string `json:"operation,omitempty"`
 }
 
-// OperationListResult result of listing cost management operations. It contains a list of operations and a URL
-// link to get the next set of results.
+// OperationListResult result of listing cost management operations. It contains a list of operations and a
+// URL link to get the next set of results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
-	// Value - List of cost management operations supported by the Microsoft.CostManagement resource provider.
+	// Value - READ-ONLY; List of cost management operations supported by the Microsoft.CostManagement resource provider.
 	Value *[]Operation `json:"value,omitempty"`
-	// NextLink - URL to get the next set of operation list results if there are any.
+	// NextLink - READ-ONLY; URL to get the next set of operation list results if there are any.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -279,20 +272,37 @@ type OperationListResultIterator struct {
 	page OperationListResultPage
 }
 
-// Next advances to the next value.  If there was an error making
+// NextWithContext advances to the next value.  If there was an error making
 // the request the iterator does not advance and the error is returned.
-func (iter *OperationListResultIterator) Next() error {
+func (iter *OperationListResultIterator) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultIterator.NextWithContext")
+		defer func() {
+			sc := -1
+			if iter.Response().Response.Response != nil {
+				sc = iter.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	iter.i++
 	if iter.i < len(iter.page.Values()) {
 		return nil
 	}
-	err := iter.page.Next()
+	err = iter.page.NextWithContext(ctx)
 	if err != nil {
 		iter.i--
 		return err
 	}
 	iter.i = 0
 	return nil
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (iter *OperationListResultIterator) Next() error {
+	return iter.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the enumeration should be started or is not yet complete.
@@ -314,6 +324,11 @@ func (iter OperationListResultIterator) Value() Operation {
 	return iter.page.Values()[iter.i]
 }
 
+// Creates a new instance of the OperationListResultIterator type.
+func NewOperationListResultIterator(page OperationListResultPage) OperationListResultIterator {
+	return OperationListResultIterator{page: page}
+}
+
 // IsEmpty returns true if the ListResult contains no values.
 func (olr OperationListResult) IsEmpty() bool {
 	return olr.Value == nil || len(*olr.Value) == 0
@@ -321,11 +336,11 @@ func (olr OperationListResult) IsEmpty() bool {
 
 // operationListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
-func (olr OperationListResult) operationListResultPreparer() (*http.Request, error) {
+func (olr OperationListResult) operationListResultPreparer(ctx context.Context) (*http.Request, error) {
 	if olr.NextLink == nil || len(to.String(olr.NextLink)) < 1 {
 		return nil, nil
 	}
-	return autorest.Prepare(&http.Request{},
+	return autorest.Prepare((&http.Request{}).WithContext(ctx),
 		autorest.AsJSON(),
 		autorest.AsGet(),
 		autorest.WithBaseURL(to.String(olr.NextLink)))
@@ -333,19 +348,36 @@ func (olr OperationListResult) operationListResultPreparer() (*http.Request, err
 
 // OperationListResultPage contains a page of Operation values.
 type OperationListResultPage struct {
-	fn  func(OperationListResult) (OperationListResult, error)
+	fn  func(context.Context, OperationListResult) (OperationListResult, error)
 	olr OperationListResult
 }
 
-// Next advances to the next page of values.  If there was an error making
+// NextWithContext advances to the next page of values.  If there was an error making
 // the request the page does not advance and the error is returned.
-func (page *OperationListResultPage) Next() error {
-	next, err := page.fn(page.olr)
+func (page *OperationListResultPage) NextWithContext(ctx context.Context) (err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/OperationListResultPage.NextWithContext")
+		defer func() {
+			sc := -1
+			if page.Response().Response.Response != nil {
+				sc = page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	next, err := page.fn(ctx, page.olr)
 	if err != nil {
 		return err
 	}
 	page.olr = next
 	return nil
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+// Deprecated: Use NextWithContext() instead.
+func (page *OperationListResultPage) Next() error {
+	return page.NextWithContext(context.Background())
 }
 
 // NotDone returns true if the page enumeration should be started or is not yet complete.
@@ -366,16 +398,21 @@ func (page OperationListResultPage) Values() []Operation {
 	return *page.olr.Value
 }
 
+// Creates a new instance of the OperationListResultPage type.
+func NewOperationListResultPage(getNextPage func(context.Context, OperationListResult) (OperationListResult, error)) OperationListResultPage {
+	return OperationListResultPage{fn: getNextPage}
+}
+
 // Query ...
 type Query struct {
 	*QueryProperties `json:"properties,omitempty"`
-	// ID - Resource Id.
+	// ID - READ-ONLY; Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name.
+	// Name - READ-ONLY; Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type.
+	// Type - READ-ONLY; Resource type.
 	Type *string `json:"type,omitempty"`
-	// Tags - Resource tags.
+	// Tags - READ-ONLY; Resource tags.
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -384,18 +421,6 @@ func (q Query) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if q.QueryProperties != nil {
 		objectMap["properties"] = q.QueryProperties
-	}
-	if q.ID != nil {
-		objectMap["id"] = q.ID
-	}
-	if q.Name != nil {
-		objectMap["name"] = q.Name
-	}
-	if q.Type != nil {
-		objectMap["type"] = q.Type
-	}
-	if q.Tags != nil {
-		objectMap["tags"] = q.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -477,7 +502,7 @@ type QueryProperties struct {
 // QueryResult result of query. It contains all columns listed under groupings and aggregation.
 type QueryResult struct {
 	autorest.Response `json:"-"`
-	// Value - The list of usage data.
+	// Value - READ-ONLY; The list of usage data.
 	Value *[]Query `json:"value,omitempty"`
 }
 
@@ -485,13 +510,13 @@ type QueryResult struct {
 type ReportConfig struct {
 	autorest.Response       `json:"-"`
 	*ReportConfigProperties `json:"properties,omitempty"`
-	// ID - Resource Id.
+	// ID - READ-ONLY; Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name.
+	// Name - READ-ONLY; Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type.
+	// Type - READ-ONLY; Resource type.
 	Type *string `json:"type,omitempty"`
-	// Tags - Resource tags.
+	// Tags - READ-ONLY; Resource tags.
 	Tags map[string]*string `json:"tags"`
 }
 
@@ -500,18 +525,6 @@ func (rc ReportConfig) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if rc.ReportConfigProperties != nil {
 		objectMap["properties"] = rc.ReportConfigProperties
-	}
-	if rc.ID != nil {
-		objectMap["id"] = rc.ID
-	}
-	if rc.Name != nil {
-		objectMap["name"] = rc.Name
-	}
-	if rc.Type != nil {
-		objectMap["type"] = rc.Type
-	}
-	if rc.Tags != nil {
-		objectMap["tags"] = rc.Tags
 	}
 	return json.Marshal(objectMap)
 }
@@ -586,7 +599,7 @@ type ReportConfigAggregation struct {
 
 // ReportConfigComparisonExpression the comparison expression to be used in the report.
 type ReportConfigComparisonExpression struct {
-	// Name - The name of the column to use in comaprison.
+	// Name - The name of the column to use in comparison.
 	Name *string `json:"name,omitempty"`
 	// Operator - The operator to use for comparison.
 	Operator *string `json:"operator,omitempty"`
@@ -600,9 +613,9 @@ type ReportConfigDataset struct {
 	Granularity GranularityType `json:"granularity,omitempty"`
 	// Configuration - Has configuration information for the data in the report. The configuration will be ignored if aggregation and grouping are provided.
 	Configuration *ReportConfigDatasetConfiguration `json:"configuration,omitempty"`
-	// Aggregation - Dictionary of aggregation expression to use in the report. The key of each item in the dictionary is the alias for the aggregated column. Report can have upto 2 aggregation clauses.
+	// Aggregation - Dictionary of aggregation expression to use in the report. The key of each item in the dictionary is the alias for the aggregated column. Report can have up to 2 aggregation clauses.
 	Aggregation map[string]*ReportConfigAggregation `json:"aggregation"`
-	// Grouping - Array of group by expression to use in the report. Report can have upto 2 group by clauses.
+	// Grouping - Array of group by expression to use in the report. Report can have up to 2 group by clauses.
 	Grouping *[]ReportConfigGrouping `json:"grouping,omitempty"`
 	// Filter - Has filter expression to use in the report.
 	Filter *ReportConfigFilter `json:"filter,omitempty"`
@@ -665,9 +678,9 @@ type ReportConfigDeliveryInfo struct {
 
 // ReportConfigFilter the filter expression to be used in the report.
 type ReportConfigFilter struct {
-	// And - The logical "AND" expression. Must have atleast 2 items.
+	// And - The logical "AND" expression. Must have at least 2 items.
 	And *[]ReportConfigFilter `json:"and,omitempty"`
-	// Or - The logical "OR" expression. Must have atleast 2 items.
+	// Or - The logical "OR" expression. Must have at least 2 items.
 	Or *[]ReportConfigFilter `json:"or,omitempty"`
 	// Not - The logical "NOT" expression.
 	Not *ReportConfigFilter `json:"not,omitempty"`
@@ -685,11 +698,11 @@ type ReportConfigGrouping struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// ReportConfigListResult result of listing report configs. It contains a list of available report configurations
-// in the scope provided.
+// ReportConfigListResult result of listing report configs. It contains a list of available report
+// configurations in the scope provided.
 type ReportConfigListResult struct {
 	autorest.Response `json:"-"`
-	// Value - The list of report configs.
+	// Value - READ-ONLY; The list of report configs.
 	Value *[]ReportConfig `json:"value,omitempty"`
 }
 
@@ -733,30 +746,18 @@ type ReportConfigTimePeriod struct {
 
 // Resource the Resource model definition.
 type Resource struct {
-	// ID - Resource Id.
+	// ID - READ-ONLY; Resource Id.
 	ID *string `json:"id,omitempty"`
-	// Name - Resource name.
+	// Name - READ-ONLY; Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type.
+	// Type - READ-ONLY; Resource type.
 	Type *string `json:"type,omitempty"`
-	// Tags - Resource tags.
+	// Tags - READ-ONLY; Resource tags.
 	Tags map[string]*string `json:"tags"`
 }
 
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	if r.ID != nil {
-		objectMap["id"] = r.ID
-	}
-	if r.Name != nil {
-		objectMap["name"] = r.Name
-	}
-	if r.Type != nil {
-		objectMap["type"] = r.Type
-	}
-	if r.Tags != nil {
-		objectMap["tags"] = r.Tags
-	}
 	return json.Marshal(objectMap)
 }

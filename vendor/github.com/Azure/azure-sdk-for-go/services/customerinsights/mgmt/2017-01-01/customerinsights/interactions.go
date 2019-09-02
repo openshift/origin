@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,6 +50,16 @@ func NewInteractionsClientWithBaseURI(baseURI string, subscriptionID string) Int
 // interactionName - the name of the interaction.
 // parameters - parameters supplied to the CreateOrUpdate Interaction operation.
 func (client InteractionsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, hubName string, interactionName string, parameters InteractionResourceFormat) (result InteractionsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InteractionsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: interactionName,
 			Constraints: []validation.Constraint{{Target: "interactionName", Name: validation.MaxLength, Rule: 128, Chain: nil},
@@ -99,13 +110,9 @@ func (client InteractionsClient) CreateOrUpdatePreparer(ctx context.Context, res
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client InteractionsClient) CreateOrUpdateSender(req *http.Request) (future InteractionsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -133,6 +140,16 @@ func (client InteractionsClient) CreateOrUpdateResponder(resp *http.Response) (r
 // interactionName - the name of the interaction.
 // localeCode - locale of interaction to retrieve, default is en-us.
 func (client InteractionsClient) Get(ctx context.Context, resourceGroupName string, hubName string, interactionName string, localeCode string) (result InteractionResourceFormat, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InteractionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, hubName, interactionName, localeCode)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.InteractionsClient", "Get", nil, "Failure preparing request")
@@ -184,8 +201,8 @@ func (client InteractionsClient) GetPreparer(ctx context.Context, resourceGroupN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client InteractionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -207,6 +224,16 @@ func (client InteractionsClient) GetResponder(resp *http.Response) (result Inter
 // hubName - the name of the hub.
 // localeCode - locale of interaction to retrieve, default is en-us.
 func (client InteractionsClient) ListByHub(ctx context.Context, resourceGroupName string, hubName string, localeCode string) (result InteractionListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InteractionsClient.ListByHub")
+		defer func() {
+			sc := -1
+			if result.ilr.Response.Response != nil {
+				sc = result.ilr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByHubNextResults
 	req, err := client.ListByHubPreparer(ctx, resourceGroupName, hubName, localeCode)
 	if err != nil {
@@ -258,8 +285,8 @@ func (client InteractionsClient) ListByHubPreparer(ctx context.Context, resource
 // ListByHubSender sends the ListByHub request. The method will close the
 // http.Response Body if it receives an error.
 func (client InteractionsClient) ListByHubSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByHubResponder handles the response to the ListByHub request. The method always
@@ -276,8 +303,8 @@ func (client InteractionsClient) ListByHubResponder(resp *http.Response) (result
 }
 
 // listByHubNextResults retrieves the next set of results, if any.
-func (client InteractionsClient) listByHubNextResults(lastResults InteractionListResult) (result InteractionListResult, err error) {
-	req, err := lastResults.interactionListResultPreparer()
+func (client InteractionsClient) listByHubNextResults(ctx context.Context, lastResults InteractionListResult) (result InteractionListResult, err error) {
+	req, err := lastResults.interactionListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "customerinsights.InteractionsClient", "listByHubNextResults", nil, "Failure preparing next results request")
 	}
@@ -298,6 +325,16 @@ func (client InteractionsClient) listByHubNextResults(lastResults InteractionLis
 
 // ListByHubComplete enumerates all values, automatically crossing page boundaries as required.
 func (client InteractionsClient) ListByHubComplete(ctx context.Context, resourceGroupName string, hubName string, localeCode string) (result InteractionListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InteractionsClient.ListByHub")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByHub(ctx, resourceGroupName, hubName, localeCode)
 	return
 }
@@ -308,6 +345,16 @@ func (client InteractionsClient) ListByHubComplete(ctx context.Context, resource
 // hubName - the name of the hub.
 // interactionName - the name of the interaction.
 func (client InteractionsClient) SuggestRelationshipLinks(ctx context.Context, resourceGroupName string, hubName string, interactionName string) (result SuggestRelationshipLinksResponse, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/InteractionsClient.SuggestRelationshipLinks")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.SuggestRelationshipLinksPreparer(ctx, resourceGroupName, hubName, interactionName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customerinsights.InteractionsClient", "SuggestRelationshipLinks", nil, "Failure preparing request")
@@ -354,8 +401,8 @@ func (client InteractionsClient) SuggestRelationshipLinksPreparer(ctx context.Co
 // SuggestRelationshipLinksSender sends the SuggestRelationshipLinks request. The method will close the
 // http.Response Body if it receives an error.
 func (client InteractionsClient) SuggestRelationshipLinksSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SuggestRelationshipLinksResponder handles the response to the SuggestRelationshipLinks request. The method always

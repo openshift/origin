@@ -292,6 +292,9 @@ func TestDatastoreHTTP(t *testing.T) {
 				}
 				return nil
 			}
+			if info.Entity.Type != "Datastore" {
+				t.Fatal(info.Entity.Type)
+			}
 
 			return info.Result.(types.HostDatastoreBrowserSearchResults).File
 		}
@@ -319,6 +322,9 @@ func TestDatastoreHTTP(t *testing.T) {
 					}
 				}
 				return nil
+			}
+			if info.Entity.Type != "Datastore" {
+				t.Fatal(info.Entity.Type)
 			}
 
 			return info.Result.(types.ArrayOfHostDatastoreBrowserSearchResults).HostDatastoreBrowserSearchResults
@@ -360,6 +366,12 @@ func TestDatastoreHTTP(t *testing.T) {
 
 		// PUT path is directory = fail
 		upload("", true, "PUT")
+
+		// POST parent does not exist = ok
+		upload("foobar/"+dst, false, "POST")
+
+		// PUT parent does not exist = ok
+		upload("barfoo/"+dst, false, "PUT")
 
 		// mkdir parent does not exist = fail
 		mkdir("foo/bar", true, false)

@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package firebasehosting provides access to the Firebase Hosting API.
 //
-// See https://firebase.google.com/docs/hosting/
+// For product documentation, see: https://firebase.google.com/docs/hosting/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/firebasehosting/v1beta1"
 //   ...
-//   firebasehostingService, err := firebasehosting.New(oauthHttpClient)
+//   ctx := context.Background()
+//   firebasehostingService, err := firebasehosting.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   firebasehostingService, err := firebasehosting.NewService(ctx, option.WithScopes(firebasehosting.FirebaseReadonlyScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   firebasehostingService, err := firebasehosting.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   firebasehostingService, err := firebasehosting.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package firebasehosting // import "google.golang.org/api/firebasehosting/v1beta1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -65,6 +93,35 @@ const (
 	FirebaseReadonlyScope = "https://www.googleapis.com/auth/firebase.readonly"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/cloud-platform.read-only",
+		"https://www.googleapis.com/auth/firebase",
+		"https://www.googleapis.com/auth/firebase.readonly",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -247,6 +304,47 @@ type CertHttpChallenge struct {
 
 func (s *CertHttpChallenge) MarshalJSON() ([]byte, error) {
 	type NoMethod CertHttpChallenge
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// CloudRunRewrite: A configured rewrite that directs requests to a
+// Cloud Run service. If the
+// Cloud Run service does not exist when setting or updating your
+// Firebase
+// Hosting configuration, then the request fails. Any errors from the
+// Cloud Run
+// service are passed to the end user (for example, if you delete a
+// service, any
+// requests directed to that service receive a `404` error).
+type CloudRunRewrite struct {
+	// Region: Optional. User-provided region where the Cloud Run service is
+	// hosted.<br>
+	// Defaults to `us-central1` if not supplied.
+	Region string `json:"region,omitempty"`
+
+	// ServiceId: Required. User-defined ID of the Cloud Run service.
+	ServiceId string `json:"serviceId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Region") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Region") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *CloudRunRewrite) MarshalJSON() ([]byte, error) {
+	type NoMethod CloudRunRewrite
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -840,6 +938,9 @@ type Rewrite struct {
 	// Path: The URL path to rewrite the request to.
 	Path string `json:"path,omitempty"`
 
+	// Run: The request will be forwarded to Cloud Run.
+	Run *CloudRunRewrite `json:"run,omitempty"`
+
 	// ForceSendFields is a list of field names (e.g. "DynamicLinks") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -1065,9 +1166,10 @@ type Version struct {
 	//   "ABANDONED" - The version was not updated to `FINALIZED` within
 	// 12&nbsp;hours and was
 	// automatically deleted.
-	//   "EXPIRED" - The version has fallen out of the site-configured
-	// retention window and its
-	// associated files in GCS have been/been scheduled for deletion.
+	//   "EXPIRED" - The version is outside the site-configured limit for
+	// the number of
+	// retained versions, so the version's content is scheduled for
+	// deletion.
 	Status string `json:"status,omitempty"`
 
 	// VersionBytes: Output only. The total stored bytesize of the

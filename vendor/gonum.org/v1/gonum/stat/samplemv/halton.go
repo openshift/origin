@@ -35,6 +35,7 @@ func (h Halton) Sample(batch *mat.Dense) {
 	halton(batch, h.Kind, h.Q, h.Src)
 }
 
+// HaltonKind specifies the type of algorithm used to generate Halton samples.
 type HaltonKind int
 
 const (

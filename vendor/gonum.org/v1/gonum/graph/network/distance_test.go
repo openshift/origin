@@ -146,7 +146,7 @@ func TestDistanceCentralityUndirected(t *testing.T) {
 		g := simple.NewWeightedUndirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -336,7 +336,7 @@ func TestDistanceCentralityDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, math.Inf(1))
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {

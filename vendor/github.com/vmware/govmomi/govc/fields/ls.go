@@ -41,11 +41,11 @@ func (cmd *ls) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.ClientFlag.Register(ctx, f)
 }
 
-func (cmd *ls) Process(ctx context.Context) error {
-	if err := cmd.ClientFlag.Process(ctx); err != nil {
-		return err
-	}
-	return nil
+func (cmd *ls) Description() string {
+	return `List custom field definitions.
+
+Examples:
+  govc fields.ls`
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {

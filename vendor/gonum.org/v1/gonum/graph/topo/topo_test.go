@@ -71,11 +71,11 @@ func TestPathExistsInUndirected(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 
 		for u, e := range test.g {
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				if !g.Has(int64(v)) {
+				if g.Node(int64(v)) == nil {
 					g.AddNode(simple.Node(v))
 				}
 				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
@@ -110,11 +110,11 @@ func TestPathExistsInDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 
 		for u, e := range test.g {
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				if !g.Has(int64(v)) {
+				if g.Node(int64(v)) == nil {
 					g.AddNode(simple.Node(v))
 				}
 				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
@@ -147,11 +147,11 @@ func TestConnectedComponents(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 
 		for u, e := range test.g {
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
-				if !g.Has(int64(v)) {
+				if g.Node(int64(v)) == nil {
 					g.AddNode(simple.Node(v))
 				}
 				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})

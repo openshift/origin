@@ -85,7 +85,7 @@ func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
 	cmd.cat.Name = f.Arg(0)
 	cmd.cat.Cardinality = cardinality(cmd.multi)
 
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		id, err := tags.NewManager(c).CreateCategory(ctx, &cmd.cat)
 		if err != nil {
 			return err

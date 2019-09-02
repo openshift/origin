@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -62,6 +63,16 @@ func NewTenantActivityLogsClientWithBaseURI(baseURI string, subscriptionID strin
 // *operationId*, *operationName*, *properties*, *resourceGroupName*, *resourceProviderName*, *resourceId*,
 // *status*, *submissionTimestamp*, *subStatus*, *subscriptionId*
 func (client TenantActivityLogsClient) List(ctx context.Context, filter string, selectParameter string) (result EventDataCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TenantActivityLogsClient.List")
+		defer func() {
+			sc := -1
+			if result.edc.Response.Response != nil {
+				sc = result.edc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, filter, selectParameter)
 	if err != nil {
@@ -108,8 +119,8 @@ func (client TenantActivityLogsClient) ListPreparer(ctx context.Context, filter 
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client TenantActivityLogsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -126,8 +137,8 @@ func (client TenantActivityLogsClient) ListResponder(resp *http.Response) (resul
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client TenantActivityLogsClient) listNextResults(lastResults EventDataCollection) (result EventDataCollection, err error) {
-	req, err := lastResults.eventDataCollectionPreparer()
+func (client TenantActivityLogsClient) listNextResults(ctx context.Context, lastResults EventDataCollection) (result EventDataCollection, err error) {
+	req, err := lastResults.eventDataCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "insights.TenantActivityLogsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -148,6 +159,16 @@ func (client TenantActivityLogsClient) listNextResults(lastResults EventDataColl
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client TenantActivityLogsClient) ListComplete(ctx context.Context, filter string, selectParameter string) (result EventDataCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TenantActivityLogsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, filter, selectParameter)
 	return
 }

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://www.gexf.net/1.2draft"
+ xmlns:viz="http://www.gexf.net/1.2draft/viz"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.gexf.net/1.2draft
+                     http://www.gexf.net/1.2draft/gexf.xsd" 
+ version="1.2">
+    <meta lastmodifieddate="2009-10-01">
+        <creator>Gephi.org</creator>
+        <description>A hierarchy file</description>
+    </meta>
+    <graph mode="static" defaultedgetype="directed">
+        <nodes>
+          <node id="a" label="Kevin Bacon">
+            <nodes>
+              <node id="b" label="God">
+                <nodes>
+                  <node id="c" label="human1"/>
+                  <node id="d" label="human2"/>
+                  <node id="i" label="human3"/>
+                </nodes>
+              </node>
+              <node id="e" label="Me">
+                <nodes>
+                  <node id="f" label="frog1"/>
+                  <node id="g" label="frog2"/>
+                  <node id="h" label="frog3"/>
+                </nodes>
+              </node>
+              <node id="j" label="You" />
+            </nodes>
+          </node>
+        </nodes>
+        <edges>
+            <edge id="0" source="b" target="e" />
+            <edge id="1" source="c" target="d" />
+            <edge id="2" source="c" target="i" />
+            <edge id="3" source="g" target="b" />
+            <edge id="4" source="f" target="a" />
+            <edge id="5" source="f" target="g" />
+            <edge id="6" source="f" target="h" />
+            <edge id="7" source="g" target="h" />
+            <edge id="8" source="a" target="j" />
+        </edges>
+    </graph>
+</gexf>

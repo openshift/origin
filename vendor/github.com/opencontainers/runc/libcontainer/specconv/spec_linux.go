@@ -28,6 +28,7 @@ var namespaceMapping = map[specs.LinuxNamespaceType]configs.NamespaceType{
 	specs.UserNamespace:    configs.NEWUSER,
 	specs.IPCNamespace:     configs.NEWIPC,
 	specs.UTSNamespace:     configs.NEWUTS,
+	specs.CgroupNamespace:  configs.NEWCGROUP,
 }
 
 var mountPropagationMapping = map[string]int{
@@ -148,7 +149,8 @@ type CreateOpts struct {
 	NoPivotRoot      bool
 	NoNewKeyring     bool
 	Spec             *specs.Spec
-	Rootless         bool
+	RootlessEUID     bool
+	RootlessCgroups  bool
 }
 
 // CreateLibcontainerConfig creates a new libcontainer configuration from a
@@ -176,13 +178,14 @@ func CreateLibcontainerConfig(opts *CreateOpts) (*configs.Config, error) {
 		labels = append(labels, fmt.Sprintf("%s=%s", k, v))
 	}
 	config := &configs.Config{
-		Rootfs:       rootfsPath,
-		NoPivotRoot:  opts.NoPivotRoot,
-		Readonlyfs:   spec.Root.Readonly,
-		Hostname:     spec.Hostname,
-		Labels:       append(labels, fmt.Sprintf("bundle=%s", cwd)),
-		NoNewKeyring: opts.NoNewKeyring,
-		Rootless:     opts.Rootless,
+		Rootfs:          rootfsPath,
+		NoPivotRoot:     opts.NoPivotRoot,
+		Readonlyfs:      spec.Root.Readonly,
+		Hostname:        spec.Hostname,
+		Labels:          append(labels, fmt.Sprintf("bundle=%s", cwd)),
+		NoNewKeyring:    opts.NoNewKeyring,
+		RootlessEUID:    opts.RootlessEUID,
+		RootlessCgroups: opts.RootlessCgroups,
 	}
 
 	exists := false
@@ -239,30 +242,33 @@ func CreateLibcontainerConfig(opts *CreateOpts) (*configs.Config, error) {
 			}
 			config.Seccomp = seccomp
 		}
+		if spec.Linux.IntelRdt != nil {
+			config.IntelRdt = &configs.IntelRdt{}
+			if spec.Linux.IntelRdt.L3CacheSchema != "" {
+				config.IntelRdt.L3CacheSchema = spec.Linux.IntelRdt.L3CacheSchema
+			}
+			if spec.Linux.IntelRdt.MemBwSchema != "" {
+				config.IntelRdt.MemBwSchema = spec.Linux.IntelRdt.MemBwSchema
+			}
+		}
 	}
-	if spec.Process.SelinuxLabel != "" {
-		config.ProcessLabel = spec.Process.SelinuxLabel
-	}
-	if spec.Process != nil && spec.Process.OOMScoreAdj != nil {
-		config.OomScoreAdj = *spec.Process.OOMScoreAdj
-	}
-	if spec.Process.Capabilities != nil {
-		config.Capabilities = &configs.Capabilities{
-			Bounding:    spec.Process.Capabilities.Bounding,
-			Effective:   spec.Process.Capabilities.Effective,
-			Permitted:   spec.Process.Capabilities.Permitted,
-			Inheritable: spec.Process.Capabilities.Inheritable,
-			Ambient:     spec.Process.Capabilities.Ambient,
+	if spec.Process != nil {
+		config.OomScoreAdj = spec.Process.OOMScoreAdj
+		if spec.Process.SelinuxLabel != "" {
+			config.ProcessLabel = spec.Process.SelinuxLabel
+		}
+		if spec.Process.Capabilities != nil {
+			config.Capabilities = &configs.Capabilities{
+				Bounding:    spec.Process.Capabilities.Bounding,
+				Effective:   spec.Process.Capabilities.Effective,
+				Permitted:   spec.Process.Capabilities.Permitted,
+				Inheritable: spec.Process.Capabilities.Inheritable,
+				Ambient:     spec.Process.Capabilities.Ambient,
+			}
 		}
 	}
 	createHooks(spec, config)
 	config.Version = specs.Version
-	if spec.Linux.IntelRdt != nil {
-		config.IntelRdt = &configs.IntelRdt{}
-		if spec.Linux.IntelRdt.L3CacheSchema != "" {
-			config.IntelRdt.L3CacheSchema = spec.Linux.IntelRdt.L3CacheSchema
-		}
-	}
 	return config, nil
 }
 
@@ -270,10 +276,11 @@ func createLibcontainerMount(cwd string, m specs.Mount) *configs.Mount {
 	flags, pgflags, data, ext := parseMountOptions(m.Options)
 	source := m.Source
 	device := m.Type
-	if flags|unix.MS_BIND != 0 {
-		if device == "" {
-			device = "bind"
-		}
+	if flags&unix.MS_BIND != 0 {
+		// Any "type" the user specified is meaningless (and ignored) for
+		// bind-mounts -- so we set it to "bind" because rootfs_linux.go
+		// (incorrectly) relies on this for some checks.
+		device = "bind"
 		if !filepath.IsAbs(source) {
 			source = filepath.Join(cwd, m.Source)
 		}
@@ -319,7 +326,7 @@ func createCgroupConfig(opts *CreateOpts) (*configs.Cgroup, error) {
 			// for e.g. "system.slice:docker:1234"
 			parts := strings.Split(myCgroupPath, ":")
 			if len(parts) != 3 {
-				return nil, fmt.Errorf("expected cgroupsPath to be of format \"slice:prefix:name\" for systemd cgroups")
+				return nil, fmt.Errorf("expected cgroupsPath to be of format \"slice:prefix:name\" for systemd cgroups, got %q instead", myCgroupPath)
 			}
 			c.Parent = parts[0]
 			c.ScopePrefix = parts[1]
@@ -332,12 +339,9 @@ func createCgroupConfig(opts *CreateOpts) (*configs.Cgroup, error) {
 		c.Path = myCgroupPath
 	}
 
-	// In rootless containers, any attempt to make cgroup changes will fail.
-	// libcontainer will validate this and we shouldn't add any cgroup options
-	// the user didn't specify.
-	if !opts.Rootless {
-		c.Resources.AllowedDevices = allowedDevices
-	}
+	// In rootless containers, any attempt to make cgroup changes is likely to fail.
+	// libcontainer will validate this but ignores the error.
+	c.Resources.AllowedDevices = allowedDevices
 	if spec.Linux != nil {
 		r := spec.Linux.Resources
 		if r == nil {
@@ -490,10 +494,8 @@ func createCgroupConfig(opts *CreateOpts) (*configs.Cgroup, error) {
 			}
 		}
 	}
-	if !opts.Rootless {
-		// append the default allowed devices to the end of the list
-		c.Resources.Devices = append(c.Resources.Devices, allowedDevices...)
-	}
+	// append the default allowed devices to the end of the list
+	c.Resources.Devices = append(c.Resources.Devices, allowedDevices...)
 	return c, nil
 }
 

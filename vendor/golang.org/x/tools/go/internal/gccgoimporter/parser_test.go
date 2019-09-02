@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package gccgoimporter
+// Except for this comment, this file is a verbatim copy of the file
+// with the same name in $GOROOT/src/go/internal/gccgoimporter.
 
-// This is a verbatim copy of $GOROOT/src/go/internal/gccgoimporter/parser_test.go.
+package gccgoimporter
 
 import (
 	"bytes"
@@ -21,7 +22,7 @@ var typeParserTests = []struct {
 	{id: "foo", typ: "<type 1 *<type -19>>", want: "*error"},
 	{id: "foo", typ: "<type 1 *any>", want: "unsafe.Pointer"},
 	{id: "foo", typ: "<type 1 \"Bar\" <type 2 *<type 1>>>", want: "foo.Bar", underlying: "*foo.Bar"},
-	{id: "foo", typ: "<type 1 \"bar.Foo\" \"bar\" <type -1> func (? <type 1>) M (); >", want: "bar.Foo", underlying: "int8", methods: "func (bar.Foo).M()"},
+	{id: "foo", typ: "<type 1 \"bar.Foo\" \"bar\" <type -1>\nfunc (? <type 1>) M ();\n>", want: "bar.Foo", underlying: "int8", methods: "func (bar.Foo).M()"},
 	{id: "foo", typ: "<type 1 \".bar.foo\" \"bar\" <type -1>>", want: "bar.foo", underlying: "int8"},
 	{id: "foo", typ: "<type 1 []<type -1>>", want: "[]int8"},
 	{id: "foo", typ: "<type 1 [42]<type -1>>", want: "[42]int8"},
@@ -38,6 +39,7 @@ func TestTypeParser(t *testing.T) {
 	for _, test := range typeParserTests {
 		var p parser
 		p.init("test.gox", strings.NewReader(test.typ), make(map[string]*types.Package))
+		p.version = "v2"
 		p.pkgname = test.id
 		p.pkgpath = test.id
 		p.maybeCreatePackage()
@@ -45,6 +47,11 @@ func TestTypeParser(t *testing.T) {
 
 		if p.tok != scanner.EOF {
 			t.Errorf("expected full parse, stopped at %q", p.lit)
+		}
+
+		// interfaces must be explicitly completed
+		if ityp, _ := typ.(*types.Interface); ityp != nil {
+			ityp.Complete()
 		}
 
 		got := typ.String()

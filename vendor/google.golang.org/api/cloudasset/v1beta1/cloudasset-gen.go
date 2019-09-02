@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package cloudasset provides access to the Cloud Asset API.
 //
-// See https://console.cloud.google.com/apis/api/cloudasset.googleapis.com/overview
+// For product documentation, see: https://cloud.google.com/resource-manager/docs/cloud-asset-inventory/quickstart-cloud-asset-inventory
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/cloudasset/v1beta1"
 //   ...
-//   cloudassetService, err := cloudasset.New(oauthHttpClient)
+//   ctx := context.Background()
+//   cloudassetService, err := cloudasset.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   cloudassetService, err := cloudasset.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   cloudassetService, err := cloudasset.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package cloudasset // import "google.golang.org/api/cloudasset/v1beta1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,11 +80,38 @@ const (
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
 	s := &Service{client: client, BasePath: basePath}
+	s.Folders = NewFoldersService(s)
 	s.Organizations = NewOrganizationsService(s)
 	s.Projects = NewProjectsService(s)
 	return s, nil
@@ -70,6 +121,8 @@ type Service struct {
 	client    *http.Client
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
+
+	Folders *FoldersService
 
 	Organizations *OrganizationsService
 
@@ -81,6 +134,27 @@ func (s *Service) userAgent() string {
 		return googleapi.UserAgent
 	}
 	return googleapi.UserAgent + " " + s.UserAgent
+}
+
+func NewFoldersService(s *Service) *FoldersService {
+	rs := &FoldersService{s: s}
+	rs.Operations = NewFoldersOperationsService(s)
+	return rs
+}
+
+type FoldersService struct {
+	s *Service
+
+	Operations *FoldersOperationsService
+}
+
+func NewFoldersOperationsService(s *Service) *FoldersOperationsService {
+	rs := &FoldersOperationsService{s: s}
+	return rs
+}
+
+type FoldersOperationsService struct {
+	s *Service
 }
 
 func NewOrganizationsService(s *Service) *OrganizationsService {
@@ -133,16 +207,18 @@ type Asset struct {
 	AssetType string `json:"assetType,omitempty"`
 
 	// IamPolicy: Representation of the actual Cloud IAM policy set on a
-	// cloud resource. For each
-	// resource, there must be at most one Cloud IAM policy set on it.
+	// cloud resource. For
+	// each resource, there must be at most one Cloud IAM policy set on it.
 	IamPolicy *Policy `json:"iamPolicy,omitempty"`
 
-	// Name: The full name of the asset. For example:
-	// `//compute.googleapis.com/projects/my_project_123/zones/zone1/instance
-	// s/instance1`.
-	// See [Resource
-	// Names](https://cloud.google.com/apis/design/resource_names#full_resour
-	// ce_name)
+	// Name: The full name of the asset. For
+	// example:
+	// `//compute.googleapis.com/projects/my_project_123/zones/zone1
+	// /instances/instance1`.
+	// See
+	// [Resource
+	// Names](https://cloud.google.com/apis/design/resource_names#f
+	// ull_resource_name)
 	// for more information.
 	Name string `json:"name,omitempty"`
 
@@ -360,9 +436,8 @@ func (s *BatchGetAssetsHistoryResponse) MarshalJSON() ([]byte, error) {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
-	// Condition: Unimplemented. The condition that is associated with this
-	// binding.
-	// NOTE: an unsatisfied condition will not allow user access via
+	// Condition: The condition that is associated with this binding.
+	// NOTE: An unsatisfied condition will not allow user access via
 	// current
 	// binding. Different bindings, including their conditions, are
 	// examined
@@ -396,7 +471,7 @@ type Binding struct {
 	//    For example, `admins@example.com`.
 	//
 	//
-	// * `domain:{domain}`: A Google Apps domain name that represents all
+	// * `domain:{domain}`: The G Suite domain (primary) that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
 	// `example.com`.
@@ -559,6 +634,22 @@ type GcsDestination struct {
 	// -metadata)
 	// for more information.
 	Uri string `json:"uri,omitempty"`
+
+	// UriPrefix: The uri prefix of all generated Cloud Storage objects. For
+	// example:
+	// "gs://bucket_name/object_name_prefix". Each object uri is in
+	// format:
+	// "gs://bucket_name/object_name_prefix/<asset type>/<shard number> and
+	// only
+	// contains assets for that type. <shard number> starts from 0. For
+	// example:
+	// "gs://bucket_name/object_name_prefix/google.compute.disk/0" is the
+	// first
+	// shard of output objects containing all google.compute.disk assets.
+	// An INVALID_ARGUMENT error will be returned if file with the same
+	// name
+	// "gs://bucket_name/object_name_prefix" already exists.
+	UriPrefix string `json:"uriPrefix,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Uri") to
 	// unconditionally include in API requests. By default, fields with
@@ -820,19 +911,20 @@ type Resource struct {
 	// Parent: The full name of the immediate parent of this resource.
 	// See
 	// [Resource
-	// Names](https://cloud.google.com/apis/design/resource_names#full_resour
-	// ce_name)
+	// Names](https://cloud.google.com/apis/design/resource_nam
+	// es#full_resource_name)
 	// for more information.
 	//
 	// For GCP assets, it is the parent resource defined in the [Cloud IAM
 	// policy
 	// hierarchy](https://cloud.google.com/iam/docs/overview#policy_hi
 	// erarchy).
-	// For example:
-	// "//cloudresourcemanager.googleapis.com/projects/my_project_123".
+	// For
+	// example:
+	// "//cloudresourcemanager.googleapis.com/projects/my_project_1
+	// 23".
 	//
-	// Fo
-	// r third-party assets, it is up to the users to define.
+	// For third-party assets, it is up to the users to define.
 	Parent string `json:"parent,omitempty"`
 
 	// ResourceUrl: The REST URL for accessing the resource. An HTTP GET
@@ -872,20 +964,20 @@ func (s *Resource) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for different
-// programming environments, including REST APIs and RPC APIs. It is
-// used by
-// [gRPC](https://github.com/grpc). The error model is designed to
-// be:
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). The error model is designed
+// to be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code, error
-// message,
-// and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code,
+// error
+// message, and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The
@@ -1058,6 +1150,297 @@ func (s *TimeWindow) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// method id "cloudasset.folders.exportAssets":
+
+type FoldersExportAssetsCall struct {
+	s                   *Service
+	parent              string
+	exportassetsrequest *ExportAssetsRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// ExportAssets: Exports assets with time and resource types to a given
+// Cloud Storage
+// location. The output format is newline-delimited JSON.
+// This API implements the google.longrunning.Operation API allowing
+// you
+// to keep track of the export.
+func (r *FoldersService) ExportAssets(parent string, exportassetsrequest *ExportAssetsRequest) *FoldersExportAssetsCall {
+	c := &FoldersExportAssetsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.exportassetsrequest = exportassetsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *FoldersExportAssetsCall) Fields(s ...googleapi.Field) *FoldersExportAssetsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *FoldersExportAssetsCall) Context(ctx context.Context) *FoldersExportAssetsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *FoldersExportAssetsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *FoldersExportAssetsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportassetsrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}:exportAssets")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudasset.folders.exportAssets" call.
+// Exactly one of *Operation or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *FoldersExportAssetsCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Exports assets with time and resource types to a given Cloud Storage\nlocation. The output format is newline-delimited JSON.\nThis API implements the google.longrunning.Operation API allowing you\nto keep track of the export.",
+	//   "flatPath": "v1beta1/folders/{foldersId}:exportAssets",
+	//   "httpMethod": "POST",
+	//   "id": "cloudasset.folders.exportAssets",
+	//   "parameterOrder": [
+	//     "parent"
+	//   ],
+	//   "parameters": {
+	//     "parent": {
+	//       "description": "Required. The relative name of the root asset. This can only be an\norganization number (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), a project number (such as \"projects/12345\"), or\na folder number (such as \"folders/123\").",
+	//       "location": "path",
+	//       "pattern": "^folders/[^/]+$",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1beta1/{+parent}:exportAssets",
+	//   "request": {
+	//     "$ref": "ExportAssetsRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "Operation"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform"
+	//   ]
+	// }
+
+}
+
+// method id "cloudasset.folders.operations.get":
+
+type FoldersOperationsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets the latest state of a long-running operation.  Clients can
+// use this
+// method to poll the operation result at intervals as recommended by
+// the API
+// service.
+func (r *FoldersOperationsService) Get(name string) *FoldersOperationsGetCall {
+	c := &FoldersOperationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *FoldersOperationsGetCall) Fields(s ...googleapi.Field) *FoldersOperationsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *FoldersOperationsGetCall) IfNoneMatch(entityTag string) *FoldersOperationsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *FoldersOperationsGetCall) Context(ctx context.Context) *FoldersOperationsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *FoldersOperationsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *FoldersOperationsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudasset.folders.operations.get" call.
+// Exactly one of *Operation or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *FoldersOperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Gets the latest state of a long-running operation.  Clients can use this\nmethod to poll the operation result at intervals as recommended by the API\nservice.",
+	//   "flatPath": "v1beta1/folders/{foldersId}/operations/{operationsId}/{operationsId1}",
+	//   "httpMethod": "GET",
+	//   "id": "cloudasset.folders.operations.get",
+	//   "parameterOrder": [
+	//     "name"
+	//   ],
+	//   "parameters": {
+	//     "name": {
+	//       "description": "The name of the operation resource.",
+	//       "location": "path",
+	//       "pattern": "^folders/[^/]+/operations/[^/]+/.+$",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1beta1/{+name}",
+	//   "response": {
+	//     "$ref": "Operation"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform"
+	//   ]
+	// }
+
+}
+
 // method id "cloudasset.organizations.batchGetAssetsHistory":
 
 type OrganizationsBatchGetAssetsHistoryCall struct {
@@ -1078,6 +1461,9 @@ type OrganizationsBatchGetAssetsHistoryCall struct {
 // its
 // attached IAM POLICY both exist. This can create gaps in the output
 // history.
+// If a specified asset does not exist, this API returns an
+// INVALID_ARGUMENT
+// error.
 func (r *OrganizationsService) BatchGetAssetsHistory(parent string) *OrganizationsBatchGetAssetsHistoryCall {
 	c := &OrganizationsBatchGetAssetsHistoryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -1089,9 +1475,10 @@ func (r *OrganizationsService) BatchGetAssetsHistory(parent string) *Organizatio
 // example:
 // `//compute.googleapis.com/projects/my_project_123/zones/zone1
 // /instances/instance1`.
-// See [Resource
-// Names](https://cloud.google.com/apis/design/resource_names#full_resour
-// ce_name)
+// See
+// [Resource
+// Names](https://cloud.google.com/apis/design/resource_names#f
+// ull_resource_name)
 // for more info.
 //
 // The request becomes a no-op if the asset name list is empty, and the
@@ -1229,7 +1616,7 @@ func (c *OrganizationsBatchGetAssetsHistoryCall) Do(opts ...googleapi.CallOption
 	}
 	return ret, nil
 	// {
-	//   "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.",
+	//   "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.\nIf a specified asset does not exist, this API returns an INVALID_ARGUMENT\nerror.",
 	//   "flatPath": "v1beta1/organizations/{organizationsId}:batchGetAssetsHistory",
 	//   "httpMethod": "GET",
 	//   "id": "cloudasset.organizations.batchGetAssetsHistory",
@@ -1238,7 +1625,7 @@ func (c *OrganizationsBatchGetAssetsHistoryCall) Do(opts ...googleapi.CallOption
 	//   ],
 	//   "parameters": {
 	//     "assetNames": {
-	//       "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
+	//       "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource\nNames](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
 	//       "location": "query",
 	//       "repeated": true,
 	//       "type": "string"
@@ -1407,7 +1794,7 @@ func (c *OrganizationsExportAssetsCall) Do(opts ...googleapi.CallOption) (*Opera
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The relative name of the root asset. This can only be an organization\nnumber (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), or a project number (such as \"projects/12345\").",
+	//       "description": "Required. The relative name of the root asset. This can only be an\norganization number (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), a project number (such as \"projects/12345\"), or\na folder number (such as \"folders/123\").",
 	//       "location": "path",
 	//       "pattern": "^organizations/[^/]+$",
 	//       "required": true,
@@ -1559,7 +1946,7 @@ func (c *OrganizationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*Oper
 	//     "name": {
 	//       "description": "The name of the operation resource.",
 	//       "location": "path",
-	//       "pattern": "^organizations/[^/]+/operations/[^/]+/[^/]+$",
+	//       "pattern": "^organizations/[^/]+/operations/[^/]+/.+$",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -1595,6 +1982,9 @@ type ProjectsBatchGetAssetsHistoryCall struct {
 // its
 // attached IAM POLICY both exist. This can create gaps in the output
 // history.
+// If a specified asset does not exist, this API returns an
+// INVALID_ARGUMENT
+// error.
 func (r *ProjectsService) BatchGetAssetsHistory(parent string) *ProjectsBatchGetAssetsHistoryCall {
 	c := &ProjectsBatchGetAssetsHistoryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -1606,9 +1996,10 @@ func (r *ProjectsService) BatchGetAssetsHistory(parent string) *ProjectsBatchGet
 // example:
 // `//compute.googleapis.com/projects/my_project_123/zones/zone1
 // /instances/instance1`.
-// See [Resource
-// Names](https://cloud.google.com/apis/design/resource_names#full_resour
-// ce_name)
+// See
+// [Resource
+// Names](https://cloud.google.com/apis/design/resource_names#f
+// ull_resource_name)
 // for more info.
 //
 // The request becomes a no-op if the asset name list is empty, and the
@@ -1746,7 +2137,7 @@ func (c *ProjectsBatchGetAssetsHistoryCall) Do(opts ...googleapi.CallOption) (*B
 	}
 	return ret, nil
 	// {
-	//   "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.",
+	//   "description": "Batch gets the update history of assets that overlap a time window.\nFor RESOURCE content, this API outputs history with asset in both\nnon-delete or deleted status.\nFor IAM_POLICY content, this API outputs history when the asset and its\nattached IAM POLICY both exist. This can create gaps in the output history.\nIf a specified asset does not exist, this API returns an INVALID_ARGUMENT\nerror.",
 	//   "flatPath": "v1beta1/projects/{projectsId}:batchGetAssetsHistory",
 	//   "httpMethod": "GET",
 	//   "id": "cloudasset.projects.batchGetAssetsHistory",
@@ -1755,7 +2146,7 @@ func (c *ProjectsBatchGetAssetsHistoryCall) Do(opts ...googleapi.CallOption) (*B
 	//   ],
 	//   "parameters": {
 	//     "assetNames": {
-	//       "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
+	//       "description": "A list of the full names of the assets. For example:\n`//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.\nSee [Resource\nNames](https://cloud.google.com/apis/design/resource_names#full_resource_name)\nfor more info.\n\nThe request becomes a no-op if the asset name list is empty, and the max\nsize of the asset name list is 100 in one request.",
 	//       "location": "query",
 	//       "repeated": true,
 	//       "type": "string"
@@ -1924,7 +2315,7 @@ func (c *ProjectsExportAssetsCall) Do(opts ...googleapi.CallOption) (*Operation,
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The relative name of the root asset. This can only be an organization\nnumber (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), or a project number (such as \"projects/12345\").",
+	//       "description": "Required. The relative name of the root asset. This can only be an\norganization number (such as \"organizations/123\"), a project ID (such as\n\"projects/my-project-id\"), a project number (such as \"projects/12345\"), or\na folder number (such as \"folders/123\").",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+$",
 	//       "required": true,
@@ -2076,7 +2467,7 @@ func (c *ProjectsOperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation
 	//     "name": {
 	//       "description": "The name of the operation resource.",
 	//       "location": "path",
-	//       "pattern": "^projects/[^/]+/operations/[^/]+/[^/]+$",
+	//       "pattern": "^projects/[^/]+/operations/[^/]+/.+$",
 	//       "required": true,
 	//       "type": "string"
 	//     }

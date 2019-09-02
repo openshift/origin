@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewCodePackageClientWithBaseURI(baseURI string, subscriptionID string) Code
 // codePackageName - the name of the code package.
 // tail - number of lines to show from the end of the logs. Default is 100.
 func (client CodePackageClient) GetContainerLog(ctx context.Context, resourceGroupName string, applicationName string, serviceName string, replicaName string, codePackageName string, tail *int32) (result ContainerLogs, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/CodePackageClient.GetContainerLog")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetContainerLogPreparer(ctx, resourceGroupName, applicationName, serviceName, replicaName, codePackageName, tail)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabricmesh.CodePackageClient", "GetContainerLog", nil, "Failure preparing request")
@@ -99,8 +110,8 @@ func (client CodePackageClient) GetContainerLogPreparer(ctx context.Context, res
 // GetContainerLogSender sends the GetContainerLog request. The method will close the
 // http.Response Body if it receives an error.
 func (client CodePackageClient) GetContainerLogSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetContainerLogResponder handles the response to the GetContainerLog request. The method always

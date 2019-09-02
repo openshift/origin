@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,13 +8,39 @@
 //
 // This package is DEPRECATED. Use package cloud.google.com/go/firestore instead.
 //
-// See https://cloud.google.com/firestore
+// For product documentation, see: https://cloud.google.com/firestore
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/firestore/v1"
 //   ...
-//   firestoreService, err := firestore.New(oauthHttpClient)
+//   ctx := context.Background()
+//   firestoreService, err := firestore.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   firestoreService, err := firestore.NewService(ctx, option.WithScopes(firestore.DatastoreScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   firestoreService, err := firestore.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   firestoreService, err := firestore.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package firestore // import "google.golang.org/api/firestore/v1"
 
 import (
@@ -31,6 +57,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -61,6 +89,33 @@ const (
 	DatastoreScope = "https://www.googleapis.com/auth/datastore"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/datastore",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -1058,6 +1113,62 @@ type FieldTransform struct {
 	// path syntax
 	// reference.
 	FieldPath string `json:"fieldPath,omitempty"`
+
+	// Increment: Adds the given value to the field's current value.
+	//
+	// This must be an integer or a double value.
+	// If the field is not an integer or double, or if the field does not
+	// yet
+	// exist, the transformation will set the field to the given value.
+	// If either of the given value or the current field value are
+	// doubles,
+	// both values will be interpreted as doubles. Double arithmetic
+	// and
+	// representation of double values follow IEEE 754 semantics.
+	// If there is positive/negative integer overflow, the field is
+	// resolved
+	// to the largest magnitude positive/negative integer.
+	Increment *Value `json:"increment,omitempty"`
+
+	// Maximum: Sets the field to the maximum of its current value and the
+	// given value.
+	//
+	// This must be an integer or a double value.
+	// If the field is not an integer or double, or if the field does not
+	// yet
+	// exist, the transformation will set the field to the given value.
+	// If a maximum operation is applied where the field and the input
+	// value
+	// are of mixed types (that is - one is an integer and one is a
+	// double)
+	// the field takes on the type of the larger operand. If the operands
+	// are
+	// equivalent (e.g. 3 and 3.0), the field does not change.
+	// 0, 0.0, and -0.0 are all zero. The maximum of a zero stored value
+	// and
+	// zero input value is always the stored value.
+	// The maximum of any numeric value x and NaN is NaN.
+	Maximum *Value `json:"maximum,omitempty"`
+
+	// Minimum: Sets the field to the minimum of its current value and the
+	// given value.
+	//
+	// This must be an integer or a double value.
+	// If the field is not an integer or double, or if the field does not
+	// yet
+	// exist, the transformation will set the field to the input value.
+	// If a minimum operation is applied where the field and the input
+	// value
+	// are of mixed types (that is - one is an integer and one is a
+	// double)
+	// the field takes on the type of the smaller operand. If the operands
+	// are
+	// equivalent (e.g. 3 and 3.0), the field does not change.
+	// 0, 0.0, and -0.0 are all zero. The minimum of a zero stored value
+	// and
+	// zero input value is always the stored value.
+	// The minimum of any numeric value x and NaN is NaN.
+	Minimum *Value `json:"minimum,omitempty"`
 
 	// RemoveAllFromArray: Remove all of the given elements from the array
 	// in the field.
@@ -2818,20 +2929,20 @@ func (s *RunQueryResponse) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for different
-// programming environments, including REST APIs and RPC APIs. It is
-// used by
-// [gRPC](https://github.com/grpc). The error model is designed to
-// be:
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). The error model is designed
+// to be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code, error
-// message,
-// and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code,
+// error
+// message, and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The
@@ -3342,7 +3453,7 @@ type Write struct {
 	// ment_path}`.
 	Delete string `json:"delete,omitempty"`
 
-	// Transform: Applies a tranformation to a document.
+	// Transform: Applies a transformation to a document.
 	// At most one `transform` per document is allowed in a given
 	// request.
 	// An `update` cannot follow a `transform` on the same document in a

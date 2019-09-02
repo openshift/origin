@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -45,6 +46,16 @@ func NewPipelineClient() PipelineClient {
 // endDateTime - the end date for when to get the pipeline and aggregate its data. The startDateTime and
 // endDateTime can be no more than 30 days apart.
 func (client PipelineClient) Get(ctx context.Context, accountName string, pipelineIdentity uuid.UUID, startDateTime *date.Time, endDateTime *date.Time) (result PipelineInformation, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, accountName, pipelineIdentity, startDateTime, endDateTime)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "job.PipelineClient", "Get", nil, "Failure preparing request")
@@ -99,8 +110,8 @@ func (client PipelineClient) GetPreparer(ctx context.Context, accountName string
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelineClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -124,6 +135,16 @@ func (client PipelineClient) GetResponder(resp *http.Response) (result PipelineI
 // endDateTime - the end date for when to get the list of pipelines. The startDateTime and endDateTime can be
 // no more than 30 days apart.
 func (client PipelineClient) List(ctx context.Context, accountName string, startDateTime *date.Time, endDateTime *date.Time) (result PipelineInformationListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineClient.List")
+		defer func() {
+			sc := -1
+			if result.pilr.Response.Response != nil {
+				sc = result.pilr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, accountName, startDateTime, endDateTime)
 	if err != nil {
@@ -175,8 +196,8 @@ func (client PipelineClient) ListPreparer(ctx context.Context, accountName strin
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PipelineClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -193,8 +214,8 @@ func (client PipelineClient) ListResponder(resp *http.Response) (result Pipeline
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PipelineClient) listNextResults(lastResults PipelineInformationListResult) (result PipelineInformationListResult, err error) {
-	req, err := lastResults.pipelineInformationListResultPreparer()
+func (client PipelineClient) listNextResults(ctx context.Context, lastResults PipelineInformationListResult) (result PipelineInformationListResult, err error) {
+	req, err := lastResults.pipelineInformationListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "job.PipelineClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -215,6 +236,16 @@ func (client PipelineClient) listNextResults(lastResults PipelineInformationList
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PipelineClient) ListComplete(ctx context.Context, accountName string, startDateTime *date.Time, endDateTime *date.Time) (result PipelineInformationListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PipelineClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, accountName, startDateTime, endDateTime)
 	return
 }

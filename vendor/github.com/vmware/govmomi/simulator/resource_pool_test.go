@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/simulator/esx"

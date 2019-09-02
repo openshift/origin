@@ -73,4 +73,29 @@ var _ = Describe("Struct", func() {
 		})
 		Expect(allFields).ShouldNot(m, "should run nested matchers")
 	})
+
+	It("should produce sensible error messages", func() {
+		m := MatchAllFields(Fields{
+			"B": Equal("b"),
+			"A": Equal("a"),
+		})
+
+		actual := struct{ A, C string }{A: "b", C: "c"}
+
+		//Because the order of the constituent errors can't be guaranteed,
+		//we do a number of checks to make sure everything's included
+		m.Match(actual)
+		Expect(m.FailureMessage(actual)).Should(HavePrefix(
+			"Expected\n    <string>: \nto match fields: {\n",
+		))
+		Expect(m.FailureMessage(actual)).Should(ContainSubstring(
+			".A:\n	Expected\n	    <string>: b\n	to equal\n	    <string>: a\n",
+		))
+		Expect(m.FailureMessage(actual)).Should(ContainSubstring(
+			"missing expected field B\n",
+		))
+		Expect(m.FailureMessage(actual)).Should(ContainSubstring(
+			".C:\n	unexpected field C: {A:b C:c}",
+		))
+	})
 })

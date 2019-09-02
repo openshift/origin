@@ -19,7 +19,7 @@ Mention of AMOS's inclusion in SLATEC goes back at least to this 1985 technical 
 // math.NaN() are for padding to keep indexing easy.
 var imach = []int{-0, 5, 6, 0, 0, 32, 4, 2, 31, 2147483647, 2, 24, -125, 127, 53, -1021, 1023}
 
-var dmach = []float64{math.NaN(), 2.23E-308, 1.79E-308, 1.11E-16, 2.22E-16, 0.30103000998497009}
+var dmach = []float64{math.NaN(), 2.23e-308, 1.79e-308, 1.11e-16, 2.22e-16, 0.30103000998497009}
 
 func abs(a int) int {
 	if a >= 0 {
@@ -198,10 +198,10 @@ func Zairy(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ int) {
 	_ = ZTA
 	_ = Z3
 
-	TTH = 6.66666666666666667E-01
-	C1 = 3.55028053887817240E-01
-	C2 = 2.58819403792806799E-01
-	COEF = 1.83776298473930683E-01
+	TTH = 6.66666666666666667e-01
+	C1 = 3.55028053887817240e-01
+	C2 = 2.58819403792806799e-01
+	COEF = 1.83776298473930683e-01
 	ZEROR = 0
 	ZEROI = 0
 	CONER = 1
@@ -218,9 +218,9 @@ func Zairy(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ int) {
 		return
 	}
 	AZ = cmplx.Abs(complex(ZR, ZI))
-	TOL = math.Max(dmach[4], 1.0E-18)
+	TOL = math.Max(dmach[4], 1.0e-18)
 	FID = float64(ID)
-	if AZ > 1.0E0 {
+	if AZ > 1.0e0 {
 		goto Seventy
 	}
 
@@ -240,21 +240,21 @@ func Zairy(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ int) {
 	TRM1I = CONEI
 	TRM2R = CONER
 	TRM2I = CONEI
-	ATRM = 1.0E0
+	ATRM = 1.0e0
 	STR = ZR*ZR - ZI*ZI
 	STI = ZR*ZI + ZI*ZR
 	Z3R = STR*ZR - STI*ZI
 	Z3I = STR*ZI + STI*ZR
 	AZ3 = AZ * AA
-	AK = 2.0E0 + FID
-	BK = 3.0E0 - FID - FID
-	CK = 4.0E0 - FID
-	DK = 3.0E0 + FID + FID
+	AK = 2.0e0 + FID
+	BK = 3.0e0 - FID - FID
+	CK = 4.0e0 - FID
+	DK = 3.0e0 + FID + FID
 	D1 = AK * DK
 	D2 = BK * CK
 	AD = math.Min(D1, D2)
-	AK = 24.0E0 + 9.0E0*FID
-	BK = 30.0E0 - 9.0E0*FID
+	AK = 24.0e0 + 9.0e0*FID
+	BK = 30.0e0 - 9.0e0*FID
 	for K = 1; K <= 25; K++ {
 		STR = (TRM1R*Z3R - TRM1I*Z3I) / D1
 		TRM1I = (TRM1R*Z3I + TRM1I*Z3R) / D1
@@ -273,8 +273,8 @@ func Zairy(ZR, ZI float64, ID, KODE int) (AIR, AII float64, NZ int) {
 		if ATRM < TOL*AD {
 			goto Forty
 		}
-		AK = AK + 18.0E0
-		BK = BK + 18.0E0
+		AK = AK + 18.0e0
+		BK = BK + 18.0e0
 	}
 Forty:
 	if ID == 1 {
@@ -306,7 +306,7 @@ Fifty:
 	}
 	STR = ZR*S1R - ZI*S1I
 	STI = ZR*S1I + ZI*S1R
-	CC = C1 / (1.0E0 + FID)
+	CC = C1 / (1.0e0 + FID)
 	AIR = AIR + CC*(STR*ZR-STI*ZI)
 	AII = AII + CC*(STR*ZI+STI*ZR)
 
@@ -329,7 +329,7 @@ Sixty:
 
 	// CASE FOR CABS(Z)>1.0.
 Seventy:
-	FNU = (1.0E0 + FID) / 3.0E0
+	FNU = (1.0e0 + FID) / 3.0e0
 
 	/*
 	   SET PARAMETERS RELATED TO MACHINE CONSTANTS.
@@ -346,18 +346,18 @@ Seventy:
 	R1M5 = dmach[5]
 
 	K = min(abs(K1), abs(K2))
-	ELIM = 2.303E0 * (float64(K)*R1M5 - 3.0E0)
+	ELIM = 2.303e0 * (float64(K)*R1M5 - 3.0e0)
 	K1 = imach[14] - 1
 	AA = R1M5 * float64(K1)
-	DIG = math.Min(AA, 18.0E0)
-	AA = AA * 2.303E0
-	ALIM = ELIM + math.Max(-AA, -41.45E0)
-	RL = 1.2E0*DIG + 3.0E0
+	DIG = math.Min(AA, 18.0e0)
+	AA = AA * 2.303e0
+	ALIM = ELIM + math.Max(-AA, -41.45e0)
+	RL = 1.2e0*DIG + 3.0e0
 	ALAZ = math.Log(AZ)
 
 	// TEST FOR PROPER RANGE.
-	AA = 0.5E0 / TOL
-	BB = float64(float32(imach[9])) * 0.5E0
+	AA = 0.5e0 / TOL
+	BB = float64(float32(imach[9])) * 0.5e0
 	AA = math.Min(AA, BB)
 	AA = math.Pow(AA, TTH)
 	if AZ > AA {
@@ -375,9 +375,9 @@ Seventy:
 
 	//  RE(ZTA)<=0 WHEN RE(Z)<0, ESPECIALLY WHEN IM(Z) IS SMALL.
 	IFLAG = 0
-	SFAC = 1.0E0
+	SFAC = 1.0e0
 	AK = ZTAI
-	if ZR >= 0.0E0 {
+	if ZR >= 0.0e0 {
 		goto Eighty
 	}
 	BK = ZTAR
@@ -386,17 +386,17 @@ Seventy:
 	ZTAI = AK
 
 Eighty:
-	if ZI != 0.0E0 {
+	if ZI != 0.0e0 {
 		goto Ninety
 	}
-	if ZR > 0.0E0 {
+	if ZR > 0.0e0 {
 		goto Ninety
 	}
-	ZTAR = 0.0E0
+	ZTAR = 0.0e0
 	ZTAI = AK
 Ninety:
 	AA = ZTAR
-	if AA >= 0.0E0 && ZR > 0.0E0 {
+	if AA >= 0.0e0 && ZR > 0.0e0 {
 		goto OneTen
 	}
 	if KODE == 2 {
@@ -407,7 +407,7 @@ Ninety:
 	if AA > (-ALIM) {
 		goto OneHundred
 	}
-	AA = -AA + 0.25E0*ALAZ
+	AA = -AA + 0.25e0*ALAZ
 	IFLAG = 1
 	SFAC = TOL
 	if AA > ELIM {
@@ -417,7 +417,7 @@ Ninety:
 OneHundred:
 	// CBKNU AND CACON return EXP(ZTA)*K(FNU,ZTA) ON KODE=2.
 	MR = 1
-	if ZI < 0.0E0 {
+	if ZI < 0.0e0 {
 		MR = -1
 	}
 	ZTAR, ZTAI, FNU, KODE, MR, _, CYR, CYI, NN, RL, TOL, ELIM, ALIM = Zacai(ZTAR, ZTAI, FNU, KODE, MR, 1, CYR, CYI, NN, RL, TOL, ELIM, ALIM)
@@ -436,9 +436,9 @@ OneTen:
 	if AA < ALIM {
 		goto OneTwenty
 	}
-	AA = -AA - 0.25E0*ALAZ
+	AA = -AA - 0.25e0*ALAZ
 	IFLAG = 2
-	SFAC = 1.0E0 / TOL
+	SFAC = 1.0e0 / TOL
 	if AA < (-ELIM) {
 		goto TwoTen
 	}
@@ -481,7 +481,7 @@ OneSixty:
 	AII = S1I / SFAC
 	return
 OneSeventy:
-	AA = 1.0E+3 * dmach[1]
+	AA = 1.0e+3 * dmach[1]
 	S1R = ZEROR
 	S1I = ZEROI
 	if ID == 1 {
@@ -498,12 +498,12 @@ OneEighty:
 	return
 OneNinety:
 	AIR = -C2
-	AII = 0.0E0
+	AII = 0.0e0
 	AA = math.Sqrt(AA)
 	if AZ <= AA {
 		goto TwoHundred
 	}
-	S1R = 0.5E0 * (ZR*ZR - ZI*ZI)
+	S1R = 0.5e0 * (ZR*ZR - ZI*ZI)
 	S1I = ZR * ZI
 TwoHundred:
 	AIR = AIR + C1*S1R
@@ -567,44 +567,44 @@ func Zbknu(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL, ELIM
 	CTWOR = 2
 	R1 = 2
 
-	DPI = 3.14159265358979324E0
-	RTHPI = 1.25331413731550025E0
-	SPI = 1.90985931710274403E0
-	HPI = 1.57079632679489662E0
-	FPI = 1.89769999331517738E0
-	TTH = 6.66666666666666666E-01
+	DPI = 3.14159265358979324e0
+	RTHPI = 1.25331413731550025e0
+	SPI = 1.90985931710274403e0
+	HPI = 1.57079632679489662e0
+	FPI = 1.89769999331517738e0
+	TTH = 6.66666666666666666e-01
 
-	CC := [9]float64{math.NaN(), 5.77215664901532861E-01, -4.20026350340952355E-02,
-		-4.21977345555443367E-02, 7.21894324666309954E-03,
-		-2.15241674114950973E-04, -2.01348547807882387E-05,
-		1.13302723198169588E-06, 6.11609510448141582E-09}
+	CC := [9]float64{math.NaN(), 5.77215664901532861e-01, -4.20026350340952355e-02,
+		-4.21977345555443367e-02, 7.21894324666309954e-03,
+		-2.15241674114950973e-04, -2.01348547807882387e-05,
+		1.13302723198169588e-06, 6.11609510448141582e-09}
 
 	CAZ = cmplx.Abs(complex(ZR, ZI))
-	CSCLR = 1.0E0 / TOL
+	CSCLR = 1.0e0 / TOL
 	CRSCR = TOL
 	CSSR[1] = CSCLR
-	CSSR[2] = 1.0E0
+	CSSR[2] = 1.0e0
 	CSSR[3] = CRSCR
 	CSRR[1] = CRSCR
-	CSRR[2] = 1.0E0
+	CSRR[2] = 1.0e0
 	CSRR[3] = CSCLR
-	BRY[1] = 1.0E+3 * dmach[1] / TOL
-	BRY[2] = 1.0E0 / BRY[1]
+	BRY[1] = 1.0e+3 * dmach[1] / TOL
+	BRY[2] = 1.0e0 / BRY[1]
 	BRY[3] = dmach[2]
 	NZ = 0
 	IFLAG = 0
 	KODED = KODE
-	RCAZ = 1.0E0 / CAZ
+	RCAZ = 1.0e0 / CAZ
 	STR = ZR * RCAZ
 	STI = -ZI * RCAZ
 	RZR = (STR + STR) * RCAZ
 	RZI = (STI + STI) * RCAZ
 	INU = int(float32(FNU + 0.5))
 	DNU = FNU - float64(INU)
-	if math.Abs(DNU) == 0.5E0 {
+	if math.Abs(DNU) == 0.5e0 {
 		goto OneTen
 	}
-	DNU2 = 0.0E0
+	DNU2 = 0.0e0
 	if math.Abs(DNU) > TOL {
 		DNU2 = DNU * DNU
 	}
@@ -613,7 +613,7 @@ func Zbknu(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL, ELIM
 	}
 
 	// SERIES FOR CABS(Z)<=R1.
-	FC = 1.0E0
+	FC = 1.0e0
 	tmp = cmplx.Log(complex(RZR, RZI))
 	SMUR = real(tmp)
 	SMUI = imag(tmp)
@@ -626,7 +626,7 @@ func Zbknu(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL, ELIM
 	CSHI = imag(sinh)
 	CCHR = real(cosh)
 	CCHI = imag(cosh)
-	if DNU == 0.0E0 {
+	if DNU == 0.0e0 {
 		goto Ten
 	}
 	FC = DNU * DPI
@@ -634,17 +634,17 @@ func Zbknu(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL, ELIM
 	SMUR = CSHR / DNU
 	SMUI = CSHI / DNU
 Ten:
-	A2 = 1.0E0 + DNU
+	A2 = 1.0e0 + DNU
 
 	// GAM(1-Z)*GAM(1+Z)=PI*Z/SIN(PI*Z), T1=1/GAM(1-DNU), T2=1/GAM(1+DNU).
 	T2 = math.Exp(-dgamln(A2, IDUM))
-	T1 = 1.0E0 / (T2 * FC)
-	if math.Abs(DNU) > 0.1E0 {
+	T1 = 1.0e0 / (T2 * FC)
+	if math.Abs(DNU) > 0.1e0 {
 		goto Forty
 	}
 
 	// SERIES FOR F0 TO RESOLVE INDETERMINACY FOR SMALL ABS(DNU).
-	AK = 1.0E0
+	AK = 1.0e0
 	S = CC[1]
 	for K = 2; K <= 8; K++ {
 		AK = AK * DNU2
@@ -660,14 +660,14 @@ Thirty:
 Forty:
 	G1 = (T1 - T2) / (DNU + DNU)
 Fifty:
-	G2 = (T1 + T2) * 0.5E0
+	G2 = (T1 + T2) * 0.5e0
 	FR = FC * (CCHR*G1 + SMUR*G2)
 	FI = FC * (CCHI*G1 + SMUI*G2)
 	tmp = cmplx.Exp(complex(FMUR, FMUI))
 	STR = real(tmp)
 	STI = imag(tmp)
-	PR = 0.5E0 * STR / T2
-	PI = 0.5E0 * STI / T2
+	PR = 0.5e0 * STR / T2
+	PI = 0.5e0 * STI / T2
 	tmp = complex(0.5, 0) / complex(STR, STI)
 	PTR = real(tmp)
 	PTI = imag(tmp)
@@ -677,11 +677,11 @@ Fifty:
 	S1I = FI
 	S2R = PR
 	S2I = PI
-	AK = 1.0E0
-	A1 = 1.0E0
+	AK = 1.0e0
+	A1 = 1.0e0
 	CKR = CONER
 	CKI = CONEI
-	BK = 1.0E0 - DNU2
+	BK = 1.0e0 - DNU2
 	if INU > 0 || N > 1 {
 		goto Eighty
 	}
@@ -693,27 +693,27 @@ Fifty:
 	tmp = complex(ZR, ZI) * complex(ZR, ZI)
 	CZR = real(tmp)
 	CZI = imag(tmp)
-	CZR = 0.25E0 * CZR
-	CZI = 0.25E0 * CZI
-	T1 = 0.25E0 * CAZ * CAZ
+	CZR = 0.25e0 * CZR
+	CZI = 0.25e0 * CZI
+	T1 = 0.25e0 * CAZ * CAZ
 Sixty:
 	FR = (FR*AK + PR + QR) / BK
 	FI = (FI*AK + PI + QI) / BK
-	STR = 1.0E0 / (AK - DNU)
+	STR = 1.0e0 / (AK - DNU)
 	PR = PR * STR
 	PI = PI * STR
-	STR = 1.0E0 / (AK + DNU)
+	STR = 1.0e0 / (AK + DNU)
 	QR = QR * STR
 	QI = QI * STR
 	STR = CKR*CZR - CKI*CZI
-	RAK = 1.0E0 / AK
+	RAK = 1.0e0 / AK
 	CKI = (CKR*CZI + CKI*CZR) * RAK
 	CKR = STR * RAK
 	S1R = CKR*FR - CKI*FI + S1R
 	S1I = CKR*FI + CKI*FR + S1I
 	A1 = A1 * T1 * RAK
-	BK = BK + AK + AK + 1.0E0
-	AK = AK + 1.0E0
+	BK = BK + AK + AK + 1.0e0
+	AK = AK + 1.0e0
 	if A1 > TOL {
 		goto Sixty
 	}
@@ -739,20 +739,20 @@ Eighty:
 	tmp = complex(ZR, ZI) * complex(ZR, ZI)
 	CZR = real(tmp)
 	CZI = imag(tmp)
-	CZR = 0.25E0 * CZR
-	CZI = 0.25E0 * CZI
-	T1 = 0.25E0 * CAZ * CAZ
+	CZR = 0.25e0 * CZR
+	CZI = 0.25e0 * CZI
+	T1 = 0.25e0 * CAZ * CAZ
 Ninety:
 	FR = (FR*AK + PR + QR) / BK
 	FI = (FI*AK + PI + QI) / BK
-	STR = 1.0E0 / (AK - DNU)
+	STR = 1.0e0 / (AK - DNU)
 	PR = PR * STR
 	PI = PI * STR
-	STR = 1.0E0 / (AK + DNU)
+	STR = 1.0e0 / (AK + DNU)
 	QR = QR * STR
 	QI = QI * STR
 	STR = CKR*CZR - CKI*CZI
-	RAK = 1.0E0 / AK
+	RAK = 1.0e0 / AK
 	CKI = (CKR*CZI + CKI*CZR) * RAK
 	CKR = STR * RAK
 	S1R = CKR*FR - CKI*FI + S1R
@@ -762,14 +762,14 @@ Ninety:
 	S2R = CKR*STR - CKI*STI + S2R
 	S2I = CKR*STI + CKI*STR + S2I
 	A1 = A1 * T1 * RAK
-	BK = BK + AK + AK + 1.0E0
-	AK = AK + 1.0E0
+	BK = BK + AK + AK + 1.0e0
+	AK = AK + 1.0e0
 	if A1 > TOL {
 		goto Ninety
 	}
 OneHundred:
 	KFLAG = 2
-	A1 = FNU + 1.0E0
+	A1 = FNU + 1.0e0
 	AK = A1 * math.Abs(SMUR)
 	if AK > ALIM {
 		KFLAG = 3
@@ -822,7 +822,7 @@ OneTen:
 	COEFR = real(tmp)
 	COEFI = imag(tmp)
 OneTwenty:
-	if math.Abs(DNU) == 0.5E0 {
+	if math.Abs(DNU) == 0.5e0 {
 		goto ThreeHundred
 	}
 	// MILLER ALGORITHM FOR CABS(Z)>R1.
@@ -831,7 +831,7 @@ OneTwenty:
 	if AK == CZEROR {
 		goto ThreeHundred
 	}
-	FHS = math.Abs(0.25E0 - DNU2)
+	FHS = math.Abs(0.25e0 - DNU2)
 	if FHS == CZEROR {
 		goto ThreeHundred
 	}
@@ -841,11 +841,11 @@ OneTwenty:
 	// 12<=E<=60. E IS COMPUTED FROM 2**(-E)=B**(1-I1MACH(14))=
 	// TOL WHERE B IS THE BASE OF THE ARITHMETIC.
 	T1 = float64(imach[14] - 1)
-	T1 = T1 * dmach[5] * 3.321928094E0
-	T1 = math.Max(T1, 12.0E0)
-	T1 = math.Min(T1, 60.0E0)
-	T2 = TTH*T1 - 6.0E0
-	if ZR != 0.0E0 {
+	T1 = T1 * dmach[5] * 3.321928094e0
+	T1 = math.Max(T1, 12.0e0)
+	T1 = math.Min(T1, 60.0e0)
+	T2 = TTH*T1 - 6.0e0
+	if ZR != 0.0e0 {
 		goto OneThirty
 	}
 	T1 = HPI
@@ -891,10 +891,10 @@ OneSeventy:
 	// COMPUTE BACKWARD INDEX K FOR CABS(Z)<R2.
 	A2 = math.Sqrt(CAZ)
 	AK = FPI * AK / (TOL * math.Sqrt(A2))
-	AA = 3.0E0 * T1 / (1.0E0 + CAZ)
-	BB = 14.7E0 * T1 / (28.0E0 + CAZ)
-	AK = (math.Log(AK) + CAZ*math.Cos(AA)/(1.0E0+0.008E0*CAZ)) / math.Cos(BB)
-	FK = 0.12125E0*AK*AK/CAZ + 1.5E0
+	AA = 3.0e0 * T1 / (1.0e0 + CAZ)
+	BB = 14.7e0 * T1 / (28.0e0 + CAZ)
+	AK = (math.Log(AK) + CAZ*math.Cos(AA)/(1.0e0+0.008e0*CAZ)) / math.Cos(BB)
+	FK = 0.12125e0*AK*AK/CAZ + 1.5e0
 OneEighty:
 	// BACKWARD RECURRENCE LOOP FOR MILLER ALGORITHM.
 	K = int(float32(FK))
@@ -909,7 +909,7 @@ OneEighty:
 	for I = 1; I <= K; I++ {
 		A1 = FKS - FK
 		AK = (FKS + FK) / (A1 + FHS)
-		RAK = 2.0E0 / (FK + CONER)
+		RAK = 2.0e0 / (FK + CONER)
 		CBR = (FK + ZR) * RAK
 		CBI = ZI * RAK
 		PTR = P2R
@@ -925,7 +925,7 @@ OneEighty:
 	}
 	// COMPUTE (P2/CS)=(P2/CABS(CS))*(CONJG(CS)/CABS(CS)) FOR BETTER SCALING.
 	TM = cmplx.Abs(complex(CSR, CSI))
-	PTR = 1.0E0 / TM
+	PTR = 1.0e0 / TM
 	S1R = P2R * PTR
 	S1I = P2I * PTR
 	CSR = CSR * PTR
@@ -948,7 +948,7 @@ OneEighty:
 TwoHundred:
 	// COMPUTE P1/P2=(P1/CABS(P2)*CONJG(P2)/CABS(P2) FOR SCALING.
 	TM = cmplx.Abs(complex(P2R, P2I))
-	PTR = 1.0E0 / TM
+	PTR = 1.0e0 / TM
 	P1R = P1R * PTR
 	P1I = P1I * PTR
 	P2R = P2R * PTR
@@ -956,12 +956,12 @@ TwoHundred:
 	tmp = complex(P1R, P1I) * complex(P2R, P2I)
 	PTR = real(tmp)
 	PTI = imag(tmp)
-	STR = DNU + 0.5E0 - PTR
+	STR = DNU + 0.5e0 - PTR
 	STI = -PTI
 	tmp = complex(STR, STI) / complex(ZR, ZI)
 	STR = real(tmp)
 	STI = imag(tmp)
-	STR = STR + 1.0E0
+	STR = STR + 1.0e0
 	tmp = complex(STR, STI) * complex(S1R, S1I)
 	S2R = real(tmp)
 	S2I = imag(tmp)
@@ -969,7 +969,7 @@ TwoHundred:
 	// FORWARD RECURSION ON THE THREE TERM RECURSION WITH RELATION WITH
 	// SCALING NEAR EXPONENT EXTREMES ON KFLAG=1 OR KFLAG=3
 TwoTen:
-	STR = DNU + 1.0E0
+	STR = DNU + 1.0e0
 	CKR = STR * RZR
 	CKI = STR * RZI
 	if N == 1 {
@@ -1095,7 +1095,7 @@ TwoFifty:
 
 	// IFLAG=1 CASES, FORWARD RECURRENCE ON SCALED VALUES ON UNDERFLOW.
 TwoSixtyOne:
-	HELIM = 0.5E0 * ELIM
+	HELIM = 0.5e0 * ELIM
 	ELM = math.Exp(-ELIM)
 	CELMR = ELM
 	ASCLE = BRY[1]
@@ -1299,14 +1299,14 @@ Twenty:
 	if NZ == 0 {
 		return ZRR, ZRI, FNU, N, YR, YI, NZ, RZR, RZI, ASCLE, TOL, ELIM
 	}
-	FN = FNU + 1.0E0
+	FN = FNU + 1.0e0
 	CKR = FN * RZR
 	CKI = FN * RZI
 	S1R = CYR[1]
 	S1I = CYI[1]
 	S2R = CYR[2]
 	S2I = CYI[2]
-	HELIM = 0.5E0 * ELIM
+	HELIM = 0.5e0 * ELIM
 	ELM = math.Exp(-ELIM)
 	CELMR = ELM
 	ZDR = ZRR
@@ -1433,10 +1433,10 @@ func Zacai(ZR, ZI, FNU float64, KODE, MR, N int, YR, YI []float64, NZ int, RL, T
 	AZ = cmplx.Abs(complex(ZR, ZI))
 	NN = N
 	DFNU = FNU + float64(float32(N-1))
-	if AZ <= 2.0E0 {
+	if AZ <= 2.0e0 {
 		goto Ten
 	}
-	if AZ*AZ*0.25 > DFNU+1.0E0 {
+	if AZ*AZ*0.25 > DFNU+1.0e0 {
 		goto Twenty
 	}
 Ten:
@@ -1476,7 +1476,7 @@ Forty:
 	}
 	FMR = float64(float32(MR))
 	SGN = -math.Copysign(PI, FMR)
-	CSGNR = 0.0E0
+	CSGNR = 0.0e0
 	CSGNI = SGN
 	if KODE == 1 {
 		goto Fifty
@@ -1507,7 +1507,7 @@ Sixty:
 		goto Seventy
 	}
 	IUF = 0
-	ASCLE = 1.0E+3 * dmach[1] / TOL
+	ASCLE = 1.0e+3 * dmach[1] / TOL
 	zn = complex(ZNR, ZNI)
 	c1 = complex(C1R, C1I)
 	c2 = complex(C2R, C2I)
@@ -1546,7 +1546,7 @@ func Zasyi(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, RL, TOL, 
 	// var sin, cos float64
 
 	PI = math.Pi
-	RTPI = 0.159154943091895336E0
+	RTPI = 0.159154943091895336e0
 	ZEROR = 0
 	ZEROI = 0
 	CONER = 1
@@ -1554,13 +1554,13 @@ func Zasyi(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, RL, TOL, 
 
 	NZ = 0
 	AZ = cmplx.Abs(complex(ZR, ZI))
-	ARM = 1.0E3 * dmach[1]
+	ARM = 1.0e3 * dmach[1]
 	RTR1 = math.Sqrt(ARM)
 	IL = min(2, N)
 	DFNU = FNU + float64(float32(N-IL))
 
 	// OVERFLOW TEST
-	RAZ = 1.0E0 / AZ
+	RAZ = 1.0e0 / AZ
 	STR = ZR * RAZ
 	STI = -ZI * RAZ
 	AK1R = RTPI * STR * RAZ
@@ -1592,22 +1592,22 @@ Ten:
 	AK1R = real(tmp)
 	AK1I = imag(tmp)
 Twenty:
-	FDN = 0.0E0
+	FDN = 0.0e0
 	if DNU2 > RTR1 {
 		FDN = DNU2 * DNU2
 	}
-	EZR = ZR * 8.0E0
-	EZI = ZI * 8.0E0
+	EZR = ZR * 8.0e0
+	EZI = ZI * 8.0e0
 
 	// WHEN Z IS IMAGINARY, THE ERROR TEST MUST BE MADE RELATIVE TO THE
 	// FIRST RECIPROCAL POWER SINCE THIS IS THE LEADING TERM OF THE
 	// EXPANSION FOR THE IMAGINARY PART.
-	AEZ = 8.0E0 * AZ
+	AEZ = 8.0e0 * AZ
 	S = TOL / AEZ
 	JL = int(float32(RL+RL)) + 2
 	P1R = ZEROR
 	P1I = ZEROI
-	if ZI == 0.0E0 {
+	if ZI == 0.0e0 {
 		goto Thirty
 	}
 
@@ -1619,7 +1619,7 @@ Twenty:
 	//sin, cos = math.Sincos(ARG)
 	AK = -math.Sin(ARG)
 	BK = math.Cos(ARG)
-	if ZI < 0.0E0 {
+	if ZI < 0.0e0 {
 		BK = -BK
 	}
 	P1R = AK
@@ -1631,17 +1631,17 @@ Twenty:
 	P1I = -P1I
 Thirty:
 	for K = 1; K <= IL; K++ {
-		SQK = FDN - 1.0E0
+		SQK = FDN - 1.0e0
 		ATOL = S * math.Abs(SQK)
-		SGN = 1.0E0
+		SGN = 1.0e0
 		CS1R = CONER
 		CS1I = CONEI
 		CS2R = CONER
 		CS2I = CONEI
 		CKR = CONER
 		CKI = CONEI
-		AK = 0.0E0
-		AA = 1.0E0
+		AK = 0.0e0
+		AA = 1.0e0
 		BB = AEZ
 		DKR = EZR
 		DKI = EZI
@@ -1662,7 +1662,7 @@ Thirty:
 			DKI = DKI + EZI
 			AA = AA * math.Abs(SQK) / BB
 			BB = BB + AEZ
-			AK = AK + 8.0E0
+			AK = AK + 8.0e0
 			SQK = SQK - AK
 			if AA <= ATOL {
 				goto Fifty
@@ -1689,7 +1689,7 @@ Thirty:
 		S2R = S2R + STR
 		S2I = S2I + STI
 	Sixty:
-		FDN = FDN + 8.0E0*DFNU + 4.0E0
+		FDN = FDN + 8.0e0*DFNU + 4.0e0
 		P1R = -P1R
 		P1I = -P1I
 		M = N - IL + K
@@ -1710,7 +1710,7 @@ Thirty:
 	for I = IB; I <= NN; I++ {
 		YR[K] = (AK+FNU)*(RZR*YR[K+1]-RZI*YI[K+1]) + YR[K+2]
 		YI[K] = (AK+FNU)*(RZR*YI[K+1]+RZI*YR[K+1]) + YI[K+2]
-		AK = AK - 1.0E0
+		AK = AK - 1.0e0
 		K = K - 1
 	}
 	if KODED == 0 {
@@ -1754,8 +1754,8 @@ func Zmlri(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL float
 	IAZ = int(float32(AZ))
 	IFNU = int(float32(FNU))
 	INU = IFNU + N - 1
-	AT = float64(float32(IAZ)) + 1.0E0
-	RAZ = 1.0E0 / AZ
+	AT = float64(float32(IAZ)) + 1.0e0
+	RAZ = 1.0e0 / AZ
 	STR = ZR * RAZ
 	STI = -ZI * RAZ
 	CKR = STR * AT * RAZ
@@ -1766,10 +1766,10 @@ func Zmlri(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL float
 	P1I = ZEROI
 	P2R = CONER
 	P2I = CONEI
-	ACK = (AT + 1.0E0) * RAZ
-	RHO = ACK + math.Sqrt(ACK*ACK-1.0E0)
+	ACK = (AT + 1.0e0) * RAZ
+	RHO = ACK + math.Sqrt(ACK*ACK-1.0e0)
 	RHO2 = RHO * RHO
-	TST = (RHO2 + RHO2) / ((RHO2 - 1.0E0) * (RHO - 1.0E0))
+	TST = (RHO2 + RHO2) / ((RHO2 - 1.0e0) * (RHO - 1.0e0))
 	TST = TST / TOL
 
 	// COMPUTE RELATIVE TRUNCATION ERROR INDEX FOR SERIES.
@@ -1788,7 +1788,7 @@ func Zmlri(ZR, ZI, FNU float64, KODE, N int, YR, YI []float64, NZ int, TOL float
 		if AP > TST*AK*AK {
 			goto Twenty
 		}
-		AK = AK + 1.0E0
+		AK = AK + 1.0e0
 	}
 	goto OneTen
 Twenty:
@@ -1802,7 +1802,7 @@ Twenty:
 	P1I = ZEROI
 	P2R = CONER
 	P2I = CONEI
-	AT = float64(float32(INU)) + 1.0E0
+	AT = float64(float32(INU)) + 1.0e0
 	STR = ZR * RAZ
 	STI = -ZI * RAZ
 	CKR = STR * AT * RAZ
@@ -1827,10 +1827,10 @@ Twenty:
 			goto Forty
 		}
 		ACK = cmplx.Abs(complex(CKR, CKI))
-		FLAM = ACK + math.Sqrt(ACK*ACK-1.0E0)
+		FLAM = ACK + math.Sqrt(ACK*ACK-1.0e0)
 		FKAP = AP / cmplx.Abs(complex(P1R, P1I))
 		RHO = math.Min(FLAM, FKAP)
-		TST = TST * math.Sqrt(RHO/(RHO*RHO-1.0E0))
+		TST = TST * math.Sqrt(RHO/(RHO*RHO-1.0e0))
 		ITIME = 2
 	}
 	goto OneTen
@@ -1847,7 +1847,7 @@ Forty:
 	P2I = ZEROI
 	FNF = FNU - float64(float32(IFNU))
 	TFNF = FNF + FNF
-	BK = dgamln(FKK+TFNF+1.0E0, IDUM) - dgamln(FKK+1.0E0, IDUM) - dgamln(TFNF+1.0E0, IDUM)
+	BK = dgamln(FKK+TFNF+1.0e0, IDUM) - dgamln(FKK+1.0e0, IDUM) - dgamln(TFNF+1.0e0, IDUM)
 	BK = math.Exp(BK)
 	SUMR = ZEROR
 	SUMI = ZEROI
@@ -1859,12 +1859,12 @@ Forty:
 		P2I = P1I + (FKK+FNF)*(RZI*PTR+RZR*PTI)
 		P1R = PTR
 		P1I = PTI
-		AK = 1.0E0 - TFNF/(FKK+TFNF)
+		AK = 1.0e0 - TFNF/(FKK+TFNF)
 		ACK = BK * AK
 		SUMR = SUMR + (ACK+BK)*P1R
 		SUMI = SUMI + (ACK+BK)*P1I
 		BK = ACK
-		FKK = FKK - 1.0E0
+		FKK = FKK - 1.0e0
 	}
 	YR[N] = P2R
 	YI[N] = P2I
@@ -1878,12 +1878,12 @@ Forty:
 		P2I = P1I + (FKK+FNF)*(RZI*PTR+RZR*PTI)
 		P1R = PTR
 		P1I = PTI
-		AK = 1.0E0 - TFNF/(FKK+TFNF)
+		AK = 1.0e0 - TFNF/(FKK+TFNF)
 		ACK = BK * AK
 		SUMR = SUMR + (ACK+BK)*P1R
 		SUMI = SUMI + (ACK+BK)*P1I
 		BK = ACK
-		FKK = FKK - 1.0E0
+		FKK = FKK - 1.0e0
 		M = N - I + 1
 		YR[M] = P2R
 		YI[M] = P2I
@@ -1899,12 +1899,12 @@ Seventy:
 		P2I = P1I + (FKK+FNF)*(RZR*PTI+RZI*PTR)
 		P1R = PTR
 		P1I = PTI
-		AK = 1.0E0 - TFNF/(FKK+TFNF)
+		AK = 1.0e0 - TFNF/(FKK+TFNF)
 		ACK = BK * AK
 		SUMR = SUMR + (ACK+BK)*P1R
 		SUMI = SUMI + (ACK+BK)*P1I
 		BK = ACK
-		FKK = FKK - 1.0E0
+		FKK = FKK - 1.0e0
 	}
 Ninety:
 	PTR = ZR
@@ -1917,7 +1917,7 @@ Ninety:
 	STI = imag(tmp)
 	P1R = -FNF*STR + PTR
 	P1I = -FNF*STI + PTI
-	AP = dgamln(1.0E0+FNF, IDUM)
+	AP = dgamln(1.0e0+FNF, IDUM)
 	PTR = P1R - AP
 	PTI = P1I
 
@@ -1926,7 +1926,7 @@ Ninety:
 	P2R = P2R + SUMR
 	P2I = P2I + SUMI
 	AP = cmplx.Abs(complex(P2R, P2I))
-	P1R = 1.0E0 / AP
+	P1R = 1.0e0 / AP
 	tmp = cmplx.Exp(complex(PTR, PTI))
 	STR = real(tmp)
 	STI = imag(tmp)

@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,8 +28,11 @@ import (
 )
 
 type FileWatcherOptions struct {
-	// ProcessName is the name of the process we will send SIGTERM
+	// ProcessName is the name of the process to look for in /proc if non-empty,
+	// indentifying the process to send SIGTERM to.
 	ProcessName string
+	// PidFile contains the pid of the process to send SIGTERM to. Can be empty.
+	PidFile string
 
 	// Files lists all files we want to monitor for changes
 	Files      []string
@@ -42,6 +47,9 @@ type FileWatcherOptions struct {
 
 	// Time to give the process to terminate gracefully
 	TerminationGracePeriod time.Duration
+
+	// ReadyFile is touched when the watched files have been initially read
+	ReadyFile string
 
 	// for unit-test to mock getting the process PID (unit-test)
 	findPidByNameFn func(name string) (int, bool, error)
@@ -119,12 +127,14 @@ func NewFileWatcherWatchdog() *cobra.Command {
 }
 
 func (o *FileWatcherOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.ProcessName, "process-name", "", "name of the process to send TERM signal to on file change (eg. 'hyperkube').")
+	fs.StringVar(&o.ProcessName, "process-name", "", "base name of the binary to send the TERM signal to on file change (eg. 'hyperkube').")
+	fs.StringVar(&o.PidFile, "pid-file", "", "file with the pid to send the TERM signal to on file change.")
 	fs.StringSliceVar(&o.Files, "files", o.Files, "comma separated list of file names to monitor for changes")
 	fs.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig, "kubeconfig file or empty")
 	fs.StringVar(&o.Namespace, "namespace", o.Namespace, "namespace to report the watchdog events")
 	fs.DurationVar(&o.Interval, "interval", 5*time.Second, "interval specifying how aggressive the file checks should be")
 	fs.DurationVar(&o.TerminationGracePeriod, "termination-grace-period", 30*time.Second, "interval specifying how long to wait until sending KILL signal to the process")
+	fs.StringVar(&o.ReadyFile, "ready-file", o.ReadyFile, "this file is touched when the watched files have been read initially (to avoid race between watchee and watcher)")
 }
 
 func (o *FileWatcherOptions) Complete() error {
@@ -160,8 +170,8 @@ func (o *FileWatcherOptions) Complete() error {
 }
 
 func (o *FileWatcherOptions) Validate() error {
-	if len(o.ProcessName) == 0 {
-		return fmt.Errorf("process name must be specified")
+	if len(o.ProcessName) == 0 && len(o.PidFile) == 0 {
+		return fmt.Errorf("process name or pid file must be specified")
 	}
 	if len(o.Files) == 0 {
 		return fmt.Errorf("at least one file to observe must be specified")
@@ -179,10 +189,32 @@ func (o *FileWatcherOptions) runPidObserver(ctx context.Context, pidObservedCh c
 	retries := 0
 	pollErr := wait.PollImmediateUntil(1*time.Second, func() (done bool, err error) {
 		retries++
-		// attempt to find the PID by process name via /proc
-		observedPID, found, err := o.findPidByNameFn(o.ProcessName)
-		if !found || err != nil {
-			klog.Warningf("Unable to determine PID for %q (retry: %d, err: %v)", o.ProcessName, retries, err)
+		observedPID := -1
+		if len(o.ProcessName) > 0 {
+			// attempt to find the PID by process name via /proc
+			pid, found, err := o.findPidByNameFn(o.ProcessName)
+			if !found || err != nil {
+				klog.Warningf("Unable to determine PID for %q (retry: %d, err: %v)", o.ProcessName, retries, err)
+			} else {
+				observedPID = pid
+			}
+		}
+		if len(o.PidFile) > 0 {
+			// attempt to find the PID by pid file
+			bs, err := ioutil.ReadFile(o.PidFile)
+			if err != nil {
+				klog.Warningf("Unable to read pid file %s: %v", o.PidFile, err)
+			} else {
+				lines := strings.SplitN(string(bs), "\n", 2)
+				i, err := strconv.Atoi(lines[0])
+				if err != nil {
+					klog.Warningf("Unable to parse pid file %s: %v", o.PidFile, err)
+				} else {
+					observedPID = i
+				}
+			}
+		}
+		if observedPID < 0 {
 			return false, nil
 		}
 
@@ -293,7 +325,13 @@ func (o *FileWatcherOptions) runWatchdog(ctx context.Context) error {
 	go o.runPidObserver(watchdogCtx, pidObservedCh)
 
 	// Wait while we get the initial PID for the process
-	klog.Infof("Waiting for process %q PID ...", o.ProcessName)
+	if len(o.ProcessName) > 0 && len(o.PidFile) > 0 {
+		klog.Infof("Waiting for process with name %q or PID file %q...", o.ProcessName, o.PidFile)
+	} else if len(o.ProcessName) > 0 {
+		klog.Infof("Waiting for process with process name %q ...", o.ProcessName)
+	} else if len(o.PidFile) > 0 {
+		klog.Infof("Waiting for process PID file %q ...", o.PidFile)
+	}
 	currentPID := <-pidObservedCh
 
 	// Mutate path for specified files as '/proc/PID/root/<original path>'
@@ -311,6 +349,14 @@ func (o *FileWatcherOptions) runWatchdog(ctx context.Context) error {
 	}
 
 	o.recorder.Eventf("FileChangeWatchdogStarted", "Started watching files for process %s[%d]", o.ProcessName, currentPID)
+
+	if len(o.ReadyFile) > 0 {
+		f, err := os.Create(o.ReadyFile)
+		if err != nil {
+			return fmt.Errorf("cannot touch ready file %q: %v", o.ReadyFile, err)
+		}
+		f.Close()
+	}
 
 	observer, err := fileobserver.NewObserver(o.Interval)
 	if err != nil {

@@ -5,7 +5,7 @@
 /*
 Package cloudsql exposes access to Google Cloud SQL databases.
 
-This package does not work on Managed VMs.
+This package does not work in App Engine "flexible environment".
 
 This package is intended for MySQL drivers to make App Engine-specific
 connections. Applications should use this package through database/sql:

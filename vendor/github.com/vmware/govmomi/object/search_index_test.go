@@ -67,9 +67,7 @@ func TestSearch(t *testing.T) {
 
 	crs, err := folders.HostFolder.Children(context.Background())
 	if err != nil {
-		if err != nil {
-			t.Fatal(err)
-		}
+		t.Fatal(err)
 	}
 	if len(crs) != 0 {
 		var cr mo.ComputeResource

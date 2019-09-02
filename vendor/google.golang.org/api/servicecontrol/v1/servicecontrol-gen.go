@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package servicecontrol provides access to the Service Control API.
 //
-// See https://cloud.google.com/service-control/
+// For product documentation, see: https://cloud.google.com/service-control/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/servicecontrol/v1"
 //   ...
-//   servicecontrolService, err := servicecontrol.New(oauthHttpClient)
+//   ctx := context.Background()
+//   servicecontrolService, err := servicecontrol.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   servicecontrolService, err := servicecontrol.NewService(ctx, option.WithScopes(servicecontrol.ServicecontrolScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   servicecontrolService, err := servicecontrol.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   servicecontrolService, err := servicecontrol.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package servicecontrol // import "google.golang.org/api/servicecontrol/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -59,6 +87,33 @@ const (
 	ServicecontrolScope = "https://www.googleapis.com/auth/servicecontrol"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/servicecontrol",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -224,6 +279,7 @@ func (s *AllocateQuotaResponse) MarshalJSON() ([]byte, error) {
 
 // AuditLog: Common audit log format for Google Cloud Platform API
 // operations.
+//
 //
 //
 type AuditLog struct {
@@ -464,6 +520,28 @@ type AuthenticationInfo struct {
 	// with a "permission denied" error.
 	PrincipalEmail string `json:"principalEmail,omitempty"`
 
+	// ServiceAccountDelegationInfo: Identity delegation history of an
+	// authenticated service account that makes
+	// the request. It contains information on the real authorities that try
+	// to
+	// access GCP resources by delegating on a service account. When
+	// multiple
+	// authorities present, they are guaranteed to be sorted based on the
+	// original
+	// ordering of the identity delegation events.
+	ServiceAccountDelegationInfo []*ServiceAccountDelegationInfo `json:"serviceAccountDelegationInfo,omitempty"`
+
+	// ServiceAccountKeyName: The name of the service account key used to
+	// create or exchange
+	// credentials for authenticating the service account making the
+	// request.
+	// This is a scheme-less URI full resource name. For
+	// example:
+	//
+	// "//iam.googleapis.com/projects/{PROJECT_ID}/serviceAccounts/
+	// {ACCOUNT}/keys/{key}"
+	ServiceAccountKeyName string `json:"serviceAccountKeyName,omitempty"`
+
 	// ThirdPartyPrincipal: The third party identification (if any) of the
 	// authenticated user making
 	// the request.
@@ -622,8 +700,14 @@ type CheckError struct {
 	// project is unavailable.
 	//   "CLOUD_RESOURCE_MANAGER_BACKEND_UNAVAILABLE" - Cloud Resource
 	// Manager backend server is unavailable.
-	//   "SECURITY_POLICY_BACKEND_UNAVAILABLE" - Backend server for
-	// evaluating security policy is unavailable.
+	//   "SECURITY_POLICY_BACKEND_UNAVAILABLE" - NOTE: for customers in the
+	// scope of Beta/GA of
+	// https://cloud.google.com/vpc-service-controls, this error
+	// is no longer returned. If the security backend is unavailable,
+	// rpc
+	// UNAVAILABLE status will be returned instead. It should be ignored
+	// and
+	// should not be used to reject client requests.
 	//   "LOCATION_POLICY_BACKEND_UNAVAILABLE" - Backend server for
 	// evaluating location policy is unavailable.
 	Code string `json:"code,omitempty"`
@@ -631,6 +715,13 @@ type CheckError struct {
 	// Detail: Free-form text providing details on the error cause of the
 	// error.
 	Detail string `json:"detail,omitempty"`
+
+	// Status: Contains public information about the check error. If
+	// available,
+	// `status.code` will be non zero and client can propagate it out as
+	// public
+	// error.
+	Status *Status `json:"status,omitempty"`
 
 	// Subject: Subject to whom this error applies. See the specific code
 	// enum for more
@@ -717,7 +808,9 @@ type CheckRequest struct {
 
 	// SkipActivationCheck: Indicates if service activation check should be
 	// skipped for this request.
-	// Default behavior is to perform the check and apply relevant quota.
+	// Default behavior is to perform the check and apply relevant
+	// quota.
+	// WARNING: Setting this flag to "true" will disable quota enforcement.
 	SkipActivationCheck bool `json:"skipActivationCheck,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Operation") to
@@ -771,6 +864,10 @@ type CheckResponse struct {
 	// ServiceConfigId: The actual config id used to process the request.
 	ServiceConfigId string `json:"serviceConfigId,omitempty"`
 
+	// ServiceRolloutId: Unimplemented. The current service rollout id used
+	// to process the request.
+	ServiceRolloutId string `json:"serviceRolloutId,omitempty"`
+
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
@@ -816,11 +913,21 @@ type ConsumerInfo struct {
 	// id. New code should not depend on this field anymore.
 	ProjectNumber int64 `json:"projectNumber,omitempty,string"`
 
+	// Type: The type of the consumer which should have been defined
+	// in
+	// [Google Resource
+	// Manager](https://cloud.google.com/resource-manager/).
+	//
 	// Possible values:
-	//   "CONSUMER_TYPE_UNSPECIFIED"
-	//   "PROJECT"
-	//   "FOLDER"
-	//   "ORGANIZATION"
+	//   "CONSUMER_TYPE_UNSPECIFIED" - This is never used.
+	//   "PROJECT" - The consumer is a Google Cloud Project.
+	//   "FOLDER" - The consumer is a Google Cloud Folder.
+	//   "ORGANIZATION" - The consumer is a Google Cloud Organization.
+	//   "SERVICE_SPECIFIC" - Service-specific resource container which is
+	// defined by the service
+	// producer to offer their users the ability to manage service
+	// control
+	// functionalities at a finer level of granularity than the PROJECT.
 	Type string `json:"type,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ConsumerNumber") to
@@ -1057,6 +1164,41 @@ func (s *ExponentialBuckets) UnmarshalJSON(data []byte) error {
 	s.GrowthFactor = float64(s1.GrowthFactor)
 	s.Scale = float64(s1.Scale)
 	return nil
+}
+
+// FirstPartyPrincipal: First party identity principal.
+type FirstPartyPrincipal struct {
+	// PrincipalEmail: The email address of a Google account.
+	// .
+	PrincipalEmail string `json:"principalEmail,omitempty"`
+
+	// ServiceMetadata: Metadata about the service that uses the service
+	// account.
+	// .
+	ServiceMetadata googleapi.RawMessage `json:"serviceMetadata,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "PrincipalEmail") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "PrincipalEmail") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *FirstPartyPrincipal) MarshalJSON() ([]byte, error) {
+	type NoMethod FirstPartyPrincipal
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // HttpRequest: A common proto for logging HTTP requests. Only contains
@@ -1535,10 +1677,13 @@ type Operation struct {
 	// consumer, but not for service-initiated operations that are
 	// not related to a specific consumer.
 	//
-	// This can be in one of the following formats:
-	//   project:<project_id>,
-	//   project_number:<project_number>,
-	//   api_key:<api_key>.
+	// - This can be in one of the following formats:
+	//     - project:PROJECT_ID,
+	//     - project`_`number:PROJECT_NUMBER,
+	//     - projects/PROJECT_ID or PROJECT_NUMBER,
+	//     - folders/FOLDER_NUMBER,
+	//     - organizations/ORGANIZATION_NUMBER,
+	//     - api`_`key:API_KEY.
 	ConsumerId string `json:"consumerId,omitempty"`
 
 	// EndTime: End time of the operation.
@@ -1970,6 +2115,13 @@ type QuotaOperation struct {
 	// higher than the available quota, request does not fail but all
 	// available
 	// quota will be allocated.
+	// For rate quota, BEST_EFFORT will continue to deduct from other
+	// groups
+	// even if one does not have enough quota. For allocation, it will find
+	// the
+	// minimum available amount across all groups and deduct that amount
+	// from
+	// all the affected groups.
 	//   "CHECK_ONLY" - For AllocateQuota request, only checks if there is
 	// enough quota
 	// available and does not change the available quota. No lock is placed
@@ -2202,6 +2354,10 @@ type ReportResponse struct {
 
 	// ServiceConfigId: The actual config id used to process the request.
 	ServiceConfigId string `json:"serviceConfigId,omitempty"`
+
+	// ServiceRolloutId: Unimplemented. The current service rollout id used
+	// to process the request.
+	ServiceRolloutId string `json:"serviceRolloutId,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
@@ -2529,6 +2685,10 @@ func (s *ResourceInfo) MarshalJSON() ([]byte, error) {
 type ResourceLocation struct {
 	// CurrentLocations: The locations of a resource after the execution of
 	// the operation.
+	// Requests to create or delete a location based resource must
+	// populate
+	// the 'current_locations' field and not the 'original_locations'
+	// field.
 	// For example:
 	//
 	//     "europe-west1-a"
@@ -2538,6 +2698,9 @@ type ResourceLocation struct {
 
 	// OriginalLocations: The locations of a resource prior to the execution
 	// of the operation.
+	// Requests that mutate the resource's location must populate both
+	// the
+	// 'original_locations' as well as the 'current_locations' fields.
 	// For example:
 	//
 	//     "europe-west1-a"
@@ -2569,21 +2732,55 @@ func (s *ResourceLocation) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ServiceAccountDelegationInfo: Identity delegation history of an
+// authenticated service account.
+type ServiceAccountDelegationInfo struct {
+	// FirstPartyPrincipal: First party (Google) identity as the real
+	// authority.
+	FirstPartyPrincipal *FirstPartyPrincipal `json:"firstPartyPrincipal,omitempty"`
+
+	// ThirdPartyPrincipal: Third party identity as the real authority.
+	ThirdPartyPrincipal *ThirdPartyPrincipal `json:"thirdPartyPrincipal,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "FirstPartyPrincipal")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "FirstPartyPrincipal") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ServiceAccountDelegationInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ServiceAccountDelegationInfo
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Status: The `Status` type defines a logical error model that is
-// suitable for different
-// programming environments, including REST APIs and RPC APIs. It is
-// used by
-// [gRPC](https://github.com/grpc). The error model is designed to
-// be:
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). The error model is designed
+// to be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code, error
-// message,
-// and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code,
+// error
+// message, and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The
@@ -2684,6 +2881,35 @@ type Status struct {
 
 func (s *Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// ThirdPartyPrincipal: Third party identity principal.
+type ThirdPartyPrincipal struct {
+	// ThirdPartyClaims: Metadata about third party identity.
+	ThirdPartyClaims googleapi.RawMessage `json:"thirdPartyClaims,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ThirdPartyClaims") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ThirdPartyClaims") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ThirdPartyPrincipal) MarshalJSON() ([]byte, error) {
+	type NoMethod ThirdPartyPrincipal
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }

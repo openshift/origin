@@ -21,7 +21,7 @@
   "baseUrl": "https://firebasehosting.googleapis.com/",
   "batchPath": "batch",
   "canonicalName": "Firebase Hosting",
-  "description": "The Firebase Hosting REST API enables programmatic custom deployment for releasing versions of your Firebase hosted content and configuration files.",
+  "description": "The Firebase Hosting REST API enables programmatic and customizable deployments to your Firebase-hosted sites. Use this REST API to deploy new or updated hosting configurations and content files.",
   "discoveryVersion": "v1",
   "documentationLink": "https://firebase.google.com/docs/hosting/",
   "fullyEncodeReservedExpansion": true,
@@ -604,7 +604,7 @@
       }
     }
   },
-  "revision": "20181129",
+  "revision": "20190422",
   "rootUrl": "https://firebasehosting.googleapis.com/",
   "schemas": {
     "ActingUser": {
@@ -647,6 +647,21 @@
         },
         "token": {
           "description": "The token to serve at the specified URL path to satisfy the certificate\nchallenge.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "CloudRunRewrite": {
+      "description": "A configured rewrite that directs requests to a Cloud Run service. If the\nCloud Run service does not exist when setting or updating your Firebase\nHosting configuration, then the request fails. Any errors from the Cloud Run\nservice are passed to the end user (for example, if you delete a service, any\nrequests directed to that service receive a `404` error).",
+      "id": "CloudRunRewrite",
+      "properties": {
+        "region": {
+          "description": "Optional. User-provided region where the Cloud Run service is hosted.\u003cbr\u003e\nDefaults to `us-central1` if not supplied.",
+          "type": "string"
+        },
+        "serviceId": {
+          "description": "Required. User-defined ID of the Cloud Run service.",
           "type": "string"
         }
       },
@@ -992,6 +1007,10 @@
         "path": {
           "description": "The URL path to rewrite the request to.",
           "type": "string"
+        },
+        "run": {
+          "$ref": "CloudRunRewrite",
+          "description": "The request will be forwarded to Cloud Run."
         }
       },
       "type": "object"
@@ -1133,7 +1152,7 @@
             "All content has been added to the version, and the version can no longer be\nchanged.",
             "The version has been deleted.",
             "The version was not updated to `FINALIZED` within 12\u0026nbsp;hours and was\nautomatically deleted.",
-            "The version has fallen out of the site-configured retention window and its\nassociated files in GCS have been/been scheduled for deletion."
+            "The version is outside the site-configured limit for the number of\nretained versions, so the version's content is scheduled for deletion."
           ],
           "type": "string"
         },

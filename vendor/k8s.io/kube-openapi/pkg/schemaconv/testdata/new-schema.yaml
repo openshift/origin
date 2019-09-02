@@ -1,6 +1,6 @@
 types:
 - name: io.k8s.api.admissionregistration.v1alpha1.Initializer
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -12,7 +12,7 @@ types:
             namedType: io.k8s.api.admissionregistration.v1alpha1.Rule
           elementRelationship: atomic
 - name: io.k8s.api.admissionregistration.v1alpha1.InitializerConfiguration
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -32,7 +32,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 - name: io.k8s.api.admissionregistration.v1alpha1.InitializerConfigurationList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -50,7 +50,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.admissionregistration.v1alpha1.Rule
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -71,7 +71,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.admissionregistration.v1beta1.MutatingWebhookConfiguration
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -91,7 +91,7 @@ types:
           keys:
           - name
 - name: io.k8s.api.admissionregistration.v1beta1.MutatingWebhookConfigurationList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -109,7 +109,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.admissionregistration.v1beta1.RuleWithOperations
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -136,7 +136,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.admissionregistration.v1beta1.ServiceReference
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -148,7 +148,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.admissionregistration.v1beta1.ValidatingWebhookConfiguration
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -168,7 +168,7 @@ types:
           keys:
           - name
 - name: io.k8s.api.admissionregistration.v1beta1.ValidatingWebhookConfigurationList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -186,7 +186,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.admissionregistration.v1beta1.Webhook
-  struct:
+  map:
     fields:
     - name: clientConfig
       type:
@@ -210,7 +210,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.admissionregistration.v1beta1.WebhookClientConfig
-  struct:
+  map:
     fields:
     - name: caBundle
       type:
@@ -222,14 +222,14 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.ControllerRevision
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
         scalar: string
     - name: data
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
     - name: kind
       type:
         scalar: string
@@ -240,7 +240,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1.ControllerRevisionList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -258,7 +258,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1.DaemonSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -276,7 +276,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1.DaemonSetStatus
 - name: io.k8s.api.apps.v1.DaemonSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -294,7 +294,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.DaemonSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -312,7 +312,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1.DaemonSetSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -330,7 +330,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1.DaemonSetUpdateStrategy
 - name: io.k8s.api.apps.v1.DaemonSetStatus
-  struct:
+  map:
     fields:
     - name: collisionCount
       type:
@@ -368,7 +368,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1.DaemonSetUpdateStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -377,7 +377,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.Deployment
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -395,7 +395,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1.DeploymentStatus
 - name: io.k8s.api.apps.v1.DeploymentCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -416,7 +416,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.DeploymentList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -434,7 +434,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1.DeploymentSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -461,7 +461,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.apps.v1.DeploymentStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -493,7 +493,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1.DeploymentStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -502,7 +502,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.ReplicaSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -520,7 +520,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1.ReplicaSetStatus
 - name: io.k8s.api.apps.v1.ReplicaSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -538,7 +538,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.ReplicaSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -556,7 +556,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1.ReplicaSetSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -571,7 +571,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.apps.v1.ReplicaSetStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -597,13 +597,13 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1.RollingUpdateDaemonSet
-  struct:
+  map:
     fields:
     - name: maxUnavailable
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.apps.v1.RollingUpdateDeployment
-  struct:
+  map:
     fields:
     - name: maxSurge
       type:
@@ -612,13 +612,13 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.apps.v1.RollingUpdateStatefulSetStrategy
-  struct:
+  map:
     fields:
     - name: partition
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1.StatefulSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -636,7 +636,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1.StatefulSetStatus
 - name: io.k8s.api.apps.v1.StatefulSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -654,7 +654,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1.StatefulSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -672,7 +672,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1.StatefulSetSpec
-  struct:
+  map:
     fields:
     - name: podManagementPolicy
       type:
@@ -702,7 +702,7 @@ types:
             namedType: io.k8s.api.core.v1.PersistentVolumeClaim
           elementRelationship: atomic
 - name: io.k8s.api.apps.v1.StatefulSetStatus
-  struct:
+  map:
     fields:
     - name: collisionCount
       type:
@@ -737,7 +737,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1.StatefulSetUpdateStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -746,14 +746,14 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta1.ControllerRevision
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
         scalar: string
     - name: data
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
     - name: kind
       type:
         scalar: string
@@ -764,7 +764,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta1.ControllerRevisionList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -782,7 +782,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta1.Deployment
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -800,7 +800,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta1.DeploymentStatus
 - name: io.k8s.api.apps.v1beta1.DeploymentCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -821,7 +821,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta1.DeploymentList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -839,7 +839,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta1.DeploymentRollback
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -859,7 +859,7 @@ types:
           elementType:
             scalar: string
 - name: io.k8s.api.apps.v1beta1.DeploymentSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -889,7 +889,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.apps.v1beta1.DeploymentStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -921,7 +921,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta1.DeploymentStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -929,14 +929,19 @@ types:
     - name: type
       type:
         scalar: string
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: rollingUpdate
+        discriminatorValue: RollingUpdate
 - name: io.k8s.api.apps.v1beta1.RollbackConfig
-  struct:
+  map:
     fields:
     - name: revision
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta1.RollingUpdateDeployment
-  struct:
+  map:
     fields:
     - name: maxSurge
       type:
@@ -945,13 +950,13 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.apps.v1beta1.RollingUpdateStatefulSetStrategy
-  struct:
+  map:
     fields:
     - name: partition
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta1.Scale
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -969,13 +974,13 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta1.ScaleStatus
 - name: io.k8s.api.apps.v1beta1.ScaleSpec
-  struct:
+  map:
     fields:
     - name: replicas
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta1.ScaleStatus
-  struct:
+  map:
     fields:
     - name: replicas
       type:
@@ -989,7 +994,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta1.StatefulSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1007,7 +1012,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta1.StatefulSetStatus
 - name: io.k8s.api.apps.v1beta1.StatefulSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -1025,7 +1030,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta1.StatefulSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1043,7 +1048,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta1.StatefulSetSpec
-  struct:
+  map:
     fields:
     - name: podManagementPolicy
       type:
@@ -1073,7 +1078,7 @@ types:
             namedType: io.k8s.api.core.v1.PersistentVolumeClaim
           elementRelationship: atomic
 - name: io.k8s.api.apps.v1beta1.StatefulSetStatus
-  struct:
+  map:
     fields:
     - name: collisionCount
       type:
@@ -1108,7 +1113,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta1.StatefulSetUpdateStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -1117,14 +1122,14 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.ControllerRevision
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
         scalar: string
     - name: data
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
     - name: kind
       type:
         scalar: string
@@ -1135,7 +1140,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.ControllerRevisionList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1153,7 +1158,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta2.DaemonSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1171,7 +1176,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta2.DaemonSetStatus
 - name: io.k8s.api.apps.v1beta2.DaemonSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -1189,7 +1194,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.DaemonSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1207,7 +1212,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta2.DaemonSetSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -1225,7 +1230,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta2.DaemonSetUpdateStrategy
 - name: io.k8s.api.apps.v1beta2.DaemonSetStatus
-  struct:
+  map:
     fields:
     - name: collisionCount
       type:
@@ -1263,7 +1268,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.DaemonSetUpdateStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -1272,7 +1277,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.Deployment
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1290,7 +1295,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta2.DeploymentStatus
 - name: io.k8s.api.apps.v1beta2.DeploymentCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -1311,7 +1316,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.DeploymentList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1329,7 +1334,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta2.DeploymentSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -1356,7 +1361,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.apps.v1beta2.DeploymentStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -1388,7 +1393,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.DeploymentStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -1397,7 +1402,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.ReplicaSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1415,7 +1420,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta2.ReplicaSetStatus
 - name: io.k8s.api.apps.v1beta2.ReplicaSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -1433,7 +1438,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.ReplicaSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1451,7 +1456,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta2.ReplicaSetSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -1466,7 +1471,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.apps.v1beta2.ReplicaSetStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -1492,13 +1497,13 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.RollingUpdateDaemonSet
-  struct:
+  map:
     fields:
     - name: maxUnavailable
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.apps.v1beta2.RollingUpdateDeployment
-  struct:
+  map:
     fields:
     - name: maxSurge
       type:
@@ -1507,13 +1512,13 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.apps.v1beta2.RollingUpdateStatefulSetStrategy
-  struct:
+  map:
     fields:
     - name: partition
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.Scale
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1531,13 +1536,13 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta2.ScaleStatus
 - name: io.k8s.api.apps.v1beta2.ScaleSpec
-  struct:
+  map:
     fields:
     - name: replicas
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.ScaleStatus
-  struct:
+  map:
     fields:
     - name: replicas
       type:
@@ -1551,7 +1556,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.StatefulSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1569,7 +1574,7 @@ types:
       type:
         namedType: io.k8s.api.apps.v1beta2.StatefulSetStatus
 - name: io.k8s.api.apps.v1beta2.StatefulSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -1587,7 +1592,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.apps.v1beta2.StatefulSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1605,7 +1610,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.apps.v1beta2.StatefulSetSpec
-  struct:
+  map:
     fields:
     - name: podManagementPolicy
       type:
@@ -1635,7 +1640,7 @@ types:
             namedType: io.k8s.api.core.v1.PersistentVolumeClaim
           elementRelationship: atomic
 - name: io.k8s.api.apps.v1beta2.StatefulSetStatus
-  struct:
+  map:
     fields:
     - name: collisionCount
       type:
@@ -1670,7 +1675,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.apps.v1beta2.StatefulSetUpdateStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -1679,7 +1684,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.auditregistration.v1alpha1.AuditSink
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1694,7 +1699,7 @@ types:
       type:
         namedType: io.k8s.api.auditregistration.v1alpha1.AuditSinkSpec
 - name: io.k8s.api.auditregistration.v1alpha1.AuditSinkList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1712,7 +1717,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.auditregistration.v1alpha1.AuditSinkSpec
-  struct:
+  map:
     fields:
     - name: policy
       type:
@@ -1721,7 +1726,7 @@ types:
       type:
         namedType: io.k8s.api.auditregistration.v1alpha1.Webhook
 - name: io.k8s.api.auditregistration.v1alpha1.Policy
-  struct:
+  map:
     fields:
     - name: level
       type:
@@ -1733,7 +1738,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.auditregistration.v1alpha1.ServiceReference
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -1745,7 +1750,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.auditregistration.v1alpha1.Webhook
-  struct:
+  map:
     fields:
     - name: clientConfig
       type:
@@ -1754,7 +1759,7 @@ types:
       type:
         namedType: io.k8s.api.auditregistration.v1alpha1.WebhookThrottleConfig
 - name: io.k8s.api.auditregistration.v1alpha1.WebhookClientConfig
-  struct:
+  map:
     fields:
     - name: caBundle
       type:
@@ -1766,7 +1771,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.auditregistration.v1alpha1.WebhookThrottleConfig
-  struct:
+  map:
     fields:
     - name: burst
       type:
@@ -1775,7 +1780,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.authentication.v1.TokenReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1793,13 +1798,13 @@ types:
       type:
         namedType: io.k8s.api.authentication.v1.TokenReviewStatus
 - name: io.k8s.api.authentication.v1.TokenReviewSpec
-  struct:
+  map:
     fields:
     - name: token
       type:
         scalar: string
 - name: io.k8s.api.authentication.v1.TokenReviewStatus
-  struct:
+  map:
     fields:
     - name: authenticated
       type:
@@ -1811,7 +1816,7 @@ types:
       type:
         namedType: io.k8s.api.authentication.v1.UserInfo
 - name: io.k8s.api.authentication.v1.UserInfo
-  struct:
+  map:
     fields:
     - name: extra
       type:
@@ -1834,7 +1839,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authentication.v1beta1.TokenReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1852,13 +1857,13 @@ types:
       type:
         namedType: io.k8s.api.authentication.v1beta1.TokenReviewStatus
 - name: io.k8s.api.authentication.v1beta1.TokenReviewSpec
-  struct:
+  map:
     fields:
     - name: token
       type:
         scalar: string
 - name: io.k8s.api.authentication.v1beta1.TokenReviewStatus
-  struct:
+  map:
     fields:
     - name: authenticated
       type:
@@ -1870,7 +1875,7 @@ types:
       type:
         namedType: io.k8s.api.authentication.v1beta1.UserInfo
 - name: io.k8s.api.authentication.v1beta1.UserInfo
-  struct:
+  map:
     fields:
     - name: extra
       type:
@@ -1893,7 +1898,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1.LocalSubjectAccessReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -1911,7 +1916,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1.SubjectAccessReviewStatus
 - name: io.k8s.api.authorization.v1.NonResourceAttributes
-  struct:
+  map:
     fields:
     - name: path
       type:
@@ -1920,7 +1925,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1.NonResourceRule
-  struct:
+  map:
     fields:
     - name: nonResourceURLs
       type:
@@ -1935,7 +1940,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.authorization.v1.ResourceAttributes
-  struct:
+  map:
     fields:
     - name: group
       type:
@@ -1959,7 +1964,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1.ResourceRule
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -1986,7 +1991,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.authorization.v1.SelfSubjectAccessReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2004,7 +2009,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1.SubjectAccessReviewStatus
 - name: io.k8s.api.authorization.v1.SelfSubjectAccessReviewSpec
-  struct:
+  map:
     fields:
     - name: nonResourceAttributes
       type:
@@ -2013,7 +2018,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1.ResourceAttributes
 - name: io.k8s.api.authorization.v1.SelfSubjectRulesReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2031,13 +2036,13 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1.SubjectRulesReviewStatus
 - name: io.k8s.api.authorization.v1.SelfSubjectRulesReviewSpec
-  struct:
+  map:
     fields:
     - name: namespace
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1.SubjectAccessReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2055,7 +2060,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1.SubjectAccessReviewStatus
 - name: io.k8s.api.authorization.v1.SubjectAccessReviewSpec
-  struct:
+  map:
     fields:
     - name: extra
       type:
@@ -2084,7 +2089,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1.SubjectAccessReviewStatus
-  struct:
+  map:
     fields:
     - name: allowed
       type:
@@ -2099,7 +2104,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1.SubjectRulesReviewStatus
-  struct:
+  map:
     fields:
     - name: evaluationError
       type:
@@ -2120,7 +2125,7 @@ types:
             namedType: io.k8s.api.authorization.v1.ResourceRule
           elementRelationship: atomic
 - name: io.k8s.api.authorization.v1beta1.LocalSubjectAccessReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2138,7 +2143,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1beta1.SubjectAccessReviewStatus
 - name: io.k8s.api.authorization.v1beta1.NonResourceAttributes
-  struct:
+  map:
     fields:
     - name: path
       type:
@@ -2147,7 +2152,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1beta1.NonResourceRule
-  struct:
+  map:
     fields:
     - name: nonResourceURLs
       type:
@@ -2162,7 +2167,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.authorization.v1beta1.ResourceAttributes
-  struct:
+  map:
     fields:
     - name: group
       type:
@@ -2186,7 +2191,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1beta1.ResourceRule
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -2213,7 +2218,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.authorization.v1beta1.SelfSubjectAccessReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2231,7 +2236,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1beta1.SubjectAccessReviewStatus
 - name: io.k8s.api.authorization.v1beta1.SelfSubjectAccessReviewSpec
-  struct:
+  map:
     fields:
     - name: nonResourceAttributes
       type:
@@ -2240,7 +2245,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1beta1.ResourceAttributes
 - name: io.k8s.api.authorization.v1beta1.SelfSubjectRulesReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2258,13 +2263,13 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1beta1.SubjectRulesReviewStatus
 - name: io.k8s.api.authorization.v1beta1.SelfSubjectRulesReviewSpec
-  struct:
+  map:
     fields:
     - name: namespace
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1beta1.SubjectAccessReview
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2282,7 +2287,7 @@ types:
       type:
         namedType: io.k8s.api.authorization.v1beta1.SubjectAccessReviewStatus
 - name: io.k8s.api.authorization.v1beta1.SubjectAccessReviewSpec
-  struct:
+  map:
     fields:
     - name: extra
       type:
@@ -2311,7 +2316,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1beta1.SubjectAccessReviewStatus
-  struct:
+  map:
     fields:
     - name: allowed
       type:
@@ -2326,7 +2331,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.authorization.v1beta1.SubjectRulesReviewStatus
-  struct:
+  map:
     fields:
     - name: evaluationError
       type:
@@ -2347,7 +2352,7 @@ types:
             namedType: io.k8s.api.authorization.v1beta1.ResourceRule
           elementRelationship: atomic
 - name: io.k8s.api.autoscaling.v1.CrossVersionObjectReference
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2359,7 +2364,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v1.HorizontalPodAutoscaler
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2377,7 +2382,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v1.HorizontalPodAutoscalerStatus
 - name: io.k8s.api.autoscaling.v1.HorizontalPodAutoscalerList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2395,7 +2400,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.autoscaling.v1.HorizontalPodAutoscalerSpec
-  struct:
+  map:
     fields:
     - name: maxReplicas
       type:
@@ -2410,7 +2415,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.autoscaling.v1.HorizontalPodAutoscalerStatus
-  struct:
+  map:
     fields:
     - name: currentCPUUtilizationPercentage
       type:
@@ -2428,7 +2433,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.autoscaling.v1.Scale
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2446,13 +2451,13 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v1.ScaleStatus
 - name: io.k8s.api.autoscaling.v1.ScaleSpec
-  struct:
+  map:
     fields:
     - name: replicas
       type:
         scalar: numeric
 - name: io.k8s.api.autoscaling.v1.ScaleStatus
-  struct:
+  map:
     fields:
     - name: replicas
       type:
@@ -2461,7 +2466,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta1.CrossVersionObjectReference
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2473,7 +2478,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta1.ExternalMetricSource
-  struct:
+  map:
     fields:
     - name: metricName
       type:
@@ -2488,7 +2493,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.autoscaling.v2beta1.ExternalMetricStatus
-  struct:
+  map:
     fields:
     - name: currentAverageValue
       type:
@@ -2503,7 +2508,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
 - name: io.k8s.api.autoscaling.v2beta1.HorizontalPodAutoscaler
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2521,7 +2526,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta1.HorizontalPodAutoscalerStatus
 - name: io.k8s.api.autoscaling.v2beta1.HorizontalPodAutoscalerCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -2539,7 +2544,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta1.HorizontalPodAutoscalerList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2557,7 +2562,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.autoscaling.v2beta1.HorizontalPodAutoscalerSpec
-  struct:
+  map:
     fields:
     - name: maxReplicas
       type:
@@ -2575,7 +2580,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta1.CrossVersionObjectReference
 - name: io.k8s.api.autoscaling.v2beta1.HorizontalPodAutoscalerStatus
-  struct:
+  map:
     fields:
     - name: conditions
       type:
@@ -2602,7 +2607,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.autoscaling.v2beta1.MetricSpec
-  struct:
+  map:
     fields:
     - name: external
       type:
@@ -2620,7 +2625,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta1.MetricStatus
-  struct:
+  map:
     fields:
     - name: external
       type:
@@ -2638,7 +2643,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta1.ObjectMetricSource
-  struct:
+  map:
     fields:
     - name: averageValue
       type:
@@ -2656,7 +2661,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.autoscaling.v2beta1.ObjectMetricStatus
-  struct:
+  map:
     fields:
     - name: averageValue
       type:
@@ -2674,7 +2679,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta1.CrossVersionObjectReference
 - name: io.k8s.api.autoscaling.v2beta1.PodsMetricSource
-  struct:
+  map:
     fields:
     - name: metricName
       type:
@@ -2686,7 +2691,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.autoscaling.v2beta1.PodsMetricStatus
-  struct:
+  map:
     fields:
     - name: currentAverageValue
       type:
@@ -2698,7 +2703,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
 - name: io.k8s.api.autoscaling.v2beta1.ResourceMetricSource
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -2710,7 +2715,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.autoscaling.v2beta1.ResourceMetricStatus
-  struct:
+  map:
     fields:
     - name: currentAverageUtilization
       type:
@@ -2722,7 +2727,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta2.CrossVersionObjectReference
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2734,7 +2739,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta2.ExternalMetricSource
-  struct:
+  map:
     fields:
     - name: metric
       type:
@@ -2743,7 +2748,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricTarget
 - name: io.k8s.api.autoscaling.v2beta2.ExternalMetricStatus
-  struct:
+  map:
     fields:
     - name: current
       type:
@@ -2752,7 +2757,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricIdentifier
 - name: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscaler
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2770,7 +2775,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerStatus
 - name: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -2788,7 +2793,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -2806,7 +2811,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerSpec
-  struct:
+  map:
     fields:
     - name: maxReplicas
       type:
@@ -2824,7 +2829,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.CrossVersionObjectReference
 - name: io.k8s.api.autoscaling.v2beta2.HorizontalPodAutoscalerStatus
-  struct:
+  map:
     fields:
     - name: conditions
       type:
@@ -2851,7 +2856,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.autoscaling.v2beta2.MetricIdentifier
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -2860,7 +2865,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
 - name: io.k8s.api.autoscaling.v2beta2.MetricSpec
-  struct:
+  map:
     fields:
     - name: external
       type:
@@ -2878,7 +2883,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta2.MetricStatus
-  struct:
+  map:
     fields:
     - name: external
       type:
@@ -2896,7 +2901,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.autoscaling.v2beta2.MetricTarget
-  struct:
+  map:
     fields:
     - name: averageUtilization
       type:
@@ -2911,7 +2916,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.autoscaling.v2beta2.MetricValueStatus
-  struct:
+  map:
     fields:
     - name: averageUtilization
       type:
@@ -2923,7 +2928,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.autoscaling.v2beta2.ObjectMetricSource
-  struct:
+  map:
     fields:
     - name: describedObject
       type:
@@ -2935,7 +2940,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricTarget
 - name: io.k8s.api.autoscaling.v2beta2.ObjectMetricStatus
-  struct:
+  map:
     fields:
     - name: current
       type:
@@ -2947,7 +2952,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricIdentifier
 - name: io.k8s.api.autoscaling.v2beta2.PodsMetricSource
-  struct:
+  map:
     fields:
     - name: metric
       type:
@@ -2956,7 +2961,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricTarget
 - name: io.k8s.api.autoscaling.v2beta2.PodsMetricStatus
-  struct:
+  map:
     fields:
     - name: current
       type:
@@ -2965,7 +2970,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricIdentifier
 - name: io.k8s.api.autoscaling.v2beta2.ResourceMetricSource
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -2974,7 +2979,7 @@ types:
       type:
         namedType: io.k8s.api.autoscaling.v2beta2.MetricTarget
 - name: io.k8s.api.autoscaling.v2beta2.ResourceMetricStatus
-  struct:
+  map:
     fields:
     - name: current
       type:
@@ -2983,7 +2988,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.batch.v1.Job
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3001,7 +3006,7 @@ types:
       type:
         namedType: io.k8s.api.batch.v1.JobStatus
 - name: io.k8s.api.batch.v1.JobCondition
-  struct:
+  map:
     fields:
     - name: lastProbeTime
       type:
@@ -3022,7 +3027,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.batch.v1.JobList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3040,7 +3045,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.batch.v1.JobSpec
-  struct:
+  map:
     fields:
     - name: activeDeadlineSeconds
       type:
@@ -3067,7 +3072,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.batch.v1.JobStatus
-  struct:
+  map:
     fields:
     - name: active
       type:
@@ -3093,7 +3098,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.batch.v1beta1.CronJob
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3111,7 +3116,7 @@ types:
       type:
         namedType: io.k8s.api.batch.v1beta1.CronJobStatus
 - name: io.k8s.api.batch.v1beta1.CronJobList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3129,7 +3134,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.batch.v1beta1.CronJobSpec
-  struct:
+  map:
     fields:
     - name: concurrencyPolicy
       type:
@@ -3153,7 +3158,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.batch.v1beta1.CronJobStatus
-  struct:
+  map:
     fields:
     - name: active
       type:
@@ -3165,7 +3170,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.api.batch.v1beta1.JobTemplateSpec
-  struct:
+  map:
     fields:
     - name: metadata
       type:
@@ -3174,7 +3179,7 @@ types:
       type:
         namedType: io.k8s.api.batch.v1.JobSpec
 - name: io.k8s.api.batch.v2alpha1.CronJob
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3192,7 +3197,7 @@ types:
       type:
         namedType: io.k8s.api.batch.v2alpha1.CronJobStatus
 - name: io.k8s.api.batch.v2alpha1.CronJobList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3210,7 +3215,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.batch.v2alpha1.CronJobSpec
-  struct:
+  map:
     fields:
     - name: concurrencyPolicy
       type:
@@ -3234,7 +3239,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.batch.v2alpha1.CronJobStatus
-  struct:
+  map:
     fields:
     - name: active
       type:
@@ -3246,7 +3251,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.api.batch.v2alpha1.JobTemplateSpec
-  struct:
+  map:
     fields:
     - name: metadata
       type:
@@ -3255,7 +3260,7 @@ types:
       type:
         namedType: io.k8s.api.batch.v1.JobSpec
 - name: io.k8s.api.certificates.v1beta1.CertificateSigningRequest
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3273,7 +3278,7 @@ types:
       type:
         namedType: io.k8s.api.certificates.v1beta1.CertificateSigningRequestStatus
 - name: io.k8s.api.certificates.v1beta1.CertificateSigningRequestCondition
-  struct:
+  map:
     fields:
     - name: lastUpdateTime
       type:
@@ -3288,7 +3293,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.certificates.v1beta1.CertificateSigningRequestList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3306,7 +3311,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.certificates.v1beta1.CertificateSigningRequestSpec
-  struct:
+  map:
     fields:
     - name: extra
       type:
@@ -3338,7 +3343,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.certificates.v1beta1.CertificateSigningRequestStatus
-  struct:
+  map:
     fields:
     - name: certificate
       type:
@@ -3350,7 +3355,7 @@ types:
             namedType: io.k8s.api.certificates.v1beta1.CertificateSigningRequestCondition
           elementRelationship: atomic
 - name: io.k8s.api.coordination.v1beta1.Lease
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3365,7 +3370,7 @@ types:
       type:
         namedType: io.k8s.api.coordination.v1beta1.LeaseSpec
 - name: io.k8s.api.coordination.v1beta1.LeaseList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3383,7 +3388,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.coordination.v1beta1.LeaseSpec
-  struct:
+  map:
     fields:
     - name: acquireTime
       type:
@@ -3401,7 +3406,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
 - name: io.k8s.api.core.v1.AWSElasticBlockStoreVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -3416,7 +3421,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Affinity
-  struct:
+  map:
     fields:
     - name: nodeAffinity
       type:
@@ -3428,7 +3433,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodAntiAffinity
 - name: io.k8s.api.core.v1.AttachedVolume
-  struct:
+  map:
     fields:
     - name: devicePath
       type:
@@ -3437,7 +3442,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.AzureDiskVolumeSource
-  struct:
+  map:
     fields:
     - name: cachingMode
       type:
@@ -3458,7 +3463,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.AzureFilePersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: readOnly
       type:
@@ -3473,7 +3478,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.AzureFileVolumeSource
-  struct:
+  map:
     fields:
     - name: readOnly
       type:
@@ -3485,7 +3490,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Binding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3500,7 +3505,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ObjectReference
 - name: io.k8s.api.core.v1.CSIPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: controllerPublishSecretRef
       type:
@@ -3529,7 +3534,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Capabilities
-  struct:
+  map:
     fields:
     - name: add
       type:
@@ -3544,7 +3549,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.CephFSPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: monitors
       type:
@@ -3568,7 +3573,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.CephFSVolumeSource
-  struct:
+  map:
     fields:
     - name: monitors
       type:
@@ -3592,7 +3597,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.CinderPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -3607,7 +3612,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.CinderVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -3622,13 +3627,13 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ClientIPConfig
-  struct:
+  map:
     fields:
     - name: timeoutSeconds
       type:
         scalar: numeric
 - name: io.k8s.api.core.v1.ComponentCondition
-  struct:
+  map:
     fields:
     - name: error
       type:
@@ -3643,7 +3648,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ComponentStatus
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3663,7 +3668,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 - name: io.k8s.api.core.v1.ComponentStatusList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3681,7 +3686,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.ConfigMap
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3703,7 +3708,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 - name: io.k8s.api.core.v1.ConfigMapEnvSource
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -3712,7 +3717,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.ConfigMapKeySelector
-  struct:
+  map:
     fields:
     - name: key
       type:
@@ -3724,7 +3729,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.ConfigMapList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -3742,7 +3747,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.ConfigMapNodeConfigSource
-  struct:
+  map:
     fields:
     - name: kubeletConfigKey
       type:
@@ -3760,7 +3765,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ConfigMapProjection
-  struct:
+  map:
     fields:
     - name: items
       type:
@@ -3775,7 +3780,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.ConfigMapVolumeSource
-  struct:
+  map:
     fields:
     - name: defaultMode
       type:
@@ -3793,7 +3798,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.Container
-  struct:
+  map:
     fields:
     - name: args
       type:
@@ -3889,7 +3894,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ContainerImage
-  struct:
+  map:
     fields:
     - name: names
       type:
@@ -3901,7 +3906,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.core.v1.ContainerPort
-  struct:
+  map:
     fields:
     - name: containerPort
       type:
@@ -3919,7 +3924,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ContainerState
-  struct:
+  map:
     fields:
     - name: running
       type:
@@ -3931,13 +3936,13 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ContainerStateWaiting
 - name: io.k8s.api.core.v1.ContainerStateRunning
-  struct:
+  map:
     fields:
     - name: startedAt
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.api.core.v1.ContainerStateTerminated
-  struct:
+  map:
     fields:
     - name: containerID
       type:
@@ -3961,7 +3966,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.api.core.v1.ContainerStateWaiting
-  struct:
+  map:
     fields:
     - name: message
       type:
@@ -3970,7 +3975,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ContainerStatus
-  struct:
+  map:
     fields:
     - name: containerID
       type:
@@ -3997,13 +4002,13 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ContainerState
 - name: io.k8s.api.core.v1.DaemonEndpoint
-  struct:
+  map:
     fields:
     - name: Port
       type:
         scalar: numeric
 - name: io.k8s.api.core.v1.DownwardAPIProjection
-  struct:
+  map:
     fields:
     - name: items
       type:
@@ -4012,7 +4017,7 @@ types:
             namedType: io.k8s.api.core.v1.DownwardAPIVolumeFile
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.DownwardAPIVolumeFile
-  struct:
+  map:
     fields:
     - name: fieldRef
       type:
@@ -4027,7 +4032,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ResourceFieldSelector
 - name: io.k8s.api.core.v1.DownwardAPIVolumeSource
-  struct:
+  map:
     fields:
     - name: defaultMode
       type:
@@ -4039,7 +4044,7 @@ types:
             namedType: io.k8s.api.core.v1.DownwardAPIVolumeFile
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.EmptyDirVolumeSource
-  struct:
+  map:
     fields:
     - name: medium
       type:
@@ -4048,7 +4053,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.core.v1.EndpointAddress
-  struct:
+  map:
     fields:
     - name: hostname
       type:
@@ -4063,7 +4068,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ObjectReference
 - name: io.k8s.api.core.v1.EndpointPort
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -4075,7 +4080,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.EndpointSubset
-  struct:
+  map:
     fields:
     - name: addresses
       type:
@@ -4096,7 +4101,7 @@ types:
             namedType: io.k8s.api.core.v1.EndpointPort
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.Endpoints
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4114,7 +4119,7 @@ types:
             namedType: io.k8s.api.core.v1.EndpointSubset
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.EndpointsList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4132,7 +4137,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.EnvFromSource
-  struct:
+  map:
     fields:
     - name: configMapRef
       type:
@@ -4144,7 +4149,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.SecretEnvSource
 - name: io.k8s.api.core.v1.EnvVar
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -4156,7 +4161,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.EnvVarSource
 - name: io.k8s.api.core.v1.EnvVarSource
-  struct:
+  map:
     fields:
     - name: configMapKeyRef
       type:
@@ -4171,7 +4176,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.SecretKeySelector
 - name: io.k8s.api.core.v1.Event
-  struct:
+  map:
     fields:
     - name: action
       type:
@@ -4225,7 +4230,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.EventList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4243,7 +4248,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.EventSeries
-  struct:
+  map:
     fields:
     - name: count
       type:
@@ -4255,7 +4260,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.EventSource
-  struct:
+  map:
     fields:
     - name: component
       type:
@@ -4264,7 +4269,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ExecAction
-  struct:
+  map:
     fields:
     - name: command
       type:
@@ -4273,7 +4278,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.FCVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -4297,7 +4302,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.FlexPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: driver
       type:
@@ -4317,7 +4322,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.SecretReference
 - name: io.k8s.api.core.v1.FlexVolumeSource
-  struct:
+  map:
     fields:
     - name: driver
       type:
@@ -4337,7 +4342,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.LocalObjectReference
 - name: io.k8s.api.core.v1.FlockerVolumeSource
-  struct:
+  map:
     fields:
     - name: datasetName
       type:
@@ -4346,7 +4351,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.GCEPersistentDiskVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -4361,7 +4366,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.GitRepoVolumeSource
-  struct:
+  map:
     fields:
     - name: directory
       type:
@@ -4373,7 +4378,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.GlusterfsVolumeSource
-  struct:
+  map:
     fields:
     - name: endpoints
       type:
@@ -4385,7 +4390,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.HTTPGetAction
-  struct:
+  map:
     fields:
     - name: host
       type:
@@ -4406,7 +4411,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.HTTPHeader
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -4415,7 +4420,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Handler
-  struct:
+  map:
     fields:
     - name: exec
       type:
@@ -4427,7 +4432,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.TCPSocketAction
 - name: io.k8s.api.core.v1.HostAlias
-  struct:
+  map:
     fields:
     - name: hostnames
       type:
@@ -4439,7 +4444,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.HostPathVolumeSource
-  struct:
+  map:
     fields:
     - name: path
       type:
@@ -4448,7 +4453,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ISCSIPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: chapAuthDiscovery
       type:
@@ -4487,7 +4492,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ISCSIVolumeSource
-  struct:
+  map:
     fields:
     - name: chapAuthDiscovery
       type:
@@ -4526,7 +4531,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.KeyToPath
-  struct:
+  map:
     fields:
     - name: key
       type:
@@ -4538,7 +4543,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Lifecycle
-  struct:
+  map:
     fields:
     - name: postStart
       type:
@@ -4547,7 +4552,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.Handler
 - name: io.k8s.api.core.v1.LimitRange
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4562,7 +4567,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.LimitRangeSpec
 - name: io.k8s.api.core.v1.LimitRangeItem
-  struct:
+  map:
     fields:
     - name: default
       type:
@@ -4593,7 +4598,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.LimitRangeList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4611,7 +4616,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.LimitRangeSpec
-  struct:
+  map:
     fields:
     - name: limits
       type:
@@ -4620,7 +4625,7 @@ types:
             namedType: io.k8s.api.core.v1.LimitRangeItem
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.LoadBalancerIngress
-  struct:
+  map:
     fields:
     - name: hostname
       type:
@@ -4629,7 +4634,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.LoadBalancerStatus
-  struct:
+  map:
     fields:
     - name: ingress
       type:
@@ -4638,13 +4643,13 @@ types:
             namedType: io.k8s.api.core.v1.LoadBalancerIngress
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.LocalObjectReference
-  struct:
+  map:
     fields:
     - name: name
       type:
         scalar: string
 - name: io.k8s.api.core.v1.LocalVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -4653,7 +4658,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.NFSVolumeSource
-  struct:
+  map:
     fields:
     - name: path
       type:
@@ -4665,7 +4670,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Namespace
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4683,7 +4688,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.NamespaceStatus
 - name: io.k8s.api.core.v1.NamespaceList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4701,7 +4706,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.NamespaceSpec
-  struct:
+  map:
     fields:
     - name: finalizers
       type:
@@ -4710,13 +4715,13 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.NamespaceStatus
-  struct:
+  map:
     fields:
     - name: phase
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Node
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4734,7 +4739,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.NodeStatus
 - name: io.k8s.api.core.v1.NodeAddress
-  struct:
+  map:
     fields:
     - name: address
       type:
@@ -4743,7 +4748,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.NodeAffinity
-  struct:
+  map:
     fields:
     - name: preferredDuringSchedulingIgnoredDuringExecution
       type:
@@ -4755,7 +4760,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.NodeSelector
 - name: io.k8s.api.core.v1.NodeCondition
-  struct:
+  map:
     fields:
     - name: lastHeartbeatTime
       type:
@@ -4776,13 +4781,13 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.NodeConfigSource
-  struct:
+  map:
     fields:
     - name: configMap
       type:
         namedType: io.k8s.api.core.v1.ConfigMapNodeConfigSource
 - name: io.k8s.api.core.v1.NodeConfigStatus
-  struct:
+  map:
     fields:
     - name: active
       type:
@@ -4797,13 +4802,13 @@ types:
       type:
         namedType: io.k8s.api.core.v1.NodeConfigSource
 - name: io.k8s.api.core.v1.NodeDaemonEndpoints
-  struct:
+  map:
     fields:
     - name: kubeletEndpoint
       type:
         namedType: io.k8s.api.core.v1.DaemonEndpoint
 - name: io.k8s.api.core.v1.NodeList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4821,7 +4826,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.NodeSelector
-  struct:
+  map:
     fields:
     - name: nodeSelectorTerms
       type:
@@ -4830,7 +4835,7 @@ types:
             namedType: io.k8s.api.core.v1.NodeSelectorTerm
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.NodeSelectorRequirement
-  struct:
+  map:
     fields:
     - name: key
       type:
@@ -4845,7 +4850,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.NodeSelectorTerm
-  struct:
+  map:
     fields:
     - name: matchExpressions
       type:
@@ -4860,7 +4865,7 @@ types:
             namedType: io.k8s.api.core.v1.NodeSelectorRequirement
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.NodeSpec
-  struct:
+  map:
     fields:
     - name: configSource
       type:
@@ -4884,7 +4889,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.NodeStatus
-  struct:
+  map:
     fields:
     - name: addresses
       type:
@@ -4943,7 +4948,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.NodeSystemInfo
-  struct:
+  map:
     fields:
     - name: architecture
       type:
@@ -4976,7 +4981,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ObjectFieldSelector
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -4985,7 +4990,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ObjectReference
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5009,7 +5014,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PersistentVolume
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5027,7 +5032,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PersistentVolumeStatus
 - name: io.k8s.api.core.v1.PersistentVolumeClaim
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5045,7 +5050,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PersistentVolumeClaimStatus
 - name: io.k8s.api.core.v1.PersistentVolumeClaimCondition
-  struct:
+  map:
     fields:
     - name: lastProbeTime
       type:
@@ -5066,7 +5071,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PersistentVolumeClaimList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5084,7 +5089,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.PersistentVolumeClaimSpec
-  struct:
+  map:
     fields:
     - name: accessModes
       type:
@@ -5111,7 +5116,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PersistentVolumeClaimStatus
-  struct:
+  map:
     fields:
     - name: accessModes
       type:
@@ -5136,7 +5141,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PersistentVolumeClaimVolumeSource
-  struct:
+  map:
     fields:
     - name: claimName
       type:
@@ -5145,7 +5150,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.PersistentVolumeList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5163,7 +5168,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.PersistentVolumeSpec
-  struct:
+  map:
     fields:
     - name: accessModes
       type:
@@ -5264,7 +5269,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.VsphereVirtualDiskVolumeSource
 - name: io.k8s.api.core.v1.PersistentVolumeStatus
-  struct:
+  map:
     fields:
     - name: message
       type:
@@ -5276,7 +5281,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PhotonPersistentDiskVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -5285,7 +5290,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Pod
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5303,7 +5308,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodStatus
 - name: io.k8s.api.core.v1.PodAffinity
-  struct:
+  map:
     fields:
     - name: preferredDuringSchedulingIgnoredDuringExecution
       type:
@@ -5318,7 +5323,7 @@ types:
             namedType: io.k8s.api.core.v1.PodAffinityTerm
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.PodAffinityTerm
-  struct:
+  map:
     fields:
     - name: labelSelector
       type:
@@ -5333,7 +5338,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PodAntiAffinity
-  struct:
+  map:
     fields:
     - name: preferredDuringSchedulingIgnoredDuringExecution
       type:
@@ -5348,7 +5353,7 @@ types:
             namedType: io.k8s.api.core.v1.PodAffinityTerm
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.PodCondition
-  struct:
+  map:
     fields:
     - name: lastProbeTime
       type:
@@ -5369,7 +5374,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PodDNSConfig
-  struct:
+  map:
     fields:
     - name: nameservers
       type:
@@ -5390,7 +5395,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.PodDNSConfigOption
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -5399,7 +5404,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PodList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5417,13 +5422,13 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.PodReadinessGate
-  struct:
+  map:
     fields:
     - name: conditionType
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PodSecurityContext
-  struct:
+  map:
     fields:
     - name: fsGroup
       type:
@@ -5453,7 +5458,7 @@ types:
             namedType: io.k8s.api.core.v1.Sysctl
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.PodSpec
-  struct:
+  map:
     fields:
     - name: activeDeadlineSeconds
       type:
@@ -5579,7 +5584,7 @@ types:
           keys:
           - name
 - name: io.k8s.api.core.v1.PodStatus
-  struct:
+  map:
     fields:
     - name: conditions
       type:
@@ -5626,7 +5631,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.api.core.v1.PodTemplate
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5641,7 +5646,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.core.v1.PodTemplateList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5659,7 +5664,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.PodTemplateSpec
-  struct:
+  map:
     fields:
     - name: metadata
       type:
@@ -5668,7 +5673,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodSpec
 - name: io.k8s.api.core.v1.PortworxVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -5680,7 +5685,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.PreferredSchedulingTerm
-  struct:
+  map:
     fields:
     - name: preference
       type:
@@ -5689,7 +5694,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.core.v1.Probe
-  struct:
+  map:
     fields:
     - name: exec
       type:
@@ -5716,7 +5721,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.core.v1.ProjectedVolumeSource
-  struct:
+  map:
     fields:
     - name: defaultMode
       type:
@@ -5728,7 +5733,7 @@ types:
             namedType: io.k8s.api.core.v1.VolumeProjection
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.QuobyteVolumeSource
-  struct:
+  map:
     fields:
     - name: group
       type:
@@ -5746,7 +5751,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.RBDPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -5776,7 +5781,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.RBDVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -5806,7 +5811,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ReplicationController
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5824,7 +5829,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ReplicationControllerStatus
 - name: io.k8s.api.core.v1.ReplicationControllerCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -5842,7 +5847,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ReplicationControllerList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5860,7 +5865,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.ReplicationControllerSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -5877,7 +5882,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.core.v1.ReplicationControllerStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -5903,7 +5908,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.core.v1.ResourceFieldSelector
-  struct:
+  map:
     fields:
     - name: containerName
       type:
@@ -5915,7 +5920,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ResourceQuota
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5933,7 +5938,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ResourceQuotaStatus
 - name: io.k8s.api.core.v1.ResourceQuotaList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -5951,7 +5956,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.ResourceQuotaSpec
-  struct:
+  map:
     fields:
     - name: hard
       type:
@@ -5968,7 +5973,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.ResourceQuotaStatus
-  struct:
+  map:
     fields:
     - name: hard
       type:
@@ -5981,7 +5986,7 @@ types:
           elementType:
             namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.core.v1.ResourceRequirements
-  struct:
+  map:
     fields:
     - name: limits
       type:
@@ -5994,7 +5999,7 @@ types:
           elementType:
             namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.core.v1.SELinuxOptions
-  struct:
+  map:
     fields:
     - name: level
       type:
@@ -6009,7 +6014,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ScaleIOPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -6042,7 +6047,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ScaleIOVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -6075,7 +6080,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ScopeSelector
-  struct:
+  map:
     fields:
     - name: matchExpressions
       type:
@@ -6084,7 +6089,7 @@ types:
             namedType: io.k8s.api.core.v1.ScopedResourceSelectorRequirement
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.ScopedResourceSelectorRequirement
-  struct:
+  map:
     fields:
     - name: operator
       type:
@@ -6099,7 +6104,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.Secret
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6124,7 +6129,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.SecretEnvSource
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -6133,7 +6138,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.SecretKeySelector
-  struct:
+  map:
     fields:
     - name: key
       type:
@@ -6145,7 +6150,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.SecretList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6163,7 +6168,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.SecretProjection
-  struct:
+  map:
     fields:
     - name: items
       type:
@@ -6178,7 +6183,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.SecretReference
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -6187,7 +6192,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.SecretVolumeSource
-  struct:
+  map:
     fields:
     - name: defaultMode
       type:
@@ -6205,7 +6210,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.SecurityContext
-  struct:
+  map:
     fields:
     - name: allowPrivilegeEscalation
       type:
@@ -6235,7 +6240,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.SELinuxOptions
 - name: io.k8s.api.core.v1.Service
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6253,7 +6258,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ServiceStatus
 - name: io.k8s.api.core.v1.ServiceAccount
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6282,7 +6287,7 @@ types:
           keys:
           - name
 - name: io.k8s.api.core.v1.ServiceAccountList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6300,7 +6305,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.ServiceAccountTokenProjection
-  struct:
+  map:
     fields:
     - name: audience
       type:
@@ -6312,7 +6317,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ServiceList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6330,7 +6335,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.core.v1.ServicePort
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -6348,7 +6353,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.core.v1.ServiceSpec
-  struct:
+  map:
     fields:
     - name: clusterIP
       type:
@@ -6403,19 +6408,19 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.ServiceStatus
-  struct:
+  map:
     fields:
     - name: loadBalancer
       type:
         namedType: io.k8s.api.core.v1.LoadBalancerStatus
 - name: io.k8s.api.core.v1.SessionAffinityConfig
-  struct:
+  map:
     fields:
     - name: clientIP
       type:
         namedType: io.k8s.api.core.v1.ClientIPConfig
 - name: io.k8s.api.core.v1.StorageOSPersistentVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -6433,7 +6438,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.StorageOSVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -6451,7 +6456,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Sysctl
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -6460,7 +6465,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.TCPSocketAction
-  struct:
+  map:
     fields:
     - name: host
       type:
@@ -6469,7 +6474,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.core.v1.Taint
-  struct:
+  map:
     fields:
     - name: effect
       type:
@@ -6484,7 +6489,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Toleration
-  struct:
+  map:
     fields:
     - name: effect
       type:
@@ -6502,7 +6507,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.TopologySelectorLabelRequirement
-  struct:
+  map:
     fields:
     - name: key
       type:
@@ -6514,7 +6519,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.TopologySelectorTerm
-  struct:
+  map:
     fields:
     - name: matchLabelExpressions
       type:
@@ -6523,7 +6528,7 @@ types:
             namedType: io.k8s.api.core.v1.TopologySelectorLabelRequirement
           elementRelationship: atomic
 - name: io.k8s.api.core.v1.TypedLocalObjectReference
-  struct:
+  map:
     fields:
     - name: apiGroup
       type:
@@ -6535,7 +6540,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.Volume
-  struct:
+  map:
     fields:
     - name: awsElasticBlockStore
       type:
@@ -6621,8 +6626,64 @@ types:
     - name: vsphereVolume
       type:
         namedType: io.k8s.api.core.v1.VsphereVirtualDiskVolumeSource
+    unions:
+    - fields:
+      - fieldName: awsElasticBlockStore
+        discriminatorValue: AWSElasticBlockStore
+      - fieldName: azureDisk
+        discriminatorValue: AzureDisk
+      - fieldName: azureFile
+        discriminatorValue: AzureFile
+      - fieldName: cephfs
+        discriminatorValue: CephFS
+      - fieldName: cinder
+        discriminatorValue: Cinder
+      - fieldName: configMap
+        discriminatorValue: ConfigMap
+      - fieldName: downwardAPI
+        discriminatorValue: DownwardAPI
+      - fieldName: emptyDir
+        discriminatorValue: EmptyDir
+      - fieldName: fc
+        discriminatorValue: FC
+      - fieldName: flexVolume
+        discriminatorValue: FlexVolume
+      - fieldName: flocker
+        discriminatorValue: Flocker
+      - fieldName: gcePersistentDisk
+        discriminatorValue: GCEPersistentDisk
+      - fieldName: gitRepo
+        discriminatorValue: GitRepo
+      - fieldName: glusterfs
+        discriminatorValue: Glusterfs
+      - fieldName: hostPath
+        discriminatorValue: HostPath
+      - fieldName: iscsi
+        discriminatorValue: ISCSI
+      - fieldName: nfs
+        discriminatorValue: NFS
+      - fieldName: persistentVolumeClaim
+        discriminatorValue: PersistentVolumeClaim
+      - fieldName: photonPersistentDisk
+        discriminatorValue: PhotonPersistentDisk
+      - fieldName: portworxVolume
+        discriminatorValue: PortworxVolume
+      - fieldName: projected
+        discriminatorValue: Projected
+      - fieldName: quobyte
+        discriminatorValue: Quobyte
+      - fieldName: rbd
+        discriminatorValue: RBD
+      - fieldName: scaleIO
+        discriminatorValue: ScaleIO
+      - fieldName: secret
+        discriminatorValue: Secret
+      - fieldName: storageos
+        discriminatorValue: StorageOS
+      - fieldName: vsphereVolume
+        discriminatorValue: VsphereVolume
 - name: io.k8s.api.core.v1.VolumeDevice
-  struct:
+  map:
     fields:
     - name: devicePath
       type:
@@ -6631,7 +6692,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.VolumeMount
-  struct:
+  map:
     fields:
     - name: mountPath
       type:
@@ -6649,13 +6710,13 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.VolumeNodeAffinity
-  struct:
+  map:
     fields:
     - name: required
       type:
         namedType: io.k8s.api.core.v1.NodeSelector
 - name: io.k8s.api.core.v1.VolumeProjection
-  struct:
+  map:
     fields:
     - name: configMap
       type:
@@ -6670,7 +6731,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.ServiceAccountTokenProjection
 - name: io.k8s.api.core.v1.VsphereVirtualDiskVolumeSource
-  struct:
+  map:
     fields:
     - name: fsType
       type:
@@ -6685,7 +6746,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.core.v1.WeightedPodAffinityTerm
-  struct:
+  map:
     fields:
     - name: podAffinityTerm
       type:
@@ -6694,7 +6755,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.events.v1beta1.Event
-  struct:
+  map:
     fields:
     - name: action
       type:
@@ -6748,7 +6809,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.events.v1beta1.EventList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6766,7 +6827,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.events.v1beta1.EventSeries
-  struct:
+  map:
     fields:
     - name: count
       type:
@@ -6778,13 +6839,13 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.AllowedFlexVolume
-  struct:
+  map:
     fields:
     - name: driver
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.AllowedHostPath
-  struct:
+  map:
     fields:
     - name: pathPrefix
       type:
@@ -6793,7 +6854,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.extensions.v1beta1.DaemonSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6811,7 +6872,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.DaemonSetStatus
 - name: io.k8s.api.extensions.v1beta1.DaemonSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -6829,7 +6890,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.DaemonSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6847,7 +6908,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.extensions.v1beta1.DaemonSetSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -6868,7 +6929,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.DaemonSetUpdateStrategy
 - name: io.k8s.api.extensions.v1beta1.DaemonSetStatus
-  struct:
+  map:
     fields:
     - name: collisionCount
       type:
@@ -6906,7 +6967,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.DaemonSetUpdateStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -6915,7 +6976,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.Deployment
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6933,7 +6994,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.DeploymentStatus
 - name: io.k8s.api.extensions.v1beta1.DeploymentCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -6954,7 +7015,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.DeploymentList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6972,7 +7033,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.extensions.v1beta1.DeploymentRollback
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -6992,7 +7053,7 @@ types:
           elementType:
             scalar: string
 - name: io.k8s.api.extensions.v1beta1.DeploymentSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -7022,7 +7083,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.extensions.v1beta1.DeploymentStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -7054,7 +7115,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.DeploymentStrategy
-  struct:
+  map:
     fields:
     - name: rollingUpdate
       type:
@@ -7063,7 +7124,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.FSGroupStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -7075,7 +7136,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.HTTPIngressPath
-  struct:
+  map:
     fields:
     - name: backend
       type:
@@ -7084,7 +7145,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.HTTPIngressRuleValue
-  struct:
+  map:
     fields:
     - name: paths
       type:
@@ -7093,7 +7154,7 @@ types:
             namedType: io.k8s.api.extensions.v1beta1.HTTPIngressPath
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.HostPortRange
-  struct:
+  map:
     fields:
     - name: max
       type:
@@ -7102,7 +7163,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.IDRange
-  struct:
+  map:
     fields:
     - name: max
       type:
@@ -7111,7 +7172,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.IPBlock
-  struct:
+  map:
     fields:
     - name: cidr
       type:
@@ -7123,7 +7184,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.Ingress
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7141,7 +7202,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.IngressStatus
 - name: io.k8s.api.extensions.v1beta1.IngressBackend
-  struct:
+  map:
     fields:
     - name: serviceName
       type:
@@ -7150,7 +7211,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.extensions.v1beta1.IngressList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7168,7 +7229,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.extensions.v1beta1.IngressRule
-  struct:
+  map:
     fields:
     - name: host
       type:
@@ -7177,7 +7238,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.HTTPIngressRuleValue
 - name: io.k8s.api.extensions.v1beta1.IngressSpec
-  struct:
+  map:
     fields:
     - name: backend
       type:
@@ -7195,13 +7256,13 @@ types:
             namedType: io.k8s.api.extensions.v1beta1.IngressTLS
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.IngressStatus
-  struct:
+  map:
     fields:
     - name: loadBalancer
       type:
         namedType: io.k8s.api.core.v1.LoadBalancerStatus
 - name: io.k8s.api.extensions.v1beta1.IngressTLS
-  struct:
+  map:
     fields:
     - name: hosts
       type:
@@ -7213,7 +7274,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicy
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7228,7 +7289,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.NetworkPolicySpec
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicyEgressRule
-  struct:
+  map:
     fields:
     - name: ports
       type:
@@ -7243,7 +7304,7 @@ types:
             namedType: io.k8s.api.extensions.v1beta1.NetworkPolicyPeer
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicyIngressRule
-  struct:
+  map:
     fields:
     - name: from
       type:
@@ -7258,7 +7319,7 @@ types:
             namedType: io.k8s.api.extensions.v1beta1.NetworkPolicyPort
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicyList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7276,7 +7337,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicyPeer
-  struct:
+  map:
     fields:
     - name: ipBlock
       type:
@@ -7288,7 +7349,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicyPort
-  struct:
+  map:
     fields:
     - name: port
       type:
@@ -7297,7 +7358,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicySpec
-  struct:
+  map:
     fields:
     - name: egress
       type:
@@ -7321,7 +7382,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.PodSecurityPolicy
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7336,7 +7397,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.PodSecurityPolicySpec
 - name: io.k8s.api.extensions.v1beta1.PodSecurityPolicyList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7354,7 +7415,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.extensions.v1beta1.PodSecurityPolicySpec
-  struct:
+  map:
     fields:
     - name: allowPrivilegeEscalation
       type:
@@ -7453,7 +7514,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.extensions.v1beta1.ReplicaSet
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7471,7 +7532,7 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.ReplicaSetStatus
 - name: io.k8s.api.extensions.v1beta1.ReplicaSetCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -7489,7 +7550,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.ReplicaSetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7507,7 +7568,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.extensions.v1beta1.ReplicaSetSpec
-  struct:
+  map:
     fields:
     - name: minReadySeconds
       type:
@@ -7522,7 +7583,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.PodTemplateSpec
 - name: io.k8s.api.extensions.v1beta1.ReplicaSetStatus
-  struct:
+  map:
     fields:
     - name: availableReplicas
       type:
@@ -7548,19 +7609,19 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.RollbackConfig
-  struct:
+  map:
     fields:
     - name: revision
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.RollingUpdateDaemonSet
-  struct:
+  map:
     fields:
     - name: maxUnavailable
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.extensions.v1beta1.RollingUpdateDeployment
-  struct:
+  map:
     fields:
     - name: maxSurge
       type:
@@ -7569,7 +7630,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
 - name: io.k8s.api.extensions.v1beta1.RunAsGroupStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -7581,7 +7642,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.RunAsUserStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -7593,7 +7654,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.SELinuxStrategyOptions
-  struct:
+  map:
     fields:
     - name: rule
       type:
@@ -7602,7 +7663,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.SELinuxOptions
 - name: io.k8s.api.extensions.v1beta1.Scale
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7620,13 +7681,13 @@ types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.ScaleStatus
 - name: io.k8s.api.extensions.v1beta1.ScaleSpec
-  struct:
+  map:
     fields:
     - name: replicas
       type:
         scalar: numeric
 - name: io.k8s.api.extensions.v1beta1.ScaleStatus
-  struct:
+  map:
     fields:
     - name: replicas
       type:
@@ -7640,7 +7701,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.extensions.v1beta1.SupplementalGroupsStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -7652,7 +7713,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.networking.v1.IPBlock
-  struct:
+  map:
     fields:
     - name: cidr
       type:
@@ -7664,7 +7725,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.networking.v1.NetworkPolicy
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7679,7 +7740,7 @@ types:
       type:
         namedType: io.k8s.api.networking.v1.NetworkPolicySpec
 - name: io.k8s.api.networking.v1.NetworkPolicyEgressRule
-  struct:
+  map:
     fields:
     - name: ports
       type:
@@ -7694,7 +7755,7 @@ types:
             namedType: io.k8s.api.networking.v1.NetworkPolicyPeer
           elementRelationship: atomic
 - name: io.k8s.api.networking.v1.NetworkPolicyIngressRule
-  struct:
+  map:
     fields:
     - name: from
       type:
@@ -7709,7 +7770,7 @@ types:
             namedType: io.k8s.api.networking.v1.NetworkPolicyPort
           elementRelationship: atomic
 - name: io.k8s.api.networking.v1.NetworkPolicyList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7727,7 +7788,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.networking.v1.NetworkPolicyPeer
-  struct:
+  map:
     fields:
     - name: ipBlock
       type:
@@ -7739,7 +7800,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
 - name: io.k8s.api.networking.v1.NetworkPolicyPort
-  struct:
+  map:
     fields:
     - name: port
       type:
@@ -7748,7 +7809,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.networking.v1.NetworkPolicySpec
-  struct:
+  map:
     fields:
     - name: egress
       type:
@@ -7772,13 +7833,13 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.policy.v1beta1.AllowedFlexVolume
-  struct:
+  map:
     fields:
     - name: driver
       type:
         scalar: string
 - name: io.k8s.api.policy.v1beta1.AllowedHostPath
-  struct:
+  map:
     fields:
     - name: pathPrefix
       type:
@@ -7787,7 +7848,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.api.policy.v1beta1.Eviction
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7802,7 +7863,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 - name: io.k8s.api.policy.v1beta1.FSGroupStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -7814,7 +7875,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.policy.v1beta1.HostPortRange
-  struct:
+  map:
     fields:
     - name: max
       type:
@@ -7823,7 +7884,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.policy.v1beta1.IDRange
-  struct:
+  map:
     fields:
     - name: max
       type:
@@ -7832,7 +7893,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.policy.v1beta1.PodDisruptionBudget
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7850,7 +7911,7 @@ types:
       type:
         namedType: io.k8s.api.policy.v1beta1.PodDisruptionBudgetStatus
 - name: io.k8s.api.policy.v1beta1.PodDisruptionBudgetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7868,7 +7929,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.policy.v1beta1.PodDisruptionBudgetSpec
-  struct:
+  map:
     fields:
     - name: maxUnavailable
       type:
@@ -7880,7 +7941,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
 - name: io.k8s.api.policy.v1beta1.PodDisruptionBudgetStatus
-  struct:
+  map:
     fields:
     - name: currentHealthy
       type:
@@ -7903,7 +7964,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.policy.v1beta1.PodSecurityPolicy
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7918,7 +7979,7 @@ types:
       type:
         namedType: io.k8s.api.policy.v1beta1.PodSecurityPolicySpec
 - name: io.k8s.api.policy.v1beta1.PodSecurityPolicyList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -7936,7 +7997,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.policy.v1beta1.PodSecurityPolicySpec
-  struct:
+  map:
     fields:
     - name: allowPrivilegeEscalation
       type:
@@ -8035,7 +8096,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.policy.v1beta1.RunAsGroupStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -8047,7 +8108,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.policy.v1beta1.RunAsUserStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -8059,7 +8120,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.policy.v1beta1.SELinuxStrategyOptions
-  struct:
+  map:
     fields:
     - name: rule
       type:
@@ -8068,7 +8129,7 @@ types:
       type:
         namedType: io.k8s.api.core.v1.SELinuxOptions
 - name: io.k8s.api.policy.v1beta1.SupplementalGroupsStrategyOptions
-  struct:
+  map:
     fields:
     - name: ranges
       type:
@@ -8080,7 +8141,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.rbac.v1.AggregationRule
-  struct:
+  map:
     fields:
     - name: clusterRoleSelectors
       type:
@@ -8089,7 +8150,7 @@ types:
             namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1.ClusterRole
-  struct:
+  map:
     fields:
     - name: aggregationRule
       type:
@@ -8110,7 +8171,7 @@ types:
             namedType: io.k8s.api.rbac.v1.PolicyRule
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1.ClusterRoleBinding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8131,7 +8192,7 @@ types:
             namedType: io.k8s.api.rbac.v1.Subject
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1.ClusterRoleBindingList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8149,7 +8210,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1.ClusterRoleList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8167,7 +8228,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1.PolicyRule
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -8200,7 +8261,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1.Role
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8218,7 +8279,7 @@ types:
             namedType: io.k8s.api.rbac.v1.PolicyRule
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1.RoleBinding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8239,7 +8300,7 @@ types:
             namedType: io.k8s.api.rbac.v1.Subject
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1.RoleBindingList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8257,7 +8318,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1.RoleList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8275,7 +8336,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1.RoleRef
-  struct:
+  map:
     fields:
     - name: apiGroup
       type:
@@ -8287,7 +8348,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.rbac.v1.Subject
-  struct:
+  map:
     fields:
     - name: apiGroup
       type:
@@ -8302,7 +8363,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.rbac.v1alpha1.AggregationRule
-  struct:
+  map:
     fields:
     - name: clusterRoleSelectors
       type:
@@ -8311,7 +8372,7 @@ types:
             namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1alpha1.ClusterRole
-  struct:
+  map:
     fields:
     - name: aggregationRule
       type:
@@ -8332,7 +8393,7 @@ types:
             namedType: io.k8s.api.rbac.v1alpha1.PolicyRule
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1alpha1.ClusterRoleBinding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8353,7 +8414,7 @@ types:
             namedType: io.k8s.api.rbac.v1alpha1.Subject
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1alpha1.ClusterRoleBindingList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8371,7 +8432,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1alpha1.ClusterRoleList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8389,7 +8450,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1alpha1.PolicyRule
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -8422,7 +8483,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1alpha1.Role
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8440,7 +8501,7 @@ types:
             namedType: io.k8s.api.rbac.v1alpha1.PolicyRule
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1alpha1.RoleBinding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8461,7 +8522,7 @@ types:
             namedType: io.k8s.api.rbac.v1alpha1.Subject
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1alpha1.RoleBindingList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8479,7 +8540,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1alpha1.RoleList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8497,7 +8558,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1alpha1.RoleRef
-  struct:
+  map:
     fields:
     - name: apiGroup
       type:
@@ -8509,7 +8570,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.rbac.v1alpha1.Subject
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8524,7 +8585,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.rbac.v1beta1.AggregationRule
-  struct:
+  map:
     fields:
     - name: clusterRoleSelectors
       type:
@@ -8533,7 +8594,7 @@ types:
             namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1beta1.ClusterRole
-  struct:
+  map:
     fields:
     - name: aggregationRule
       type:
@@ -8554,7 +8615,7 @@ types:
             namedType: io.k8s.api.rbac.v1beta1.PolicyRule
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1beta1.ClusterRoleBinding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8575,7 +8636,7 @@ types:
             namedType: io.k8s.api.rbac.v1beta1.Subject
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1beta1.ClusterRoleBindingList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8593,7 +8654,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1beta1.ClusterRoleList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8611,7 +8672,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1beta1.PolicyRule
-  struct:
+  map:
     fields:
     - name: apiGroups
       type:
@@ -8644,7 +8705,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1beta1.Role
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8662,7 +8723,7 @@ types:
             namedType: io.k8s.api.rbac.v1beta1.PolicyRule
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1beta1.RoleBinding
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8683,7 +8744,7 @@ types:
             namedType: io.k8s.api.rbac.v1beta1.Subject
           elementRelationship: atomic
 - name: io.k8s.api.rbac.v1beta1.RoleBindingList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8701,7 +8762,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1beta1.RoleList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8719,7 +8780,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.rbac.v1beta1.RoleRef
-  struct:
+  map:
     fields:
     - name: apiGroup
       type:
@@ -8731,7 +8792,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.rbac.v1beta1.Subject
-  struct:
+  map:
     fields:
     - name: apiGroup
       type:
@@ -8746,7 +8807,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.scheduling.v1alpha1.PriorityClass
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8767,7 +8828,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.scheduling.v1alpha1.PriorityClassList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8785,7 +8846,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.scheduling.v1beta1.PriorityClass
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8806,7 +8867,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.api.scheduling.v1beta1.PriorityClassList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8824,7 +8885,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.settings.v1alpha1.PodPreset
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8839,7 +8900,7 @@ types:
       type:
         namedType: io.k8s.api.settings.v1alpha1.PodPresetSpec
 - name: io.k8s.api.settings.v1alpha1.PodPresetList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8857,7 +8918,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.settings.v1alpha1.PodPresetSpec
-  struct:
+  map:
     fields:
     - name: env
       type:
@@ -8887,7 +8948,7 @@ types:
             namedType: io.k8s.api.core.v1.Volume
           elementRelationship: atomic
 - name: io.k8s.api.storage.v1.StorageClass
-  struct:
+  map:
     fields:
     - name: allowVolumeExpansion
       type:
@@ -8928,7 +8989,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.storage.v1.StorageClassList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8946,7 +9007,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.storage.v1alpha1.VolumeAttachment
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8964,7 +9025,7 @@ types:
       type:
         namedType: io.k8s.api.storage.v1alpha1.VolumeAttachmentStatus
 - name: io.k8s.api.storage.v1alpha1.VolumeAttachmentList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -8982,13 +9043,13 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.storage.v1alpha1.VolumeAttachmentSource
-  struct:
+  map:
     fields:
     - name: persistentVolumeName
       type:
         scalar: string
 - name: io.k8s.api.storage.v1alpha1.VolumeAttachmentSpec
-  struct:
+  map:
     fields:
     - name: attacher
       type:
@@ -9000,7 +9061,7 @@ types:
       type:
         namedType: io.k8s.api.storage.v1alpha1.VolumeAttachmentSource
 - name: io.k8s.api.storage.v1alpha1.VolumeAttachmentStatus
-  struct:
+  map:
     fields:
     - name: attachError
       type:
@@ -9017,7 +9078,7 @@ types:
       type:
         namedType: io.k8s.api.storage.v1alpha1.VolumeError
 - name: io.k8s.api.storage.v1alpha1.VolumeError
-  struct:
+  map:
     fields:
     - name: message
       type:
@@ -9026,7 +9087,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.api.storage.v1beta1.StorageClass
-  struct:
+  map:
     fields:
     - name: allowVolumeExpansion
       type:
@@ -9067,7 +9128,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.api.storage.v1beta1.StorageClassList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9085,7 +9146,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.storage.v1beta1.VolumeAttachment
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9103,7 +9164,7 @@ types:
       type:
         namedType: io.k8s.api.storage.v1beta1.VolumeAttachmentStatus
 - name: io.k8s.api.storage.v1beta1.VolumeAttachmentList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9121,13 +9182,13 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.api.storage.v1beta1.VolumeAttachmentSource
-  struct:
+  map:
     fields:
     - name: persistentVolumeName
       type:
         scalar: string
 - name: io.k8s.api.storage.v1beta1.VolumeAttachmentSpec
-  struct:
+  map:
     fields:
     - name: attacher
       type:
@@ -9139,7 +9200,7 @@ types:
       type:
         namedType: io.k8s.api.storage.v1beta1.VolumeAttachmentSource
 - name: io.k8s.api.storage.v1beta1.VolumeAttachmentStatus
-  struct:
+  map:
     fields:
     - name: attachError
       type:
@@ -9156,7 +9217,7 @@ types:
       type:
         namedType: io.k8s.api.storage.v1beta1.VolumeError
 - name: io.k8s.api.storage.v1beta1.VolumeError
-  struct:
+  map:
     fields:
     - name: message
       type:
@@ -9165,7 +9226,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceColumnDefinition
-  struct:
+  map:
     fields:
     - name: JSONPath
       type:
@@ -9186,7 +9247,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinition
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9204,7 +9265,7 @@ types:
       type:
         namedType: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionStatus
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -9222,7 +9283,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9240,7 +9301,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionNames
-  struct:
+  map:
     fields:
     - name: categories
       type:
@@ -9267,7 +9328,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionSpec
-  struct:
+  map:
     fields:
     - name: additionalPrinterColumns
       type:
@@ -9300,7 +9361,7 @@ types:
             namedType: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionVersion
           elementRelationship: atomic
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionStatus
-  struct:
+  map:
     fields:
     - name: acceptedNames
       type:
@@ -9318,7 +9379,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinitionVersion
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -9330,7 +9391,7 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresourceScale
-  struct:
+  map:
     fields:
     - name: labelSelectorPath
       type:
@@ -9342,9 +9403,17 @@ types:
       type:
         scalar: string
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresourceStatus
-  untyped: {}
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresources
-  struct:
+  map:
     fields:
     - name: scale
       type:
@@ -9353,13 +9422,13 @@ types:
       type:
         namedType: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresourceStatus
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceValidation
-  struct:
+  map:
     fields:
     - name: openAPIV3Schema
       type:
         namedType: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.ExternalDocumentation
-  struct:
+  map:
     fields:
     - name: description
       type:
@@ -9368,9 +9437,17 @@ types:
       type:
         scalar: string
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSON
-  untyped: {}
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps
-  struct:
+  map:
     fields:
     - name: $ref
       type:
@@ -9504,15 +9581,39 @@ types:
       type:
         scalar: boolean
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaPropsOrArray
-  untyped: {}
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaPropsOrBool
-  untyped: {}
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaPropsOrStringArray
-  untyped: {}
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.api.resource.Quantity
   scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIGroup
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9539,7 +9640,7 @@ types:
             namedType: io.k8s.apimachinery.pkg.apis.meta.v1.GroupVersionForDiscovery
           elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIGroupList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9554,7 +9655,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIResource
-  struct:
+  map:
     fields:
     - name: categories
       type:
@@ -9593,7 +9694,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIResourceList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9611,7 +9712,7 @@ types:
             namedType: io.k8s.apimachinery.pkg.apis.meta.v1.APIResource
           elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIVersions
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9632,7 +9733,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9659,7 +9760,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.GroupVersionForDiscovery
-  struct:
+  map:
     fields:
     - name: groupVersion
       type:
@@ -9668,13 +9769,13 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Initializer
-  struct:
+  map:
     fields:
     - name: name
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Initializers
-  struct:
+  map:
     fields:
     - name: pending
       type:
@@ -9688,7 +9789,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Status
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-  struct:
+  map:
     fields:
     - name: matchExpressions
       type:
@@ -9702,7 +9803,7 @@ types:
           elementType:
             scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement
-  struct:
+  map:
     fields:
     - name: key
       type:
@@ -9717,7 +9818,7 @@ types:
             scalar: string
           elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
-  struct:
+  map:
     fields:
     - name: continue
       type:
@@ -9729,9 +9830,9 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
-  untyped: {}
+  scalar: untyped
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-  struct:
+  map:
     fields:
     - name: annotations
       type:
@@ -9794,7 +9895,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9815,15 +9916,23 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Patch
-  untyped: {}
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Preconditions
-  struct:
+  map:
     fields:
     - name: uid
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.ServerAddressByClientCIDR
-  struct:
+  map:
     fields:
     - name: clientCIDR
       type:
@@ -9832,7 +9941,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Status
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9859,7 +9968,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.StatusCause
-  struct:
+  map:
     fields:
     - name: field
       type:
@@ -9871,7 +9980,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.StatusDetails
-  struct:
+  map:
     fields:
     - name: causes
       type:
@@ -9895,26 +10004,26 @@ types:
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Time
-  untyped: {}
+  scalar: untyped
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent
-  struct:
+  map:
     fields:
     - name: object
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
     - name: type
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.runtime.RawExtension
-  struct:
+  map:
     fields:
     - name: Raw
       type:
         scalar: string
 - name: io.k8s.apimachinery.pkg.util.intstr.IntOrString
-  untyped: {}
+  scalar: untyped
 - name: io.k8s.apimachinery.pkg.version.Info
-  struct:
+  map:
     fields:
     - name: buildDate
       type:
@@ -9944,7 +10053,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIService
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9962,7 +10071,7 @@ types:
       type:
         namedType: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIServiceStatus
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIServiceCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -9980,7 +10089,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIServiceList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -9998,7 +10107,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIServiceSpec
-  struct:
+  map:
     fields:
     - name: caBundle
       type:
@@ -10022,7 +10131,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIServiceStatus
-  struct:
+  map:
     fields:
     - name: conditions
       type:
@@ -10033,7 +10142,7 @@ types:
           keys:
           - type
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.ServiceReference
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -10042,7 +10151,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.APIService
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -10060,7 +10169,7 @@ types:
       type:
         namedType: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.APIServiceStatus
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.APIServiceCondition
-  struct:
+  map:
     fields:
     - name: lastTransitionTime
       type:
@@ -10078,7 +10187,7 @@ types:
       type:
         scalar: string
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.APIServiceList
-  struct:
+  map:
     fields:
     - name: apiVersion
       type:
@@ -10096,7 +10205,7 @@ types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.APIServiceSpec
-  struct:
+  map:
     fields:
     - name: caBundle
       type:
@@ -10120,7 +10229,7 @@ types:
       type:
         scalar: numeric
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.APIServiceStatus
-  struct:
+  map:
     fields:
     - name: conditions
       type:
@@ -10131,7 +10240,7 @@ types:
           keys:
           - type
 - name: io.k8s.kube-aggregator.pkg.apis.apiregistration.v1beta1.ServiceReference
-  struct:
+  map:
     fields:
     - name: name
       type:
@@ -10139,3 +10248,23 @@ types:
     - name: namespace
       type:
         scalar: string
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+- name: __untyped_deduced_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_deduced_
+    elementRelationship: separable

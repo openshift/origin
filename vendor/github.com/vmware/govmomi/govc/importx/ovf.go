@@ -215,6 +215,7 @@ func (cmd *ovfx) NetworkMap(e *ovf.Envelope) (p []types.OvfNetworkMapping) {
 
 func (cmd *ovfx) Import(fpath string) (*types.ManagedObjectReference, error) {
 	ctx := context.TODO()
+
 	o, err := cmd.ReadOvf(fpath)
 	if err != nil {
 		return nil, err
@@ -222,7 +223,7 @@ func (cmd *ovfx) Import(fpath string) (*types.ManagedObjectReference, error) {
 
 	e, err := cmd.ReadEnvelope(o)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ovf: %s", err.Error())
+		return nil, fmt.Errorf("failed to parse ovf: %s", err)
 	}
 
 	name := "Govc Virtual Appliance"

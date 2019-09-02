@@ -16,6 +16,7 @@ import (
 	"sort"
 
 	"github.com/boltdb/bolt"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/idgen"
 	"github.com/heketi/heketi/pkg/sortedstrings"
@@ -155,6 +156,11 @@ func (c *ClusterEntry) VolumeDelete(id string) {
 	c.Info.Volumes = sortedstrings.Delete(c.Info.Volumes, id)
 }
 
+// VolumeCount returns number of volumes in cluster *including* the pending ones
+func (c *ClusterEntry) volumeCount() int {
+	return len(c.Info.Volumes)
+}
+
 func (c *ClusterEntry) BlockVolumeAdd(id string) {
 	c.Info.BlockVolumes = append(c.Info.BlockVolumes, id)
 	c.Info.BlockVolumes.Sort()
@@ -237,4 +243,66 @@ func (c *ClusterEntry) DeleteBricksWithEmptyPath(tx *bolt.Tx) error {
 		}
 	}
 	return nil
+}
+
+// hosts returns a node-to-host mapping for all nodes in the
+// cluster.
+func (c *ClusterEntry) hosts(db wdb.RODB) (nodeHosts, error) {
+	hosts := nodeHosts{}
+	err := db.View(func(tx *bolt.Tx) error {
+		for _, nodeId := range c.Info.Nodes {
+			node, err := NewNodeEntryFromId(tx, nodeId)
+			if err != nil {
+				return err
+			}
+			hosts[nodeId] = node.ManageHostName()
+		}
+		return nil
+	})
+	return hosts, err
+}
+
+// consistencyCheck ... verifies that a clusterEntry is consistent with rest of the database.
+// It is a method on clusterEntry and needs rest of the database as its input.
+func (c *ClusterEntry) consistencyCheck(db Db) (response DbEntryCheckResponse) {
+
+	// No consistency check required for following attributes
+	// Id
+	// ClusterFlags
+
+	// Nodes
+	for _, node := range c.Info.Nodes {
+		if nodeEntry, found := db.Nodes[node]; !found {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Cluster %v unknown node %v", c.Info.Id, node))
+		} else {
+			if nodeEntry.Info.ClusterId != c.Info.Id {
+				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Cluster %v no link back to cluster from node %v", c.Info.Id, node))
+			}
+		}
+	}
+
+	// Volumes
+	for _, volume := range c.Info.Volumes {
+		if volumeEntry, found := db.Volumes[volume]; !found {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Cluster %v unknown volume %v", c.Info.Id, volume))
+		} else {
+			if volumeEntry.Info.Cluster != c.Info.Id {
+				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Cluster %v no link back to cluster from volume %v", c.Info.Id, volume))
+			}
+		}
+	}
+
+	// BlockVolumes
+	for _, blockvolume := range c.Info.BlockVolumes {
+		if blockvolumeEntry, found := db.BlockVolumes[blockvolume]; !found {
+			response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Cluster %v unknown blockvolume %v", c.Info.Id, blockvolume))
+		} else {
+			if blockvolumeEntry.Info.Cluster != c.Info.Id {
+				response.Inconsistencies = append(response.Inconsistencies, fmt.Sprintf("Cluster %v no link back to cluster from blockvolume %v", c.Info.Id, blockvolume))
+			}
+		}
+	}
+
+	return
+
 }
