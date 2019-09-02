@@ -102,10 +102,9 @@ import:
   version: prebase-1.16
 
 # forks third
-# master
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
-  version: release-v1.2.0
+  version: origin-4.3
 # pod - sjenning
 # origin-3.11-runc-871ba2e
 - package: github.com/opencontainers/runc
