@@ -3752,7 +3752,7 @@ type namePopulatorAdmissionControl struct {
 	populateName string
 }
 
-func (npac *namePopulatorAdmissionControl) Validate(a admission.Attributes, o admission.ObjectInterfaces) (err error) {
+func (npac *namePopulatorAdmissionControl) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) (err error) {
 	if a.GetName() != npac.populateName {
 		npac.t.Errorf("Unexpected name: got %q, expected %q", a.GetName(), npac.populateName)
 	}
