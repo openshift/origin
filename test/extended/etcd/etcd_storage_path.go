@@ -26,7 +26,8 @@ import (
 	"k8s.io/client-go/restmapper"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+
+	//kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	etcdv3 "github.com/coreos/etcd/clientv3"

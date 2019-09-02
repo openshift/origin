@@ -17,7 +17,8 @@ import (
 	apiserveruser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+
+	//kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rbacvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	g "github.com/onsi/ginkgo"
