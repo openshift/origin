@@ -5,6 +5,7 @@
 package community
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -43,11 +44,13 @@ var batageljZaversnikGraph = []intset{
 }
 
 var kCliqueCommunitiesTests = []struct {
+	name string
 	g    []intset
 	k    int
 	want [][]graph.Node
 }{
 	{
+		name: "simple",
 		g: []intset{
 			0: linksTo(1, 2, 4, 6),
 			1: linksTo(2, 4, 6),
@@ -65,8 +68,9 @@ var kCliqueCommunitiesTests = []struct {
 		},
 	},
 	{
-		g: batageljZaversnikGraph,
-		k: 3,
+		name: "Batagelj-Zaversnik Graph",
+		g:    batageljZaversnikGraph,
+		k:    3,
 		want: [][]graph.Node{
 			{simple.Node(0)},
 			{simple.Node(1)},
@@ -84,8 +88,9 @@ var kCliqueCommunitiesTests = []struct {
 		},
 	},
 	{
-		g: batageljZaversnikGraph,
-		k: 4,
+		name: "Batagelj-Zaversnik Graph",
+		g:    batageljZaversnikGraph,
+		k:    4,
 		want: [][]graph.Node{
 			{simple.Node(0)},
 			{simple.Node(1)},
@@ -111,7 +116,7 @@ func TestKCliqueCommunities(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -126,7 +131,32 @@ func TestKCliqueCommunities(t *testing.T) {
 		sort.Sort(ordered.BySliceIDs(got))
 
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("unexpected k-connected components:\ngot: %v\nwant:%v", got, test.want)
+			t.Errorf("unexpected k-connected components for %q k=%d:\ngot: %v\nwant:%v", test.name, test.k, got, test.want)
 		}
+	}
+}
+
+func BenchmarkKCliqueCommunities(b *testing.B) {
+	for _, test := range kCliqueCommunitiesTests {
+		g := simple.NewUndirectedGraph()
+		for u, e := range test.g {
+			// Add nodes that are not defined by an edge.
+			if g.Node(int64(u)) == nil {
+				g.AddNode(simple.Node(u))
+			}
+			for v := range e {
+				g.SetEdge(simple.Edge{F: simple.Node(u), T: simple.Node(v)})
+			}
+		}
+
+		b.Run(fmt.Sprintf("%s-k=%d", test.name, test.k), func(b *testing.B) {
+			var got [][]graph.Node
+			for i := 0; i < b.N; i++ {
+				got = KCliqueCommunities(test.k, g)
+			}
+			if len(got) != len(test.want) {
+				b.Errorf("unexpected k-connected components for %q k=%d:\ngot: %v\nwant:%v", test.name, test.k, got, test.want)
+			}
+		})
 	}
 }

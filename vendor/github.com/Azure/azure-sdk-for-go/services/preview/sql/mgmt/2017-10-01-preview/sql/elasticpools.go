@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -50,6 +51,16 @@ func NewElasticPoolsClientWithBaseURI(baseURI string, subscriptionID string) Ela
 // elasticPoolName - the name of the elastic pool.
 // parameters - the elastic pool parameters.
 func (client ElasticPoolsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, parameters ElasticPool) (result ElasticPoolsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Sku", Name: validation.Null, Rule: false,
@@ -86,6 +97,7 @@ func (client ElasticPoolsClient) CreateOrUpdatePreparer(ctx context.Context, res
 		"api-version": APIVersion,
 	}
 
+	parameters.Kind = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -99,13 +111,9 @@ func (client ElasticPoolsClient) CreateOrUpdatePreparer(ctx context.Context, res
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ElasticPoolsClient) CreateOrUpdateSender(req *http.Request) (future ElasticPoolsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -133,6 +141,16 @@ func (client ElasticPoolsClient) CreateOrUpdateResponder(resp *http.Response) (r
 // serverName - the name of the server.
 // elasticPoolName - the name of the elastic pool.
 func (client ElasticPoolsClient) Delete(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result ElasticPoolsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, serverName, elasticPoolName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "Delete", nil, "Failure preparing request")
@@ -173,13 +191,9 @@ func (client ElasticPoolsClient) DeletePreparer(ctx context.Context, resourceGro
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ElasticPoolsClient) DeleteSender(req *http.Request) (future ElasticPoolsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -206,6 +220,16 @@ func (client ElasticPoolsClient) DeleteResponder(resp *http.Response) (result au
 // serverName - the name of the server.
 // elasticPoolName - the name of the elastic pool.
 func (client ElasticPoolsClient) Get(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string) (result ElasticPool, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, serverName, elasticPoolName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "Get", nil, "Failure preparing request")
@@ -252,8 +276,8 @@ func (client ElasticPoolsClient) GetPreparer(ctx context.Context, resourceGroupN
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ElasticPoolsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -276,6 +300,16 @@ func (client ElasticPoolsClient) GetResponder(resp *http.Response) (result Elast
 // serverName - the name of the server.
 // skip - the number of elements in the collection to skip.
 func (client ElasticPoolsClient) ListByServer(ctx context.Context, resourceGroupName string, serverName string, skip *int32) (result ElasticPoolListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.ListByServer")
+		defer func() {
+			sc := -1
+			if result.eplr.Response.Response != nil {
+				sc = result.eplr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByServerNextResults
 	req, err := client.ListByServerPreparer(ctx, resourceGroupName, serverName, skip)
 	if err != nil {
@@ -325,8 +359,8 @@ func (client ElasticPoolsClient) ListByServerPreparer(ctx context.Context, resou
 // ListByServerSender sends the ListByServer request. The method will close the
 // http.Response Body if it receives an error.
 func (client ElasticPoolsClient) ListByServerSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByServerResponder handles the response to the ListByServer request. The method always
@@ -343,8 +377,8 @@ func (client ElasticPoolsClient) ListByServerResponder(resp *http.Response) (res
 }
 
 // listByServerNextResults retrieves the next set of results, if any.
-func (client ElasticPoolsClient) listByServerNextResults(lastResults ElasticPoolListResult) (result ElasticPoolListResult, err error) {
-	req, err := lastResults.elasticPoolListResultPreparer()
+func (client ElasticPoolsClient) listByServerNextResults(ctx context.Context, lastResults ElasticPoolListResult) (result ElasticPoolListResult, err error) {
+	req, err := lastResults.elasticPoolListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "listByServerNextResults", nil, "Failure preparing next results request")
 	}
@@ -365,6 +399,16 @@ func (client ElasticPoolsClient) listByServerNextResults(lastResults ElasticPool
 
 // ListByServerComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ElasticPoolsClient) ListByServerComplete(ctx context.Context, resourceGroupName string, serverName string, skip *int32) (result ElasticPoolListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.ListByServer")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByServer(ctx, resourceGroupName, serverName, skip)
 	return
 }
@@ -377,6 +421,16 @@ func (client ElasticPoolsClient) ListByServerComplete(ctx context.Context, resou
 // elasticPoolName - the name of the elastic pool.
 // parameters - the elastic pool update parameters.
 func (client ElasticPoolsClient) Update(ctx context.Context, resourceGroupName string, serverName string, elasticPoolName string, parameters ElasticPoolUpdate) (result ElasticPoolsUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ElasticPoolsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, serverName, elasticPoolName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "sql.ElasticPoolsClient", "Update", nil, "Failure preparing request")
@@ -419,13 +473,9 @@ func (client ElasticPoolsClient) UpdatePreparer(ctx context.Context, resourceGro
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ElasticPoolsClient) UpdateSender(req *http.Request) (future ElasticPoolsUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}

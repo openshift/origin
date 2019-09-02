@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewReplicaClientWithBaseURI(baseURI string, subscriptionID string) ReplicaC
 // serviceName - the identity of the service.
 // replicaName - the identity of the service replica.
 func (client ReplicaClient) Get(ctx context.Context, resourceGroupName string, applicationName string, serviceName string, replicaName string) (result ServiceReplicaDescription, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicaClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, applicationName, serviceName, replicaName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabricmesh.ReplicaClient", "Get", nil, "Failure preparing request")
@@ -94,8 +105,8 @@ func (client ReplicaClient) GetPreparer(ctx context.Context, resourceGroupName s
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicaClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -118,6 +129,16 @@ func (client ReplicaClient) GetResponder(resp *http.Response) (result ServiceRep
 // applicationName - the identity of the application.
 // serviceName - the identity of the service.
 func (client ReplicaClient) ListByServiceName(ctx context.Context, resourceGroupName string, applicationName string, serviceName string) (result ServiceReplicaListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicaClient.ListByServiceName")
+		defer func() {
+			sc := -1
+			if result.srl.Response.Response != nil {
+				sc = result.srl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByServiceNameNextResults
 	req, err := client.ListByServiceNamePreparer(ctx, resourceGroupName, applicationName, serviceName)
 	if err != nil {
@@ -165,8 +186,8 @@ func (client ReplicaClient) ListByServiceNamePreparer(ctx context.Context, resou
 // ListByServiceNameSender sends the ListByServiceName request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicaClient) ListByServiceNameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByServiceNameResponder handles the response to the ListByServiceName request. The method always
@@ -183,8 +204,8 @@ func (client ReplicaClient) ListByServiceNameResponder(resp *http.Response) (res
 }
 
 // listByServiceNameNextResults retrieves the next set of results, if any.
-func (client ReplicaClient) listByServiceNameNextResults(lastResults ServiceReplicaList) (result ServiceReplicaList, err error) {
-	req, err := lastResults.serviceReplicaListPreparer()
+func (client ReplicaClient) listByServiceNameNextResults(ctx context.Context, lastResults ServiceReplicaList) (result ServiceReplicaList, err error) {
+	req, err := lastResults.serviceReplicaListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicefabricmesh.ReplicaClient", "listByServiceNameNextResults", nil, "Failure preparing next results request")
 	}
@@ -205,6 +226,16 @@ func (client ReplicaClient) listByServiceNameNextResults(lastResults ServiceRepl
 
 // ListByServiceNameComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ReplicaClient) ListByServiceNameComplete(ctx context.Context, resourceGroupName string, applicationName string, serviceName string) (result ServiceReplicaListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ReplicaClient.ListByServiceName")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByServiceName(ctx, resourceGroupName, applicationName, serviceName)
 	return
 }

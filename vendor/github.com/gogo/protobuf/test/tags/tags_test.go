@@ -89,7 +89,7 @@ func TestJson(t *testing.T) {
 }
 
 func TestXml(t *testing.T) {
-	s := "<Outside>Field1Value<!--Field2Value--><XXX_unrecognized></XXX_unrecognized></Outside>"
+	s := "<Outside>Field1Value<!--Field2Value--><XXX_NoUnkeyedLiteral></XXX_NoUnkeyedLiteral><XXX_unrecognized></XXX_unrecognized><XXX_sizecache>0</XXX_sizecache></Outside>"
 	field1 := "Field1Value"
 	field2 := "Field2Value"
 	msg1 := &Outside{}

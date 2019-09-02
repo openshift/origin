@@ -253,9 +253,9 @@ func CreateProfile(t *testing.T, client *gophercloud.ServiceClient) (*profiles.P
 	return profile, nil
 }
 
-// CreateReceiver will create a random profile. An error will be returned if the
-// profile could not be created.
-func CreateReceiver(t *testing.T, client *gophercloud.ServiceClient, clusterID string) (*receivers.Receiver, error) {
+// CreateWebhookReceiver will create a random webhook receiver. An error will be returned if the
+// receiver could not be created.
+func CreateWebhookReceiver(t *testing.T, client *gophercloud.ServiceClient, clusterID string) (*receivers.Receiver, error) {
 	name := tools.RandomString("TESTACC-", 8)
 	t.Logf("Attempting to create receiver: %s", name)
 
@@ -276,7 +276,40 @@ func CreateReceiver(t *testing.T, client *gophercloud.ServiceClient, clusterID s
 		return nil, err
 	}
 
-	t.Logf("Successfully created receiver: %s", receiver.ID)
+	t.Logf("Successfully created webhook receiver: %s", receiver.ID)
+
+	tools.PrintResource(t, receiver)
+	tools.PrintResource(t, receiver.CreatedAt)
+
+	th.AssertEquals(t, name, receiver.Name)
+	th.AssertEquals(t, createOpts.Action, receiver.Action)
+
+	return receiver, nil
+}
+
+// CreateMessageReceiver will create a message receiver with a random name. An error will be returned if the
+// receiver could not be created.
+func CreateMessageReceiver(t *testing.T, client *gophercloud.ServiceClient, clusterID string) (*receivers.Receiver, error) {
+	name := tools.RandomString("TESTACC-", 8)
+	t.Logf("Attempting to create receiver: %s", name)
+
+	createOpts := receivers.CreateOpts{
+		Name:      name,
+		ClusterID: clusterID,
+		Type:      receivers.MessageReceiver,
+	}
+
+	res := receivers.Create(client, createOpts)
+	if res.Err != nil {
+		return nil, res.Err
+	}
+
+	receiver, err := res.Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	t.Logf("Successfully created message receiver: %s", receiver.ID)
 
 	tools.PrintResource(t, receiver)
 	tools.PrintResource(t, receiver.CreatedAt)

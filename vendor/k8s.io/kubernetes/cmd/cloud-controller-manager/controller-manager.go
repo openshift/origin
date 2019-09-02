@@ -20,7 +20,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -30,9 +29,8 @@ import (
 
 	// NOTE: Importing all in-tree cloud-providers is not required when
 	// implementing an out-of-tree cloud-provider.
+	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
 	_ "k8s.io/kubernetes/pkg/cloudprovider/providers"
-	_ "k8s.io/kubernetes/pkg/util/prometheusclientgo" // load all the prometheus client-go plugins
-	_ "k8s.io/kubernetes/pkg/version/prometheus"      // for version metric registration
 )
 
 func main() {
@@ -48,7 +46,6 @@ func main() {
 	defer logs.FlushLogs()
 
 	if err := command.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }

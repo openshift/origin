@@ -31,7 +31,7 @@ func TestClusteringWebhookTrigger(t *testing.T) {
 	th.AssertNoErr(t, err)
 	defer DeleteCluster(t, client, cluster.ID)
 
-	receiver, err := CreateReceiver(t, client, cluster.ID)
+	receiver, err := CreateWebhookReceiver(t, client, cluster.ID)
 	th.AssertNoErr(t, err)
 	defer DeleteReceiver(t, client, receiver.ID)
 

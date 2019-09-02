@@ -15,7 +15,7 @@
   "description": "Manages the deployment of apps to Android for Work users.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/android/work/play/emm-api",
-  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/IZCjgGDDKedFiNKgpvDS2HRk648\"",
+  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/GOyaohosJtPtOLAbitwIhilRmds\"",
   "icons": {
     "x16": "https://www.google.com/images/icons/product/android-16.png",
     "x32": "https://www.google.com/images/icons/product/android-32.png"
@@ -74,6 +74,40 @@
   "resources": {
     "devices": {
       "methods": {
+        "forceReportUpload": {
+          "description": "Uploads a report containing any changes in app states on the device since the last report was generated. You can call this method up to 3 times every 24 hours for a given device.",
+          "httpMethod": "POST",
+          "id": "androidenterprise.devices.forceReportUpload",
+          "parameterOrder": [
+            "enterpriseId",
+            "userId",
+            "deviceId"
+          ],
+          "parameters": {
+            "deviceId": {
+              "description": "The ID of the device.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            },
+            "enterpriseId": {
+              "description": "The ID of the enterprise.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            },
+            "userId": {
+              "description": "The ID of the user.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/forceReportUpload",
+          "scopes": [
+            "https://www.googleapis.com/auth/androidenterprise"
+          ]
+        },
         "get": {
           "description": "Retrieves the details of a device.",
           "httpMethod": "GET",
@@ -446,29 +480,6 @@
             "https://www.googleapis.com/auth/androidenterprise"
           ]
         },
-        "getAndroidDevicePolicyConfig": {
-          "description": "Deprecated and unused.",
-          "httpMethod": "GET",
-          "id": "androidenterprise.enterprises.getAndroidDevicePolicyConfig",
-          "parameterOrder": [
-            "enterpriseId"
-          ],
-          "parameters": {
-            "enterpriseId": {
-              "description": "The ID of the enterprise.",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            }
-          },
-          "path": "enterprises/{enterpriseId}/androidDevicePolicyConfig",
-          "response": {
-            "$ref": "AndroidDevicePolicyConfig"
-          },
-          "scopes": [
-            "https://www.googleapis.com/auth/androidenterprise"
-          ]
-        },
         "getServiceAccount": {
           "description": "Returns a service account and credentials. The service account can be bound to the enterprise by calling setAccount. The service account is unique to this enterprise and EMM, and will be deleted if the enterprise is unbound. The credentials contain private key data and are not stored server-side.\n\nThis method can only be called after calling Enterprises.Enroll or Enterprises.CompleteSignup, and before Enterprises.SetAccount; at other times it will return an error.\n\nSubsequent calls after the first will generate a new, unique set of credentials, and invalidate the previously generated credentials.\n\nOnce the service account is bound to the enterprise, it can be managed using the serviceAccountKeys resource.",
           "httpMethod": "GET",
@@ -622,32 +633,6 @@
           },
           "response": {
             "$ref": "EnterpriseAccount"
-          },
-          "scopes": [
-            "https://www.googleapis.com/auth/androidenterprise"
-          ]
-        },
-        "setAndroidDevicePolicyConfig": {
-          "description": "Deprecated and unused.",
-          "httpMethod": "PUT",
-          "id": "androidenterprise.enterprises.setAndroidDevicePolicyConfig",
-          "parameterOrder": [
-            "enterpriseId"
-          ],
-          "parameters": {
-            "enterpriseId": {
-              "description": "The ID of the enterprise.",
-              "location": "path",
-              "required": true,
-              "type": "string"
-            }
-          },
-          "path": "enterprises/{enterpriseId}/androidDevicePolicyConfig",
-          "request": {
-            "$ref": "AndroidDevicePolicyConfig"
-          },
-          "response": {
-            "$ref": "AndroidDevicePolicyConfig"
           },
           "scopes": [
             "https://www.googleapis.com/auth/androidenterprise"
@@ -1881,7 +1866,7 @@
               "type": "string"
             },
             "token": {
-              "description": "A pagination token is contained in a request''s response when there are more products. The token can be used in a subsequent request to obtain more products, and so forth. This parameter cannot be used in the initial request.",
+              "description": "A pagination token is contained in a request's response when there are more products. The token can be used in a subsequent request to obtain more products, and so forth. This parameter cannot be used in the initial request.",
               "location": "query",
               "type": "string"
             }
@@ -2934,7 +2919,7 @@
       }
     }
   },
-  "revision": "20181205",
+  "revision": "20190530",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Administrator": {
@@ -2973,6 +2958,10 @@
           "description": "Identifies what kind of resource this is. Value: the fixed string \"androidenterprise#administratorWebTokenSpec\".",
           "type": "string"
         },
+        "managedConfigurations": {
+          "$ref": "AdministratorWebTokenSpecManagedConfigurations",
+          "description": "Options for displaying the Managed Configuration page."
+        },
         "parent": {
           "description": "The URI of the parent frame hosting the iframe. To prevent XSS, the iframe may not be hosted at other URIs. This URI must be https.",
           "type": "string"
@@ -2999,6 +2988,16 @@
         "webApps": {
           "$ref": "AdministratorWebTokenSpecWebApps",
           "description": "Options for displaying the Web Apps page."
+        }
+      },
+      "type": "object"
+    },
+    "AdministratorWebTokenSpecManagedConfigurations": {
+      "id": "AdministratorWebTokenSpecManagedConfigurations",
+      "properties": {
+        "enabled": {
+          "description": "Whether the Managed Configuration page is displayed. Default is true.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -3043,22 +3042,6 @@
         "enabled": {
           "description": "Whether the Web Apps page is displayed. Default is true.",
           "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
-    "AndroidDevicePolicyConfig": {
-      "description": "Deprecated and unused.",
-      "id": "AndroidDevicePolicyConfig",
-      "properties": {
-        "kind": {
-          "default": "androidenterprise#androidDevicePolicyConfig",
-          "description": "Identifies what kind of resource this is. Value: the fixed string \"androidenterprise#androidDevicePolicyConfig\".",
-          "type": "string"
-        },
-        "state": {
-          "description": "Deprecated and unused.",
-          "type": "string"
         }
       },
       "type": "object"
@@ -3172,6 +3155,24 @@
       },
       "type": "object"
     },
+    "AppState": {
+      "description": "List of states set by the app.",
+      "id": "AppState",
+      "properties": {
+        "keyedAppState": {
+          "description": "List of keyed app states. This field will always be present.",
+          "items": {
+            "$ref": "KeyedAppState"
+          },
+          "type": "array"
+        },
+        "packageName": {
+          "description": "The package name of the app. This field will always be present.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "AppUpdateEvent": {
       "description": "An event generated when a new version of an app is uploaded to Google Play. Notifications are sent for new public versions only: alpha, beta, or canary versions do not generate this event. To fetch up-to-date version history for an app, use Products.Get on the EMM API.",
       "id": "AppUpdateEvent",
@@ -3247,19 +3248,19 @@
       "type": "object"
     },
     "AutoInstallConstraint": {
-      "description": "The Auto install constraint. Defines a set of restrictions for installation. At least one of the fields must be set.",
+      "description": "The auto-install constraint. Defines a set of restrictions for installation. At least one of the fields must be set.",
       "id": "AutoInstallConstraint",
       "properties": {
         "chargingStateConstraint": {
-          "description": "Charging state to constrain on.",
+          "description": "Charging state constraint.",
           "type": "string"
         },
         "deviceIdleStateConstraint": {
-          "description": "The idle state of the device to constrain on.",
+          "description": "Device idle state constraint.",
           "type": "string"
         },
         "networkTypeConstraint": {
-          "description": "Network type to constrain on.",
+          "description": "Network type constraint.",
           "type": "string"
         }
       },
@@ -3269,23 +3270,23 @@
       "id": "AutoInstallPolicy",
       "properties": {
         "autoInstallConstraint": {
-          "description": "The constraints for the install. Currently there can be at most one constraint.",
+          "description": "The constraints for auto-installing the app. You can specify a maximum of one constraint.",
           "items": {
             "$ref": "AutoInstallConstraint"
           },
           "type": "array"
         },
         "autoInstallMode": {
-          "description": "The auto install mode. If unset defaults to AVAILABLE.",
+          "description": "The auto-install mode. If unset defaults to \"doNotAutoInstall\".",
           "type": "string"
         },
         "autoInstallPriority": {
-          "description": "The priority of the install, as an unsigned integer. Lower number means higher priority.",
+          "description": "The priority of the install, as an unsigned integer. A lower number means higher priority.",
           "format": "int32",
           "type": "integer"
         },
         "minimumVersionCode": {
-          "description": "The minimum version of the app. If a lower version of the app is installed then the app will be auto-updated according to the auto-install constraints, instead of waiting for the regular auto-update.",
+          "description": "The minimum version of the app. If a lower version of the app is installed, then the app will be auto-updated according to the auto-install constraints, instead of waiting for the regular auto-update.",
           "format": "int32",
           "type": "integer"
         }
@@ -3335,6 +3336,48 @@
         "policy": {
           "$ref": "Policy",
           "description": "The policy enforced on the device."
+        },
+        "report": {
+          "$ref": "DeviceReport",
+          "description": "The device report updated with the latest app states."
+        }
+      },
+      "type": "object"
+    },
+    "DeviceReport": {
+      "description": "Device report updated with the latest app states for managed apps on the device.",
+      "id": "DeviceReport",
+      "properties": {
+        "appState": {
+          "description": "List of app states set by managed apps on the device. App states are defined by the app's developers. This field will always be present.",
+          "items": {
+            "$ref": "AppState"
+          },
+          "type": "array"
+        },
+        "lastUpdatedTimestampMillis": {
+          "description": "The timestamp of the last report update in milliseconds since epoch. This field will always be present.",
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "DeviceReportUpdateEvent": {
+      "description": "An event generated when an updated device report is available.",
+      "id": "DeviceReportUpdateEvent",
+      "properties": {
+        "deviceId": {
+          "description": "The Android ID of the device. This field will always be present.",
+          "type": "string"
+        },
+        "report": {
+          "$ref": "DeviceReport",
+          "description": "The device report updated with the latest app states. This field will always be present."
+        },
+        "userId": {
+          "description": "The ID of the user. This field will always be present.",
+          "type": "string"
         }
       },
       "type": "object"
@@ -3640,6 +3683,34 @@
       },
       "type": "object"
     },
+    "KeyedAppState": {
+      "description": "Represents a keyed app state containing a key, timestamp, severity level, optional description, and optional data.",
+      "id": "KeyedAppState",
+      "properties": {
+        "data": {
+          "description": "Additional field intended for machine-readable data. For example, a number or JSON object. To prevent XSS, we recommend removing any HTML from the data before displaying it.",
+          "type": "string"
+        },
+        "key": {
+          "description": "Key indicating what the app is providing a state for. The content of the key is set by the app's developer. To prevent XSS, we recommend removing any HTML from the key before displaying it. This field will always be present.",
+          "type": "string"
+        },
+        "message": {
+          "description": "Free-form, human-readable message describing the app state. For example, an error message. To prevent XSS, we recommend removing any HTML from the message before displaying it.",
+          "type": "string"
+        },
+        "severity": {
+          "description": "Severity of the app state. This field will always be present.",
+          "type": "string"
+        },
+        "stateTimestampMillis": {
+          "description": "Timestamp of when the app set the state in milliseconds since epoch. This field will always be present.",
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "LocalizedText": {
       "description": "A localized string with its locale.",
       "id": "LocalizedText",
@@ -3904,6 +3975,10 @@
           "$ref": "AppUpdateEvent",
           "description": "Notifications about app updates."
         },
+        "deviceReportUpdateEvent": {
+          "$ref": "DeviceReportUpdateEvent",
+          "description": "Notifications about device report updates."
+        },
         "enterpriseId": {
           "description": "The ID of the enterprise for which the notification is sent. This will always be present.",
           "type": "string"
@@ -4011,6 +4086,10 @@
       "properties": {
         "autoUpdatePolicy": {
           "description": "The auto-update policy for apps installed on the device. \"choiceToTheUser\" allows the device's user to configure the app update policy. \"always\" enables auto updates. \"never\" disables auto updates. \"wifiOnly\" enables auto updates only when the device is connected to wifi.",
+          "type": "string"
+        },
+        "deviceReportPolicy": {
+          "description": "Whether the device reports app states to the EMM. The default value is \"deviceReportDisabled\".",
           "type": "string"
         },
         "maintenanceWindow": {
@@ -4229,7 +4308,11 @@
       "properties": {
         "autoInstallPolicy": {
           "$ref": "AutoInstallPolicy",
-          "description": "The auto install policy for the product."
+          "description": "The auto-install policy for the product."
+        },
+        "managedConfiguration": {
+          "$ref": "ManagedConfiguration",
+          "description": "The managed configuration for the product."
         },
         "productId": {
           "description": "The ID of the product. For example, \"app:com.google.android.gm\".",
@@ -4713,15 +4796,15 @@
       "type": "object"
     },
     "WebApp": {
-      "description": "WebApp resource info.",
+      "description": "A WebApps resource represents a web app created for an enterprise. Web apps are published to managed Google Play and can be distributed like other Android apps. On a user's device, a web app opens its specified URL.",
       "id": "WebApp",
       "properties": {
         "displayMode": {
-          "description": "The display mode of the web app.",
+          "description": "The display mode of the web app.\n\nPossible values include: \n- \"minimalUi\", the device's status bar, navigation bar, the app's URL, and a refresh button are visible when the app is open. For HTTP URLs, you can only select this option.\n- \"standalone\", the device's status bar and navigation bar are visible when the app is open.\n- \"fullScreen\", the app opens in full screen mode, hiding the device's status and navigation bars. All browser UI elements, page URL, system status bar and back button are not visible, and the web app takes up the entirety of the available display area.",
           "type": "string"
         },
         "icons": {
-          "description": "A list of icons representing this website. Must have at least one element.",
+          "description": "A list of icons representing this website. If absent, a default icon (for create) or the current icon (for update) will be used.",
           "items": {
             "$ref": "WebAppIcon"
           },
@@ -4736,7 +4819,7 @@
           "type": "string"
         },
         "title": {
-          "description": "The title of the web application as displayed to the user (e.g., amongst a list of other applications, or as a label for an icon).",
+          "description": "The title of the web app as displayed to the user (e.g., amongst a list of other applications, or as a label for an icon).",
           "type": "string"
         },
         "versionCode": {
@@ -4745,7 +4828,7 @@
           "type": "string"
         },
         "webAppId": {
-          "description": "The ID of the application.",
+          "description": "The ID of the application. A string of the form \"app:\u003cpackage name\u003e\" where the package name always starts with the prefix \"com.google.enterprise.webapp.\" followed by a random id.",
           "type": "string"
         }
       },

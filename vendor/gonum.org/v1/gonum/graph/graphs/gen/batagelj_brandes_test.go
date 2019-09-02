@@ -56,9 +56,14 @@ func TestGnpUndirected(t *testing.T) {
 	for n := 2; n <= 20; n++ {
 		for p := 0.; p <= 1; p += 0.1 {
 			g := &gnUndirected{UndirectedBuilder: simple.NewUndirectedGraph()}
+			orig := g.NewNode()
+			g.AddNode(orig)
 			err := Gnp(g, n, p, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: n=%d, p=%v: %v", n, p, err)
+			}
+			if g.From(orig.ID()).Len() != 0 {
+				t.Errorf("edge added from already existing node: n=%d, p=%v", n, p)
 			}
 			if g.addBackwards {
 				t.Errorf("edge added with From.ID > To.ID: n=%d, p=%v", n, p)
@@ -77,9 +82,14 @@ func TestGnpDirected(t *testing.T) {
 	for n := 2; n <= 20; n++ {
 		for p := 0.; p <= 1; p += 0.1 {
 			g := &gnDirected{DirectedBuilder: simple.NewDirectedGraph()}
+			orig := g.NewNode()
+			g.AddNode(orig)
 			err := Gnp(g, n, p, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: n=%d, p=%v: %v", n, p, err)
+			}
+			if g.From(orig.ID()).Len() != 0 {
+				t.Errorf("edge added from already existing node: n=%d, p=%v", n, p)
 			}
 			if g.addSelfLoop {
 				t.Errorf("unexpected self edge: n=%d, p=%v", n, p)
@@ -96,9 +106,14 @@ func TestGnmUndirected(t *testing.T) {
 		nChoose2 := (n - 1) * n / 2
 		for m := 0; m <= nChoose2; m++ {
 			g := &gnUndirected{UndirectedBuilder: simple.NewUndirectedGraph()}
+			orig := g.NewNode()
+			g.AddNode(orig)
 			err := Gnm(g, n, m, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: n=%d, m=%d: %v", n, m, err)
+			}
+			if g.From(orig.ID()).Len() != 0 {
+				t.Errorf("edge added from already existing node: n=%d, m=%d", n, m)
 			}
 			if g.addBackwards {
 				t.Errorf("edge added with From.ID > To.ID: n=%d, m=%d", n, m)
@@ -118,9 +133,14 @@ func TestGnmDirected(t *testing.T) {
 		nChoose2 := (n - 1) * n / 2
 		for m := 0; m <= nChoose2*2; m++ {
 			g := &gnDirected{DirectedBuilder: simple.NewDirectedGraph()}
+			orig := g.NewNode()
+			g.AddNode(orig)
 			err := Gnm(g, n, m, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: n=%d, m=%d: %v", n, m, err)
+			}
+			if g.From(orig.ID()).Len() != 0 {
+				t.Errorf("edge added from already existing node: n=%d, m=%d", n, m)
 			}
 			if g.addSelfLoop {
 				t.Errorf("unexpected self edge: n=%d, m=%d", n, m)
@@ -137,9 +157,14 @@ func TestSmallWorldsBBUndirected(t *testing.T) {
 		for d := 1; d <= (n-1)/2; d++ {
 			for p := 0.; p < 1; p += 0.1 {
 				g := &gnUndirected{UndirectedBuilder: simple.NewUndirectedGraph()}
+				orig := g.NewNode()
+				g.AddNode(orig)
 				err := SmallWorldsBB(g, n, d, p, nil)
 				if err != nil {
 					t.Fatalf("unexpected error: n=%d, d=%d, p=%v: %v", n, d, p, err)
+				}
+				if g.From(orig.ID()).Len() != 0 {
+					t.Errorf("edge added from already existing node: n=%d, d=%d, p=%v", n, d, p)
 				}
 				if g.addBackwards {
 					t.Errorf("edge added with From.ID > To.ID: n=%d, d=%d, p=%v", n, d, p)
@@ -160,9 +185,14 @@ func TestSmallWorldsBBDirected(t *testing.T) {
 		for d := 1; d <= (n-1)/2; d++ {
 			for p := 0.; p < 1; p += 0.1 {
 				g := &gnDirected{DirectedBuilder: simple.NewDirectedGraph()}
+				orig := g.NewNode()
+				g.AddNode(orig)
 				err := SmallWorldsBB(g, n, d, p, nil)
 				if err != nil {
 					t.Fatalf("unexpected error: n=%d, d=%d, p=%v: %v", n, d, p, err)
+				}
+				if g.From(orig.ID()).Len() != 0 {
+					t.Errorf("edge added from already existing node: n=%d, d=%d, p=%v", n, d, p)
 				}
 				if g.addSelfLoop {
 					t.Errorf("unexpected self edge: n=%d, d=%d, p=%v", n, d, p)
@@ -185,15 +215,16 @@ func TestPowerLawUndirected(t *testing.T) {
 			}
 
 			nodes := g.Nodes()
-			if len(nodes) != n {
-				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, len(nodes))
+			if nodes.Len() != n {
+				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, nodes.Len())
 			}
 
-			for _, u := range nodes {
+			for nodes.Next() {
+				u := nodes.Node()
 				uid := u.ID()
 				var lines int
-				for _, v := range g.From(uid) {
-					lines += len(g.Lines(uid, v.ID()))
+				for _, v := range graph.NodesOf(g.From(uid)) {
+					lines += g.Lines(uid, v.ID()).Len()
 				}
 				if lines < d {
 					t.Errorf("unexpected degree below d: n=%d, d=%d: got:%d", n, d, lines)
@@ -214,15 +245,16 @@ func TestPowerLawDirected(t *testing.T) {
 			}
 
 			nodes := g.Nodes()
-			if len(nodes) != n {
-				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, len(nodes))
+			if nodes.Len() != n {
+				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, nodes.Len())
 			}
 
-			for _, u := range nodes {
+			for nodes.Next() {
+				u := nodes.Node()
 				uid := u.ID()
 				var lines int
-				for _, v := range g.From(uid) {
-					lines += len(g.Lines(uid, v.ID()))
+				for _, v := range graph.NodesOf(g.From(uid)) {
+					lines += g.Lines(uid, v.ID()).Len()
 				}
 				if lines < d {
 					t.Errorf("unexpected degree below d: n=%d, d=%d: got:%d", n, d, lines)
@@ -243,8 +275,8 @@ func TestBipartitePowerLawUndirected(t *testing.T) {
 			}
 
 			nodes := g.Nodes()
-			if len(nodes) != 2*n {
-				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, len(nodes))
+			if nodes.Len() != 2*n {
+				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, nodes.Len())
 			}
 			if len(p1) != n {
 				t.Errorf("unexpected number of nodes in p1: n=%d, d=%d: got:%d", n, d, len(p1))
@@ -253,24 +285,25 @@ func TestBipartitePowerLawUndirected(t *testing.T) {
 				t.Errorf("unexpected number of nodes in p2: n=%d, d=%d: got:%d", n, d, len(p2))
 			}
 
-			p1s := make(set.Nodes)
+			p1s := set.NewNodes()
 			for _, u := range p1 {
 				p1s.Add(u)
 			}
-			p2s := make(set.Nodes)
+			p2s := set.NewNodes()
 			for _, u := range p2 {
 				p2s.Add(u)
 			}
-			o := make(set.Nodes)
-			if o.Intersect(p1s, p2s); len(o) != 0 {
+			o := set.IntersectionOfNodes(p1s, p2s)
+			if len(o) != 0 {
 				t.Errorf("unexpected overlap in partition membership: n=%d, d=%d: got:%d", n, d, len(o))
 			}
 
-			for _, u := range nodes {
+			for nodes.Next() {
+				u := nodes.Node()
 				uid := u.ID()
 				var lines int
-				for _, v := range g.From(uid) {
-					lines += len(g.Lines(uid, v.ID()))
+				for _, v := range graph.NodesOf(g.From(uid)) {
+					lines += g.Lines(uid, v.ID()).Len()
 				}
 				if lines < d {
 					t.Errorf("unexpected degree below d: n=%d, d=%d: got:%d", n, d, lines)
@@ -291,8 +324,8 @@ func TestBipartitePowerLawDirected(t *testing.T) {
 			}
 
 			nodes := g.Nodes()
-			if len(nodes) != 2*n {
-				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, len(nodes))
+			if nodes.Len() != 2*n {
+				t.Errorf("unexpected number of nodes in graph: n=%d, d=%d: got:%d", n, d, nodes.Len())
 			}
 			if len(p1) != n {
 				t.Errorf("unexpected number of nodes in p1: n=%d, d=%d: got:%d", n, d, len(p1))
@@ -301,24 +334,25 @@ func TestBipartitePowerLawDirected(t *testing.T) {
 				t.Errorf("unexpected number of nodes in p2: n=%d, d=%d: got:%d", n, d, len(p2))
 			}
 
-			p1s := make(set.Nodes)
+			p1s := set.NewNodes()
 			for _, u := range p1 {
 				p1s.Add(u)
 			}
-			p2s := make(set.Nodes)
+			p2s := set.NewNodes()
 			for _, u := range p2 {
 				p2s.Add(u)
 			}
-			o := make(set.Nodes)
-			if o.Intersect(p1s, p2s); len(o) != 0 {
+			o := set.IntersectionOfNodes(p1s, p2s)
+			if len(o) != 0 {
 				t.Errorf("unexpected overlap in partition membership: n=%d, d=%d: got:%d", n, d, len(o))
 			}
 
-			for _, u := range nodes {
+			for nodes.Next() {
+				u := nodes.Node()
 				uid := u.ID()
 				var lines int
-				for _, v := range g.From(uid) {
-					lines += len(g.Lines(uid, v.ID()))
+				for _, v := range graph.NodesOf(g.From(uid)) {
+					lines += g.Lines(uid, v.ID()).Len()
 				}
 				if lines < d {
 					t.Errorf("unexpected degree below d: n=%d, d=%d: got:%d", n, d, lines)

@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewRegionsClientWithBaseURI(baseURI string, subscriptionID string) RegionsC
 // Parameters:
 // sku - the sku type.
 func (client RegionsClient) ListBySku(ctx context.Context, sku string) (result PremiumMessagingRegionsListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegionsClient.ListBySku")
+		defer func() {
+			sc := -1
+			if result.pmrlr.Response.Response != nil {
+				sc = result.pmrlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: sku,
 			Constraints: []validation.Constraint{{Target: "sku", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -96,8 +107,8 @@ func (client RegionsClient) ListBySkuPreparer(ctx context.Context, sku string) (
 // ListBySkuSender sends the ListBySku request. The method will close the
 // http.Response Body if it receives an error.
 func (client RegionsClient) ListBySkuSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBySkuResponder handles the response to the ListBySku request. The method always
@@ -114,8 +125,8 @@ func (client RegionsClient) ListBySkuResponder(resp *http.Response) (result Prem
 }
 
 // listBySkuNextResults retrieves the next set of results, if any.
-func (client RegionsClient) listBySkuNextResults(lastResults PremiumMessagingRegionsListResult) (result PremiumMessagingRegionsListResult, err error) {
-	req, err := lastResults.premiumMessagingRegionsListResultPreparer()
+func (client RegionsClient) listBySkuNextResults(ctx context.Context, lastResults PremiumMessagingRegionsListResult) (result PremiumMessagingRegionsListResult, err error) {
+	req, err := lastResults.premiumMessagingRegionsListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.RegionsClient", "listBySkuNextResults", nil, "Failure preparing next results request")
 	}
@@ -136,6 +147,16 @@ func (client RegionsClient) listBySkuNextResults(lastResults PremiumMessagingReg
 
 // ListBySkuComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RegionsClient) ListBySkuComplete(ctx context.Context, sku string) (result PremiumMessagingRegionsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RegionsClient.ListBySku")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySku(ctx, sku)
 	return
 }

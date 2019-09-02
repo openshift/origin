@@ -116,10 +116,6 @@ var (
 	_ Method   = (*CmaEsChol)(nil)
 )
 
-func (cma *CmaEsChol) Needs() struct{ Gradient, Hessian bool } {
-	return struct{ Gradient, Hessian bool }{false, false}
-}
-
 func (cma *CmaEsChol) methodConverged() Status {
 	sd := cma.StopLogDet
 	switch {
@@ -140,6 +136,10 @@ func (cma *CmaEsChol) Status() (Status, error) {
 		return Failure, cma.updateErr
 	}
 	return cma.methodConverged(), nil
+}
+
+func (*CmaEsChol) Uses(has Available) (uses Available, err error) {
+	return has.function()
 }
 
 func (cma *CmaEsChol) Init(dim, tasks int) int {
@@ -204,15 +204,15 @@ func (cma *CmaEsChol) Init(dim, tasks int) int {
 	cma.mean = resize(cma.mean, dim) // mean location initialized at the start of Run
 
 	if cma.InitCholesky != nil {
-		if cma.InitCholesky.Size() != dim {
+		if cma.InitCholesky.Symmetric() != dim {
 			panic("cma-es-chol: incorrect InitCholesky size")
 		}
 		cma.chol.Clone(cma.InitCholesky)
 	} else {
 		// Set the initial Cholesky to I.
-		b := mat.NewDiagonal(dim, nil)
+		b := mat.NewDiagDense(dim, nil)
 		for i := 0; i < dim; i++ {
-			b.SetSymBand(i, i, 1)
+			b.SetDiag(i, 1)
 		}
 		var chol mat.Cholesky
 		ok := chol.Factorize(b)

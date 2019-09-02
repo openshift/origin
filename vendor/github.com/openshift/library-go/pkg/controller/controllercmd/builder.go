@@ -76,7 +76,7 @@ type ControllerBuilder struct {
 	servingInfo          *configv1.HTTPServingInfo
 	authenticationConfig *operatorv1alpha1.DelegatedAuthentication
 	authorizationConfig  *operatorv1alpha1.DelegatedAuthorization
-	healthChecks         []healthz.HealthzChecker
+	healthChecks         []healthz.HealthChecker
 }
 
 // NewController returns a builder struct for constructing the command you want to run
@@ -141,7 +141,7 @@ func (b *ControllerBuilder) WithServer(servingInfo configv1.HTTPServingInfo, aut
 }
 
 // WithHealthChecks adds a list of healthchecks to the server
-func (b *ControllerBuilder) WithHealthChecks(healthChecks ...healthz.HealthzChecker) *ControllerBuilder {
+func (b *ControllerBuilder) WithHealthChecks(healthChecks ...healthz.HealthChecker) *ControllerBuilder {
 	b.healthChecks = append(b.healthChecks, healthChecks...)
 	return b
 }

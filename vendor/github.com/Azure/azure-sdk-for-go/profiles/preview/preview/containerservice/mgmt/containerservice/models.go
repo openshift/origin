@@ -19,15 +19,16 @@
 
 package containerservice
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/containerservice/mgmt/2018-09-30-preview/containerservice"
+import (
+	"context"
+
+	original "github.com/Azure/azure-sdk-for-go/services/preview/containerservice/mgmt/2018-09-30-preview/containerservice"
+)
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
-type BaseClient = original.BaseClient
-type ContainerServicesClient = original.ContainerServicesClient
-type ManagedClustersClient = original.ManagedClustersClient
 type Kind = original.Kind
 
 const (
@@ -48,6 +49,13 @@ const (
 	Calico NetworkPolicy = original.Calico
 )
 
+type OSType = original.OSType
+
+const (
+	Linux   OSType = original.Linux
+	Windows OSType = original.Windows
+)
+
 type OpenShiftAgentPoolProfileRole = original.OpenShiftAgentPoolProfileRole
 
 const (
@@ -58,8 +66,39 @@ const (
 type OpenShiftContainerServiceVMSize = original.OpenShiftContainerServiceVMSize
 
 const (
-	StandardD2sV3 OpenShiftContainerServiceVMSize = original.StandardD2sV3
-	StandardD4sV3 OpenShiftContainerServiceVMSize = original.StandardD4sV3
+	StandardD16sV3 OpenShiftContainerServiceVMSize = original.StandardD16sV3
+	StandardD2sV3  OpenShiftContainerServiceVMSize = original.StandardD2sV3
+	StandardD32sV3 OpenShiftContainerServiceVMSize = original.StandardD32sV3
+	StandardD4sV3  OpenShiftContainerServiceVMSize = original.StandardD4sV3
+	StandardD64sV3 OpenShiftContainerServiceVMSize = original.StandardD64sV3
+	StandardD8sV3  OpenShiftContainerServiceVMSize = original.StandardD8sV3
+	StandardDS12V2 OpenShiftContainerServiceVMSize = original.StandardDS12V2
+	StandardDS13V2 OpenShiftContainerServiceVMSize = original.StandardDS13V2
+	StandardDS14V2 OpenShiftContainerServiceVMSize = original.StandardDS14V2
+	StandardDS15V2 OpenShiftContainerServiceVMSize = original.StandardDS15V2
+	StandardDS4V2  OpenShiftContainerServiceVMSize = original.StandardDS4V2
+	StandardDS5V2  OpenShiftContainerServiceVMSize = original.StandardDS5V2
+	StandardE16sV3 OpenShiftContainerServiceVMSize = original.StandardE16sV3
+	StandardE20sV3 OpenShiftContainerServiceVMSize = original.StandardE20sV3
+	StandardE32sV3 OpenShiftContainerServiceVMSize = original.StandardE32sV3
+	StandardE4sV3  OpenShiftContainerServiceVMSize = original.StandardE4sV3
+	StandardE64sV3 OpenShiftContainerServiceVMSize = original.StandardE64sV3
+	StandardE8sV3  OpenShiftContainerServiceVMSize = original.StandardE8sV3
+	StandardF16s   OpenShiftContainerServiceVMSize = original.StandardF16s
+	StandardF16sV2 OpenShiftContainerServiceVMSize = original.StandardF16sV2
+	StandardF32sV2 OpenShiftContainerServiceVMSize = original.StandardF32sV2
+	StandardF64sV2 OpenShiftContainerServiceVMSize = original.StandardF64sV2
+	StandardF72sV2 OpenShiftContainerServiceVMSize = original.StandardF72sV2
+	StandardF8s    OpenShiftContainerServiceVMSize = original.StandardF8s
+	StandardF8sV2  OpenShiftContainerServiceVMSize = original.StandardF8sV2
+	StandardGS2    OpenShiftContainerServiceVMSize = original.StandardGS2
+	StandardGS3    OpenShiftContainerServiceVMSize = original.StandardGS3
+	StandardGS4    OpenShiftContainerServiceVMSize = original.StandardGS4
+	StandardGS5    OpenShiftContainerServiceVMSize = original.StandardGS5
+	StandardL16s   OpenShiftContainerServiceVMSize = original.StandardL16s
+	StandardL32s   OpenShiftContainerServiceVMSize = original.StandardL32s
+	StandardL4s    OpenShiftContainerServiceVMSize = original.StandardL4s
+	StandardL8s    OpenShiftContainerServiceVMSize = original.StandardL8s
 )
 
 type OrchestratorTypes = original.OrchestratorTypes
@@ -70,13 +109,6 @@ const (
 	DockerCE   OrchestratorTypes = original.DockerCE
 	Kubernetes OrchestratorTypes = original.Kubernetes
 	Swarm      OrchestratorTypes = original.Swarm
-)
-
-type OSType = original.OSType
-
-const (
-	Linux   OSType = original.Linux
-	Windows OSType = original.Windows
 )
 
 type StorageProfileTypes = original.StorageProfileTypes
@@ -267,9 +299,12 @@ const (
 
 type AccessProfile = original.AccessProfile
 type AgentPoolProfile = original.AgentPoolProfile
+type BaseClient = original.BaseClient
+type BasicOpenShiftManagedClusterBaseIdentityProvider = original.BasicOpenShiftManagedClusterBaseIdentityProvider
 type CloudError = original.CloudError
 type CloudErrorBody = original.CloudErrorBody
 type ContainerService = original.ContainerService
+type ContainerServicesClient = original.ContainerServicesClient
 type ContainerServicesCreateOrUpdateFutureType = original.ContainerServicesCreateOrUpdateFutureType
 type ContainerServicesDeleteFutureType = original.ContainerServicesDeleteFutureType
 type CredentialResult = original.CredentialResult
@@ -291,12 +326,15 @@ type ManagedClusterListResultIterator = original.ManagedClusterListResultIterato
 type ManagedClusterListResultPage = original.ManagedClusterListResultPage
 type ManagedClusterPoolUpgradeProfile = original.ManagedClusterPoolUpgradeProfile
 type ManagedClusterProperties = original.ManagedClusterProperties
-type ManagedClustersCreateOrUpdateFuture = original.ManagedClustersCreateOrUpdateFuture
-type ManagedClustersDeleteFuture = original.ManagedClustersDeleteFuture
 type ManagedClusterServicePrincipalProfile = original.ManagedClusterServicePrincipalProfile
-type ManagedClustersUpdateTagsFuture = original.ManagedClustersUpdateTagsFuture
 type ManagedClusterUpgradeProfile = original.ManagedClusterUpgradeProfile
 type ManagedClusterUpgradeProfileProperties = original.ManagedClusterUpgradeProfileProperties
+type ManagedClustersClient = original.ManagedClustersClient
+type ManagedClustersCreateOrUpdateFuture = original.ManagedClustersCreateOrUpdateFuture
+type ManagedClustersDeleteFuture = original.ManagedClustersDeleteFuture
+type ManagedClustersResetAADProfileFuture = original.ManagedClustersResetAADProfileFuture
+type ManagedClustersResetServicePrincipalProfileFuture = original.ManagedClustersResetServicePrincipalProfileFuture
+type ManagedClustersUpdateTagsFuture = original.ManagedClustersUpdateTagsFuture
 type MasterProfile = original.MasterProfile
 type NetworkProfile = original.NetworkProfile
 type NetworkProfileType = original.NetworkProfileType
@@ -304,11 +342,14 @@ type OpenShiftManagedCluster = original.OpenShiftManagedCluster
 type OpenShiftManagedClusterAADIdentityProvider = original.OpenShiftManagedClusterAADIdentityProvider
 type OpenShiftManagedClusterAgentPoolProfile = original.OpenShiftManagedClusterAgentPoolProfile
 type OpenShiftManagedClusterAuthProfile = original.OpenShiftManagedClusterAuthProfile
-type BasicOpenShiftManagedClusterBaseIdentityProvider = original.BasicOpenShiftManagedClusterBaseIdentityProvider
 type OpenShiftManagedClusterBaseIdentityProvider = original.OpenShiftManagedClusterBaseIdentityProvider
 type OpenShiftManagedClusterIdentityProvider = original.OpenShiftManagedClusterIdentityProvider
+type OpenShiftManagedClusterListResult = original.OpenShiftManagedClusterListResult
+type OpenShiftManagedClusterListResultIterator = original.OpenShiftManagedClusterListResultIterator
+type OpenShiftManagedClusterListResultPage = original.OpenShiftManagedClusterListResultPage
 type OpenShiftManagedClusterMasterPoolProfile = original.OpenShiftManagedClusterMasterPoolProfile
 type OpenShiftManagedClusterProperties = original.OpenShiftManagedClusterProperties
+type OpenShiftManagedClustersClient = original.OpenShiftManagedClustersClient
 type OpenShiftManagedClustersCreateOrUpdateFuture = original.OpenShiftManagedClustersCreateOrUpdateFuture
 type OpenShiftManagedClustersDeleteFuture = original.OpenShiftManagedClustersDeleteFuture
 type OpenShiftManagedClustersUpdateTagsFuture = original.OpenShiftManagedClustersUpdateTagsFuture
@@ -316,6 +357,7 @@ type OpenShiftRouterProfile = original.OpenShiftRouterProfile
 type OperationListResult = original.OperationListResult
 type OperationValue = original.OperationValue
 type OperationValueDisplay = original.OperationValueDisplay
+type OperationsClient = original.OperationsClient
 type OrchestratorProfile = original.OrchestratorProfile
 type OrchestratorProfileType = original.OrchestratorProfileType
 type OrchestratorVersionProfile = original.OrchestratorVersionProfile
@@ -324,20 +366,15 @@ type OrchestratorVersionProfileProperties = original.OrchestratorVersionProfileP
 type Properties = original.Properties
 type PurchasePlan = original.PurchasePlan
 type Resource = original.Resource
-type ServicePrincipalProfile = original.ServicePrincipalProfile
 type SSHConfiguration = original.SSHConfiguration
 type SSHPublicKey = original.SSHPublicKey
+type ServicePrincipalProfile = original.ServicePrincipalProfile
 type TagsObject = original.TagsObject
 type VMDiagnostics = original.VMDiagnostics
 type WindowsProfile = original.WindowsProfile
-type OpenShiftManagedClustersClient = original.OpenShiftManagedClustersClient
-type OperationsClient = original.OperationsClient
 
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
 func NewContainerServicesClient(subscriptionID string) ContainerServicesClient {
 	return original.NewContainerServicesClient(subscriptionID)
@@ -345,38 +382,29 @@ func NewContainerServicesClient(subscriptionID string) ContainerServicesClient {
 func NewContainerServicesClientWithBaseURI(baseURI string, subscriptionID string) ContainerServicesClient {
 	return original.NewContainerServicesClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewListResultIterator(page ListResultPage) ListResultIterator {
+	return original.NewListResultIterator(page)
+}
+func NewListResultPage(getNextPage func(context.Context, ListResult) (ListResult, error)) ListResultPage {
+	return original.NewListResultPage(getNextPage)
+}
+func NewManagedClusterListResultIterator(page ManagedClusterListResultPage) ManagedClusterListResultIterator {
+	return original.NewManagedClusterListResultIterator(page)
+}
+func NewManagedClusterListResultPage(getNextPage func(context.Context, ManagedClusterListResult) (ManagedClusterListResult, error)) ManagedClusterListResultPage {
+	return original.NewManagedClusterListResultPage(getNextPage)
+}
 func NewManagedClustersClient(subscriptionID string) ManagedClustersClient {
 	return original.NewManagedClustersClient(subscriptionID)
 }
 func NewManagedClustersClientWithBaseURI(baseURI string, subscriptionID string) ManagedClustersClient {
 	return original.NewManagedClustersClientWithBaseURI(baseURI, subscriptionID)
 }
-func PossibleKindValues() []Kind {
-	return original.PossibleKindValues()
+func NewOpenShiftManagedClusterListResultIterator(page OpenShiftManagedClusterListResultPage) OpenShiftManagedClusterListResultIterator {
+	return original.NewOpenShiftManagedClusterListResultIterator(page)
 }
-func PossibleNetworkPluginValues() []NetworkPlugin {
-	return original.PossibleNetworkPluginValues()
-}
-func PossibleNetworkPolicyValues() []NetworkPolicy {
-	return original.PossibleNetworkPolicyValues()
-}
-func PossibleOpenShiftAgentPoolProfileRoleValues() []OpenShiftAgentPoolProfileRole {
-	return original.PossibleOpenShiftAgentPoolProfileRoleValues()
-}
-func PossibleOpenShiftContainerServiceVMSizeValues() []OpenShiftContainerServiceVMSize {
-	return original.PossibleOpenShiftContainerServiceVMSizeValues()
-}
-func PossibleOrchestratorTypesValues() []OrchestratorTypes {
-	return original.PossibleOrchestratorTypesValues()
-}
-func PossibleOSTypeValues() []OSType {
-	return original.PossibleOSTypeValues()
-}
-func PossibleStorageProfileTypesValues() []StorageProfileTypes {
-	return original.PossibleStorageProfileTypesValues()
-}
-func PossibleVMSizeTypesValues() []VMSizeTypes {
-	return original.PossibleVMSizeTypesValues()
+func NewOpenShiftManagedClusterListResultPage(getNextPage func(context.Context, OpenShiftManagedClusterListResult) (OpenShiftManagedClusterListResult, error)) OpenShiftManagedClusterListResultPage {
+	return original.NewOpenShiftManagedClusterListResultPage(getNextPage)
 }
 func NewOpenShiftManagedClustersClient(subscriptionID string) OpenShiftManagedClustersClient {
 	return original.NewOpenShiftManagedClustersClient(subscriptionID)
@@ -389,6 +417,36 @@ func NewOperationsClient(subscriptionID string) OperationsClient {
 }
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleKindValues() []Kind {
+	return original.PossibleKindValues()
+}
+func PossibleNetworkPluginValues() []NetworkPlugin {
+	return original.PossibleNetworkPluginValues()
+}
+func PossibleNetworkPolicyValues() []NetworkPolicy {
+	return original.PossibleNetworkPolicyValues()
+}
+func PossibleOSTypeValues() []OSType {
+	return original.PossibleOSTypeValues()
+}
+func PossibleOpenShiftAgentPoolProfileRoleValues() []OpenShiftAgentPoolProfileRole {
+	return original.PossibleOpenShiftAgentPoolProfileRoleValues()
+}
+func PossibleOpenShiftContainerServiceVMSizeValues() []OpenShiftContainerServiceVMSize {
+	return original.PossibleOpenShiftContainerServiceVMSizeValues()
+}
+func PossibleOrchestratorTypesValues() []OrchestratorTypes {
+	return original.PossibleOrchestratorTypesValues()
+}
+func PossibleStorageProfileTypesValues() []StorageProfileTypes {
+	return original.PossibleStorageProfileTypesValues()
+}
+func PossibleVMSizeTypesValues() []VMSizeTypes {
+	return original.PossibleVMSizeTypesValues()
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

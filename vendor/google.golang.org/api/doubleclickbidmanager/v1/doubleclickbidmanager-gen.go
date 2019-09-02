@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package doubleclickbidmanager provides access to the DoubleClick Bid Manager API.
 //
-// See https://developers.google.com/bid-manager/
+// For product documentation, see: https://developers.google.com/bid-manager/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/doubleclickbidmanager/v1"
 //   ...
-//   doubleclickbidmanagerService, err := doubleclickbidmanager.New(oauthHttpClient)
+//   ctx := context.Background()
+//   doubleclickbidmanagerService, err := doubleclickbidmanager.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   doubleclickbidmanagerService, err := doubleclickbidmanager.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   doubleclickbidmanagerService, err := doubleclickbidmanager.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package doubleclickbidmanager // import "google.golang.org/api/doubleclickbidmanager/v1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -56,6 +80,32 @@ const (
 	DoubleclickbidmanagerScope = "https://www.googleapis.com/auth/doubleclickbidmanager"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/doubleclickbidmanager",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -209,16 +259,18 @@ func (s *DownloadLineItemsResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// DownloadRequest: Request to fetch stored campaigns, insertion orders,
-// line items, TrueView ad groups and ads.
+// DownloadRequest: Request to fetch stored inventory sources,
+// campaigns, insertion orders, line items, TrueView ad groups and ads.
 type DownloadRequest struct {
-	// FileTypes: File types that will be returned.
+	// FileTypes: File types that will be returned. If INVENTORY_SOURCE is
+	// requested, no other file types may be requested.
 	//
 	// Acceptable values are:
 	// - "AD"
 	// - "AD_GROUP"
 	// - "CAMPAIGN"
 	// - "INSERTION_ORDER"
+	// - "INVENTORY_SOURCE"
 	// - "LINE_ITEM"
 	//
 	// Possible values:
@@ -226,6 +278,7 @@ type DownloadRequest struct {
 	//   "AD_GROUP"
 	//   "CAMPAIGN"
 	//   "INSERTION_ORDER"
+	//   "INVENTORY_SOURCE"
 	//   "LINE_ITEM"
 	FileTypes []string `json:"fileTypes,omitempty"`
 
@@ -233,13 +286,17 @@ type DownloadRequest struct {
 	// filter entities to fetch. At least one ID must be specified.
 	FilterIds googleapi.Int64s `json:"filterIds,omitempty"`
 
-	// FilterType: Filter type used to filter entities to fetch.
+	// FilterType: Filter type used to filter entities to fetch. PARTNER_ID
+	// and INVENTORY_SOURCE_ID may only be used when downloading inventory
+	// sources.
 	//
 	// Possible values:
 	//   "ADVERTISER_ID"
 	//   "CAMPAIGN_ID"
 	//   "INSERTION_ORDER_ID"
+	//   "INVENTORY_SOURCE_ID"
 	//   "LINE_ITEM_ID"
+	//   "PARTNER_ID"
 	FilterType string `json:"filterType,omitempty"`
 
 	// Version: SDF Version (column names, types, order) in which the
@@ -282,6 +339,8 @@ type DownloadResponse struct {
 
 	// InsertionOrders: Retrieved insertion orders in SDF format.
 	InsertionOrders string `json:"insertionOrders,omitempty"`
+
+	InventorySources string `json:"inventorySources,omitempty"`
 
 	// LineItems: Retrieved line items in SDF format.
 	LineItems string `json:"lineItems,omitempty"`
@@ -336,6 +395,7 @@ type FilterPair struct {
 	//   "FILTER_COMPANION_CREATIVE_ID"
 	//   "FILTER_CONVERSION_DELAY"
 	//   "FILTER_COUNTRY"
+	//   "FILTER_CREATIVE_ATTRIBUTE"
 	//   "FILTER_CREATIVE_HEIGHT"
 	//   "FILTER_CREATIVE_ID"
 	//   "FILTER_CREATIVE_SIZE"
@@ -355,7 +415,10 @@ type FilterPair struct {
 	//   "FILTER_FLOODLIGHT_PIXEL_ID"
 	//   "FILTER_GENDER"
 	//   "FILTER_INSERTION_ORDER"
+	//   "FILTER_INVENTORY_COMMITMENT_TYPE"
+	//   "FILTER_INVENTORY_DELIVERY_METHOD"
 	//   "FILTER_INVENTORY_FORMAT"
+	//   "FILTER_INVENTORY_RATE_TYPE"
 	//   "FILTER_INVENTORY_SOURCE"
 	//   "FILTER_INVENTORY_SOURCE_TYPE"
 	//   "FILTER_KEYWORD"
@@ -568,6 +631,7 @@ type Parameters struct {
 	//   "FILTER_COMPANION_CREATIVE_ID"
 	//   "FILTER_CONVERSION_DELAY"
 	//   "FILTER_COUNTRY"
+	//   "FILTER_CREATIVE_ATTRIBUTE"
 	//   "FILTER_CREATIVE_HEIGHT"
 	//   "FILTER_CREATIVE_ID"
 	//   "FILTER_CREATIVE_SIZE"
@@ -587,7 +651,10 @@ type Parameters struct {
 	//   "FILTER_FLOODLIGHT_PIXEL_ID"
 	//   "FILTER_GENDER"
 	//   "FILTER_INSERTION_ORDER"
+	//   "FILTER_INVENTORY_COMMITMENT_TYPE"
+	//   "FILTER_INVENTORY_DELIVERY_METHOD"
 	//   "FILTER_INVENTORY_FORMAT"
+	//   "FILTER_INVENTORY_RATE_TYPE"
 	//   "FILTER_INVENTORY_SOURCE"
 	//   "FILTER_INVENTORY_SOURCE_TYPE"
 	//   "FILTER_KEYWORD"
@@ -676,7 +743,7 @@ type Parameters struct {
 	//   "FILTER_ZIP_CODE"
 	GroupBys []string `json:"groupBys,omitempty"`
 
-	// IncludeInviteData: Whether to include data from Invite Media.
+	// IncludeInviteData: Deprecated. This field is no longer in use.
 	IncludeInviteData bool `json:"includeInviteData,omitempty"`
 
 	// Metrics: Metrics to include as columns in your report.
@@ -710,6 +777,7 @@ type Parameters struct {
 	//   "METRIC_BILLABLE_COST_ADVERTISER"
 	//   "METRIC_BILLABLE_COST_PARTNER"
 	//   "METRIC_BILLABLE_COST_USD"
+	//   "METRIC_BILLABLE_IMPRESSIONS"
 	//   "METRIC_CLICKS"
 	//   "METRIC_CLICK_TO_POST_CLICK_CONVERSION_RATE"
 	//   "METRIC_CM_POST_CLICK_REVENUE"

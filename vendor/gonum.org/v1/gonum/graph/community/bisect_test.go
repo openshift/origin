@@ -10,12 +10,20 @@ import (
 	"sort"
 	"testing"
 
+	"golang.org/x/exp/rand"
+
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
 func ExampleProfile_simple() {
+	// Profile calls Modularize which implements the Louvain modularization algorithm.
+	// Since this is a randomized algorithm we use a defined random source to ensure
+	// consistency between test runs. In practice, results will not differ greatly
+	// between runs with different PRNG seeds.
+	src := rand.NewSource(1)
+
 	// Create dumbell graph:
 	//
 	//  0       4
@@ -33,7 +41,7 @@ func ExampleProfile_simple() {
 
 	// Get the profile of internal node weight for resolutions
 	// between 0.1 and 10 using logarithmic bisection.
-	p, err := Profile(ModularScore(g, Weight, 10, nil), true, 1e-3, 0.1, 10)
+	p, err := Profile(ModularScore(g, Weight, 10, src), true, 1e-3, 0.1, 10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +70,7 @@ func init() {
 	friends = simple.NewWeightedUndirectedGraph(0, 0)
 	for u, e := range middleEast.friends {
 		// Ensure unconnected nodes are included.
-		if !friends.Has(int64(u)) {
+		if friends.Node(int64(u)) == nil {
 			friends.AddNode(simple.Node(u))
 		}
 		for v := range e {
@@ -72,7 +80,7 @@ func init() {
 	enemies = simple.NewWeightedUndirectedGraph(0, 0)
 	for u, e := range middleEast.enemies {
 		// Ensure unconnected nodes are included.
-		if !enemies.Has(int64(u)) {
+		if enemies.Node(int64(u)) == nil {
 			enemies.AddNode(simple.Node(u))
 		}
 		for v := range e {
@@ -82,6 +90,12 @@ func init() {
 }
 
 func ExampleProfile_multiplex() {
+	// Profile calls ModularizeMultiplex which implements the Louvain modularization
+	// algorithm. Since this is a randomized algorithm we use a defined random source
+	// to ensure consistency between test runs. In practice, results will not differ
+	// greatly between runs with different PRNG seeds.
+	src := rand.NewSource(1)
+
 	// The undirected graphs, friends and enemies, are the political relationships
 	// in the Middle East as described in the Slate article:
 	// http://www.slate.com/blogs/the_world_/2014/07/17/the_middle_east_friendship_chart.html
@@ -93,7 +107,7 @@ func ExampleProfile_multiplex() {
 
 	// Get the profile of internal node weight for resolutions
 	// between 0.1 and 10 using logarithmic bisection.
-	p, err := Profile(ModularMultiplexScore(g, weights, true, WeightMultiplex, 10, nil), true, 1e-3, 0.1, 10)
+	p, err := Profile(ModularMultiplexScore(g, weights, true, WeightMultiplex, 10, src), true, 1e-3, 0.1, 10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,7 +127,7 @@ func ExampleProfile_multiplex() {
 	// Low:0.1 High:0.72 Score:26 Communities:[[0] [1 7 9 12] [2 8 11] [3 4 5 10] [6]] Q=[24.7 1.97]
 	// Low:0.72 High:1.1 Score:24 Communities:[[0 6] [1 7 9 12] [2 8 11] [3 4 5 10]] Q=[16.9 14.1]
 	// Low:1.1 High:1.2 Score:18 Communities:[[0 2 6 11] [1 7 9 12] [3 4 5 8 10]] Q=[9.16 25.1]
-	// Low:1.2 High:1.6 Score:10 Communities:[[0 3 4 5 6 10] [1 7 9 12] [2 8 11]] Q=[10.5 26.5]
+	// Low:1.2 High:1.6 Score:10 Communities:[[0 3 4 5 6 10] [1 7 9 12] [2 8 11]] Q=[10.5 26.7]
 	// Low:1.6 High:1.6 Score:8 Communities:[[0 1 6 7 9 12] [2 8 11] [3 4 5 10]] Q=[5.56 39.8]
 	// Low:1.6 High:1.8 Score:2 Communities:[[0 2 3 4 5 6 10] [1 7 8 9 11 12]] Q=[-1.82 48.6]
 	// Low:1.8 High:2.3 Score:-6 Communities:[[0 2 3 4 5 6 8 10 11] [1 7 9 12]] Q=[-5 57.5]
@@ -127,7 +141,7 @@ func TestProfileUndirected(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -144,7 +158,7 @@ func TestProfileWeightedUndirected(t *testing.T) {
 		g := simple.NewWeightedUndirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -186,7 +200,7 @@ func TestProfileDirected(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -203,7 +217,7 @@ func TestProfileWeightedDirected(t *testing.T) {
 		g := simple.NewWeightedDirectedGraph(0, 0)
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {

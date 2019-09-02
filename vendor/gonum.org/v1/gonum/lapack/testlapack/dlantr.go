@@ -21,7 +21,7 @@ type Dlantrer interface {
 
 func DlantrTest(t *testing.T, impl Dlantrer) {
 	rnd := rand.New(rand.NewSource(1))
-	for _, norm := range []lapack.MatrixNorm{lapack.MaxAbs, lapack.MaxColumnSum, lapack.MaxRowSum, lapack.NormFrob} {
+	for _, norm := range []lapack.MatrixNorm{lapack.MaxAbs, lapack.MaxColumnSum, lapack.MaxRowSum, lapack.Frobenius} {
 		for _, diag := range []blas.Diag{blas.NonUnit, blas.Unit} {
 			for _, uplo := range []blas.Uplo{blas.Lower, blas.Upper} {
 				for _, test := range []struct {

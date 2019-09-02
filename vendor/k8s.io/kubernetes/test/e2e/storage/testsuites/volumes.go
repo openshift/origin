@@ -24,12 +24,13 @@ package testsuites
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/kubernetes/test/e2e/framework/volume"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
@@ -66,6 +67,9 @@ func InitVolumesTestSuite() TestSuite {
 				testpatterns.NtfsInlineVolume,
 				testpatterns.NtfsPreprovisionedPV,
 				testpatterns.NtfsDynamicPV,
+				// block volumes
+				testpatterns.BlockVolModePreprovisionedPV,
+				testpatterns.BlockVolModeDynamicPV,
 			},
 		},
 	}
@@ -75,14 +79,7 @@ func (t *volumesTestSuite) getTestSuiteInfo() TestSuiteInfo {
 	return t.tsInfo
 }
 
-func (t *volumesTestSuite) skipUnsupportedTest(pattern testpatterns.TestPattern, driver TestDriver) {
-}
-
-func skipPersistenceTest(driver TestDriver) {
-	dInfo := driver.GetDriverInfo()
-	if !dInfo.Capabilities[CapPersistence] {
-		framework.Skipf("Driver %q does not provide persistency - skipping", dInfo.Name)
-	}
+func (t *volumesTestSuite) skipRedundantSuite(driver TestDriver, pattern testpatterns.TestPattern) {
 }
 
 func skipExecTest(driver TestDriver) {
@@ -92,12 +89,22 @@ func skipExecTest(driver TestDriver) {
 	}
 }
 
+func skipBlockTest(driver TestDriver) {
+	dInfo := driver.GetDriverInfo()
+	if !dInfo.Capabilities[CapBlock] {
+		framework.Skipf("Driver %q does not provide raw block - skipping", dInfo.Name)
+	}
+}
+
 func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.TestPattern) {
 	type local struct {
 		config      *PerTestConfig
 		testCleanup func()
 
 		resource *genericVolumeTestResource
+
+		intreeOps   opCounts
+		migratedOps opCounts
 	}
 	var dInfo = driver.GetDriverInfo()
 	var l local
@@ -115,6 +122,7 @@ func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 
 		// Now do the more expensive test initialization.
 		l.config, l.testCleanup = driver.PrepareTest(f)
+		l.intreeOps, l.migratedOps = getMigrationVolumeOpCounts(f.ClientSet, dInfo.InTreePluginName)
 		l.resource = createGenericVolumeTestResource(driver, l.config, pattern)
 		if l.resource.volSource == nil {
 			framework.Skipf("Driver %q does not define volumeSource - skipping", dInfo.Name)
@@ -131,19 +139,25 @@ func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 			l.testCleanup()
 			l.testCleanup = nil
 		}
+
+		validateMigrationVolumeOpCounts(f.ClientSet, dInfo.InTreePluginName, l.intreeOps, l.migratedOps)
 	}
 
-	It("should be mountable", func() {
-		skipPersistenceTest(driver)
+	ginkgo.It("should store data", func() {
+		if pattern.VolMode == v1.PersistentVolumeBlock {
+			skipBlockTest(driver)
+		}
+
 		init()
 		defer func() {
-			framework.VolumeTestCleanup(f, convertTestConfig(l.config))
+			volume.TestCleanup(f, convertTestConfig(l.config))
 			cleanup()
 		}()
 
-		tests := []framework.VolumeTest{
+		tests := []volume.Test{
 			{
 				Volume: *l.resource.volSource,
+				Mode:   pattern.VolMode,
 				File:   "index.html",
 				// Must match content
 				ExpectedContent: fmt.Sprintf("Hello from %s from namespace %s",
@@ -160,24 +174,31 @@ func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		// local), plugin skips setting fsGroup if volume is already mounted
 		// and we don't have reliable way to detect volumes are unmounted or
 		// not before starting the second pod.
-		framework.InjectHtml(f.ClientSet, config, fsGroup, tests[0].Volume, tests[0].ExpectedContent)
-		framework.TestVolumeClient(f.ClientSet, config, fsGroup, pattern.FsType, tests)
+		volume.InjectContent(f.ClientSet, config, fsGroup, pattern.FsType, tests)
+		if driver.GetDriverInfo().Capabilities[CapPersistence] {
+			volume.TestVolumeClient(f.ClientSet, config, fsGroup, pattern.FsType, tests)
+		} else {
+			ginkgo.By("Skipping persistence check for non-persistent volume")
+		}
 	})
 
-	It("should allow exec of files on the volume", func() {
-		skipExecTest(driver)
-		init()
-		defer cleanup()
+	// Exec works only on filesystem volumes
+	if pattern.VolMode != v1.PersistentVolumeBlock {
+		ginkgo.It("should allow exec of files on the volume", func() {
+			skipExecTest(driver)
+			init()
+			defer cleanup()
 
-		testScriptInPod(f, l.resource.volType, l.resource.volSource, l.config.ClientNodeSelector)
-	})
+			testScriptInPod(f, l.resource.volType, l.resource.volSource, l.config)
+		})
+	}
 }
 
 func testScriptInPod(
 	f *framework.Framework,
 	volumeType string,
 	source *v1.VolumeSource,
-	nodeSelector map[string]string) {
+	config *PerTestConfig) {
 
 	const (
 		volPath = "/vol1"
@@ -191,7 +212,7 @@ func testScriptInPod(
 	} else {
 		content = fmt.Sprintf("ls %s", volPath)
 	}
-	command := framework.GenerateWriteandExecuteScriptFileCmd(content, fileName, volPath)
+	command := volume.GenerateWriteandExecuteScriptFileCmd(content, fileName, volPath)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("exec-volume-test-%s", suffix),
@@ -201,7 +222,7 @@ func testScriptInPod(
 			Containers: []v1.Container{
 				{
 					Name:    fmt.Sprintf("exec-container-%s", suffix),
-					Image:   framework.GetTestImage(imageutils.GetE2EImage(imageutils.Nginx)),
+					Image:   volume.GetTestImage(imageutils.GetE2EImage(imageutils.Nginx)),
 					Command: command,
 					VolumeMounts: []v1.VolumeMount{
 						{
@@ -218,13 +239,14 @@ func testScriptInPod(
 				},
 			},
 			RestartPolicy: v1.RestartPolicyNever,
-			NodeSelector:  nodeSelector,
+			NodeSelector:  config.ClientNodeSelector,
+			NodeName:      config.ClientNodeName,
 		},
 	}
-	By(fmt.Sprintf("Creating pod %s", pod.Name))
+	ginkgo.By(fmt.Sprintf("Creating pod %s", pod.Name))
 	f.TestContainerOutput("exec-volume-test", pod, 0, []string{fileName})
 
-	By(fmt.Sprintf("Deleting pod %s", pod.Name))
-	err := framework.DeletePodWithWait(f, f.ClientSet, pod)
-	Expect(err).NotTo(HaveOccurred(), "while deleting pod")
+	ginkgo.By(fmt.Sprintf("Deleting pod %s", pod.Name))
+	err := e2epod.DeletePodWithWait(f.ClientSet, pod)
+	framework.ExpectNoError(err, "while deleting pod")
 }

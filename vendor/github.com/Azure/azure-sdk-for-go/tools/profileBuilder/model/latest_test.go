@@ -14,17 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package model_test
+package model
 
 import (
-	"path/filepath"
+	"reflect"
 	"testing"
-
-	"github.com/Azure/azure-sdk-for-go/tools/profileBuilder/model"
-	"github.com/marstr/collection"
 )
 
-func Test_VersionLE(t *testing.T) {
+func Test_versionLE(t *testing.T) {
 	const dateWithAlpha, dateWithBeta = "2016-02-01-alpha", "2016-02-01-beta"
 	const semVer1dot2, semVer1dot3 = "2018-03-03-1.2", "2018-03-03-1.3"
 	const dateAlone = "2016-12-07"
@@ -49,11 +46,13 @@ func Test_VersionLE(t *testing.T) {
 		{"5.6", "1.0.0", false},
 		{"5.6", "6.0", true},
 		{"6.0", "5.6", false},
+		{"1", "2", true},
+		{"3", "2", false},
 	}
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			if got, err := model.VersionLE(tc.left, tc.right); err != nil {
+			if got, err := versionLE(tc.left, tc.right); err != nil {
 				t.Error(err)
 			} else if got != tc.want {
 				t.Logf("\n Left: %s\nRight: %s", tc.left, tc.right)
@@ -64,13 +63,130 @@ func Test_VersionLE(t *testing.T) {
 	}
 }
 
-func BenchmarkLatestStrategy_Enumerate(b *testing.B) {
-	subject := model.LatestStrategy{
-		Root: filepath.Join("..", "..", "service"),
+func TestLatestTrackerAPIVer(t *testing.T) {
+	type tc struct {
+		input  string
+		result int
 	}
+	tests := []tc{
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-01-01/abc",
+			result: 1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2018-05-11/abc",
+			result: -1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-07-13/abc",
+			result: 0,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2015-03-01/def",
+			result: 1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2017-10-01/def",
+			result: 0,
+		},
+	}
+	tracker := latestTracker{}
+	for _, test := range tests {
+		pi, err := DeconstructPath(test.input)
+		if err != nil {
+			t.Fatalf("failed to deconstruct '%s': %v", test.input, err)
+		}
+		_, _, r := tracker.Upsert(test.input, pi)
+		if r != test.result {
+			t.Fatalf("expected result %d, got %d", test.result, r)
+		}
+	}
+	if l := len(tracker); l != 2 {
+		t.Fatalf("expected len 2, got len %d", l)
+	}
+	ld, err := tracker.ToListDefinition(true)
+	if err != nil {
+		t.Fatalf("failed to get list definition: %v", err)
+	}
+	expected := []string{
+		"/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-07-13/abc",
+		"/work/src/github.com/Azure/azure-sdk-for-go/services/def/2017-10-01/def",
+	}
+	if !reflect.DeepEqual(ld.Include, expected) {
+		t.Fatalf("bad results, got '%s' expected '%s'", ld.Include, expected)
+	}
+}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		b.Logf("Enumerated %d packages", collection.CountAll(subject))
+func TestLatestTrackerModVer(t *testing.T) {
+	type tc struct {
+		input  string
+		result int
+	}
+	tests := []tc{
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-01-01/abc",
+			result: 1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2018-05-11/abc",
+			result: -1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-01-01/abc/v2",
+			result: 0,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-07-13/abc",
+			result: 0,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-07-13/abc/v2",
+			result: 0,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2015-03-01/def",
+			result: 1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2017-10-01/def",
+			result: 0,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2015-03-01/def/v2",
+			result: -1,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2017-10-01/def/v2",
+			result: 0,
+		},
+		{
+			input:  "/work/src/github.com/Azure/azure-sdk-for-go/services/def/2017-10-01/def/v3",
+			result: 0,
+		},
+	}
+	tracker := latestTracker{}
+	for _, test := range tests {
+		pi, err := DeconstructPath(test.input)
+		if err != nil {
+			t.Fatalf("failed to deconstruct '%s': %v", test.input, err)
+		}
+		_, _, r := tracker.Upsert(test.input, pi)
+		if r != test.result {
+			t.Fatalf("expected result %d, got %d", test.result, r)
+		}
+	}
+	if l := len(tracker); l != 2 {
+		t.Fatalf("expected len 2, got len %d", l)
+	}
+	ld, err := tracker.ToListDefinition(true)
+	if err != nil {
+		t.Fatalf("failed to get list definition: %v", err)
+	}
+	expected := []string{
+		"/work/src/github.com/Azure/azure-sdk-for-go/services/abc/2019-07-13/abc/v2",
+		"/work/src/github.com/Azure/azure-sdk-for-go/services/def/2017-10-01/def/v3",
+	}
+	if !reflect.DeepEqual(ld.Include, expected) {
+		t.Fatalf("bad results, got '%s' expected '%s'", ld.Include, expected)
 	}
 }

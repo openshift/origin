@@ -32,16 +32,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
+	v1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"k8s.io/kube-aggregator/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/controller"
 )
 
 // AutoAPIServiceRegistration is an interface which callers can re-declare locally and properly cast to for
 // adding and removing APIServices
 type AutoAPIServiceRegistration interface {
 	// AddAPIServiceToSync adds an API service to auto-register.
-	AddAPIServiceToSync(in *apiregistration.APIService)
+	AddAPIServiceToSync(in *v1.APIService)
 	// RemoveAPIServiceToSync removes an API service to auto-register.
 	RemoveAPIServiceToSync(name string)
 }
@@ -114,7 +113,7 @@ func (c *crdRegistrationController) Run(threadiness int, stopCh <-chan struct{})
 	defer klog.Infof("Shutting down crd-autoregister controller")
 
 	// wait for your secondary caches to fill before starting your work
-	if !controller.WaitForCacheSync("crd-autoregister", stopCh, c.crdSynced) {
+	if !cache.WaitForNamedCacheSync("crd-autoregister", stopCh, c.crdSynced) {
 		return
 	}
 
@@ -194,7 +193,7 @@ func (c *crdRegistrationController) enqueueCRD(crd *apiextensions.CustomResource
 
 func (c *crdRegistrationController) handleVersionUpdate(groupVersion schema.GroupVersion) error {
 	apiServiceName := groupVersion.Version + "." + groupVersion.Group
-	
+
 	if apiserver.APIServiceAlreadyExists(groupVersion) {
 		// Removing APIService from sync means the CRD registration controller won't sync this APIService
 		// anymore. If the APIService is managed externally, this will mean the external component can
@@ -217,9 +216,9 @@ func (c *crdRegistrationController) handleVersionUpdate(groupVersion schema.Grou
 				continue
 			}
 
-			c.apiServiceRegistration.AddAPIServiceToSync(&apiregistration.APIService{
+			c.apiServiceRegistration.AddAPIServiceToSync(&v1.APIService{
 				ObjectMeta: metav1.ObjectMeta{Name: apiServiceName},
-				Spec: apiregistration.APIServiceSpec{
+				Spec: v1.APIServiceSpec{
 					Group:                groupVersion.Group,
 					Version:              groupVersion.Version,
 					GroupPriorityMinimum: getGroupPriorityMin(groupVersion.Group), // CRDs should have relatively low priority

@@ -5,10 +5,13 @@
 package dot
 
 import (
+	"bytes"
+	"os/exec"
 	"testing"
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/encoding"
+	"gonum.org/v1/gonum/graph/multi"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -216,6 +219,7 @@ type attrEdge struct {
 
 func (e attrEdge) From() graph.Node                 { return e.from }
 func (e attrEdge) To() graph.Node                   { return e.to }
+func (e attrEdge) ReversedEdge() graph.Edge         { e.from, e.to = e.to, e.from; return e }
 func (e attrEdge) Weight() float64                  { return 0 }
 func (e attrEdge) Attributes() []encoding.Attribute { return e.attr }
 
@@ -254,7 +258,13 @@ type portedEdge struct {
 
 func (e portedEdge) From() graph.Node { return e.from }
 func (e portedEdge) To() graph.Node   { return e.to }
-func (e portedEdge) Weight() float64  { return 0 }
+func (e portedEdge) ReversedEdge() graph.Edge {
+	e.from, e.to = e.to, e.from
+	e.fromPort, e.toPort = e.toPort, e.fromPort
+	e.fromCompass, e.toCompass = e.toCompass, e.fromCompass
+	return e
+}
+func (e portedEdge) Weight() float64 { return 0 }
 
 func (e portedEdge) FromPort() (port, compass string) {
 	return e.fromPort, e.fromCompass
@@ -410,9 +420,8 @@ func undirectedSubGraphFrom(g []intset, s map[int64][]intset) graph.Graph {
 }
 
 var encodeTests = []struct {
-	name   string
-	g      graph.Graph
-	strict bool
+	name string
+	g    graph.Graph
 
 	prefix string
 
@@ -423,7 +432,7 @@ var encodeTests = []struct {
 		name: "PageRank",
 		g:    directedGraphFrom(pageRankGraph),
 
-		want: `digraph PageRank {
+		want: `strict digraph PageRank {
 	// Node definitions.
 	0;
 	1;
@@ -460,7 +469,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedGraphFrom(pageRankGraph),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -495,7 +504,7 @@ var encodeTests = []struct {
 	{
 		g: directedGraphFrom(powerMethodGraph),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -516,7 +525,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedGraphFrom(powerMethodGraph),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -538,7 +547,7 @@ var encodeTests = []struct {
 		g:      undirectedGraphFrom(powerMethodGraph),
 		prefix: "# ",
 
-		want: `# graph {
+		want: `# strict graph {
 # 	// Node definitions.
 # 	0;
 # 	1;
@@ -562,7 +571,7 @@ var encodeTests = []struct {
 		name: "PageRank",
 		g:    directedNamedIDGraphFrom(pageRankGraph),
 
-		want: `digraph PageRank {
+		want: `strict digraph PageRank {
 	// Node definitions.
 	A;
 	B;
@@ -599,7 +608,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedNamedIDGraphFrom(pageRankGraph),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	A;
 	B;
@@ -634,7 +643,7 @@ var encodeTests = []struct {
 	{
 		g: directedNamedIDGraphFrom(powerMethodGraph),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	A;
 	B;
@@ -655,7 +664,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedNamedIDGraphFrom(powerMethodGraph),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	A;
 	B;
@@ -677,7 +686,7 @@ var encodeTests = []struct {
 		g:      undirectedNamedIDGraphFrom(powerMethodGraph),
 		prefix: "# ",
 
-		want: `# graph {
+		want: `# strict graph {
 # 	// Node definitions.
 # 	A;
 # 	B;
@@ -700,7 +709,7 @@ var encodeTests = []struct {
 	{
 		g: directedNodeAttrGraphFrom(powerMethodGraph, nil),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -721,7 +730,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedNodeAttrGraphFrom(powerMethodGraph, nil),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -741,11 +750,11 @@ var encodeTests = []struct {
 	},
 	{
 		g: directedNodeAttrGraphFrom(powerMethodGraph, [][]encoding.Attribute{
-			2: {{"fontsize", "16"}, {"shape", "ellipse"}},
+			2: {{Key: "fontsize", Value: "16"}, {Key: "shape", Value: "ellipse"}},
 			4: {},
 		}),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -768,11 +777,11 @@ var encodeTests = []struct {
 	},
 	{
 		g: undirectedNodeAttrGraphFrom(powerMethodGraph, [][]encoding.Attribute{
-			2: {{"fontsize", "16"}, {"shape", "ellipse"}},
+			2: {{Key: "fontsize", Value: "16"}, {Key: "shape", Value: "ellipse"}},
 			4: {},
 		}),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -795,11 +804,11 @@ var encodeTests = []struct {
 	},
 	{
 		g: directedNamedIDNodeAttrGraphFrom(powerMethodGraph, [][]encoding.Attribute{
-			2: {{"fontsize", "16"}, {"shape", "ellipse"}},
+			2: {{Key: "fontsize", Value: "16"}, {Key: "shape", Value: "ellipse"}},
 			4: {},
 		}),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	A;
 	B;
@@ -824,12 +833,12 @@ var encodeTests = []struct {
 		g: undirectedNamedIDNodeAttrGraphFrom(powerMethodGraph, [][]encoding.Attribute{
 			0: nil,
 			1: nil,
-			2: {{"fontsize", "16"}, {"shape", "ellipse"}},
+			2: {{Key: "fontsize", Value: "16"}, {Key: "shape", Value: "ellipse"}},
 			3: nil,
 			4: {},
 		}),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	A;
 	B;
@@ -855,7 +864,7 @@ var encodeTests = []struct {
 	{
 		g: directedEdgeAttrGraphFrom(powerMethodGraph, nil),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -876,7 +885,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedEdgeAttrGraphFrom(powerMethodGraph, nil),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -896,12 +905,12 @@ var encodeTests = []struct {
 	},
 	{
 		g: directedEdgeAttrGraphFrom(powerMethodGraph, map[edge][]encoding.Attribute{
-			{from: 0, to: 2}: {{"label", `"???"`}, {"style", "dashed"}},
+			{from: 0, to: 2}: {{Key: "label", Value: `"???"`}, {Key: "style", Value: "dashed"}},
 			{from: 2, to: 4}: {},
-			{from: 3, to: 4}: {{"color", "red"}},
+			{from: 3, to: 4}: {{Key: "color", Value: "red"}},
 		}),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -924,12 +933,12 @@ var encodeTests = []struct {
 	},
 	{
 		g: undirectedEdgeAttrGraphFrom(powerMethodGraph, map[edge][]encoding.Attribute{
-			{from: 0, to: 2}: {{"label", `"???"`}, {"style", "dashed"}},
+			{from: 0, to: 2}: {{Key: "label", Value: `"???"`}, {Key: "style", Value: "dashed"}},
 			{from: 2, to: 4}: {},
-			{from: 3, to: 4}: {{"color", "red"}},
+			{from: 3, to: 4}: {{Key: "color", Value: "red"}},
 		}),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -950,12 +959,70 @@ var encodeTests = []struct {
 	3 -- 4 [color=red];
 }`,
 	},
+	{
+		g: undirectedEdgeAttrGraphFrom(powerMethodGraph, map[edge][]encoding.Attribute{
+			// label attribute not quoted and containing spaces.
+			{from: 0, to: 2}: {{Key: "label", Value: `hello world`}, {Key: "style", Value: "dashed"}},
+			{from: 2, to: 4}: {},
+			{from: 3, to: 4}: {{Key: "label", Value: `foo bar`}},
+		}),
+
+		want: `strict graph {
+	// Node definitions.
+	0;
+	1;
+	2;
+	3;
+	4;
+
+	// Edge definitions.
+	0 -- 1;
+	0 -- 2 [
+		label="hello world"
+		style=dashed
+	];
+	0 -- 4;
+	1 -- 3;
+	2 -- 3;
+	2 -- 4;
+	3 -- 4 [label="foo bar"];
+}`,
+	},
+	{
+		g: undirectedEdgeAttrGraphFrom(powerMethodGraph, map[edge][]encoding.Attribute{
+			// keywords must be quoted if used as attributes.
+			{from: 0, to: 2}: {{Key: "label", Value: `NODE`}, {Key: "style", Value: "dashed"}},
+			{from: 2, to: 4}: {},
+			{from: 3, to: 4}: {{Key: "label", Value: `subgraph`}},
+		}),
+
+		want: `strict graph {
+	// Node definitions.
+	0;
+	1;
+	2;
+	3;
+	4;
+
+	// Edge definitions.
+	0 -- 1;
+	0 -- 2 [
+		label="NODE"
+		style=dashed
+	];
+	0 -- 4;
+	1 -- 3;
+	2 -- 3;
+	2 -- 4;
+	3 -- 4 [label="subgraph"];
+}`,
+	},
 
 	// Handling nodes with ports.
 	{
 		g: directedPortedAttrGraphFrom(powerMethodGraph, nil, nil),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -976,7 +1043,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedPortedAttrGraphFrom(powerMethodGraph, nil, nil),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -997,8 +1064,8 @@ var encodeTests = []struct {
 	{
 		g: directedPortedAttrGraphFrom(powerMethodGraph,
 			[][]encoding.Attribute{
-				2: {{"shape", "record"}, {"label", `"<Two>English|<Zwei>German"`}},
-				4: {{"shape", "record"}, {"label", `"<Four>English|<Vier>German"`}},
+				2: {{Key: "shape", Value: "record"}, {Key: "label", Value: `"<Two>English|<Zwei>German"`}},
+				4: {{Key: "shape", Value: "record"}, {Key: "label", Value: `"<Four>English|<Vier>German"`}},
 			},
 			map[edge]portedEdge{
 				{from: 0, to: 1}: {fromCompass: "s"},
@@ -1010,7 +1077,7 @@ var encodeTests = []struct {
 			},
 		),
 
-		want: `digraph {
+		want: `strict digraph {
 	// Node definitions.
 	0;
 	1;
@@ -1037,8 +1104,8 @@ var encodeTests = []struct {
 	{
 		g: undirectedPortedAttrGraphFrom(powerMethodGraph,
 			[][]encoding.Attribute{
-				2: {{"shape", "record"}, {"label", `"<Two>English|<Zwei>German"`}},
-				4: {{"shape", "record"}, {"label", `"<Four>English|<Vier>German"`}},
+				2: {{Key: "shape", Value: "record"}, {Key: "label", Value: `"<Two>English|<Zwei>German"`}},
+				4: {{Key: "shape", Value: "record"}, {Key: "label", Value: `"<Four>English|<Vier>German"`}},
 			},
 			map[edge]portedEdge{
 				{from: 0, to: 1}: {fromCompass: "s"},
@@ -1050,7 +1117,7 @@ var encodeTests = []struct {
 			},
 		),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -1078,12 +1145,12 @@ var encodeTests = []struct {
 	// Handling graph attributes.
 	{
 		g: graphAttributer{Graph: undirectedEdgeAttrGraphFrom(powerMethodGraph, map[edge][]encoding.Attribute{
-			{from: 0, to: 2}: {{"label", `"???"`}, {"style", "dashed"}},
+			{from: 0, to: 2}: {{Key: "label", Value: `"???"`}, {Key: "style", Value: "dashed"}},
 			{from: 2, to: 4}: {},
-			{from: 3, to: 4}: {{"color", "red"}},
+			{from: 3, to: 4}: {{Key: "color", Value: "red"}},
 		})},
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	0;
 	1;
@@ -1106,15 +1173,15 @@ var encodeTests = []struct {
 	},
 	{
 		g: graphAttributer{Graph: undirectedEdgeAttrGraphFrom(powerMethodGraph, map[edge][]encoding.Attribute{
-			{from: 0, to: 2}: {{"label", `"???"`}, {"style", "dashed"}},
+			{from: 0, to: 2}: {{Key: "label", Value: `"???"`}, {Key: "style", Value: "dashed"}},
 			{from: 2, to: 4}: {},
-			{from: 3, to: 4}: {{"color", "red"}},
+			{from: 3, to: 4}: {{Key: "color", Value: "red"}},
 		}),
-			graph: []encoding.Attribute{{"rankdir", `"LR"`}},
-			node:  []encoding.Attribute{{"fontsize", "16"}, {"shape", "ellipse"}},
+			graph: []encoding.Attribute{{Key: "rankdir", Value: `"LR"`}},
+			node:  []encoding.Attribute{{Key: "fontsize", Value: "16"}, {Key: "shape", Value: "ellipse"}},
 		},
 
-		want: `graph {
+		want: `strict graph {
 	graph [
 		rankdir="LR"
 	];
@@ -1148,7 +1215,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedStructuredGraphFrom(nil, powerMethodGraph, pageRankGraph),
 
-		want: `graph {
+		want: `strict graph {
 	subgraph A {
 		// Node definitions.
 		0;
@@ -1202,7 +1269,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedStructuredGraphFrom([]edge{{from: 0, to: 9}}, powerMethodGraph, pageRankGraph),
 
-		want: `graph {
+		want: `strict graph {
 	subgraph A {
 		// Node definitions.
 		0;
@@ -1264,7 +1331,7 @@ var encodeTests = []struct {
 	{
 		g: undirectedSubGraphFrom(pageRankGraph, map[int64][]intset{2: powerMethodGraph}),
 
-		want: `graph {
+		want: `strict graph {
 	// Node definitions.
 	5;
 	6;
@@ -1312,9 +1379,8 @@ var encodeTests = []struct {
 }`,
 	},
 	{
-		name:   "H",
-		g:      undirectedSubGraphFrom(pageRankGraph, map[int64][]intset{1: powerMethodGraph}),
-		strict: true,
+		name: "H",
+		g:    undirectedSubGraphFrom(pageRankGraph, map[int64][]intset{1: powerMethodGraph}),
 
 		want: `strict graph H {
 	// Node definitions.
@@ -1409,7 +1475,7 @@ var encodeTests = []struct {
 
 func TestEncode(t *testing.T) {
 	for i, test := range encodeTests {
-		got, err := Marshal(test.g, test.name, test.prefix, "\t", test.strict)
+		got, err := Marshal(test.g, test.name, test.prefix, "\t")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			continue
@@ -1417,5 +1483,280 @@ func TestEncode(t *testing.T) {
 		if string(got) != test.want {
 			t.Errorf("unexpected DOT result for test %d:\ngot: %s\nwant:%s", i, got, test.want)
 		}
+		checkDOT(t, got)
+	}
+}
+
+type intlist []int64
+
+func createMultigraph(g []intlist) graph.Multigraph {
+	dg := multi.NewUndirectedGraph()
+	for u, e := range g {
+		u := int64(u)
+		nu := multi.Node(u)
+		for _, v := range e {
+			nv := multi.Node(v)
+			dg.SetLine(dg.NewLine(nu, nv))
+		}
+	}
+	return dg
+}
+
+func createNamedMultigraph(g []intlist) graph.Multigraph {
+	dg := multi.NewUndirectedGraph()
+	for u, e := range g {
+		u := int64(u)
+		nu := namedNode{id: u, name: alpha[u : u+1]}
+		for _, v := range e {
+			nv := namedNode{id: v, name: alpha[v : v+1]}
+			dg.SetLine(dg.NewLine(nu, nv))
+		}
+	}
+	return dg
+}
+
+func createDirectedMultigraph(g []intlist) graph.Multigraph {
+	dg := multi.NewDirectedGraph()
+	for u, e := range g {
+		u := int64(u)
+		nu := multi.Node(u)
+		for _, v := range e {
+			nv := multi.Node(v)
+			dg.SetLine(dg.NewLine(nu, nv))
+		}
+	}
+	return dg
+}
+
+func createNamedDirectedMultigraph(g []intlist) graph.Multigraph {
+	dg := multi.NewDirectedGraph()
+	for u, e := range g {
+		u := int64(u)
+		nu := namedNode{id: u, name: alpha[u : u+1]}
+		for _, v := range e {
+			nv := namedNode{id: v, name: alpha[v : v+1]}
+			dg.SetLine(dg.NewLine(nu, nv))
+		}
+	}
+	return dg
+}
+
+var encodeMultiTests = []struct {
+	name string
+	g    graph.Multigraph
+
+	prefix string
+
+	want string
+}{
+	{
+		g: createMultigraph([]intlist{}),
+		want: `graph {
+}`,
+	},
+	{
+		g: createMultigraph([]intlist{
+			0: {1},
+			1: {0, 2},
+			2: {},
+		}),
+		want: `graph {
+	// Node definitions.
+	0;
+	1;
+	2;
+
+	// Edge definitions.
+	0 -- 1;
+	0 -- 1;
+	1 -- 2;
+}`,
+	},
+	{
+		g: createMultigraph([]intlist{
+			0: {1},
+			1: {2, 2},
+			2: {0, 0, 0},
+		}),
+		want: `graph {
+	// Node definitions.
+	0;
+	1;
+	2;
+
+	// Edge definitions.
+	0 -- 1;
+	0 -- 2;
+	0 -- 2;
+	0 -- 2;
+	1 -- 2;
+	1 -- 2;
+}`,
+	},
+	{
+		g: createNamedMultigraph([]intlist{
+			0: {1},
+			1: {2, 2},
+			2: {0, 0, 0},
+		}),
+		want: `graph {
+	// Node definitions.
+	A;
+	B;
+	C;
+
+	// Edge definitions.
+	A -- B;
+	A -- C;
+	A -- C;
+	A -- C;
+	B -- C;
+	B -- C;
+}`,
+	},
+	{
+		g: createMultigraph([]intlist{
+			0: {2, 1, 0},
+			1: {2, 1, 0},
+			2: {2, 1, 0},
+		}),
+		want: `graph {
+	// Node definitions.
+	0;
+	1;
+	2;
+
+	// Edge definitions.
+	0 -- 0;
+	0 -- 1;
+	0 -- 1;
+	0 -- 2;
+	0 -- 2;
+	1 -- 1;
+	1 -- 2;
+	1 -- 2;
+	2 -- 2;
+}`,
+	},
+	{
+		g: createDirectedMultigraph([]intlist{}),
+		want: `digraph {
+}`,
+	},
+	{
+		g: createDirectedMultigraph([]intlist{
+			0: {1},
+			1: {0, 2},
+			2: {},
+		}),
+		want: `digraph {
+	// Node definitions.
+	0;
+	1;
+	2;
+
+	// Edge definitions.
+	0 -> 1;
+	1 -> 0;
+	1 -> 2;
+}`,
+	},
+	{
+		g: createDirectedMultigraph([]intlist{
+			0: {1},
+			1: {2, 2},
+			2: {0, 0, 0},
+		}),
+		want: `digraph {
+	// Node definitions.
+	0;
+	1;
+	2;
+
+	// Edge definitions.
+	0 -> 1;
+	1 -> 2;
+	1 -> 2;
+	2 -> 0;
+	2 -> 0;
+	2 -> 0;
+}`,
+	},
+	{
+		g: createNamedDirectedMultigraph([]intlist{
+			0: {1},
+			1: {2, 2},
+			2: {0, 0, 0},
+		}),
+		want: `digraph {
+	// Node definitions.
+	A;
+	B;
+	C;
+
+	// Edge definitions.
+	A -> B;
+	B -> C;
+	B -> C;
+	C -> A;
+	C -> A;
+	C -> A;
+}`,
+	},
+	{
+		g: createDirectedMultigraph([]intlist{
+			0: {2, 1, 0},
+			1: {2, 1, 0},
+			2: {2, 1, 0},
+		}),
+		want: `digraph {
+	// Node definitions.
+	0;
+	1;
+	2;
+
+	// Edge definitions.
+	0 -> 0;
+	0 -> 1;
+	0 -> 2;
+	1 -> 0;
+	1 -> 1;
+	1 -> 2;
+	2 -> 0;
+	2 -> 1;
+	2 -> 2;
+}`,
+	},
+}
+
+func TestEncodeMulti(t *testing.T) {
+	for i, test := range encodeMultiTests {
+		got, err := MarshalMulti(test.g, test.name, test.prefix, "\t")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			continue
+		}
+		if string(got) != test.want {
+			t.Errorf("unexpected DOT result for test %d:\ngot: %s\nwant:%s", i, got, test.want)
+		}
+		checkDOT(t, got)
+	}
+}
+
+// checkDOT hands b to the dot executable if it exists and fails t if dot
+// returns an error.
+func checkDOT(t *testing.T, b []byte) {
+	dot, err := exec.LookPath("dot")
+	if err != nil {
+		t.Logf("skipping DOT syntax check: %v", err)
+		return
+	}
+	cmd := exec.Command(dot)
+	cmd.Stdin = bytes.NewReader(b)
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
+	err = cmd.Run()
+	if err != nil {
+		t.Errorf("invalid DOT syntax: %v\n%s\ninput:\n%s", err, stderr.String(), b)
 	}
 }

@@ -103,7 +103,7 @@ func runRestfulMsgPackRouterServer() {
 	container := restful.NewContainer()
 	register(container)
 
-	log.Printf("start listening on localhost:8090")
+	log.Print("start listening on localhost:8090")
 	server := &http.Server{Addr: ":8090", Handler: container}
 	log.Fatal(server.ListenAndServe())
 }

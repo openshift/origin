@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"io"
 	"net/http"
 )
@@ -49,6 +50,16 @@ func NewTextModerationClient(endpoint string) TextModerationClient {
 // textContentType - the content type.
 // textContent - content to screen.
 func (client TextModerationClient) DetectLanguage(ctx context.Context, textContentType string, textContent io.ReadCloser) (result DetectedLanguage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TextModerationClient.DetectLanguage")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DetectLanguagePreparer(ctx, textContentType, textContent)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.TextModerationClient", "DetectLanguage", nil, "Failure preparing request")
@@ -89,8 +100,8 @@ func (client TextModerationClient) DetectLanguagePreparer(ctx context.Context, t
 // DetectLanguageSender sends the DetectLanguage request. The method will close the
 // http.Response Body if it receives an error.
 func (client TextModerationClient) DetectLanguageSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DetectLanguageResponder handles the response to the DetectLanguage request. The method always
@@ -116,6 +127,16 @@ func (client TextModerationClient) DetectLanguageResponder(resp *http.Response) 
 // listID - the list Id.
 // classify - classify input.
 func (client TextModerationClient) ScreenText(ctx context.Context, textContentType string, textContent io.ReadCloser, language string, autocorrect *bool, pii *bool, listID string, classify *bool) (result Screen, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/TextModerationClient.ScreenText")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ScreenTextPreparer(ctx, textContentType, textContent, language, autocorrect, pii, listID, classify)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "contentmoderator.TextModerationClient", "ScreenText", nil, "Failure preparing request")
@@ -180,8 +201,8 @@ func (client TextModerationClient) ScreenTextPreparer(ctx context.Context, textC
 // ScreenTextSender sends the ScreenText request. The method will close the
 // http.Response Body if it receives an error.
 func (client TextModerationClient) ScreenTextSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ScreenTextResponder handles the response to the ScreenText request. The method always

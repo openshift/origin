@@ -34,7 +34,7 @@ func TestSubnetCRUD(t *testing.T) {
 	newSubnetName := tools.RandomString("TESTACC-", 8)
 	newSubnetDescription := ""
 	updateOpts := subnets.UpdateOpts{
-		Name:        newSubnetName,
+		Name:        &newSubnetName,
 		Description: &newSubnetDescription,
 	}
 	_, err = subnets.Update(client, subnet.ID, updateOpts).Extract()
@@ -216,4 +216,51 @@ func TestSubnetsWithSubnetPoolPrefixlen(t *testing.T) {
 	if cidrParts[1] != "12" {
 		t.Fatalf("Got invalid prefix length for subnet '%s': wanted 12 but got '%s'", subnet.ID, cidrParts[1])
 	}
+}
+
+func TestSubnetDNSNameservers(t *testing.T) {
+	client, err := clients.NewNetworkV2Client()
+	th.AssertNoErr(t, err)
+
+	// Create Network
+	network, err := CreateNetwork(t, client)
+	th.AssertNoErr(t, err)
+	defer DeleteNetwork(t, client, network.ID)
+
+	// Create Subnet
+	subnet, err := CreateSubnet(t, client, network.ID)
+	th.AssertNoErr(t, err)
+	defer DeleteSubnet(t, client, subnet.ID)
+
+	tools.PrintResource(t, subnet)
+
+	// Update Subnet
+	dnsNameservers := []string{"1.1.1.1"}
+	updateOpts := subnets.UpdateOpts{
+		DNSNameservers: &dnsNameservers,
+	}
+	_, err = subnets.Update(client, subnet.ID, updateOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	// Get subnet
+	newSubnet, err := subnets.Get(client, subnet.ID).Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, newSubnet)
+	th.AssertEquals(t, len(newSubnet.DNSNameservers), 1)
+
+	// Update Subnet again
+	dnsNameservers = []string{}
+	updateOpts = subnets.UpdateOpts{
+		DNSNameservers: &dnsNameservers,
+	}
+	_, err = subnets.Update(client, subnet.ID, updateOpts).Extract()
+	th.AssertNoErr(t, err)
+
+	// Get subnet
+	newSubnet, err = subnets.Get(client, subnet.ID).Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, newSubnet)
+	th.AssertEquals(t, len(newSubnet.DNSNameservers), 0)
 }

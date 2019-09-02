@@ -15,6 +15,7 @@ import (
 	"go/types"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -127,6 +128,10 @@ func TestLoad_MissingInitialPackage(t *testing.T) {
 }
 
 func TestLoad_MissingInitialPackage_AllowErrors(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo has no standard library test files")
+	}
+
 	var conf loader.Config
 	conf.AllowErrors = true
 	conf.Import("nosuchpkg")
@@ -251,6 +256,10 @@ func TestLoad_FromSource_Success(t *testing.T) {
 }
 
 func TestLoad_FromImports_Success(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo has no standard library test files")
+	}
+
 	var conf loader.Config
 	conf.ImportWithTests("fmt")
 	conf.ImportWithTests("errors")
@@ -799,4 +808,18 @@ func created(prog *loader.Program) string {
 		pkgs = append(pkgs, info.Pkg.Path())
 	}
 	return strings.Join(pkgs, " ")
+}
+
+// Load package "io" twice in parallel.
+// When run with -race, this is a regression test for Go issue 20718, in
+// which the global "unsafe" package was modified concurrently.
+func TestLoad1(t *testing.T) { loadIO(t) }
+func TestLoad2(t *testing.T) { loadIO(t) }
+
+func loadIO(t *testing.T) {
+	t.Parallel()
+	conf := &loader.Config{ImportPkgs: map[string]bool{"io": false}}
+	if _, err := conf.Load(); err != nil {
+		t.Fatal(err)
+	}
 }

@@ -2,6 +2,7 @@ package capsules
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
@@ -12,11 +13,28 @@ type commonResult struct {
 	gophercloud.Result
 }
 
-// Extract is a function that accepts a result and extracts a capsule resource.
-func (r commonResult) Extract() (*Capsule, error) {
+// ExtractBase is a function that accepts a result and extracts
+// a base a capsule resource.
+func (r commonResult) ExtractBase() (*Capsule, error) {
 	var s *Capsule
 	err := r.ExtractInto(&s)
 	return s, err
+}
+
+// Extract is a function that accepts a result and extracts a capsule result.
+// The result will be returned as an interface{} where it should be able to
+// be casted as either a Capsule or CapsuleV132.
+func (r commonResult) Extract() (interface{}, error) {
+	s, err := r.ExtractBase()
+	if err == nil {
+		return s, nil
+	}
+
+	if _, ok := err.(*json.UnmarshalTypeError); !ok {
+		return s, err
+	}
+
+	return r.ExtractV132()
 }
 
 // GetResult represents the result of a get operation.
@@ -224,18 +242,48 @@ func (r CapsulePage) NextPageURL() (string, error) {
 // IsEmpty checks whether a CapsulePage struct is empty.
 func (r CapsulePage) IsEmpty() (bool, error) {
 	is, err := ExtractCapsules(r)
-	return len(is) == 0, err
+	if err != nil {
+		return false, err
+	}
+
+	if v, ok := is.([]Capsule); ok {
+		return len(v) == 0, nil
+	}
+
+	if v, ok := is.([]CapsuleV132); ok {
+		return len(v) == 0, nil
+	}
+
+	return false, fmt.Errorf("Unable to determine Capsule type")
 }
 
-// ExtractCapsules accepts a Page struct, specifically a CapsulePage struct,
+// ExtractCapsulesBase accepts a Page struct, specifically a CapsulePage struct,
 // and extracts the elements into a slice of Capsule structs. In other words,
-// a generic collection is mapped into a relevant slice.
-func ExtractCapsules(r pagination.Page) ([]Capsule, error) {
+// a generic collection is mapped into the relevant slice.
+func ExtractCapsulesBase(r pagination.Page) ([]Capsule, error) {
 	var s struct {
 		Capsules []Capsule `json:"capsules"`
 	}
+
 	err := (r.(CapsulePage)).ExtractInto(&s)
 	return s.Capsules, err
+}
+
+// ExtractCapsules accepts a Page struct, specifically a CapsulePage struct,
+// and extracts the elements into an interface.
+// This interface should be able to be casted as either a Capsule or
+// CapsuleV132 struct
+func ExtractCapsules(r pagination.Page) (interface{}, error) {
+	s, err := ExtractCapsulesBase(r)
+	if err == nil {
+		return s, nil
+	}
+
+	if _, ok := err.(*json.UnmarshalTypeError); !ok {
+		return nil, err
+	}
+
+	return ExtractCapsulesV132(r)
 }
 
 func (r *Capsule) UnmarshalJSON(b []byte) error {

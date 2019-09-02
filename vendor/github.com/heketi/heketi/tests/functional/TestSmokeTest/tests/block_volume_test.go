@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/heketi/heketi/pkg/glusterfs/api"
-	"github.com/heketi/heketi/pkg/remoteexec/ssh"
+	"github.com/heketi/heketi/pkg/testutils"
 	"github.com/heketi/tests"
 )
 
@@ -138,6 +138,7 @@ func TestBlockVolumeCreateManyAtOnce(t *testing.T) {
 }
 
 func TestBlockVolumeAlreadyDeleted(t *testing.T) {
+	na := testutils.RequireNodeAccess(t)
 
 	// Setup the VM storage topology
 	setupCluster(t, 3, 4)
@@ -159,11 +160,11 @@ func TestBlockVolumeAlreadyDeleted(t *testing.T) {
 	hvol, err := heketi.VolumeInfo(bvol.BlockHostingVolume)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	host := storage0ssh
+	host := cenv.SshHost(0)
 	cmd := fmt.Sprintf("gluster-block delete %v/%v --json",
 		hvol.Name, bvol.Name)
-	s := ssh.NewSshExecWithKeyFile(
-		logger, "vagrant", "../config/insecure_private_key")
+	s := na.Use(logger)
+
 	o, err := s.ConnectAndExec(host, []string{cmd}, 10, true)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 	tests.Assert(t, len(o) == 1, "expected len(o) == 1, got:", len(o))
@@ -173,6 +174,7 @@ func TestBlockVolumeAlreadyDeleted(t *testing.T) {
 }
 
 func TestBlockVolumeDeleteFailureConditions(t *testing.T) {
+	na := testutils.RequireNodeAccess(t)
 
 	// Setup the VM storage topology
 	setupCluster(t, 3, 4)
@@ -194,11 +196,11 @@ func TestBlockVolumeDeleteFailureConditions(t *testing.T) {
 	_, err = heketi.BlockVolumeInfo(bvol.Id)
 	tests.Assert(t, err == nil, "expected err == nil, got:", err)
 
-	downHosts := []string{storage1ssh, storage2ssh}
+	downHosts := []string{cenv.SshHost(1), cenv.SshHost(2)}
 
 	var cmds []string
-	s := ssh.NewSshExecWithKeyFile(
-		logger, "vagrant", "../config/insecure_private_key")
+	s := na.Use(logger)
+
 	stopServices := func(both bool) {
 		logger.Info("Stopping services for test")
 		for _, host := range downHosts {

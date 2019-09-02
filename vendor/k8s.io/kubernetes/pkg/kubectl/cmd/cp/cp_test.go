@@ -39,9 +39,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest/fake"
-	kexec "k8s.io/kubernetes/pkg/kubectl/cmd/exec"
-	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
-	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	kexec "k8s.io/kubectl/pkg/cmd/exec"
+	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
+	"k8s.io/kubectl/pkg/scheme"
 )
 
 type FileType int
@@ -547,6 +547,12 @@ func TestBadTar(t *testing.T) {
 	}
 }
 
+// clean prevents path traversals by stripping them out.
+// This is adapted from https://golang.org/src/net/http/fs.go#L74
+func clean(fileName string) string {
+	return path.Clean(string(os.PathSeparator) + fileName)
+}
+
 func TestClean(t *testing.T) {
 	tests := []struct {
 		input   string
@@ -671,11 +677,11 @@ func TestCopyToPodNoPreserve(t *testing.T) {
 		nopreserve  bool
 	}{
 		"copy to pod no preserve user and permissions": {
-			expectedCmd: []string{"tar", "--no-same-permissions", "--no-same-owner", "-xf", "-", "-C", "."},
+			expectedCmd: []string{"tar", "--no-same-permissions", "--no-same-owner", "-xmf", "-", "-C", "."},
 			nopreserve:  true,
 		},
 		"copy to pod preserve user and permissions": {
-			expectedCmd: []string{"tar", "-xf", "-", "-C", "."},
+			expectedCmd: []string{"tar", "-xmf", "-", "-C", "."},
 			nopreserve:  false,
 		},
 	}

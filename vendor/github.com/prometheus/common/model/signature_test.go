@@ -14,7 +14,6 @@
 package model
 
 import (
-	"fmt"
 	"runtime"
 	"sync"
 	"testing"
@@ -281,17 +280,13 @@ func benchmarkMetricToFastFingerprintConc(b *testing.B, ls LabelSet, e Fingerpri
 	var start, end sync.WaitGroup
 	start.Add(1)
 	end.Add(concLevel)
-	errc := make(chan error, 1)
 
 	for i := 0; i < concLevel; i++ {
 		go func() {
 			start.Wait()
 			for j := b.N / concLevel; j >= 0; j-- {
 				if a := labelSetToFastFingerprint(ls); a != e {
-					select {
-					case errc <- fmt.Errorf("expected signature of %d for %s, got %d", e, ls, a):
-					default:
-					}
+					b.Fatalf("expected signature of %d for %s, got %d", e, ls, a)
 				}
 			}
 			end.Done()
@@ -300,12 +295,6 @@ func benchmarkMetricToFastFingerprintConc(b *testing.B, ls LabelSet, e Fingerpri
 	b.ResetTimer()
 	start.Done()
 	end.Wait()
-
-	select {
-	case err := <-errc:
-		b.Fatal(err)
-	default:
-	}
 }
 
 func BenchmarkMetricToFastFingerprintTripleConc1(b *testing.B) {

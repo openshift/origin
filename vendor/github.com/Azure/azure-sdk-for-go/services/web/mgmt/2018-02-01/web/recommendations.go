@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -40,11 +41,106 @@ func NewRecommendationsClientWithBaseURI(baseURI string, subscriptionID string) 
 	return RecommendationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
+// DisableAllForHostingEnvironment disable all recommendations for an app.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// environmentName - name of the app.
+func (client RecommendationsClient) DisableAllForHostingEnvironment(ctx context.Context, resourceGroupName string, environmentName string, hostingEnvironmentName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.DisableAllForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("web.RecommendationsClient", "DisableAllForHostingEnvironment", err.Error())
+	}
+
+	req, err := client.DisableAllForHostingEnvironmentPreparer(ctx, resourceGroupName, environmentName, hostingEnvironmentName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableAllForHostingEnvironment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.DisableAllForHostingEnvironmentSender(req)
+	if err != nil {
+		result.Response = resp
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableAllForHostingEnvironment", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.DisableAllForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableAllForHostingEnvironment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// DisableAllForHostingEnvironmentPreparer prepares the DisableAllForHostingEnvironment request.
+func (client RecommendationsClient) DisableAllForHostingEnvironmentPreparer(ctx context.Context, resourceGroupName string, environmentName string, hostingEnvironmentName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"hostingEnvironmentName": autorest.Encode("path", hostingEnvironmentName),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-02-01"
+	queryParameters := map[string]interface{}{
+		"api-version":     APIVersion,
+		"environmentName": autorest.Encode("query", environmentName),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{hostingEnvironmentName}/recommendations/disable", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// DisableAllForHostingEnvironmentSender sends the DisableAllForHostingEnvironment request. The method will close the
+// http.Response Body if it receives an error.
+func (client RecommendationsClient) DisableAllForHostingEnvironmentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// DisableAllForHostingEnvironmentResponder handles the response to the DisableAllForHostingEnvironment request. The method always
+// closes the http.Response Body.
+func (client RecommendationsClient) DisableAllForHostingEnvironmentResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
 // DisableAllForWebApp disable all recommendations for an app.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // siteName - name of the app.
 func (client RecommendationsClient) DisableAllForWebApp(ctx context.Context, resourceGroupName string, siteName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.DisableAllForWebApp")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -98,8 +194,8 @@ func (client RecommendationsClient) DisableAllForWebAppPreparer(ctx context.Cont
 // DisableAllForWebAppSender sends the DisableAllForWebApp request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) DisableAllForWebAppSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableAllForWebAppResponder handles the response to the DisableAllForWebApp request. The method always
@@ -114,12 +210,109 @@ func (client RecommendationsClient) DisableAllForWebAppResponder(resp *http.Resp
 	return
 }
 
+// DisableRecommendationForHostingEnvironment disables the specific rule for a web site permanently.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// environmentName - site name
+// name - rule name
+func (client RecommendationsClient) DisableRecommendationForHostingEnvironment(ctx context.Context, resourceGroupName string, environmentName string, name string, hostingEnvironmentName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.DisableRecommendationForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("web.RecommendationsClient", "DisableRecommendationForHostingEnvironment", err.Error())
+	}
+
+	req, err := client.DisableRecommendationForHostingEnvironmentPreparer(ctx, resourceGroupName, environmentName, name, hostingEnvironmentName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableRecommendationForHostingEnvironment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.DisableRecommendationForHostingEnvironmentSender(req)
+	if err != nil {
+		result.Response = resp
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableRecommendationForHostingEnvironment", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.DisableRecommendationForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableRecommendationForHostingEnvironment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// DisableRecommendationForHostingEnvironmentPreparer prepares the DisableRecommendationForHostingEnvironment request.
+func (client RecommendationsClient) DisableRecommendationForHostingEnvironmentPreparer(ctx context.Context, resourceGroupName string, environmentName string, name string, hostingEnvironmentName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"hostingEnvironmentName": autorest.Encode("path", hostingEnvironmentName),
+		"name":                   autorest.Encode("path", name),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-02-01"
+	queryParameters := map[string]interface{}{
+		"api-version":     APIVersion,
+		"environmentName": autorest.Encode("query", environmentName),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{hostingEnvironmentName}/recommendations/{name}/disable", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// DisableRecommendationForHostingEnvironmentSender sends the DisableRecommendationForHostingEnvironment request. The method will close the
+// http.Response Body if it receives an error.
+func (client RecommendationsClient) DisableRecommendationForHostingEnvironmentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// DisableRecommendationForHostingEnvironmentResponder handles the response to the DisableRecommendationForHostingEnvironment request. The method always
+// closes the http.Response Body.
+func (client RecommendationsClient) DisableRecommendationForHostingEnvironmentResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
 // DisableRecommendationForSite disables the specific rule for a web site permanently.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // siteName - site name
 // name - rule name
 func (client RecommendationsClient) DisableRecommendationForSite(ctx context.Context, resourceGroupName string, siteName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.DisableRecommendationForSite")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -174,8 +367,8 @@ func (client RecommendationsClient) DisableRecommendationForSitePreparer(ctx con
 // DisableRecommendationForSiteSender sends the DisableRecommendationForSite request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) DisableRecommendationForSiteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableRecommendationForSiteResponder handles the response to the DisableRecommendationForSite request. The method always
@@ -195,6 +388,16 @@ func (client RecommendationsClient) DisableRecommendationForSiteResponder(resp *
 // Parameters:
 // name - rule name
 func (client RecommendationsClient) DisableRecommendationForSubscription(ctx context.Context, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.DisableRecommendationForSubscription")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DisableRecommendationForSubscriptionPreparer(ctx, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "DisableRecommendationForSubscription", nil, "Failure preparing request")
@@ -239,8 +442,8 @@ func (client RecommendationsClient) DisableRecommendationForSubscriptionPreparer
 // DisableRecommendationForSubscriptionSender sends the DisableRecommendationForSubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) DisableRecommendationForSubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableRecommendationForSubscriptionResponder handles the response to the DisableRecommendationForSubscription request. The method always
@@ -255,15 +458,121 @@ func (client RecommendationsClient) DisableRecommendationForSubscriptionResponde
 	return
 }
 
+// GetRuleDetailsByHostingEnvironment get a recommendation rule for an app.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// hostingEnvironmentName - name of the hosting environment.
+// name - name of the recommendation.
+// updateSeen - specify <code>true</code> to update the last-seen timestamp of the recommendation object.
+// recommendationID - the GUID of the recommendation object if you query an expired one. You don't need to
+// specify it to query an active entry.
+func (client RecommendationsClient) GetRuleDetailsByHostingEnvironment(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, name string, updateSeen *bool, recommendationID string) (result RecommendationRule, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.GetRuleDetailsByHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("web.RecommendationsClient", "GetRuleDetailsByHostingEnvironment", err.Error())
+	}
+
+	req, err := client.GetRuleDetailsByHostingEnvironmentPreparer(ctx, resourceGroupName, hostingEnvironmentName, name, updateSeen, recommendationID)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "GetRuleDetailsByHostingEnvironment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetRuleDetailsByHostingEnvironmentSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "GetRuleDetailsByHostingEnvironment", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetRuleDetailsByHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "GetRuleDetailsByHostingEnvironment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetRuleDetailsByHostingEnvironmentPreparer prepares the GetRuleDetailsByHostingEnvironment request.
+func (client RecommendationsClient) GetRuleDetailsByHostingEnvironmentPreparer(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, name string, updateSeen *bool, recommendationID string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"hostingEnvironmentName": autorest.Encode("path", hostingEnvironmentName),
+		"name":                   autorest.Encode("path", name),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-02-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+	if updateSeen != nil {
+		queryParameters["updateSeen"] = autorest.Encode("query", *updateSeen)
+	}
+	if len(recommendationID) > 0 {
+		queryParameters["recommendationId"] = autorest.Encode("query", recommendationID)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{hostingEnvironmentName}/recommendations/{name}", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetRuleDetailsByHostingEnvironmentSender sends the GetRuleDetailsByHostingEnvironment request. The method will close the
+// http.Response Body if it receives an error.
+func (client RecommendationsClient) GetRuleDetailsByHostingEnvironmentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// GetRuleDetailsByHostingEnvironmentResponder handles the response to the GetRuleDetailsByHostingEnvironment request. The method always
+// closes the http.Response Body.
+func (client RecommendationsClient) GetRuleDetailsByHostingEnvironmentResponder(resp *http.Response) (result RecommendationRule, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // GetRuleDetailsByWebApp get a recommendation rule for an app.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // siteName - name of the app.
 // name - name of the recommendation.
 // updateSeen - specify <code>true</code> to update the last-seen timestamp of the recommendation object.
-// recommendationID - the GUID of the recommedation object if you query an expired one. You don't need to
+// recommendationID - the GUID of the recommendation object if you query an expired one. You don't need to
 // specify it to query an active entry.
 func (client RecommendationsClient) GetRuleDetailsByWebApp(ctx context.Context, resourceGroupName string, siteName string, name string, updateSeen *bool, recommendationID string) (result RecommendationRule, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.GetRuleDetailsByWebApp")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -324,8 +633,8 @@ func (client RecommendationsClient) GetRuleDetailsByWebAppPreparer(ctx context.C
 // GetRuleDetailsByWebAppSender sends the GetRuleDetailsByWebApp request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) GetRuleDetailsByWebAppSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetRuleDetailsByWebAppResponder handles the response to the GetRuleDetailsByWebApp request. The method always
@@ -349,6 +658,16 @@ func (client RecommendationsClient) GetRuleDetailsByWebAppResponder(resp *http.R
 // 'Notification' and startTime eq 2014-01-01T00:00:00Z and endTime eq 2014-12-31T23:59:59Z and timeGrain eq
 // duration'[PT1H|PT1M|P1D]
 func (client RecommendationsClient) List(ctx context.Context, featured *bool, filter string) (result RecommendationCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.List")
+		defer func() {
+			sc := -1
+			if result.rc.Response.Response != nil {
+				sc = result.rc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, featured, filter)
 	if err != nil {
@@ -399,8 +718,8 @@ func (client RecommendationsClient) ListPreparer(ctx context.Context, featured *
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -417,8 +736,8 @@ func (client RecommendationsClient) ListResponder(resp *http.Response) (result R
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client RecommendationsClient) listNextResults(lastResults RecommendationCollection) (result RecommendationCollection, err error) {
-	req, err := lastResults.recommendationCollectionPreparer()
+func (client RecommendationsClient) listNextResults(ctx context.Context, lastResults RecommendationCollection) (result RecommendationCollection, err error) {
+	req, err := lastResults.recommendationCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -439,7 +758,151 @@ func (client RecommendationsClient) listNextResults(lastResults RecommendationCo
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecommendationsClient) ListComplete(ctx context.Context, featured *bool, filter string) (result RecommendationCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, featured, filter)
+	return
+}
+
+// ListHistoryForHostingEnvironment get past recommendations for an app, optionally specified by the time range.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// hostingEnvironmentName - name of the hosting environment.
+// expiredOnly - specify <code>false</code> to return all recommendations. The default is <code>true</code>,
+// which returns only expired recommendations.
+// filter - filter is specified by using OData syntax. Example: $filter=channel eq 'Api' or channel eq
+// 'Notification' and startTime eq 2014-01-01T00:00:00Z and endTime eq 2014-12-31T23:59:59Z and timeGrain eq
+// duration'[PT1H|PT1M|P1D]
+func (client RecommendationsClient) ListHistoryForHostingEnvironment(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, expiredOnly *bool, filter string) (result RecommendationCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListHistoryForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.rc.Response.Response != nil {
+				sc = result.rc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("web.RecommendationsClient", "ListHistoryForHostingEnvironment", err.Error())
+	}
+
+	result.fn = client.listHistoryForHostingEnvironmentNextResults
+	req, err := client.ListHistoryForHostingEnvironmentPreparer(ctx, resourceGroupName, hostingEnvironmentName, expiredOnly, filter)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ListHistoryForHostingEnvironment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListHistoryForHostingEnvironmentSender(req)
+	if err != nil {
+		result.rc.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ListHistoryForHostingEnvironment", resp, "Failure sending request")
+		return
+	}
+
+	result.rc, err = client.ListHistoryForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ListHistoryForHostingEnvironment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListHistoryForHostingEnvironmentPreparer prepares the ListHistoryForHostingEnvironment request.
+func (client RecommendationsClient) ListHistoryForHostingEnvironmentPreparer(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, expiredOnly *bool, filter string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"hostingEnvironmentName": autorest.Encode("path", hostingEnvironmentName),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-02-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+	if expiredOnly != nil {
+		queryParameters["expiredOnly"] = autorest.Encode("query", *expiredOnly)
+	}
+	if len(filter) > 0 {
+		queryParameters["$filter"] = filter
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{hostingEnvironmentName}/recommendationHistory", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListHistoryForHostingEnvironmentSender sends the ListHistoryForHostingEnvironment request. The method will close the
+// http.Response Body if it receives an error.
+func (client RecommendationsClient) ListHistoryForHostingEnvironmentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListHistoryForHostingEnvironmentResponder handles the response to the ListHistoryForHostingEnvironment request. The method always
+// closes the http.Response Body.
+func (client RecommendationsClient) ListHistoryForHostingEnvironmentResponder(resp *http.Response) (result RecommendationCollection, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listHistoryForHostingEnvironmentNextResults retrieves the next set of results, if any.
+func (client RecommendationsClient) listHistoryForHostingEnvironmentNextResults(ctx context.Context, lastResults RecommendationCollection) (result RecommendationCollection, err error) {
+	req, err := lastResults.recommendationCollectionPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listHistoryForHostingEnvironmentNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListHistoryForHostingEnvironmentSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listHistoryForHostingEnvironmentNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListHistoryForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "listHistoryForHostingEnvironmentNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListHistoryForHostingEnvironmentComplete enumerates all values, automatically crossing page boundaries as required.
+func (client RecommendationsClient) ListHistoryForHostingEnvironmentComplete(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, expiredOnly *bool, filter string) (result RecommendationCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListHistoryForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListHistoryForHostingEnvironment(ctx, resourceGroupName, hostingEnvironmentName, expiredOnly, filter)
 	return
 }
 
@@ -453,6 +916,16 @@ func (client RecommendationsClient) ListComplete(ctx context.Context, featured *
 // 'Notification' and startTime eq 2014-01-01T00:00:00Z and endTime eq 2014-12-31T23:59:59Z and timeGrain eq
 // duration'[PT1H|PT1M|P1D]
 func (client RecommendationsClient) ListHistoryForWebApp(ctx context.Context, resourceGroupName string, siteName string, expiredOnly *bool, filter string) (result RecommendationCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListHistoryForWebApp")
+		defer func() {
+			sc := -1
+			if result.rc.Response.Response != nil {
+				sc = result.rc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -513,8 +986,8 @@ func (client RecommendationsClient) ListHistoryForWebAppPreparer(ctx context.Con
 // ListHistoryForWebAppSender sends the ListHistoryForWebApp request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) ListHistoryForWebAppSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHistoryForWebAppResponder handles the response to the ListHistoryForWebApp request. The method always
@@ -531,8 +1004,8 @@ func (client RecommendationsClient) ListHistoryForWebAppResponder(resp *http.Res
 }
 
 // listHistoryForWebAppNextResults retrieves the next set of results, if any.
-func (client RecommendationsClient) listHistoryForWebAppNextResults(lastResults RecommendationCollection) (result RecommendationCollection, err error) {
-	req, err := lastResults.recommendationCollectionPreparer()
+func (client RecommendationsClient) listHistoryForWebAppNextResults(ctx context.Context, lastResults RecommendationCollection) (result RecommendationCollection, err error) {
+	req, err := lastResults.recommendationCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listHistoryForWebAppNextResults", nil, "Failure preparing next results request")
 	}
@@ -553,7 +1026,150 @@ func (client RecommendationsClient) listHistoryForWebAppNextResults(lastResults 
 
 // ListHistoryForWebAppComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecommendationsClient) ListHistoryForWebAppComplete(ctx context.Context, resourceGroupName string, siteName string, expiredOnly *bool, filter string) (result RecommendationCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListHistoryForWebApp")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListHistoryForWebApp(ctx, resourceGroupName, siteName, expiredOnly, filter)
+	return
+}
+
+// ListRecommendedRulesForHostingEnvironment get all recommendations for an app.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// hostingEnvironmentName - name of the app.
+// featured - specify <code>true</code> to return only the most critical recommendations. The default is
+// <code>false</code>, which returns all recommendations.
+// filter - return only channels specified in the filter. Filter is specified by using OData syntax. Example:
+// $filter=channel eq 'Api' or channel eq 'Notification'
+func (client RecommendationsClient) ListRecommendedRulesForHostingEnvironment(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, featured *bool, filter string) (result RecommendationCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListRecommendedRulesForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.rc.Response.Response != nil {
+				sc = result.rc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("web.RecommendationsClient", "ListRecommendedRulesForHostingEnvironment", err.Error())
+	}
+
+	result.fn = client.listRecommendedRulesForHostingEnvironmentNextResults
+	req, err := client.ListRecommendedRulesForHostingEnvironmentPreparer(ctx, resourceGroupName, hostingEnvironmentName, featured, filter)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ListRecommendedRulesForHostingEnvironment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListRecommendedRulesForHostingEnvironmentSender(req)
+	if err != nil {
+		result.rc.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ListRecommendedRulesForHostingEnvironment", resp, "Failure sending request")
+		return
+	}
+
+	result.rc, err = client.ListRecommendedRulesForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ListRecommendedRulesForHostingEnvironment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListRecommendedRulesForHostingEnvironmentPreparer prepares the ListRecommendedRulesForHostingEnvironment request.
+func (client RecommendationsClient) ListRecommendedRulesForHostingEnvironmentPreparer(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, featured *bool, filter string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"hostingEnvironmentName": autorest.Encode("path", hostingEnvironmentName),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-02-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+	if featured != nil {
+		queryParameters["featured"] = autorest.Encode("query", *featured)
+	}
+	if len(filter) > 0 {
+		queryParameters["$filter"] = filter
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{hostingEnvironmentName}/recommendations", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListRecommendedRulesForHostingEnvironmentSender sends the ListRecommendedRulesForHostingEnvironment request. The method will close the
+// http.Response Body if it receives an error.
+func (client RecommendationsClient) ListRecommendedRulesForHostingEnvironmentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ListRecommendedRulesForHostingEnvironmentResponder handles the response to the ListRecommendedRulesForHostingEnvironment request. The method always
+// closes the http.Response Body.
+func (client RecommendationsClient) ListRecommendedRulesForHostingEnvironmentResponder(resp *http.Response) (result RecommendationCollection, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listRecommendedRulesForHostingEnvironmentNextResults retrieves the next set of results, if any.
+func (client RecommendationsClient) listRecommendedRulesForHostingEnvironmentNextResults(ctx context.Context, lastResults RecommendationCollection) (result RecommendationCollection, err error) {
+	req, err := lastResults.recommendationCollectionPreparer(ctx)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listRecommendedRulesForHostingEnvironmentNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListRecommendedRulesForHostingEnvironmentSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listRecommendedRulesForHostingEnvironmentNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListRecommendedRulesForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "listRecommendedRulesForHostingEnvironmentNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListRecommendedRulesForHostingEnvironmentComplete enumerates all values, automatically crossing page boundaries as required.
+func (client RecommendationsClient) ListRecommendedRulesForHostingEnvironmentComplete(ctx context.Context, resourceGroupName string, hostingEnvironmentName string, featured *bool, filter string) (result RecommendationCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListRecommendedRulesForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	result.page, err = client.ListRecommendedRulesForHostingEnvironment(ctx, resourceGroupName, hostingEnvironmentName, featured, filter)
 	return
 }
 
@@ -566,6 +1182,16 @@ func (client RecommendationsClient) ListHistoryForWebAppComplete(ctx context.Con
 // filter - return only channels specified in the filter. Filter is specified by using OData syntax. Example:
 // $filter=channel eq 'Api' or channel eq 'Notification'
 func (client RecommendationsClient) ListRecommendedRulesForWebApp(ctx context.Context, resourceGroupName string, siteName string, featured *bool, filter string) (result RecommendationCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListRecommendedRulesForWebApp")
+		defer func() {
+			sc := -1
+			if result.rc.Response.Response != nil {
+				sc = result.rc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -626,8 +1252,8 @@ func (client RecommendationsClient) ListRecommendedRulesForWebAppPreparer(ctx co
 // ListRecommendedRulesForWebAppSender sends the ListRecommendedRulesForWebApp request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) ListRecommendedRulesForWebAppSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListRecommendedRulesForWebAppResponder handles the response to the ListRecommendedRulesForWebApp request. The method always
@@ -644,8 +1270,8 @@ func (client RecommendationsClient) ListRecommendedRulesForWebAppResponder(resp 
 }
 
 // listRecommendedRulesForWebAppNextResults retrieves the next set of results, if any.
-func (client RecommendationsClient) listRecommendedRulesForWebAppNextResults(lastResults RecommendationCollection) (result RecommendationCollection, err error) {
-	req, err := lastResults.recommendationCollectionPreparer()
+func (client RecommendationsClient) listRecommendedRulesForWebAppNextResults(ctx context.Context, lastResults RecommendationCollection) (result RecommendationCollection, err error) {
+	req, err := lastResults.recommendationCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.RecommendationsClient", "listRecommendedRulesForWebAppNextResults", nil, "Failure preparing next results request")
 	}
@@ -666,12 +1292,32 @@ func (client RecommendationsClient) listRecommendedRulesForWebAppNextResults(las
 
 // ListRecommendedRulesForWebAppComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecommendationsClient) ListRecommendedRulesForWebAppComplete(ctx context.Context, resourceGroupName string, siteName string, featured *bool, filter string) (result RecommendationCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ListRecommendedRulesForWebApp")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListRecommendedRulesForWebApp(ctx, resourceGroupName, siteName, featured, filter)
 	return
 }
 
 // ResetAllFilters reset all recommendation opt-out settings for a subscription.
 func (client RecommendationsClient) ResetAllFilters(ctx context.Context) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ResetAllFilters")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ResetAllFiltersPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ResetAllFilters", nil, "Failure preparing request")
@@ -715,8 +1361,8 @@ func (client RecommendationsClient) ResetAllFiltersPreparer(ctx context.Context)
 // ResetAllFiltersSender sends the ResetAllFilters request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) ResetAllFiltersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResetAllFiltersResponder handles the response to the ResetAllFilters request. The method always
@@ -731,11 +1377,106 @@ func (client RecommendationsClient) ResetAllFiltersResponder(resp *http.Response
 	return
 }
 
+// ResetAllFiltersForHostingEnvironment reset all recommendation opt-out settings for an app.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// environmentName - name of the app.
+func (client RecommendationsClient) ResetAllFiltersForHostingEnvironment(ctx context.Context, resourceGroupName string, environmentName string, hostingEnvironmentName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ResetAllFiltersForHostingEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+[^\.]$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("web.RecommendationsClient", "ResetAllFiltersForHostingEnvironment", err.Error())
+	}
+
+	req, err := client.ResetAllFiltersForHostingEnvironmentPreparer(ctx, resourceGroupName, environmentName, hostingEnvironmentName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ResetAllFiltersForHostingEnvironment", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ResetAllFiltersForHostingEnvironmentSender(req)
+	if err != nil {
+		result.Response = resp
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ResetAllFiltersForHostingEnvironment", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ResetAllFiltersForHostingEnvironmentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.RecommendationsClient", "ResetAllFiltersForHostingEnvironment", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ResetAllFiltersForHostingEnvironmentPreparer prepares the ResetAllFiltersForHostingEnvironment request.
+func (client RecommendationsClient) ResetAllFiltersForHostingEnvironmentPreparer(ctx context.Context, resourceGroupName string, environmentName string, hostingEnvironmentName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"hostingEnvironmentName": autorest.Encode("path", hostingEnvironmentName),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-02-01"
+	queryParameters := map[string]interface{}{
+		"api-version":     APIVersion,
+		"environmentName": autorest.Encode("query", environmentName),
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{hostingEnvironmentName}/recommendations/reset", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ResetAllFiltersForHostingEnvironmentSender sends the ResetAllFiltersForHostingEnvironment request. The method will close the
+// http.Response Body if it receives an error.
+func (client RecommendationsClient) ResetAllFiltersForHostingEnvironmentSender(req *http.Request) (*http.Response, error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
+}
+
+// ResetAllFiltersForHostingEnvironmentResponder handles the response to the ResetAllFiltersForHostingEnvironment request. The method always
+// closes the http.Response Body.
+func (client RecommendationsClient) ResetAllFiltersForHostingEnvironmentResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
 // ResetAllFiltersForWebApp reset all recommendation opt-out settings for an app.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // siteName - name of the app.
 func (client RecommendationsClient) ResetAllFiltersForWebApp(ctx context.Context, resourceGroupName string, siteName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecommendationsClient.ResetAllFiltersForWebApp")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -789,8 +1530,8 @@ func (client RecommendationsClient) ResetAllFiltersForWebAppPreparer(ctx context
 // ResetAllFiltersForWebAppSender sends the ResetAllFiltersForWebApp request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecommendationsClient) ResetAllFiltersForWebAppSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResetAllFiltersForWebAppResponder handles the response to the ResetAllFiltersForWebApp request. The method always

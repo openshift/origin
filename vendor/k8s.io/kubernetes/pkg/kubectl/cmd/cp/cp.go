@@ -18,6 +18,7 @@ package cp
 
 import (
 	"archive/tar"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -27,18 +28,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lithammer/dedent"
+	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/exec"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
-	"k8s.io/kubernetes/pkg/kubectl/util/templates"
-
-	"bytes"
-
-	"github.com/lithammer/dedent"
-	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/cmd/exec"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/kubectl/pkg/util/i18n"
+	"k8s.io/kubectl/pkg/util/templates"
 )
 
 var (
@@ -249,9 +248,9 @@ func (o *CopyOptions) copyToPod(src, dest fileSpec, options *exec.ExecOptions) e
 
 	// TODO: Improve error messages by first testing if 'tar' is present in the container?
 	if o.NoPreserve {
-		cmdArr = []string{"tar", "--no-same-permissions", "--no-same-owner", "-xf", "-"}
+		cmdArr = []string{"tar", "--no-same-permissions", "--no-same-owner", "-xmf", "-"}
 	} else {
-		cmdArr = []string{"tar", "-xf", "-"}
+		cmdArr = []string{"tar", "-xmf", "-"}
 	}
 	destDir := path.Dir(dest.File)
 	if len(destDir) > 0 {
@@ -300,7 +299,8 @@ func (o *CopyOptions) copyFromPod(src, dest fileSpec) error {
 
 	go func() {
 		defer outStream.Close()
-		o.execute(options)
+		err := o.execute(options)
+		cmdutil.CheckErr(err)
 	}()
 	prefix := getPrefix(src.File)
 	prefix = path.Clean(prefix)
@@ -410,12 +410,6 @@ func recursiveTar(srcBase, srcFile, destBase, destFile string, tw *tar.Writer) e
 		}
 	}
 	return nil
-}
-
-// clean prevents path traversals by stripping them out.
-// This is adapted from https://golang.org/src/net/http/fs.go#L74
-func clean(fileName string) string {
-	return path.Clean(string(os.PathSeparator) + fileName)
 }
 
 func (o *CopyOptions) untarAll(reader io.Reader, destDir, prefix string) error {

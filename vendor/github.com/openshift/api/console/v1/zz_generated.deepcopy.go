@@ -55,7 +55,7 @@ func (in *ConsoleCLIDownload) DeepCopyObject() runtime.Object {
 func (in *ConsoleCLIDownloadList) DeepCopyInto(out *ConsoleCLIDownloadList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ConsoleCLIDownload, len(*in))
@@ -179,7 +179,7 @@ func (in *ConsoleLink) DeepCopyObject() runtime.Object {
 func (in *ConsoleLinkList) DeepCopyInto(out *ConsoleLinkList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ConsoleLink, len(*in))
@@ -261,7 +261,7 @@ func (in *ConsoleNotification) DeepCopyObject() runtime.Object {
 func (in *ConsoleNotificationList) DeepCopyInto(out *ConsoleNotificationList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ConsoleNotification, len(*in))

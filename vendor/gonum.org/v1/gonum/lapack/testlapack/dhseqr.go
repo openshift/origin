@@ -16,7 +16,7 @@ import (
 )
 
 type Dhseqrer interface {
-	Dhseqr(job lapack.EVJob, compz lapack.EVComp, n, ilo, ihi int, h []float64, ldh int, wr, wi []float64,
+	Dhseqr(job lapack.SchurJob, compz lapack.SchurComp, n, ilo, ihi int, h []float64, ldh int, wr, wi []float64,
 		z []float64, ldz int, work []float64, lwork int) int
 }
 
@@ -32,7 +32,7 @@ type dhseqrTest struct {
 
 func DhseqrTest(t *testing.T, impl Dhseqrer) {
 	for i, tc := range dhseqrTests {
-		for _, job := range []lapack.EVJob{lapack.EigenvaluesOnly, lapack.EigenvaluesAndSchur} {
+		for _, job := range []lapack.SchurJob{lapack.EigenvaluesOnly, lapack.EigenvaluesAndSchur} {
 			for _, wantz := range []bool{false, true} {
 				for _, extra := range []int{0, 11} {
 					testDhseqr(t, impl, i, tc, job, wantz, extra, true)
@@ -43,7 +43,7 @@ func DhseqrTest(t *testing.T, impl Dhseqrer) {
 	}
 }
 
-func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.EVJob, wantz bool, extra int, optwork bool) {
+func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.SchurJob, wantz bool, extra int, optwork bool) {
 	const tol = 1e-14
 	evTol := test.tol
 	if evTol == 0 {
@@ -57,11 +57,11 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 	copyGeneral(h, blas64.General{Rows: n, Cols: n, Stride: max(1, n), Data: test.h})
 	hCopy := cloneGeneral(h)
 
-	var compz lapack.EVComp = lapack.None
+	compz := lapack.SchurNone
 	z := blas64.General{Stride: max(1, n)}
 	if wantz {
 		// First, let Dhseqr initialize Z to the identity matrix.
-		compz = lapack.HessEV
+		compz = lapack.SchurHess
 		z = nanGeneral(n, n, n+extra)
 	}
 
@@ -70,7 +70,7 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 
 	work := nanSlice(max(1, n))
 	if optwork {
-		impl.Dhseqr(job, lapack.HessEV, n, ilo, ihi, nil, h.Stride, nil, nil, nil, z.Stride, work, -1)
+		impl.Dhseqr(job, lapack.SchurHess, n, ilo, ihi, h.Data, h.Stride, wr, wi, z.Data, z.Stride, work, -1)
 		work = nanSlice(int(work[0]))
 	}
 
@@ -178,7 +178,7 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 	}
 
 	// Z must be orthogonal.
-	if !isOrthonormal(z) {
+	if !isOrthogonal(z) {
 		t.Errorf("%v: Z is not orthogonal", prefix)
 	}
 
@@ -196,7 +196,7 @@ func testDhseqr(t *testing.T, impl Dhseqrer, i int, test dhseqrTest, job lapack.
 	copyGeneral(h, hCopy)
 	// Call Dhseqr again with the identity matrix given explicitly in Q.
 	q := eye(n, n+extra)
-	impl.Dhseqr(job, lapack.OriginalEV, n, ilo, ihi, h.Data, h.Stride, wr, wi, q.Data, q.Stride, work, len(work))
+	impl.Dhseqr(job, lapack.SchurOrig, n, ilo, ihi, h.Data, h.Stride, wr, wi, q.Data, q.Stride, work, len(work))
 	if !equalApproxGeneral(z, q, 0) {
 		t.Errorf("%v: Z and Q are not equal", prefix)
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -49,6 +50,16 @@ func NewFileSharesClientWithBaseURI(baseURI string, subscriptionID string) FileS
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client FileSharesClient) CreateOrUpdate(ctx context.Context, deviceName string, fileServerName string, shareName string, fileShare FileShare, resourceGroupName string, managerName string) (result FileSharesCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: fileShare,
 			Constraints: []validation.Constraint{{Target: "fileShare.FileShareProperties", Name: validation.Null, Rule: true,
@@ -105,13 +116,9 @@ func (client FileSharesClient) CreateOrUpdatePreparer(ctx context.Context, devic
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) CreateOrUpdateSender(req *http.Request) (future FileSharesCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -140,6 +147,16 @@ func (client FileSharesClient) CreateOrUpdateResponder(resp *http.Response) (res
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client FileSharesClient) Delete(ctx context.Context, deviceName string, fileServerName string, shareName string, resourceGroupName string, managerName string) (result FileSharesDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -189,13 +206,9 @@ func (client FileSharesClient) DeletePreparer(ctx context.Context, deviceName st
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) DeleteSender(req *http.Request) (future FileSharesDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -223,6 +236,16 @@ func (client FileSharesClient) DeleteResponder(resp *http.Response) (result auto
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client FileSharesClient) Get(ctx context.Context, deviceName string, fileServerName string, shareName string, resourceGroupName string, managerName string) (result FileShare, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -278,8 +301,8 @@ func (client FileSharesClient) GetPreparer(ctx context.Context, deviceName strin
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -301,6 +324,16 @@ func (client FileSharesClient) GetResponder(resp *http.Response) (result FileSha
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client FileSharesClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string) (result FileShareList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.ListByDevice")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -354,8 +387,8 @@ func (client FileSharesClient) ListByDevicePreparer(ctx context.Context, deviceN
 // ListByDeviceSender sends the ListByDevice request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) ListByDeviceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByDeviceResponder handles the response to the ListByDevice request. The method always
@@ -378,6 +411,16 @@ func (client FileSharesClient) ListByDeviceResponder(resp *http.Response) (resul
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client FileSharesClient) ListByFileServer(ctx context.Context, deviceName string, fileServerName string, resourceGroupName string, managerName string) (result FileShareList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.ListByFileServer")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -432,8 +475,8 @@ func (client FileSharesClient) ListByFileServerPreparer(ctx context.Context, dev
 // ListByFileServerSender sends the ListByFileServer request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) ListByFileServerSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByFileServerResponder handles the response to the ListByFileServer request. The method always
@@ -457,6 +500,16 @@ func (client FileSharesClient) ListByFileServerResponder(resp *http.Response) (r
 // resourceGroupName - the resource group name
 // managerName - the manager name
 func (client FileSharesClient) ListMetricDefinition(ctx context.Context, deviceName string, fileServerName string, shareName string, resourceGroupName string, managerName string) (result MetricDefinitionList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.ListMetricDefinition")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -512,8 +565,8 @@ func (client FileSharesClient) ListMetricDefinitionPreparer(ctx context.Context,
 // ListMetricDefinitionSender sends the ListMetricDefinition request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) ListMetricDefinitionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricDefinitionResponder handles the response to the ListMetricDefinition request. The method always
@@ -538,6 +591,16 @@ func (client FileSharesClient) ListMetricDefinitionResponder(resp *http.Response
 // managerName - the manager name
 // filter - oData Filter options
 func (client FileSharesClient) ListMetrics(ctx context.Context, deviceName string, fileServerName string, shareName string, resourceGroupName string, managerName string, filter string) (result MetricList, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FileSharesClient.ListMetrics")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
 			Constraints: []validation.Constraint{{Target: "managerName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -596,8 +659,8 @@ func (client FileSharesClient) ListMetricsPreparer(ctx context.Context, deviceNa
 // ListMetricsSender sends the ListMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileSharesClient) ListMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricsResponder handles the response to the ListMetrics request. The method always

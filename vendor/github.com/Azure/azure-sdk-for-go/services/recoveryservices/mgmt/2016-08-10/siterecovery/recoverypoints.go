@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewRecoveryPointsClientWithBaseURI(baseURI string, subscriptionID string, r
 // replicatedProtectedItemName - the replication protected item's name.
 // recoveryPointName - the recovery point name.
 func (client RecoveryPointsClient) Get(ctx context.Context, fabricName string, protectionContainerName string, replicatedProtectedItemName string, recoveryPointName string) (result RecoveryPoint, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecoveryPointsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, fabricName, protectionContainerName, replicatedProtectedItemName, recoveryPointName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "siterecovery.RecoveryPointsClient", "Get", nil, "Failure preparing request")
@@ -95,8 +106,8 @@ func (client RecoveryPointsClient) GetPreparer(ctx context.Context, fabricName s
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecoveryPointsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -118,6 +129,16 @@ func (client RecoveryPointsClient) GetResponder(resp *http.Response) (result Rec
 // protectionContainerName - the protection container name.
 // replicatedProtectedItemName - the replication protected item's name.
 func (client RecoveryPointsClient) ListByReplicationProtectedItems(ctx context.Context, fabricName string, protectionContainerName string, replicatedProtectedItemName string) (result RecoveryPointCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecoveryPointsClient.ListByReplicationProtectedItems")
+		defer func() {
+			sc := -1
+			if result.RPCVar.Response.Response != nil {
+				sc = result.RPCVar.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByReplicationProtectedItemsNextResults
 	req, err := client.ListByReplicationProtectedItemsPreparer(ctx, fabricName, protectionContainerName, replicatedProtectedItemName)
 	if err != nil {
@@ -167,8 +188,8 @@ func (client RecoveryPointsClient) ListByReplicationProtectedItemsPreparer(ctx c
 // ListByReplicationProtectedItemsSender sends the ListByReplicationProtectedItems request. The method will close the
 // http.Response Body if it receives an error.
 func (client RecoveryPointsClient) ListByReplicationProtectedItemsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByReplicationProtectedItemsResponder handles the response to the ListByReplicationProtectedItems request. The method always
@@ -185,8 +206,8 @@ func (client RecoveryPointsClient) ListByReplicationProtectedItemsResponder(resp
 }
 
 // listByReplicationProtectedItemsNextResults retrieves the next set of results, if any.
-func (client RecoveryPointsClient) listByReplicationProtectedItemsNextResults(lastResults RecoveryPointCollection) (result RecoveryPointCollection, err error) {
-	req, err := lastResults.recoveryPointCollectionPreparer()
+func (client RecoveryPointsClient) listByReplicationProtectedItemsNextResults(ctx context.Context, lastResults RecoveryPointCollection) (result RecoveryPointCollection, err error) {
+	req, err := lastResults.recoveryPointCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "siterecovery.RecoveryPointsClient", "listByReplicationProtectedItemsNextResults", nil, "Failure preparing next results request")
 	}
@@ -207,6 +228,16 @@ func (client RecoveryPointsClient) listByReplicationProtectedItemsNextResults(la
 
 // ListByReplicationProtectedItemsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client RecoveryPointsClient) ListByReplicationProtectedItemsComplete(ctx context.Context, fabricName string, protectionContainerName string, replicatedProtectedItemName string) (result RecoveryPointCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RecoveryPointsClient.ListByReplicationProtectedItems")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByReplicationProtectedItems(ctx, fabricName, protectionContainerName, replicatedProtectedItemName)
 	return
 }

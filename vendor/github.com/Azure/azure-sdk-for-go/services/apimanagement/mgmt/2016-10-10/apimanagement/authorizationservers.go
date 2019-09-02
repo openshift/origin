@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewAuthorizationServersClientWithBaseURI(baseURI string, subscriptionID str
 // authsid - identifier of the authorization server.
 // parameters - create or update parameters.
 func (client AuthorizationServersClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, authsid string, parameters OAuth2AuthorizationServerContract) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AuthorizationServersClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -102,6 +113,7 @@ func (client AuthorizationServersClient) CreateOrUpdatePreparer(ctx context.Cont
 		"api-version": APIVersion,
 	}
 
+	parameters.ID = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -115,8 +127,8 @@ func (client AuthorizationServersClient) CreateOrUpdatePreparer(ctx context.Cont
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AuthorizationServersClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -139,6 +151,16 @@ func (client AuthorizationServersClient) CreateOrUpdateResponder(resp *http.Resp
 // ifMatch - the entity state (Etag) version of the authentication server to delete. A value of "*" can be used
 // for If-Match to unconditionally apply the operation.
 func (client AuthorizationServersClient) Delete(ctx context.Context, resourceGroupName string, serviceName string, authsid string, ifMatch string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AuthorizationServersClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -197,8 +219,8 @@ func (client AuthorizationServersClient) DeletePreparer(ctx context.Context, res
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AuthorizationServersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -219,6 +241,16 @@ func (client AuthorizationServersClient) DeleteResponder(resp *http.Response) (r
 // serviceName - the name of the API Management service.
 // authsid - identifier of the authorization server.
 func (client AuthorizationServersClient) Get(ctx context.Context, resourceGroupName string, serviceName string, authsid string) (result OAuth2AuthorizationServerContract, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AuthorizationServersClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -276,8 +308,8 @@ func (client AuthorizationServersClient) GetPreparer(ctx context.Context, resour
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AuthorizationServersClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -304,6 +336,16 @@ func (client AuthorizationServersClient) GetResponder(resp *http.Response) (resu
 // top - number of records to return.
 // skip - number of records to skip.
 func (client AuthorizationServersClient) ListByService(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32) (result AuthorizationServerCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AuthorizationServersClient.ListByService")
+		defer func() {
+			sc := -1
+			if result.asc.Response.Response != nil {
+				sc = result.asc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -373,8 +415,8 @@ func (client AuthorizationServersClient) ListByServicePreparer(ctx context.Conte
 // ListByServiceSender sends the ListByService request. The method will close the
 // http.Response Body if it receives an error.
 func (client AuthorizationServersClient) ListByServiceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByServiceResponder handles the response to the ListByService request. The method always
@@ -391,8 +433,8 @@ func (client AuthorizationServersClient) ListByServiceResponder(resp *http.Respo
 }
 
 // listByServiceNextResults retrieves the next set of results, if any.
-func (client AuthorizationServersClient) listByServiceNextResults(lastResults AuthorizationServerCollection) (result AuthorizationServerCollection, err error) {
-	req, err := lastResults.authorizationServerCollectionPreparer()
+func (client AuthorizationServersClient) listByServiceNextResults(ctx context.Context, lastResults AuthorizationServerCollection) (result AuthorizationServerCollection, err error) {
+	req, err := lastResults.authorizationServerCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "apimanagement.AuthorizationServersClient", "listByServiceNextResults", nil, "Failure preparing next results request")
 	}
@@ -413,6 +455,16 @@ func (client AuthorizationServersClient) listByServiceNextResults(lastResults Au
 
 // ListByServiceComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AuthorizationServersClient) ListByServiceComplete(ctx context.Context, resourceGroupName string, serviceName string, filter string, top *int32, skip *int32) (result AuthorizationServerCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AuthorizationServersClient.ListByService")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByService(ctx, resourceGroupName, serviceName, filter, top, skip)
 	return
 }
@@ -426,6 +478,16 @@ func (client AuthorizationServersClient) ListByServiceComplete(ctx context.Conte
 // ifMatch - the entity state (Etag) version of the authorization server to update. A value of "*" can be used
 // for If-Match to unconditionally apply the operation.
 func (client AuthorizationServersClient) Update(ctx context.Context, resourceGroupName string, serviceName string, authsid string, parameters OAuth2AuthorizationServerUpdateContract, ifMatch string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AuthorizationServersClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
 			Constraints: []validation.Constraint{{Target: "serviceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
@@ -486,8 +548,8 @@ func (client AuthorizationServersClient) UpdatePreparer(ctx context.Context, res
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AuthorizationServersClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

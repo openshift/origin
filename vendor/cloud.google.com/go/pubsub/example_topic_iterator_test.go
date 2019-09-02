@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +15,24 @@
 package pubsub_test
 
 import (
+	"context"
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"golang.org/x/net/context"
+	"google.golang.org/api/iterator"
 )
 
-func ExampleTopicIterator() {
+func ExampleClient_Topics() {
+	ctx := context.Background()
+	client, err := pubsub.NewClient(ctx, "project-id")
+	if err != nil {
+		// TODO: Handle error.
+	}
+	it := client.Topics(ctx)
+	_ = it // TODO: iterate using Next.
+}
+
+func ExampleTopicIterator_Next() {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, "project-id")
 	if err != nil {
@@ -31,12 +42,12 @@ func ExampleTopicIterator() {
 	it := client.Topics(ctx)
 	for {
 		t, err := it.Next()
-		if err == pubsub.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
 			// TODO: Handle error.
 		}
-		fmt.Println(t.Name())
+		fmt.Println(t)
 	}
 }

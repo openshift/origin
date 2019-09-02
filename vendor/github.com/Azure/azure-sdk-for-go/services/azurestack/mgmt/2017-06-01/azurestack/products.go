@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewProductsClientWithBaseURI(baseURI string, subscriptionID string) Product
 // registrationName - name of the Azure Stack registration.
 // productName - name of the product.
 func (client ProductsClient) Get(ctx context.Context, resourceGroup string, registrationName string, productName string) (result Product, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProductsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroup, registrationName, productName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "azurestack.ProductsClient", "Get", nil, "Failure preparing request")
@@ -91,8 +102,8 @@ func (client ProductsClient) GetPreparer(ctx context.Context, resourceGroup stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -113,6 +124,16 @@ func (client ProductsClient) GetResponder(resp *http.Response) (result Product, 
 // resourceGroup - name of the resource group.
 // registrationName - name of the Azure Stack registration.
 func (client ProductsClient) List(ctx context.Context, resourceGroup string, registrationName string) (result ProductListPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProductsClient.List")
+		defer func() {
+			sc := -1
+			if result.pl.Response.Response != nil {
+				sc = result.pl.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroup, registrationName)
 	if err != nil {
@@ -159,8 +180,8 @@ func (client ProductsClient) ListPreparer(ctx context.Context, resourceGroup str
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -177,8 +198,8 @@ func (client ProductsClient) ListResponder(resp *http.Response) (result ProductL
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ProductsClient) listNextResults(lastResults ProductList) (result ProductList, err error) {
-	req, err := lastResults.productListPreparer()
+func (client ProductsClient) listNextResults(ctx context.Context, lastResults ProductList) (result ProductList, err error) {
+	req, err := lastResults.productListPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "azurestack.ProductsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -199,6 +220,16 @@ func (client ProductsClient) listNextResults(lastResults ProductList) (result Pr
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ProductsClient) ListComplete(ctx context.Context, resourceGroup string, registrationName string) (result ProductListIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProductsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroup, registrationName)
 	return
 }
@@ -209,6 +240,16 @@ func (client ProductsClient) ListComplete(ctx context.Context, resourceGroup str
 // registrationName - name of the Azure Stack registration.
 // productName - name of the product.
 func (client ProductsClient) ListDetails(ctx context.Context, resourceGroup string, registrationName string, productName string) (result ExtendedProduct, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProductsClient.ListDetails")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListDetailsPreparer(ctx, resourceGroup, registrationName, productName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "azurestack.ProductsClient", "ListDetails", nil, "Failure preparing request")
@@ -255,8 +296,8 @@ func (client ProductsClient) ListDetailsPreparer(ctx context.Context, resourceGr
 // ListDetailsSender sends the ListDetails request. The method will close the
 // http.Response Body if it receives an error.
 func (client ProductsClient) ListDetailsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDetailsResponder handles the response to the ListDetails request. The method always

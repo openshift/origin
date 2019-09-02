@@ -1,5 +1,4 @@
 variable "foo" {}
-
 variable "foo" {}
 
 variable "foo" {

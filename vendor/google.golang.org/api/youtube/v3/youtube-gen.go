@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package youtube provides access to the YouTube Data API.
 //
-// See https://developers.google.com/youtube/v3
+// For product documentation, see: https://developers.google.com/youtube/v3
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/youtube/v3"
 //   ...
-//   youtubeService, err := youtube.New(oauthHttpClient)
+//   ctx := context.Background()
+//   youtubeService, err := youtube.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   youtubeService, err := youtube.NewService(ctx, option.WithScopes(youtube.YoutubepartnerChannelAuditScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   youtubeService, err := youtube.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   youtubeService, err := youtube.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package youtube // import "google.golang.org/api/youtube/v3"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -73,6 +101,37 @@ const (
 	YoutubepartnerChannelAuditScope = "https://www.googleapis.com/auth/youtubepartner-channel-audit"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/youtube",
+		"https://www.googleapis.com/auth/youtube.force-ssl",
+		"https://www.googleapis.com/auth/youtube.readonly",
+		"https://www.googleapis.com/auth/youtube.upload",
+		"https://www.googleapis.com/auth/youtubepartner",
+		"https://www.googleapis.com/auth/youtubepartner-channel-audit",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -1335,6 +1394,7 @@ type CdnSettings struct {
 	//
 	// Possible values:
 	//   "dash"
+	//   "hls"
 	//   "rtmp"
 	IngestionType string `json:"ingestionType,omitempty"`
 
@@ -1472,14 +1532,6 @@ type ChannelAuditDetails struct {
 	// CopyrightStrikesGoodStanding: Whether or not the channel has any
 	// copyright strikes.
 	CopyrightStrikesGoodStanding bool `json:"copyrightStrikesGoodStanding,omitempty"`
-
-	// OverallGoodStanding: Describes the general state of the channel. This
-	// field will always show if there are any issues whatsoever with the
-	// channel. Currently this field represents the result of the logical
-	// and operation over the community guidelines good standing, the
-	// copyright strikes good standing and the content ID claims good
-	// standing, but this may change in the future.
-	OverallGoodStanding bool `json:"overallGoodStanding,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
 	// "CommunityGuidelinesGoodStanding") to unconditionally include in API
@@ -2267,6 +2319,17 @@ type ChannelSnippet struct {
 	// For each object in the map, the key is the name of the thumbnail
 	// image, and the value is an object that contains other information
 	// about the thumbnail.
+	//
+	// When displaying thumbnails in your application, make sure that your
+	// code uses the image URLs exactly as they are returned in API
+	// responses. For example, your application should not use the http
+	// domain instead of the https domain in a URL returned in an API
+	// response.
+	//
+	// Beginning in July 2018, channel thumbnail URLs will only be available
+	// in the https domain, which is how the URLs appear in API responses.
+	// After that time, you might see broken images in your application if
+	// it tries to load YouTube images from the http domain.
 	Thumbnails *ThumbnailDetails `json:"thumbnails,omitempty"`
 
 	// Title: The channel's title.
@@ -3005,6 +3068,7 @@ type ContentRating struct {
 	//   "cnc16"
 	//   "cnc18"
 	//   "cncE"
+	//   "cncInterdiction"
 	//   "cncT"
 	//   "cncUnrated"
 	CncRating string `json:"cncRating,omitempty"`
@@ -3051,11 +3115,27 @@ type ContentRating struct {
 	//
 	// Possible values:
 	//   "djctq10"
+	//   "djctq1012"
+	//   "djctq1014"
+	//   "djctq1016"
+	//   "djctq1018"
 	//   "djctq12"
+	//   "djctq1214"
+	//   "djctq1216"
+	//   "djctq1218"
 	//   "djctq14"
+	//   "djctq1416"
+	//   "djctq1418"
 	//   "djctq16"
+	//   "djctq1618"
 	//   "djctq18"
+	//   "djctqEr"
 	//   "djctqL"
+	//   "djctqL10"
+	//   "djctqL12"
+	//   "djctqL14"
+	//   "djctqL16"
+	//   "djctqL18"
 	//   "djctqUnrated"
 	DjctqRating string `json:"djctqRating,omitempty"`
 
@@ -3466,6 +3546,7 @@ type ContentRating struct {
 	//   "mpaaPg13"
 	//   "mpaaR"
 	//   "mpaaUnrated"
+	//   "mpaaX"
 	MpaaRating string `json:"mpaaRating,omitempty"`
 
 	// MpaatRating: The rating system for trailer, DVD, and Ad in the US.
@@ -4876,14 +4957,11 @@ type LiveBroadcastStatus struct {
 	// using the API's liveBroadcasts.transition method.
 	//
 	// Possible values:
-	//   "abandoned"
 	//   "complete"
-	//   "completeStarting"
 	//   "created"
 	//   "live"
 	//   "liveStarting"
 	//   "ready"
-	//   "reclaimed"
 	//   "revoked"
 	//   "testStarting"
 	//   "testing"
@@ -5323,6 +5401,10 @@ type LiveChatMessageSnippet struct {
 	// set if the type is 'superChatEvent'.
 	SuperChatDetails *LiveChatSuperChatDetails `json:"superChatDetails,omitempty"`
 
+	// SuperStickerDetails: Details about the Super Sticker event, this is
+	// only set if the type is 'superStickerEvent'.
+	SuperStickerDetails *LiveChatSuperStickerDetails `json:"superStickerDetails,omitempty"`
+
 	// TextMessageDetails: Details about the text message, this is only set
 	// if the type is 'textMessageEvent'.
 	TextMessageDetails *LiveChatTextMessageDetails `json:"textMessageDetails,omitempty"`
@@ -5343,6 +5425,7 @@ type LiveChatMessageSnippet struct {
 	//   "sponsorOnlyModeEndedEvent"
 	//   "sponsorOnlyModeStartedEvent"
 	//   "superChatEvent"
+	//   "superStickerEvent"
 	//   "textMessageEvent"
 	//   "tombstone"
 	//   "userBannedEvent"
@@ -5664,8 +5747,8 @@ type LiveChatSuperChatDetails struct {
 	// Currency: The currency in which the purchase was made.
 	Currency string `json:"currency,omitempty"`
 
-	// Tier: The tier in which the amount belongs to. Lower amounts belong
-	// to lower tiers. Starts at 1.
+	// Tier: The tier in which the amount belongs. Lower amounts belong to
+	// lower tiers. The lowest tier is 1.
 	Tier int64 `json:"tier,omitempty"`
 
 	// UserComment: The comment added by the user to this Super Chat event.
@@ -5691,6 +5774,49 @@ type LiveChatSuperChatDetails struct {
 
 func (s *LiveChatSuperChatDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod LiveChatSuperChatDetails
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+type LiveChatSuperStickerDetails struct {
+	// AmountDisplayString: A rendered string that displays the fund amount
+	// and currency to the user.
+	AmountDisplayString string `json:"amountDisplayString,omitempty"`
+
+	// AmountMicros: The amount purchased by the user, in micros (1,750,000
+	// micros = 1.75).
+	AmountMicros uint64 `json:"amountMicros,omitempty,string"`
+
+	// Currency: The currency in which the purchase was made.
+	Currency string `json:"currency,omitempty"`
+
+	// SuperStickerMetadata: Information about the Super Sticker.
+	SuperStickerMetadata *SuperStickerMetadata `json:"superStickerMetadata,omitempty"`
+
+	// Tier: The tier in which the amount belongs. Lower amounts belong to
+	// lower tiers. The lowest tier is 1.
+	Tier int64 `json:"tier,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AmountDisplayString")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AmountDisplayString") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *LiveChatSuperStickerDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod LiveChatSuperStickerDetails
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -7752,6 +7878,9 @@ type SuperChatEventSnippet struct {
 	// purchase.
 	IsSuperChatForGood bool `json:"isSuperChatForGood,omitempty"`
 
+	// IsSuperStickerEvent: True if this event is a Super Sticker event.
+	IsSuperStickerEvent bool `json:"isSuperStickerEvent,omitempty"`
+
 	// MessageType: The tier for the paid message, which is based on the
 	// amount of money spent to purchase the message.
 	MessageType int64 `json:"messageType,omitempty"`
@@ -7760,6 +7889,10 @@ type SuperChatEventSnippet struct {
 	// field will contain information about the charity the purchase is
 	// donated to.
 	Nonprofit *Nonprofit `json:"nonprofit,omitempty"`
+
+	// SuperStickerMetadata: If this event is a Super Sticker event, this
+	// field will contain metadata about the Super Sticker.
+	SuperStickerMetadata *SuperStickerMetadata `json:"superStickerMetadata,omitempty"`
 
 	// SupporterDetails: Details about the supporter.
 	SupporterDetails *ChannelProfileDetails `json:"supporterDetails,omitempty"`
@@ -7783,6 +7916,43 @@ type SuperChatEventSnippet struct {
 
 func (s *SuperChatEventSnippet) MarshalJSON() ([]byte, error) {
 	type NoMethod SuperChatEventSnippet
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+type SuperStickerMetadata struct {
+	// AltText: Internationalized alt text that describes the sticker image
+	// and any animation associated with it.
+	AltText string `json:"altText,omitempty"`
+
+	// AltTextLanguage: Specifies the localization language in which the alt
+	// text is returned.
+	AltTextLanguage string `json:"altTextLanguage,omitempty"`
+
+	// StickerId: Unique identifier of the Super Sticker. This is a shorter
+	// form of the alt_text that includes pack name and a recognizable
+	// characteristic of the sticker.
+	StickerId string `json:"stickerId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "AltText") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "AltText") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *SuperStickerMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod SuperStickerMetadata
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -10580,7 +10750,7 @@ func (c *CaptionsInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11056,7 +11226,7 @@ func (c *CaptionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11335,7 +11505,7 @@ func (c *ChannelBannersInsertCall) doRequest(alt string) (*http.Response, error)
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21469,7 +21639,7 @@ func (c *ThumbnailsSetCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22387,7 +22557,7 @@ func (c *VideosInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23429,7 +23599,7 @@ func (c *WatermarksSetCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
-	gensupport.SetGetBody(req, getBody)
+	req.GetBody = getBody
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 

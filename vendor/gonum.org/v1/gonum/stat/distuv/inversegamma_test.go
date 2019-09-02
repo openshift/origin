@@ -38,9 +38,11 @@ func TestInverseGamma(t *testing.T) {
 }
 
 func testInverseGamma(t *testing.T, f InverseGamma, i int) {
-	tol := 1e-2
-	const n = 1e6
-	const bins = 50
+	const (
+		tol  = 1e-2
+		n    = 1e6
+		bins = 50
+	)
 	x := make([]float64, n)
 	generateSamples(x, f)
 	sort.Float64s(x)

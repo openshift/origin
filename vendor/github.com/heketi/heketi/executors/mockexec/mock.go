@@ -10,6 +10,9 @@
 package mockexec
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/heketi/heketi/executors"
 )
 
@@ -29,6 +32,7 @@ type MockExecutor struct {
 	MockVolumeDestroyCheck       func(host, volume string) error
 	MockVolumeReplaceBrick       func(host string, volume string, oldBrick *executors.BrickInfo, newBrick *executors.BrickInfo) error
 	MockVolumeInfo               func(host string, volume string) (*executors.Volume, error)
+	MockVolumesInfo              func(host string) (*executors.VolInfo, error)
 	MockVolumeClone              func(host string, volume *executors.VolumeCloneRequest) (*executors.Volume, error)
 	MockVolumeSnapshot           func(host string, volume *executors.VolumeSnapshotRequest) (*executors.Snapshot, error)
 	MockSnapshotCloneVolume      func(host string, volume *executors.SnapshotCloneRequest) (*executors.Volume, error)
@@ -37,6 +41,14 @@ type MockExecutor struct {
 	MockHealInfo                 func(host string, volume string) (*executors.HealInfo, error)
 	MockBlockVolumeCreate        func(host string, blockVolume *executors.BlockVolumeRequest) (*executors.BlockVolumeInfo, error)
 	MockBlockVolumeDestroy       func(host string, blockHostingVolumeName string, blockVolumeName string) error
+	MockPVS                      func(host string) (*executors.PVSCommandOutput, error)
+	MockVGS                      func(host string) (*executors.VGSCommandOutput, error)
+	MockLVS                      func(host string) (*executors.LVSCommandOutput, error)
+	MockGetBrickMountStatus      func(host string) (*executors.BricksMountStatus, error)
+	MockListBlockVolumes         func(host string, blockhostingvolume string) ([]string, error)
+
+	// default values
+	DeviceSizeGb func() uint64
 }
 
 func NewMockExecutor() (*MockExecutor, error) {
@@ -55,10 +67,11 @@ func NewMockExecutor() (*MockExecutor, error) {
 	}
 
 	m.MockDeviceSetup = func(host, device, vgid string, destroy bool) (*executors.DeviceInfo, error) {
+		dsize := m.DeviceSizeGb() * 1024 * 1024
 		d := &executors.DeviceInfo{}
-		d.TotalSize = 500 * 1024 * 1024 // Size in KB
-		d.FreeSize = 500 * 1024 * 1024  // Size in KB
-		d.UsedSize = 0                  // Size in KB
+		d.TotalSize = dsize
+		d.FreeSize = dsize
+		d.UsedSize = 0
 		d.ExtentSize = 4096
 		return d, nil
 	}
@@ -68,9 +81,10 @@ func NewMockExecutor() (*MockExecutor, error) {
 	}
 
 	m.MockGetDeviceInfo = func(host, device, vgid string) (*executors.DeviceInfo, error) {
+		dsize := m.DeviceSizeGb() * 1024 * 1024
 		d := &executors.DeviceInfo{}
-		d.TotalSize = 500 * 1024 * 1024
-		d.FreeSize = 500 * 1024 * 1024
+		d.TotalSize = dsize
+		d.FreeSize = dsize
 		d.UsedSize = 0
 		d.ExtentSize = 4096
 		return d, nil
@@ -123,6 +137,34 @@ func NewMockExecutor() (*MockExecutor, error) {
 			Bricks: Bricks,
 		}
 		return vinfo, nil
+	}
+
+	m.MockVolumesInfo = func(host string) (*executors.VolInfo, error) {
+		var bricks []executors.Brick
+		brick := executors.Brick{Name: host + ":/mockpath"}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: host + ":/mockpath"}
+		bricks = append(bricks, brick)
+		brick = executors.Brick{Name: host + ":/mockpath"}
+		bricks = append(bricks, brick)
+		Bricks := executors.Bricks{
+			BrickList: bricks,
+		}
+		vinfo := executors.Volume{
+			Bricks: Bricks,
+		}
+		volumelist := make([]executors.Volume, 0)
+		volumelist = append(volumelist, vinfo)
+		volumelist = append(volumelist, vinfo)
+
+		volumes := executors.Volumes{
+			Count:      2,
+			VolumeList: volumelist,
+		}
+		volinfo := &executors.VolInfo{
+			Volumes: volumes,
+		}
+		return volinfo, nil
 	}
 
 	m.MockVolumeSnapshot = func(host string, vsr *executors.VolumeSnapshotRequest) (*executors.Snapshot, error) {
@@ -188,6 +230,37 @@ func NewMockExecutor() (*MockExecutor, error) {
 
 	m.MockBlockVolumeDestroy = func(host string, blockHostingVolumeName string, blockVolumeName string) error {
 		return nil
+	}
+
+	m.MockPVS = func(host string) (*executors.PVSCommandOutput, error) {
+		return &executors.PVSCommandOutput{}, nil
+	}
+
+	m.MockVGS = func(host string) (*executors.VGSCommandOutput, error) {
+		return &executors.VGSCommandOutput{}, nil
+	}
+
+	m.MockLVS = func(host string) (*executors.LVSCommandOutput, error) {
+		return &executors.LVSCommandOutput{}, nil
+	}
+
+	m.MockGetBrickMountStatus = func(host string) (*executors.BricksMountStatus, error) {
+		return &executors.BricksMountStatus{}, nil
+	}
+
+	m.MockListBlockVolumes = func(host string, blockhostingvolume string) ([]string, error) {
+		return []string{}, nil
+	}
+
+	m.DeviceSizeGb = func() uint64 {
+		env := os.Getenv("HEKETI_MOCK_DEVICE_SIZE_GB")
+		if env != "" {
+			value, err := strconv.ParseInt(env, 10, 64)
+			if err == nil {
+				return uint64(value)
+			}
+		}
+		return 500
 	}
 
 	return m, nil
@@ -257,6 +330,10 @@ func (m *MockExecutor) VolumeInfo(host string, volume string) (*executors.Volume
 	return m.MockVolumeInfo(host, volume)
 }
 
+func (m *MockExecutor) VolumesInfo(host string) (*executors.VolInfo, error) {
+	return m.MockVolumesInfo(host)
+}
+
 func (m *MockExecutor) VolumeClone(host string, vcr *executors.VolumeCloneRequest) (*executors.Volume, error) {
 	return m.MockVolumeClone(host, vcr)
 }
@@ -287,4 +364,24 @@ func (m *MockExecutor) BlockVolumeCreate(host string, blockVolume *executors.Blo
 
 func (m *MockExecutor) BlockVolumeDestroy(host string, blockHostingVolumeName string, blockVolumeName string) error {
 	return m.MockBlockVolumeDestroy(host, blockHostingVolumeName, blockVolumeName)
+}
+
+func (m *MockExecutor) PVS(host string) (*executors.PVSCommandOutput, error) {
+	return m.MockPVS(host)
+}
+
+func (m *MockExecutor) VGS(host string) (*executors.VGSCommandOutput, error) {
+	return m.MockVGS(host)
+}
+
+func (m *MockExecutor) LVS(host string) (*executors.LVSCommandOutput, error) {
+	return m.MockLVS(host)
+}
+
+func (m *MockExecutor) GetBrickMountStatus(host string) (*executors.BricksMountStatus, error) {
+	return m.MockGetBrickMountStatus(host)
+}
+
+func (m *MockExecutor) ListBlockVolumes(host string, blockhostingvolume string) ([]string, error) {
+	return m.MockListBlockVolumes(host, blockhostingvolume)
 }

@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"reflect"
-	"runtime"
 	"time"
 
 	"github.com/onsi/ginkgo/internal/codelocation"
@@ -147,17 +146,15 @@ func AsynchronousSharedRunnerBehaviors(build func(body interface{}, timeout time
 
 		Context("when running", func() {
 			It("should run the function as a goroutine, and block until it's done", func() {
-				initialNumberOfGoRoutines := runtime.NumGoroutine()
-				numberOfGoRoutines := 0
+				proveAsync := make(chan bool)
 
 				build(func(done Done) {
 					didRun = true
-					numberOfGoRoutines = runtime.NumGoroutine()
+					proveAsync <- true
 					close(done)
 				}, timeoutDuration, failer, componentCodeLocation).Run()
 
-				Ω(didRun).Should(BeTrue())
-				Ω(numberOfGoRoutines).Should(BeNumerically(">=", initialNumberOfGoRoutines+1))
+				Eventually(proveAsync).Should(Receive(Equal(true)))
 			})
 		})
 
@@ -182,8 +179,8 @@ func AsynchronousSharedRunnerBehaviors(build func(body interface{}, timeout time
 					didRun = true
 					failer.Fail("bam", innerCodeLocation)
 					time.Sleep(20 * time.Millisecond)
+					defer close(done)
 					panic("doesn't matter")
-					close(done)
 				}, 10*time.Millisecond, failer, componentCodeLocation).Run()
 			})
 
@@ -202,21 +199,18 @@ func AsynchronousSharedRunnerBehaviors(build func(body interface{}, timeout time
 			})
 		})
 
-		Context("when the function times out", func() {
+		Context("when the function doesn't close the done channel in time", func() {
 			var guard chan struct{}
 
 			BeforeEach(func() {
 				guard = make(chan struct{})
 				outcome, failure = build(func(done Done) {
 					didRun = true
-					time.Sleep(20 * time.Millisecond)
 					close(guard)
-					panic("doesn't matter")
-					close(done)
 				}, 10*time.Millisecond, failer, componentCodeLocation).Run()
 			})
 
-			It("should return the timeout", func() {
+			It("should return a timeout", func() {
 				<-guard
 				Ω(didRun).Should(BeTrue())
 

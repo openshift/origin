@@ -18,17 +18,17 @@ const (
 	allowedRTol = 1e-6
 )
 
-func gammaInc(x float64, params []float64) float64 {
+func gammaIncReg(x float64, params []float64) float64 {
 	return cephes.Igam(params[0], x) - params[1]
 }
 
-// gammaIncInv is the inverse of the incomplete Gamma integral. That is, it
+// gammaIncRegInv is the inverse of the regularized incomplete Gamma integral. That is, it
 // returns x such that:
 //  Igam(a, x) = y
 // The input argument a must be positive and y must be between 0 and 1
-// inclusive or gammaIncInv will panic. gammaIncInv should return a
+// inclusive or gammaIncRegInv will panic. gammaIncRegInv should return a
 // positive number, but can return NaN if there is a failure to converge.
-func gammaIncInv(a, y float64) float64 {
+func gammaIncRegInv(a, y float64) float64 {
 	// For y not small, we just use
 	//  IgamI(a, 1-y)
 	// (inverse of the complemented incomplete Gamma integral). For y small,
@@ -47,7 +47,7 @@ func gammaIncInv(a, y float64) float64 {
 	// Also, after we generate a small interval by bisection above, false
 	// position will do a large step from an interval of width ~1e-4 to ~1e-14
 	// in one step (a=10, x=0.05, but similar for other values).
-	result, bestX, _, errEst := falsePosition(lo, hi, flo, fhi, 2*machEp, 2*machEp, 1e-2*a, gammaInc, params)
+	result, bestX, _, errEst := falsePosition(lo, hi, flo, fhi, 2*machEp, 2*machEp, 1e-2*a, gammaIncReg, params)
 	if result == fSolveMaxIterations && errEst > allowedATol+allowedRTol*math.Abs(bestX) {
 		bestX = math.NaN()
 	}

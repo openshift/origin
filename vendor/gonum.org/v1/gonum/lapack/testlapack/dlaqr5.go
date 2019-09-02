@@ -186,7 +186,7 @@ func testDlaqr5(t *testing.T, impl Dlaqr5er, n, extra, kacc22 int, rnd *rand.Ran
 			}
 		}
 	}
-	if !isOrthonormal(z) {
+	if !isOrthogonal(z) {
 		t.Errorf("%v: Z is not orthogonal", prefix)
 	}
 	// Construct Z^T * HOrig * Z and check that it is equal to H from Dlaqr5.

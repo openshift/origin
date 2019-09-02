@@ -30,7 +30,7 @@ type MHProposal interface {
 	ConditionalRand(x, y []float64) []float64
 }
 
-// MetropolisHastings is a type for generating samples using the Metropolis Hastings
+// MetropolisHastingser is a type for generating samples using the Metropolis Hastings
 // algorithm (http://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm),
 // with the given target and proposal distributions, starting at the location
 // specified by Initial. If src != nil, it will be used to generate random

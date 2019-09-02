@@ -17,10 +17,124 @@ limitations under the License.
 package fieldpath
 
 import (
+	"bytes"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"sigs.k8s.io/structured-merge-diff/value"
 )
+
+type randomPathAlphabet []PathElement
+
+func (a randomPathAlphabet) makePath(minLen, maxLen int) Path {
+	n := minLen
+	if minLen < maxLen {
+		n += rand.Intn(maxLen - minLen)
+	}
+	var p Path
+	for i := 0; i < n; i++ {
+		p = append(p, a[rand.Intn(len(a))])
+	}
+	return p
+}
+
+var randomPathMaker = randomPathAlphabet(MakePathOrDie(
+	"aaa",
+	"aab",
+	"aac",
+	"aad",
+	"aae",
+	"aaf",
+	KeyByFields("name", value.StringValue("first")),
+	KeyByFields("name", value.StringValue("second")),
+	KeyByFields("port", value.IntValue(443), "protocol", value.StringValue("tcp")),
+	KeyByFields("port", value.IntValue(443), "protocol", value.StringValue("udp")),
+	value.IntValue(1),
+	value.IntValue(2),
+	value.IntValue(3),
+	value.StringValue("aa"),
+	value.StringValue("ab"),
+	value.BooleanValue(true),
+	1, 2, 3, 4,
+))
+
+func BenchmarkFieldSet(b *testing.B) {
+	cases := []struct {
+		size       int
+		minPathLen int
+		maxPathLen int
+	}{
+		//{10, 1, 2},
+		{20, 2, 3},
+		{50, 2, 4},
+		{100, 3, 6},
+		{500, 3, 7},
+		{1000, 3, 8},
+	}
+	for i := range cases {
+		here := cases[i]
+		makeSet := func() *Set {
+			x := NewSet()
+			for j := 0; j < here.size; j++ {
+				x.Insert(randomPathMaker.makePath(here.minPathLen, here.maxPathLen))
+			}
+			return x
+		}
+		operands := make([]*Set, 500)
+		serialized := make([][]byte, len(operands))
+		for i := range operands {
+			operands[i] = makeSet()
+			serialized[i], _ = operands[i].ToJSON()
+		}
+		randOperand := func() *Set { return operands[rand.Intn(len(operands))] }
+
+		b.Run(fmt.Sprintf("insert-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				makeSet()
+			}
+		})
+		b.Run(fmt.Sprintf("has-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				randOperand().Has(randomPathMaker.makePath(here.minPathLen, here.maxPathLen))
+			}
+		})
+		b.Run(fmt.Sprintf("serialize-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				randOperand().ToJSON()
+			}
+		})
+		b.Run(fmt.Sprintf("deserialize-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			s := NewSet()
+			for i := 0; i < b.N; i++ {
+				s.FromJSON(bytes.NewReader(serialized[rand.Intn(len(serialized))]))
+			}
+		})
+
+		b.Run(fmt.Sprintf("union-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				randOperand().Union(randOperand())
+			}
+		})
+		b.Run(fmt.Sprintf("intersection-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				randOperand().Intersection(randOperand())
+			}
+		})
+		b.Run(fmt.Sprintf("difference-%v", here.size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				randOperand().Difference(randOperand())
+			}
+		})
+	}
+}
 
 func TestSetInsertHas(t *testing.T) {
 	s1 := NewSet(
@@ -83,7 +197,7 @@ func TestSetInsertHas(t *testing.T) {
 }
 
 func TestSetString(t *testing.T) {
-	p := MakePathOrDie("foo", PathElement{Key: KeyByFields("name", value.StringValue("first"))})
+	p := MakePathOrDie("foo", PathElement{Key: &value.Map{Items: KeyByFields("name", value.StringValue("first"))}})
 	s1 := NewSet(p)
 
 	if p.String() != s1.String() {

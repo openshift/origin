@@ -16,6 +16,7 @@ package current_test
 
 import (
 	"encoding/json"
+	"github.com/containernetworking/cni/pkg/types/020"
 	"io/ioutil"
 	"net"
 	"os"
@@ -214,7 +215,127 @@ var _ = Describe("Current types operations", func() {
 }`))
 	})
 
-	It("correctly marshals interface index 0", func() {
+	It("correctly round-trips a 0.2.0 Result with route gateways", func() {
+		ipv4, err := types.ParseCIDR("1.2.3.30/24")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv4).NotTo(BeNil())
+
+		routegwv4, routev4, err := net.ParseCIDR("15.5.6.8/24")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(routev4).NotTo(BeNil())
+		Expect(routegwv4).NotTo(BeNil())
+
+		ipv6, err := types.ParseCIDR("abcd:1234:ffff::cdde/64")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv6).NotTo(BeNil())
+
+		routegwv6, routev6, err := net.ParseCIDR("1111:dddd::aaaa/80")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(routev6).NotTo(BeNil())
+		Expect(routegwv6).NotTo(BeNil())
+
+		// Set every field of the struct to ensure source compatibility
+		res := &types020.Result{
+			CNIVersion: types020.ImplementedSpecVersion,
+			IP4: &types020.IPConfig{
+				IP:      *ipv4,
+				Gateway: net.ParseIP("1.2.3.1"),
+				Routes: []types.Route{
+					{Dst: *routev4, GW: routegwv4},
+				},
+			},
+			IP6: &types020.IPConfig{
+				IP:      *ipv6,
+				Gateway: net.ParseIP("abcd:1234:ffff::1"),
+				Routes: []types.Route{
+					{Dst: *routev6, GW: routegwv6},
+				},
+			},
+			DNS: types.DNS{
+				Nameservers: []string{"1.2.3.4", "1::cafe"},
+				Domain:      "acompany.com",
+				Search:      []string{"somedomain.com", "otherdomain.net"},
+				Options:     []string{"foo", "bar"},
+			},
+		}
+
+		Expect(res.String()).To(Equal("IP4:{IP:{IP:1.2.3.30 Mask:ffffff00} Gateway:1.2.3.1 Routes:[{Dst:{IP:15.5.6.0 Mask:ffffff00} GW:15.5.6.8}]}, IP6:{IP:{IP:abcd:1234:ffff::cdde Mask:ffffffffffffffff0000000000000000} Gateway:abcd:1234:ffff::1 Routes:[{Dst:{IP:1111:dddd:: Mask:ffffffffffffffffffff000000000000} GW:1111:dddd::aaaa}]}, DNS:{Nameservers:[1.2.3.4 1::cafe] Domain:acompany.com Search:[somedomain.com otherdomain.net] Options:[foo bar]}"))
+
+		// Convert to current
+		newRes, err := current.NewResultFromResult(res)
+		Expect(err).NotTo(HaveOccurred())
+		// Convert back to 0.2.0
+		oldRes, err := newRes.GetAsVersion("0.2.0")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Match JSON so we can figure out what's wrong if something fails the test
+		origJson, err := json.Marshal(res)
+		Expect(err).NotTo(HaveOccurred())
+		oldJson, err := json.Marshal(oldRes)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oldJson).To(MatchJSON(origJson))
+	})
+
+	It("correctly round-trips a 0.2.0 Result without route gateways", func() {
+		ipv4, err := types.ParseCIDR("1.2.3.30/24")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv4).NotTo(BeNil())
+
+		_, routev4, err := net.ParseCIDR("15.5.6.0/24")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(routev4).NotTo(BeNil())
+
+		ipv6, err := types.ParseCIDR("abcd:1234:ffff::cdde/64")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv6).NotTo(BeNil())
+
+		_, routev6, err := net.ParseCIDR("1111:dddd::aaaa/80")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(routev6).NotTo(BeNil())
+
+		// Set every field of the struct to ensure source compatibility
+		res := &types020.Result{
+			CNIVersion: types020.ImplementedSpecVersion,
+			IP4: &types020.IPConfig{
+				IP:      *ipv4,
+				Gateway: net.ParseIP("1.2.3.1"),
+				Routes: []types.Route{
+					{Dst: *routev4},
+				},
+			},
+			IP6: &types020.IPConfig{
+				IP:      *ipv6,
+				Gateway: net.ParseIP("abcd:1234:ffff::1"),
+				Routes: []types.Route{
+					{Dst: *routev6},
+				},
+			},
+			DNS: types.DNS{
+				Nameservers: []string{"1.2.3.4", "1::cafe"},
+				Domain:      "acompany.com",
+				Search:      []string{"somedomain.com", "otherdomain.net"},
+				Options:     []string{"foo", "bar"},
+			},
+		}
+
+		Expect(res.String()).To(Equal("IP4:{IP:{IP:1.2.3.30 Mask:ffffff00} Gateway:1.2.3.1 Routes:[{Dst:{IP:15.5.6.0 Mask:ffffff00} GW:<nil>}]}, IP6:{IP:{IP:abcd:1234:ffff::cdde Mask:ffffffffffffffff0000000000000000} Gateway:abcd:1234:ffff::1 Routes:[{Dst:{IP:1111:dddd:: Mask:ffffffffffffffffffff000000000000} GW:<nil>}]}, DNS:{Nameservers:[1.2.3.4 1::cafe] Domain:acompany.com Search:[somedomain.com otherdomain.net] Options:[foo bar]}"))
+
+		// Convert to current
+		newRes, err := current.NewResultFromResult(res)
+		Expect(err).NotTo(HaveOccurred())
+		// Convert back to 0.2.0
+		oldRes, err := newRes.GetAsVersion("0.2.0")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Match JSON so we can figure out what's wrong if something fails the test
+		origJson, err := json.Marshal(res)
+		Expect(err).NotTo(HaveOccurred())
+		oldJson, err := json.Marshal(oldRes)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oldJson).To(MatchJSON(origJson))
+	})
+
+	It("correctly marshals and unmarshals interface index 0", func() {
 		ipc := &current.IPConfig{
 			Version:   "4",
 			Interface: current.Int(0),
@@ -224,13 +345,25 @@ var _ = Describe("Current types operations", func() {
 			},
 		}
 
-		json, err := json.Marshal(ipc)
+		jsonBytes, err := json.Marshal(ipc)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(json).To(MatchJSON(`{
+		Expect(jsonBytes).To(MatchJSON(`{
     "version": "4",
     "interface": 0,
     "address": "10.1.2.3/24"
 }`))
+
+		recovered := &current.IPConfig{}
+		Expect(json.Unmarshal(jsonBytes, &recovered)).To(Succeed())
+		Expect(recovered).To(Equal(ipc))
+	})
+
+	Context("when unmarshalling json fails", func() {
+		It("returns an error", func() {
+			recovered := &current.IPConfig{}
+			err := json.Unmarshal([]byte(`{"address": 5}`), &recovered)
+			Expect(err).To(MatchError(HavePrefix("json: cannot unmarshal")))
+		})
 	})
 
 	It("correctly marshals a missing interface index", func() {

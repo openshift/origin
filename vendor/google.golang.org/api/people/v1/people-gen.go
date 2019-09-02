@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,39 @@
 
 // Package people provides access to the People API.
 //
-// See https://developers.google.com/people/
+// For product documentation, see: https://developers.google.com/people/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/people/v1"
 //   ...
-//   peopleService, err := people.New(oauthHttpClient)
+//   ctx := context.Background()
+//   peopleService, err := people.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   peopleService, err := people.NewService(ctx, option.WithScopes(people.UserinfoProfileScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   peopleService, err := people.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   peopleService, err := people.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package people // import "google.golang.org/api/people/v1"
 
 import (
@@ -29,6 +55,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -58,9 +86,6 @@ const (
 	// See and download your contacts
 	ContactsReadonlyScope = "https://www.googleapis.com/auth/contacts.readonly"
 
-	// Know the list of people in your circles, your age range, and language
-	PlusLoginScope = "https://www.googleapis.com/auth/plus.login"
-
 	// View your street addresses
 	UserAddressesReadScope = "https://www.googleapis.com/auth/user.addresses.read"
 
@@ -76,10 +101,44 @@ const (
 	// View your email address
 	UserinfoEmailScope = "https://www.googleapis.com/auth/userinfo.email"
 
-	// View your basic profile info
+	// See your personal info, including any personal info you've made
+	// publicly available
 	UserinfoProfileScope = "https://www.googleapis.com/auth/userinfo.profile"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/contacts",
+		"https://www.googleapis.com/auth/contacts.readonly",
+		"https://www.googleapis.com/auth/user.addresses.read",
+		"https://www.googleapis.com/auth/user.birthday.read",
+		"https://www.googleapis.com/auth/user.emails.read",
+		"https://www.googleapis.com/auth/user.phonenumbers.read",
+		"https://www.googleapis.com/auth/userinfo.email",
+		"https://www.googleapis.com/auth/userinfo.profile",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -484,14 +543,22 @@ func (s *ContactGroup) MarshalJSON() ([]byte, error) {
 
 // ContactGroupMembership: A Google contact group membership.
 type ContactGroupMembership struct {
-	// ContactGroupId: The contact group ID for the contact group
-	// membership. The contact group
-	// ID can be custom or one of these predefined values:
-	//
-	// *  `myContacts`
-	// *  `starred`
-	// *  A numerical ID for user-created groups.
+	// ContactGroupId: The read-only contact group ID for the contact group
+	// membership.
 	ContactGroupId string `json:"contactGroupId,omitempty"`
+
+	// ContactGroupResourceName: The resource name for the contact group,
+	// assigned by the server. An ASCII
+	// string, in the form of
+	// `contactGroups/`<var>contact_group_id</var>.
+	// Only contact_group_resource_name can be used for modifying
+	// memberships.
+	// Any contact group membership can be removed, but only user group
+	// or
+	// "myContacts" or "starred" system groups memberships can be added.
+	// A
+	// contact must always have at least one contact group membership.
+	ContactGroupResourceName string `json:"contactGroupResourceName,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ContactGroupId") to
 	// unconditionally include in API requests. By default, fields with
@@ -706,10 +773,9 @@ func (s *Date) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// DomainMembership: A Google Apps Domain membership.
+// DomainMembership: A read-only G Suite Domain membership.
 type DomainMembership struct {
-	// InViewerDomain: True if the person is in the viewer's Google Apps
-	// domain.
+	// InViewerDomain: True if the person is in the viewer's G Suite domain.
 	InViewerDomain bool `json:"inViewerDomain,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "InViewerDomain") to
@@ -1183,12 +1249,14 @@ func (s *Locale) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Membership: A person's read-only membership in a group.
+// Membership: A person's membership in a group. Only contact group
+// memberships can be
+// modified.
 type Membership struct {
 	// ContactGroupMembership: The contact group membership.
 	ContactGroupMembership *ContactGroupMembership `json:"contactGroupMembership,omitempty"`
 
-	// DomainMembership: The domain membership.
+	// DomainMembership: The read-only domain membership.
 	DomainMembership *DomainMembership `json:"domainMembership,omitempty"`
 
 	// Metadata: Metadata about the membership.
@@ -1223,7 +1291,7 @@ func (s *Membership) MarshalJSON() ([]byte, error) {
 // contact group's members. Contacts can be
 // removed from any group but they can only be added to a user group
 // or
-// myContacts or starred system groups.
+// "myContacts" or "starred" system groups.
 type ModifyContactGroupMembersRequest struct {
 	// ResourceNamesToAdd: The resource names of the contact people to add
 	// in the form of in the form
@@ -1458,7 +1526,8 @@ type Organization struct {
 	Department string `json:"department,omitempty"`
 
 	// Domain: The domain name associated with the organization; for
-	// example, `google.com`.
+	// example,
+	// `google.com`.
 	Domain string `json:"domain,omitempty"`
 
 	// EndDate: The end date when the person left the organization.
@@ -1590,7 +1659,7 @@ type Person struct {
 	// Locales: The person's locale preferences.
 	Locales []*Locale `json:"locales,omitempty"`
 
-	// Memberships: The person's read-only group memberships.
+	// Memberships: The person's group memberships.
 	Memberships []*Membership `json:"memberships,omitempty"`
 
 	// Metadata: Read-only metadata about the person.
@@ -1792,9 +1861,10 @@ func (s *PersonResponse) MarshalJSON() ([]byte, error) {
 
 // PhoneNumber: A person's phone number.
 type PhoneNumber struct {
-	// CanonicalForm: The read-only canonicalized [ITU-T
-	// E.164](https://law.resource.org/pub/us/cfr/ibr/004/itu-t.E.164.1.2008.
-	// pdf)
+	// CanonicalForm: The read-only canonicalized
+	// [ITU-T
+	// E.164](https://law.resource.org/pub/us/cfr/ibr/004/itu-t.E.164.
+	// 1.2008.pdf)
 	// form of the phone number.
 	CanonicalForm string `json:"canonicalForm,omitempty"`
 
@@ -1908,7 +1978,7 @@ type ProfileMetadata struct {
 	//   "USER_TYPE_UNKNOWN" - The user type is not known.
 	//   "GOOGLE_USER" - The user is a Google user.
 	//   "GPLUS_USER" - The user is a Google+ user.
-	//   "GOOGLE_APPS_USER" - The user is a Google Apps for Work user.
+	//   "GOOGLE_APPS_USER" - The user is a G Suite user.
 	UserTypes []string `json:"userTypes,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ObjectType") to
@@ -2233,8 +2303,8 @@ type Source struct {
 	// profile at https://profiles.google.com/<var>id</var>
 	// where
 	// <var>id</var> is the source id.
-	//   "DOMAIN_PROFILE" - [Google Apps domain
-	// profile](https://admin.google.com).
+	//   "DOMAIN_PROFILE" - [G Suite domain
+	// profile](https://support.google.com/a/answer/1628008).
 	//   "CONTACT" - [Google contact](https://contacts.google.com). You can
 	// view the
 	// contact at https://contact.google.com/<var>id</var> where
@@ -2271,20 +2341,20 @@ func (s *Source) MarshalJSON() ([]byte, error) {
 }
 
 // Status: The `Status` type defines a logical error model that is
-// suitable for different
-// programming environments, including REST APIs and RPC APIs. It is
-// used by
-// [gRPC](https://github.com/grpc). The error model is designed to
-// be:
+// suitable for
+// different programming environments, including REST APIs and RPC APIs.
+// It is
+// used by [gRPC](https://github.com/grpc). The error model is designed
+// to be:
 //
 // - Simple to use and understand for most users
 // - Flexible enough to meet unexpected needs
 //
 // # Overview
 //
-// The `Status` message contains three pieces of data: error code, error
-// message,
-// and error details. The error code should be an enum value
+// The `Status` message contains three pieces of data: error code,
+// error
+// message, and error details. The error code should be an enum value
 // of
 // google.rpc.Code, but it may accept additional error codes if needed.
 // The
@@ -3469,6 +3539,12 @@ type ContactGroupsMembersModifyCall struct {
 
 // Modify: Modify the members of a contact group owned by the
 // authenticated user.
+// <br>
+// The only system contact groups that can have members added
+// are
+// `contactGroups/myContacts` and `contactGroups/starred`. Other
+// system
+// contact groups are deprecated and can only have contacts removed.
 func (r *ContactGroupsMembersService) Modify(resourceName string, modifycontactgroupmembersrequest *ModifyContactGroupMembersRequest) *ContactGroupsMembersModifyCall {
 	c := &ContactGroupsMembersModifyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resourceName = resourceName
@@ -3567,7 +3643,7 @@ func (c *ContactGroupsMembersModifyCall) Do(opts ...googleapi.CallOption) (*Modi
 	}
 	return ret, nil
 	// {
-	//   "description": "Modify the members of a contact group owned by the authenticated user.",
+	//   "description": "Modify the members of a contact group owned by the authenticated user.\n\u003cbr\u003e\nThe only system contact groups that can have members added are\n`contactGroups/myContacts` and `contactGroups/starred`. Other system\ncontact groups are deprecated and can only have contacts removed.",
 	//   "flatPath": "v1/contactGroups/{contactGroupsId}/members:modify",
 	//   "httpMethod": "POST",
 	//   "id": "people.contactGroups.members.modify",
@@ -4072,7 +4148,6 @@ func (c *PeopleGetCall) Do(opts ...googleapi.CallOption) (*Person, error) {
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/contacts",
 	//     "https://www.googleapis.com/auth/contacts.readonly",
-	//     "https://www.googleapis.com/auth/plus.login",
 	//     "https://www.googleapis.com/auth/user.addresses.read",
 	//     "https://www.googleapis.com/auth/user.birthday.read",
 	//     "https://www.googleapis.com/auth/user.emails.read",
@@ -4304,7 +4379,6 @@ func (c *PeopleGetBatchGetCall) Do(opts ...googleapi.CallOption) (*GetPeopleResp
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/contacts",
 	//     "https://www.googleapis.com/auth/contacts.readonly",
-	//     "https://www.googleapis.com/auth/plus.login",
 	//     "https://www.googleapis.com/auth/user.addresses.read",
 	//     "https://www.googleapis.com/auth/user.birthday.read",
 	//     "https://www.googleapis.com/auth/user.emails.read",
@@ -4368,6 +4442,7 @@ func (r *PeopleService) UpdateContact(resourceName string, person *Person) *Peop
 // * imClients
 // * interests
 // * locales
+// * memberships
 // * names
 // * nicknames
 // * occupations
@@ -4489,7 +4564,7 @@ func (c *PeopleUpdateContactCall) Do(opts ...googleapi.CallOption) (*Person, err
 	//       "type": "string"
 	//     },
 	//     "updatePersonFields": {
-	//       "description": "**Required.** A field mask to restrict which fields on the person are\nupdated. Multiple fields can be specified by separating them with commas.\nAll updated fields will be replaced. Valid values are:\n\n* addresses\n* biographies\n* birthdays\n* emailAddresses\n* events\n* genders\n* imClients\n* interests\n* locales\n* names\n* nicknames\n* occupations\n* organizations\n* phoneNumbers\n* relations\n* residences\n* sipAddresses\n* urls\n* userDefined",
+	//       "description": "**Required.** A field mask to restrict which fields on the person are\nupdated. Multiple fields can be specified by separating them with commas.\nAll updated fields will be replaced. Valid values are:\n\n* addresses\n* biographies\n* birthdays\n* emailAddresses\n* events\n* genders\n* imClients\n* interests\n* locales\n* memberships\n* names\n* nicknames\n* occupations\n* organizations\n* phoneNumbers\n* relations\n* residences\n* sipAddresses\n* urls\n* userDefined",
 	//       "format": "google-fieldmask",
 	//       "location": "query",
 	//       "type": "string"
@@ -4618,6 +4693,7 @@ func (c *PeopleConnectionsListCall) RequestSyncToken(requestSyncToken bool) *Peo
 //
 // Possible values:
 //   "LAST_MODIFIED_ASCENDING"
+//   "LAST_MODIFIED_DESCENDING"
 //   "FIRST_NAME_ASCENDING"
 //   "LAST_NAME_ASCENDING"
 func (c *PeopleConnectionsListCall) SortOrder(sortOrder string) *PeopleConnectionsListCall {
@@ -4781,6 +4857,7 @@ func (c *PeopleConnectionsListCall) Do(opts ...googleapi.CallOption) (*ListConne
 	//       "description": "The order in which the connections should be sorted. Defaults to\n`LAST_MODIFIED_ASCENDING`.",
 	//       "enum": [
 	//         "LAST_MODIFIED_ASCENDING",
+	//         "LAST_MODIFIED_DESCENDING",
 	//         "FIRST_NAME_ASCENDING",
 	//         "LAST_NAME_ASCENDING"
 	//       ],

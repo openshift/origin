@@ -62,12 +62,10 @@ func (o *CertSyncControllerOptions) Run() error {
 		return err
 	}
 
-	stopCh := make(chan struct{})
-
 	initialContent, _ := ioutil.ReadFile(o.KubeConfigFile)
-	observer.AddReactor(fileobserver.TerminateOnChangeReactor(func() {
-		close(stopCh)
-	}), map[string][]byte{o.KubeConfigFile: initialContent}, o.KubeConfigFile)
+	observer.AddReactor(fileobserver.ExitOnChangeReactor, map[string][]byte{o.KubeConfigFile: initialContent}, o.KubeConfigFile)
+
+	stopCh := make(chan struct{})
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(o.kubeClient, 10*time.Minute, informers.WithNamespace(o.Namespace))
 

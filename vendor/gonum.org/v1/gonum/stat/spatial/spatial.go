@@ -13,7 +13,7 @@ import (
 
 // TODO(kortschak): Implement weighted routines.
 
-// GetisOrdGStar returns the Local Getis-Ord G*i statistic for element of of the
+// GetisOrdGStar returns the Local Getis-Ord G*i statistic for element of the
 // weighted data using the provided locality matrix. The returned value is a z-score.
 //
 //  G^*_i = num_i / den_i

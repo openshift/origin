@@ -23,7 +23,7 @@
   "description": "Configures and serves authoritative DNS records.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/cloud-dns",
-  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/tjeOYqIojF-Ch7P-2UE6XgpQAfQ\"",
+  "etag": "\"VPK3KBfpaEgZ16pozGOoMYfKc0U/5ETkYc51ldAG_lBus_hxlXlq9uQ\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -982,11 +982,11 @@
       }
     }
   },
-  "revision": "20181115",
+  "revision": "20190418",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Change": {
-      "description": "An atomic update to a collection of ResourceRecordSets.",
+      "description": "A Change represents a set of ResourceRecordSet additions and deletions applied atomically to a ManagedZone. ResourceRecordSets within a ManagedZone are modified by creating a new Change element in the Changes collection. In turn the Changes collection also records the past modifications to the ResourceRecordSets in a ManagedZone. The current state of the ManagedZone is the sum effect of applying all Change elements in the Changes collection in sequence.",
       "id": "Change",
       "properties": {
         "additions": {
@@ -1021,7 +1021,7 @@
           "type": "string"
         },
         "status": {
-          "description": "Status of the operation (output only).",
+          "description": "Status of the operation (output only). A status of \"done\" means that the request to update the authoritative servers has been sent, but the servers might not be updated yet.",
           "enum": [
             "done",
             "pending"
@@ -1192,7 +1192,7 @@
           "type": "integer"
         },
         "keyType": {
-          "description": "One of \"KEY_SIGNING\" or \"ZONE_SIGNING\". Keys of type KEY_SIGNING have the Secure Entry Point flag set and, when active, will be used to sign only resource record sets of type DNSKEY. Otherwise, the Secure Entry Point flag will be cleared and this key will be used to sign only resource record sets of other types.",
+          "description": "Specifies whether this is a key signing key (KSK) or a zone signing key (ZSK). Key signing keys have the Secure Entry Point flag set and, when active, will only be used to sign resource record sets of type DNSKEY. Zone signing keys do not have the Secure Entry Point flag set and will be used to sign all other types of resource record sets.",
           "enum": [
             "keySigning",
             "zoneSigning"
@@ -1293,12 +1293,16 @@
           },
           "type": "array"
         },
+        "peeringConfig": {
+          "$ref": "ManagedZonePeeringConfig",
+          "description": "The presence of this field indicates that DNS Peering is enabled for this zone. The value of this field contains the network to peer with."
+        },
         "privateVisibilityConfig": {
           "$ref": "ManagedZonePrivateVisibilityConfig",
-          "description": "For privately visible zones, the set of GCP resources that the zone is visible from."
+          "description": "For privately visible zones, the set of Virtual Private Cloud resources that the zone is visible from."
         },
         "visibility": {
-          "description": "The zone's visibility: public zones are exposed to the Internet, while private zones are visible only to GCP resources.",
+          "description": "The zone's visibility: public zones are exposed to the Internet, while private zones are visible only to Virtual Private Cloud resources.",
           "enum": [
             "private",
             "public"
@@ -1414,6 +1418,40 @@
       },
       "type": "object"
     },
+    "ManagedZonePeeringConfig": {
+      "id": "ManagedZonePeeringConfig",
+      "properties": {
+        "kind": {
+          "default": "dns#managedZonePeeringConfig",
+          "description": "Identifies what kind of resource this is. Value: the fixed string \"dns#managedZonePeeringConfig\".",
+          "type": "string"
+        },
+        "targetNetwork": {
+          "$ref": "ManagedZonePeeringConfigTargetNetwork",
+          "description": "The network with which to peer."
+        }
+      },
+      "type": "object"
+    },
+    "ManagedZonePeeringConfigTargetNetwork": {
+      "id": "ManagedZonePeeringConfigTargetNetwork",
+      "properties": {
+        "deactivateTime": {
+          "description": "If this zone has been deactivated due to a problem with the network it targeted, the time at which it was deactivated. The zone can be deactivated if, for instance, the network it targeted was deleted. If the targeted network is still present, this will be the empty string. This is in RFC3339 text format. Output only.",
+          "type": "string"
+        },
+        "kind": {
+          "default": "dns#managedZonePeeringConfigTargetNetwork",
+          "description": "Identifies what kind of resource this is. Value: the fixed string \"dns#managedZonePeeringConfigTargetNetwork\".",
+          "type": "string"
+        },
+        "networkUrl": {
+          "description": "The fully qualified URL of the VPC network to forward queries to. This should be formatted like https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "ManagedZonePrivateVisibilityConfig": {
       "id": "ManagedZonePrivateVisibilityConfig",
       "properties": {
@@ -1423,7 +1461,7 @@
           "type": "string"
         },
         "networks": {
-          "description": "The list of GCE private network IDs that can see this zone.",
+          "description": "The list of VPC networks that can see this zone.",
           "items": {
             "$ref": "ManagedZonePrivateVisibilityConfigNetwork"
           },
@@ -1441,7 +1479,7 @@
           "type": "string"
         },
         "networkUrl": {
-          "description": "The fully qualified URL of the GCE private network to bind to. This should be formatted like https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}",
+          "description": "The fully qualified URL of the VPC network to bind to. This should be formatted like https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}",
           "type": "string"
         }
       },
@@ -1494,7 +1532,7 @@
           "type": "string"
         },
         "status": {
-          "description": "Status of the operation. Can be one of the following: \"PENDING\" or \"DONE\" (output only).",
+          "description": "Status of the operation. Can be one of the following: \"PENDING\" or \"DONE\" (output only). A status of \"DONE\" means that the request to update the authoritative servers has been sent, but the servers might not be updated yet.",
           "enum": [
             "done",
             "pending"
@@ -1598,7 +1636,7 @@
       "type": "object"
     },
     "Policy": {
-      "description": "A policy is a collection of rules applied to one or more networks that specify forwarding behavior for that network.",
+      "description": "A policy is a collection of DNS rules applied to one or more Virtual Private Cloud resources.",
       "id": "Policy",
       "properties": {
         "alternativeNameServerConfig": {
@@ -1611,6 +1649,10 @@
         },
         "enableInboundForwarding": {
           "description": "Allows networks bound to this policy to receive DNS queries sent by VMs or applications over VPN connections. When enabled, a virtual IP address will be allocated from each of the sub-networks that are bound to this policy.",
+          "type": "boolean"
+        },
+        "enableLogging": {
+          "description": "Controls whether logging is enabled for the networks bound to this policy. Defaults to no logging if not set.",
           "type": "boolean"
         },
         "id": {
@@ -1679,7 +1721,7 @@
           "type": "string"
         },
         "networkUrl": {
-          "description": "The fully qualified URL of the GCE private network to bind to. This should be formatted like https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}",
+          "description": "The fully qualified URL of the VPC network to bind to. This should be formatted like https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}",
           "type": "string"
         }
       },
@@ -1808,7 +1850,7 @@
           "type": "string"
         },
         "rrdatas": {
-          "description": "As defined in RFC 1035 (section 5) and RFC 1034 (section 3.6.1).",
+          "description": "As defined in RFC 1035 (section 5) and RFC 1034 (section 3.6.1) -- see examples.",
           "items": {
             "type": "string"
           },
@@ -1827,7 +1869,7 @@
           "type": "integer"
         },
         "type": {
-          "description": "The identifier of a supported record type, for example, A, AAAA, MX, TXT, and so on.",
+          "description": "The identifier of a supported record type. See the list of Supported DNS record types.",
           "type": "string"
         }
       },

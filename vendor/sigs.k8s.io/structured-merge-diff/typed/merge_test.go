@@ -42,14 +42,24 @@ var mergeCases = []mergeTestCase{{
 	rootTypeName: "stringPair",
 	schema: `types:
 - name: stringPair
-  struct:
+  map:
     fields:
     - name: key
       type:
         scalar: string
     - name: value
       type:
-        untyped: {}
+        namedType: __untyped_atomic_
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	triplets: []mergeTriplet{{
 		`{"key":"foo","value":{}}`,
@@ -77,13 +87,23 @@ var mergeCases = []mergeTestCase{{
 	rootTypeName: "nestedMap",
 	schema: `types:
 - name: nestedMap
-  struct:
+  map:
     fields:
     - name: inner
       type:
         map:
           elementType:
-            untyped: {}
+            namedType: __untyped_atomic_
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	triplets: []mergeTriplet{{
 		`{}`,
@@ -111,15 +131,25 @@ var mergeCases = []mergeTestCase{{
 	rootTypeName: "nestedStruct",
 	schema: `types:
 - name: nestedStruct
-  struct:
+  map:
     fields:
     - name: inner
       type:
-        struct:
+        map:
           fields:
           - name: value
             type:
-              untyped: {}
+              namedType: __untyped_atomic_
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	triplets: []mergeTriplet{{
 		`{}`,
@@ -147,14 +177,24 @@ var mergeCases = []mergeTestCase{{
 	rootTypeName: "nestedList",
 	schema: `types:
 - name: nestedList
-  struct:
+  map:
     fields:
     - name: inner
       type:
         list:
           elementType:
-            untyped: {}
+            namedType: __untyped_atomic_
           elementRelationship: atomic
+- name: __untyped_atomic_
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
 `,
 	triplets: []mergeTriplet{{
 		`{}`,
@@ -182,7 +222,7 @@ var mergeCases = []mergeTestCase{{
 	rootTypeName: "myStruct",
 	schema: `types:
 - name: myStruct
-  struct:
+  map:
     fields:
     - name: numeric
       type:
@@ -255,7 +295,7 @@ var mergeCases = []mergeTestCase{{
 	rootTypeName: "myRoot",
 	schema: `types:
 - name: myRoot
-  struct:
+  map:
     fields:
     - name: list
       type:
@@ -277,7 +317,7 @@ var mergeCases = []mergeTestCase{{
       scalar: string
     elementRelationship: atomic
 - name: myElement
-  struct:
+  map:
     fields:
     - name: key
       type:

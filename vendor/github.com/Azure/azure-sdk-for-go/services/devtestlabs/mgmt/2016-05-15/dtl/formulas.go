@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewFormulasClientWithBaseURI(baseURI string, subscriptionID string) Formula
 // name - the name of the formula.
 // formula - a formula for creating a VM, specifying an image base and other parameters
 func (client FormulasClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, name string, formula Formula) (result FormulasCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FormulasClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: formula,
 			Constraints: []validation.Constraint{{Target: "formula.FormulaProperties", Name: validation.Null, Rule: true,
@@ -108,13 +119,9 @@ func (client FormulasClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client FormulasClient) CreateOrUpdateSender(req *http.Request) (future FormulasCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -141,6 +148,16 @@ func (client FormulasClient) CreateOrUpdateResponder(resp *http.Response) (resul
 // labName - the name of the lab.
 // name - the name of the formula.
 func (client FormulasClient) Delete(ctx context.Context, resourceGroupName string, labName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FormulasClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.FormulasClient", "Delete", nil, "Failure preparing request")
@@ -187,8 +204,8 @@ func (client FormulasClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client FormulasClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -210,6 +227,16 @@ func (client FormulasClient) DeleteResponder(resp *http.Response) (result autore
 // name - the name of the formula.
 // expand - specify the $expand query. Example: 'properties($select=description)'
 func (client FormulasClient) Get(ctx context.Context, resourceGroupName string, labName string, name string, expand string) (result Formula, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FormulasClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, name, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.FormulasClient", "Get", nil, "Failure preparing request")
@@ -259,8 +286,8 @@ func (client FormulasClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client FormulasClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -285,6 +312,16 @@ func (client FormulasClient) GetResponder(resp *http.Response) (result Formula, 
 // top - the maximum number of resources to return from the operation.
 // orderby - the ordering expression for the results, using OData notation.
 func (client FormulasClient) List(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationFormulaPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FormulasClient.List")
+		defer func() {
+			sc := -1
+			if result.rwcf.Response.Response != nil {
+				sc = result.rwcf.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, expand, filter, top, orderby)
 	if err != nil {
@@ -343,8 +380,8 @@ func (client FormulasClient) ListPreparer(ctx context.Context, resourceGroupName
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client FormulasClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -361,8 +398,8 @@ func (client FormulasClient) ListResponder(resp *http.Response) (result Response
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client FormulasClient) listNextResults(lastResults ResponseWithContinuationFormula) (result ResponseWithContinuationFormula, err error) {
-	req, err := lastResults.responseWithContinuationFormulaPreparer()
+func (client FormulasClient) listNextResults(ctx context.Context, lastResults ResponseWithContinuationFormula) (result ResponseWithContinuationFormula, err error) {
+	req, err := lastResults.responseWithContinuationFormulaPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.FormulasClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -383,6 +420,16 @@ func (client FormulasClient) listNextResults(lastResults ResponseWithContinuatio
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client FormulasClient) ListComplete(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationFormulaIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/FormulasClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroupName, labName, expand, filter, top, orderby)
 	return
 }

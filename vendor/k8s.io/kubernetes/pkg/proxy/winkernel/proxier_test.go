@@ -20,6 +20,7 @@ package winkernel
 
 import (
 	"k8s.io/api/core/v1"
+	discovery "k8s.io/api/discovery/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/proxy"
 
@@ -68,7 +69,7 @@ func (hns fakeHNS) getNetworkByName(name string) (*hnsNetworkInfo, error) {
 	var remoteSubnets []*remoteSubnetInfo
 	rs := &remoteSubnetInfo{
 		destinationPrefix: destinationPrefix,
-		isolationId:       4096,
+		isolationID:       4096,
 		providerAddress:   providerAddress,
 		drMacAddress:      macAddress,
 	}
@@ -110,7 +111,7 @@ func (hns fakeHNS) createEndpoint(ep *endpointsInfo, networkName string) (*endpo
 func (hns fakeHNS) deleteEndpoint(hnsID string) error {
 	return nil
 }
-func (hns fakeHNS) getLoadBalancer(endpoints []endpointsInfo, isILB bool, isDSR bool, sourceVip string, vip string, protocol uint16, internalPort uint16, externalPort uint16) (*loadBalancerInfo, error) {
+func (hns fakeHNS) getLoadBalancer(endpoints []endpointsInfo, flags loadBalancerFlags, sourceVip string, vip string, protocol uint16, internalPort uint16, externalPort uint16) (*loadBalancerInfo, error) {
 	return &loadBalancerInfo{
 		hnsID: guid,
 	}, nil
@@ -331,6 +332,15 @@ func TestCreateLoadBalancer(t *testing.T) {
 		t.Errorf("%v does not match %v", proxier.serviceMap[svcPortName].hnsID, guid)
 	}
 }
+
+func TestNoopEndpointSlice(t *testing.T) {
+	p := Proxier{}
+	p.OnEndpointSliceAdd(&discovery.EndpointSlice{})
+	p.OnEndpointSliceUpdate(&discovery.EndpointSlice{}, &discovery.EndpointSlice{})
+	p.OnEndpointSliceDelete(&discovery.EndpointSlice{})
+	p.OnEndpointSlicesSynced()
+}
+
 func makeNSN(namespace, name string) types.NamespacedName {
 	return types.NamespacedName{Namespace: namespace, Name: name}
 }

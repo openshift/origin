@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,13 +8,39 @@
 //
 // This package is DEPRECATED. Use package cloud.google.com/go/datastore instead.
 //
-// See https://cloud.google.com/datastore/
+// For product documentation, see: https://cloud.google.com/datastore/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/datastore/v1beta3"
 //   ...
-//   datastoreService, err := datastore.New(oauthHttpClient)
+//   ctx := context.Background()
+//   datastoreService, err := datastore.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// By default, all available scopes (see "Constants") are used to authenticate. To restrict scopes, use option.WithScopes:
+//
+//   datastoreService, err := datastore.NewService(ctx, option.WithScopes(datastore.DatastoreScope))
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   datastoreService, err := datastore.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   datastoreService, err := datastore.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package datastore // import "google.golang.org/api/datastore/v1beta3"
 
 import (
@@ -31,6 +57,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -61,6 +89,33 @@ const (
 	DatastoreScope = "https://www.googleapis.com/auth/datastore"
 )
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	scopesOption := option.WithScopes(
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/datastore",
+	)
+	// NOTE: prepend, so we don't override user-specified scopes.
+	opts = append([]option.ClientOption{scopesOption}, opts...)
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -259,8 +314,10 @@ type CommitRequest struct {
 	//   "MODE_UNSPECIFIED" - Unspecified. This value must not be used.
 	//   "TRANSACTIONAL" - Transactional: The mutations are either all
 	// applied, or none are applied.
-	// Learn about transactions
-	// [here](https://cloud.google.com/datastore/docs/concepts/transactions).
+	// Learn about
+	// transactions
+	// [here](https://cloud.google.com/datastore/docs/concepts/t
+	// ransactions).
 	//   "NON_TRANSACTIONAL" - Non-transactional: The mutations may not
 	// apply as all or none.
 	Mode string `json:"mode,omitempty"`
@@ -1140,9 +1197,10 @@ func (s *GoogleDatastoreAdminV1beta1Progress) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// GqlQuery: A [GQL
-// query](https://cloud.google.com/datastore/docs/apis/gql/gql_reference)
-// .
+// GqlQuery: A
+// [GQL
+// query](https://cloud.google.com/datastore/docs/apis/gql/gql_refer
+// ence).
 type GqlQuery struct {
 	// AllowLiterals: When false, the query string must not contain any
 	// literals and instead must
@@ -1804,9 +1862,10 @@ type Query struct {
 	// EndCursor: An ending point for the query results. Query cursors
 	// are
 	// returned in query result batches and
-	// [can only be used to limit the same
-	// query](https://cloud.google.com/datastore/docs/concepts/queries#cursor
-	// s_limits_and_offsets).
+	// [can only be used to limit the
+	// same
+	// query](https://cloud.google.com/datastore/docs/concepts/queries#c
+	// ursors_limits_and_offsets).
 	EndCursor string `json:"endCursor,omitempty"`
 
 	// Filter: The filter to apply.
@@ -1840,9 +1899,10 @@ type Query struct {
 	// StartCursor: A starting point for the query results. Query cursors
 	// are
 	// returned in query result batches and
-	// [can only be used to continue the same
-	// query](https://cloud.google.com/datastore/docs/concepts/queries#cursor
-	// s_limits_and_offsets).
+	// [can only be used to continue the
+	// same
+	// query](https://cloud.google.com/datastore/docs/concepts/queries#c
+	// ursors_limits_and_offsets).
 	StartCursor string `json:"startCursor,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "DistinctOn") to

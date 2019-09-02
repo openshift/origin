@@ -5,7 +5,6 @@
 package testlapack
 
 import (
-	"log"
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
@@ -86,12 +85,12 @@ func DgeconTest(t *testing.T, impl Dgeconer) {
 		if !floats.EqualWithinAbsOrRel(condOne, test.condOne, 1e0, 1e0) {
 			t.Errorf("One norm mismatch. Want %v, got %v.", test.condOne, condOne)
 		} else if !floats.EqualWithinAbsOrRel(condOne, test.condOne, 1e-14, 1e-14) {
-			log.Printf("Dgecon one norm mismatch. Want %v, got %v.", test.condOne, condOne)
+			t.Logf("Dgecon one norm mismatch. Want %v, got %v.", test.condOne, condOne)
 		}
 		if !floats.EqualWithinAbsOrRel(condInf, test.condInf, 1e0, 1e0) {
 			t.Errorf("One norm mismatch. Want %v, got %v.", test.condInf, condInf)
 		} else if !floats.EqualWithinAbsOrRel(condInf, test.condInf, 1e-14, 1e-14) {
-			log.Printf("Dgecon one norm mismatch. Want %v, got %v.", test.condInf, condInf)
+			t.Logf("Dgecon one norm mismatch. Want %v, got %v.", test.condInf, condInf)
 		}
 	}
 }

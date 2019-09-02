@@ -163,6 +163,50 @@ func DsyrkTest(t *testing.T, blasser Dsyker) {
 				{57, 127, 195},
 			},
 		},
+		{
+			ul:    blas.Upper,
+			tA:    blas.Trans,
+			n:     3,
+			k:     2,
+			alpha: 3,
+			a: [][]float64{
+				{1, 3, 5},
+				{2, 4, 6},
+			},
+			c: [][]float64{
+				{1, 2, 3},
+				{0, 4, 5},
+				{0, 0, 6},
+			},
+			beta: 0,
+			ans: [][]float64{
+				{15, 33, 51},
+				{0, 75, 117},
+				{0, 0, 183},
+			},
+		},
+		{
+			ul:    blas.Lower,
+			tA:    blas.Trans,
+			n:     3,
+			k:     2,
+			alpha: 3,
+			a: [][]float64{
+				{1, 3, 5},
+				{2, 4, 6},
+			},
+			c: [][]float64{
+				{1, 0, 0},
+				{2, 4, 0},
+				{3, 5, 6},
+			},
+			beta: 0,
+			ans: [][]float64{
+				{15, 0, 0},
+				{33, 75, 0},
+				{51, 117, 183},
+			},
+		},
 	} {
 		aFlat := flatten(test.a)
 		cFlat := flatten(test.c)

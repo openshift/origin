@@ -63,7 +63,7 @@ func (in *Authentication) DeepCopyObject() runtime.Object {
 func (in *AuthenticationList) DeepCopyInto(out *AuthenticationList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Authentication, len(*in))
@@ -191,7 +191,7 @@ func (in *ConsoleCustomization) DeepCopy() *ConsoleCustomization {
 func (in *ConsoleList) DeepCopyInto(out *ConsoleList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Console, len(*in))
@@ -309,7 +309,7 @@ func (in *DNS) DeepCopyObject() runtime.Object {
 func (in *DNSList) DeepCopyInto(out *DNSList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DNS, len(*in))
@@ -471,7 +471,7 @@ func (in *Etcd) DeepCopyObject() runtime.Object {
 func (in *EtcdList) DeepCopyInto(out *EtcdList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Etcd, len(*in))
@@ -619,7 +619,7 @@ func (in *IngressController) DeepCopyObject() runtime.Object {
 func (in *IngressControllerList) DeepCopyInto(out *IngressControllerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]IngressController, len(*in))
@@ -754,7 +754,7 @@ func (in *KubeAPIServer) DeepCopyObject() runtime.Object {
 func (in *KubeAPIServerList) DeepCopyInto(out *KubeAPIServerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KubeAPIServer, len(*in))
@@ -849,7 +849,7 @@ func (in *KubeControllerManager) DeepCopyObject() runtime.Object {
 func (in *KubeControllerManagerList) DeepCopyInto(out *KubeControllerManagerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KubeControllerManager, len(*in))
@@ -944,7 +944,7 @@ func (in *KubeScheduler) DeepCopyObject() runtime.Object {
 func (in *KubeSchedulerList) DeepCopyInto(out *KubeSchedulerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]KubeScheduler, len(*in))
@@ -1135,7 +1135,7 @@ func (in *Network) DeepCopyObject() runtime.Object {
 func (in *NetworkList) DeepCopyInto(out *NetworkList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Network, len(*in))
@@ -1331,7 +1331,7 @@ func (in *OpenShiftAPIServer) DeepCopyObject() runtime.Object {
 func (in *OpenShiftAPIServerList) DeepCopyInto(out *OpenShiftAPIServerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OpenShiftAPIServer, len(*in))
@@ -1426,7 +1426,7 @@ func (in *OpenShiftControllerManager) DeepCopyObject() runtime.Object {
 func (in *OpenShiftControllerManagerList) DeepCopyInto(out *OpenShiftControllerManagerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OpenShiftControllerManager, len(*in))
@@ -1687,7 +1687,7 @@ func (in *ServiceCA) DeepCopyObject() runtime.Object {
 func (in *ServiceCAList) DeepCopyInto(out *ServiceCAList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ServiceCA, len(*in))
@@ -1782,7 +1782,7 @@ func (in *ServiceCatalogAPIServer) DeepCopyObject() runtime.Object {
 func (in *ServiceCatalogAPIServerList) DeepCopyInto(out *ServiceCatalogAPIServerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ServiceCatalogAPIServer, len(*in))
@@ -1877,7 +1877,7 @@ func (in *ServiceCatalogControllerManager) DeepCopyObject() runtime.Object {
 func (in *ServiceCatalogControllerManagerList) DeepCopyInto(out *ServiceCatalogControllerManagerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ServiceCatalogControllerManager, len(*in))

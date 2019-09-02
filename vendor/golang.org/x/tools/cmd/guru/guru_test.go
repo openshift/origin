@@ -6,7 +6,7 @@ package main_test
 
 // This file defines a test framework for guru queries.
 //
-// The files beneath testdata/src/main contain Go programs containing
+// The files beneath testdata/src contain Go programs containing
 // query annotations of the form:
 //
 //   @verb id "select"
@@ -35,6 +35,7 @@ import (
 	"go/token"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,6 +49,18 @@ import (
 
 	guru "golang.org/x/tools/cmd/guru"
 )
+
+func init() {
+	// This test currently requires GOPATH mode.
+	// Explicitly disabling module mode should suffix, but
+	// we'll also turn off GOPROXY just for good measure.
+	if err := os.Setenv("GO111MODULE", "off"); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.Setenv("GOPROXY", "off"); err != nil {
+		log.Fatal(err)
+	}
+}
 
 var updateFlag = flag.Bool("update", false, "Update the golden files.")
 
@@ -210,6 +223,11 @@ func doQuery(out io.Writer, q *query, json bool) {
 }
 
 func TestGuru(t *testing.T) {
+	if testing.Short() {
+		// These tests are super slow.
+		// TODO: make a lighter version of the tests for short mode?
+		t.Skipf("skipping in short mode")
+	}
 	switch runtime.GOOS {
 	case "android":
 		t.Skipf("skipping test on %q (no testdata dir)", runtime.GOOS)
@@ -218,10 +236,9 @@ func TestGuru(t *testing.T) {
 	}
 
 	for _, filename := range []string{
-		"testdata/src/alias/alias.go", // iff guru.HasAlias (go1.9)
+		"testdata/src/alias/alias.go",
 		"testdata/src/calls/main.go",
 		"testdata/src/describe/main.go",
-		"testdata/src/describe/main19.go", // iff go1.9
 		"testdata/src/freevars/main.go",
 		"testdata/src/implements/main.go",
 		"testdata/src/implements-methods/main.go",
@@ -238,7 +255,6 @@ func TestGuru(t *testing.T) {
 		"testdata/src/calls-json/main.go",
 		"testdata/src/peers-json/main.go",
 		"testdata/src/definition-json/main.go",
-		"testdata/src/definition-json/main19.go",
 		"testdata/src/describe-json/main.go",
 		"testdata/src/implements-json/main.go",
 		"testdata/src/implements-methods-json/main.go",
@@ -246,70 +262,56 @@ func TestGuru(t *testing.T) {
 		"testdata/src/referrers-json/main.go",
 		"testdata/src/what-json/main.go",
 	} {
-		if filename == "testdata/src/referrers/main.go" && runtime.GOOS == "plan9" {
-			// Disable this test on plan9 since it expects a particular
-			// wording for a "no such file or directory" error.
-			continue
-		}
-		if filename == "testdata/src/alias/alias.go" && !guru.HasAlias {
-			continue
-		}
-		if strings.HasSuffix(filename, "19.go") && !contains(build.Default.ReleaseTags, "go1.9") {
-			// TODO(adonovan): recombine the 'describe' and 'definition'
-			// tests once we drop support for go1.8.
-			continue
-		}
+		filename := filename
+		name := strings.Split(filename, "/")[2]
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if filename == "testdata/src/referrers/main.go" && runtime.GOOS == "plan9" {
+				// Disable this test on plan9 since it expects a particular
+				// wording for a "no such file or directory" error.
+				t.Skip()
+			}
+			json := strings.Contains(filename, "-json/")
+			queries := parseQueries(t, filename)
+			golden := filename + "lden"
+			got := filename + "t"
+			gotfh, err := os.Create(got)
+			if err != nil {
+				t.Fatalf("Create(%s) failed: %s", got, err)
+			}
+			defer os.Remove(got)
+			defer gotfh.Close()
 
-		json := strings.Contains(filename, "-json/")
-		queries := parseQueries(t, filename)
-		golden := filename + "lden"
-		got := filename + "t"
-		gotfh, err := os.Create(got)
-		if err != nil {
-			t.Errorf("Create(%s) failed: %s", got, err)
-			continue
-		}
-		defer os.Remove(got)
-		defer gotfh.Close()
+			// Run the guru on each query, redirecting its output
+			// and error (if any) to the foo.got file.
+			for _, q := range queries {
+				doQuery(gotfh, q, json)
+			}
 
-		// Run the guru on each query, redirecting its output
-		// and error (if any) to the foo.got file.
-		for _, q := range queries {
-			doQuery(gotfh, q, json)
-		}
+			// Compare foo.got with foo.golden.
+			var cmd *exec.Cmd
+			switch runtime.GOOS {
+			case "plan9":
+				cmd = exec.Command("/bin/diff", "-c", golden, got)
+			default:
+				cmd = exec.Command("/usr/bin/diff", "-u", golden, got)
+			}
+			buf := new(bytes.Buffer)
+			cmd.Stdout = buf
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				t.Errorf("Guru tests for %s failed: %s.\n%s\n",
+					filename, err, buf)
 
-		// Compare foo.got with foo.golden.
-		var cmd *exec.Cmd
-		switch runtime.GOOS {
-		case "plan9":
-			cmd = exec.Command("/bin/diff", "-c", golden, got)
-		default:
-			cmd = exec.Command("/usr/bin/diff", "-u", golden, got)
-		}
-		buf := new(bytes.Buffer)
-		cmd.Stdout = buf
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			t.Errorf("Guru tests for %s failed: %s.\n%s\n",
-				filename, err, buf)
-
-			if *updateFlag {
-				t.Logf("Updating %s...", golden)
-				if err := exec.Command("/bin/cp", got, golden).Run(); err != nil {
-					t.Errorf("Update failed: %s", err)
+				if *updateFlag {
+					t.Logf("Updating %s...", golden)
+					if err := exec.Command("/bin/cp", got, golden).Run(); err != nil {
+						t.Errorf("Update failed: %s", err)
+					}
 				}
 			}
-		}
+		})
 	}
-}
-
-func contains(haystack []string, needle string) bool {
-	for _, x := range haystack {
-		if needle == x {
-			return true
-		}
-	}
-	return false
 }
 
 func TestIssue14684(t *testing.T) {

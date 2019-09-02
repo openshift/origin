@@ -27,12 +27,18 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 GO_VERSION:=$(shell go version)
+BENCHLIST?=all
+
+# Skip known issues from purego tests
+# https://github.com/gogo/protobuf/issues/447
+# https://github.com/gogo/protobuf/issues/448
+SKIPISSUE:="/jsonpb|/test/casttype/|/test/oneof/combos/"
 
 .PHONY: nuke regenerate tests clean install gofmt vet contributors
 
 all: clean install regenerate install tests errcheck vet
 
-buildserverall: clean install regenerate install tests vet js
+buildserverall: clean install regenerate install tests vet js purego
 
 install:
 	go install ./proto
@@ -52,20 +58,19 @@ clean:
 	go clean ./...
 
 nuke:
-	go clean -i ./...
+	go clean -i -cache ./...
 
 gofmt:
 	gofmt -l -s -w .
 
 regenerate:
-	make -C protoc-gen-gogo/descriptor regenerate
-	make -C protoc-gen-gogo/plugin regenerate
-	make -C protoc-gen-gogo/testdata regenerate
+	make -C protoc-gen-gogo regenerate
 	make -C gogoproto regenerate
-	make -C proto/testdata regenerate
+	make -C proto/test_proto regenerate
+	make -C proto/proto3_proto regenerate
 	make -C jsonpb/jsonpb_test_proto regenerate
-	make -C _conformance regenerate
-	make -C types regenerate
+	make -C conformance regenerate
+	make -C protobuf regenerate
 	make -C test regenerate
 	make -C test/example regenerate
 	make -C test/unrecognized regenerate
@@ -88,6 +93,7 @@ regenerate:
 	make -C test/issue42order regenerate
 	make -C proto generate-test-pbs
 	make -C test/importdedup regenerate
+	make -C test/importduplicate regenerate
 	make -C test/custombytesnonstruct regenerate
 	make -C test/required regenerate
 	make -C test/casttype regenerate
@@ -117,6 +123,20 @@ regenerate:
 	make -C test/int64support regenerate
 	make -C test/issue322 regenerate
 	make -C test/issue330 regenerate
+	make -C test/importcustom-issue389 regenerate
+	make -C test/merge regenerate
+	make -C test/cachedsize regenerate
+	make -C test/deterministic regenerate
+	make -C test/issue438 regenerate
+	make -C test/issue444 regenerate
+	make -C test/issue449 regenerate
+	make -C test/xxxfields regenerate
+	make -C test/issue435 regenerate
+	make -C test/issue411 regenerate
+	make -C test/issue498 regenerate
+	make -C test/issue503 regenerate
+	make -C test/issue530 regenerate
+
 	make gofmt
 
 tests:
@@ -125,8 +145,9 @@ tests:
 	(cd test/stdtypes && make test)
 
 vet:
+	go get golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
 	go vet ./...
-	go tool vet --shadow .
+	go vet -vettool=$(shell which shadow) ./...
 
 errcheck:
 	go get github.com/kisielk/errcheck
@@ -138,24 +159,29 @@ drone:
 
 testall:
 	go get -u github.com/golang/protobuf/proto
-	make -C protoc-gen-gogo/testdata test
+	make -C protoc-gen-gogo test
 	make -C vanity/test test
 	make -C test/registration test
+	make -C conformance test
+	make -C test/issue427 test
 	make tests
 
 bench:
 	go get golang.org/x/tools/cmd/benchcmp
 	(cd test/mixbench && go build .)
-	./test/mixbench/mixbench
+	./test/mixbench/mixbench -benchlist "${BENCHLIST}"
 
 contributors:
 	git log --format='%aN <%aE>' | sort -fu > CONTRIBUTORS
 
 js:
-ifeq (go1.9, $(findstring go1.9, $(GO_VERSION)))
+ifeq (go1.12, $(findstring go1.12, $(GO_VERSION)))
 	go get -u github.com/gopherjs/gopherjs
 	gopherjs build github.com/gogo/protobuf/protoc-gen-gogo
 endif
+
+purego:
+	go test -tags purego $$(go list ./... | grep -Ev $(SKIPISSUE))
 
 update:
 	(cd protobuf && make update)

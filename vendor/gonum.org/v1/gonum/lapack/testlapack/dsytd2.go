@@ -117,27 +117,9 @@ func Dsytd2Test(t *testing.T, impl Dsytd2er) {
 					blas64.Gemm(blas.NoTrans, blas.NoTrans, 1, qCopy, hMat, 0, qMat)
 				}
 			}
-			// Check that Q is orthonormal
-			othonormal := true
-			for i := 0; i < n; i++ {
-				for j := i; j < n; j++ {
-					dot := blas64.Dot(n,
-						blas64.Vector{Inc: 1, Data: qMat.Data[i*qMat.Stride:]},
-						blas64.Vector{Inc: 1, Data: qMat.Data[j*qMat.Stride:]},
-					)
-					if i == j {
-						if math.Abs(dot-1) > 1e-10 {
-							othonormal = false
-						}
-					} else {
-						if math.Abs(dot) > 1e-10 {
-							othonormal = false
-						}
-					}
-				}
-			}
-			if !othonormal {
-				t.Errorf("Q not orthonormal")
+
+			if !isOrthogonal(qMat) {
+				t.Errorf("Q not orthogonal")
 			}
 
 			// Compute Q^T * A * Q.

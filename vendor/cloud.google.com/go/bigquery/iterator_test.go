@@ -1,4 +1,4 @@
-// Copyright 2015 Google Inc. All Rights Reserved.
+// Copyright 2015 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,324 +15,226 @@
 package bigquery
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"testing"
 
-	"golang.org/x/net/context"
+	"cloud.google.com/go/internal/testutil"
+	"google.golang.org/api/iterator"
 )
 
 type fetchResponse struct {
-	result *readDataResult // The result to return.
-	err    error           // The error to return.
+	result *fetchPageResult // The result to return.
+	err    error            // The error to return.
 }
 
 // pageFetcherStub services fetch requests by returning data from an in-memory list of values.
 type pageFetcherStub struct {
 	fetchResponses map[string]fetchResponse
-
-	err error
+	err            error
 }
 
-func (pf *pageFetcherStub) fetch(ctx context.Context, s service, token string) (*readDataResult, error) {
-	call, ok := pf.fetchResponses[token]
+func (pf *pageFetcherStub) fetchPage(ctx context.Context, _ *Table, _ Schema, _ uint64, _ int64, pageToken string) (*fetchPageResult, error) {
+	call, ok := pf.fetchResponses[pageToken]
 	if !ok {
-		pf.err = fmt.Errorf("Unexpected page token: %q", token)
+		pf.err = fmt.Errorf("Unexpected page token: %q", pageToken)
 	}
 	return call.result, call.err
 }
 
 func TestIterator(t *testing.T) {
+	var (
+		iiSchema = Schema{
+			{Type: IntegerFieldType},
+			{Type: IntegerFieldType},
+		}
+		siSchema = Schema{
+			{Type: StringFieldType},
+			{Type: IntegerFieldType},
+		}
+	)
 	fetchFailure := errors.New("fetch failure")
 
 	testCases := []struct {
-		desc            string
-		alreadyConsumed int64 // amount to advance offset before commencing reading.
-		fetchResponses  map[string]fetchResponse
-		want            []ValueList
-		wantErr         error
-		wantSchema      Schema
+		desc           string
+		pageToken      string
+		fetchResponses map[string]fetchResponse
+		want           [][]Value
+		wantErr        error
+		wantSchema     Schema
+		wantTotalRows  uint64
 	}{
 		{
 			desc: "Iteration over single empty page",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{},
 						schema:    Schema{},
 					},
 				},
 			},
-			want:       []ValueList{},
+			want:       [][]Value{},
 			wantSchema: Schema{},
 		},
 		{
 			desc: "Iteration over single page",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
+						totalRows: 4,
 					},
 				},
 			},
-			want: []ValueList{{1, 2}, {11, 12}},
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
+			want:          [][]Value{{1, 2}, {11, 12}},
+			wantSchema:    iiSchema,
+			wantTotalRows: 4,
 		},
 		{
 			desc: "Iteration over single page with different schema",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{{"1", 2}, {"11", 12}},
-						schema: Schema{
-							{Type: StringFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    siSchema,
 					},
 				},
 			},
-			want: []ValueList{{"1", 2}, {"11", 12}},
-			wantSchema: Schema{
-				{Type: StringFieldType},
-				{Type: IntegerFieldType},
-			},
+			want:       [][]Value{{"1", 2}, {"11", 12}},
+			wantSchema: siSchema,
 		},
 		{
 			desc: "Iteration over two pages",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "a",
 						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
+						totalRows: 4,
 					},
 				},
 				"a": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
+						totalRows: 4,
 					},
 				},
 			},
-			want: []ValueList{{1, 2}, {11, 12}, {101, 102}, {111, 112}},
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
+			want:          [][]Value{{1, 2}, {11, 12}, {101, 102}, {111, 112}},
+			wantSchema:    iiSchema,
+			wantTotalRows: 4,
 		},
 		{
 			desc: "Server response includes empty page",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "a",
 						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 				"a": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "b",
 						rows:      [][]Value{},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 				"b": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 			},
-			want: []ValueList{{1, 2}, {11, 12}, {101, 102}, {111, 112}},
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
+			want:       [][]Value{{1, 2}, {11, 12}, {101, 102}, {111, 112}},
+			wantSchema: iiSchema,
 		},
 		{
 			desc: "Fetch error",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "a",
 						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 				"a": {
 					// We returns some data from this fetch, but also an error.
 					// So the end result should include only data from the previous fetch.
 					err: fetchFailure,
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "b",
 						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 			},
-			want:    []ValueList{{1, 2}, {11, 12}},
-			wantErr: fetchFailure,
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
+			want:       [][]Value{{1, 2}, {11, 12}},
+			wantErr:    fetchFailure,
+			wantSchema: iiSchema,
 		},
+
 		{
-			desc:            "Skip over a single element",
-			alreadyConsumed: 1,
+			desc:      "Skip over an entire page",
+			pageToken: "a",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "a",
 						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 				"a": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 			},
-			want: []ValueList{{11, 12}, {101, 102}, {111, 112}},
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
+			want:       [][]Value{{101, 102}, {111, 112}},
+			wantSchema: iiSchema,
 		},
+
 		{
-			desc:            "Skip over an entire page",
-			alreadyConsumed: 2,
+			desc:      "Skip beyond all data",
+			pageToken: "b",
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "a",
 						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
 				"a": {
-					result: &readDataResult{
-						pageToken: "",
+					result: &fetchPageResult{
+						pageToken: "b",
 						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
+						schema:    iiSchema,
 					},
 				},
-			},
-			want: []ValueList{{101, 102}, {111, 112}},
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
-		},
-		{
-			desc:            "Skip beyond start of second page",
-			alreadyConsumed: 3,
-			fetchResponses: map[string]fetchResponse{
-				"": {
-					result: &readDataResult{
-						pageToken: "a",
-						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
-					},
-				},
-				"a": {
-					result: &readDataResult{
-						pageToken: "",
-						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
-					},
-				},
-			},
-			want: []ValueList{{111, 112}},
-			wantSchema: Schema{
-				{Type: IntegerFieldType},
-				{Type: IntegerFieldType},
-			},
-		},
-		{
-			desc:            "Skip beyond all data",
-			alreadyConsumed: 4,
-			fetchResponses: map[string]fetchResponse{
-				"": {
-					result: &readDataResult{
-						pageToken: "a",
-						rows:      [][]Value{{1, 2}, {11, 12}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
-					},
-				},
-				"a": {
-					result: &readDataResult{
-						pageToken: "",
-						rows:      [][]Value{{101, 102}, {111, 112}},
-						schema: Schema{
-							{Type: IntegerFieldType},
-							{Type: IntegerFieldType},
-						},
-					},
+				"b": {
+					result: &fetchPageResult{},
 				},
 			},
 			// In this test case, Next will return false on its first call,
 			// so we won't even attempt to call Get.
-			want:       []ValueList{},
+			want:       [][]Value{},
 			wantSchema: Schema{},
 		},
 	}
@@ -341,173 +243,88 @@ func TestIterator(t *testing.T) {
 		pf := &pageFetcherStub{
 			fetchResponses: tc.fetchResponses,
 		}
-		it := newIterator(nil, pf)
-		it.offset += tc.alreadyConsumed
-
-		values, schema, err := consumeIterator(it)
-		if err != nil {
-			t.Fatalf("%s: %v", tc.desc, err)
+		it := newRowIterator(context.Background(), nil, pf.fetchPage)
+		it.PageInfo().Token = tc.pageToken
+		values, schema, totalRows, err := consumeRowIterator(it)
+		if err != tc.wantErr {
+			t.Fatalf("%s: got %v, want %v", tc.desc, err, tc.wantErr)
 		}
-
-		if (len(values) != 0 || len(tc.want) != 0) && !reflect.DeepEqual(values, tc.want) {
+		if (len(values) != 0 || len(tc.want) != 0) && !testutil.Equal(values, tc.want) {
 			t.Errorf("%s: values:\ngot: %v\nwant:%v", tc.desc, values, tc.want)
 		}
-		if it.Err() != tc.wantErr {
-			t.Errorf("%s: iterator.Err:\ngot: %v\nwant: %v", tc.desc, it.Err(), tc.wantErr)
-		}
-		if (len(schema) != 0 || len(tc.wantSchema) != 0) && !reflect.DeepEqual(schema, tc.wantSchema) {
+		if (len(schema) != 0 || len(tc.wantSchema) != 0) && !testutil.Equal(schema, tc.wantSchema) {
 			t.Errorf("%s: iterator.Schema:\ngot: %v\nwant: %v", tc.desc, schema, tc.wantSchema)
 		}
-	}
-}
-
-// consumeIterator reads the schema and all values from an iterator and returns them.
-func consumeIterator(it *Iterator) ([]ValueList, Schema, error) {
-	var got []ValueList
-	var schema Schema
-	for it.Next(context.Background()) {
-		var vals ValueList
-		var err error
-		if err = it.Get(&vals); err != nil {
-			return nil, Schema{}, fmt.Errorf("err calling Get: %v", err)
-		}
-		got = append(got, vals)
-		if schema, err = it.Schema(); err != nil {
-			return nil, Schema{}, fmt.Errorf("err calling Schema: %v", err)
+		if totalRows != tc.wantTotalRows {
+			t.Errorf("%s: totalRows: got %d, want %d", tc.desc, totalRows, tc.wantTotalRows)
 		}
 	}
-
-	return got, schema, nil
 }
 
-func TestGetBeforeNext(t *testing.T) {
-	// TODO: once mashalling/unmarshalling of iterators is implemented, do a similar test for unmarshalled iterators.
-	pf := &pageFetcherStub{
-		fetchResponses: map[string]fetchResponse{
-			"": {
-				result: &readDataResult{
-					pageToken: "",
-					rows:      [][]Value{{1, 2}, {11, 12}},
-				},
-			},
-		},
-	}
-	it := newIterator(nil, pf)
-	var vals ValueList
-	if err := it.Get(&vals); err == nil {
-		t.Errorf("Expected error calling Get before Next")
-	}
-}
-
-type delayedPageFetcher struct {
-	pageFetcherStub
-	delayCount int
-}
-
-func (pf *delayedPageFetcher) fetch(ctx context.Context, s service, token string) (*readDataResult, error) {
-	if pf.delayCount > 0 {
-		pf.delayCount--
-		return nil, errIncompleteJob
-	}
-	return pf.pageFetcherStub.fetch(ctx, s, token)
-}
-
-func TestIterateIncompleteJob(t *testing.T) {
-	want := []ValueList{{1, 2}, {11, 12}, {101, 102}, {111, 112}}
-	pf := pageFetcherStub{
-		fetchResponses: map[string]fetchResponse{
-			"": {
-				result: &readDataResult{
-					pageToken: "a",
-					rows:      [][]Value{{1, 2}, {11, 12}},
-				},
-			},
-			"a": {
-				result: &readDataResult{
-					pageToken: "",
-					rows:      [][]Value{{101, 102}, {111, 112}},
-				},
-			},
-		},
-	}
-	dpf := &delayedPageFetcher{
-		pageFetcherStub: pf,
-		delayCount:      1,
-	}
-	it := newIterator(nil, dpf)
-
-	values, _, err := consumeIterator(it)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if (len(values) != 0 || len(want) != 0) && !reflect.DeepEqual(values, want) {
-		t.Errorf("values: got:\n%v\nwant:\n%v", values, want)
-	}
-	if it.Err() != nil {
-		t.Fatalf("iterator.Err: got:\n%v", it.Err())
-	}
-	if dpf.delayCount != 0 {
-		t.Errorf("delayCount: got: %v, want: 0", dpf.delayCount)
+// consumeRowIterator reads the schema and all values from a RowIterator and returns them.
+func consumeRowIterator(it *RowIterator) ([][]Value, Schema, uint64, error) {
+	var (
+		got       [][]Value
+		schema    Schema
+		totalRows uint64
+	)
+	for {
+		var vls []Value
+		err := it.Next(&vls)
+		if err == iterator.Done {
+			return got, schema, totalRows, nil
+		}
+		if err != nil {
+			return got, schema, totalRows, err
+		}
+		got = append(got, vls)
+		schema = it.Schema
+		totalRows = it.TotalRows
 	}
 }
 
-func TestGetDuringErrorState(t *testing.T) {
+func TestNextDuringErrorState(t *testing.T) {
 	pf := &pageFetcherStub{
 		fetchResponses: map[string]fetchResponse{
 			"": {err: errors.New("bang")},
 		},
 	}
-	it := newIterator(nil, pf)
-	var vals ValueList
-	it.Next(context.Background())
-	if it.Err() == nil {
+	it := newRowIterator(context.Background(), nil, pf.fetchPage)
+	var vals []Value
+	if err := it.Next(&vals); err == nil {
 		t.Errorf("Expected error after calling Next")
 	}
-	if err := it.Get(&vals); err == nil {
-		t.Errorf("Expected error calling Get when iterator has a non-nil error.")
+	if err := it.Next(&vals); err == nil {
+		t.Errorf("Expected error calling Next again when iterator has a non-nil error.")
 	}
 }
 
-func TestGetAfterFinished(t *testing.T) {
+func TestNextAfterFinished(t *testing.T) {
 	testCases := []struct {
-		alreadyConsumed int64 // amount to advance offset before commencing reading.
-		fetchResponses  map[string]fetchResponse
-		want            []ValueList
+		fetchResponses map[string]fetchResponse
+		want           [][]Value
 	}{
 		{
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{{1, 2}, {11, 12}},
 					},
 				},
 			},
-			want: []ValueList{{1, 2}, {11, 12}},
+			want: [][]Value{{1, 2}, {11, 12}},
 		},
 		{
 			fetchResponses: map[string]fetchResponse{
 				"": {
-					result: &readDataResult{
+					result: &fetchPageResult{
 						pageToken: "",
 						rows:      [][]Value{},
 					},
 				},
 			},
-			want: []ValueList{},
-		},
-		{
-			alreadyConsumed: 100,
-			fetchResponses: map[string]fetchResponse{
-				"": {
-					result: &readDataResult{
-						pageToken: "",
-						rows:      [][]Value{{1, 2}, {11, 12}},
-					},
-				},
-			},
-			want: []ValueList{},
+			want: [][]Value{},
 		},
 	}
 
@@ -515,24 +332,31 @@ func TestGetAfterFinished(t *testing.T) {
 		pf := &pageFetcherStub{
 			fetchResponses: tc.fetchResponses,
 		}
-		it := newIterator(nil, pf)
-		it.offset += tc.alreadyConsumed
+		it := newRowIterator(context.Background(), nil, pf.fetchPage)
 
-		values, _, err := consumeIterator(it)
+		values, _, _, err := consumeRowIterator(it)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		if (len(values) != 0 || len(tc.want) != 0) && !reflect.DeepEqual(values, tc.want) {
+		if (len(values) != 0 || len(tc.want) != 0) && !testutil.Equal(values, tc.want) {
 			t.Errorf("values: got:\n%v\nwant:\n%v", values, tc.want)
 		}
-		if it.Err() != nil {
-			t.Fatalf("iterator.Err: got:\n%v\nwant:\n:nil", it.Err())
-		}
 		// Try calling Get again.
-		var vals ValueList
-		if err := it.Get(&vals); err == nil {
-			t.Errorf("Expected error calling Get when there are no more values")
+		var vals []Value
+		if err := it.Next(&vals); err != iterator.Done {
+			t.Errorf("Expected Done calling Next when there are no more values")
+		}
+	}
+}
+
+func TestIteratorNextTypes(t *testing.T) {
+	it := newRowIterator(context.Background(), nil, nil)
+	for _, v := range []interface{}{3, "s", []int{}, &[]int{},
+		map[string]Value{}, &map[string]interface{}{},
+		struct{}{},
+	} {
+		if err := it.Next(v); err == nil {
+			t.Errorf("%v: want error, got nil", v)
 		}
 	}
 }

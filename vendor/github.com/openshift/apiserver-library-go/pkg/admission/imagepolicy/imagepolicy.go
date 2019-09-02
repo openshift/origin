@@ -1,6 +1,7 @@
 package imagepolicy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -168,16 +169,16 @@ func (a *ImagePolicyPlugin) ValidateInitialization() error {
 }
 
 // Admit attempts to apply the image policy to the incoming resource.
-func (a *ImagePolicyPlugin) Admit(attr admission.Attributes, _ admission.ObjectInterfaces) error {
-	return a.admit(attr, true)
+func (a *ImagePolicyPlugin) Admit(ctx context.Context, attr admission.Attributes, _ admission.ObjectInterfaces) error {
+	return a.admit(ctx, attr, true)
 }
 
 // Validate attempts to apply the image policy to the incoming resource.
-func (a *ImagePolicyPlugin) Validate(attr admission.Attributes, _ admission.ObjectInterfaces) error {
-	return a.admit(attr, false)
+func (a *ImagePolicyPlugin) Validate(ctx context.Context, attr admission.Attributes, _ admission.ObjectInterfaces) error {
+	return a.admit(ctx, attr, false)
 }
 
-func (a *ImagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed bool) error {
+func (a *ImagePolicyPlugin) admit(ctx context.Context, attr admission.Attributes, mutationAllowed bool) error {
 	switch attr.GetOperation() {
 	case admission.Create, admission.Update:
 		if len(attr.GetSubresource()) > 0 {

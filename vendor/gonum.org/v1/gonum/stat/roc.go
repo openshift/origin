@@ -69,7 +69,7 @@ func ROC(n int, y []float64, classes []bool, weights []float64) (tpr, fpr []floa
 		}
 	}
 
-	var bin int = 1 // the initial bin is known to have 0 fpr and 0 tpr
+	bin := 1 // the initial bin is known to have 0 fpr and 0 tpr
 	var nPos, nNeg float64
 	for i, u := range classes {
 		var posWeight, negWeight float64 = 0, 1
