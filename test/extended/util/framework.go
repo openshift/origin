@@ -207,10 +207,16 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 					e2e.Logf("SamplesOperator still in progress")
 					return false
 				}
-				// if reason field set, that means an image import error occurred
-				if len(condition.Reason) > 0 {
-					e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
-					return false
+				// if the imagestreams for one of our langs above failed, we abort,
+				// but if it is for say only EAP streams, we allow
+				if condition.Reason == "FailedImageImports" {
+					msg := condition.Message
+					for _, lang := range langs {
+						if strings.Contains(msg, " "+lang+" ") || strings.HasSuffix(msg, " "+lang) {
+							e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
+							return false
+						}
+					}
 				}
 			case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
 				e2e.Logf("SamplesOperator not available")
