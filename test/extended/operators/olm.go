@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[Feature:Platform] OLM should", func() {
@@ -70,4 +71,18 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 			}
 		})
 	}
+
+	// OCP-24061 - [bz 1685230] OLM operator should use imagePullPolicy: IfNotPresent
+	g.It("have imagePullPolicy:IfNotPresent on thier deployments", func() {
+		var deploymentResource = [3]string{"catalog-operator", "olm-operator", "packageserver"}
+		for _, v := range deploymentResource {
+			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-operator-lifecycle-manager", "deployment", v, "-o=jsonpath={.spec.template.spec.containers[*].imagePullPolicy}").Output()
+			e2e.Logf("%s.imagePullPolicy:%s", v, msg)
+			if err != nil {
+				e2e.Failf("Unable to get %s, error:%v", msg, err)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(msg).To(o.Equal("IfNotPresent"))
+		}
+	})
 })
