@@ -1,6 +1,7 @@
 package nodeenv
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -115,14 +116,14 @@ func TestPodAdmission(t *testing.T) {
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
-		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "testProject", namespace.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
-		err := handler.Admit(attrs, nil)
+		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "testProject", namespace.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil, false, nil)
+		err := handler.Admit(context.TODO(), attrs, nil)
 		if test.admit && err != nil {
 			t.Errorf("Test: %s, expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {
 			t.Errorf("Test: %s, expected an error", test.testName)
 		} else if err == nil {
-			if err := handler.Validate(attrs, nil); err != nil {
+			if err := handler.Validate(context.TODO(), attrs, nil); err != nil {
 				t.Errorf("Test: %s, unexpected Validate error after Admit succeeded: %v", test.testName, err)
 			}
 		}
@@ -132,7 +133,7 @@ func TestPodAdmission(t *testing.T) {
 		} else if len(test.projectNodeSelector) > 0 {
 			firstProjectKey := strings.TrimSpace(strings.Split(test.projectNodeSelector, "=")[0])
 			delete(pod.Spec.NodeSelector, firstProjectKey)
-			if err := handler.Validate(attrs, nil); err == nil {
+			if err := handler.Validate(context.TODO(), attrs, nil); err == nil {
 				t.Errorf("Test: %s, expected Validate error after removing project key %q", test.testName, firstProjectKey)
 			}
 		}

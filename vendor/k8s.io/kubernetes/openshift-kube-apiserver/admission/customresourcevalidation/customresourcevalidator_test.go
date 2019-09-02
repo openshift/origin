@@ -1,6 +1,7 @@
 package customresourcevalidation
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -225,11 +226,12 @@ func TestCustomResourceValidator(t *testing.T) {
 				tc.resource,
 				tc.subresource,
 				tc.operation,
+				nil,
 				false,
 				tc.userInfo,
 			)
 
-			err = validator.Validate(attributes, nil)
+			err = validator.Validate(context.TODO(), attributes, nil)
 			switch {
 			case tc.expectError && err == nil:
 				t.Error("Error expected")

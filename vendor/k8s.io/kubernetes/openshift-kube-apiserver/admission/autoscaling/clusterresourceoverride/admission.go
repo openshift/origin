@@ -1,6 +1,7 @@
 package clusterresourceoverride
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -151,16 +152,16 @@ func isExemptedNamespace(name string) bool {
 	return false
 }
 
-func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes, o admission.ObjectInterfaces) error {
-	return a.admit(attr, true, o)
+func (a *clusterResourceOverridePlugin) Admit(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) error {
+	return a.admit(ctx, attr, true, o)
 }
 
-func (a *clusterResourceOverridePlugin) Validate(attr admission.Attributes, o admission.ObjectInterfaces) error {
-	return a.admit(attr, false, o)
+func (a *clusterResourceOverridePlugin) Validate(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) error {
+	return a.admit(ctx, attr, false, o)
 }
 
 // TODO this will need to update when we have pod requests/limits
-func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutationAllowed bool, o admission.ObjectInterfaces) error {
+func (a *clusterResourceOverridePlugin) admit(ctx context.Context, attr admission.Attributes, mutationAllowed bool, o admission.ObjectInterfaces) error {
 	klog.V(6).Infof("%s admission controller is invoked", api.PluginName)
 	if a.config == nil || attr.GetResource().GroupResource() != coreapi.Resource("pods") || attr.GetSubresource() != "" {
 		return nil // not applicable
@@ -207,7 +208,7 @@ func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutatio
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
 	klog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
-	if err := a.LimitRanger.Admit(attr, o); err != nil {
+	if err := a.LimitRanger.Admit(ctx, attr, o); err != nil {
 		klog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
 	klog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
