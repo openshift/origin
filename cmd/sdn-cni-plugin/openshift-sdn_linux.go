@@ -11,14 +11,16 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/020"
+	types020 "github.com/containernetworking/cni/pkg/types/020"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ip"
@@ -249,6 +251,7 @@ func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
+	signal.Ignore(syscall.SIGTERM)
 	rand.Seed(time.Now().UTC().UnixNano())
 	hostNS, err := ns.GetCurrentNS()
 	if err != nil {
