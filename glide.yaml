@@ -172,3 +172,7 @@ import:
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
   version: 912de200380ac2fd1e90f91b78c1495ed8d5beea
+
+# help glide with go mod submodule tag
+- package: github.com/Azure/go-autorest
+  version: autorest/v0.9.0
