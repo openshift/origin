@@ -100,7 +100,8 @@ import:
   repo: https://github.com/sttts/library-go
   version: origin-4.3-kubernetes-1.16.0-beta.1
 - package: github.com/openshift/apiserver-library-go
-  version: prebase-1.16.0-beta.1
+  repo: https://github.com/sttts/apiserver-library-go
+  version: origin-4.3-kubernetes-1.16.0-beta.1
 
 # forks third
 - package: github.com/onsi/ginkgo
