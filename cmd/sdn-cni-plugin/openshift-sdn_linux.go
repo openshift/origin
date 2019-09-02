@@ -12,7 +12,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/openshift/origin/pkg/network/node/cniserver"
@@ -287,6 +289,7 @@ func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
+	signal.Ignore(syscall.SIGTERM)
 	rand.Seed(time.Now().UTC().UnixNano())
 	hostNS, err := ns.GetCurrentNS()
 	if err != nil {
