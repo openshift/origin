@@ -55,13 +55,13 @@ var TestContext *e2e.TestContextType = &e2e.TestContext
 func Init() {
 	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
 	reale2e.ViperizeFlags(reale2e.GetViperConfig())
-	e2e.HandleFlags()
+	reale2e.HandleFlags()
 	InitTest()
 }
 
 func InitStandardFlags() {
-	e2e.RegisterCommonFlags()
-	e2e.RegisterClusterFlags()
+	e2e.RegisterCommonFlags(flag.CommandLine)
+	e2e.RegisterClusterFlags(flag.CommandLine)
 
 	// replaced by a bare import above.
 	//e2e.RegisterStorageFlags()
