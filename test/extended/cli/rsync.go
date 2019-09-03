@@ -38,7 +38,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("expecting the mariadb service get endpoints")
-		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mariadb")
+		err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mariadb")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Getting the mariadb pod name")
