@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -86,7 +87,7 @@ var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline b
 					e2e.DeletePersistentVolume(client, pv.Name)
 				}
 				g.By("removing nfs pod")
-				e2e.DeletePodWithWait(oc.AsAdmin().KubeFramework(), client, nfspod)
+				pod.DeletePodWithWait(client, nfspod)
 			}
 		}
 		setupJenkins = func(jenkinsTemplatePath string) {

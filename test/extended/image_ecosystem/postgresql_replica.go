@@ -140,7 +140,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string, cleanup func
 		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), postgreSQLHelperName, 1, true, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), postgreSQLHelperName)
+		err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), postgreSQLHelperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		tableCounter := 0
@@ -168,7 +168,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string, cleanup func
 			check(err)
 
 			// Test if we can query as admin
-			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "postgresql-master")
+			err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "postgresql-master")
 			check(err)
 			err = helper.TestRemoteLogin(oc, "postgresql-master")
 			check(err)

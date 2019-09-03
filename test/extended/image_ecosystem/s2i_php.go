@@ -8,8 +8,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -57,7 +55,7 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
-				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "cakephp-mysql-example")
+				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "cakephp-mysql-example")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				assertPageCountRegexp := func(priorValue string) string {
