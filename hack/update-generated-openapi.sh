@@ -19,7 +19,9 @@ KUBE_INPUT_DIRS=(
     sed '/^k8s\.io\/kubernetes\/build\/root$/d' | \
     sed '/^k8s\.io\/kubernetes$/d' | \
     sed '/^k8s\.io\/kubernetes\/staging$/d' | \
-    sed 's,k8s\.io/kubernetes/staging/src/,,'
+    sed 's,k8s\.io/kubernetes/staging/src/,,' | \
+    grep -v 'k8s.io/code-generator' | \
+    grep -v 'k8s.io/sample-apiserver'
   )
 )
 ORIGIN_INPUT_DIRS=(
