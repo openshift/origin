@@ -1,6 +1,7 @@
 package util
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -46,8 +47,8 @@ var (
 var TestContext *e2e.TestContextType = &e2e.TestContext
 
 func InitStandardFlags() {
-	e2e.RegisterCommonFlags()
-	e2e.RegisterClusterFlags()
+	e2e.RegisterCommonFlags(flag.CommandLine)
+	e2e.RegisterClusterFlags(flag.CommandLine)
 
 	// replaced by a bare import above.
 	//e2e.RegisterStorageFlags()
