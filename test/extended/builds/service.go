@@ -4,8 +4,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -43,7 +41,7 @@ RUN curl -vvv hello-openshift:8080
 				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-openshift", 1, true, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "hello-openshift")
+				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "hello-openshift")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("calling oc new-build with a Dockerfile")
