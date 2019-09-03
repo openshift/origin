@@ -91,7 +91,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for an endpoint")
-		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), helperName)
+		err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		tableCounter := 0
@@ -106,7 +106,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 
 			// Test if we can query as root
 			g.By("wait for mysql-master endpoint")
-			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mysql-master")
+			err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mysql-master")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err := helper.TestRemoteLogin(oc, "mysql-master")
 			o.Expect(err).NotTo(o.HaveOccurred())
