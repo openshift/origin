@@ -31,7 +31,7 @@ var _ = g.Describe("[Feature:Authentication] ", func() {
 			frontProxyConfig.TLSClientConfig.CertData = frontProxySecret.Data["tls.crt"]
 			frontProxyConfig.TLSClientConfig.KeyData = frontProxySecret.Data["tls.key"]
 			frontProxyConfig.GroupVersion = &schema.GroupVersion{Version: "v1"}
-			frontProxyConfig.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+			frontProxyConfig.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 
 			restClient, err := rest.RESTClientFor(frontProxyConfig)
 			o.Expect(err).NotTo(o.HaveOccurred())
