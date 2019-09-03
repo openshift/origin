@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/kubernetes/test/e2e/framework/volume"
+
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -19,7 +21,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 	}
 
 	e2e.Logf(fmt.Sprintf("Creating NFS server"))
-	config := e2e.VolumeTestConfig{
+	config := volume.TestConfig{
 		Namespace: oc.Namespace(),
 		Prefix:    "nfs",
 		// this image is an extension of k8s.gcr.io/volume-nfs:0.8 that adds
@@ -30,7 +32,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 		ServerPorts:   []int{2049},
 		ServerVolumes: map[string]string{"": "/exports"},
 	}
-	pod, ip := e2e.CreateStorageServer(oc.AsAdmin().KubeFramework().ClientSet, config)
+	pod, ip := volume.CreateStorageServer(oc.AsAdmin().KubeFramework().ClientSet, config)
 	e2e.Logf("Waiting for pod running")
 	err = wait.PollImmediate(5*time.Second, 1*time.Minute, func() (bool, error) {
 		phase, err := oc.AsAdmin().Run("get").Args("pods", pod.Name, "--template", "{{.status.phase}}").Output()
