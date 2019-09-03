@@ -16,16 +16,9 @@ limitations under the License.
 
 package oom
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/record"
-)
-
 // TestBasic verifies that the OOMWatch works without error.
+// TODO(node): reenable test which accesses /dev/kmsg
+/*
 func TestBasic(t *testing.T) {
 	fakeRecorder := &record.FakeRecorder{}
 	node := &v1.ObjectReference{}
@@ -35,3 +28,4 @@ func TestBasic(t *testing.T) {
 	// TODO: Improve this test once cadvisor exports events.EventChannel as an interface
 	// and thereby allow using a mock version of cadvisor.
 }
+*/
