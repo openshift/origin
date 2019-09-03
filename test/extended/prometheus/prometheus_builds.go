@@ -10,7 +10,6 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -49,15 +48,15 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			ns := oc.Namespace()
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
 
-			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *corev1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
-			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+			execPod := exutil.CreateCentosExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPod.Name, metav1.NewDeleteOptions(1)) }()
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
 			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
 			// instantiating prometheus tempalte
 			var err error
 			for i := 0; i < waitForPrometheusStartSeconds; i++ {
-				err = expectURLStatusCodeExec(ns, execPodName, url, 403)
+				err = expectURLStatusCodeExec(ns, execPod.Name, url, 403)
 				if err == nil {
 					break
 				}
@@ -66,7 +65,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
-			err = expectBearerTokenURLStatusCodeExec(ns, execPodName, fmt.Sprintf("%s/graph", url), bearerToken, 200)
+			err = expectBearerTokenURLStatusCodeExec(ns, execPod.Name, fmt.Sprintf("%s/graph", url), bearerToken, 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			br := startOpenShiftBuild(oc, appTemplate)
@@ -86,7 +85,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 					},
 				},
 			}
-			runQueries(terminalTests, oc, ns, execPodName, url, bearerToken)
+			runQueries(terminalTests, oc, ns, execPod.Name, url, bearerToken)
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not
