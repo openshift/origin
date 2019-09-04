@@ -95,6 +95,10 @@ import:
 - package: google.golang.org/grpc
   version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
 
+# force old etcd3
+- package: github.com/coreos/etcd
+  version: 27fc7e2296f506182f58ce846e48f36b34fe6842
+
 # openshift second
 - package: github.com/openshift/api
   version: prebase-1.16
