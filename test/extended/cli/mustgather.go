@@ -8,16 +8,21 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	oauthv1 "github.com/openshift/api/oauth/v1"
-	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	"github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	"github.com/openshift/client-go/image/clientset/versioned"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+
+	"github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[cli] oc adm must-gather", func() {
@@ -59,42 +64,53 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 		defer os.RemoveAll(tempDir)
 		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
 
+		imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
+		stream, err := imageClient.ImageV1().ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+		imageId, ok := imageutil.ResolveLatestTaggedImage(stream, "latest")
+		o.Expect(ok).To(o.BeTrue())
+		pluginOutputDir := path.Join(tempDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(imageId, "-"))
+		fileInfo, err := os.Stat(pluginOutputDir)
+		if err != nil || !fileInfo.IsDir() {
+			pluginOutputDir = tempDir
+		}
+
 		auditDirectories := [][]string{
-			{tempDir, "audit_logs", "kube-apiserver"},
-			{tempDir, "audit_logs", "openshift-apiserver"},
+			{pluginOutputDir, "audit_logs", "kube-apiserver"},
+			{pluginOutputDir, "audit_logs", "openshift-apiserver"},
 		}
 
 		expectedDirectories := append([][]string{
-			{tempDir, "cluster-scoped-resources", "config.openshift.io"},
-			{tempDir, "cluster-scoped-resources", "operator.openshift.io"},
-			{tempDir, "cluster-scoped-resources", "core"},
-			{tempDir, "cluster-scoped-resources", "apiregistration.k8s.io"},
-			{tempDir, "namespaces", "openshift"},
-			{tempDir, "namespaces", "openshift-kube-apiserver-operator"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io"},
+			{pluginOutputDir, "cluster-scoped-resources", "operator.openshift.io"},
+			{pluginOutputDir, "cluster-scoped-resources", "core"},
+			{pluginOutputDir, "cluster-scoped-resources", "apiregistration.k8s.io"},
+			{pluginOutputDir, "namespaces", "openshift"},
+			{pluginOutputDir, "namespaces", "openshift-kube-apiserver-operator"},
 		}, auditDirectories...)
 
 		expectedFiles := [][]string{
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "apiservers.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "authentications.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "builds.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "clusteroperators.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "clusterversions.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "consoles.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "dnses.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "featuregates.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "images.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "infrastructures.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "ingresses.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "networks.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "oauths.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "projects.yaml"},
-			{tempDir, "cluster-scoped-resources", "config.openshift.io", "schedulers.yaml"},
-			{tempDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
-			{tempDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
-			{tempDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
-			{tempDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
-			{tempDir, "host_service_logs", "masters", "crio_service.log"},
-			{tempDir, "host_service_logs", "masters", "kubelet_service.log"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "apiservers.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "authentications.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "builds.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "clusteroperators.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "clusterversions.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "consoles.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "dnses.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "featuregates.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "images.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "infrastructures.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "ingresses.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "networks.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "oauths.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "projects.yaml"},
+			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io", "schedulers.yaml"},
+			{pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
+			{pluginOutputDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
+			{pluginOutputDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
+			{pluginOutputDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
+			{pluginOutputDir, "host_service_logs", "masters", "crio_service.log"},
+			{pluginOutputDir, "host_service_logs", "masters", "kubelet_service.log"},
 		}
 
 		for _, expectedDirectory := range expectedDirectories {
