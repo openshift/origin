@@ -27,7 +27,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 	)
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = locatePrometheus(oc)
+		url, bearerToken, ok = LocatePrometheus(oc)
 		if !ok {
 			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
 		}
@@ -78,15 +78,15 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 			g.By("verifying a service account token is able to query terminal build metrics from the Prometheus API")
 			// note, no longer register a metric if it is zero, so a successful build won't have failed or cancelled metrics
-			terminalTests := map[string][]metricTest{
+			terminalTests := map[string][]MetricTest{
 				buildCountQuery: {
-					metricTest{
-						labels:           map[string]string{"phase": string(buildv1.BuildPhaseComplete)},
-						greaterThanEqual: true,
+					MetricTest{
+						Labels:           map[string]string{"phase": string(buildv1.BuildPhaseComplete)},
+						GreaterThanEqual: true,
 					},
 				},
 			}
-			runQueries(terminalTests, oc, ns, execPodName, url, bearerToken)
+			RunQueries(terminalTests, oc, ns, execPodName, url, bearerToken)
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not
@@ -106,22 +106,22 @@ type prometheusResponseData struct {
 	Result     model.Vector `json:"result"`
 }
 
-type metricTest struct {
-	labels map[string]string
+type MetricTest struct {
+	Labels map[string]string
 	// we are not more precise (greater than only, or equal only) becauses the extended build tests
 	// run in parallel on the CI system, and some of the metrics are cross namespace, so we cannot
 	// reliably filter; we do precise count validation in the unit tests, where "entire cluster" activity
 	// is more controlled :-)
-	greaterThanEqual bool
-	value            float64
-	success          bool
+	GreaterThanEqual bool
+	Value            float64
+	Success          bool
 }
 
-func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
+func RunQueries(MetricTests map[string][]MetricTest, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
 	// expect all correct metrics within a reasonable time period
 	errsMap := map[string]error{}
 	for i := 0; i < waitForPrometheusStartSeconds; i++ {
-		for query, tcs := range metricTests {
+		for query, tcs := range MetricTests {
 			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
 			// openshift/origin, look to replace this homegrown http request / query param with that API
@@ -135,8 +135,8 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 			// for each test case, register that one of the returned metrics has the desired labels and value
 			for j, tc := range tcs {
 				for _, sample := range metrics {
-					if labelsWeWant(sample, tc.labels) && valueWeWant(sample, tc) {
-						tcs[j].success = true
+					if labelsWeWant(sample, tc.Labels) && valueWeWant(sample, tc) {
+						tcs[j].Success = true
 						break
 					}
 				}
@@ -145,7 +145,7 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 			// now check the results, see if any bad
 			delete(errsMap, query) // clear out any prior faliures
 			for _, tc := range tcs {
-				if !tc.success {
+				if !tc.Success {
 					dbg := fmt.Sprintf("query %s for tests %#v had results %s", query, tcs, contents)
 					fmt.Fprintf(g.GinkgoWriter, dbg)
 					errsMap[query] = fmt.Errorf(dbg)
@@ -193,11 +193,11 @@ func labelsWeWant(sample *model.Sample, labels map[string]string) bool {
 	return true
 }
 
-func valueWeWant(sample *model.Sample, tc metricTest) bool {
+func valueWeWant(sample *model.Sample, tc MetricTest) bool {
 	//NOTE - we could use SampleValue has an Equals func, but since SampleValue has no GreaterThanEqual,
 	// we have to go down the float64 compare anyway
-	if tc.greaterThanEqual {
-		return float64(sample.Value) >= tc.value
+	if tc.GreaterThanEqual {
+		return float64(sample.Value) >= tc.Value
 	}
-	return float64(sample.Value) < tc.value
+	return float64(sample.Value) < tc.Value
 }

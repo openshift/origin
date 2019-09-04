@@ -47,7 +47,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = locatePrometheus(oc)
+		url, bearerToken, ok = LocatePrometheus(oc)
 		if !ok {
 			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
 		}
@@ -64,13 +64,13 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			tests := map[string][]metricTest{
+			tests := map[string][]MetricTest{
 				// should have successfully sent at least once to remote
-				`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"}`: {MetricTest{GreaterThanEqual: true, Value: 1}},
 				// should have scraped some metrics from prometheus
-				`federate_samples{job="telemeter-client"}`: {metricTest{greaterThanEqual: true, value: 10}},
+				`federate_samples{job="telemeter-client"}`: {MetricTest{GreaterThanEqual: true, Value: 10}},
 			}
-			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+			RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 		})
@@ -167,13 +167,13 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			tests := map[string][]metricTest{
+			tests := map[string][]MetricTest{
 				// should have a constantly firing watchdog alert
-				`ALERTS{alertstate="firing",alertname="Watchdog"}`: {metricTest{greaterThanEqual: true, value: 1}},
-				// should be only one watchdog alert (this is a workaround as metricTest doesn't offer equality operator)
-				`ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}`: {metricTest{greaterThanEqual: false, value: 2}},
+				`ALERTS{alertstate="firing",alertname="Watchdog"}`: {MetricTest{GreaterThanEqual: true, Value: 1}},
+				// should be only one watchdog alert (this is a workaround as MetricTest doesn't offer equality operator)
+				`ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}`: {MetricTest{GreaterThanEqual: false, Value: 2}},
 			}
-			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+			RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 
 			e2e.Logf("Watchdog alert is firing")
 		})
@@ -183,11 +183,11 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			tests := map[string][]metricTest{
+			tests := map[string][]MetricTest{
 				// should have constantly firing a watchdog alert
-				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"}`: {MetricTest{GreaterThanEqual: true, Value: 1}},
 			}
-			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+			RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
@@ -196,11 +196,11 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 				defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-				tests := map[string][]metricTest{
+				tests := map[string][]MetricTest{
 					//something
-					`openshift_sdn_ovs_flows`: {metricTest{greaterThanEqual: true, value: 1}},
+					`openshift_sdn_ovs_flows`: {MetricTest{GreaterThanEqual: true, Value: 1}},
 				}
-				runQueries(tests, oc, ns, execPodName, url, bearerToken)
+				RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 			})
 		})
 		g.It("should report less than two alerts in firing or pending state", func() {
@@ -212,12 +212,12 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			// needed for cluster to settle and have metrics and alerts usable
 			time.Sleep(5 * time.Minute)
 
-			tests := map[string][]metricTest{
+			tests := map[string][]MetricTest{
 				// should be checking there is no more than 1 alerts firing.
 				// Checking for specific alert is done in "should have a Watchdog alert in firing state".
-				`sum(ALERTS{alertstate="firing"})`: {metricTest{greaterThanEqual: false, value: 2}},
+				`sum(ALERTS{alertstate="firing"})`: {MetricTest{GreaterThanEqual: false, Value: 2}},
 			}
-			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+			RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
 		g.It("should provide ingress metrics", func() {
 			oc.SetupProject()
@@ -280,13 +280,13 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			})).NotTo(o.HaveOccurred(), "ingress router cannot report metrics to monitoring system")
 
 			g.By("verifying standard metrics keys")
-			queries := map[string][]metricTest{
-				`template_router_reload_seconds_count{job="router-internal-default"}`:    {metricTest{greaterThanEqual: true, value: 1}},
-				`haproxy_server_up{job="router-internal-default"}`:                       {metricTest{greaterThanEqual: true, value: 1}},
-				`template_router_reload_seconds_count{job="router-internal-prometheus"}`: {metricTest{greaterThanEqual: true, value: 1}},
-				`haproxy_server_up{job="router-internal-prometheus"}`:                    {metricTest{greaterThanEqual: true, value: 1}},
+			queries := map[string][]MetricTest{
+				`template_router_reload_seconds_count{job="router-internal-default"}`:    {MetricTest{GreaterThanEqual: true, Value: 1}},
+				`haproxy_server_up{job="router-internal-default"}`:                       {MetricTest{GreaterThanEqual: true, Value: 1}},
+				`template_router_reload_seconds_count{job="router-internal-prometheus"}`: {MetricTest{GreaterThanEqual: true, Value: 1}},
+				`haproxy_server_up{job="router-internal-prometheus"}`:                    {MetricTest{GreaterThanEqual: true, Value: 1}},
 			}
-			runQueries(queries, oc, ns, execPodName, url, bearerToken)
+			RunQueries(queries, oc, ns, execPodName, url, bearerToken)
 		})
 	})
 })
@@ -337,12 +337,12 @@ func (t *prometheusTargets) Expect(l labels, health, scrapeURLPattern string) er
 
 type labels map[string]string
 
-func (l labels) With(name, value string) labels {
+func (l labels) With(name, Value string) labels {
 	n := make(labels)
 	for k, v := range l {
 		n[k] = v
 	}
-	n[name] = value
+	n[name] = Value
 	return n
 }
 
@@ -469,7 +469,7 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 	return err
 }
 
-func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
+func LocatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
 		return "", "", false
