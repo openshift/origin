@@ -91,6 +91,10 @@ import:
 - package: golang.org/x/tools/imports
   version: 6e04913cbbac05c5c0c9d8f237717e292f700e76
 
+# see if old grpc can let kubelet/crio communicate
+- package: google.golang.org/grpc
+  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+
 # openshift second
 - package: github.com/openshift/api
   version: prebase-1.16
@@ -141,3 +145,15 @@ import:
 # help glide with go mod submodule tag
 - package: github.com/Azure/go-autorest
   version: autorest/v0.9.0
+
+  # needed to get the
+- package: github.com/lestrrat/go-jspointer
+  repo:    https://github.com/lestrrat/go-jspointer.git
+- package: github.com/lestrrat/go-pdebug
+  repo:    https://github.com/lestrrat/go-pdebug.git
+- package: github.com/lestrrat/go-jsref
+  repo:    https://github.com/lestrrat/go-jsref.git
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+- package: github.com/lestrrat/go-structinfo
+  repo:    https://github.com/lestrrat/go-structinfo.git
+  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
