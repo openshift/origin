@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/namespaceconditions"
 	"k8s.io/kubernetes/openshift-kube-apiserver/kubeadmission"
 
@@ -15,13 +14,6 @@ import (
 )
 
 func SetAdmissionDefaults(o *options.ServerRunOptions, informers informers.SharedInformerFactory, kubeClient kubernetes.Interface) {
-	existingAdmissionOrder := o.Admission.GenericAdmission.RecommendedPluginOrder
-	o.Admission.GenericAdmission.RecommendedPluginOrder = kubeadmission.NewOrderedKubeAdmissionPlugins(existingAdmissionOrder)
-	kubeadmission.RegisterOpenshiftKubeAdmissionPlugins(o.Admission.GenericAdmission.Plugins)
-	customresourcevalidationregistration.RegisterCustomResourceValidation(o.Admission.GenericAdmission.Plugins)
-	existingDefaultOff := o.Admission.GenericAdmission.DefaultOffPlugins
-	o.Admission.GenericAdmission.DefaultOffPlugins = kubeadmission.NewDefaultOffPluginsFunc(existingDefaultOff)()
-
 	// set up the decorators we need.  This is done late and out of order because our decorators currently require informers which are not
 	// present until we start running
 	namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
