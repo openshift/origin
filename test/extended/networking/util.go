@@ -457,3 +457,17 @@ func InPluginContext(plugins []string, body func()) {
 		},
 	)
 }
+
+func InOpenShiftSDNContext(body func()) {
+	Context("when using openshift-sdn",
+		func() {
+			BeforeEach(func() {
+				if networkPluginName() == "" {
+					e2e.Skipf("Not using openshift-sdn")
+				}
+			})
+
+			body()
+		},
+	)
+}
