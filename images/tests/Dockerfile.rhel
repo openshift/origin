@@ -14,3 +14,13 @@ RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux && yum clean all 
 LABEL io.k8s.display-name="OpenShift End-to-End Tests" \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
       io.openshift.tags="openshift,tests,e2e"
+
+# Install python-openstackclient for Cinder test support here: https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/drivers/in_tree.go
+
+COPY --from=builder /go/src/github.com/openshift/origin/images/tests/rdo-stein.repo /etc/yum.repos.d/rdo-stein.repo
+COPY --from=builder /go/src/github.com/openshift/origin/images/tests/rdo-stein.gpg /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Cloud
+
+RUN yum update -y && \
+    yum install --setopt=tsflags=nodocs -y \
+    python-openstackclient && \
+    yum clean all && rm -rf /var/cache/yum/*

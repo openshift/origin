@@ -1,0 +1,7 @@
+[openstack-stein]
+name=OpenStack Stein Repository
+baseurl=http://mirror.centos.org/centos/7/cloud/$basearch/openstack-stein/
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=cloud-openstack-stein
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Cloud
