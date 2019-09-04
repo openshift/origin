@@ -147,3 +147,15 @@ import:
 # help glide with go mod submodule tag
 - package: github.com/Azure/go-autorest
   version: autorest/v0.9.0
+
+  # needed to get the
+- package: github.com/lestrrat/go-jspointer
+  repo:    https://github.com/lestrrat/go-jspointer.git
+- package: github.com/lestrrat/go-pdebug
+  repo:    https://github.com/lestrrat/go-pdebug.git
+- package: github.com/lestrrat/go-jsref
+  repo:    https://github.com/lestrrat/go-jsref.git
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+- package: github.com/lestrrat/go-structinfo
+  repo:    https://github.com/lestrrat/go-structinfo.git
+  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
