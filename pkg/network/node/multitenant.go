@@ -63,7 +63,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 	// VNID before the service and firewall rules are updated to match. We need
 	// to do the updates as a single transaction (ovs-ofctl --bundle).
 
-	pods, err := mp.node.GetLocalPods(namespace)
+	pods, err := mp.node.GetRunningPods(namespace)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Could not get list of local pods in namespace %q: %v", namespace, err))
 	}
