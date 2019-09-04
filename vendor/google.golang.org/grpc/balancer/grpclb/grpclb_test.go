@@ -19,7 +19,6 @@
 package grpclb
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -32,6 +31,7 @@ import (
 	"time"
 
 	durationpb "github.com/golang/protobuf/ptypes/duration"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer"
 	lbgrpc "google.golang.org/grpc/balancer/grpclb/grpc_lb_v1"
@@ -44,7 +44,6 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/resolver/manual"
-	"google.golang.org/grpc/serviceconfig"
 	"google.golang.org/grpc/status"
 	testpb "google.golang.org/grpc/test/grpc_testing"
 )
@@ -118,21 +117,21 @@ func (c *serverNameCheckCreds) OverrideServerName(s string) error {
 
 // fakeNameDialer replaces fakeName with localhost when dialing.
 // This will test that custom dialer is passed from Dial to grpclb.
-func fakeNameDialer(ctx context.Context, addr string) (net.Conn, error) {
+func fakeNameDialer(addr string, timeout time.Duration) (net.Conn, error) {
 	addr = strings.Replace(addr, fakeName, "localhost", 1)
-	return (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+	return net.DialTimeout("tcp", addr, timeout)
 }
 
 // merge merges the new client stats into current stats.
 //
 // It's a test-only method. rpcStats is defined in grpclb_picker.
-func (s *rpcStats) merge(cs *lbpb.ClientStats) {
-	atomic.AddInt64(&s.numCallsStarted, cs.NumCallsStarted)
-	atomic.AddInt64(&s.numCallsFinished, cs.NumCallsFinished)
-	atomic.AddInt64(&s.numCallsFinishedWithClientFailedToSend, cs.NumCallsFinishedWithClientFailedToSend)
-	atomic.AddInt64(&s.numCallsFinishedKnownReceived, cs.NumCallsFinishedKnownReceived)
+func (s *rpcStats) merge(new *lbpb.ClientStats) {
+	atomic.AddInt64(&s.numCallsStarted, new.NumCallsStarted)
+	atomic.AddInt64(&s.numCallsFinished, new.NumCallsFinished)
+	atomic.AddInt64(&s.numCallsFinishedWithClientFailedToSend, new.NumCallsFinishedWithClientFailedToSend)
+	atomic.AddInt64(&s.numCallsFinishedKnownReceived, new.NumCallsFinishedKnownReceived)
 	s.mu.Lock()
-	for _, perToken := range cs.CallsFinishedWithDrop {
+	for _, perToken := range new.CallsFinishedWithDrop {
 		s.numCallsDropped[perToken.LoadBalanceToken] += perToken.NumCalls
 	}
 	s.mu.Unlock()
@@ -157,24 +156,27 @@ func atomicEqual(a, b *int64) bool {
 // equal compares two rpcStats.
 //
 // It's a test-only method. rpcStats is defined in grpclb_picker.
-func (s *rpcStats) equal(o *rpcStats) bool {
-	if !atomicEqual(&s.numCallsStarted, &o.numCallsStarted) {
+func (s *rpcStats) equal(new *rpcStats) bool {
+	if !atomicEqual(&s.numCallsStarted, &new.numCallsStarted) {
 		return false
 	}
-	if !atomicEqual(&s.numCallsFinished, &o.numCallsFinished) {
+	if !atomicEqual(&s.numCallsFinished, &new.numCallsFinished) {
 		return false
 	}
-	if !atomicEqual(&s.numCallsFinishedWithClientFailedToSend, &o.numCallsFinishedWithClientFailedToSend) {
+	if !atomicEqual(&s.numCallsFinishedWithClientFailedToSend, &new.numCallsFinishedWithClientFailedToSend) {
 		return false
 	}
-	if !atomicEqual(&s.numCallsFinishedKnownReceived, &o.numCallsFinishedKnownReceived) {
+	if !atomicEqual(&s.numCallsFinishedKnownReceived, &new.numCallsFinishedKnownReceived) {
 		return false
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	o.mu.Lock()
-	defer o.mu.Unlock()
-	return mapsEqual(s.numCallsDropped, o.numCallsDropped)
+	new.mu.Lock()
+	defer new.mu.Unlock()
+	if !mapsEqual(s.numCallsDropped, new.numCallsDropped) {
+		return false
+	}
+	return true
 }
 
 type remoteBalancer struct {
@@ -231,21 +233,18 @@ func (b *remoteBalancer) BalanceLoad(stream lbgrpc.LoadBalancer_BalanceLoadServe
 			b.stats.merge(req.GetClientStats())
 		}
 	}()
-	for {
-		select {
-		case v := <-b.sls:
-			resp = &lbpb.LoadBalanceResponse{
-				LoadBalanceResponseType: &lbpb.LoadBalanceResponse_ServerList{
-					ServerList: v,
-				},
-			}
-		case <-stream.Context().Done():
-			return stream.Context().Err()
+	for v := range b.sls {
+		resp = &lbpb.LoadBalanceResponse{
+			LoadBalanceResponseType: &lbpb.LoadBalanceResponse_ServerList{
+				ServerList: v,
+			},
 		}
 		if err := stream.Send(resp); err != nil {
 			return err
 		}
 	}
+	<-b.done
+	return nil
 }
 
 type testServer struct {
@@ -295,15 +294,11 @@ func stopBackends(servers []*grpc.Server) {
 }
 
 type testServers struct {
-	lbAddr   string
-	ls       *remoteBalancer
-	lb       *grpc.Server
-	backends []*grpc.Server
-	beIPs    []net.IP
-	bePorts  []int
-
-	lbListener  net.Listener
-	beListeners []net.Listener
+	lbAddr  string
+	ls      *remoteBalancer
+	lb      *grpc.Server
+	beIPs   []net.IP
+	bePorts []int
 }
 
 func newLoadBalancer(numberOfBackends int) (tss *testServers, cleanup func(), err error) {
@@ -318,23 +313,22 @@ func newLoadBalancer(numberOfBackends int) (tss *testServers, cleanup func(), er
 		// Start a backend.
 		beLis, e := net.Listen("tcp", "localhost:0")
 		if e != nil {
-			err = fmt.Errorf("failed to listen %v", err)
+			err = fmt.Errorf("Failed to listen %v", err)
 			return
 		}
 		beIPs = append(beIPs, beLis.Addr().(*net.TCPAddr).IP)
 		bePorts = append(bePorts, beLis.Addr().(*net.TCPAddr).Port)
 
-		beListeners = append(beListeners, newRestartableListener(beLis))
+		beListeners = append(beListeners, beLis)
 	}
 	backends := startBackends(beServerName, false, beListeners...)
 
 	// Start a load balancer.
 	lbLis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
-		err = fmt.Errorf("failed to create the listener for the load balancer %v", err)
+		err = fmt.Errorf("Failed to create the listener for the load balancer %v", err)
 		return
 	}
-	lbLis = newRestartableListener(lbLis)
 	lbCreds := &serverNameCheckCreds{
 		sn: lbServerName,
 	}
@@ -346,15 +340,11 @@ func newLoadBalancer(numberOfBackends int) (tss *testServers, cleanup func(), er
 	}()
 
 	tss = &testServers{
-		lbAddr:   net.JoinHostPort(fakeName, strconv.Itoa(lbLis.Addr().(*net.TCPAddr).Port)),
-		ls:       ls,
-		lb:       lb,
-		backends: backends,
-		beIPs:    beIPs,
-		bePorts:  bePorts,
-
-		lbListener:  lbLis,
-		beListeners: beListeners,
+		lbAddr:  fakeName + ":" + strconv.Itoa(lbLis.Addr().(*net.TCPAddr).Port),
+		ls:      ls,
+		lb:      lb,
+		beIPs:   beIPs,
+		bePorts: bePorts,
 	}
 	cleanup = func() {
 		defer stopBackends(backends)
@@ -395,20 +385,20 @@ func TestGRPCLB(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
-		grpc.WithTransportCredentials(&creds), grpc.WithContextDialer(fakeNameDialer))
+		grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	defer cc.Close()
 	testC := testpb.NewTestServiceClient(cc)
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
+	r.NewAddress([]resolver.Address{{
 		Addr:       tss.lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
-	}}})
+	}})
 
-	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true)); err != nil {
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false)); err != nil {
 		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 	}
 }
@@ -446,18 +436,18 @@ func TestGRPCLBWeighted(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
-		grpc.WithTransportCredentials(&creds), grpc.WithContextDialer(fakeNameDialer))
+		grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	defer cc.Close()
 	testC := testpb.NewTestServiceClient(cc)
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
+	r.NewAddress([]resolver.Address{{
 		Addr:       tss.lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
-	}}})
+	}})
 
 	sequences := []string{"00101", "00011"}
 	for _, seq := range sequences {
@@ -472,7 +462,7 @@ func TestGRPCLBWeighted(t *testing.T) {
 		tss.ls.sls <- &lbpb.ServerList{Servers: bes}
 
 		for i := 0; i < 1000; i++ {
-			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
+			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false), grpc.Peer(&p)); err != nil {
 				t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 			}
 			result += strconv.Itoa(portsToIndex[p.Addr.(*net.TCPAddr).Port])
@@ -490,7 +480,7 @@ func TestDropRequest(t *testing.T) {
 	r, cleanup := manual.GenerateAndRegisterManualResolver()
 	defer cleanup()
 
-	tss, cleanup, err := newLoadBalancer(2)
+	tss, cleanup, err := newLoadBalancer(1)
 	if err != nil {
 		t.Fatalf("failed to create new load balancer: %v", err)
 	}
@@ -499,11 +489,6 @@ func TestDropRequest(t *testing.T) {
 		Servers: []*lbpb.Server{{
 			IpAddress:        tss.beIPs[0],
 			Port:             int32(tss.bePorts[0]),
-			LoadBalanceToken: lbToken,
-			Drop:             false,
-		}, {
-			IpAddress:        tss.beIPs[1],
-			Port:             int32(tss.bePorts[1]),
 			LoadBalanceToken: lbToken,
 			Drop:             false,
 		}, {
@@ -516,67 +501,32 @@ func TestDropRequest(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
-		grpc.WithTransportCredentials(&creds), grpc.WithContextDialer(fakeNameDialer))
+		grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	defer cc.Close()
 	testC := testpb.NewTestServiceClient(cc)
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
+	r.NewAddress([]resolver.Address{{
 		Addr:       tss.lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
-	}}})
+	}})
 
-	var (
-		i int
-		p peer.Peer
-	)
-	const (
-		// Poll to wait for something to happen. Total timeout 1 second. Sleep 1
-		// ms each loop, and do at most 1000 loops.
-		sleepEachLoop = time.Millisecond
-		loopCount     = int(time.Second / sleepEachLoop)
-	)
-	// Make a non-fail-fast RPC and wait for it to succeed.
-	for i = 0; i < loopCount; i++ {
-		if _, err := testC.EmptyCall(ctx, &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err == nil {
+	// Wait for the 1st, non-fail-fast RPC to succeed. This ensures both server
+	// connections are made, because the first one has DropForLoadBalancing set
+	// to true.
+	var i int
+	for i = 0; i < 1000; i++ {
+		if _, err := testC.EmptyCall(ctx, &testpb.Empty{}, grpc.FailFast(false)); err == nil {
 			break
 		}
-		time.Sleep(sleepEachLoop)
+		time.Sleep(time.Millisecond)
 	}
-	if i >= loopCount {
-		t.Fatalf("timeout waiting for the first connection to become ready. EmptyCall(_, _) = _, %v, want _, <nil>", err)
+	if i >= 1000 {
+		t.Fatalf("%v.SayHello(_, _) = _, %v, want _, <nil>", testC, err)
 	}
-
-	// Make RPCs until the peer is different. So we know both connections are
-	// READY.
-	for i = 0; i < loopCount; i++ {
-		var temp peer.Peer
-		if _, err := testC.EmptyCall(ctx, &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&temp)); err == nil {
-			if temp.Addr.(*net.TCPAddr).Port != p.Addr.(*net.TCPAddr).Port {
-				break
-			}
-		}
-		time.Sleep(sleepEachLoop)
-	}
-	if i >= loopCount {
-		t.Fatalf("timeout waiting for the second connection to become ready")
-	}
-
-	// More RPCs until drop happens. So we know the picker index, and the
-	// expected behavior of following RPCs.
-	for i = 0; i < loopCount; i++ {
-		if _, err := testC.EmptyCall(ctx, &testpb.Empty{}, grpc.WaitForReady(true)); status.Code(err) == codes.Unavailable {
-			break
-		}
-		time.Sleep(sleepEachLoop)
-	}
-	if i >= loopCount {
-		t.Fatalf("timeout waiting for drop. EmptyCall(_, _) = _, %v, want _, <Unavailable>", err)
-	}
-
 	select {
 	case <-ctx.Done():
 		t.Fatal("timed out", ctx.Err())
@@ -584,56 +534,16 @@ func TestDropRequest(t *testing.T) {
 	}
 	for _, failfast := range []bool{true, false} {
 		for i := 0; i < 3; i++ {
-			// 1st RPCs pick the first item in server list. They should succeed
-			// since they choose the non-drop-request backend according to the
-			// round robin policy.
-			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(!failfast)); err != nil {
-				t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-			}
-			// 2nd RPCs pick the second item in server list. They should succeed
-			// since they choose the non-drop-request backend according to the
-			// round robin policy.
-			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(!failfast)); err != nil {
-				t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-			}
-			// 3rd RPCs should fail, because they pick last item in server list,
-			// with Drop set to true.
-			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(!failfast)); status.Code(err) != codes.Unavailable {
+			// Even RPCs should fail, because the 2st backend has
+			// DropForLoadBalancing set to true.
+			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(failfast)); status.Code(err) != codes.Unavailable {
 				t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, %s", testC, err, codes.Unavailable)
 			}
-		}
-	}
-
-	// Make one more RPC to move the picker index one step further, so it's not
-	// 0. The following RPCs will test that drop index is not reset. If picker
-	// index is at 0, we cannot tell whether it's reset or not.
-	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true)); err != nil {
-		t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-	}
-
-	tss.backends[0].Stop()
-	// This last pick was backend 0. Closing backend 0 doesn't reset drop index
-	// (for level 1 picking), so the following picks will be (backend1, drop,
-	// backend1), instead of (backend, backend, drop) if drop index was reset.
-	time.Sleep(time.Second)
-	for i := 0; i < 3; i++ {
-		var p peer.Peer
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-		}
-		if want := tss.bePorts[1]; p.Addr.(*net.TCPAddr).Port != want {
-			t.Errorf("got peer: %v, want peer port: %v", p.Addr, want)
-		}
-
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true)); status.Code(err) != codes.Unavailable {
-			t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, %s", testC, err, codes.Unavailable)
-		}
-
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-		}
-		if want := tss.bePorts[1]; p.Addr.(*net.TCPAddr).Port != want {
-			t.Errorf("got peer: %v, want peer port: %v", p.Addr, want)
+			// Odd RPCs should succeed since they choose the non-drop-request
+			// backend according to the round robin policy.
+			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(failfast)); err != nil {
+				t.Errorf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
+			}
 		}
 	}
 }
@@ -678,14 +588,14 @@ func TestBalancerDisconnects(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
-		grpc.WithTransportCredentials(&creds), grpc.WithContextDialer(fakeNameDialer))
+		grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	defer cc.Close()
 	testC := testpb.NewTestServiceClient(cc)
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
+	r.NewAddress([]resolver.Address{{
 		Addr:       tests[0].lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
@@ -693,10 +603,10 @@ func TestBalancerDisconnects(t *testing.T) {
 		Addr:       tests[1].lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
-	}}})
+	}})
 
 	var p peer.Peer
-	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false), grpc.Peer(&p)); err != nil {
 		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 	}
 	if p.Addr.(*net.TCPAddr).Port != tests[0].bePorts[0] {
@@ -707,7 +617,7 @@ func TestBalancerDisconnects(t *testing.T) {
 	// Stop balancer[0], balancer[1] should be used by grpclb.
 	// Check peer address to see if that happened.
 	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
+		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false), grpc.Peer(&p)); err != nil {
 			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 		}
 		if p.Addr.(*net.TCPAddr).Port == tests[1].bePorts[0] {
@@ -718,10 +628,25 @@ func TestBalancerDisconnects(t *testing.T) {
 	t.Fatalf("No RPC sent to second backend after 1 second")
 }
 
-func TestFallback(t *testing.T) {
-	balancer.Register(newLBBuilderWithFallbackTimeout(100 * time.Millisecond))
-	defer balancer.Register(newLBBuilder())
+type customGRPCLBBuilder struct {
+	balancer.Builder
+	name string
+}
 
+func (b *customGRPCLBBuilder) Name() string {
+	return b.name
+}
+
+const grpclbCustomFallbackName = "grpclb_with_custom_fallback_timeout"
+
+func init() {
+	balancer.Register(&customGRPCLBBuilder{
+		Builder: newLBBuilderWithFallbackTimeout(100 * time.Millisecond),
+		name:    grpclbCustomFallbackName,
+	})
+}
+
+func TestFallback(t *testing.T) {
 	defer leakcheck.Check(t)
 
 	r, cleanup := manual.GenerateAndRegisterManualResolver()
@@ -759,32 +684,33 @@ func TestFallback(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
-		grpc.WithTransportCredentials(&creds), grpc.WithContextDialer(fakeNameDialer))
+		grpc.WithBalancerName(grpclbCustomFallbackName),
+		grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	defer cc.Close()
 	testC := testpb.NewTestServiceClient(cc)
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
-		Addr:       "invalid.address",
+	r.NewAddress([]resolver.Address{{
+		Addr:       "",
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
 	}, {
 		Addr:       beLis.Addr().String(),
 		Type:       resolver.Backend,
 		ServerName: beServerName,
-	}}})
+	}})
 
 	var p peer.Peer
-	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-		t.Fatalf("_.EmptyCall(_, _) = _, %v, want _, <nil>", err)
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false), grpc.Peer(&p)); err != nil {
+		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 	}
 	if p.Addr.String() != beLis.Addr().String() {
 		t.Fatalf("got peer: %v, want peer: %v", p.Addr, beLis.Addr())
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
+	r.NewAddress([]resolver.Address{{
 		Addr:       tss.lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
@@ -792,204 +718,18 @@ func TestFallback(t *testing.T) {
 		Addr:       beLis.Addr().String(),
 		Type:       resolver.Backend,
 		ServerName: beServerName,
-	}}})
+	}})
 
-	var backendUsed bool
 	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
+		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false), grpc.Peer(&p)); err != nil {
 			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 		}
 		if p.Addr.(*net.TCPAddr).Port == tss.bePorts[0] {
-			backendUsed = true
-			break
+			return
 		}
 		time.Sleep(time.Millisecond)
 	}
-	if !backendUsed {
-		t.Fatalf("No RPC sent to backend behind remote balancer after 1 second")
-	}
-
-	// Close backend and remote balancer connections, should use fallback.
-	tss.beListeners[0].(*restartableListener).stopPreviousConns()
-	tss.lbListener.(*restartableListener).stopPreviousConns()
-	time.Sleep(time.Second)
-
-	var fallbackUsed bool
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-		}
-		if p.Addr.String() == beLis.Addr().String() {
-			fallbackUsed = true
-			break
-		}
-		time.Sleep(time.Millisecond)
-	}
-	if !fallbackUsed {
-		t.Fatalf("No RPC sent to fallback after 1 second")
-	}
-
-	// Restart backend and remote balancer, should not use backends.
-	tss.beListeners[0].(*restartableListener).restart()
-	tss.lbListener.(*restartableListener).restart()
-	tss.ls.sls <- sl
-
-	time.Sleep(time.Second)
-
-	var backendUsed2 bool
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-		}
-		if p.Addr.(*net.TCPAddr).Port == tss.bePorts[0] {
-			backendUsed2 = true
-			break
-		}
-		time.Sleep(time.Millisecond)
-	}
-	if !backendUsed2 {
-		t.Fatalf("No RPC sent to backend behind remote balancer after 1 second")
-	}
-}
-
-func TestGRPCLBPickFirst(t *testing.T) {
-	const pfc = `{"loadBalancingConfig":[{"grpclb":{"childPolicy":[{"pick_first":{}}]}}]}`
-	svcCfg, err := serviceconfig.Parse(pfc)
-	if err != nil {
-		t.Fatalf("Error parsing config %q: %v", pfc, err)
-	}
-
-	defer leakcheck.Check(t)
-
-	r, cleanup := manual.GenerateAndRegisterManualResolver()
-	defer cleanup()
-
-	tss, cleanup, err := newLoadBalancer(3)
-	if err != nil {
-		t.Fatalf("failed to create new load balancer: %v", err)
-	}
-	defer cleanup()
-
-	beServers := []*lbpb.Server{{
-		IpAddress:        tss.beIPs[0],
-		Port:             int32(tss.bePorts[0]),
-		LoadBalanceToken: lbToken,
-	}, {
-		IpAddress:        tss.beIPs[1],
-		Port:             int32(tss.bePorts[1]),
-		LoadBalanceToken: lbToken,
-	}, {
-		IpAddress:        tss.beIPs[2],
-		Port:             int32(tss.bePorts[2]),
-		LoadBalanceToken: lbToken,
-	}}
-	portsToIndex := make(map[int]int)
-	for i := range beServers {
-		portsToIndex[tss.bePorts[i]] = i
-	}
-
-	creds := serverNameCheckCreds{
-		expected: beServerName,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
-		grpc.WithTransportCredentials(&creds), grpc.WithContextDialer(fakeNameDialer))
-	if err != nil {
-		t.Fatalf("Failed to dial to the backend %v", err)
-	}
-	defer cc.Close()
-	testC := testpb.NewTestServiceClient(cc)
-
-	var (
-		p      peer.Peer
-		result string
-	)
-	tss.ls.sls <- &lbpb.ServerList{Servers: beServers[0:3]}
-
-	// Start with sub policy pick_first.
-
-	r.UpdateState(resolver.State{
-		Addresses: []resolver.Address{{
-			Addr:       tss.lbAddr,
-			Type:       resolver.GRPCLB,
-			ServerName: lbServerName,
-		}},
-		ServiceConfig: svcCfg,
-	})
-
-	result = ""
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("_.EmptyCall(_, _) = _, %v, want _, <nil>", err)
-		}
-		result += strconv.Itoa(portsToIndex[p.Addr.(*net.TCPAddr).Port])
-	}
-	if seq := "00000"; !strings.Contains(result, strings.Repeat(seq, 100)) {
-		t.Errorf("got result sequence %q, want patten %q", result, seq)
-	}
-
-	tss.ls.sls <- &lbpb.ServerList{Servers: beServers[2:]}
-	result = ""
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("_.EmptyCall(_, _) = _, %v, want _, <nil>", err)
-		}
-		result += strconv.Itoa(portsToIndex[p.Addr.(*net.TCPAddr).Port])
-	}
-	if seq := "22222"; !strings.Contains(result, strings.Repeat(seq, 100)) {
-		t.Errorf("got result sequence %q, want patten %q", result, seq)
-	}
-
-	tss.ls.sls <- &lbpb.ServerList{Servers: beServers[1:]}
-	result = ""
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("_.EmptyCall(_, _) = _, %v, want _, <nil>", err)
-		}
-		result += strconv.Itoa(portsToIndex[p.Addr.(*net.TCPAddr).Port])
-	}
-	if seq := "22222"; !strings.Contains(result, strings.Repeat(seq, 100)) {
-		t.Errorf("got result sequence %q, want patten %q", result, seq)
-	}
-
-	// Switch sub policy to roundrobin.
-	grpclbServiceConfigEmpty, err := serviceconfig.Parse(`{}`)
-	if err != nil {
-		t.Fatalf("Error parsing config %q: %v", grpclbServiceConfigEmpty, err)
-	}
-
-	r.UpdateState(resolver.State{
-		Addresses: []resolver.Address{{
-			Addr:       tss.lbAddr,
-			Type:       resolver.GRPCLB,
-			ServerName: lbServerName,
-		}},
-		ServiceConfig: grpclbServiceConfigEmpty,
-	})
-
-	result = ""
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("_.EmptyCall(_, _) = _, %v, want _, <nil>", err)
-		}
-		result += strconv.Itoa(portsToIndex[p.Addr.(*net.TCPAddr).Port])
-	}
-	if seq := "121212"; !strings.Contains(result, strings.Repeat(seq, 100)) {
-		t.Errorf("got result sequence %q, want patten %q", result, seq)
-	}
-
-	tss.ls.sls <- &lbpb.ServerList{Servers: beServers[0:3]}
-	result = ""
-	for i := 0; i < 1000; i++ {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true), grpc.Peer(&p)); err != nil {
-			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
-		}
-		result += strconv.Itoa(portsToIndex[p.Addr.(*net.TCPAddr).Port])
-	}
-	if seq := "012012012"; !strings.Contains(result, strings.Repeat(seq, 2)) {
-		t.Errorf("got result sequence %q, want patten %q", result, seq)
-	}
+	t.Fatalf("No RPC sent to backend behind remote balancer after 1 second")
 }
 
 type failPreRPCCred struct{}
@@ -1023,18 +763,14 @@ func runAndGetStats(t *testing.T, drop bool, runRPCs func(*grpc.ClientConn)) *rp
 		t.Fatalf("failed to create new load balancer: %v", err)
 	}
 	defer cleanup()
-	servers := []*lbpb.Server{{
-		IpAddress:        tss.beIPs[0],
-		Port:             int32(tss.bePorts[0]),
-		LoadBalanceToken: lbToken,
-	}}
-	if drop {
-		servers = append(servers, &lbpb.Server{
+	tss.ls.sls <- &lbpb.ServerList{
+		Servers: []*lbpb.Server{{
+			IpAddress:        tss.beIPs[0],
+			Port:             int32(tss.bePorts[0]),
 			LoadBalanceToken: lbToken,
 			Drop:             drop,
-		})
+		}},
 	}
-	tss.ls.sls <- &lbpb.ServerList{Servers: servers}
 	tss.ls.statsDura = 100 * time.Millisecond
 	creds := serverNameCheckCreds{expected: beServerName}
 
@@ -1043,17 +779,17 @@ func runAndGetStats(t *testing.T, drop bool, runRPCs func(*grpc.ClientConn)) *rp
 	cc, err := grpc.DialContext(ctx, r.Scheme()+":///"+beServerName,
 		grpc.WithTransportCredentials(&creds),
 		grpc.WithPerRPCCredentials(failPreRPCCred{}),
-		grpc.WithContextDialer(fakeNameDialer))
+		grpc.WithDialer(fakeNameDialer))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	defer cc.Close()
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{
+	r.NewAddress([]resolver.Address{{
 		Addr:       tss.lbAddr,
 		Type:       resolver.GRPCLB,
 		ServerName: lbServerName,
-	}}})
+	}})
 
 	runRPCs(cc)
 	time.Sleep(1 * time.Second)
@@ -1064,6 +800,7 @@ func runAndGetStats(t *testing.T, drop bool, runRPCs func(*grpc.ClientConn)) *rp
 const (
 	countRPC      = 40
 	failtosendURI = "failtosend"
+	dropErrDesc   = "request dropped by grpclb"
 )
 
 func TestGRPCLBStatsUnarySuccess(t *testing.T) {
@@ -1071,7 +808,7 @@ func TestGRPCLBStatsUnarySuccess(t *testing.T) {
 	stats := runAndGetStats(t, false, func(cc *grpc.ClientConn) {
 		testC := testpb.NewTestServiceClient(cc)
 		// The first non-failfast RPC succeeds, all connections are up.
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true)); err != nil {
+		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false)); err != nil {
 			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 		}
 		for i := 0; i < countRPC-1; i++ {
@@ -1090,22 +827,27 @@ func TestGRPCLBStatsUnarySuccess(t *testing.T) {
 
 func TestGRPCLBStatsUnaryDrop(t *testing.T) {
 	defer leakcheck.Check(t)
+	c := 0
 	stats := runAndGetStats(t, true, func(cc *grpc.ClientConn) {
 		testC := testpb.NewTestServiceClient(cc)
-		// The first non-failfast RPC succeeds, all connections are up.
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true)); err != nil {
-			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
+		for {
+			c++
+			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}); err != nil {
+				if strings.Contains(err.Error(), dropErrDesc) {
+					break
+				}
+			}
 		}
-		for i := 0; i < countRPC-1; i++ {
+		for i := 0; i < countRPC; i++ {
 			testC.EmptyCall(context.Background(), &testpb.Empty{})
 		}
 	})
 
 	if err := checkStats(stats, &rpcStats{
-		numCallsStarted:               int64(countRPC),
-		numCallsFinished:              int64(countRPC),
-		numCallsFinishedKnownReceived: int64(countRPC) / 2,
-		numCallsDropped:               map[string]int64{lbToken: int64(countRPC) / 2},
+		numCallsStarted:                        int64(countRPC + c),
+		numCallsFinished:                       int64(countRPC + c),
+		numCallsFinishedWithClientFailedToSend: int64(c - 1),
+		numCallsDropped:                        map[string]int64{lbToken: int64(countRPC + 1)},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -1116,7 +858,7 @@ func TestGRPCLBStatsUnaryFailedToSend(t *testing.T) {
 	stats := runAndGetStats(t, false, func(cc *grpc.ClientConn) {
 		testC := testpb.NewTestServiceClient(cc)
 		// The first non-failfast RPC succeeds, all connections are up.
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.WaitForReady(true)); err != nil {
+		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false)); err != nil {
 			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 		}
 		for i := 0; i < countRPC-1; i++ {
@@ -1125,9 +867,9 @@ func TestGRPCLBStatsUnaryFailedToSend(t *testing.T) {
 	})
 
 	if err := checkStats(stats, &rpcStats{
-		numCallsStarted:                        int64(countRPC)*2 - 1,
-		numCallsFinished:                       int64(countRPC)*2 - 1,
-		numCallsFinishedWithClientFailedToSend: int64(countRPC-1) * 2,
+		numCallsStarted:                        int64(countRPC),
+		numCallsFinished:                       int64(countRPC),
+		numCallsFinishedWithClientFailedToSend: int64(countRPC - 1),
 		numCallsFinishedKnownReceived:          1,
 	}); err != nil {
 		t.Fatal(err)
@@ -1139,7 +881,7 @@ func TestGRPCLBStatsStreamingSuccess(t *testing.T) {
 	stats := runAndGetStats(t, false, func(cc *grpc.ClientConn) {
 		testC := testpb.NewTestServiceClient(cc)
 		// The first non-failfast RPC succeeds, all connections are up.
-		stream, err := testC.FullDuplexCall(context.Background(), grpc.WaitForReady(true))
+		stream, err := testC.FullDuplexCall(context.Background(), grpc.FailFast(false))
 		if err != nil {
 			t.Fatalf("%v.FullDuplexCall(_, _) = _, %v, want _, <nil>", testC, err)
 		}
@@ -1172,36 +914,27 @@ func TestGRPCLBStatsStreamingSuccess(t *testing.T) {
 
 func TestGRPCLBStatsStreamingDrop(t *testing.T) {
 	defer leakcheck.Check(t)
+	c := 0
 	stats := runAndGetStats(t, true, func(cc *grpc.ClientConn) {
 		testC := testpb.NewTestServiceClient(cc)
-		// The first non-failfast RPC succeeds, all connections are up.
-		stream, err := testC.FullDuplexCall(context.Background(), grpc.WaitForReady(true))
-		if err != nil {
-			t.Fatalf("%v.FullDuplexCall(_, _) = _, %v, want _, <nil>", testC, err)
-		}
 		for {
-			if _, err = stream.Recv(); err == io.EOF {
-				break
-			}
-		}
-		for i := 0; i < countRPC-1; i++ {
-			stream, err = testC.FullDuplexCall(context.Background())
-			if err == nil {
-				// Wait for stream to end if err is nil.
-				for {
-					if _, err = stream.Recv(); err == io.EOF {
-						break
-					}
+			c++
+			if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}); err != nil {
+				if strings.Contains(err.Error(), dropErrDesc) {
+					break
 				}
 			}
+		}
+		for i := 0; i < countRPC; i++ {
+			testC.FullDuplexCall(context.Background())
 		}
 	})
 
 	if err := checkStats(stats, &rpcStats{
-		numCallsStarted:               int64(countRPC),
-		numCallsFinished:              int64(countRPC),
-		numCallsFinishedKnownReceived: int64(countRPC) / 2,
-		numCallsDropped:               map[string]int64{lbToken: int64(countRPC) / 2},
+		numCallsStarted:                        int64(countRPC + c),
+		numCallsFinished:                       int64(countRPC + c),
+		numCallsFinishedWithClientFailedToSend: int64(c - 1),
+		numCallsDropped:                        map[string]int64{lbToken: int64(countRPC + 1)},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -1212,7 +945,7 @@ func TestGRPCLBStatsStreamingFailedToSend(t *testing.T) {
 	stats := runAndGetStats(t, false, func(cc *grpc.ClientConn) {
 		testC := testpb.NewTestServiceClient(cc)
 		// The first non-failfast RPC succeeds, all connections are up.
-		stream, err := testC.FullDuplexCall(context.Background(), grpc.WaitForReady(true))
+		stream, err := testC.FullDuplexCall(context.Background(), grpc.FailFast(false))
 		if err != nil {
 			t.Fatalf("%v.FullDuplexCall(_, _) = _, %v, want _, <nil>", testC, err)
 		}
@@ -1227,9 +960,9 @@ func TestGRPCLBStatsStreamingFailedToSend(t *testing.T) {
 	})
 
 	if err := checkStats(stats, &rpcStats{
-		numCallsStarted:                        int64(countRPC)*2 - 1,
-		numCallsFinished:                       int64(countRPC)*2 - 1,
-		numCallsFinishedWithClientFailedToSend: int64(countRPC-1) * 2,
+		numCallsStarted:                        int64(countRPC),
+		numCallsFinished:                       int64(countRPC),
+		numCallsFinishedWithClientFailedToSend: int64(countRPC - 1),
 		numCallsFinishedKnownReceived:          1,
 	}); err != nil {
 		t.Fatal(err)

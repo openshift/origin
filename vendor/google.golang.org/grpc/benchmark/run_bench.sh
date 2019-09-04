@@ -72,7 +72,7 @@ run(){
     ${out_dir}/client --port=${port} --d=${dur} --w=${warmup} --r=${nr} --c=${nc} --req=${req_sz} --resp=${resp_sz} --rpc_type=${r_type}  --test_name="client_"${test_name}
     client_status=$(echo $?)
 
-    kill -INT ${server_pid}
+    kill ${server_pid}
     wait ${server_pid}
 
     if [ ${client_status} == 0 ]; then
@@ -163,7 +163,6 @@ while [ $# -gt 0 ]; do
       echo "-req              req size in bytes, default value is 1"
       echo "-resp             resp size in bytes, default value is 1"
       echo "-rpc_type         valid values are unary|streaming, default is unary"
-      exit 0
       ;;
     *)
       echo "Incorrect option $1"

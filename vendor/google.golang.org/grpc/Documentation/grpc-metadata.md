@@ -77,7 +77,8 @@ func (s *server) SomeRPC(ctx context.Context, in *pb.SomeRequest) (*pb.SomeRespo
 
 ## Sending and receiving metadata - client side
 
-Client side metadata sending and receiving examples are available [here](../examples/features/metadata/client/main.go).
+[//]: # "TODO: uncomment next line after example source added"
+[//]: # "Real metadata sending and receiving examples are available [here](TODO:example_dir)."
 
 ### Sending metadata
 
@@ -164,7 +165,8 @@ trailer := stream.Trailer()
 
 ## Sending and receiving metadata - server side
 
-Server side metadata sending and receiving examples are available [here](../examples/features/metadata/server/main.go).
+[//]: # "TODO: uncomment next line after example source added"
+[//]: # "Real metadata sending and receiving examples are available [here](TODO:example_dir)."
 
 ### Receiving metadata
 

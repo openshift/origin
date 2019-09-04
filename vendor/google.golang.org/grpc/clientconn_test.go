@@ -19,21 +19,18 @@
 package grpc
 
 import (
-	"context"
-	"errors"
-	"fmt"
 	"math"
 	"net"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/internal/backoff"
-	"google.golang.org/grpc/internal/transport"
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/naming"
 	"google.golang.org/grpc/resolver"
@@ -41,6 +38,16 @@ import (
 	_ "google.golang.org/grpc/resolver/passthrough"
 	"google.golang.org/grpc/testdata"
 )
+
+var (
+	mutableMinConnectTimeout = time.Second * 20
+)
+
+func init() {
+	getMinConnectTimeout = func() time.Duration {
+		return time.Duration(atomic.LoadInt64((*int64)(&mutableMinConnectTimeout)))
+	}
+}
 
 func assertState(wantState connectivity.State, cc *ClientConn) (connectivity.State, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -51,111 +58,84 @@ func assertState(wantState connectivity.State, cc *ClientConn) (connectivity.Sta
 	return state, state == wantState
 }
 
-func (s) TestDialWithTimeout(t *testing.T) {
-	lis, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis.Close()
-	lisAddr := resolver.Address{Addr: lis.Addr().String()}
-	lisDone := make(chan struct{})
-	dialDone := make(chan struct{})
-	// 1st listener accepts the connection and then does nothing
-	go func() {
-		defer close(lisDone)
-		conn, err := lis.Accept()
+func TestDialWithMultipleBackendsNotSendingServerPreface(t *testing.T) {
+	defer leakcheck.Check(t)
+	numServers := 2
+	servers := make([]net.Listener, numServers)
+	var err error
+	for i := 0; i < numServers; i++ {
+		servers[i], err = net.Listen("tcp", "localhost:0")
 		if err != nil {
-			t.Errorf("Error while accepting. Err: %v", err)
-			return
+			t.Fatalf("Error while listening. Err: %v", err)
 		}
-		framer := http2.NewFramer(conn, conn)
-		if err := framer.WriteSettings(http2.Setting{}); err != nil {
-			t.Errorf("Error while writing settings. Err: %v", err)
-			return
-		}
-		<-dialDone // Close conn only after dial returns.
-	}()
-
+	}
+	dones := make([]chan struct{}, numServers)
+	for i := 0; i < numServers; i++ {
+		dones[i] = make(chan struct{})
+	}
+	for i := 0; i < numServers; i++ {
+		go func(i int) {
+			defer func() {
+				close(dones[i])
+			}()
+			conn, err := servers[i].Accept()
+			if err != nil {
+				t.Errorf("Error while accepting. Err: %v", err)
+				return
+			}
+			defer conn.Close()
+			switch i {
+			case 0: // 1st server accepts the connection and immediately closes it.
+			case 1: // 2nd server accepts the connection and sends settings frames.
+				framer := http2.NewFramer(conn, conn)
+				if err := framer.WriteSettings(http2.Setting{}); err != nil {
+					t.Errorf("Error while writing settings frame. %v", err)
+					return
+				}
+				conn.SetDeadline(time.Now().Add(time.Second))
+				buf := make([]byte, 1024)
+				for { // Make sure the connection stays healthy.
+					_, err = conn.Read(buf)
+					if err == nil {
+						continue
+					}
+					if nerr, ok := err.(net.Error); !ok || !nerr.Timeout() {
+						t.Errorf("Server expected the conn.Read(_) to timeout instead got error: %v", err)
+					}
+					return
+				}
+			}
+		}(i)
+	}
 	r, cleanup := manual.GenerateAndRegisterManualResolver()
 	defer cleanup()
-	r.InitialState(resolver.State{Addresses: []resolver.Address{lisAddr}})
-	client, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithTimeout(5*time.Second))
-	close(dialDone)
-	if err != nil {
-		t.Fatalf("Dial failed. Err: %v", err)
+	resolvedAddrs := make([]resolver.Address, numServers)
+	for i := 0; i < numServers; i++ {
+		resolvedAddrs[i] = resolver.Address{Addr: servers[i].Addr().String()}
 	}
-	defer client.Close()
-	timeout := time.After(1 * time.Second)
-	select {
-	case <-timeout:
-		t.Fatal("timed out waiting for server to finish")
-	case <-lisDone:
-	}
-}
-
-func (s) TestDialWithMultipleBackendsNotSendingServerPreface(t *testing.T) {
-	lis1, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis1.Close()
-	lis1Addr := resolver.Address{Addr: lis1.Addr().String()}
-	lis1Done := make(chan struct{})
-	// 1st listener accepts the connection and immediately closes it.
-	go func() {
-		defer close(lis1Done)
-		conn, err := lis1.Accept()
-		if err != nil {
-			t.Errorf("Error while accepting. Err: %v", err)
-			return
-		}
-		conn.Close()
-	}()
-
-	lis2, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis2.Close()
-	lis2Done := make(chan struct{})
-	lis2Addr := resolver.Address{Addr: lis2.Addr().String()}
-	// 2nd listener should get a connection attempt since the first one failed.
-	go func() {
-		defer close(lis2Done)
-		_, err := lis2.Accept() // Closing the client will clean up this conn.
-		if err != nil {
-			t.Errorf("Error while accepting. Err: %v", err)
-			return
-		}
-	}()
-
-	r, cleanup := manual.GenerateAndRegisterManualResolver()
-	defer cleanup()
-	r.InitialState(resolver.State{Addresses: []resolver.Address{lis1Addr, lis2Addr}})
+	r.InitialAddrs(resolvedAddrs)
 	client, err := Dial(r.Scheme()+":///test.server", WithInsecure())
 	if err != nil {
-		t.Fatalf("Dial failed. Err: %v", err)
+		t.Errorf("Dial failed. Err: %v", err)
+	} else {
+		defer client.Close()
 	}
-	defer client.Close()
-	timeout := time.After(5 * time.Second)
-	select {
-	case <-timeout:
-		t.Fatal("timed out waiting for server 1 to finish")
-	case <-lis1Done:
+	time.Sleep(time.Second) // Close the servers after a second for cleanup.
+	for _, s := range servers {
+		s.Close()
 	}
-	select {
-	case <-timeout:
-		t.Fatal("timed out waiting for server 2 to finish")
-	case <-lis2Done:
+	for _, done := range dones {
+		<-done
 	}
 }
 
-func (s) TestDialWaitsForServerSettings(t *testing.T) {
-	lis, err := net.Listen("tcp", "localhost:0")
+func TestDialWaitsForServerSettings(t *testing.T) {
+	defer leakcheck.Check(t)
+	server, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("Error while listening. Err: %v", err)
 	}
-	defer lis.Close()
+	defer server.Close()
 	done := make(chan struct{})
 	sent := make(chan struct{})
 	dialDone := make(chan struct{})
@@ -163,7 +143,7 @@ func (s) TestDialWaitsForServerSettings(t *testing.T) {
 		defer func() {
 			close(done)
 		}()
-		conn, err := lis.Accept()
+		conn, err := server.Accept()
 		if err != nil {
 			t.Errorf("Error while accepting. Err: %v", err)
 			return
@@ -171,7 +151,7 @@ func (s) TestDialWaitsForServerSettings(t *testing.T) {
 		defer conn.Close()
 		// Sleep for a little bit to make sure that Dial on client
 		// side blocks until settings are received.
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		framer := http2.NewFramer(conn, conn)
 		close(sent)
 		if err := framer.WriteSettings(http2.Setting{}); err != nil {
@@ -182,9 +162,10 @@ func (s) TestDialWaitsForServerSettings(t *testing.T) {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := DialContext(ctx, lis.Addr().String(), WithInsecure(), WithBlock())
+	client, err := DialContext(ctx, server.Addr().String(), WithInsecure(), WithWaitForHandshake(), WithBlock())
 	close(dialDone)
 	if err != nil {
+		cancel()
 		t.Fatalf("Error while dialing. Err: %v", err)
 	}
 	defer client.Close()
@@ -194,55 +175,18 @@ func (s) TestDialWaitsForServerSettings(t *testing.T) {
 		t.Fatalf("Dial returned before server settings were sent")
 	}
 	<-done
+
 }
 
-func (s) TestDialWaitsForServerSettingsAndFails(t *testing.T) {
-	lis, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	done := make(chan struct{})
-	numConns := 0
-	go func() { // Launch the server.
-		defer func() {
-			close(done)
-		}()
-		for {
-			conn, err := lis.Accept()
-			if err != nil {
-				break
-			}
-			numConns++
-			defer conn.Close()
-		}
+func TestCloseConnectionWhenServerPrefaceNotReceived(t *testing.T) {
+	mctBkp := getMinConnectTimeout()
+	// Call this only after transportMonitor goroutine has ended.
+	defer func() {
+		atomic.StoreInt64((*int64)(&mutableMinConnectTimeout), int64(mctBkp))
+
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	client, err := DialContext(ctx,
-		lis.Addr().String(),
-		WithInsecure(),
-		WithBlock(),
-		withBackoff(noBackoff{}),
-		withMinConnectDeadline(func() time.Duration { return time.Second / 4 }))
-	lis.Close()
-	if err == nil {
-		client.Close()
-		t.Fatalf("Unexpected success (err=nil) while dialing")
-	}
-	if err != context.DeadlineExceeded {
-		t.Fatalf("DialContext(_) = %v; want context.DeadlineExceeded", err)
-	}
-	<-done
-	if numConns < 2 {
-		t.Fatalf("dial attempts: %v; want > 1", numConns)
-	}
-}
-
-// 1. Client connects to a server that doesn't send preface.
-// 2. After minConnectTimeout(500 ms here), client disconnects and retries.
-// 3. The new server sends its preface.
-// 4. Client doesn't kill the connection this time.
-func (s) TestCloseConnectionWhenServerPrefaceNotReceived(t *testing.T) {
+	defer leakcheck.Check(t)
+	atomic.StoreInt64((*int64)(&mutableMinConnectTimeout), int64(time.Millisecond)*500)
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("Error while listening. Err: %v", err)
@@ -260,7 +204,6 @@ func (s) TestCloseConnectionWhenServerPrefaceNotReceived(t *testing.T) {
 		}
 	}()
 	done := make(chan struct{})
-	accepted := make(chan struct{})
 	go func() { // Launch the server.
 		defer close(done)
 		conn1, err := lis.Accept()
@@ -275,7 +218,6 @@ func (s) TestCloseConnectionWhenServerPrefaceNotReceived(t *testing.T) {
 			t.Errorf("Error while accepting. Err: %v", err)
 			return
 		}
-		close(accepted)
 		framer := http2.NewFramer(conn2, conn2)
 		if err = framer.WriteSettings(http2.Setting{}); err != nil {
 			t.Errorf("Error while writing settings. Err: %v", err)
@@ -296,36 +238,30 @@ func (s) TestCloseConnectionWhenServerPrefaceNotReceived(t *testing.T) {
 			break
 		}
 	}()
-	client, err := Dial(lis.Addr().String(), WithInsecure(), withMinConnectDeadline(func() time.Duration { return time.Millisecond * 500 }))
+	client, err := Dial(lis.Addr().String(), WithInsecure())
 	if err != nil {
 		t.Fatalf("Error while dialing. Err: %v", err)
 	}
-	// wait for connection to be accepted on the server.
-	timer := time.NewTimer(time.Second * 10)
-	select {
-	case <-accepted:
-	case <-timer.C:
-		t.Fatalf("Client didn't make another connection request in time.")
-	}
-	// Make sure the connection stays alive for sometime.
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2) // Let things play out.
 	atomic.StoreUint32(&over, 1)
+	lis.Close()
 	client.Close()
 	<-done
 }
 
-func (s) TestBackoffWhenNoServerPrefaceReceived(t *testing.T) {
-	lis, err := net.Listen("tcp", "localhost:0")
+func TestBackoffWhenNoServerPrefaceReceived(t *testing.T) {
+	defer leakcheck.Check(t)
+	server, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("Error while listening. Err: %v", err)
 	}
-	defer lis.Close()
+	defer server.Close()
 	done := make(chan struct{})
 	go func() { // Launch the server.
 		defer func() {
 			close(done)
 		}()
-		conn, err := lis.Accept() // Accept the connection only to close it immediately.
+		conn, err := server.Accept() // Accept the connection only to close it immediately.
 		if err != nil {
 			t.Errorf("Error while accepting. Err: %v", err)
 			return
@@ -335,7 +271,7 @@ func (s) TestBackoffWhenNoServerPrefaceReceived(t *testing.T) {
 		var prevDuration time.Duration
 		// Make sure the retry attempts are backed off properly.
 		for i := 0; i < 3; i++ {
-			conn, err := lis.Accept()
+			conn, err := server.Accept()
 			if err != nil {
 				t.Errorf("Error while accepting. Err: %v", err)
 				return
@@ -351,7 +287,7 @@ func (s) TestBackoffWhenNoServerPrefaceReceived(t *testing.T) {
 			prevAt = meow
 		}
 	}()
-	client, err := Dial(lis.Addr().String(), WithInsecure())
+	client, err := Dial(server.Addr().String(), WithInsecure())
 	if err != nil {
 		t.Fatalf("Error while dialing. Err: %v", err)
 	}
@@ -360,7 +296,8 @@ func (s) TestBackoffWhenNoServerPrefaceReceived(t *testing.T) {
 
 }
 
-func (s) TestConnectivityStates(t *testing.T) {
+func TestConnectivityStates(t *testing.T) {
+	defer leakcheck.Check(t)
 	servers, resolver, cleanup := startServers(t, 2, math.MaxUint32)
 	defer cleanup()
 	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(resolver)), WithInsecure())
@@ -396,7 +333,8 @@ func (s) TestConnectivityStates(t *testing.T) {
 
 }
 
-func (s) TestWithTimeout(t *testing.T) {
+func TestWithTimeout(t *testing.T) {
+	defer leakcheck.Check(t)
 	conn, err := Dial("passthrough:///Non-Existent.Server:80", WithTimeout(time.Millisecond), WithBlock(), WithInsecure())
 	if err == nil {
 		conn.Close()
@@ -406,9 +344,10 @@ func (s) TestWithTimeout(t *testing.T) {
 	}
 }
 
-func (s) TestWithTransportCredentialsTLS(t *testing.T) {
+func TestWithTransportCredentialsTLS(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
+	defer leakcheck.Check(t)
 	creds, err := credentials.NewClientTLSFromFile(testdata.Path("ca.pem"), "x.test.youtube.com")
 	if err != nil {
 		t.Fatalf("Failed to create credentials %v", err)
@@ -422,7 +361,8 @@ func (s) TestWithTransportCredentialsTLS(t *testing.T) {
 	}
 }
 
-func (s) TestDefaultAuthority(t *testing.T) {
+func TestDefaultAuthority(t *testing.T) {
+	defer leakcheck.Check(t)
 	target := "Non-Existent.Server:8080"
 	conn, err := Dial(target, WithInsecure())
 	if err != nil {
@@ -434,7 +374,8 @@ func (s) TestDefaultAuthority(t *testing.T) {
 	}
 }
 
-func (s) TestTLSServerNameOverwrite(t *testing.T) {
+func TestTLSServerNameOverwrite(t *testing.T) {
+	defer leakcheck.Check(t)
 	overwriteServerName := "over.write.server.name"
 	creds, err := credentials.NewClientTLSFromFile(testdata.Path("ca.pem"), overwriteServerName)
 	if err != nil {
@@ -450,7 +391,8 @@ func (s) TestTLSServerNameOverwrite(t *testing.T) {
 	}
 }
 
-func (s) TestWithAuthority(t *testing.T) {
+func TestWithAuthority(t *testing.T) {
+	defer leakcheck.Check(t)
 	overwriteServerName := "over.write.server.name"
 	conn, err := Dial("passthrough:///Non-Existent.Server:80", WithInsecure(), WithAuthority(overwriteServerName))
 	if err != nil {
@@ -462,7 +404,8 @@ func (s) TestWithAuthority(t *testing.T) {
 	}
 }
 
-func (s) TestWithAuthorityAndTLS(t *testing.T) {
+func TestWithAuthorityAndTLS(t *testing.T) {
+	defer leakcheck.Check(t)
 	overwriteServerName := "over.write.server.name"
 	creds, err := credentials.NewClientTLSFromFile(testdata.Path("ca.pem"), overwriteServerName)
 	if err != nil {
@@ -478,116 +421,12 @@ func (s) TestWithAuthorityAndTLS(t *testing.T) {
 	}
 }
 
-// When creating a transport configured with n addresses, only calculate the
-// backoff once per "round" of attempts instead of once per address (n times
-// per "round" of attempts).
-func (s) TestDial_OneBackoffPerRetryGroup(t *testing.T) {
-	var attempts uint32
-	getMinConnectTimeout := func() time.Duration {
-		if atomic.AddUint32(&attempts, 1) == 1 {
-			// Once all addresses are exhausted, hang around and wait for the
-			// client.Close to happen rather than re-starting a new round of
-			// attempts.
-			return time.Hour
-		}
-		t.Error("only one attempt backoff calculation, but got more")
-		return 0
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	lis1, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis1.Close()
-
-	lis2, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis2.Close()
-
-	server1Done := make(chan struct{})
-	server2Done := make(chan struct{})
-
-	// Launch server 1.
-	go func() {
-		conn, err := lis1.Accept()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		conn.Close()
-		close(server1Done)
-	}()
-	// Launch server 2.
-	go func() {
-		conn, err := lis2.Accept()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		conn.Close()
-		close(server2Done)
-	}()
-
-	rb := manual.NewBuilderWithScheme("whatever")
-	rb.InitialState(resolver.State{Addresses: []resolver.Address{
-		{Addr: lis1.Addr().String()},
-		{Addr: lis2.Addr().String()},
-	}})
-	client, err := DialContext(ctx, "this-gets-overwritten",
-		WithInsecure(),
-		WithBalancerName(stateRecordingBalancerName),
-		withResolverBuilder(rb),
-		withMinConnectDeadline(getMinConnectTimeout))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer client.Close()
-
-	timeout := time.After(15 * time.Second)
-
-	select {
-	case <-timeout:
-		t.Fatal("timed out waiting for test to finish")
-	case <-server1Done:
-	}
-
-	select {
-	case <-timeout:
-		t.Fatal("timed out waiting for test to finish")
-	case <-server2Done:
-	}
-}
-
-func (s) TestDialContextCancel(t *testing.T) {
+func TestDialContextCancel(t *testing.T) {
+	defer leakcheck.Check(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if _, err := DialContext(ctx, "Non-Existent.Server:80", WithBlock(), WithInsecure()); err != context.Canceled {
 		t.Fatalf("DialContext(%v, _) = _, %v, want _, %v", ctx, err, context.Canceled)
-	}
-}
-
-type failFastError struct{}
-
-func (failFastError) Error() string   { return "failfast" }
-func (failFastError) Temporary() bool { return false }
-
-func (s) TestDialContextFailFast(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	failErr := failFastError{}
-	dialer := func(string, time.Duration) (net.Conn, error) {
-		return nil, failErr
-	}
-
-	_, err := DialContext(ctx, "Non-Existent.Server:80", WithBlock(), WithInsecure(), WithDialer(dialer), FailOnNonTempDialError(true))
-	if terr, ok := err.(transport.ConnectionError); !ok || terr.Origin() != failErr {
-		t.Fatalf("DialContext() = _, %v, want _, %v", err, failErr)
 	}
 }
 
@@ -617,7 +456,8 @@ func (b *blockingBalancer) Close() error {
 	return nil
 }
 
-func (s) TestDialWithBlockingBalancer(t *testing.T) {
+func TestDialWithBlockingBalancer(t *testing.T) {
+	defer leakcheck.Check(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	dialDone := make(chan struct{})
 	go func() {
@@ -639,7 +479,8 @@ func (c securePerRPCCredentials) RequireTransportSecurity() bool {
 	return true
 }
 
-func (s) TestCredentialsMisuse(t *testing.T) {
+func TestCredentialsMisuse(t *testing.T) {
+	defer leakcheck.Check(t)
 	tlsCreds, err := credentials.NewClientTLSFromFile(testdata.Path("ca.pem"), "x.test.youtube.com")
 	if err != nil {
 		t.Fatalf("Failed to create authenticator %v", err)
@@ -654,17 +495,20 @@ func (s) TestCredentialsMisuse(t *testing.T) {
 	}
 }
 
-func (s) TestWithBackoffConfigDefault(t *testing.T) {
+func TestWithBackoffConfigDefault(t *testing.T) {
+	defer leakcheck.Check(t)
 	testBackoffConfigSet(t, &DefaultBackoffConfig)
 }
 
-func (s) TestWithBackoffConfig(t *testing.T) {
+func TestWithBackoffConfig(t *testing.T) {
+	defer leakcheck.Check(t)
 	b := BackoffConfig{MaxDelay: DefaultBackoffConfig.MaxDelay / 2}
 	expected := b
 	testBackoffConfigSet(t, &expected, WithBackoffConfig(b))
 }
 
-func (s) TestWithBackoffMaxDelay(t *testing.T) {
+func TestWithBackoffMaxDelay(t *testing.T) {
+	defer leakcheck.Check(t)
 	md := DefaultBackoffConfig.MaxDelay / 2
 	expected := BackoffConfig{MaxDelay: md}
 	testBackoffConfigSet(t, &expected, WithBackoffMaxDelay(md))
@@ -721,7 +565,8 @@ func (b *emptyBalancer) Close() error {
 	return nil
 }
 
-func (s) TestNonblockingDialWithEmptyBalancer(t *testing.T) {
+func TestNonblockingDialWithEmptyBalancer(t *testing.T) {
+	defer leakcheck.Check(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	dialDone := make(chan error)
@@ -739,7 +584,8 @@ func (s) TestNonblockingDialWithEmptyBalancer(t *testing.T) {
 	}
 }
 
-func (s) TestResolverServiceConfigBeforeAddressNotPanic(t *testing.T) {
+func TestResolverServiceConfigBeforeAddressNotPanic(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -751,27 +597,13 @@ func (s) TestResolverServiceConfigBeforeAddressNotPanic(t *testing.T) {
 
 	// SwitchBalancer before NewAddress. There was no balancer created, this
 	// makes sure we don't call close on nil balancerWrapper.
-	r.UpdateState(resolver.State{ServiceConfig: parseCfg(`{"loadBalancingPolicy": "round_robin"}`)}) // This should not panic.
+	r.NewServiceConfig(`{"loadBalancingPolicy": "round_robin"}`) // This should not panic.
 
 	time.Sleep(time.Second) // Sleep to make sure the service config is handled by ClientConn.
 }
 
-func (s) TestResolverServiceConfigWhileClosingNotPanic(t *testing.T) {
-	for i := 0; i < 10; i++ { // Run this multiple times to make sure it doesn't panic.
-		r, rcleanup := manual.GenerateAndRegisterManualResolver()
-		defer rcleanup()
-
-		cc, err := Dial(r.Scheme()+":///test.server", WithInsecure())
-		if err != nil {
-			t.Fatalf("failed to dial: %v", err)
-		}
-		// Send a new service config while closing the ClientConn.
-		go cc.Close()
-		go r.UpdateState(resolver.State{ServiceConfig: parseCfg(`{"loadBalancingPolicy": "round_robin"}`)}) // This should not panic.
-	}
-}
-
-func (s) TestResolverEmptyUpdateNotPanic(t *testing.T) {
+func TestResolverEmptyUpdateNotPanic(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -782,50 +614,24 @@ func (s) TestResolverEmptyUpdateNotPanic(t *testing.T) {
 	defer cc.Close()
 
 	// This make sure we don't create addrConn with empty address list.
-	r.UpdateState(resolver.State{}) // This should not panic.
+	r.NewAddress([]resolver.Address{}) // This should not panic.
 
 	time.Sleep(time.Second) // Sleep to make sure the service config is handled by ClientConn.
 }
 
-func (s) TestClientUpdatesParamsAfterGoAway(t *testing.T) {
+func TestClientUpdatesParamsAfterGoAway(t *testing.T) {
+	defer leakcheck.Check(t)
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("Failed to listen. Err: %v", err)
 	}
 	defer lis.Close()
-	connected := make(chan struct{})
-	go func() {
-		conn, err := lis.Accept()
-		if err != nil {
-			t.Errorf("error accepting connection: %v", err)
-			return
-		}
-		defer conn.Close()
-		f := http2.NewFramer(conn, conn)
-		// Start a goroutine to read from the conn to prevent the client from
-		// blocking after it writes its preface.
-		go func() {
-			for {
-				if _, err := f.ReadFrame(); err != nil {
-					return
-				}
-			}
-		}()
-		if err := f.WriteSettings(http2.Setting{}); err != nil {
-			t.Errorf("error writing settings: %v", err)
-			return
-		}
-		<-connected
-		if err := f.WriteGoAway(0, http2.ErrCodeEnhanceYourCalm, []byte("too_many_pings")); err != nil {
-			t.Errorf("error writing GOAWAY: %v", err)
-			return
-		}
-	}()
 	addr := lis.Addr().String()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	cc, err := DialContext(ctx, addr, WithBlock(), WithInsecure(), WithKeepaliveParams(keepalive.ClientParameters{
-		Time:                10 * time.Second,
+	s := NewServer()
+	go s.Serve(lis)
+	defer s.Stop()
+	cc, err := Dial(addr, WithBlock(), WithInsecure(), WithKeepaliveParams(keepalive.ClientParameters{
+		Time:                50 * time.Millisecond,
 		Timeout:             100 * time.Millisecond,
 		PermitWithoutStream: true,
 	}))
@@ -833,25 +639,16 @@ func (s) TestClientUpdatesParamsAfterGoAway(t *testing.T) {
 		t.Fatalf("Dial(%s, _) = _, %v, want _, <nil>", addr, err)
 	}
 	defer cc.Close()
-	close(connected)
-	for {
-		time.Sleep(10 * time.Millisecond)
-		cc.mu.RLock()
-		v := cc.mkp.Time
-		if v == 20*time.Second {
-			// Success
-			cc.mu.RUnlock()
-			return
-		}
-		if ctx.Err() != nil {
-			// Timeout
-			t.Fatalf("cc.dopts.copts.Keepalive.Time = %v , want 20s", v)
-		}
-		cc.mu.RUnlock()
+	time.Sleep(1 * time.Second)
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
+	v := cc.mkp.Time
+	if v < 100*time.Millisecond {
+		t.Fatalf("cc.dopts.copts.Keepalive.Time = %v , want 100ms", v)
 	}
 }
 
-func (s) TestDisableServiceConfigOption(t *testing.T) {
+func TestDisableServiceConfigOption(t *testing.T) {
 	r, cleanup := manual.GenerateAndRegisterManualResolver()
 	defer cleanup()
 	addr := r.Scheme() + ":///non.existent"
@@ -860,7 +657,7 @@ func (s) TestDisableServiceConfigOption(t *testing.T) {
 		t.Fatalf("Dial(%s, _) = _, %v, want _, <nil>", addr, err)
 	}
 	defer cc.Close()
-	r.UpdateState(resolver.State{ServiceConfig: parseCfg(`{
+	r.NewServiceConfig(`{
     "methodConfig": [
         {
             "name": [
@@ -872,327 +669,10 @@ func (s) TestDisableServiceConfigOption(t *testing.T) {
             "waitForReady": true
         }
     ]
-}`)})
+}`)
 	time.Sleep(1 * time.Second)
 	m := cc.GetMethodConfig("/foo/Bar")
 	if m.WaitForReady != nil {
-		t.Fatalf("want: method (\"/foo/bar/\") config to be empty, got: %+v", m)
-	}
-}
-
-func (s) TestGetClientConnTarget(t *testing.T) {
-	addr := "nonexist:///non.existent"
-	cc, err := Dial(addr, WithInsecure())
-	if err != nil {
-		t.Fatalf("Dial(%s, _) = _, %v, want _, <nil>", addr, err)
-	}
-	defer cc.Close()
-	if cc.Target() != addr {
-		t.Fatalf("Target() = %s, want %s", cc.Target(), addr)
-	}
-}
-
-type backoffForever struct{}
-
-func (b backoffForever) Backoff(int) time.Duration { return time.Duration(math.MaxInt64) }
-
-func (s) TestResetConnectBackoff(t *testing.T) {
-	dials := make(chan struct{})
-	defer func() { // If we fail, let the http2client break out of dialing.
-		select {
-		case <-dials:
-		default:
-		}
-	}()
-	dialer := func(string, time.Duration) (net.Conn, error) {
-		dials <- struct{}{}
-		return nil, errors.New("failed to fake dial")
-	}
-	cc, err := Dial("any", WithInsecure(), WithDialer(dialer), withBackoff(backoffForever{}))
-	if err != nil {
-		t.Fatalf("Dial() = _, %v; want _, nil", err)
-	}
-	defer cc.Close()
-	select {
-	case <-dials:
-	case <-time.NewTimer(10 * time.Second).C:
-		t.Fatal("Failed to call dial within 10s")
-	}
-
-	select {
-	case <-dials:
-		t.Fatal("Dial called unexpectedly before resetting backoff")
-	case <-time.NewTimer(100 * time.Millisecond).C:
-	}
-
-	cc.ResetConnectBackoff()
-
-	select {
-	case <-dials:
-	case <-time.NewTimer(10 * time.Second).C:
-		t.Fatal("Failed to call dial within 10s after resetting backoff")
-	}
-}
-
-func (s) TestBackoffCancel(t *testing.T) {
-	dialStrCh := make(chan string)
-	cc, err := Dial("any", WithInsecure(), WithDialer(func(t string, _ time.Duration) (net.Conn, error) {
-		dialStrCh <- t
-		return nil, fmt.Errorf("test dialer, always error")
-	}))
-	if err != nil {
-		t.Fatalf("Failed to create ClientConn: %v", err)
-	}
-	<-dialStrCh
-	cc.Close()
-	// Should not leak. May need -count 5000 to exercise.
-}
-
-// UpdateAddresses should cause the next reconnect to begin from the top of the
-// list if the connection is not READY.
-func (s) TestUpdateAddresses_RetryFromFirstAddr(t *testing.T) {
-	lis1, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis1.Close()
-
-	lis2, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis2.Close()
-
-	lis3, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Error while listening. Err: %v", err)
-	}
-	defer lis3.Close()
-
-	closeServer2 := make(chan struct{})
-	server1ContactedFirstTime := make(chan struct{})
-	server1ContactedSecondTime := make(chan struct{})
-	server2ContactedFirstTime := make(chan struct{})
-	server2ContactedSecondTime := make(chan struct{})
-	server3Contacted := make(chan struct{})
-
-	// Launch server 1.
-	go func() {
-		// First, let's allow the initial connection to go READY. We need to do
-		// this because tryUpdateAddrs only works after there's some non-nil
-		// address on the ac, and curAddress is only set after READY.
-		conn1, err := lis1.Accept()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		go keepReading(conn1)
-
-		framer := http2.NewFramer(conn1, conn1)
-		if err := framer.WriteSettings(http2.Setting{}); err != nil {
-			t.Errorf("Error while writing settings frame. %v", err)
-			return
-		}
-
-		// nextStateNotifier() is updated after balancerBuilder.Build(), which is
-		// called by grpc.Dial. It's safe to do it here because lis1.Accept blocks
-		// until balancer is built to process the addresses.
-		stateNotifications := testBalancerBuilder.nextStateNotifier()
-		// Wait for the transport to become ready.
-		for s := range stateNotifications {
-			if s == connectivity.Ready {
-				break
-			}
-		}
-
-		// Once it's ready, curAddress has been set. So let's close this
-		// connection prompting the first reconnect cycle.
-		conn1.Close()
-
-		// Accept and immediately close, causing it to go to server2.
-		conn2, err := lis1.Accept()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		close(server1ContactedFirstTime)
-		conn2.Close()
-
-		// Hopefully it picks this server after tryUpdateAddrs.
-		lis1.Accept()
-		close(server1ContactedSecondTime)
-	}()
-	// Launch server 2.
-	go func() {
-		// Accept and then hang waiting for the test call tryUpdateAddrs and
-		// then signal to this server to close. After this server closes, it
-		// should start from the top instead of trying server2 or continuing
-		// to server3.
-		conn, err := lis2.Accept()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		close(server2ContactedFirstTime)
-		<-closeServer2
-		conn.Close()
-
-		// After tryUpdateAddrs, it should NOT try server2.
-		lis2.Accept()
-		close(server2ContactedSecondTime)
-	}()
-	// Launch server 3.
-	go func() {
-		// After tryUpdateAddrs, it should NOT try server3. (or any other time)
-		lis3.Accept()
-		close(server3Contacted)
-	}()
-
-	addrsList := []resolver.Address{
-		{Addr: lis1.Addr().String()},
-		{Addr: lis2.Addr().String()},
-		{Addr: lis3.Addr().String()},
-	}
-	rb := manual.NewBuilderWithScheme("whatever")
-	rb.InitialState(resolver.State{Addresses: addrsList})
-
-	client, err := Dial("this-gets-overwritten",
-		WithInsecure(),
-		withResolverBuilder(rb),
-		withBackoff(noBackoff{}),
-		WithBalancerName(stateRecordingBalancerName),
-		withMinConnectDeadline(func() time.Duration { return time.Hour }))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer client.Close()
-
-	timeout := time.After(5 * time.Second)
-
-	// Wait for server1 to be contacted (which will immediately fail), then
-	// server2 (which will hang waiting for our signal).
-	select {
-	case <-server1ContactedFirstTime:
-	case <-timeout:
-		t.Fatal("timed out waiting for server1 to be contacted")
-	}
-	select {
-	case <-server2ContactedFirstTime:
-	case <-timeout:
-		t.Fatal("timed out waiting for server2 to be contacted")
-	}
-
-	// Grab the addrConn and call tryUpdateAddrs.
-	var ac *addrConn
-	client.mu.Lock()
-	for clientAC := range client.conns {
-		ac = clientAC
-		break
-	}
-	client.mu.Unlock()
-
-	ac.acbw.UpdateAddresses(addrsList)
-
-	// We've called tryUpdateAddrs - now let's make server2 close the
-	// connection and check that it goes back to server1 instead of continuing
-	// to server3 or trying server2 again.
-	close(closeServer2)
-
-	select {
-	case <-server1ContactedSecondTime:
-	case <-server2ContactedSecondTime:
-		t.Fatal("server2 was contacted a second time, but it after tryUpdateAddrs it should have re-started the list and tried server1")
-	case <-server3Contacted:
-		t.Fatal("server3 was contacted, but after tryUpdateAddrs it should have re-started the list and tried server1")
-	case <-timeout:
-		t.Fatal("timed out waiting for any server to be contacted after tryUpdateAddrs")
-	}
-}
-
-func (s) TestDefaultServiceConfig(t *testing.T) {
-	r, cleanup := manual.GenerateAndRegisterManualResolver()
-	defer cleanup()
-	addr := r.Scheme() + ":///non.existent"
-	js := `{
-    "methodConfig": [
-        {
-            "name": [
-                {
-                    "service": "foo",
-                    "method": "bar"
-                }
-            ],
-            "waitForReady": true
-        }
-    ]
-}`
-	testInvalidDefaultServiceConfig(t)
-	testDefaultServiceConfigWhenResolverServiceConfigDisabled(t, r, addr, js)
-	testDefaultServiceConfigWhenResolverDoesNotReturnServiceConfig(t, r, addr, js)
-	testDefaultServiceConfigWhenResolverReturnInvalidServiceConfig(t, r, addr, js)
-}
-
-func verifyWaitForReadyEqualsTrue(cc *ClientConn) bool {
-	var i int
-	for i = 0; i < 10; i++ {
-		mc := cc.GetMethodConfig("/foo/bar")
-		if mc.WaitForReady != nil && *mc.WaitForReady == true {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return i != 10
-}
-
-func testInvalidDefaultServiceConfig(t *testing.T) {
-	_, err := Dial("fake.com", WithInsecure(), WithDefaultServiceConfig(""))
-	if !strings.Contains(err.Error(), invalidDefaultServiceConfigErrPrefix) {
-		t.Fatalf("Dial got err: %v, want err contains: %v", err, invalidDefaultServiceConfigErrPrefix)
-	}
-}
-
-func testDefaultServiceConfigWhenResolverServiceConfigDisabled(t *testing.T, r resolver.Resolver, addr string, js string) {
-	cc, err := Dial(addr, WithInsecure(), WithDisableServiceConfig(), WithDefaultServiceConfig(js))
-	if err != nil {
-		t.Fatalf("Dial(%s, _) = _, %v, want _, <nil>", addr, err)
-	}
-	defer cc.Close()
-	// Resolver service config gets ignored since resolver service config is disabled.
-	r.(*manual.Resolver).UpdateState(resolver.State{
-		Addresses:     []resolver.Address{{Addr: addr}},
-		ServiceConfig: parseCfg("{}"),
-	})
-	if !verifyWaitForReadyEqualsTrue(cc) {
-		t.Fatal("default service config failed to be applied after 1s")
-	}
-}
-
-func testDefaultServiceConfigWhenResolverDoesNotReturnServiceConfig(t *testing.T, r resolver.Resolver, addr string, js string) {
-	cc, err := Dial(addr, WithInsecure(), WithDefaultServiceConfig(js))
-	if err != nil {
-		t.Fatalf("Dial(%s, _) = _, %v, want _, <nil>", addr, err)
-	}
-	defer cc.Close()
-	r.(*manual.Resolver).UpdateState(resolver.State{
-		Addresses: []resolver.Address{{Addr: addr}},
-	})
-	if !verifyWaitForReadyEqualsTrue(cc) {
-		t.Fatal("default service config failed to be applied after 1s")
-	}
-}
-
-func testDefaultServiceConfigWhenResolverReturnInvalidServiceConfig(t *testing.T, r resolver.Resolver, addr string, js string) {
-	cc, err := Dial(addr, WithInsecure(), WithDefaultServiceConfig(js))
-	if err != nil {
-		t.Fatalf("Dial(%s, _) = _, %v, want _, <nil>", addr, err)
-	}
-	defer cc.Close()
-	r.(*manual.Resolver).UpdateState(resolver.State{
-		Addresses:     []resolver.Address{{Addr: addr}},
-		ServiceConfig: nil,
-	})
-	if !verifyWaitForReadyEqualsTrue(cc) {
-		t.Fatal("default service config failed to be applied after 1s")
+		t.Fatalf("want: method (\"/foo/bar/\") config to be empty, got: %v", m)
 	}
 }

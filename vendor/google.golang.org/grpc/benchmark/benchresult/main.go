@@ -32,13 +32,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc/benchmark/stats"
 )
 
-func createMap(fileName string) map[string]stats.BenchResults {
+func createMap(fileName string, m map[string]stats.BenchResults) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		log.Fatalf("Read file %s error: %s\n", fileName, err)
@@ -49,22 +50,18 @@ func createMap(fileName string) map[string]stats.BenchResults {
 	if err = decoder.Decode(&data); err != nil {
 		log.Fatalf("Decode file %s error: %s\n", fileName, err)
 	}
-	m := make(map[string]stats.BenchResults)
 	for _, d := range data {
 		m[d.RunMode+"-"+d.Features.String()] = d
 	}
-	return m
 }
 
-func intChange(title string, val1, val2 uint64) string {
-	return fmt.Sprintf("%20s %12d %12d %8.2f%%\n", title, val1, val2, float64(int64(val2)-int64(val1))*100/float64(val1))
+func intChange(title string, val1, val2 int64) string {
+	return fmt.Sprintf("%10s %12s %12s %8.2f%%\n", title, strconv.FormatInt(val1, 10),
+		strconv.FormatInt(val2, 10), float64(val2-val1)*100/float64(val1))
 }
 
-func floatChange(title string, val1, val2 float64) string {
-	return fmt.Sprintf("%20s %12.2f %12.2f %8.2f%%\n", title, val1, val2, float64(int64(val2)-int64(val1))*100/float64(val1))
-}
-func timeChange(title string, val1, val2 time.Duration) string {
-	return fmt.Sprintf("%20s %12s %12s %8.2f%%\n", title, val1.String(),
+func timeChange(title int, val1, val2 time.Duration) string {
+	return fmt.Sprintf("%10s %12s %12s %8.2f%%\n", strconv.Itoa(title)+" latency", val1.String(),
 		val2.String(), float64(val2-val1)*100/float64(val1))
 }
 
@@ -72,30 +69,30 @@ func compareTwoMap(m1, m2 map[string]stats.BenchResults) {
 	for k2, v2 := range m2 {
 		if v1, ok := m1[k2]; ok {
 			changes := k2 + "\n"
-			changes += fmt.Sprintf("%20s %12s %12s %8s\n", "Title", "Before", "After", "Percentage")
-			changes += intChange("TotalOps", v1.Data.TotalOps, v2.Data.TotalOps)
-			changes += intChange("SendOps", v1.Data.SendOps, v2.Data.SendOps)
-			changes += intChange("RecvOps", v1.Data.RecvOps, v2.Data.RecvOps)
-			changes += intChange("Bytes/op", v1.Data.AllocedBytes, v2.Data.AllocedBytes)
-			changes += intChange("Allocs/op", v1.Data.Allocs, v2.Data.Allocs)
-			changes += floatChange("ReqT/op", v1.Data.ReqT, v2.Data.ReqT)
-			changes += floatChange("RespT/op", v1.Data.RespT, v2.Data.RespT)
-			changes += timeChange("50th-Lat", v1.Data.Fiftieth, v2.Data.Fiftieth)
-			changes += timeChange("90th-Lat", v1.Data.Ninetieth, v2.Data.Ninetieth)
-			changes += timeChange("99th-Lat", v1.Data.NinetyNinth, v2.Data.NinetyNinth)
-			changes += timeChange("Avg-Lat", v1.Data.Average, v2.Data.Average)
+			changes += fmt.Sprintf("%10s %12s %12s %8s\n", "Title", "Before", "After", "Percentage")
+			changes += intChange("Bytes/op", v1.AllocedBytesPerOp, v2.AllocedBytesPerOp)
+			changes += intChange("Allocs/op", v1.AllocsPerOp, v2.AllocsPerOp)
+			changes += timeChange(v1.Latency[1].Percent, v1.Latency[1].Value, v2.Latency[1].Value)
+			changes += timeChange(v1.Latency[2].Percent, v1.Latency[2].Value, v2.Latency[2].Value)
 			fmt.Printf("%s\n", changes)
 		}
 	}
 }
 
 func compareBenchmark(file1, file2 string) {
-	compareTwoMap(createMap(file1), createMap(file2))
+	var BenchValueFile1 map[string]stats.BenchResults
+	var BenchValueFile2 map[string]stats.BenchResults
+	BenchValueFile1 = make(map[string]stats.BenchResults)
+	BenchValueFile2 = make(map[string]stats.BenchResults)
+
+	createMap(file1, BenchValueFile1)
+	createMap(file2, BenchValueFile2)
+
+	compareTwoMap(BenchValueFile1, BenchValueFile2)
 }
 
-func printline(benchName, total, send, recv, allocB, allocN, reqT, respT, ltc50, ltc90, l99, lAvg interface{}) {
-	fmt.Printf("%-80v%12v%12v%12v%12v%12v%18v%18v%12v%12v%12v%12v\n",
-		benchName, total, send, recv, allocB, allocN, reqT, respT, ltc50, ltc90, l99, lAvg)
+func printline(benchName, ltc50, ltc90, allocByte, allocsOp interface{}) {
+	fmt.Printf("%-80v%12v%12v%12v%12v\n", benchName, ltc50, ltc90, allocByte, allocsOp)
 }
 
 func formatBenchmark(fileName string) {
@@ -104,30 +101,26 @@ func formatBenchmark(fileName string) {
 		log.Fatalf("Read file %s error: %s\n", fileName, err)
 	}
 	defer f.Close()
-	var results []stats.BenchResults
+	var data []stats.BenchResults
 	decoder := gob.NewDecoder(f)
-	if err = decoder.Decode(&results); err != nil {
+	if err = decoder.Decode(&data); err != nil {
 		log.Fatalf("Decode file %s error: %s\n", fileName, err)
 	}
-	if len(results) == 0 {
-		log.Fatalf("No benchmark results in file %s\n", fileName)
+	if len(data) == 0 {
+		log.Fatalf("No data in file %s\n", fileName)
 	}
-
+	printPos := data[0].SharedPosion
 	fmt.Println("\nShared features:\n" + strings.Repeat("-", 20))
-	fmt.Print(results[0].Features.SharedFeatures(results[0].SharedFeatures))
+	fmt.Print(stats.PartialPrintString(printPos, data[0].Features, true))
 	fmt.Println(strings.Repeat("-", 35))
-
-	wantFeatures := results[0].SharedFeatures
-	for i := 0; i < len(results[0].SharedFeatures); i++ {
-		wantFeatures[i] = !wantFeatures[i]
+	for i := 0; i < len(data[0].SharedPosion); i++ {
+		printPos[i] = !printPos[i]
 	}
-
-	printline("Name", "TotalOps", "SendOps", "RecvOps", "Alloc (B)", "Alloc (#)",
-		"RequestT", "ResponseT", "L-50", "L-90", "L-99", "L-Avg")
-	for _, r := range results {
-		d := r.Data
-		printline(r.RunMode+r.Features.PrintableName(wantFeatures), d.TotalOps, d.SendOps, d.RecvOps,
-			d.AllocedBytes, d.Allocs, d.ReqT, d.RespT, d.Fiftieth, d.Ninetieth, d.NinetyNinth, d.Average)
+	printline("Name", "latency-50", "latency-90", "Alloc (B)", "Alloc (#)")
+	for _, d := range data {
+		name := d.RunMode + stats.PartialPrintString(printPos, d.Features, false)
+		printline(name, d.Latency[1].Value.String(), d.Latency[2].Value.String(),
+			d.AllocedBytesPerOp, d.AllocsPerOp)
 	}
 }
 

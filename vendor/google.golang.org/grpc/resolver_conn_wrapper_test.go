@@ -27,7 +27,7 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
-func (s) TestParseTarget(t *testing.T) {
+func TestParseTarget(t *testing.T) {
 	for _, test := range []resolver.Target{
 		{Scheme: "dns", Authority: "", Endpoint: "google.com"},
 		{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com"},
@@ -42,7 +42,7 @@ func (s) TestParseTarget(t *testing.T) {
 	}
 }
 
-func (s) TestParseTargetString(t *testing.T) {
+func TestParseTargetString(t *testing.T) {
 	for _, test := range []struct {
 		targetStr string
 		want      resolver.Target
@@ -83,7 +83,7 @@ func (s) TestParseTargetString(t *testing.T) {
 
 // The target string with unknown scheme should be kept unchanged and passed to
 // the dialer.
-func (s) TestDialParseTargetUnknownScheme(t *testing.T) {
+func TestDialParseTargetUnknownScheme(t *testing.T) {
 	for _, test := range []struct {
 		targetStr string
 		want      string
@@ -97,11 +97,8 @@ func (s) TestDialParseTargetUnknownScheme(t *testing.T) {
 		{"passthrough://a.server.com/google.com", "google.com"},
 	} {
 		dialStrCh := make(chan string, 1)
-		cc, err := Dial(test.targetStr, WithInsecure(), WithDialer(func(addr string, _ time.Duration) (net.Conn, error) {
-			select {
-			case dialStrCh <- addr:
-			default:
-			}
+		cc, err := Dial(test.targetStr, WithInsecure(), WithDialer(func(t string, _ time.Duration) (net.Conn, error) {
+			dialStrCh <- t
 			return nil, fmt.Errorf("test dialer, always error")
 		}))
 		if err != nil {

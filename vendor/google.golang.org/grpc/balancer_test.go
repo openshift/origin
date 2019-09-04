@@ -19,7 +19,6 @@
 package grpc
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -27,8 +26,10 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	_ "google.golang.org/grpc/grpclog/glogger"
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/naming"
 	"google.golang.org/grpc/status"
 
@@ -37,10 +38,6 @@ import (
 
 	_ "google.golang.org/grpc/resolver/passthrough"
 )
-
-func pickFirstBalancerV1(r naming.Resolver) Balancer {
-	return &pickFirst{&roundRobin{r: r}}
-}
 
 type testWatcher struct {
 	// the channel to receives name resolution updates
@@ -120,7 +117,8 @@ func startServers(t *testing.T, numServers int, maxStreams uint32) ([]*server, *
 		}
 }
 
-func (s) TestNameDiscovery(t *testing.T) {
+func TestNameDiscovery(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 2 servers on 2 ports.
 	numServers := 2
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
@@ -155,7 +153,8 @@ func (s) TestNameDiscovery(t *testing.T) {
 	}
 }
 
-func (s) TestEmptyAddrs(t *testing.T) {
+func TestEmptyAddrs(t *testing.T) {
+	defer leakcheck.Check(t)
 	servers, r, cleanup := startServers(t, 1, math.MaxUint32)
 	defer cleanup()
 	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
@@ -186,7 +185,8 @@ func (s) TestEmptyAddrs(t *testing.T) {
 	}
 }
 
-func (s) TestRoundRobin(t *testing.T) {
+func TestRoundRobin(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 3 servers on 3 ports.
 	numServers := 3
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
@@ -232,7 +232,8 @@ func (s) TestRoundRobin(t *testing.T) {
 	}
 }
 
-func (s) TestCloseWithPendingRPC(t *testing.T) {
+func TestCloseWithPendingRPC(t *testing.T) {
+	defer leakcheck.Check(t)
 	servers, r, cleanup := startServers(t, 1, math.MaxUint32)
 	defer cleanup()
 	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
@@ -241,7 +242,7 @@ func (s) TestCloseWithPendingRPC(t *testing.T) {
 	}
 	defer cc.Close()
 	var reply string
-	if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err != nil {
+	if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err != nil {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) = %v, want %s", err, servers[0].port)
 	}
 	// Remove the server.
@@ -253,7 +254,7 @@ func (s) TestCloseWithPendingRPC(t *testing.T) {
 	// Loop until the above update applies.
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		if err := cc.Invoke(ctx, "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); status.Code(err) == codes.DeadlineExceeded {
+		if err := cc.Invoke(ctx, "/foo/bar", &expectedRequest, &reply, FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			cancel()
 			break
 		}
@@ -266,7 +267,7 @@ func (s) TestCloseWithPendingRPC(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		var reply string
-		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err == nil {
+		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err == nil {
 			t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want not nil", err)
 		}
 	}()
@@ -274,7 +275,7 @@ func (s) TestCloseWithPendingRPC(t *testing.T) {
 		defer wg.Done()
 		var reply string
 		time.Sleep(5 * time.Millisecond)
-		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err == nil {
+		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err == nil {
 			t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want not nil", err)
 		}
 	}()
@@ -283,7 +284,8 @@ func (s) TestCloseWithPendingRPC(t *testing.T) {
 	wg.Wait()
 }
 
-func (s) TestGetOnWaitChannel(t *testing.T) {
+func TestGetOnWaitChannel(t *testing.T) {
+	defer leakcheck.Check(t)
 	servers, r, cleanup := startServers(t, 1, math.MaxUint32)
 	defer cleanup()
 	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
@@ -300,7 +302,7 @@ func (s) TestGetOnWaitChannel(t *testing.T) {
 	for {
 		var reply string
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		if err := cc.Invoke(ctx, "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); status.Code(err) == codes.DeadlineExceeded {
+		if err := cc.Invoke(ctx, "/foo/bar", &expectedRequest, &reply, FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			cancel()
 			break
 		}
@@ -312,7 +314,7 @@ func (s) TestGetOnWaitChannel(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		var reply string
-		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err != nil {
+		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err != nil {
 			t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want <nil>", err)
 		}
 	}()
@@ -326,12 +328,13 @@ func (s) TestGetOnWaitChannel(t *testing.T) {
 	wg.Wait()
 }
 
-func (s) TestOneServerDown(t *testing.T) {
+func TestOneServerDown(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 2 servers.
 	numServers := 2
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
 	defer cleanup()
-	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
+	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}), WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("Failed to create ClientConn: %v", err)
 	}
@@ -371,14 +374,15 @@ func (s) TestOneServerDown(t *testing.T) {
 			time.Sleep(sleepDuration)
 			// After sleepDuration, invoke RPC.
 			// server[0] is killed around the same time to make it racy between balancer and gRPC internals.
-			cc.Invoke(context.Background(), "/foo/bar", &req, &reply, WaitForReady(true))
+			cc.Invoke(context.Background(), "/foo/bar", &req, &reply, FailFast(false))
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 }
 
-func (s) TestOneAddressRemoval(t *testing.T) {
+func TestOneAddressRemoval(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 2 servers.
 	numServers := 2
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
@@ -429,7 +433,7 @@ func (s) TestOneAddressRemoval(t *testing.T) {
 			time.Sleep(sleepDuration)
 			// After sleepDuration, invoke RPC.
 			// server[0] is removed around the same time to make it racy between balancer and gRPC internals.
-			if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err != nil {
+			if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err != nil {
 				t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want nil", err)
 			}
 			wg.Done()
@@ -455,7 +459,8 @@ func checkServerUp(t *testing.T, currentServer *server) {
 	}
 }
 
-func (s) TestPickFirstEmptyAddrs(t *testing.T) {
+func TestPickFirstEmptyAddrs(t *testing.T) {
+	defer leakcheck.Check(t)
 	servers, r, cleanup := startServers(t, 1, math.MaxUint32)
 	defer cleanup()
 	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(pickFirstBalancerV1(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
@@ -486,7 +491,8 @@ func (s) TestPickFirstEmptyAddrs(t *testing.T) {
 	}
 }
 
-func (s) TestPickFirstCloseWithPendingRPC(t *testing.T) {
+func TestPickFirstCloseWithPendingRPC(t *testing.T) {
+	defer leakcheck.Check(t)
 	servers, r, cleanup := startServers(t, 1, math.MaxUint32)
 	defer cleanup()
 	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(pickFirstBalancerV1(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
@@ -495,7 +501,7 @@ func (s) TestPickFirstCloseWithPendingRPC(t *testing.T) {
 	}
 	defer cc.Close()
 	var reply string
-	if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err != nil {
+	if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err != nil {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) = %v, want %s", err, servers[0].port)
 	}
 	// Remove the server.
@@ -507,7 +513,7 @@ func (s) TestPickFirstCloseWithPendingRPC(t *testing.T) {
 	// Loop until the above update applies.
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		if err := cc.Invoke(ctx, "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); status.Code(err) == codes.DeadlineExceeded {
+		if err := cc.Invoke(ctx, "/foo/bar", &expectedRequest, &reply, FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			cancel()
 			break
 		}
@@ -520,7 +526,7 @@ func (s) TestPickFirstCloseWithPendingRPC(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		var reply string
-		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err == nil {
+		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err == nil {
 			t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want not nil", err)
 		}
 	}()
@@ -528,7 +534,7 @@ func (s) TestPickFirstCloseWithPendingRPC(t *testing.T) {
 		defer wg.Done()
 		var reply string
 		time.Sleep(5 * time.Millisecond)
-		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err == nil {
+		if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err == nil {
 			t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want not nil", err)
 		}
 	}()
@@ -537,7 +543,8 @@ func (s) TestPickFirstCloseWithPendingRPC(t *testing.T) {
 	wg.Wait()
 }
 
-func (s) TestPickFirstOrderAllServerUp(t *testing.T) {
+func TestPickFirstOrderAllServerUp(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 3 servers on 3 ports.
 	numServers := 3
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
@@ -649,12 +656,13 @@ func (s) TestPickFirstOrderAllServerUp(t *testing.T) {
 	}
 }
 
-func (s) TestPickFirstOrderOneServerDown(t *testing.T) {
+func TestPickFirstOrderOneServerDown(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 3 servers on 3 ports.
 	numServers := 3
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
 	defer cleanup()
-	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(pickFirstBalancerV1(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
+	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(pickFirstBalancerV1(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}), WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("Failed to create ClientConn: %v", err)
 	}
@@ -739,7 +747,8 @@ func (s) TestPickFirstOrderOneServerDown(t *testing.T) {
 	}
 }
 
-func (s) TestPickFirstOneAddressRemoval(t *testing.T) {
+func TestPickFirstOneAddressRemoval(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Start 2 servers.
 	numServers := 2
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
@@ -785,7 +794,7 @@ func (s) TestPickFirstOneAddressRemoval(t *testing.T) {
 			time.Sleep(sleepDuration)
 			// After sleepDuration, invoke RPC.
 			// server[0] is removed around the same time to make it racy between balancer and gRPC internals.
-			if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, WaitForReady(true)); err != nil {
+			if err := cc.Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, FailFast(false)); err != nil {
 				t.Errorf("grpc.Invoke(_, _, _, _, _) = %v, want nil", err)
 			}
 			wg.Done()

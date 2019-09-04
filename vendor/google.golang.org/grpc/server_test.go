@@ -19,21 +19,23 @@
 package grpc
 
 import (
-	"context"
 	"net"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"google.golang.org/grpc/internal/transport"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc/internal/leakcheck"
+	"google.golang.org/grpc/transport"
 )
 
 type emptyServiceServer interface{}
 
 type testServer struct{}
 
-func (s) TestStopBeforeServe(t *testing.T) {
+func TestStopBeforeServe(t *testing.T) {
+	defer leakcheck.Check(t)
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
@@ -54,7 +56,8 @@ func (s) TestStopBeforeServe(t *testing.T) {
 	}
 }
 
-func (s) TestGracefulStop(t *testing.T) {
+func TestGracefulStop(t *testing.T) {
+	defer leakcheck.Check(t)
 
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
@@ -74,7 +77,8 @@ func (s) TestGracefulStop(t *testing.T) {
 	}
 }
 
-func (s) TestGetServiceInfo(t *testing.T) {
+func TestGetServiceInfo(t *testing.T) {
+	defer leakcheck.Check(t)
 	testSd := ServiceDesc{
 		ServiceName: "grpc.testing.EmptyService",
 		HandlerType: (*emptyServiceServer)(nil),
@@ -121,7 +125,7 @@ func (s) TestGetServiceInfo(t *testing.T) {
 	}
 }
 
-func (s) TestStreamContext(t *testing.T) {
+func TestStreamContext(t *testing.T) {
 	expectedStream := &transport.Stream{}
 	ctx := NewContextWithServerTransportStream(context.Background(), expectedStream)
 	s := ServerTransportStreamFromContext(ctx)

@@ -19,13 +19,14 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"math"
 	"runtime"
 	"sync"
+	"syscall"
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/benchmark"
 	testpb "google.golang.org/grpc/benchmark/grpc_testing"
@@ -33,7 +34,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/internal/syscall"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/testdata"
 )
@@ -51,12 +51,12 @@ func (h *lockingHistogram) add(value int64) {
 	h.histogram.Add(value)
 }
 
-// swap sets h.histogram to o and returns its old value.
-func (h *lockingHistogram) swap(o *stats.Histogram) *stats.Histogram {
+// swap sets h.histogram to new, and returns its old value.
+func (h *lockingHistogram) swap(new *stats.Histogram) *stats.Histogram {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	old := h.histogram
-	h.histogram = o
+	h.histogram = new
 	return old
 }
 
@@ -217,6 +217,9 @@ func startBenchmarkClient(config *testpb.ClientConfig) (*benchmarkClient, error)
 		return nil, err
 	}
 
+	rusage := new(syscall.Rusage)
+	syscall.Getrusage(syscall.RUSAGE_SELF, rusage)
+
 	rpcCountPerConn := int(config.OutstandingRpcsPerChannel)
 	bc := &benchmarkClient{
 		histogramOptions: stats.HistogramOptions{
@@ -230,7 +233,7 @@ func startBenchmarkClient(config *testpb.ClientConfig) (*benchmarkClient, error)
 		stop:            make(chan bool),
 		lastResetTime:   time.Now(),
 		closeConns:      closeConns,
-		rusageLastReset: syscall.GetRusage(),
+		rusageLastReset: rusage,
 	}
 
 	if err = performRPCs(config, conns, bc); err != nil {
@@ -332,6 +335,7 @@ func (bc *benchmarkClient) doCloseLoopStreaming(conns []*grpc.ClientConn, rpcCou
 func (bc *benchmarkClient) getStats(reset bool) *testpb.ClientStats {
 	var wallTimeElapsed, uTimeElapsed, sTimeElapsed float64
 	mergedHistogram := stats.NewHistogram(bc.histogramOptions)
+	latestRusage := new(syscall.Rusage)
 
 	if reset {
 		// Merging histogram may take some time.
@@ -346,8 +350,8 @@ func (bc *benchmarkClient) getStats(reset bool) *testpb.ClientStats {
 		}
 
 		wallTimeElapsed = time.Since(bc.lastResetTime).Seconds()
-		latestRusage := syscall.GetRusage()
-		uTimeElapsed, sTimeElapsed = syscall.CPUTimeDiff(bc.rusageLastReset, latestRusage)
+		syscall.Getrusage(syscall.RUSAGE_SELF, latestRusage)
+		uTimeElapsed, sTimeElapsed = cpuTimeDiff(bc.rusageLastReset, latestRusage)
 
 		bc.rusageLastReset = latestRusage
 		bc.lastResetTime = time.Now()
@@ -358,7 +362,8 @@ func (bc *benchmarkClient) getStats(reset bool) *testpb.ClientStats {
 		}
 
 		wallTimeElapsed = time.Since(bc.lastResetTime).Seconds()
-		uTimeElapsed, sTimeElapsed = syscall.CPUTimeDiff(bc.rusageLastReset, syscall.GetRusage())
+		syscall.Getrusage(syscall.RUSAGE_SELF, latestRusage)
+		uTimeElapsed, sTimeElapsed = cpuTimeDiff(bc.rusageLastReset, latestRusage)
 	}
 
 	b := make([]uint32, len(mergedHistogram.Buckets))

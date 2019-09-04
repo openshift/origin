@@ -22,34 +22,21 @@
 package service
 
 import (
-	"context"
 	"net"
-	"time"
 
 	"github.com/golang/protobuf/ptypes"
-	durpb "github.com/golang/protobuf/ptypes/duration"
 	wrpb "github.com/golang/protobuf/ptypes/wrappers"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	channelzgrpc "google.golang.org/grpc/channelz/grpc_channelz_v1"
 	channelzpb "google.golang.org/grpc/channelz/grpc_channelz_v1"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/internal/channelz"
-	"google.golang.org/grpc/status"
 )
-
-func init() {
-	channelz.TurnOn()
-}
-
-func convertToPtypesDuration(sec int64, usec int64) *durpb.Duration {
-	return ptypes.DurationProto(time.Duration(sec*1e9 + usec*1e3))
-}
 
 // RegisterChannelzServiceToServer registers the channelz service to the given server.
 func RegisterChannelzServiceToServer(s *grpc.Server) {
-	channelzgrpc.RegisterChannelzServer(s, newCZServer())
+	channelzgrpc.RegisterChannelzServer(s, &serverImpl{})
 }
 
 func newCZServer() channelzgrpc.ChannelzServer {
@@ -73,35 +60,6 @@ func connectivityStateToProto(s connectivity.State) *channelzpb.ChannelConnectiv
 	default:
 		return &channelzpb.ChannelConnectivityState{State: channelzpb.ChannelConnectivityState_UNKNOWN}
 	}
-}
-
-func channelTraceToProto(ct *channelz.ChannelTrace) *channelzpb.ChannelTrace {
-	pbt := &channelzpb.ChannelTrace{}
-	pbt.NumEventsLogged = ct.EventNum
-	if ts, err := ptypes.TimestampProto(ct.CreationTime); err == nil {
-		pbt.CreationTimestamp = ts
-	}
-	var events []*channelzpb.ChannelTraceEvent
-	for _, e := range ct.Events {
-		cte := &channelzpb.ChannelTraceEvent{
-			Description: e.Desc,
-			Severity:    channelzpb.ChannelTraceEvent_Severity(e.Severity),
-		}
-		if ts, err := ptypes.TimestampProto(e.Timestamp); err == nil {
-			cte.Timestamp = ts
-		}
-		if e.RefID != 0 {
-			switch e.RefType {
-			case channelz.RefChannel:
-				cte.ChildRef = &channelzpb.ChannelTraceEvent_ChannelRef{ChannelRef: &channelzpb.ChannelRef{ChannelId: e.RefID, Name: e.RefName}}
-			case channelz.RefSubChannel:
-				cte.ChildRef = &channelzpb.ChannelTraceEvent_SubchannelRef{SubchannelRef: &channelzpb.SubchannelRef{SubchannelId: e.RefID, Name: e.RefName}}
-			}
-		}
-		events = append(events, cte)
-	}
-	pbt.Events = events
-	return pbt
 }
 
 func channelMetricToProto(cm *channelz.ChannelMetric) *channelzpb.Channel {
@@ -135,7 +93,6 @@ func channelMetricToProto(cm *channelz.ChannelMetric) *channelzpb.Channel {
 		sockets = append(sockets, &channelzpb.SocketRef{SocketId: id, Name: ref})
 	}
 	c.SocketRef = sockets
-	c.Data.Trace = channelTraceToProto(cm.Trace)
 	return c
 }
 
@@ -170,28 +127,7 @@ func subChannelMetricToProto(cm *channelz.SubChannelMetric) *channelzpb.Subchann
 		sockets = append(sockets, &channelzpb.SocketRef{SocketId: id, Name: ref})
 	}
 	sc.SocketRef = sockets
-	sc.Data.Trace = channelTraceToProto(cm.Trace)
 	return sc
-}
-
-func securityToProto(se credentials.ChannelzSecurityValue) *channelzpb.Security {
-	switch v := se.(type) {
-	case *credentials.TLSChannelzSecurityValue:
-		return &channelzpb.Security{Model: &channelzpb.Security_Tls_{Tls: &channelzpb.Security_Tls{
-			CipherSuite:       &channelzpb.Security_Tls_StandardName{StandardName: v.StandardName},
-			LocalCertificate:  v.LocalCertificate,
-			RemoteCertificate: v.RemoteCertificate,
-		}}}
-	case *credentials.OtherChannelzSecurityValue:
-		otherSecurity := &channelzpb.Security_OtherSecurity{
-			Name: v.Name,
-		}
-		if anyval, err := ptypes.MarshalAny(v.Value); err == nil {
-			otherSecurity.Value = anyval
-		}
-		return &channelzpb.Security{Model: &channelzpb.Security_Other{Other: otherSecurity}}
-	}
-	return nil
 }
 
 func addrToProto(a net.Addr) *channelzpb.Address {
@@ -241,13 +177,6 @@ func socketMetricToProto(sm *channelz.SocketMetric) *channelzpb.Socket {
 	s.Data.LocalFlowControlWindow = &wrpb.Int64Value{Value: sm.SocketData.LocalFlowControlWindow}
 	s.Data.RemoteFlowControlWindow = &wrpb.Int64Value{Value: sm.SocketData.RemoteFlowControlWindow}
 
-	if sm.SocketData.SocketOptions != nil {
-		s.Data.Option = sockoptToProto(sm.SocketData.SocketOptions)
-	}
-	if sm.SocketData.Security != nil {
-		s.Security = securityToProto(sm.SocketData.Security)
-	}
-
 	if sm.SocketData.LocalAddr != nil {
 		s.Local = addrToProto(sm.SocketData.LocalAddr)
 	}
@@ -259,7 +188,7 @@ func socketMetricToProto(sm *channelz.SocketMetric) *channelzpb.Socket {
 }
 
 func (s *serverImpl) GetTopChannels(ctx context.Context, req *channelzpb.GetTopChannelsRequest) (*channelzpb.GetTopChannelsResponse, error) {
-	metrics, end := channelz.GetTopChannels(req.GetStartChannelId(), req.GetMaxResults())
+	metrics, end := channelz.GetTopChannels(req.GetStartChannelId())
 	resp := &channelzpb.GetTopChannelsResponse{}
 	for _, m := range metrics {
 		resp.Channel = append(resp.Channel, channelMetricToProto(m))
@@ -290,7 +219,7 @@ func serverMetricToProto(sm *channelz.ServerMetric) *channelzpb.Server {
 }
 
 func (s *serverImpl) GetServers(ctx context.Context, req *channelzpb.GetServersRequest) (*channelzpb.GetServersResponse, error) {
-	metrics, end := channelz.GetServers(req.GetStartServerId(), req.GetMaxResults())
+	metrics, end := channelz.GetServers(req.GetStartServerId())
 	resp := &channelzpb.GetServersResponse{}
 	for _, m := range metrics {
 		resp.Server = append(resp.Server, serverMetricToProto(m))
@@ -300,7 +229,7 @@ func (s *serverImpl) GetServers(ctx context.Context, req *channelzpb.GetServersR
 }
 
 func (s *serverImpl) GetServerSockets(ctx context.Context, req *channelzpb.GetServerSocketsRequest) (*channelzpb.GetServerSocketsResponse, error) {
-	metrics, end := channelz.GetServerSockets(req.GetServerId(), req.GetStartSocketId(), req.GetMaxResults())
+	metrics, end := channelz.GetServerSockets(req.GetServerId(), req.GetStartSocketId())
 	resp := &channelzpb.GetServerSocketsResponse{}
 	for _, m := range metrics {
 		resp.SocketRef = append(resp.SocketRef, &channelzpb.SocketRef{SocketId: m.ID, Name: m.RefName})
@@ -312,7 +241,7 @@ func (s *serverImpl) GetServerSockets(ctx context.Context, req *channelzpb.GetSe
 func (s *serverImpl) GetChannel(ctx context.Context, req *channelzpb.GetChannelRequest) (*channelzpb.GetChannelResponse, error) {
 	var metric *channelz.ChannelMetric
 	if metric = channelz.GetChannel(req.GetChannelId()); metric == nil {
-		return nil, status.Errorf(codes.NotFound, "requested channel %d not found", req.GetChannelId())
+		return &channelzpb.GetChannelResponse{}, nil
 	}
 	resp := &channelzpb.GetChannelResponse{Channel: channelMetricToProto(metric)}
 	return resp, nil
@@ -321,7 +250,7 @@ func (s *serverImpl) GetChannel(ctx context.Context, req *channelzpb.GetChannelR
 func (s *serverImpl) GetSubchannel(ctx context.Context, req *channelzpb.GetSubchannelRequest) (*channelzpb.GetSubchannelResponse, error) {
 	var metric *channelz.SubChannelMetric
 	if metric = channelz.GetSubChannel(req.GetSubchannelId()); metric == nil {
-		return nil, status.Errorf(codes.NotFound, "requested sub channel %d not found", req.GetSubchannelId())
+		return &channelzpb.GetSubchannelResponse{}, nil
 	}
 	resp := &channelzpb.GetSubchannelResponse{Subchannel: subChannelMetricToProto(metric)}
 	return resp, nil
@@ -330,17 +259,8 @@ func (s *serverImpl) GetSubchannel(ctx context.Context, req *channelzpb.GetSubch
 func (s *serverImpl) GetSocket(ctx context.Context, req *channelzpb.GetSocketRequest) (*channelzpb.GetSocketResponse, error) {
 	var metric *channelz.SocketMetric
 	if metric = channelz.GetSocket(req.GetSocketId()); metric == nil {
-		return nil, status.Errorf(codes.NotFound, "requested socket %d not found", req.GetSocketId())
+		return &channelzpb.GetSocketResponse{}, nil
 	}
 	resp := &channelzpb.GetSocketResponse{Socket: socketMetricToProto(metric)}
-	return resp, nil
-}
-
-func (s *serverImpl) GetServer(ctx context.Context, req *channelzpb.GetServerRequest) (*channelzpb.GetServerResponse, error) {
-	var metric *channelz.ServerMetric
-	if metric = channelz.GetServer(req.GetServerId()); metric == nil {
-		return nil, status.Errorf(codes.NotFound, "requested server %d not found", req.GetServerId())
-	}
-	resp := &channelzpb.GetServerResponse{Server: serverMetricToProto(metric)}
 	return resp, nil
 }

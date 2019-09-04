@@ -19,13 +19,13 @@
 package roundrobin_test
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/codes"
@@ -66,13 +66,15 @@ func startTestServers(count int) (_ *test, err error) {
 
 	defer func() {
 		if err != nil {
-			t.cleanup()
+			for _, s := range t.servers {
+				s.Stop()
+			}
 		}
 	}()
 	for i := 0; i < count; i++ {
 		lis, err := net.Listen("tcp", "localhost:0")
 		if err != nil {
-			return nil, fmt.Errorf("failed to listen %v", err)
+			return nil, fmt.Errorf("Failed to listen %v", err)
 		}
 
 		s := grpc.NewServer()
@@ -112,7 +114,7 @@ func TestOneBackend(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: test.addresses[0]}}})
+	r.NewAddress([]resolver.Address{{Addr: test.addresses[0]}})
 	// The second RPC should succeed.
 	if _, err := testc.EmptyCall(context.Background(), &testpb.Empty{}); err != nil {
 		t.Fatalf("EmptyCall() = _, %v, want _, <nil>", err)
@@ -149,7 +151,7 @@ func TestBackendsRoundRobin(t *testing.T) {
 		resolvedAddrs = append(resolvedAddrs, resolver.Address{Addr: test.addresses[i]})
 	}
 
-	r.UpdateState(resolver.State{Addresses: resolvedAddrs})
+	r.NewAddress(resolvedAddrs)
 	var p peer.Peer
 	// Make sure connections to all servers are up.
 	for si := 0; si < backendCount; si++ {
@@ -203,17 +205,17 @@ func TestAddressesRemoved(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: test.addresses[0]}}})
+	r.NewAddress([]resolver.Address{{Addr: test.addresses[0]}})
 	// The second RPC should succeed.
 	if _, err := testc.EmptyCall(context.Background(), &testpb.Empty{}); err != nil {
 		t.Fatalf("EmptyCall() = _, %v, want _, <nil>", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{}})
+	r.NewAddress([]resolver.Address{})
 	for i := 0; i < 1000; i++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		defer cancel()
-		if _, err := testc.EmptyCall(ctx, &testpb.Empty{}, grpc.WaitForReady(true)); status.Code(err) == codes.DeadlineExceeded {
+		if _, err := testc.EmptyCall(ctx, &testpb.Empty{}, grpc.FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			return
 		}
 		time.Sleep(time.Millisecond)
@@ -279,7 +281,7 @@ func TestNewAddressWhileBlocking(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: test.addresses[0]}}})
+	r.NewAddress([]resolver.Address{{Addr: test.addresses[0]}})
 	// The second RPC should succeed.
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -287,7 +289,7 @@ func TestNewAddressWhileBlocking(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, nil", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{}})
+	r.NewAddress([]resolver.Address{})
 
 	var wg sync.WaitGroup
 	for i := 0; i < 3; i++ {
@@ -299,7 +301,7 @@ func TestNewAddressWhileBlocking(t *testing.T) {
 		}()
 	}
 	time.Sleep(50 * time.Millisecond)
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: test.addresses[0]}}})
+	r.NewAddress([]resolver.Address{{Addr: test.addresses[0]}})
 	wg.Wait()
 }
 
@@ -315,7 +317,7 @@ func TestOneServerDown(t *testing.T) {
 	}
 	defer test.cleanup()
 
-	cc, err := grpc.Dial(r.Scheme()+":///test.server", grpc.WithInsecure(), grpc.WithBalancerName(roundrobin.Name))
+	cc, err := grpc.Dial(r.Scheme()+":///test.server", grpc.WithInsecure(), grpc.WithBalancerName(roundrobin.Name), grpc.WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -333,7 +335,7 @@ func TestOneServerDown(t *testing.T) {
 		resolvedAddrs = append(resolvedAddrs, resolver.Address{Addr: test.addresses[i]})
 	}
 
-	r.UpdateState(resolver.State{Addresses: resolvedAddrs})
+	r.NewAddress(resolvedAddrs)
 	var p peer.Peer
 	// Make sure connections to all servers are up.
 	for si := 0; si < backendCount; si++ {
@@ -413,7 +415,7 @@ func TestAllServersDown(t *testing.T) {
 	}
 	defer test.cleanup()
 
-	cc, err := grpc.Dial(r.Scheme()+":///test.server", grpc.WithInsecure(), grpc.WithBalancerName(roundrobin.Name))
+	cc, err := grpc.Dial(r.Scheme()+":///test.server", grpc.WithInsecure(), grpc.WithBalancerName(roundrobin.Name), grpc.WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -431,7 +433,7 @@ func TestAllServersDown(t *testing.T) {
 		resolvedAddrs = append(resolvedAddrs, resolver.Address{Addr: test.addresses[i]})
 	}
 
-	r.UpdateState(resolver.State{Addresses: resolvedAddrs})
+	r.NewAddress(resolvedAddrs)
 	var p peer.Peer
 	// Make sure connections to all servers are up.
 	for si := 0; si < backendCount; si++ {

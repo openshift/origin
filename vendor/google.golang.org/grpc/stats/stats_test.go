@@ -1,3 +1,5 @@
+// +build go1.7
+
 /*
  *
  * Copyright 2016 gRPC authors.
@@ -19,7 +21,6 @@
 package stats_test
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -29,6 +30,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/stats"
@@ -274,7 +276,7 @@ func (te *test) doUnaryCall(c *rpcConfig) (*testpb.SimpleRequest, *testpb.Simple
 	}
 	ctx := metadata.NewOutgoingContext(context.Background(), testMetadata)
 
-	resp, err = tc.UnaryCall(ctx, req, grpc.WaitForReady(!c.failfast))
+	resp, err = tc.UnaryCall(ctx, req, grpc.FailFast(c.failfast))
 	return req, resp, err
 }
 
@@ -285,7 +287,7 @@ func (te *test) doFullDuplexCallRoundtrip(c *rpcConfig) ([]*testpb.SimpleRequest
 		err   error
 	)
 	tc := testpb.NewTestServiceClient(te.clientConn())
-	stream, err := tc.FullDuplexCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.WaitForReady(!c.failfast))
+	stream, err := tc.FullDuplexCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.FailFast(c.failfast))
 	if err != nil {
 		return reqs, resps, err
 	}
@@ -324,7 +326,7 @@ func (te *test) doClientStreamCall(c *rpcConfig) ([]*testpb.SimpleRequest, *test
 		err  error
 	)
 	tc := testpb.NewTestServiceClient(te.clientConn())
-	stream, err := tc.ClientStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.WaitForReady(!c.failfast))
+	stream, err := tc.ClientStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.FailFast(c.failfast))
 	if err != nil {
 		return reqs, resp, err
 	}
@@ -359,7 +361,7 @@ func (te *test) doServerStreamCall(c *rpcConfig) (*testpb.SimpleRequest, []*test
 		startID = errorID
 	}
 	req = &testpb.SimpleRequest{Id: startID}
-	stream, err := tc.ServerStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), req, grpc.WaitForReady(!c.failfast))
+	stream, err := tc.ServerStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), req, grpc.FailFast(c.failfast))
 	if err != nil {
 		return req, resps, err
 	}
@@ -401,7 +403,7 @@ const (
 	inTrailer
 	outPayload
 	outHeader
-	// TODO: test outTrailer ?
+	outTrailer
 	connbegin
 	connend
 )
@@ -511,12 +513,7 @@ func checkInPayload(t *testing.T, d *gotData, e *expectedData) {
 			t.Fatalf("st.Lenght = %v, want %v", st.Length, len(b))
 		}
 	}
-	// Below are sanity checks that WireLength and RecvTime are populated.
-	// TODO: check values of WireLength and RecvTime.
-	if len(st.Data) > 0 && st.WireLength == 0 {
-		t.Fatalf("st.WireLength = %v with non-empty data, want <non-zero>",
-			st.WireLength)
-	}
+	// TODO check WireLength and ReceivedTime.
 	if st.RecvTime.IsZero() {
 		t.Fatalf("st.ReceivedTime = %v, want <non-zero>", st.RecvTime)
 	}
@@ -608,12 +605,7 @@ func checkOutPayload(t *testing.T, d *gotData, e *expectedData) {
 			t.Fatalf("st.Lenght = %v, want %v", st.Length, len(b))
 		}
 	}
-	// Below are sanity checks that WireLength and SentTime are populated.
-	// TODO: check values of WireLength and SentTime.
-	if len(st.Data) > 0 && st.WireLength == 0 {
-		t.Fatalf("st.WireLength = %v with non-empty data, want <non-zero>",
-			st.WireLength)
-	}
+	// TODO check WireLength and ReceivedTime.
 	if st.SentTime.IsZero() {
 		t.Fatalf("st.SentTime = %v, want <non-zero>", st.SentTime)
 	}
@@ -661,16 +653,6 @@ func checkEnd(t *testing.T, d *gotData, e *expectedData) {
 	expectedStatus, _ := status.FromError(e.err)
 	if actual.Code() != expectedStatus.Code() || actual.Message() != expectedStatus.Message() {
 		t.Fatalf("st.Error = %v, want %v", st.Error, e.err)
-	}
-
-	if st.Client {
-		if !reflect.DeepEqual(st.Trailer, testTrailerMetadata) {
-			t.Fatalf("st.Trailer = %v, want %v", st.Trailer, testTrailerMetadata)
-		}
-	} else {
-		if st.Trailer != nil {
-			t.Fatalf("st.Trailer = %v, want nil", st.Trailer)
-		}
 	}
 }
 

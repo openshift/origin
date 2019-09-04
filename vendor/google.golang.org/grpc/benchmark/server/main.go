@@ -16,15 +16,6 @@
  *
  */
 
-/*
-Package main provides a server used for benchmarking.  It launches a server
-which is listening on port 50051.  An example to start the server can be found
-at:
-	go run benchmark/server/main.go -test_name=grpc_test
-
-After starting the server, the client can be run separately and used to test
-qps and latency.
-*/
 package main
 
 import (
@@ -36,11 +27,12 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/benchmark"
 	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/internal/syscall"
 )
 
 var (
@@ -65,14 +57,14 @@ func main() {
 	}
 	defer cf.Close()
 	pprof.StartCPUProfile(cf)
-	cpuBeg := syscall.GetCPUTime()
+	cpuBeg := getCPUTime()
 	// Launch server in a separate goroutine.
 	stop := benchmark.StartServer(benchmark.ServerInfo{Type: "protobuf", Listener: lis})
 	// Wait on OS terminate signal.
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
+	signal.Notify(ch, syscall.SIGTERM)
 	<-ch
-	cpu := time.Duration(syscall.GetCPUTime() - cpuBeg)
+	cpu := time.Duration(getCPUTime() - cpuBeg)
 	stop()
 	pprof.StopCPUProfile()
 	mf, err := os.Create("/tmp/" + *testName + ".mem")
@@ -87,4 +79,12 @@ func main() {
 	fmt.Println("Server CPU utilization:", cpu)
 	fmt.Println("Server CPU profile:", cf.Name())
 	fmt.Println("Server Mem Profile:", mf.Name())
+}
+
+func getCPUTime() int64 {
+	var ts unix.Timespec
+	if err := unix.ClockGettime(unix.CLOCK_PROCESS_CPUTIME_ID, &ts); err != nil {
+		grpclog.Fatal(err)
+	}
+	return ts.Nano()
 }

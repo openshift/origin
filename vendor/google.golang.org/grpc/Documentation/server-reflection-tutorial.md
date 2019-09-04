@@ -1,24 +1,22 @@
 # gRPC Server Reflection Tutorial
 
 gRPC Server Reflection provides information about publicly-accessible gRPC
-services on a server, and assists clients at runtime to construct RPC requests
-and responses without precompiled service information. It is used by gRPC CLI,
-which can be used to introspect server protos and send/receive test RPCs.
+services on a server, and assists clients at runtime to construct RPC
+requests and responses without precompiled service information. It is used by
+gRPC CLI, which can be used to introspect server protos and send/receive test
+RPCs.
 
 ## Enable Server Reflection
 
-gRPC-go Server Reflection is implemented in package
-[reflection](https://github.com/grpc/grpc-go/tree/master/reflection). To enable
-server reflection, you need to import this package and register reflection
-service on your gRPC server.
+gRPC-go Server Reflection is implemented in package [reflection](https://github.com/grpc/grpc-go/tree/master/reflection). To enable server reflection, you need to import this package and register reflection service on your gRPC server.
 
-For example, to enable server reflection in `example/helloworld`, we need to
-make the following changes:
+For example, to enable server reflection in `example/helloworld`, we need to make the following changes:
 
 ```diff
 --- a/examples/helloworld/greeter_server/main.go
 +++ b/examples/helloworld/greeter_server/main.go
 @@ -40,6 +40,7 @@ import (
+        "golang.org/x/net/context"
         "google.golang.org/grpc"
         pb "google.golang.org/grpc/examples/helloworld/helloworld"
 +       "google.golang.org/grpc/reflection"
@@ -36,15 +34,12 @@ make the following changes:
         }
 ```
 
-An example server with reflection registered can be found at
-`examples/features/reflection/server`.
+We have made this change in `example/helloworld`, and we will use it as an example to show the use of gRPC server reflection and gRPC CLI in this tutorial.
 
 ## gRPC CLI
 
-After enabling Server Reflection in a server application, you can use gRPC CLI
-to check its services. gRPC CLI is only available in c++. Instructions on how to
-use gRPC CLI can be found at
-[command_line_tool.md](https://github.com/grpc/grpc/blob/master/doc/command_line_tool.md).
+After enabling Server Reflection in a server application, you can use gRPC CLI to check its services.
+gRPC CLI is only available in c++. Instructions on how to use gRPC CLI can be found at [command_line_tool.md](https://github.com/grpc/grpc/blob/master/doc/command_line_tool.md).
 
 To build gRPC CLI:
 
@@ -61,7 +56,7 @@ First, start the helloworld server in grpc-go directory:
 
 ```sh
 $ cd <grpc-go-directory>
-$ go run examples/features/reflection/server/main.go
+$ go run examples/helloworld/greeter_server/main.go
 ```
 
 Open a new terminal and make sure you are in the directory where grpc_cli lives:
@@ -82,9 +77,8 @@ $ cd <grpc-cpp-dirctory>/bins/opt
 
   output:
   ```sh
-  grpc.examples.echo.Echo
-  grpc.reflection.v1alpha.ServerReflection
   helloworld.Greeter
+  grpc.reflection.v1alpha.ServerReflection
   ```
 
 - List one service with details

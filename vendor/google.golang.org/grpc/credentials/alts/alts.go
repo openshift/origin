@@ -24,18 +24,18 @@
 package alts
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/credentials"
-	core "google.golang.org/grpc/credentials/alts/internal"
-	"google.golang.org/grpc/credentials/alts/internal/handshaker"
-	"google.golang.org/grpc/credentials/alts/internal/handshaker/service"
-	altspb "google.golang.org/grpc/credentials/alts/internal/proto/grpc_gcp"
+	"google.golang.org/grpc/credentials/alts/core"
+	"google.golang.org/grpc/credentials/alts/core/handshaker"
+	"google.golang.org/grpc/credentials/alts/core/handshaker/service"
+	altspb "google.golang.org/grpc/credentials/alts/core/proto/grpc_gcp"
 	"google.golang.org/grpc/grpclog"
 )
 
@@ -66,7 +66,7 @@ var (
 	// ErrUntrustedPlatform is returned from ClientHandshake and
 	// ServerHandshake is running on a platform where the trustworthiness of
 	// the handshaker service is not guaranteed.
-	ErrUntrustedPlatform = errors.New("ALTS: untrusted platform. ALTS is only supported on GCP")
+	ErrUntrustedPlatform = errors.New("untrusted platform")
 )
 
 // AuthInfo exposes security information from the ALTS handshake to the
@@ -190,21 +190,20 @@ func (g *altsTC) ClientHandshake(ctx context.Context, addr string, rawConn net.C
 	}()
 
 	opts := handshaker.DefaultClientHandshakerOptions()
-	opts.TargetName = addr
 	opts.TargetServiceAccounts = g.accounts
 	opts.RPCVersions = &altspb.RpcProtocolVersions{
 		MaxRpcVersion: maxRPCVersion,
 		MinRpcVersion: minRPCVersion,
 	}
 	chs, err := handshaker.NewClientHandshaker(ctx, hsConn, rawConn, opts)
-	if err != nil {
-		return nil, nil, err
-	}
 	defer func() {
 		if err != nil {
 			chs.Close()
 		}
 	}()
+	if err != nil {
+		return nil, nil, err
+	}
 	secConn, authInfo, err := chs.ClientHandshake(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -240,14 +239,14 @@ func (g *altsTC) ServerHandshake(rawConn net.Conn) (_ net.Conn, _ credentials.Au
 		MinRpcVersion: minRPCVersion,
 	}
 	shs, err := handshaker.NewServerHandshaker(ctx, hsConn, rawConn, opts)
-	if err != nil {
-		return nil, nil, err
-	}
 	defer func() {
 		if err != nil {
 			shs.Close()
 		}
 	}()
+	if err != nil {
+		return nil, nil, err
+	}
 	secConn, authInfo, err := shs.ServerHandshake(ctx)
 	if err != nil {
 		return nil, nil, err

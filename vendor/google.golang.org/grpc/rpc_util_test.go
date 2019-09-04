@@ -30,10 +30,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/encoding"
 	protoenc "google.golang.org/grpc/encoding/proto"
-	"google.golang.org/grpc/internal/testutils"
-	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/status"
 	perfpb "google.golang.org/grpc/test/codec_perf"
+	"google.golang.org/grpc/transport"
 )
 
 type fullReader struct {
@@ -46,7 +45,7 @@ func (f fullReader) Read(p []byte) (int, error) {
 
 var _ CallOption = EmptyCallOption{} // ensure EmptyCallOption implements the interface
 
-func (s) TestSimpleParsing(t *testing.T) {
+func TestSimpleParsing(t *testing.T) {
 	bigMsg := bytes.Repeat([]byte{'x'}, 1<<24)
 	for _, test := range []struct {
 		// input
@@ -73,7 +72,7 @@ func (s) TestSimpleParsing(t *testing.T) {
 	}
 }
 
-func (s) TestMultipleParsing(t *testing.T) {
+func TestMultipleParsing(t *testing.T) {
 	// Set a byte stream consists of 3 messages with their headers.
 	p := []byte{0, 0, 0, 0, 1, 'a', 0, 0, 0, 0, 2, 'b', 'c', 0, 0, 0, 0, 1, 'd'}
 	b := fullReader{bytes.NewReader(p)}
@@ -102,7 +101,7 @@ func (s) TestMultipleParsing(t *testing.T) {
 	}
 }
 
-func (s) TestEncode(t *testing.T) {
+func TestEncode(t *testing.T) {
 	for _, test := range []struct {
 		// input
 		msg proto.Message
@@ -124,7 +123,7 @@ func (s) TestEncode(t *testing.T) {
 	}
 }
 
-func (s) TestCompress(t *testing.T) {
+func TestCompress(t *testing.T) {
 	bestCompressor, err := NewGZIPCompressorWithLevel(gzip.BestCompression)
 	if err != nil {
 		t.Fatalf("Could not initialize gzip compressor with best compression.")
@@ -171,27 +170,27 @@ func (s) TestCompress(t *testing.T) {
 	}
 }
 
-func (s) TestToRPCErr(t *testing.T) {
+func TestToRPCErr(t *testing.T) {
 	for _, test := range []struct {
 		// input
 		errIn error
 		// outputs
 		errOut error
 	}{
+		{transport.StreamError{Code: codes.Unknown, Desc: ""}, status.Error(codes.Unknown, "")},
 		{transport.ErrConnClosing, status.Error(codes.Unavailable, transport.ErrConnClosing.Desc)},
-		{io.ErrUnexpectedEOF, status.Error(codes.Internal, io.ErrUnexpectedEOF.Error())},
 	} {
 		err := toRPCErr(test.errIn)
 		if _, ok := status.FromError(err); !ok {
-			t.Errorf("toRPCErr{%v} returned type %T, want %T", test.errIn, err, status.Error)
+			t.Fatalf("toRPCErr{%v} returned type %T, want %T", test.errIn, err, status.Error(codes.Unknown, ""))
 		}
-		if !testutils.StatusErrEqual(err, test.errOut) {
-			t.Errorf("toRPCErr{%v} = %v \nwant %v", test.errIn, err, test.errOut)
+		if !reflect.DeepEqual(err, test.errOut) {
+			t.Fatalf("toRPCErr{%v} = %v \nwant %v", test.errIn, err, test.errOut)
 		}
 	}
 }
 
-func (s) TestParseDialTarget(t *testing.T) {
+func TestParseDialTarget(t *testing.T) {
 	for _, test := range []struct {
 		target, wantNet, wantAddr string
 	}{

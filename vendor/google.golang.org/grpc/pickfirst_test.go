@@ -19,13 +19,14 @@
 package grpc
 
 import (
-	"context"
 	"math"
 	"sync"
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/resolver/manual"
 	"google.golang.org/grpc/status"
@@ -38,7 +39,8 @@ func errorDesc(err error) string {
 	return err.Error()
 }
 
-func (s) TestOneBackendPickfirst(t *testing.T) {
+func TestOneBackendPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -60,7 +62,7 @@ func (s) TestOneBackendPickfirst(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}})
 	// The second RPC should succeed.
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[0].port {
@@ -71,7 +73,8 @@ func (s) TestOneBackendPickfirst(t *testing.T) {
 	t.Fatalf("EmptyCall() = _, %v, want _, %v", err, servers[0].port)
 }
 
-func (s) TestBackendsPickfirst(t *testing.T) {
+func TestBackendsPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -93,7 +96,7 @@ func (s) TestBackendsPickfirst(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}})
 	// The second RPC should succeed with the first server.
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[0].port {
@@ -104,7 +107,8 @@ func (s) TestBackendsPickfirst(t *testing.T) {
 	t.Fatalf("EmptyCall() = _, %v, want _, %v", err, servers[0].port)
 }
 
-func (s) TestNewAddressWhileBlockingPickfirst(t *testing.T) {
+func TestNewAddressWhileBlockingPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -136,11 +140,12 @@ func (s) TestNewAddressWhileBlockingPickfirst(t *testing.T) {
 		}()
 	}
 	time.Sleep(50 * time.Millisecond)
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}})
 	wg.Wait()
 }
 
-func (s) TestCloseWithPendingRPCPickfirst(t *testing.T) {
+func TestCloseWithPendingRPCPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -176,7 +181,8 @@ func (s) TestCloseWithPendingRPCPickfirst(t *testing.T) {
 	wg.Wait()
 }
 
-func (s) TestOneServerDownPickfirst(t *testing.T) {
+func TestOneServerDownPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -184,7 +190,7 @@ func (s) TestOneServerDownPickfirst(t *testing.T) {
 	servers, _, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithCodec(testCodec{}))
+	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithCodec(testCodec{}), WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -198,7 +204,7 @@ func (s) TestOneServerDownPickfirst(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}})
 	// The second RPC should succeed with the first server.
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[0].port {
@@ -217,7 +223,8 @@ func (s) TestOneServerDownPickfirst(t *testing.T) {
 	t.Fatalf("EmptyCall() = _, %v, want _, %v", err, servers[0].port)
 }
 
-func (s) TestAllServersDownPickfirst(t *testing.T) {
+func TestAllServersDownPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -225,7 +232,7 @@ func (s) TestAllServersDownPickfirst(t *testing.T) {
 	servers, _, scleanup := startServers(t, numServers, math.MaxInt32)
 	defer scleanup()
 
-	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithCodec(testCodec{}))
+	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure(), WithCodec(testCodec{}), WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
 	}
@@ -239,7 +246,7 @@ func (s) TestAllServersDownPickfirst(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}})
 	// The second RPC should succeed with the first server.
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[0].port {
@@ -260,7 +267,8 @@ func (s) TestAllServersDownPickfirst(t *testing.T) {
 	t.Fatalf("EmptyCall() = _, %v, want _, error with code unavailable", err)
 }
 
-func (s) TestAddressesRemovedPickfirst(t *testing.T) {
+func TestAddressesRemovedPickfirst(t *testing.T) {
+	defer leakcheck.Check(t)
 	r, rcleanup := manual.GenerateAndRegisterManualResolver()
 	defer rcleanup()
 
@@ -282,7 +290,7 @@ func (s) TestAddressesRemovedPickfirst(t *testing.T) {
 		t.Fatalf("EmptyCall() = _, %v, want _, DeadlineExceeded", err)
 	}
 
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}, {Addr: servers[2].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}, {Addr: servers[1].addr}, {Addr: servers[2].addr}})
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[0].port {
 			break
@@ -297,7 +305,7 @@ func (s) TestAddressesRemovedPickfirst(t *testing.T) {
 	}
 
 	// Remove server[0].
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[1].addr}, {Addr: servers[2].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[1].addr}, {Addr: servers[2].addr}})
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[1].port {
 			break
@@ -312,7 +320,7 @@ func (s) TestAddressesRemovedPickfirst(t *testing.T) {
 	}
 
 	// Append server[0], nothing should change.
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[1].addr}, {Addr: servers[2].addr}, {Addr: servers[0].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[1].addr}, {Addr: servers[2].addr}, {Addr: servers[0].addr}})
 	for i := 0; i < 20; i++ {
 		if err := cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err == nil || errorDesc(err) != servers[1].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 1, err, servers[1].port)
@@ -321,7 +329,7 @@ func (s) TestAddressesRemovedPickfirst(t *testing.T) {
 	}
 
 	// Remove server[1].
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[2].addr}, {Addr: servers[0].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[2].addr}, {Addr: servers[0].addr}})
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[2].port {
 			break
@@ -336,7 +344,7 @@ func (s) TestAddressesRemovedPickfirst(t *testing.T) {
 	}
 
 	// Remove server[2].
-	r.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: servers[0].addr}}})
+	r.NewAddress([]resolver.Address{{Addr: servers[0].addr}})
 	for i := 0; i < 1000; i++ {
 		if err = cc.Invoke(context.Background(), "/foo/bar", &req, &reply); err != nil && errorDesc(err) == servers[0].port {
 			break

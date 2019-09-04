@@ -22,15 +22,15 @@ package grpc
 
 import (
 	"bufio"
-	"context"
-	"encoding/base64"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"golang.org/x/net/context"
+	"google.golang.org/grpc/internal/leakcheck"
 )
 
 const (
@@ -53,8 +53,6 @@ type proxyServer struct {
 	lis net.Listener
 	in  net.Conn
 	out net.Conn
-
-	requestCheck func(*http.Request) error
 }
 
 func (p *proxyServer) run() {
@@ -69,11 +67,11 @@ func (p *proxyServer) run() {
 		p.t.Errorf("failed to read CONNECT req: %v", err)
 		return
 	}
-	if err := p.requestCheck(req); err != nil {
+	if req.Method != http.MethodConnect || req.UserAgent() != grpcUA {
 		resp := http.Response{StatusCode: http.StatusMethodNotAllowed}
 		resp.Write(p.in)
 		p.in.Close()
-		p.t.Errorf("get wrong CONNECT req: %+v, error: %v", req, err)
+		p.t.Errorf("get wrong CONNECT req: %+v", req)
 		return
 	}
 
@@ -99,16 +97,13 @@ func (p *proxyServer) stop() {
 	}
 }
 
-func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxyReqCheck func(*http.Request) error) {
+func TestHTTPConnect(t *testing.T) {
+	defer leakcheck.Check(t)
 	plis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
 	}
-	p := &proxyServer{
-		t:            t,
-		lis:          plis,
-		requestCheck: proxyReqCheck,
-	}
+	p := &proxyServer{t: t, lis: plis}
 	go p.run()
 	defer p.stop()
 
@@ -133,14 +128,14 @@ func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxy
 
 	// Overwrite the function in the test and restore them in defer.
 	hpfe := func(req *http.Request) (*url.URL, error) {
-		return proxyURLModify(&url.URL{Host: plis.Addr().String()}), nil
+		return &url.URL{Host: plis.Addr().String()}, nil
 	}
 	defer overwrite(hpfe)()
 
 	// Dial to proxy server.
 	dialer := newProxyDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 		if deadline, ok := ctx.Deadline(); ok {
-			return net.DialTimeout("tcp", addr, time.Until(deadline))
+			return net.DialTimeout("tcp", addr, deadline.Sub(time.Now()))
 		}
 		return net.Dial("tcp", addr)
 	})
@@ -162,52 +157,8 @@ func testHTTPConnect(t *testing.T, proxyURLModify func(*url.URL) *url.URL, proxy
 	}
 }
 
-func (s) TestHTTPConnect(t *testing.T) {
-	testHTTPConnect(t,
-		func(in *url.URL) *url.URL {
-			return in
-		},
-		func(req *http.Request) error {
-			if req.Method != http.MethodConnect {
-				return fmt.Errorf("unexpected Method %q, want %q", req.Method, http.MethodConnect)
-			}
-			if req.UserAgent() != grpcUA {
-				return fmt.Errorf("unexpect user agent %q, want %q", req.UserAgent(), grpcUA)
-			}
-			return nil
-		},
-	)
-}
-
-func (s) TestHTTPConnectBasicAuth(t *testing.T) {
-	const (
-		user     = "notAUser"
-		password = "notAPassword"
-	)
-	testHTTPConnect(t,
-		func(in *url.URL) *url.URL {
-			in.User = url.UserPassword(user, password)
-			return in
-		},
-		func(req *http.Request) error {
-			if req.Method != http.MethodConnect {
-				return fmt.Errorf("unexpected Method %q, want %q", req.Method, http.MethodConnect)
-			}
-			if req.UserAgent() != grpcUA {
-				return fmt.Errorf("unexpect user agent %q, want %q", req.UserAgent(), grpcUA)
-			}
-			wantProxyAuthStr := "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password))
-			if got := req.Header.Get(proxyAuthHeaderKey); got != wantProxyAuthStr {
-				gotDecoded, _ := base64.StdEncoding.DecodeString(got)
-				wantDecoded, _ := base64.StdEncoding.DecodeString(wantProxyAuthStr)
-				return fmt.Errorf("unexpected auth %q (%q), want %q (%q)", got, gotDecoded, wantProxyAuthStr, wantDecoded)
-			}
-			return nil
-		},
-	)
-}
-
-func (s) TestMapAddressEnv(t *testing.T) {
+func TestMapAddressEnv(t *testing.T) {
+	defer leakcheck.Check(t)
 	// Overwrite the function in the test and restore them in defer.
 	hpfe := func(req *http.Request) (*url.URL, error) {
 		if req.URL.Host == envTestAddr {
@@ -225,7 +176,7 @@ func (s) TestMapAddressEnv(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if got.Host != envProxyAddr {
+	if got != envProxyAddr {
 		t.Errorf("want %v, got %v", envProxyAddr, got)
 	}
 }
