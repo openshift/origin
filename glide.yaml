@@ -91,6 +91,10 @@ import:
 - package: golang.org/x/tools/imports
   version: 6e04913cbbac05c5c0c9d8f237717e292f700e76
 
+# see if old grpc can let kubelet/crio communicate
+- package: google.golang.org/grpc
+  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+
 # openshift second
 - package: github.com/openshift/api
   version: prebase-1.16
