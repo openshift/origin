@@ -1,6 +1,4 @@
----
-title: Discovery service protocol
----
+# Discovery service protocol
 
 Discovery service protocol helps new etcd member to discover all other members in cluster bootstrap phase using a shared discovery URL.
 

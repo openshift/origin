@@ -62,15 +62,6 @@ var (
 		[]string{"To"},
 	)
 
-	snapshotSendInflights = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "etcd",
-		Subsystem: "network",
-		Name:      "snapshot_send_inflights_total",
-		Help:      "Total number of inflight snapshot sends",
-	},
-		[]string{"To"},
-	)
-
 	snapshotSendFailures = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "etcd",
 		Subsystem: "network",
@@ -98,15 +89,6 @@ var (
 		Subsystem: "network",
 		Name:      "snapshot_receive_success",
 		Help:      "Total number of successful snapshot receives",
-	},
-		[]string{"From"},
-	)
-
-	snapshotReceiveInflights = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "etcd",
-		Subsystem: "network",
-		Name:      "snapshot_receive_inflights_total",
-		Help:      "Total number of inflight snapshot receives",
 	},
 		[]string{"From"},
 	)
@@ -151,11 +133,9 @@ func init() {
 	prometheus.MustRegister(recvFailures)
 
 	prometheus.MustRegister(snapshotSend)
-	prometheus.MustRegister(snapshotSendInflights)
 	prometheus.MustRegister(snapshotSendFailures)
 	prometheus.MustRegister(snapshotSendSeconds)
 	prometheus.MustRegister(snapshotReceive)
-	prometheus.MustRegister(snapshotReceiveInflights)
 	prometheus.MustRegister(snapshotReceiveFailures)
 	prometheus.MustRegister(snapshotReceiveSeconds)
 

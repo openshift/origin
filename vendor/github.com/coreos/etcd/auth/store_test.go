@@ -672,25 +672,25 @@ func TestRolesOrder(t *testing.T) {
 	}
 
 	username := "user"
-	_, err = as.UserAdd(&pb.AuthUserAddRequest{Name: username, Password: "pass"})
+	_, err = as.UserAdd(&pb.AuthUserAddRequest{username, "pass"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	roles := []string{"role1", "role2", "abc", "xyz", "role3"}
 	for _, role := range roles {
-		_, err = as.RoleAdd(&pb.AuthRoleAddRequest{Name: role})
+		_, err = as.RoleAdd(&pb.AuthRoleAddRequest{role})
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		_, err = as.UserGrantRole(&pb.AuthUserGrantRoleRequest{User: username, Role: role})
+		_, err = as.UserGrantRole(&pb.AuthUserGrantRoleRequest{username, role})
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	user, err := as.UserGet(&pb.AuthUserGetRequest{Name: username})
+	user, err := as.UserGet(&pb.AuthUserGetRequest{username})
 	if err != nil {
 		t.Fatal(err)
 	}

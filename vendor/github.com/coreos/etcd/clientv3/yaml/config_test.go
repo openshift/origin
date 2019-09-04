@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"sigs.k8s.io/yaml"
+	"github.com/ghodss/yaml"
 )
 
 var (

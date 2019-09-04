@@ -26,7 +26,6 @@ import (
 	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/pkg/testutil"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -76,16 +75,16 @@ func TestBalancerUnderServerShutdownWatch(t *testing.T) {
 		select {
 		case ev := <-wch:
 			if werr := ev.Err(); werr != nil {
-				t.Error(werr)
+				t.Fatal(werr)
 			}
 			if len(ev.Events) != 1 {
-				t.Errorf("expected one event, got %+v", ev)
+				t.Fatalf("expected one event, got %+v", ev)
 			}
 			if !bytes.Equal(ev.Events[0].Kv.Value, []byte(val)) {
-				t.Errorf("expected %q, got %+v", val, ev.Events[0].Kv)
+				t.Fatalf("expected %q, got %+v", val, ev.Events[0].Kv)
 			}
 		case <-time.After(7 * time.Second):
-			t.Error("took too long to receive events")
+			t.Fatal("took too long to receive events")
 		}
 	}()
 
@@ -93,10 +92,7 @@ func TestBalancerUnderServerShutdownWatch(t *testing.T) {
 	clus.Members[lead].Terminate(t)
 
 	// writes to eps[lead+1]
-	putCli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{eps[(lead+1)%3]},
-		DialOptions: []grpc.DialOption{grpc.WithBlock()},
-	})
+	putCli, err := clientv3.New(clientv3.Config{Endpoints: []string{eps[(lead+1)%3]}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +104,7 @@ func TestBalancerUnderServerShutdownWatch(t *testing.T) {
 		if err == nil {
 			break
 		}
-		if isClientTimeout(err) || isServerCtxTimeout(err) || err == rpctypes.ErrTimeout || err == rpctypes.ErrTimeoutDueToLeaderFail {
+		if err == context.DeadlineExceeded || isServerCtxTimeout(err) || err == rpctypes.ErrTimeout || err == rpctypes.ErrTimeoutDueToLeaderFail {
 			continue
 		}
 		t.Fatal(err)
@@ -160,10 +156,7 @@ func testBalancerUnderServerShutdownMutable(t *testing.T, op func(*clientv3.Clie
 	eps := []string{clus.Members[0].GRPCAddr(), clus.Members[1].GRPCAddr(), clus.Members[2].GRPCAddr()}
 
 	// pin eps[0]
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{eps[0]},
-		DialOptions: []grpc.DialOption{grpc.WithBlock()},
-	})
+	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{eps[0]}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,20 +337,10 @@ func testBalancerUnderServerStopInflightRangeOnRestart(t *testing.T, linearizabl
 		defer close(donec)
 		ctx, cancel := context.WithTimeout(context.TODO(), clientTimeout)
 		readyc <- struct{}{}
-
-		// TODO: The new grpc load balancer will not pin to an endpoint
-		// as intended by this test. But it will round robin member within
-		// two attempts.
-		// Remove retry loop once the new grpc load balancer provides retry.
-		for i := 0; i < 2; i++ {
-			_, err = cli.Get(ctx, "abc", gops...)
-			if err == nil {
-				break
-			}
-		}
+		_, err := cli.Get(ctx, "abc", gops...)
 		cancel()
 		if err != nil {
-			t.Errorf("unexpected error: %v", err)
+			t.Fatal(err)
 		}
 	}()
 
@@ -378,57 +361,7 @@ func isServerCtxTimeout(err error) bool {
 	if err == nil {
 		return false
 	}
-	ev, ok := status.FromError(err)
-	if !ok {
-		return false
-	}
+	ev, _ := status.FromError(err)
 	code := ev.Code()
 	return code == codes.DeadlineExceeded && strings.Contains(err.Error(), "context deadline exceeded")
-}
-
-// In grpc v1.11.3+ dial timeouts can error out with transport.ErrConnClosing. Previously dial timeouts
-// would always error out with context.DeadlineExceeded.
-func isClientTimeout(err error) bool {
-	if err == nil {
-		return false
-	}
-	if err == context.DeadlineExceeded {
-		return true
-	}
-	ev, ok := status.FromError(err)
-	if !ok {
-		return false
-	}
-	code := ev.Code()
-	return code == codes.DeadlineExceeded
-}
-
-func isCanceled(err error) bool {
-	if err == nil {
-		return false
-	}
-	if err == context.Canceled {
-		return true
-	}
-	ev, ok := status.FromError(err)
-	if !ok {
-		return false
-	}
-	code := ev.Code()
-	return code == codes.Canceled
-}
-
-func isUnavailable(err error) bool {
-	if err == nil {
-		return false
-	}
-	if err == context.Canceled {
-		return true
-	}
-	ev, ok := status.FromError(err)
-	if !ok {
-		return false
-	}
-	code := ev.Code()
-	return code == codes.Unavailable
 }

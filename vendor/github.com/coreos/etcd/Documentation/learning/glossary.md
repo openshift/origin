@@ -1,6 +1,4 @@
----
-title: Glossary
----
+# Glossary
 
 This document defines the various terms used in etcd documentation, command line and source code.
 

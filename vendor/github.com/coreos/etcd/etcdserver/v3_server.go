@@ -614,10 +614,7 @@ func (s *EtcdServer) linearizableReadLoop() {
 		id1 := s.reqIDGen.Next()
 		binary.BigEndian.PutUint64(ctxToSend, id1)
 
-		leaderChangedNotifier := s.leaderChangedNotify()
 		select {
-		case <-leaderChangedNotifier:
-			continue
 		case <-s.readwaitc:
 		case <-s.stopping:
 			return
@@ -661,12 +658,6 @@ func (s *EtcdServer) linearizableReadLoop() {
 					plog.Warningf("ignored out-of-date read index response; local node read indexes queueing up and waiting to be in sync with leader (request ID want %d, got %d)", id1, id2)
 					slowReadIndex.Inc()
 				}
-
-			case <-leaderChangedNotifier:
-				timeout = true
-				readIndexFailed.Inc()
-				// return a retryable error.
-				nr.notify(ErrLeaderChanged)
 
 			case <-time.After(s.Cfg.ReqTimeout()):
 				plog.Warningf("timed out waiting for read index response (local node might have slow network)")

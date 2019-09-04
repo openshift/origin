@@ -53,7 +53,6 @@ func keyFunc(req *pb.RangeRequest) string {
 func NewCache(maxCacheEntries int) Cache {
 	return &cache{
 		lru:          lru.New(maxCacheEntries),
-		cachedRanges: adt.NewIntervalTree(),
 		compactedRev: -1,
 	}
 }
@@ -100,12 +99,9 @@ func (c *cache) Add(req *pb.RangeRequest, resp *pb.RangeResponse) {
 	iv = c.cachedRanges.Find(ivl)
 
 	if iv == nil {
-		val := map[string]struct{}{key: {}}
-		c.cachedRanges.Insert(ivl, val)
+		c.cachedRanges.Insert(ivl, []string{key})
 	} else {
-		val := iv.Val.(map[string]struct{})
-		val[key] = struct{}{}
-		iv.Val = val
+		iv.Val = append(iv.Val.([]string), key)
 	}
 }
 
@@ -145,8 +141,8 @@ func (c *cache) Invalidate(key, endkey []byte) {
 
 	ivs = c.cachedRanges.Stab(ivl)
 	for _, iv := range ivs {
-		keys := iv.Val.(map[string]struct{})
-		for key := range keys {
+		keys := iv.Val.([]string)
+		for _, key := range keys {
 			c.lru.Remove(key)
 		}
 	}

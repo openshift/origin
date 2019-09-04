@@ -1,6 +1,4 @@
----
-title: Watch Memory Usage Benchmark
----
+# Watch Memory Usage Benchmark
 
 *NOTE*: The watch features are under active development, and their memory usage may change as that development progresses. We do not expect it to significantly increase beyond the figures stated below.
 

@@ -1,6 +1,4 @@
----
-title: gRPC naming and discovery
----
+# gRPC naming and discovery
 
 etcd provides a gRPC resolver to support an alternative name system that fetches endpoints from etcd for discovering gRPC services. The underlying mechanism is based on watching updates to keys prefixed with the service name.
 
@@ -10,8 +8,8 @@ The etcd client provides a gRPC resolver for resolving gRPC endpoints with an et
 
 ```go
 import (
-	"go.etcd.io/etcd/clientv3"
-	etcdnaming "go.etcd.io/etcd/clientv3/naming"
+	"github.com/coreos/etcd/clientv3"
+	etcdnaming "github.com/coreos/etcd/clientv3/naming"
 
 	"google.golang.org/grpc"
 )
@@ -21,7 +19,7 @@ import (
 cli, cerr := clientv3.NewFromURL("http://localhost:2379")
 r := &etcdnaming.GRPCResolver{Client: cli}
 b := grpc.RoundRobin(r)
-conn, gerr := grpc.Dial("my-service", grpc.WithBalancer(b), grpc.WithBlock(), ...)
+conn, gerr := grpc.Dial("my-service", grpc.WithBalancer(b))
 ```
 
 ## Managing service endpoints

@@ -23,7 +23,7 @@ import (
 
 	"github.com/coreos/etcd/pkg/transport"
 
-	"sigs.k8s.io/yaml"
+	"github.com/ghodss/yaml"
 )
 
 func TestConfigFileOtherFields(t *testing.T) {

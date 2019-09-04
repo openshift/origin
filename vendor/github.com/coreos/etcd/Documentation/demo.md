@@ -1,6 +1,4 @@
----
-title: Demo
----
+# Demo
 
 This series of examples shows the basic procedures for working with an etcd cluster.
 

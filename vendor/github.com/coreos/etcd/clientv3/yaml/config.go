@@ -20,7 +20,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 
-	"sigs.k8s.io/yaml"
+	"github.com/ghodss/yaml"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/tlsutil"

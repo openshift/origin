@@ -21,7 +21,8 @@ import (
 )
 
 func Example() {
-	ivt := adt.NewIntervalTree()
+	ivt := &adt.IntervalTree{}
+
 	ivt.Insert(adt.NewInt64Interval(1, 3), 123)
 	ivt.Insert(adt.NewInt64Interval(9, 13), 456)
 	ivt.Insert(adt.NewInt64Interval(7, 20), 789)

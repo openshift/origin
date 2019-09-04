@@ -156,7 +156,6 @@ type watcherGroup struct {
 func newWatcherGroup() watcherGroup {
 	return watcherGroup{
 		keyWatchers: make(watcherSetByKey),
-		ranges:      adt.NewIntervalTree(),
 		watchers:    make(watcherSet),
 	}
 }

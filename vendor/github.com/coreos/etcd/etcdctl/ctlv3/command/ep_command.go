@@ -76,17 +76,9 @@ func newEpHashKVCommand() *cobra.Command {
 	return hc
 }
 
-type epHealth struct {
-	Ep     string `json:"endpoint"`
-	Health bool   `json:"health"`
-	Took   string `json:"took"`
-	Error  string `json:"error,omitempty"`
-}
-
 // epHealthCommandFunc executes the "endpoint-health" command.
 func epHealthCommandFunc(cmd *cobra.Command, args []string) {
 	flags.SetPflagsFromEnv("ETCDCTL", cmd.InheritedFlags())
-	initDisplayFromCmd(cmd)
 
 	sec := secureCfgFromCmd(cmd)
 	dt := dialTimeoutFromCmd(cmd)
@@ -103,7 +95,7 @@ func epHealthCommandFunc(cmd *cobra.Command, args []string) {
 	}
 
 	var wg sync.WaitGroup
-	hch := make(chan epHealth, len(cfgs))
+	errc := make(chan error, len(cfgs))
 	for _, cfg := range cfgs {
 		wg.Add(1)
 		go func(cfg *v3.Config) {
@@ -111,7 +103,7 @@ func epHealthCommandFunc(cmd *cobra.Command, args []string) {
 			ep := cfg.Endpoints[0]
 			cli, err := v3.New(*cfg)
 			if err != nil {
-				hch <- epHealth{Ep: ep, Health: false, Error: err.Error()}
+				errc <- fmt.Errorf("%s is unhealthy: failed to connect: %v", ep, err)
 				return
 			}
 			st := time.Now()
@@ -120,29 +112,25 @@ func epHealthCommandFunc(cmd *cobra.Command, args []string) {
 			ctx, cancel := commandCtx(cmd)
 			_, err = cli.Get(ctx, "health")
 			cancel()
-			eh := epHealth{Ep: ep, Health: false, Took: time.Since(st).String()}
 			// permission denied is OK since proposal goes through consensus to get it
 			if err == nil || err == rpctypes.ErrPermissionDenied {
-				eh.Health = true
+				fmt.Printf("%s is healthy: successfully committed proposal: took = %v\n", ep, time.Since(st))
 			} else {
-				eh.Error = err.Error()
+				errc <- fmt.Errorf("%s is unhealthy: failed to commit proposal: %v", ep, err)
 			}
-			hch <- eh
 		}(cfg)
 	}
 
 	wg.Wait()
-	close(hch)
+	close(errc)
 
 	errs := false
-	healthList := []epHealth{}
-	for h := range hch {
-		healthList = append(healthList, h)
-		if h.Error != "" {
+	for err := range errc {
+		if err != nil {
 			errs = true
+			fmt.Fprintln(os.Stderr, err)
 		}
 	}
-	display.EndpointHealth(healthList)
 	if errs {
 		ExitWithError(ExitError, fmt.Errorf("unhealthy cluster"))
 	}

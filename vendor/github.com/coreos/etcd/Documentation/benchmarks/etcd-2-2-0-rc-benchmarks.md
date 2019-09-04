@@ -1,8 +1,4 @@
----
-title: Benchmarking etcd v2.2.0-rc
----
-
-## Physical machine
+## Physical machines
 
 GCE n1-highcpu-2 machine type
 

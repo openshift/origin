@@ -14,6 +14,8 @@
 
 package client
 
+//go:generate codecgen -d 1819 -r "Node|Response|Nodes" -o keys.generated.go keys.go
+
 import (
 	"context"
 	"encoding/json"
@@ -26,6 +28,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/pkg/pathutil"
+	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -653,11 +656,9 @@ func unmarshalHTTPResponse(code int, header http.Header, body []byte) (res *Resp
 	return res, err
 }
 
-var jsonIterator = caseSensitiveJsonIterator()
-
 func unmarshalSuccessfulKeysResponse(header http.Header, body []byte) (*Response, error) {
 	var res Response
-	err := jsonIterator.Unmarshal(body, &res)
+	err := codec.NewDecoderBytes(body, new(codec.JsonHandle)).Decode(&res)
 	if err != nil {
 		return nil, ErrInvalidJSON
 	}

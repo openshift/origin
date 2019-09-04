@@ -1,6 +1,4 @@
----
-title: Branch management
----
+# Branch management
 
 ## Guide
 

@@ -23,7 +23,6 @@ import (
 
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	"github.com/coreos/etcd/pkg/testutil"
-	"google.golang.org/grpc"
 )
 
 func TestDialCancel(t *testing.T) {
@@ -84,13 +83,11 @@ func TestDialTimeout(t *testing.T) {
 	testCfgs := []Config{
 		{
 			Endpoints:   []string{"http://254.0.0.1:12345"},
-			DialOptions: []grpc.DialOption{grpc.WithBlock()},
 			DialTimeout: 2 * time.Second,
 		},
 		{
 			Endpoints:   []string{"http://254.0.0.1:12345"},
 			DialTimeout: time.Second,
-			DialOptions: []grpc.DialOption{grpc.WithBlock()},
 			Username:    "abc",
 			Password:    "def",
 		},

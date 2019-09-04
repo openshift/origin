@@ -1,6 +1,4 @@
----
-title: Versioning
----
+# Versioning
 
 ## Service versioning
 
