@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/testdata"
 	testutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
