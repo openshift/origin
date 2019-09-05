@@ -385,7 +385,6 @@ var (
 			`SSH`,                                                                        // TRIAGE
 			`should implement service.kubernetes.io/service-proxy-name`,                  // this is an optional test that requires SSH. sig-network
 			`should idle the service and DeploymentConfig properly`,                      // idling with a single service and DeploymentConfig [Conformance]
-			`\[Driver: rbd\]`,                                                            // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
 			`\[Driver: csi-hostpath`,                                                     // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
 			`should answer endpoint and wildcard queries for the cluster`,                // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 			`should propagate mounts to the host`,                                        // requires SSH, https://bugzilla.redhat.com/show_bug.cgi?id=1711600
@@ -396,13 +395,17 @@ var (
 			`TaintBasedEvictions`,                                                        // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 
 			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
-			`\[Driver: ceph\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath`,
 
 			`\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
 
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",
+		},
+		// tests that may work, but we don't support them
+		"[Disabled:Unsupported]": {
+			`\[Driver: rbd\]`,  // OpenShift 4.x does not support Ceph RBD (use CSI instead)
+			`\[Driver: ceph\]`, // OpenShift 4.x does not support CephFS (use CSI instead)
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
