@@ -488,6 +488,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
 			`\[sig-api-machinery\] AdmissionWebhook Should be able to deny pod and configmap creation`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1745720
+			`\[sig-storage\] CSI Volumes \[Driver: pd.csi.storage.gke.io\]\[Serial\]`,
 		},
 		"[Suite:openshift/scalability]": {},
 		// tests that replace the old test-cmd script
