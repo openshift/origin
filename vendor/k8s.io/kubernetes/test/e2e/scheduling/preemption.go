@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	_ "github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	schedulerapi "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -297,8 +297,9 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		if len(nodeList.Items) < numPods {
 			numPods = len(nodeList.Items)
 		}
-		pods := make([]*v1.Pod, numPods)
+		pods := make([]*v1.Pod, 0, numPods)
 		allPods, err := cs.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{})
+		framework.ExpectNoError(err)
 		for i := 0; i < numPods; i++ {
 			node := nodeList.Items[i]
 			currentCpuUsage, currentMemUsage := getCurrentPodUsageOnTheNode(node.Name, allPods.Items, podRequestedResource)
@@ -332,7 +333,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 			if i == 0 {
 				priorityName = mediumPriorityClassName
 			}
-			pods[i] = createPausePod(f, pausePodConfig{
+			pods = append(pods, createPausePod(f, pausePodConfig{
 				Name:              fmt.Sprintf("pod%d-%v", i, priorityName),
 				PriorityClassName: priorityName,
 				Resources: &v1.ResourceRequirements{
@@ -372,7 +373,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 						},
 					},
 				},
-			})
+			}))
 			framework.Logf("Created pod: %v", pods[i].Name)
 		}
 		defer func() { // Remove added labels
@@ -405,16 +406,18 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				},
 			},
 		})
-		// Make sure that the medium priority pod on the first node is preempted.
-		preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
-		podDeleted := (err != nil && errors.IsNotFound(err)) ||
-			(err == nil && preemptedPod.DeletionTimestamp != nil)
-		Expect(podDeleted).To(BeTrue())
-		// Other pods (low priority ones) should be present.
-		for i := 1; i < len(pods); i++ {
-			livePod, err := cs.CoreV1().Pods(pods[i].Namespace).Get(pods[i].Name, metav1.GetOptions{})
-			framework.ExpectNoError(err)
-			Expect(livePod.DeletionTimestamp).To(BeNil())
+		if len(pods) > 0 {
+			// Make sure that the medium priority pod on the first node is preempted.
+			preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(pods[0].Name, metav1.GetOptions{})
+			podDeleted := (err != nil && errors.IsNotFound(err)) ||
+				(err == nil && preemptedPod.DeletionTimestamp != nil)
+			Expect(podDeleted).To(BeTrue())
+			// Other pods (low priority ones) should be present.
+			for i := 1; i < len(pods); i++ {
+				livePod, err := cs.CoreV1().Pods(pods[i].Namespace).Get(pods[i].Name, metav1.GetOptions{})
+				framework.ExpectNoError(err)
+				Expect(livePod.DeletionTimestamp).To(BeNil())
+			}
 		}
 	})
 })
