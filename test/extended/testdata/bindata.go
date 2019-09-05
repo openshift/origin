@@ -33842,8 +33842,9 @@ os::cmd::expect_success_and_text 'oc new-project test4' 'Now using project "test
 os::cmd::try_until_text 'oc projects' 'Using project "test4" on server'
 os::cmd::expect_success_and_text 'oc new-project test5' 'Now using project "test5" on server '
 os::cmd::try_until_text 'oc projects' 'You have access to the following projects and can switch between them with '
-os::cmd::expect_success_and_text 'oc projects' 'test4'
-os::cmd::expect_success_and_text 'oc projects' 'test5'
+# HA masters means that you may have to wait for the lists to settle, so you allow for that by waiting
+os::cmd::try_until_text 'oc projects' 'test4'
+os::cmd::try_until_text 'oc projects' 'test5'
 # test --skip-config-write
 os::cmd::expect_success_and_text 'oc new-project test6 --skip-config-write' 'To switch to this project and start adding applications, use'
 os::cmd::expect_success_and_not_text 'oc config view -o jsonpath="{.contexts[*].context.namespace}"' '\btest6\b'
