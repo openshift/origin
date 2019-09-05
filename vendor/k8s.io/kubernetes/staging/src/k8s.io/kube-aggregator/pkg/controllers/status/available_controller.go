@@ -153,8 +153,9 @@ func (c *AvailableConditionController) sync(key string) error {
 		return err
 	}
 
+	// if a particular transport was specified, use that otherwise build one
 	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
-	// that's not so bad) and sets a very short timeout.
+	// that's not so bad) and sets a very short timeout.  This is a best effort GET that provides no additional information
 	restConfig := &rest.Config{
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: true,
@@ -166,6 +167,9 @@ func (c *AvailableConditionController) sync(key string) error {
 	if c.proxyClientKey != nil {
 		restConfig.TLSClientConfig.KeyData = c.proxyClientKey()
 	}
+	if c.proxyTransport != nil && c.proxyTransport.DialContext != nil {
+		restConfig.Dial = c.proxyTransport.DialContext
+	}
 	restTransport, err := rest.TransportFor(restConfig)
 	if err != nil {
 		panic(err)
@@ -174,9 +178,6 @@ func (c *AvailableConditionController) sync(key string) error {
 		Transport: restTransport,
 		// the request should happen quickly.
 		Timeout: 5 * time.Second,
-	}
-	if c.proxyTransport != nil {
-		discoveryClient.Transport = c.proxyTransport
 	}
 
 	apiService := originalAPIService.DeepCopy()
