@@ -198,12 +198,12 @@ var (
 		{
 			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
 			field:   "processedtemplates.objects",
-			pattern: `FIELDS\:.*`,
+			pattern: `DESCRIPTION\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
 			field:   "templates.objects",
-			pattern: `FIELDS\:.*`,
+			pattern: `DESCRIPTION\:.*`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
