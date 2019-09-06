@@ -1,6 +1,6 @@
 FROM fedora:29 AS build
 
-COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.2:machine-os-content /srv/ /srv/
+COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.0:machine-os-content /srv/ /srv/
 RUN set -x && yum install -y ostree yum-utils selinux-policy-targeted && \
     commit=$( find /srv -name *.commit | sed -Ee 's|.*objects/(.+)/(.+)\.commit|\1\2|' | head -1 ) && \
     mkdir /tmp/working && cd /tmp/working && \
