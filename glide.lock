@@ -1,5 +1,5 @@
-hash: 77f25154aedfa407df78dfee253ba73dd2c7efaaaf63abcb20cefd4d16d05c4a
-updated: 2019-07-10T16:08:05.181813755-04:00
+hash: 7fd17f328c54a53ec499a89f8237c51737763dc6e02de1aae81831870ceb9faa
+updated: 2019-08-16T15:59:50.809151648-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -15,6 +15,7 @@ imports:
   - negotiate
 - name: github.com/apcera/gssapi
   version: 5fb4217df13b8e6878046fe1e5c10e560e1b86dc
+  repo: https://github.com/openshift/gssapi.git
 - name: github.com/armon/circbuf
   version: bbbad097214e2918d8543d5201d12bfd7bca254d
 - name: github.com/asaskevich/govalidator
@@ -521,7 +522,8 @@ imports:
 - name: github.com/google/btree
   version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
-  version: 8949c822ea91fa6b4996614a5ad6ade840be24ee
+  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
+  repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
   - cache/memory
@@ -849,7 +851,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 81d064c11ff2d62705dbb09ed9ac200ef9557716
+  version: 9ea19f9dd57858bb3fd8ec7051a99ca5e1ae88d6
   subpackages:
   - apps
   - apps/v1
@@ -1024,7 +1026,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 2467051efd29fec85731629f925b82f3c477db30
+  version: a8b3af87bfde83643053d9d1c1da9b9593ffe20e
   subpackages:
   - pkg/assets
   - pkg/assets/create
@@ -1458,7 +1460,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
-  version: 91a629a47dd4b8816f5d974f41ae0335b6468ec1
+  version: b18e97b54e4005d2ff259a96a0b5d06f11779b9d
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1beta1
@@ -2040,7 +2042,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: cc2afe3181bd5593ad5c03e9a768e3ff270ec343
+  version: fd7008ebbbb179b36367d02fc929ca7eb514d0b0
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

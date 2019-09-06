@@ -33,15 +33,6 @@ type APIServerSpec struct {
 }
 
 type APIServerServingCerts struct {
-	// defaultServingCertificate references a kubernetes.io/tls type secret containing the default TLS cert info for
-	// serving secure traffic. If no named certificates match the server name as understood by a client, this default
-	// certificate will be used. If defaultServingCertificate is not specified, then a operator managed certificate will
-	// be used.
-	// The secret must exist in the openshift-config namespace and contain the following required fields:
-	// - Secret.Data["tls.key"] - TLS private key.
-	// - Secret.Data["tls.crt"] - TLS certificate.
-	// +optional
-	DefaultServingCertificate SecretNameReference `json:"defaultServingCertificate"`
 	// namedCertificates references secrets containing the TLS cert info for serving secure traffic to specific hostnames.
 	// If no named certificates are provided, or no named certificates match the server name as understood by a client,
 	// the defaultServingCertificate will be used.

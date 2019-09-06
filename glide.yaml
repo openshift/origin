@@ -76,8 +76,6 @@ import:
   version: v1.3.0
 - package: github.com/coreos/bbolt
   version: v1.3.1-coreos.6
-- package: github.com/google/cadvisor
-  version: v0.32.0
 
 # openshift second
 - package: github.com/openshift/api
@@ -105,6 +103,11 @@ import:
 - package: github.com/opencontainers/runc
   repo:    https://github.com/openshift/opencontainers-runc.git
   version: 7c7775178c25e952571573f44a8df281824cf8e1
+  # pod - sjenning
+# openshift-4.1-cadvisor-v0.32.0
+- package: github.com/google/cadvisor
+  repo: https://github.com/openshift/google-cadvisor.git
+  version: 5fa6b13d2628c5c85c8508082cc1bdfa3373e8a9
 # cli
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
@@ -183,6 +186,7 @@ import:
   version: a3acf13e802c358d65f249324d14ed24aac11370
 # auth (for oc kerberos on linux + mac)
 - package: github.com/apcera/gssapi
+  repo:    https://github.com/openshift/gssapi.git
   version: release-2.6.3
 # auth (for oc kerberos on windows)
 - package: github.com/alexbrainman/sspi
