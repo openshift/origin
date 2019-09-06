@@ -23,7 +23,7 @@ spec:
         name: hook
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
         command:
           - /bin/sleep
           - infinity
