@@ -721,7 +721,6 @@ metadata:
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(ContainSubstring("Using in-cluster namespace"))
 			Expect(err).To(ContainSubstring("Using in-cluster configuration"))
-			Expect(err).To(ContainSubstring("Authorization: Bearer invalid"))
 			Expect(err).To(ContainSubstring("Response Status: 401 Unauthorized"))
 
 			By("trying to use kubectl with invalid server")
