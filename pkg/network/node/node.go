@@ -15,7 +15,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -300,7 +300,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
 
-	networkChanged, existingPods, err := node.SetupSDN()
+	networkChanged, existingOFPodNetworks, err := node.SetupSDN()
 	if err != nil {
 		return fmt.Errorf("node SDN setup failed: %v", err)
 	}
@@ -322,6 +322,19 @@ func (node *OsdnNode) Start() error {
 	if !node.useConnTrack {
 		node.watchServices()
 	}
+	existingSandboxPods, err := node.getPodSandboxes()
+	if err != nil {
+		return err
+	}
+
+	runningPods, err := node.GetRunningPods(metav1.NamespaceAll)
+	if err != nil {
+		return err
+	}
+
+	if err = node.podManager.InitRunningPods(existingSandboxPods, existingOFPodNetworks, runningPods); err != nil {
+		return err
+	}
 
 	glog.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
@@ -330,9 +343,9 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	if networkChanged && len(existingPods) > 0 {
-		glog.Infof("OVS bridge has been recreated. Will reattach %d existing pods...", len(existingPods))
-		err := node.reattachPods(existingPods)
+	if networkChanged && len(existingOFPodNetworks) > 0 {
+		glog.Infof("OVS bridge has been recreated. Will reattach %d existing pods...", len(existingOFPodNetworks))
+		err := node.reattachPods(existingSandboxPods, existingOFPodNetworks)
 		if err != nil {
 			return err
 		}
@@ -372,15 +385,11 @@ func (node *OsdnNode) Start() error {
 // reattachPods takes an array containing the information about pods that had been
 // attached to the OVS bridge before restart, and either reattaches or kills each of the
 // corresponding pods.
-func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error {
-	sandboxes, err := node.getPodSandboxes()
-	if err != nil {
-		return err
-	}
+func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo) error {
 
 	failed := []*kruntimeapi.PodSandbox{}
-	for sandboxID, podInfo := range existingPods {
-		sandbox, ok := sandboxes[sandboxID]
+	for sandboxID, podInfo := range existingOFPodNetworks {
+		sandbox, ok := existingPodSandboxes[sandboxID]
 		if !ok {
 			glog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
 			continue
@@ -440,7 +449,7 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	return err
 }
 
-func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
+func (node *OsdnNode) GetRunningPods(namespace string) ([]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),

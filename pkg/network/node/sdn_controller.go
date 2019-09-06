@@ -133,15 +133,14 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 	}
 
 	var changed bool
-	var existingPods map[string]podNetworkInfo
+	existingPods, err := plugin.oc.GetPodNetworkInfo()
+	if err != nil {
+		glog.Warningf("[SDN setup] Could not get details of existing pods: %v", err)
+	}
 	if err := plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs); err == nil {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
 	} else {
 		glog.Infof("[SDN setup] full SDN setup required (%v)", err)
-		existingPods, err = plugin.oc.GetPodNetworkInfo()
-		if err != nil {
-			glog.Warningf("[SDN setup] Could not get details of existing pods: %v", err)
-		}
 		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
 			return false, nil, err
 		}

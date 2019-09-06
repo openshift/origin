@@ -17,13 +17,14 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
@@ -191,13 +192,53 @@ func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetwork
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 
+func (m *podManager) InitRunningPods(existingSandboxPods map[string]*kruntimeapi.PodSandbox, existingOFPodNetworks map[string]podNetworkInfo, cRunningPods []kapi.Pod) error {
+	m.runningPodsLock.Lock()
+	defer m.runningPodsLock.Unlock()
+
+	for _, cPod := range cRunningPods {
+		cKey := getPodKey(cPod.Namespace, cPod.Name)
+
+		var v1Pod v1.Pod
+		if err := kapiv1.Convert_core_Pod_To_v1_Pod(&cPod, &v1Pod, nil); err != nil {
+			glog.Warningf("Could not convert core pod: %s to v1Pod", cKey)
+			continue
+		}
+
+		podPortMapping := constructPodPortMapping(&v1Pod, net.ParseIP(v1Pod.Status.PodIP))
+
+		vnid, err := m.policy.GetVNID(cPod.Namespace)
+		if err != nil {
+			glog.Warningf("No VNID for pod %s", cKey)
+			continue
+		}
+
+		sandbox, ok := existingSandboxPods[cKey]
+		if !ok {
+			glog.Warningf("No sandbox for pod %s", cKey)
+			continue
+		}
+
+		podNetworkInfo, ok := existingOFPodNetworks[sandbox.Id]
+		if !ok {
+			glog.Warningf("No network information for pod %s", cKey)
+			continue
+		}
+
+		m.runningPods[cKey] = &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: podNetworkInfo.ofport}
+	}
+
+	glog.V(5).Infof("Finished initializing podManager with running pods at start-up")
+	return nil
+}
+
 // Returns a key for use with the runningPods map
-func getPodKey(request *cniserver.PodRequest) string {
-	return fmt.Sprintf("%s/%s", request.PodNamespace, request.PodName)
+func getPodKey(namespace, name string) string {
+	return fmt.Sprintf("%s/%s", namespace, name)
 }
 
 func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPortMapping {
-	if pod := m.runningPods[getPodKey(request)]; pod != nil {
+	if pod := m.runningPods[getPodKey(request.PodNamespace, request.PodName)]; pod != nil {
 		return pod.podPortMapping
 	}
 	return nil
@@ -303,7 +344,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 	m.runningPodsLock.Lock()
 	defer m.runningPodsLock.Unlock()
 
-	pk := getPodKey(request)
+	pk := getPodKey(request.PodNamespace, request.PodName)
 	result := &cniserver.PodResult{}
 	switch request.Command {
 	case cniserver.CNI_ADD:

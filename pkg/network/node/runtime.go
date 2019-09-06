@@ -77,7 +77,7 @@ func (node *OsdnNode) getPodSandboxes() (map[string]*kruntimeapi.PodSandbox, err
 
 	podSandboxMap := make(map[string]*kruntimeapi.PodSandbox)
 	for _, sandbox := range podSandboxList {
-		podSandboxMap[sandbox.Id] = sandbox
+		podSandboxMap[getPodKey(sandbox.Metadata.Namespace, sandbox.Metadata.Name)] = sandbox
 	}
 	return podSandboxMap, nil
 }

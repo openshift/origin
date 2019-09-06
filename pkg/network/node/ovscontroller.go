@@ -231,18 +231,19 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 type podNetworkInfo struct {
 	vethName string
 	ip       string
+	ofport   int
 }
 
 // GetPodNetworkInfo returns network interface information about all currently-attached pods.
 func (oc *ovsController) GetPodNetworkInfo() (map[string]podNetworkInfo, error) {
-	rows, err := oc.ovs.Find("interface", []string{"name", "external_ids"}, "external_ids:sandbox!=\"\"")
+	rows, err := oc.ovs.Find("interface", []string{"name", "external_ids", "ofport"}, "external_ids:sandbox!=\"\"")
 	if err != nil {
 		return nil, err
 	}
 
 	results := make(map[string]podNetworkInfo)
 	for _, row := range rows {
-		if row["name"] == "" || row["external_ids"] == "" {
+		if row["name"] == "" || row["external_ids"] == "" || row["ofport"] == "" {
 			utilruntime.HandleError(fmt.Errorf("ovs-vsctl output missing one or more fields: %v", row))
 			continue
 		}
@@ -261,9 +262,16 @@ func (oc *ovsController) GetPodNetworkInfo() (map[string]podNetworkInfo, error) 
 			continue
 		}
 
+		ofport, err := strconv.Atoi(row["ofport"])
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Could not parse ofport %q: %v", row["ofport"], err))
+			continue
+		}
+
 		results[ids["sandbox"]] = podNetworkInfo{
 			vethName: row["name"],
 			ip:       ids["ip"],
+			ofport:   ofport,
 		}
 	}
 
