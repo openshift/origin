@@ -69,6 +69,8 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 			g.By("starting the test source build")
 			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", sourceBuildBinDir)
 			br.AssertSuccess()
+			// Bug 1716697 - ensure push spec doesn't include tag, only SHA
+			o.Expect(br.Logs()).To(o.MatchRegexp(`pushed image-registry\.openshift-image-registry\.svc:5000/.*/test@sha256:`))
 
 			verifyStages(br.Build.Status.Stages, expectedBuildStages)
 		})
@@ -90,6 +92,8 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 			g.By("starting the test docker build")
 			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-file", dockerBuildDockerfile)
 			br.AssertSuccess()
+			// Bug 1716697 - ensure push spec doesn't include tag, only SHA
+			o.Expect(br.Logs()).To(o.MatchRegexp(`pushed image-registry\.openshift-image-registry\.svc:5000/.*/test@sha256:`))
 
 			verifyStages(br.Build.Status.Stages, expectedBuildStages)
 
