@@ -6,6 +6,7 @@ RUN set -x && yum install -y ostree yum-utils selinux-policy-targeted && \
     mkdir /tmp/working && cd /tmp/working && \
     PACKAGES=(openshift-hyperkube) && \
     yumdownloader --enablerepo=built --destdir=/tmp/rpms "${PACKAGES[@]}"  && \
+    curl -f -o /tmp/rpms/openshift-cri-o-1.16.0-0.1.dev.rhaos4.3.git35bae61.el8.x86_64.rpm https://lsm5.fedorapeople.org/cri-o-1.16.0-0.1.dev.rhaos4.3.git35bae61.el8.x86_64.rpm && \
     ls /tmp/rpms/ && (cd /tmp/rpms/ && ls ${PACKAGES[@]/%/*}) && \
     for i in $(find /tmp/rpms/ -name openshift-* -iname *.rpm); do echo "Extracting $i ..."; rpm2cpio $i | cpio -div; done && \
     if [[ -d etc ]]; then mv etc usr/; fi && \
