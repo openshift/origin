@@ -38,8 +38,19 @@ GOVC_TEST_IMG=govc-images/$(basename $GOVC_TEST_IMG_SRC)
 
 PATH="$GOPATH/bin:$PATH"
 
+vcsim_start() {
+    GOVC_SIM_ENV="$BATS_TMPDIR/$(new_id)"
+    export GOVC_SIM_ENV
+    mkfifo "$GOVC_SIM_ENV"
+
+    vcsim -httptest.serve=127.0.0.1:0 -E "$GOVC_SIM_ENV" "$@" &
+
+    eval "$(cat "$GOVC_SIM_ENV")"
+}
+
 vcsim_stop() {
   kill "$GOVC_SIM_PID"
+  wait "$GOVC_SIM_PID"
   rm -f "$GOVC_SIM_ENV"
   unset GOVC_SIM_PID
 }
@@ -116,13 +127,7 @@ vcsim_env_todo() {
 
 # starts vcsim and exports the environment
 vcsim_env() {
-  GOVC_SIM_ENV="$BATS_TMPDIR/$(new_id)"
-  export GOVC_SIM_ENV
-  mkfifo "$GOVC_SIM_ENV"
-
-  vcsim -httptest.serve=127.0.0.1:0 -E "$GOVC_SIM_ENV" "$@" &
-
-  eval "$(cat "$GOVC_SIM_ENV")"
+  vcsim_start "$@"
 
   export GOVC_DATASTORE=LocalDS_0
 

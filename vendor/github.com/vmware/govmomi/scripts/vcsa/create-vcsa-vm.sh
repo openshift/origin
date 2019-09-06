@@ -25,8 +25,8 @@ export GOVC_INSECURE=1
 
 name=vcsa
 
-# 6.7.0c https://docs.vmware.com/en/VMware-vSphere/6.7/rn/vsphere-esxi-vcenter-server-67-release-notes.html
-ova=VMware-vCenter-Server-Appliance-6.7.0.13000-9232925_OVF10.ova
+# 6.7.0U1 https://docs.vmware.com/en/VMware-vSphere/6.7/rn/vsphere-esxi-vcenter-server-67-release-notes.html
+ova=VMware-vCenter-Server-Appliance-6.7.0.20000-10244745_OVF10.ova
 
 while getopts a:i:n: flag
 do

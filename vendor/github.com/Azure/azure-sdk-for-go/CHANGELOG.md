@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## `v21.4.0`
+
+### New Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| compute | 2019-03-01 |
+
 ## `v21.3.0`
 
 ### New Packages

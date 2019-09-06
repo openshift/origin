@@ -56,7 +56,8 @@ func (cmd *remove) Description() string {
 
 Examples:
   govc device.remove -vm $name cdrom-3000
-  govc device.remove -vm $name -keep disk-1000`
+  govc device.remove -vm $name disk-1000
+  govc device.remove -vm $name -keep disk-*`
 }
 
 func (cmd *remove) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -75,12 +76,12 @@ func (cmd *remove) Run(ctx context.Context, f *flag.FlagSet) error {
 	}
 
 	for _, name := range f.Args() {
-		device := devices.Find(name)
-		if device == nil {
+		device := match(name, devices)
+		if len(device) == 0 {
 			return fmt.Errorf("device '%s' not found", name)
 		}
 
-		if err = vm.RemoveDevice(ctx, cmd.keepFiles, device); err != nil {
+		if err = vm.RemoveDevice(ctx, cmd.keepFiles, device...); err != nil {
 			return err
 		}
 	}

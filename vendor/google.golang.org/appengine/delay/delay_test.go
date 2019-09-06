@@ -6,11 +6,14 @@ package delay
 
 import (
 	"bytes"
+	stdctx "context"
 	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -81,6 +84,31 @@ var (
 			return nil
 		}
 		return errFuncErr
+	})
+
+	dupeWhich = 0
+	dupe1Func = Func("dupe", func(c context.Context) {
+		if dupeWhich == 0 {
+			dupeWhich = 1
+		}
+	})
+	dupe2Func = Func("dupe", func(c context.Context) {
+		if dupeWhich == 0 {
+			dupeWhich = 2
+		}
+	})
+
+	reqFuncRuns    = 0
+	reqFuncHeaders *taskqueue.RequestHeaders
+	reqFuncErr     error
+	reqFunc        = Func("req", func(c context.Context) {
+		reqFuncRuns++
+		reqFuncHeaders, reqFuncErr = RequestHeaders(c)
+	})
+
+	stdCtxRuns = 0
+	stdCtxFunc = Func("stdctx", func(c stdctx.Context) {
+		stdCtxRuns++
 	})
 )
 
@@ -317,6 +345,197 @@ func TestErrorFunction(t *testing.T) {
 		}
 		if !reflect.DeepEqual(c.logging, wantLogging) {
 			t.Errorf("Incorrect logging: got %+v, want %+v", c.logging, wantLogging)
+		}
+	}
+}
+
+func TestDuplicateFunction(t *testing.T) {
+	c := newFakeContext()
+
+	// Fake out the adding of a task.
+	var task *taskqueue.Task
+	taskqueueAdder = func(_ context.Context, tk *taskqueue.Task, queue string) (*taskqueue.Task, error) {
+		if queue != "" {
+			t.Errorf(`Got queue %q, expected ""`, queue)
+		}
+		task = tk
+		return tk, nil
+	}
+
+	if err := dupe1Func.Call(c.ctx); err == nil {
+		t.Error("dupe1Func.Call did not return error")
+	}
+	if task != nil {
+		t.Error("dupe1Func.Call posted a task")
+	}
+	if err := dupe2Func.Call(c.ctx); err != nil {
+		t.Errorf("dupe2Func.Call error: %v", err)
+	}
+	if task == nil {
+		t.Fatalf("dupe2Func.Call did not post a task")
+	}
+
+	// Simulate the Task Queue service.
+	req, err := http.NewRequest("POST", path, bytes.NewBuffer(task.Payload))
+	if err != nil {
+		t.Fatalf("Failed making http.Request: %v", err)
+	}
+	rw := httptest.NewRecorder()
+	runFunc(c.ctx, rw, req)
+
+	if dupeWhich == 1 {
+		t.Error("dupe2Func.Call used old registered function")
+	} else if dupeWhich != 2 {
+		t.Errorf("dupeWhich = %d; want 2", dupeWhich)
+	}
+}
+
+func TestGetRequestHeadersFromContext(t *testing.T) {
+	c := newFakeContext()
+
+	// Outside a delay.Func should return an error.
+	headers, err := RequestHeaders(c.ctx)
+	if headers != nil {
+		t.Errorf("RequestHeaders outside Func, got %v, want nil", headers)
+	}
+	if err != errOutsideDelayFunc {
+		t.Errorf("RequestHeaders outside Func err, got %v, want %v", err, errOutsideDelayFunc)
+	}
+
+	// Fake out the adding of a task.
+	var task *taskqueue.Task
+	taskqueueAdder = func(_ context.Context, tk *taskqueue.Task, queue string) (*taskqueue.Task, error) {
+		if queue != "" {
+			t.Errorf(`Got queue %q, expected ""`, queue)
+		}
+		task = tk
+		return tk, nil
+	}
+
+	reqFunc.Call(c.ctx)
+
+	reqFuncRuns, reqFuncHeaders = 0, nil // reset state
+	// Simulate the Task Queue service.
+	req, err := http.NewRequest("POST", path, bytes.NewBuffer(task.Payload))
+	req.Header.Set("x-appengine-taskname", "foobar")
+	if err != nil {
+		t.Fatalf("Failed making http.Request: %v", err)
+	}
+	rw := httptest.NewRecorder()
+	runFunc(c.ctx, rw, req)
+
+	if reqFuncRuns != 1 {
+		t.Errorf("reqFuncRuns: got %d, want 1", reqFuncRuns)
+	}
+	if reqFuncHeaders.TaskName != "foobar" {
+		t.Errorf("reqFuncHeaders.TaskName: got %v, want 'foobar'", reqFuncHeaders.TaskName)
+	}
+	if reqFuncErr != nil {
+		t.Errorf("reqFuncErr: got %v, want nil", reqFuncErr)
+	}
+}
+
+func TestStandardContext(t *testing.T) {
+	// Fake out the adding of a task.
+	var task *taskqueue.Task
+	taskqueueAdder = func(_ context.Context, tk *taskqueue.Task, queue string) (*taskqueue.Task, error) {
+		if queue != "" {
+			t.Errorf(`Got queue %q, expected ""`, queue)
+		}
+		task = tk
+		return tk, nil
+	}
+
+	c := newFakeContext()
+	stdCtxRuns = 0 // reset state
+	if err := stdCtxFunc.Call(c.ctx); err != nil {
+		t.Fatal("Function.Call:", err)
+	}
+
+	// Simulate the Task Queue service.
+	req, err := http.NewRequest("POST", path, bytes.NewBuffer(task.Payload))
+	if err != nil {
+		t.Fatalf("Failed making http.Request: %v", err)
+	}
+	rw := httptest.NewRecorder()
+	runFunc(c.ctx, rw, req)
+
+	if stdCtxRuns != 1 {
+		t.Errorf("stdCtxRuns: got %d, want 1", stdCtxRuns)
+	}
+}
+
+func TestFileKey(t *testing.T) {
+	os.Setenv("GAE_ENV", "standard")
+	tests := []struct {
+		mainPath string
+		file     string
+		want     string
+	}{
+		// first-gen
+		{
+			"",
+			filepath.FromSlash("srv/foo.go"),
+			filepath.FromSlash("srv/foo.go"),
+		},
+		// gopath
+		{
+			filepath.FromSlash("/tmp/staging1234/srv/"),
+			filepath.FromSlash("/tmp/staging1234/srv/foo.go"),
+			"foo.go",
+		},
+		{
+			filepath.FromSlash("/tmp/staging1234/srv/_gopath/src/example.com/foo"),
+			filepath.FromSlash("/tmp/staging1234/srv/_gopath/src/example.com/foo/foo.go"),
+			"foo.go",
+		},
+		{
+			filepath.FromSlash("/tmp/staging2234/srv/_gopath/src/example.com/foo"),
+			filepath.FromSlash("/tmp/staging2234/srv/_gopath/src/example.com/foo/bar/bar.go"),
+			filepath.FromSlash("example.com/foo/bar/bar.go"),
+		},
+		{
+			filepath.FromSlash("/tmp/staging3234/srv/_gopath/src/example.com/foo"),
+			filepath.FromSlash("/tmp/staging3234/srv/_gopath/src/example.com/bar/main.go"),
+			filepath.FromSlash("example.com/bar/main.go"),
+		},
+		// go mod, same package
+		{
+			filepath.FromSlash("/tmp/staging3234/srv"),
+			filepath.FromSlash("/tmp/staging3234/srv/main.go"),
+			"main.go",
+		},
+		{
+			filepath.FromSlash("/tmp/staging3234/srv"),
+			filepath.FromSlash("/tmp/staging3234/srv/bar/main.go"),
+			filepath.FromSlash("bar/main.go"),
+		},
+		{
+			filepath.FromSlash("/tmp/staging3234/srv/cmd"),
+			filepath.FromSlash("/tmp/staging3234/srv/cmd/main.go"),
+			"main.go",
+		},
+		{
+			filepath.FromSlash("/tmp/staging3234/srv/cmd"),
+			filepath.FromSlash("/tmp/staging3234/srv/bar/main.go"),
+			filepath.FromSlash("bar/main.go"),
+		},
+		// go mod, other package
+		{
+			filepath.FromSlash("/tmp/staging3234/srv"),
+			filepath.FromSlash("/go/pkg/mod/github.com/foo/bar@v0.0.0-20181026220418-f595d03440dc/baz.go"),
+			filepath.FromSlash("github.com/foo/bar/baz.go"),
+		},
+	}
+	for i, tc := range tests {
+		internal.MainPath = tc.mainPath
+		got, err := fileKey(tc.file)
+		if err != nil {
+			t.Errorf("Unexpected error, call %v, file %q: %v", i, tc.file, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("Call %v, file %q: got %q, want %q", i, tc.file, got, tc.want)
 		}
 	}
 }

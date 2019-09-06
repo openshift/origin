@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-03-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-07-01/network"
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-07-01/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
@@ -68,6 +68,7 @@ type PublicIPAddressesClient interface {
 	CreateOrUpdate(ctx context.Context, resourceGroupName string, publicIPAddressName string, parameters network.PublicIPAddress) (resp *http.Response, err error)
 	Delete(ctx context.Context, resourceGroupName string, publicIPAddressName string) (resp *http.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, publicIPAddressName string, expand string) (result network.PublicIPAddress, err error)
+	GetVirtualMachineScaleSetPublicIPAddress(ctx context.Context, resourceGroupName string, virtualMachineScaleSetName string, virtualmachineIndex string, networkInterfaceName string, IPConfigurationName string, publicIPAddressName string, expand string) (result network.PublicIPAddress, err error)
 	List(ctx context.Context, resourceGroupName string) (result []network.PublicIPAddress, err error)
 }
 
@@ -89,10 +90,8 @@ type SecurityGroupsClient interface {
 
 // VirtualMachineScaleSetsClient defines needed functions for azure compute.VirtualMachineScaleSetsClient
 type VirtualMachineScaleSetsClient interface {
-	CreateOrUpdate(ctx context.Context, resourceGroupName string, VMScaleSetName string, parameters compute.VirtualMachineScaleSet) (resp *http.Response, err error)
 	Get(ctx context.Context, resourceGroupName string, VMScaleSetName string) (result compute.VirtualMachineScaleSet, err error)
 	List(ctx context.Context, resourceGroupName string) (result []compute.VirtualMachineScaleSet, err error)
-	UpdateInstances(ctx context.Context, resourceGroupName string, VMScaleSetName string, VMInstanceIDs compute.VirtualMachineScaleSetVMInstanceRequiredIDs) (resp *http.Response, err error)
 }
 
 // VirtualMachineScaleSetVMsClient defines needed functions for azure compute.VirtualMachineScaleSetVMsClient
@@ -195,12 +194,11 @@ func (az *azVirtualMachinesClient) CreateOrUpdate(ctx context.Context, resourceG
 	mc := newMetricContext("vm", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, VMName, parameters)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azVirtualMachinesClient) Get(ctx context.Context, resourceGroupName string, VMName string, expand compute.InstanceViewTypes) (result compute.VirtualMachine, err error) {
@@ -290,13 +288,11 @@ func (az *azInterfacesClient) CreateOrUpdate(ctx context.Context, resourceGroupN
 	mc := newMetricContext("interfaces", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, networkInterfaceName, parameters)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azInterfacesClient) Get(ctx context.Context, resourceGroupName string, networkInterfaceName string, expand string) (result network.Interface, err error) {
@@ -372,14 +368,12 @@ func (az *azLoadBalancersClient) CreateOrUpdate(ctx context.Context, resourceGro
 
 	mc := newMetricContext("load_balancers", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, loadBalancerName, parameters)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azLoadBalancersClient) Delete(ctx context.Context, resourceGroupName string, loadBalancerName string) (resp *http.Response, err error) {
@@ -396,14 +390,12 @@ func (az *azLoadBalancersClient) Delete(ctx context.Context, resourceGroupName s
 
 	mc := newMetricContext("load_balancers", "delete", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Delete(ctx, resourceGroupName, loadBalancerName)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azLoadBalancersClient) Get(ctx context.Context, resourceGroupName string, loadBalancerName string, expand string) (result network.LoadBalancer, err error) {
@@ -492,14 +484,12 @@ func (az *azPublicIPAddressesClient) CreateOrUpdate(ctx context.Context, resourc
 
 	mc := newMetricContext("public_ip_addresses", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, publicIPAddressName, parameters)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azPublicIPAddressesClient) Delete(ctx context.Context, resourceGroupName string, publicIPAddressName string) (resp *http.Response, err error) {
@@ -516,14 +506,12 @@ func (az *azPublicIPAddressesClient) Delete(ctx context.Context, resourceGroupNa
 
 	mc := newMetricContext("public_ip_addresses", "delete", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Delete(ctx, resourceGroupName, publicIPAddressName)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azPublicIPAddressesClient) Get(ctx context.Context, resourceGroupName string, publicIPAddressName string, expand string) (result network.PublicIPAddress, err error) {
@@ -539,6 +527,23 @@ func (az *azPublicIPAddressesClient) Get(ctx context.Context, resourceGroupName 
 
 	mc := newMetricContext("public_ip_addresses", "get", resourceGroupName, az.client.SubscriptionID)
 	result, err = az.client.Get(ctx, resourceGroupName, publicIPAddressName, expand)
+	mc.Observe(err)
+	return
+}
+
+func (az *azPublicIPAddressesClient) GetVirtualMachineScaleSetPublicIPAddress(ctx context.Context, resourceGroupName string, virtualMachineScaleSetName string, virtualmachineIndex string, networkInterfaceName string, IPConfigurationName string, publicIPAddressName string, expand string) (result network.PublicIPAddress, err error) {
+	if !az.rateLimiterReader.TryAccept() {
+		err = createRateLimitErr(false, "VMSSPublicIPGet")
+		return
+	}
+
+	klog.V(10).Infof("azPublicIPAddressesClient.GetVirtualMachineScaleSetPublicIPAddress(%q,%q): start", resourceGroupName, publicIPAddressName)
+	defer func() {
+		klog.V(10).Infof("azPublicIPAddressesClient.GetVirtualMachineScaleSetPublicIPAddress(%q,%q): end", resourceGroupName, publicIPAddressName)
+	}()
+
+	mc := newMetricContext("vmss_public_ip_addresses", "get", resourceGroupName, az.client.SubscriptionID)
+	result, err = az.client.GetVirtualMachineScaleSetPublicIPAddress(ctx, resourceGroupName, virtualMachineScaleSetName, virtualmachineIndex, networkInterfaceName, IPConfigurationName, publicIPAddressName, expand)
 	mc.Observe(err)
 	return
 }
@@ -612,13 +617,11 @@ func (az *azSubnetsClient) CreateOrUpdate(ctx context.Context, resourceGroupName
 	mc := newMetricContext("subnets", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, virtualNetworkName, subnetName, subnetParameters)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azSubnetsClient) Delete(ctx context.Context, resourceGroupName string, virtualNetworkName string, subnetName string) (resp *http.Response, err error) {
@@ -636,13 +639,11 @@ func (az *azSubnetsClient) Delete(ctx context.Context, resourceGroupName string,
 	mc := newMetricContext("subnets", "delete", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Delete(ctx, resourceGroupName, virtualNetworkName, subnetName)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azSubnetsClient) Get(ctx context.Context, resourceGroupName string, virtualNetworkName string, subnetName string, expand string) (result network.Subnet, err error) {
@@ -674,8 +675,8 @@ func (az *azSubnetsClient) List(ctx context.Context, resourceGroupName string, v
 
 	mc := newMetricContext("subnets", "list", resourceGroupName, az.client.SubscriptionID)
 	iterator, err := az.client.ListComplete(ctx, resourceGroupName, virtualNetworkName)
+	mc.Observe(err)
 	if err != nil {
-		mc.Observe(err)
 		return nil, err
 	}
 
@@ -731,13 +732,11 @@ func (az *azSecurityGroupsClient) CreateOrUpdate(ctx context.Context, resourceGr
 	mc := newMetricContext("security_groups", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, networkSecurityGroupName, parameters)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azSecurityGroupsClient) Delete(ctx context.Context, resourceGroupName string, networkSecurityGroupName string) (resp *http.Response, err error) {
@@ -755,13 +754,11 @@ func (az *azSecurityGroupsClient) Delete(ctx context.Context, resourceGroupName 
 	mc := newMetricContext("security_groups", "delete", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Delete(ctx, resourceGroupName, networkSecurityGroupName)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azSecurityGroupsClient) Get(ctx context.Context, resourceGroupName string, networkSecurityGroupName string, expand string) (result network.SecurityGroup, err error) {
@@ -835,30 +832,6 @@ func newAzVirtualMachineScaleSetsClient(config *azClientConfig) *azVirtualMachin
 	}
 }
 
-func (az *azVirtualMachineScaleSetsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, VMScaleSetName string, parameters compute.VirtualMachineScaleSet) (resp *http.Response, err error) {
-	/* Write rate limiting */
-	if !az.rateLimiterWriter.TryAccept() {
-		err = createRateLimitErr(true, "VMSSCreateOrUpdate")
-		return
-	}
-
-	klog.V(10).Infof("azVirtualMachineScaleSetsClient.CreateOrUpdate(%q,%q): start", resourceGroupName, VMScaleSetName)
-	defer func() {
-		klog.V(10).Infof("azVirtualMachineScaleSetsClient.CreateOrUpdate(%q,%q): end", resourceGroupName, VMScaleSetName)
-	}()
-
-	mc := newMetricContext("vmss", "create_or_update", resourceGroupName, az.client.SubscriptionID)
-	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, VMScaleSetName, parameters)
-	mc.Observe(err)
-	if err != nil {
-		return future.Response(), err
-	}
-
-	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
-}
-
 func (az *azVirtualMachineScaleSetsClient) Get(ctx context.Context, resourceGroupName string, VMScaleSetName string) (result compute.VirtualMachineScaleSet, err error) {
 	if !az.rateLimiterReader.TryAccept() {
 		err = createRateLimitErr(false, "VMSSGet")
@@ -904,30 +877,6 @@ func (az *azVirtualMachineScaleSetsClient) List(ctx context.Context, resourceGro
 	}
 
 	return result, nil
-}
-
-func (az *azVirtualMachineScaleSetsClient) UpdateInstances(ctx context.Context, resourceGroupName string, VMScaleSetName string, VMInstanceIDs compute.VirtualMachineScaleSetVMInstanceRequiredIDs) (resp *http.Response, err error) {
-	/* Write rate limiting */
-	if !az.rateLimiterWriter.TryAccept() {
-		err = createRateLimitErr(true, "VMSSUpdateInstances")
-		return
-	}
-
-	klog.V(10).Infof("azVirtualMachineScaleSetsClient.UpdateInstances(%q,%q,%v): start", resourceGroupName, VMScaleSetName, VMInstanceIDs)
-	defer func() {
-		klog.V(10).Infof("azVirtualMachineScaleSetsClient.UpdateInstances(%q,%q,%v): end", resourceGroupName, VMScaleSetName, VMInstanceIDs)
-	}()
-
-	mc := newMetricContext("vmss", "update_instances", resourceGroupName, az.client.SubscriptionID)
-	future, err := az.client.UpdateInstances(ctx, resourceGroupName, VMScaleSetName, VMInstanceIDs)
-	mc.Observe(err)
-	if err != nil {
-		return future.Response(), err
-	}
-
-	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
 }
 
 // azVirtualMachineScaleSetVMsClient implements VirtualMachineScaleSetVMsClient.
@@ -1032,14 +981,12 @@ func (az *azVirtualMachineScaleSetVMsClient) Update(ctx context.Context, resourc
 
 	mc := newMetricContext("vmssvm", "update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Update(ctx, resourceGroupName, VMScaleSetName, instanceID, parameters)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 // azRoutesClient implements RoutesClient.
@@ -1082,13 +1029,11 @@ func (az *azRoutesClient) CreateOrUpdate(ctx context.Context, resourceGroupName 
 	mc := newMetricContext("routes", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, routeTableName, routeName, routeParameters)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azRoutesClient) Delete(ctx context.Context, resourceGroupName string, routeTableName string, routeName string) (resp *http.Response, err error) {
@@ -1106,13 +1051,11 @@ func (az *azRoutesClient) Delete(ctx context.Context, resourceGroupName string, 
 	mc := newMetricContext("routes", "delete", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Delete(ctx, resourceGroupName, routeTableName, routeName)
 	if err != nil {
-		mc.Observe(err)
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 // azRouteTablesClient implements RouteTablesClient.
@@ -1154,14 +1097,12 @@ func (az *azRouteTablesClient) CreateOrUpdate(ctx context.Context, resourceGroup
 
 	mc := newMetricContext("route_tables", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, routeTableName, parameters)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azRouteTablesClient) Get(ctx context.Context, resourceGroupName string, routeTableName string, expand string) (result network.RouteTable, err error) {
@@ -1224,8 +1165,7 @@ func (az *azStorageAccountClient) Create(ctx context.Context, resourceGroupName 
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azStorageAccountClient) Delete(ctx context.Context, resourceGroupName string, accountName string) (result autorest.Response, err error) {
@@ -1334,14 +1274,12 @@ func (az *azDisksClient) CreateOrUpdate(ctx context.Context, resourceGroupName s
 
 	mc := newMetricContext("disks", "create_or_update", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.CreateOrUpdate(ctx, resourceGroupName, diskName, diskParameter)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azDisksClient) Delete(ctx context.Context, resourceGroupName string, diskName string) (resp *http.Response, err error) {
@@ -1358,14 +1296,12 @@ func (az *azDisksClient) Delete(ctx context.Context, resourceGroupName string, d
 
 	mc := newMetricContext("disks", "delete", resourceGroupName, az.client.SubscriptionID)
 	future, err := az.client.Delete(ctx, resourceGroupName, diskName)
-	mc.Observe(err)
 	if err != nil {
-		return future.Response(), err
+		return future.Response(), mc.Observe(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, az.client.Client)
-	mc.Observe(err)
-	return future.Response(), err
+	return future.Response(), mc.Observe(err)
 }
 
 func (az *azDisksClient) Get(ctx context.Context, resourceGroupName string, diskName string) (result compute.Disk, err error) {

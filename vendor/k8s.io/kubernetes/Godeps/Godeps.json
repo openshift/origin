@@ -36,34 +36,34 @@
 			"Rev": "3b1ae45394a234c385be014e9a488f2bb6eef821"
 		},
 		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute",
-			"Comment": "v21.3.0",
-			"Rev": "da91af54816b4cf72949c225a2d0980f51fab01b"
+			"ImportPath": "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-03-01/compute",
+			"Comment": "v21.4.0",
+			"Rev": "32916f57ad7b421f5fdaab86b73a795632fff117"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/services/containerregistry/mgmt/2017-10-01/containerregistry",
-			"Comment": "v21.3.0",
-			"Rev": "da91af54816b4cf72949c225a2d0980f51fab01b"
+			"Comment": "v21.4.0",
+			"Rev": "32916f57ad7b421f5fdaab86b73a795632fff117"
 		},
 		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network",
-			"Comment": "v21.3.0",
-			"Rev": "da91af54816b4cf72949c225a2d0980f51fab01b"
+			"ImportPath": "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-07-01/network",
+			"Comment": "v21.4.0",
+			"Rev": "32916f57ad7b421f5fdaab86b73a795632fff117"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-07-01/storage",
-			"Comment": "v21.3.0",
-			"Rev": "da91af54816b4cf72949c225a2d0980f51fab01b"
+			"Comment": "v21.4.0",
+			"Rev": "32916f57ad7b421f5fdaab86b73a795632fff117"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
-			"Comment": "v21.3.0",
-			"Rev": "da91af54816b4cf72949c225a2d0980f51fab01b"
+			"Comment": "v21.4.0",
+			"Rev": "32916f57ad7b421f5fdaab86b73a795632fff117"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/version",
-			"Comment": "v21.3.0",
-			"Rev": "da91af54816b4cf72949c225a2d0980f51fab01b"
+			"Comment": "v21.4.0",
+			"Rev": "32916f57ad7b421f5fdaab86b73a795632fff117"
 		},
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm",
@@ -1436,7 +1436,7 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
-			"Comment": "v0.2.0-9-ge214231b295a8e",
+			"Comment": "v0.3.0",
 			"Rev": "e214231b295a8ea9479f11b70b35d5acf3556d9b"
 		},
 		{
@@ -1705,7 +1705,7 @@
 		},
 		{
 			"ImportPath": "github.com/evanphx/json-patch",
-			"Comment": "v4.1.0-19-g5858425f75500d",
+			"Comment": "v4.2.0",
 			"Rev": "5858425f75500d40c52783dce87d085a483ce135"
 		},
 		{
@@ -1758,12 +1758,12 @@
 		},
 		{
 			"ImportPath": "github.com/go-openapi/jsonpointer",
-			"Comment": "v0.18.0",
+			"Comment": "v0.19.0",
 			"Rev": "ef5f0afec364d3b9396b7b77b43dbe26bf1f8004"
 		},
 		{
 			"ImportPath": "github.com/go-openapi/jsonreference",
-			"Comment": "v0.18.0",
+			"Comment": "v0.19.0",
 			"Rev": "8483a886a90412cd6858df4ea3483dce9c8e35a3"
 		},
 		{
@@ -2569,30 +2569,37 @@
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/api",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/api/client",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/api/client/volume",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/api/spec",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/pkg/parser",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/pkg/units",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
 			"ImportPath": "github.com/libopenstorage/openstorage/volume",
+			"Comment": "v1.0.0",
 			"Rev": "093a0c3888753c2056e7373183693d670c6bba01"
 		},
 		{
@@ -3176,7 +3183,7 @@
 		},
 		{
 			"ImportPath": "github.com/robfig/cron",
-			"Comment": "v1-53-gdf38d32658d878",
+			"Comment": "v1.0.0-53-gdf38d32658d878",
 			"Rev": "df38d32658d8788cd446ba74db4bb5375c4b0cb3"
 		},
 		{
@@ -3319,168 +3326,168 @@
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/find",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/list",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/lookup",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/lookup/methods",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/lookup/simulator",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/lookup/types",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/nfc",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/object",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/pbm",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/pbm/methods",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/pbm/types",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/property",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/session",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/simulator",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/simulator/esx",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/simulator/vpx",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/sts",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/sts/internal",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/sts/simulator",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/task",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vapi/internal",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vapi/rest",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vapi/simulator",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vapi/tags",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/debug",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/methods",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/mo",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/progress",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/soap",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/types",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/xml",
-			"Comment": "v0.18.0-48-g22f74650cf39ba",
-			"Rev": "22f74650cf39ba4649fba45e770df0f44df6f758"
+			"Comment": "v0.20.1",
+			"Rev": "4514987f2ddb8875c44cff1d5a24c59425fa6b92"
 		},
 		{
 			"ImportPath": "github.com/vmware/photon-controller-go-sdk/SSPI",
@@ -3625,67 +3632,67 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context/ctxhttp",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/html",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/html/atom",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/html/charset",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/http/httpguts",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/http2",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/http2/hpack",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/idna",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/nettest",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/socks",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/sockstest",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/timeseries",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/proxy",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/trace",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/net/websocket",
-			"Rev": "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
+			"Rev": "cdfb69ac37fc6fa907650654115ebebb3aae2087"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",

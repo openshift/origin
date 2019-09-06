@@ -51,6 +51,21 @@ func (cmd *destroy) Process(ctx context.Context) error {
 	return nil
 }
 
+func (cmd *destroy) Usage() string {
+	return "VM..."
+}
+
+func (cmd *destroy) Description() string {
+	return `Power off and delete VM.
+
+When a VM is destroyed, any attached virtual disks are also deleted.
+Use the 'device.remove -vm VM -keep disk-*' command to detach and
+keep disks if needed, prior to calling vm.destroy.
+
+Examples:
+  govc vm.destroy my-vm`
+}
+
 func (cmd *destroy) Run(ctx context.Context, f *flag.FlagSet) error {
 	vms, err := cmd.VirtualMachines(f.Args())
 	if err != nil {

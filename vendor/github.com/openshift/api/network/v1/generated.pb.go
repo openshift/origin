@@ -23,14 +23,19 @@
 */
 package v1
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
 
-import strings "strings"
-import reflect "reflect"
+	proto "github.com/gogo/protobuf/proto"
 
-import io "io"
+	math "math"
+
+	strings "strings"
+
+	reflect "reflect"
+
+	io "io"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal

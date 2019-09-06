@@ -160,6 +160,28 @@ func (c *Client) DeletePrincipal(ctx context.Context, name string) error {
 	return err
 }
 
+func (c *Client) AddUsersToGroup(ctx context.Context, groupName string, userIDs ...types.PrincipalId) error {
+	req := types.AddUsersToLocalGroup{
+		This:      c.ServiceContent.PrincipalManagementService,
+		GroupName: groupName,
+		UserIds:   userIDs,
+	}
+
+	_, err := methods.AddUsersToLocalGroup(ctx, c, &req)
+	return err
+}
+
+func (c *Client) CreateGroup(ctx context.Context, name string, details types.AdminGroupDetails) error {
+	req := types.CreateLocalGroup{
+		This:         c.ServiceContent.PrincipalManagementService,
+		GroupName:    name,
+		GroupDetails: details,
+	}
+
+	_, err := methods.CreateLocalGroup(ctx, c, &req)
+	return err
+}
+
 func (c *Client) CreatePersonUser(ctx context.Context, name string, details types.AdminPersonDetails, password string) error {
 	req := types.CreateLocalPersonUser{
 		This:        c.ServiceContent.PrincipalManagementService,

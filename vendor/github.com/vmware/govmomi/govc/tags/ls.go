@@ -73,7 +73,7 @@ func (r lsResult) Write(w io.Writer) error {
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		m := tags.NewManager(c)
 		var res lsResult
 		var err error

@@ -46,10 +46,13 @@ but appear via `govc $cmd -h`:
  - [cluster.override.remove](#clusteroverrideremove)
  - [cluster.rule.change](#clusterrulechange)
  - [cluster.rule.create](#clusterrulecreate)
+ - [cluster.rule.info](#clusterruleinfo)
  - [cluster.rule.ls](#clusterrulels)
  - [cluster.rule.remove](#clusterruleremove)
  - [datacenter.create](#datacentercreate)
  - [datacenter.info](#datacenterinfo)
+ - [datastore.cluster.change](#datastoreclusterchange)
+ - [datastore.cluster.info](#datastoreclusterinfo)
  - [datastore.cp](#datastorecp)
  - [datastore.create](#datastorecreate)
  - [datastore.disk.create](#datastorediskcreate)
@@ -84,6 +87,15 @@ but appear via `govc $cmd -h`:
  - [device.serial.connect](#deviceserialconnect)
  - [device.serial.disconnect](#deviceserialdisconnect)
  - [device.usb.add](#deviceusbadd)
+ - [disk.create](#diskcreate)
+ - [disk.ls](#diskls)
+ - [disk.register](#diskregister)
+ - [disk.rm](#diskrm)
+ - [disk.snapshot.create](#disksnapshotcreate)
+ - [disk.snapshot.ls](#disksnapshotls)
+ - [disk.snapshot.rm](#disksnapshotrm)
+ - [disk.tags.attach](#disktagsattach)
+ - [disk.tags.detach](#disktagsdetach)
  - [dvs.add](#dvsadd)
  - [dvs.create](#dvscreate)
  - [dvs.portgroup.add](#dvsportgroupadd)
@@ -97,6 +109,7 @@ but appear via `govc $cmd -h`:
  - [extension.setcert](#extensionsetcert)
  - [extension.unregister](#extensionunregister)
  - [fields.add](#fieldsadd)
+ - [fields.info](#fieldsinfo)
  - [fields.ls](#fieldsls)
  - [fields.rename](#fieldsrename)
  - [fields.rm](#fieldsrm)
@@ -166,6 +179,7 @@ but appear via `govc $cmd -h`:
  - [license.assign](#licenseassign)
  - [license.assigned.ls](#licenseassignedls)
  - [license.decode](#licensedecode)
+ - [license.label.set](#licenselabelset)
  - [license.ls](#licensels)
  - [license.remove](#licenseremove)
  - [logs](#logs)
@@ -213,6 +227,19 @@ but appear via `govc $cmd -h`:
  - [sso.user.ls](#ssouserls)
  - [sso.user.rm](#ssouserrm)
  - [sso.user.update](#ssouserupdate)
+ - [tags.attach](#tagsattach)
+ - [tags.attached.ls](#tagsattachedls)
+ - [tags.category.create](#tagscategorycreate)
+ - [tags.category.info](#tagscategoryinfo)
+ - [tags.category.ls](#tagscategoryls)
+ - [tags.category.rm](#tagscategoryrm)
+ - [tags.category.update](#tagscategoryupdate)
+ - [tags.create](#tagscreate)
+ - [tags.detach](#tagsdetach)
+ - [tags.info](#tagsinfo)
+ - [tags.ls](#tagsls)
+ - [tags.rm](#tagsrm)
+ - [tags.update](#tagsupdate)
  - [task.cancel](#taskcancel)
  - [tasks](#tasks)
  - [vapp.destroy](#vappdestroy)
@@ -229,11 +256,13 @@ but appear via `govc $cmd -h`:
  - [vm.guest.tools](#vmguesttools)
  - [vm.info](#vminfo)
  - [vm.ip](#vmip)
+ - [vm.keystrokes](#vmkeystrokes)
  - [vm.markastemplate](#vmmarkastemplate)
  - [vm.markasvm](#vmmarkasvm)
  - [vm.migrate](#vmmigrate)
  - [vm.network.add](#vmnetworkadd)
  - [vm.network.change](#vmnetworkchange)
+ - [vm.option.info](#vmoptioninfo)
  - [vm.power](#vmpower)
  - [vm.question](#vmquestion)
  - [vm.rdm.attach](#vmrdmattach)
@@ -479,6 +508,7 @@ Options:
   -enable=<nil>             Enable rule
   -host-affine-group=       Host affine group name
   -host-anti-affine-group=  Host anti-affine group name
+  -l=false                  Long listing format
   -mandatory=<nil>          Enforce rule compliance
   -name=                    Cluster rule name
   -vm-group=                VM group name
@@ -515,10 +545,28 @@ Options:
   -enable=<nil>             Enable rule
   -host-affine-group=       Host affine group name
   -host-anti-affine-group=  Host anti-affine group name
+  -l=false                  Long listing format
   -mandatory=<nil>          Enforce rule compliance
   -name=                    Cluster rule name
   -vm-group=                VM group name
   -vm-host=false            Virtual Machines to Hosts
+```
+
+## cluster.rule.info
+
+```
+Usage: govc cluster.rule.info [OPTIONS]
+
+Provides detailed infos about cluster rules, their types and rule members.
+
+Examples:
+  govc cluster.rule.info -cluster my_cluster
+  govc cluster.rule.info -cluster my_cluster -name my_rule
+
+Options:
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -l=false               Long listing format
+  -name=                 Cluster rule name
 ```
 
 ## cluster.rule.ls
@@ -531,9 +579,12 @@ List cluster rules and rule members.
 Examples:
   govc cluster.rule.ls -cluster my_cluster
   govc cluster.rule.ls -cluster my_cluster -name my_rule
+  govc cluster.rule.ls -cluster my_cluster -l
+  govc cluster.rule.ls -cluster my_cluster -name my_rule -l
 
 Options:
   -cluster=              Cluster [GOVC_CLUSTER]
+  -l=false               Long listing format
   -name=                 Cluster rule name
 ```
 
@@ -549,6 +600,7 @@ Examples:
 
 Options:
   -cluster=              Cluster [GOVC_CLUSTER]
+  -l=false               Long listing format
   -name=                 Cluster rule name
 ```
 
@@ -565,6 +617,30 @@ Options:
 
 ```
 Usage: govc datacenter.info [OPTIONS] [PATH]...
+
+Options:
+```
+
+## datastore.cluster.change
+
+```
+Usage: govc datastore.cluster.change [OPTIONS] CLUSTER...
+
+Change configuration of the given datastore clusters.
+
+Examples:
+  govc datastore.cluster.change -drs-enabled ClusterA
+  govc datastore.cluster.change -drs-enabled=false ClusterB
+
+Options:
+  -drs-enabled=<nil>     Enable Storage DRS
+  -drs-mode=             Storage DRS behavior: manual, automated
+```
+
+## datastore.cluster.info
+
+```
+Usage: govc datastore.cluster.info [OPTIONS] [PATH]...
 
 Options:
 ```
@@ -1041,6 +1117,8 @@ List devices for VM.
 
 Examples:
   govc device.ls -vm $name
+  govc device.ls -vm $name disk-*
+  govc device.ls -vm $name -json | jq '.Devices[].Name'
 
 Options:
   -boot=false            List devices configured in the VM's boot options
@@ -1056,7 +1134,8 @@ Remove DEVICE from VM.
 
 Examples:
   govc device.remove -vm $name cdrom-3000
-  govc device.remove -vm $name -keep disk-1000
+  govc device.remove -vm $name disk-1000
+  govc device.remove -vm $name -keep disk-*
 
 Options:
   -keep=false            Keep files in datastore
@@ -1160,6 +1239,144 @@ Options:
   -vm=                   Virtual machine [GOVC_VM]
 ```
 
+## disk.create
+
+```
+Usage: govc disk.create [OPTIONS] NAME
+
+Create disk NAME on DS.
+
+Examples:
+  govc disk.create -size 24G my-disk
+
+Options:
+  -datastore-cluster=    Datastore cluster [GOVC_DATASTORE_CLUSTER]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -keep=<nil>            Keep disk after VM is deleted
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
+  -size=10.0GB           Size of new disk
+```
+
+## disk.ls
+
+```
+Usage: govc disk.ls [OPTIONS] [ID]...
+
+List disk IDs on DS.
+
+Examples:
+  govc disk.ls
+  govc disk.ls -l -T
+  govc disk.ls -l e9b06a8b-d047-4d3c-b15b-43ea9608b1a6
+  govc disk.ls -c k8s-region -t us-west-2
+
+Options:
+  -T=false               List attached tags
+  -c=                    Query tag category
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -l=false               Long listing format
+  -t=                    Query tag name
+```
+
+## disk.register
+
+```
+Usage: govc disk.register [OPTIONS] PATH [NAME]
+
+Register existing disk on DS.
+
+Examples:
+  govc disk.register disks/disk1.vmdk my-disk
+
+Options:
+  -ds=                   Datastore [GOVC_DATASTORE]
+```
+
+## disk.rm
+
+```
+Usage: govc disk.rm [OPTIONS] ID
+
+Remove disk ID on DS.
+
+Examples:
+  govc disk.rm ID
+
+Options:
+  -ds=                   Datastore [GOVC_DATASTORE]
+```
+
+## disk.snapshot.create
+
+```
+Usage: govc disk.snapshot.create [OPTIONS] ID DESC
+
+Create snapshot of ID on DS.
+
+Examples:
+  govc disk.snapshot.create b9fe5f17-3b87-4a03-9739-09a82ddcc6b0 my-disk-snapshot
+
+Options:
+  -ds=                   Datastore [GOVC_DATASTORE]
+```
+
+## disk.snapshot.ls
+
+```
+Usage: govc disk.snapshot.ls [OPTIONS] ID
+
+List snapshots for disk ID on DS.
+
+Examples:
+  govc snapshot.disk.ls -l 9b06a8b-d047-4d3c-b15b-43ea9608b1a6
+
+Options:
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -l=false               Long listing format
+```
+
+## disk.snapshot.rm
+
+```
+Usage: govc disk.snapshot.rm [OPTIONS] ID SID
+
+Remove disk ID snapshot ID on DS.
+
+Examples:
+  govc disk.snapshot.rm ffe6a398-eb8e-4eaa-9118-e1f16b8b8e3c ecbca542-0a25-4127-a585-82e4047750d6
+
+Options:
+  -ds=                   Datastore [GOVC_DATASTORE]
+```
+
+## disk.tags.attach
+
+```
+Usage: govc disk.tags.attach [OPTIONS] NAME ID
+
+Attach tag NAME to disk ID.
+
+Examples:
+  govc disk.tags.attach -c k8s-region k8s-region-us $id
+
+Options:
+  -c=                    Tag category
+```
+
+## disk.tags.detach
+
+```
+Usage: govc disk.tags.detach [OPTIONS] NAME ID
+
+Detach tag NAME from disk ID.
+
+Examples:
+  govc disk.tags.detach -c k8s-region k8s-region-us $id
+
+Options:
+  -c=                    Tag category
+```
+
 ## dvs.add
 
 ```
@@ -1249,6 +1466,7 @@ Options:
   -count=0               Number of matches to return (0 = unlimited)
   -inside=true           Filter by port inside or outside status
   -pg=                   Distributed Virtual Portgroup
+  -r=false               Show DVS rules
   -uplinkPort=false      Filter for uplink ports
   -vlan=0                Filter by VLAN ID (0 = unfiltered)
 ```
@@ -1356,13 +1574,42 @@ Options:
 ```
 Usage: govc fields.add [OPTIONS] NAME
 
+Add a custom field type with NAME.
+
+Examples:
+  govc fields.add my-field-name # adds a field to all managed object types
+  govc fields.add -type VirtualMachine my-vm-field-name # adds a field to the VirtualMachine type
+
 Options:
+  -type=                 Managed object type
+```
+
+## fields.info
+
+```
+Usage: govc fields.info [OPTIONS] PATH...
+
+Display custom field values for PATH.
+
+Also known as "Custom Attributes".
+
+Examples:
+  govc fields.info vm/*
+  govc fields.info -n my-field-name vm/*
+
+Options:
+  -n=                    Filter by custom field name
 ```
 
 ## fields.ls
 
 ```
 Usage: govc fields.ls [OPTIONS]
+
+List custom field definitions.
+
+Examples:
+  govc fields.ls
 
 Options:
 ```
@@ -1388,7 +1635,16 @@ Options:
 ```
 Usage: govc fields.set [OPTIONS] KEY VALUE PATH...
 
+Set custom field values for PATH.
+
+Examples:
+  govc fields.set my-field-name field-value vm/my-vm
+  govc fields.set -add my-new-global-field-name field-value vm/my-vm
+  govc fields.set -add -type VirtualMachine my-new-vm-field-name field-value vm/my-vm
+
 Options:
+  -add=false             Adds the field if it does not exist. Use the -type flag to specify the managed object type to which the field is added. Using -add and omitting -kind causes a new, global field to be created if a field with the provided name does not already exist.
+  -type=                 Managed object type on which to add the field if it does not exist. This flag is ignored unless -add=true
 ```
 
 ## find
@@ -2418,6 +2674,21 @@ Options:
   -feature=              List licenses with given feature
 ```
 
+## license.label.set
+
+```
+Usage: govc license.label.set [OPTIONS] LICENSE KEY VAL
+
+Set license labels.
+
+Examples:
+  govc license.label.set 00000-00000-00000-00000-00000 team cnx # add/set label
+  govc license.label.set 00000-00000-00000-00000-00000 team ""  # remove label
+  govc license.ls -json | jq '.[] | select(.Labels[].Key == "team") | .LicenseKey'
+
+Options:
+```
+
 ## license.ls
 
 ```
@@ -2677,6 +2948,10 @@ Examples:
   govc object.collect -json -s $(govc object.collect -s - content.perfManager) description.counterType | jq .
   govc object.collect -R create-filter-request.xml # replay filter
   govc object.collect -R create-filter-request.xml -O # convert filter to Go code
+  govc object.collect -s vm/my-vm summary.runtime.host | xargs govc ls -L # inventory path of VM's host
+  govc object.collect -json -type m / config.hardware.device | \ # use -json + jq to search array elements
+    jq -r '. | select(.ChangeSet[].Val.VirtualDevice[].MacAddress == "00:50:56:bc:5e:3c") | \
+    [.Obj.Type, .Obj.Value] | join(":")' | xargs govc ls -L
 
 Options:
   -O=false               Output the CreateFilter request itself
@@ -2684,6 +2959,7 @@ Options:
   -n=0                   Wait for N property updates
   -s=false               Output property value only
   -type=[]               Resource type.  If specified, MOID is used for a container view root
+  -wait=0s               Max wait time for updates
 ```
 
 ## object.destroy
@@ -3317,6 +3593,229 @@ Options:
   -p=                    Password
 ```
 
+## tags.attach
+
+```
+Usage: govc tags.attach [OPTIONS] NAME PATH
+
+Attach tag NAME to object PATH.
+
+Examples:
+  govc tags.attach k8s-region-us /dc1
+  govc tags.attach -c k8s-region us-ca1 /dc1/host/cluster1
+
+Options:
+  -c=                    Tag category
+```
+
+## tags.attached.ls
+
+```
+Usage: govc tags.attached.ls [OPTIONS] NAME
+
+List attached tags or objects.
+
+Examples:
+  govc tags.attached.ls k8s-region-us
+  govc tags.attached.ls -json k8s-zone-us-ca1 | jq .
+  govc tags.attached.ls -r /dc1/host/cluster1
+  govc tags.attached.ls -json -r /dc1 | jq .
+
+Options:
+  -r=false               List tags attached to resource
+```
+
+## tags.category.create
+
+```
+Usage: govc tags.category.create [OPTIONS] NAME
+
+Create tag category.
+
+This command will output the ID of the new tag category.
+
+Examples:
+  govc tags.category.create -d "Kubernetes region" -t Datacenter k8s-region
+  govc tags.category.create -d "Kubernetes zone" k8s-zone
+
+Options:
+  -d=                    Description
+  -m=false               Allow multiple tags per object
+  -t=[]                  Object types
+```
+
+## tags.category.info
+
+```
+Usage: govc tags.category.info [OPTIONS] [NAME]
+
+Display category info.
+
+If NAME is provided, display info for only that category.
+Otherwise display info for all categories.
+
+Examples:
+  govc tags.category.info
+  govc tags.category.info k8s-zone
+
+Options:
+```
+
+## tags.category.ls
+
+```
+Usage: govc tags.category.ls [OPTIONS]
+
+List all categories.
+
+Examples:
+  govc tags.category.ls
+  govc tags.category.ls -json | jq .
+
+Options:
+```
+
+## tags.category.rm
+
+```
+Usage: govc tags.category.rm [OPTIONS] NAME
+
+Delete category NAME.
+
+Fails if category is used by any tag, unless the '-f' flag is provided.
+
+Examples:
+  govc tags.category.rm k8s-region
+  govc tags.category.rm -f k8s-zone
+
+Options:
+  -f=false               Delete tag regardless of attached objects
+```
+
+## tags.category.update
+
+```
+Usage: govc tags.category.update [OPTIONS] NAME
+
+Update category.
+
+The '-t' flag can only be used to add new object types.  Removing category types is not supported by vCenter.
+
+Examples:
+  govc tags.category.update -n k8s-vcp-region -d "Kubernetes VCP region" k8s-region
+  govc tags.category.update -t ClusterComputeResource k8s-zone
+
+Options:
+  -d=                    Description
+  -m=<nil>               Allow multiple tags per object
+  -n=                    Name of category
+  -t=[]                  Object types
+```
+
+## tags.create
+
+```
+Usage: govc tags.create [OPTIONS] NAME
+
+Create tag.
+
+The '-c' option to specify a tag category is required.
+This command will output the ID of the new tag.
+
+Examples:
+  govc tags.create -d "Kubernetes Zone US CA1" -c k8s-zone k8s-zone-us-ca1
+
+Options:
+  -c=                    Category name
+  -d=                    Description of tag
+```
+
+## tags.detach
+
+```
+Usage: govc tags.detach [OPTIONS] NAME PATH
+
+Detach tag NAME from object PATH.
+
+Examples:
+  govc tags.detach k8s-region-us /dc1
+  govc tags.detach -c k8s-region us-ca1 /dc1/host/cluster1
+
+Options:
+  -c=                    Tag category
+```
+
+## tags.info
+
+```
+Usage: govc tags.info [OPTIONS] NAME
+
+Display tags info.
+
+If NAME is provided, display info for only that tag.  Otherwise display info for all tags.
+
+Examples:
+  govc tags.info
+  govc tags.info k8s-zone-us-ca1
+  govc tags.info -c k8s-zone
+
+Options:
+  -C=true                Display category name instead of ID
+  -c=                    Category name
+```
+
+## tags.ls
+
+```
+Usage: govc tags.ls [OPTIONS]
+
+List tags.
+
+Examples:
+  govc tags.ls
+  govc tags.ls -c k8s-zone
+  govc tags.ls -json | jq .
+  govc tags.ls -c k8s-region -json | jq .
+
+Options:
+  -c=                    Category name
+```
+
+## tags.rm
+
+```
+Usage: govc tags.rm [OPTIONS] NAME
+
+Delete tag NAME.
+
+Fails if tag is attached to any object, unless the '-f' flag is provided.
+
+Examples:
+  govc tags.rm k8s-zone-us-ca1
+  govc tags.rm -f -c k8s-zone us-ca2
+
+Options:
+  -c=                    Tag category
+  -f=false               Delete tag regardless of attached objects
+```
+
+## tags.update
+
+```
+Usage: govc tags.update [OPTIONS] NAME
+
+Update tag.
+
+Examples:
+  govc tags.update -d "K8s zone US-CA1" k8s-zone-us-ca1
+  govc tags.update -d "K8s zone US-CA1" -c k8s-zone us-ca1
+
+Options:
+  -c=                    Tag category
+  -d=                    Description of tag
+  -n=                    Name of tag
+```
+
 ## task.cancel
 
 ```
@@ -3398,6 +3897,8 @@ To add ExtraConfig variables that can read within the guest, use the 'guestinfo.
 Examples:
   govc vm.change -vm $vm -mem.reservation 2048
   govc vm.change -vm $vm -e smc.present=TRUE -e ich7m.present=TRUE
+  # Enable both cpu and memory hotplug on a guest:
+  govc vm.change -vm $vm -e vcpu.hotadd=true -e mem.hotadd=true
   govc vm.change -vm $vm -e guestinfo.vmname $vm
   # Read the variable set above inside the guest:
   vmware-rpctool "info-get guestinfo.vmname"
@@ -3517,12 +4018,22 @@ Options:
   -net.address=          Network hardware address
   -on=true               Power on VM. Default is true if -disk argument is given.
   -pool=                 Resource pool [GOVC_RESOURCE_POOL]
+  -version=              ESXi hardware version [5.5|6.0|6.5|6.7]
 ```
 
 ## vm.destroy
 
 ```
-Usage: govc vm.destroy [OPTIONS]
+Usage: govc vm.destroy [OPTIONS] VM...
+
+Power off and delete VM.
+
+When a VM is destroyed, any attached virtual disks are also deleted.
+Use the 'device.remove -vm VM -keep disk-*' command to detach and
+keep disks if needed, prior to calling vm.destroy.
+
+Examples:
+  govc vm.destroy my-vm
 
 Options:
 ```
@@ -3537,12 +4048,14 @@ Attach existing disk to VM.
 Examples:
   govc vm.disk.attach -vm $name -disk $name/disk1.vmdk
   govc vm.disk.attach -vm $name -disk $name/shared.vmdk -link=false -sharing sharingMultiWriter
+  govc device.remove -vm $name -keep disk-* # detach disk(s)
 
 Options:
   -controller=           Disk controller
   -disk=                 Disk path name
   -ds=                   Datastore [GOVC_DATASTORE]
   -link=true             Link specified disk
+  -mode=                 Disk mode (persistent|nonpersistent|undoable|independent_persistent|independent_nonpersistent|append)
   -persist=true          Persist attached disk
   -sharing=              Sharing (sharingNone|sharingMultiWriter)
   -vm=                   Virtual machine [GOVC_VM]
@@ -3683,6 +4196,36 @@ Options:
   -wait=1h0m0s           Wait time for the VM obtain an IP address
 ```
 
+## vm.keystrokes
+
+```
+Usage: govc vm.keystrokes [OPTIONS] VM
+
+Send Keystrokes to VM.
+
+Examples:
+ Default Scenario
+  govc vm.keystrokes -vm $vm -s "root" 	# writes 'root' to the console
+  govc vm.keystrokes -vm $vm -c 0x15 	# writes an 'r' to the console
+  govc vm.keystrokes -vm $vm -r 1376263 # writes an 'r' to the console
+  govc vm.keystrokes -vm $vm -c 0x28 	# presses ENTER on the console
+  govc vm.keystrokes -vm $vm -c 0x4c -la true -lc true 	# sends CTRL+ALT+DEL to console
+
+Options:
+  -c=                    USB HID Code (hex)
+  -la=false              Enable/Disable Left Alt
+  -lc=false              Enable/Disable Left Control
+  -lg=false              Enable/Disable Left Gui
+  -ls=false              Enable/Disable Left Shift
+  -r=0                   Raw USB HID Code Value (int32)
+  -ra=false              Enable/Disable Right Alt
+  -rc=false              Enable/Disable Right Control
+  -rg=false              Enable/Disable Right Gui
+  -rs=false              Enable/Disable Right Shift
+  -s=                    Raw String to Send
+  -vm=                   Virtual machine [GOVC_VM]
+```
+
 ## vm.markastemplate
 
 ```
@@ -3756,15 +4299,42 @@ Usage: govc vm.network.change [OPTIONS] DEVICE
 
 Change network DEVICE configuration.
 
+Note that '-net' is currently required with '-net.address', even when not changing the VM network.
+
 Examples:
   govc vm.network.change -vm $vm -net PG2 ethernet-0
-  govc vm.network.change -vm $vm -net.address 00:00:0f:2e:5d:69 ethernet-0
+  govc vm.network.change -vm $vm -net PG2 -net.address 00:00:0f:2e:5d:69 ethernet-0
   govc device.info -vm $vm ethernet-*
 
 Options:
   -net=                  Network [GOVC_NETWORK]
   -net.adapter=e1000     Network adapter type
   -net.address=          Network hardware address
+  -vm=                   Virtual machine [GOVC_VM]
+```
+
+## vm.option.info
+
+```
+Usage: govc vm.option.info [OPTIONS] [GUEST_ID]...
+
+VM config options for CLUSTER.
+
+The config option data contains information about the execution environment for a VM
+in the given CLUSTER, and optionally for a specific HOST.
+
+This command only supports '-json' or '-dump' output, defaulting to the latter.
+
+Examples:
+  govc vm.option.info -cluster C0
+  govc vm.option.info -cluster C0 ubuntu64Guest
+  govc vm.option.info -cluster C0 -json | jq .GuestOSDescriptor[].Id
+  govc vm.option.info -host my_hostname
+  govc vm.option.info -vm my_vm
+
+Options:
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -host=                 Host system [GOVC_HOST]
   -vm=                   Virtual machine [GOVC_VM]
 ```
 
@@ -3782,6 +4352,7 @@ Options:
   -reset=false           Power reset
   -s=false               Shutdown guest
   -suspend=false         Power suspend
+  -wait=true             Wait for the operation to complete
 ```
 
 ## vm.question

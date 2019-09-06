@@ -1047,16 +1047,15 @@ func TestMaxVolumeFuncM4(t *testing.T) {
 	}
 }
 
-func getNodeWithPodAndVolumeLimits(pods []*v1.Pod, limit int64, driverNames ...string) *schedulernodeinfo.NodeInfo {
+func getNodeWithPodAndVolumeLimits(pods []*v1.Pod, limit int64, filter string) *schedulernodeinfo.NodeInfo {
 	nodeInfo := schedulernodeinfo.NewNodeInfo(pods...)
 	node := &v1.Node{
 		ObjectMeta: metav1.ObjectMeta{Name: "node-for-max-pd-test-1"},
 		Status: v1.NodeStatus{
-			Allocatable: v1.ResourceList{},
+			Allocatable: v1.ResourceList{
+				getVolumeLimitKey(filter): *resource.NewQuantity(limit, resource.DecimalSI),
+			},
 		},
-	}
-	for _, driver := range driverNames {
-		node.Status.Allocatable[getVolumeLimitKey(driver)] = *resource.NewQuantity(limit, resource.DecimalSI)
 	}
 	nodeInfo.SetNode(node)
 	return nodeInfo

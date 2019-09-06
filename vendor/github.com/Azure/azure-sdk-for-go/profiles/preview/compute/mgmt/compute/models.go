@@ -1,6 +1,6 @@
 // +build go1.9
 
-// Copyright 2018 Microsoft Corporation
+// Copyright 2019 Microsoft Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 
 package compute
 
-import original "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
+import original "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-03-01/compute"
 
 type AvailabilitySetsClient = original.AvailabilitySetsClient
 
@@ -38,8 +38,9 @@ type LogAnalyticsClient = original.LogAnalyticsClient
 type AccessLevel = original.AccessLevel
 
 const (
-	None AccessLevel = original.None
-	Read AccessLevel = original.Read
+	None  AccessLevel = original.None
+	Read  AccessLevel = original.Read
+	Write AccessLevel = original.Write
 )
 
 type AggregatedReplicationState = original.AggregatedReplicationState
@@ -148,6 +149,7 @@ const (
 	FromImage DiskCreateOption = original.FromImage
 	Import    DiskCreateOption = original.Import
 	Restore   DiskCreateOption = original.Restore
+	Upload    DiskCreateOption = original.Upload
 )
 
 type DiskCreateOptionTypes = original.DiskCreateOptionTypes
@@ -156,6 +158,17 @@ const (
 	DiskCreateOptionTypesAttach    DiskCreateOptionTypes = original.DiskCreateOptionTypesAttach
 	DiskCreateOptionTypesEmpty     DiskCreateOptionTypes = original.DiskCreateOptionTypesEmpty
 	DiskCreateOptionTypesFromImage DiskCreateOptionTypes = original.DiskCreateOptionTypesFromImage
+)
+
+type DiskState = original.DiskState
+
+const (
+	ActiveSAS     DiskState = original.ActiveSAS
+	ActiveUpload  DiskState = original.ActiveUpload
+	Attached      DiskState = original.Attached
+	ReadyToUpload DiskState = original.ReadyToUpload
+	Reserved      DiskState = original.Reserved
+	Unattached    DiskState = original.Unattached
 )
 
 type DiskStorageAccountTypes = original.DiskStorageAccountTypes
@@ -173,6 +186,13 @@ const (
 	HostCachingNone      HostCaching = original.HostCachingNone
 	HostCachingReadOnly  HostCaching = original.HostCachingReadOnly
 	HostCachingReadWrite HostCaching = original.HostCachingReadWrite
+)
+
+type HyperVGeneration = original.HyperVGeneration
+
+const (
+	V1 HyperVGeneration = original.V1
+	V2 HyperVGeneration = original.V2
 )
 
 type InstanceViewTypes = original.InstanceViewTypes
@@ -349,6 +369,13 @@ const (
 	Error   StatusLevelTypes = original.Error
 	Info    StatusLevelTypes = original.Info
 	Warning StatusLevelTypes = original.Warning
+)
+
+type StorageAccountType = original.StorageAccountType
+
+const (
+	StorageAccountTypeStandardLRS StorageAccountType = original.StorageAccountTypeStandardLRS
+	StorageAccountTypeStandardZRS StorageAccountType = original.StorageAccountTypeStandardZRS
 )
 
 type StorageAccountTypes = original.StorageAccountTypes
@@ -584,6 +611,7 @@ type APIEntityReference = original.APIEntityReference
 type APIError = original.APIError
 type APIErrorBase = original.APIErrorBase
 type AutomaticOSUpgradePolicy = original.AutomaticOSUpgradePolicy
+type AutomaticOSUpgradeProperties = original.AutomaticOSUpgradeProperties
 type AvailabilitySet = original.AvailabilitySet
 type AvailabilitySetListResult = original.AvailabilitySetListResult
 type AvailabilitySetListResultIterator = original.AvailabilitySetListResultIterator
@@ -632,7 +660,8 @@ type DisksRevokeAccessFuture = original.DisksRevokeAccessFuture
 type DisksUpdateFuture = original.DisksUpdateFuture
 type DiskUpdate = original.DiskUpdate
 type DiskUpdateProperties = original.DiskUpdateProperties
-type EncryptionSettings = original.EncryptionSettings
+type EncryptionSettingsCollection = original.EncryptionSettingsCollection
+type EncryptionSettingsElement = original.EncryptionSettingsElement
 type GalleriesCreateOrUpdateFuture = original.GalleriesCreateOrUpdateFuture
 type GalleriesDeleteFuture = original.GalleriesDeleteFuture
 type Gallery = original.Gallery
@@ -802,6 +831,7 @@ type VirtualMachineListResult = original.VirtualMachineListResult
 type VirtualMachineListResultIterator = original.VirtualMachineListResultIterator
 type VirtualMachineListResultPage = original.VirtualMachineListResultPage
 type VirtualMachineProperties = original.VirtualMachineProperties
+type VirtualMachineReimageParameters = original.VirtualMachineReimageParameters
 type VirtualMachineScaleSet = original.VirtualMachineScaleSet
 type VirtualMachineScaleSetDataDisk = original.VirtualMachineScaleSetDataDisk
 type VirtualMachineScaleSetExtension = original.VirtualMachineScaleSetExtension
@@ -842,6 +872,7 @@ type VirtualMachineScaleSetProperties = original.VirtualMachineScaleSetPropertie
 type VirtualMachineScaleSetPublicIPAddressConfiguration = original.VirtualMachineScaleSetPublicIPAddressConfiguration
 type VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings = original.VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings
 type VirtualMachineScaleSetPublicIPAddressConfigurationProperties = original.VirtualMachineScaleSetPublicIPAddressConfigurationProperties
+type VirtualMachineScaleSetReimageParameters = original.VirtualMachineScaleSetReimageParameters
 type VirtualMachineScaleSetRollingUpgradesCancelFuture = original.VirtualMachineScaleSetRollingUpgradesCancelFuture
 type VirtualMachineScaleSetRollingUpgradesStartExtensionUpgradeFuture = original.VirtualMachineScaleSetRollingUpgradesStartExtensionUpgradeFuture
 type VirtualMachineScaleSetRollingUpgradesStartOSUpgradeFuture = original.VirtualMachineScaleSetRollingUpgradesStartOSUpgradeFuture
@@ -882,8 +913,11 @@ type VirtualMachineScaleSetVMInstanceView = original.VirtualMachineScaleSetVMIns
 type VirtualMachineScaleSetVMListResult = original.VirtualMachineScaleSetVMListResult
 type VirtualMachineScaleSetVMListResultIterator = original.VirtualMachineScaleSetVMListResultIterator
 type VirtualMachineScaleSetVMListResultPage = original.VirtualMachineScaleSetVMListResultPage
+type VirtualMachineScaleSetVMNetworkProfileConfiguration = original.VirtualMachineScaleSetVMNetworkProfileConfiguration
 type VirtualMachineScaleSetVMProfile = original.VirtualMachineScaleSetVMProfile
 type VirtualMachineScaleSetVMProperties = original.VirtualMachineScaleSetVMProperties
+type VirtualMachineScaleSetVMProtectionPolicy = original.VirtualMachineScaleSetVMProtectionPolicy
+type VirtualMachineScaleSetVMReimageParameters = original.VirtualMachineScaleSetVMReimageParameters
 type VirtualMachineScaleSetVMsDeallocateFuture = original.VirtualMachineScaleSetVMsDeallocateFuture
 type VirtualMachineScaleSetVMsDeleteFuture = original.VirtualMachineScaleSetVMsDeleteFuture
 type VirtualMachineScaleSetVMsPerformMaintenanceFuture = original.VirtualMachineScaleSetVMsPerformMaintenanceFuture
@@ -905,12 +939,14 @@ type VirtualMachineSizeListResult = original.VirtualMachineSizeListResult
 type VirtualMachinesPerformMaintenanceFuture = original.VirtualMachinesPerformMaintenanceFuture
 type VirtualMachinesPowerOffFuture = original.VirtualMachinesPowerOffFuture
 type VirtualMachinesRedeployFuture = original.VirtualMachinesRedeployFuture
+type VirtualMachinesReimageFuture = original.VirtualMachinesReimageFuture
 type VirtualMachinesRestartFuture = original.VirtualMachinesRestartFuture
 type VirtualMachinesRunCommandFuture = original.VirtualMachinesRunCommandFuture
 type VirtualMachinesStartFuture = original.VirtualMachinesStartFuture
 type VirtualMachineStatusCodeCount = original.VirtualMachineStatusCodeCount
 type VirtualMachinesUpdateFuture = original.VirtualMachinesUpdateFuture
 type VirtualMachineUpdate = original.VirtualMachineUpdate
+type VMScaleSetConvertToSinglePlacementGroupInput = original.VMScaleSetConvertToSinglePlacementGroupInput
 type WindowsConfiguration = original.WindowsConfiguration
 type WinRMConfiguration = original.WinRMConfiguration
 type WinRMListener = original.WinRMListener
@@ -1013,11 +1049,17 @@ func PossibleDiskCreateOptionValues() []DiskCreateOption {
 func PossibleDiskCreateOptionTypesValues() []DiskCreateOptionTypes {
 	return original.PossibleDiskCreateOptionTypesValues()
 }
+func PossibleDiskStateValues() []DiskState {
+	return original.PossibleDiskStateValues()
+}
 func PossibleDiskStorageAccountTypesValues() []DiskStorageAccountTypes {
 	return original.PossibleDiskStorageAccountTypesValues()
 }
 func PossibleHostCachingValues() []HostCaching {
 	return original.PossibleHostCachingValues()
+}
+func PossibleHyperVGenerationValues() []HyperVGeneration {
+	return original.PossibleHyperVGenerationValues()
 }
 func PossibleInstanceViewTypesValues() []InstanceViewTypes {
 	return original.PossibleInstanceViewTypesValues()
@@ -1084,6 +1126,9 @@ func PossibleSnapshotStorageAccountTypesValues() []SnapshotStorageAccountTypes {
 }
 func PossibleStatusLevelTypesValues() []StatusLevelTypes {
 	return original.PossibleStatusLevelTypesValues()
+}
+func PossibleStorageAccountTypeValues() []StorageAccountType {
+	return original.PossibleStorageAccountTypeValues()
 }
 func PossibleStorageAccountTypesValues() []StorageAccountTypes {
 	return original.PossibleStorageAccountTypesValues()

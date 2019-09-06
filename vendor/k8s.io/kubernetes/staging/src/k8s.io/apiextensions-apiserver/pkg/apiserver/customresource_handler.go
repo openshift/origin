@@ -179,6 +179,9 @@ func NewCustomResourceDefinitionHandler(
 	return ret, nil
 }
 
+// possiblyAcrossAllNamespacesVerbs contains those verbs which can be per-namespace and across all
+// namespaces for namespaces resources. I.e. for these an empty namespace in the requestInfo is fine.
+var possiblyAcrossAllNamespacesVerbs = sets.NewString("list", "watch")
 // watches are expected to handle storage disruption gracefully,
 // both on the server-side (by terminating the watch connection)
 // and on the client side (by restarting the watch)

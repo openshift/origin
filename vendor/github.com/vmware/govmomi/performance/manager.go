@@ -43,11 +43,6 @@ type Manager struct {
 		*mo.PerformanceManager
 	}
 
-	providerSummary struct {
-		sync.Mutex
-		m map[string]*types.PerfProviderSummary
-	}
-
 	infoByName struct {
 		sync.Mutex
 		m map[string]*types.PerfCounterInfo
@@ -174,18 +169,6 @@ func (m *Manager) CounterInfoByKey(ctx context.Context) (map[int32]*types.PerfCo
 
 // ProviderSummary wraps the QueryPerfProviderSummary method, caching the value based on entity.Type.
 func (m *Manager) ProviderSummary(ctx context.Context, entity types.ManagedObjectReference) (*types.PerfProviderSummary, error) {
-	m.providerSummary.Lock()
-	defer m.providerSummary.Unlock()
-
-	if m.providerSummary.m == nil {
-		m.providerSummary.m = make(map[string]*types.PerfProviderSummary)
-	}
-
-	s, ok := m.providerSummary.m[entity.Type]
-	if ok {
-		return s, nil
-	}
-
 	req := types.QueryPerfProviderSummary{
 		This:   m.Reference(),
 		Entity: entity,
@@ -196,11 +179,7 @@ func (m *Manager) ProviderSummary(ctx context.Context, entity types.ManagedObjec
 		return nil, err
 	}
 
-	s = &res.Returnval
-
-	m.providerSummary.m[entity.Type] = s
-
-	return s, nil
+	return &res.Returnval, nil
 }
 
 type groupPerfCounterInfo struct {

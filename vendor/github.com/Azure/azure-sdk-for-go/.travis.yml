@@ -2,16 +2,15 @@ sudo: false
 
 language: go
 go:
-  - 1.8.x
-  - 1.9.x
   - 1.10.x
   - 1.11.x
-  - master
+  - 1.12.x
 
 branches:
   only:
   - master
   - latest
+  - release/v21
 
 env:
   global:
@@ -20,10 +19,6 @@ env:
   matrix:
     - GOARCH="amd64"
     - GOARCH="386"
-
-matrix:
-  allow_failures:
-    - go: master
 
 before_install:
   - curl -sSL https://raw.githubusercontent.com/golang/dep/master/install.sh | sh

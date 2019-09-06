@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-10-01/compute"
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-03-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-07-01/network"
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-07-01/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -189,7 +189,21 @@ func (fAPC *fakeAzurePIPClient) Get(ctx context.Context, resourceGroupName strin
 	}
 	return result, autorest.DetailedError{
 		StatusCode: http.StatusNotFound,
-		Message:    "Not such PIP",
+		Message:    "No such PIP",
+	}
+}
+
+func (fAPC *fakeAzurePIPClient) GetVirtualMachineScaleSetPublicIPAddress(ctx context.Context, resourceGroupName string, virtualMachineScaleSetName string, virtualmachineIndex string, networkInterfaceName string, IPConfigurationName string, publicIPAddressName string, expand string) (result network.PublicIPAddress, err error) {
+	fAPC.mutex.Lock()
+	defer fAPC.mutex.Unlock()
+	if _, ok := fAPC.FakeStore[resourceGroupName]; ok {
+		if entity, ok := fAPC.FakeStore[resourceGroupName][publicIPAddressName]; ok {
+			return entity, nil
+		}
+	}
+	return result, autorest.DetailedError{
+		StatusCode: http.StatusNotFound,
+		Message:    "No such PIP",
 	}
 }
 
@@ -902,7 +916,11 @@ func (f *fakeVMSet) EnsureHostsInPool(service *v1.Service, nodes []*v1.Node, bac
 	return fmt.Errorf("unimplemented")
 }
 
-func (f *fakeVMSet) EnsureBackendPoolDeleted(service *v1.Service, poolID, vmSetName string, backendAddressPools *[]network.BackendAddressPool) error {
+func (f *fakeVMSet) EnsureHostInPool(service *v1.Service, nodeName types.NodeName, backendPoolID string, vmSetName string, isInternal bool) error {
+	return fmt.Errorf("unimplemented")
+}
+
+func (f *fakeVMSet) EnsureBackendPoolDeleted(service *v1.Service, backendPoolID, vmSetName string, backendAddressPools *[]network.BackendAddressPool) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -910,8 +928,8 @@ func (f *fakeVMSet) AttachDisk(isManagedDisk bool, diskName, diskURI string, nod
 	return fmt.Errorf("unimplemented")
 }
 
-func (f *fakeVMSet) DetachDiskByName(diskName, diskURI string, nodeName types.NodeName) error {
-	return fmt.Errorf("unimplemented")
+func (f *fakeVMSet) DetachDisk(diskName, diskURI string, nodeName types.NodeName) (*http.Response, error) {
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (f *fakeVMSet) GetDataDisks(nodeName types.NodeName) ([]compute.DataDisk, error) {

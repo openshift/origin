@@ -145,14 +145,6 @@ func (o *ConvertOptions) RunConvert() error {
 	// Another possible solution is to make convert a plugin.
 	fmt.Fprintf(o.ErrOut, "kubectl convert is DEPRECATED and will be removed in a future version.\nIn order to convert, kubectl apply the object to the cluster, then kubectl get at the desired version.\n")
 
-	ok, err := o.containsOpenShiftTypes()
-	if err != nil {
-		return err
-	}
-	if ok {
-		return nil
-	}
-
 	b := o.builder().
 		WithScheme(scheme.Scheme).
 		LocalParam(o.local)
@@ -170,7 +162,7 @@ func (o *ConvertOptions) RunConvert() error {
 		Flatten().
 		Do()
 
-	err = r.Err()
+	err := r.Err()
 	if err != nil {
 		return err
 	}

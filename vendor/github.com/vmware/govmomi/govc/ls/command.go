@@ -82,7 +82,7 @@ func (cmd *ls) typeMatch(ref types.ManagedObjectReference) bool {
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
-	finder, err := cmd.Finder()
+	finder, err := cmd.Finder(cmd.All())
 	if err != nil {
 		return err
 	}

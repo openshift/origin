@@ -1,5 +1,5 @@
-hash: 401854ad46e02fa874a17049fec8d155a96641322670e60d2f8634301f27f70c
-updated: 2019-08-19T09:45:49.451597341-04:00
+hash: 8888b17d17b9c04e3620a7b2e2a93737074f29b879871aec3d3564f3b9500213
+updated: 2019-09-06T11:10:45.874620622-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 2ae31c8b6b30d2f4c8100c20d527b571e9c433bb
@@ -59,11 +59,11 @@ imports:
   - service/kms
   - service/sts
 - name: github.com/Azure/azure-sdk-for-go
-  version: da91af54816b4cf72949c225a2d0980f51fab01b
+  version: 32916f57ad7b421f5fdaab86b73a795632fff117
   subpackages:
-  - services/compute/mgmt/2018-10-01/compute
+  - services/compute/mgmt/2019-03-01/compute
   - services/containerregistry/mgmt/2017-10-01/containerregistry
-  - services/network/mgmt/2017-09-01/network
+  - services/network/mgmt/2018-07-01/network
   - services/storage/mgmt/2018-07-01/storage
   - storage
   - version
@@ -188,7 +188,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: f2a389ac0a02ce21c09edd7344677a601970f41c
+  version: 75bee3e2ccb6402e3a986ab8bd3b17003fc0fdec
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -878,7 +878,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: a94e914914f4228d0bcba6fc8a22614c5f5e2dad
+  version: a25bb2adc83e68c68e3696332ff1d21694a34bb0
   subpackages:
   - annotations
   - apps
@@ -1049,7 +1049,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 97bb8b699c927fbdb7a80d48865d89acc3980d94
+  version: 7d4acc018c610623ee1413b1e7aebe2ac675d35f
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -1064,6 +1064,7 @@ imports:
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/validation
+  - pkg/controller/fileobserver
   - pkg/crypto
   - pkg/git
   - pkg/image/dockerv1client
@@ -1217,7 +1218,7 @@ imports:
 - name: github.com/vishvananda/netns
   version: be1fbeda19366dea804f00efff2dd73a1642fdcc
 - name: github.com/vmware/govmomi
-  version: 22f74650cf39ba4649fba45e770df0f44df6f758
+  version: 4514987f2ddb8875c44cff1d5a24c59425fa6b92
   subpackages:
   - find
   - list
@@ -1301,7 +1302,7 @@ imports:
   - ssh
   - ssh/terminal
 - name: golang.org/x/net
-  version: 65e2d4e15006aab9813ff8769e768bbf4bb667a0
+  version: cdfb69ac37fc6fa907650654115ebebb3aae2087
   subpackages:
   - context
   - context/ctxhttp
@@ -1412,7 +1413,7 @@ imports:
   - pubsub/v1
   - tpu/v1
 - name: google.golang.org/appengine
-  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/app_identity
@@ -1524,7 +1525,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: e58a314b37491f6f889b761cd779b560f02e062b
+  version: 23dbba3a35ae81c159b1efee01ec3ca82e028938
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apihelpers
@@ -1567,7 +1568,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: eab709b58ad6d98573ce6daddb9f6d17487efe6c
+  version: d19092a3cc0aed3b90dfa6bbbeb9f24fe11ddd2d
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1631,7 +1632,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 392b5b3e5888849e57618271955c58ccf2f44351
+  version: e9b53478e6adf5ddb5cb3e1750c33127f913a839
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2033,7 +2034,7 @@ imports:
 - name: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
 - name: k8s.io/kube-aggregator
-  version: 0050b795891b7085b9c9e0df9677789e61fd812d
+  version: d72f895066e3a19441575c4f22fe3d8489534d70
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2096,7 +2097,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 379111049d2c950d6c3ea70c6d87930ca48124cc
+  version: 3198cd02079fbba5fa9fecbec4391adb307e10ad
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2344,6 +2345,7 @@ imports:
   - pkg/controller/certificates
   - pkg/controller/certificates/approver
   - pkg/controller/certificates/cleaner
+  - pkg/controller/certificates/csrsuicider
   - pkg/controller/certificates/rootcacertpublisher
   - pkg/controller/certificates/signer
   - pkg/controller/cloud
@@ -2930,7 +2932,6 @@ imports:
   - plugin/pkg/auth/authorizer/rbac
   - plugin/pkg/auth/authorizer/rbac/bootstrappolicy
   - staging/src/k8s.io/apimachinery/pkg/api/apitesting
-  - staging/src/k8s.io/apimachinery/pkg/util/wait
   - test/e2e
   - test/e2e/apimachinery
   - test/e2e/apps

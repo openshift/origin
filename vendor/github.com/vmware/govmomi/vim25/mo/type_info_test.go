@@ -19,12 +19,26 @@ package mo
 import (
 	"reflect"
 	"testing"
+
+	"github.com/vmware/govmomi/vim25/types"
 )
 
 func TestLoadAll(*testing.T) {
 	for _, typ := range t {
 		newTypeInfo(typ)
 	}
+}
+
+func TestApplyPropertyChange(t *testing.T) {
+	changes := []types.PropertyChange{
+		{Name: "snapshot.currentSnapshot", Val: nil},
+		{Name: "snapshot.currentSnapshot", Val: types.ManagedObjectReference{}},
+		{Name: "snapshot.currentSnapshot", Val: &types.ManagedObjectReference{}},
+	}
+	var vm VirtualMachine
+	vm.Self = types.ManagedObjectReference{Type: "VirtualMachine"}
+	vm.Snapshot = new(types.VirtualMachineSnapshotInfo)
+	ApplyPropertyChange(vm, changes)
 }
 
 // The virtual machine managed object has about 500 nested properties.

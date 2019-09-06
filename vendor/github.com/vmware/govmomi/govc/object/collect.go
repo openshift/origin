@@ -98,7 +98,10 @@ Examples:
   govc object.collect -json -n=-1 EventManager:ha-eventmgr latestEvent | jq .
   govc object.collect -json -s $(govc object.collect -s - content.perfManager) description.counterType | jq .
   govc object.collect -R create-filter-request.xml # replay filter
-  govc object.collect -R create-filter-request.xml -O # convert filter to Go code`
+  govc object.collect -R create-filter-request.xml -O # convert filter to Go code
+  govc object.collect -s vm/my-vm summary.runtime.host | xargs govc ls -L # inventory path of VM's host
+  govc object.collect -json $vm config | \ # use -json + jq to search array elements
+    jq -r '.[] | select(.Val.Hardware.Device[].MacAddress == "00:0c:29:0c:73:c0") | .Val.Name'`
 }
 
 var stringer = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
@@ -312,11 +315,6 @@ func (cmd *collect) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	finder, err := cmd.Finder()
-	if err != nil {
-		return err
-	}
-
 	p := property.DefaultCollector(client)
 	filter := new(property.WaitFilter)
 
@@ -331,20 +329,9 @@ func (cmd *collect) Run(ctx context.Context, f *flag.FlagSet) error {
 		switch arg {
 		case "", "-":
 		default:
-			if !ref.FromString(arg) {
-				l, ferr := finder.ManagedObjectList(ctx, arg)
-				if ferr != nil {
-					return err
-				}
-
-				switch len(l) {
-				case 0:
-					return fmt.Errorf("%s not found", arg)
-				case 1:
-					ref = l[0].Object.Reference()
-				default:
-					return flag.ErrHelp
-				}
+			ref, err = cmd.ManagedObject(ctx, arg)
+			if err != nil {
+				return err
 			}
 		}
 

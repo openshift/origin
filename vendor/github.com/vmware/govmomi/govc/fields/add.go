@@ -28,6 +28,7 @@ import (
 
 type add struct {
 	*flags.ClientFlag
+	kind string
 }
 
 func init() {
@@ -37,17 +38,20 @@ func init() {
 func (cmd *add) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.ClientFlag, ctx = flags.NewClientFlag(ctx)
 	cmd.ClientFlag.Register(ctx, f)
-}
 
-func (cmd *add) Process(ctx context.Context) error {
-	if err := cmd.ClientFlag.Process(ctx); err != nil {
-		return err
-	}
-	return nil
+	f.StringVar(&cmd.kind, "type", "", "Managed object type")
 }
 
 func (cmd *add) Usage() string {
 	return "NAME"
+}
+
+func (cmd *add) Description() string {
+	return `Add a custom field type with NAME.
+
+Examples:
+  govc fields.add my-field-name # adds a field to all managed object types
+  govc fields.add -type VirtualMachine my-vm-field-name # adds a field to the VirtualMachine type`
 }
 
 func (cmd *add) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -67,7 +71,7 @@ func (cmd *add) Run(ctx context.Context, f *flag.FlagSet) error {
 
 	name := f.Arg(0)
 
-	def, err := m.Add(ctx, name, "", nil, nil)
+	def, err := m.Add(ctx, name, cmd.kind, nil, nil)
 	if err != nil {
 		return err
 	}

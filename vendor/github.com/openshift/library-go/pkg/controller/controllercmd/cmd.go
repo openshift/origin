@@ -23,6 +23,7 @@ import (
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 
 	"github.com/openshift/library-go/pkg/config/configdefaults"
+	"github.com/openshift/library-go/pkg/controller/fileobserver"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/serviceability"
 
@@ -88,7 +89,23 @@ func (c *ControllerCommandConfig) NewCommandWithContext(ctx context.Context) *co
 				klog.Fatal(err)
 			}
 
-			if err := c.StartController(shutdownCtx); err != nil {
+			// setup file observer to terminate when given files change
+			obs, err := fileobserver.NewObserver(10 * time.Second)
+			if err != nil {
+				klog.Fatal(err)
+			}
+			ctx, terminate := context.WithCancel(shutdownCtx)
+			files := map[string][]byte{}
+			for _, fn := range c.basicFlags.TerminateOnFiles {
+				files[fn], _ = ioutil.ReadFile(fn) // intentionally ignore error
+			}
+			obs.AddReactor(func(filename string, action fileobserver.ActionType) error {
+				klog.Infof("exiting because %q changed", filename)
+				terminate()
+				return nil
+			}, files, c.basicFlags.TerminateOnFiles...)
+
+			if err := c.StartController(ctx); err != nil {
 				klog.Fatal(err)
 			}
 		},

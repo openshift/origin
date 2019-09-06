@@ -366,18 +366,12 @@ func adjustVersion(v string) string {
 	return seg[0]
 }
 
-// CommandNameOverride allows to override the command reported in user-agent.
-var CommandNameOverride = ""
-
 // adjustCommand returns the last component of the
 // OS-specific command path for use in User-Agent.
 func adjustCommand(p string) string {
 	// Unlikely, but better than returning "".
 	if len(p) == 0 {
 		return "unknown"
-	}
-	if len(CommandNameOverride) > 0 {
-		return CommandNameOverride
 	}
 	return filepath.Base(p)
 }

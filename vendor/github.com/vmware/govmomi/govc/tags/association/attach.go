@@ -19,7 +19,6 @@ package association
 import (
 	"context"
 	"flag"
-	"fmt"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
@@ -30,6 +29,7 @@ import (
 
 type attach struct {
 	*flags.DatacenterFlag
+	cat string
 }
 
 func init() {
@@ -39,6 +39,8 @@ func init() {
 func (cmd *attach) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.DatacenterFlag, ctx = flags.NewDatacenterFlag(ctx)
 	cmd.DatacenterFlag.Register(ctx, f)
+
+	f.StringVar(&cmd.cat, "c", "", "Tag category")
 }
 
 func (cmd *attach) Usage() string {
@@ -50,15 +52,11 @@ func (cmd *attach) Description() string {
 
 Examples:
   govc tags.attach k8s-region-us /dc1
-  govc tags.attach k8s-zone-us-ca1 /dc1/host/cluster1`
+  govc tags.attach -c k8s-region us-ca1 /dc1/host/cluster1`
 }
 
 func convertPath(ctx context.Context, cmd *flags.DatacenterFlag, managedObj string) (*types.ManagedObjectReference, error) {
 	client, err := cmd.ClientFlag.Client()
-	if err != nil {
-		return nil, err
-	}
-	finder, err := cmd.Finder()
 	if err != nil {
 		return nil, err
 	}
@@ -68,20 +66,9 @@ func convertPath(ctx context.Context, cmd *flags.DatacenterFlag, managedObj stri
 	switch managedObj {
 	case "", "-":
 	default:
-		if !ref.FromString(managedObj) {
-			l, ferr := finder.ManagedObjectList(ctx, managedObj)
-			if ferr != nil {
-				return nil, ferr
-			}
-
-			switch len(l) {
-			case 0:
-				return nil, fmt.Errorf("%s not found", managedObj)
-			case 1:
-				ref = l[0].Object.Reference()
-			default:
-				return nil, flag.ErrHelp
-			}
+		ref, err = cmd.ManagedObject(ctx, managedObj)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return &ref, nil
@@ -95,12 +82,16 @@ func (cmd *attach) Run(ctx context.Context, f *flag.FlagSet) error {
 	tagID := f.Arg(0)
 	managedObj := f.Arg(1)
 
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		ref, err := convertPath(ctx, cmd.DatacenterFlag, managedObj)
 		if err != nil {
 			return err
 		}
-
-		return tags.NewManager(c).AttachTag(ctx, tagID, ref)
+		m := tags.NewManager(c)
+		tag, err := m.GetTagForCategory(ctx, tagID, cmd.cat)
+		if err != nil {
+			return err
+		}
+		return m.AttachTag(ctx, tag.ID, ref)
 	})
 }
