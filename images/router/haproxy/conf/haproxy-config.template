@@ -508,9 +508,11 @@ backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
 
 # Secure backend, pass through
 backend {{genBackendNamePrefix $cfg.TLSTermination}}:{{$cfgIdx}}
-{{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
-  option tcplog
-{{- end }}
+
+# Fix for issue BZ1748814 - option tcplog removed as it's not supported in backend
+# {{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
+#  option tcplog
+# {{- end }}
     {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_TCP_BALANCE_SCHEME" (env "ROUTER_LOAD_BALANCE_ALGORITHM")) }}
   balance {{ $balanceAlgo }}
     {{- else }}
