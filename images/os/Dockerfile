@@ -15,5 +15,4 @@ RUN set -x && yum install -y ostree yum-utils selinux-policy-targeted && \
         --selinux-policy /tmp/tmprootfs \
         -s "origin-ci-dev overlay RPMs" --branch=origin-ci-dev
 
-FROM scratch
-COPY --from=build /srv/ /srv/
+fROM registry.svc.ci.openshift.org/origin/4.2-2019-09-04-144802@sha256:1101361cf037d5abd28f128bdd305f5046f1d7648635524dd5e210072f349c63
