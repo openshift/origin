@@ -439,6 +439,13 @@ var (
 
 			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`, // down custom metrics apiservices break other clients
 		},
+		"[Skipped:openstack]": {
+			// openshift-tests does not have /usr/bin/cinder configured to create in-line or
+			// pre-provisioned volumes to test OpenShift with.
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1748254
+			`\[Driver: cinder\].*Testpattern: Pre-provisioned PV`,
+			`\[Driver: cinder\].*Testpattern: Inline-volume PV`,
+		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
 
