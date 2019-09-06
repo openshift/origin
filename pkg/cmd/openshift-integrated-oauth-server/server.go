@@ -2,8 +2,14 @@ package openshift_integrated_oauth_server
 
 import (
 	"errors"
+	"net/http"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/request/anonymous"
+	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/path"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -57,20 +63,48 @@ func newOAuthServerConfig(osinConfig *osinv1.OsinServerConfig) (*oauthserver.OAu
 		return nil, err
 	}
 
+	// These are paths for which we bypass kube authentication/authorization
+	// TODO better formalize / generate this list as trailing * matters
+	alwaysAllowedPaths := []string{ // The five sections are:
+		"/healthz", "/healthz/", // 1. Health checks (root, no wildcard)
+		"/oauth/*",           // 2. OAuth (wildcard)
+		"/login", "/login/*", // 3. Login (both root and wildcard)
+		"/logout", "/logout/", // 4. Logout (root, no wildcard)
+		"/oauth2callback/*", // 5. OAuth callbacks (wildcard)
+	}
+
 	authorizationOptions := genericapiserveroptions.NewDelegatingAuthorizationOptions().
-		// TODO better formalize / generate this list as trailing * matters
-		WithAlwaysAllowPaths( // The five sections are:
-			"/healthz", "/healthz/", // 1. Health checks (root, no wildcard)
-			"/oauth/*",           // 2. OAuth (wildcard)
-			"/login", "/login/*", // 3. Login (both root and wildcard)
-			"/logout", "/logout/", // 4. Logout (root, no wildcard)
-			"/oauth2callback/*", // 5. OAuth callbacks (wildcard)
-		).
+		WithAlwaysAllowPaths(alwaysAllowedPaths...).
 		WithAlwaysAllowGroups(user.SystemPrivilegedGroup)
 	authorizationOptions.RemoteKubeConfigFile = osinConfig.KubeClientConfig.KubeConfig
 	if err := authorizationOptions.ApplyTo(&genericConfig.Authorization); err != nil {
 		return nil, err
 	}
+
+	// set up a path authorizer so that we can check allowed paths in the authenticator below
+	pathAuthorizer, err := path.NewAuthorizer(alwaysAllowedPaths)
+	if err != nil {
+		return nil, err
+	}
+
+	anonymousAuthenticator := anonymous.NewAuthenticator()
+	genericConfig.Authentication.Authenticator = union.New(
+		genericConfig.Authentication.Authenticator,
+		authenticator.RequestFunc(func(req *http.Request) (*authenticator.Response, bool, error) {
+			// standard authenticator errored, but if the request's path is one of the always-allowed ones
+			// we will just carry on as anonymous
+			authAttributes := authorizer.AttributesRecord{
+				Path: req.URL.Path,
+			}
+
+			// if the path authorizer would allow anybody, we don't care about previous authentication result
+			if decision, _, _ := pathAuthorizer.Authorize(authAttributes); decision == authorizer.DecisionAllow {
+				return anonymousAuthenticator.AuthenticateRequest(req)
+			}
+
+			return nil, false, nil
+		}),
+	)
 
 	// TODO You need real overrides for rate limiting
 	kubeClientConfig, err := helpers.GetKubeConfigOrInClusterConfig(osinConfig.KubeClientConfig.KubeConfig, osinConfig.KubeClientConfig.ConnectionOverrides)
