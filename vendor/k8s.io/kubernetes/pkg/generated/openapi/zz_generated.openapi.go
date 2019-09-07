@@ -36719,8 +36719,15 @@ func schema_k8sio_kube_proxy_config_v1alpha1_KubeProxyIPVSConfiguration(ref comm
 							},
 						},
 					},
+					"strictARP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "strict ARP configure arp_ignore and arp_announce to avoid answering ARP queries from kube-ipvs0 interface",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"syncPeriod", "minSyncPeriod", "scheduler", "excludeCIDRs"},
+				Required: []string{"syncPeriod", "minSyncPeriod", "scheduler", "excludeCIDRs", "strictARP"},
 			},
 		},
 		Dependencies: []string{

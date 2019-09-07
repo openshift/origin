@@ -38,12 +38,11 @@ func TestMarshalEnv(t *testing.T) {
 
 	xenv, err := env.Marshal()
 	if err != nil {
-		t.Fatal("Error marshalling environment")
+		t.Fatalf("error marshalling environment %s", err)
 	}
 	if len(xenv) < 1 {
-		t.Fatal("Marshalled document is empty")
+		t.Fatal("marshalled document is empty")
 	}
-	t.Log(xenv)
 }
 
 func TestMarshalManualEnv(t *testing.T) {
@@ -51,7 +50,6 @@ func TestMarshalManualEnv(t *testing.T) {
 
 	xenv := env.MarshalManual()
 	if len(xenv) < 1 {
-		t.Fatal("Marshalled document is empty")
+		t.Fatal("marshal document is empty")
 	}
-	t.Log(xenv)
 }

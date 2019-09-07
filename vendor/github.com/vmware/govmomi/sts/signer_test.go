@@ -18,6 +18,7 @@ package sts
 
 import (
 	"crypto/tls"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -125,5 +126,11 @@ func TestSigner(t *testing.T) {
 
 	if !strings.HasSuffix(security.InnerXML, "</ds:Signature>") {
 		t.Error("missing signature")
+	}
+
+	req, _ := http.NewRequest(http.MethodPost, "https://127.0.0.1", nil)
+	err = s.SignRequest(req)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

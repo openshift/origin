@@ -139,6 +139,52 @@ func TestApplyConfigMap(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "update on mismatch binary data",
+			existing: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "one-ns", Name: "foo", Labels: map[string]string{"extra": "leave-alone"}},
+					Data: map[string]string{
+						"configmap": "value",
+					},
+				},
+			},
+			input: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "one-ns", Name: "foo"},
+				Data: map[string]string{
+					"configmap": "value",
+				},
+				BinaryData: map[string][]byte{
+					"binconfigmap": []byte("value"),
+				},
+			},
+
+			expectedModified: true,
+			verifyActions: func(actions []clienttesting.Action, t *testing.T) {
+				if len(actions) != 2 {
+					t.Fatal(spew.Sdump(actions))
+				}
+				if !actions[0].Matches("get", "configmaps") || actions[0].(clienttesting.GetAction).GetName() != "foo" {
+					t.Error(spew.Sdump(actions))
+				}
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(spew.Sdump(actions))
+				}
+				expected := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "one-ns", Name: "foo", Labels: map[string]string{"extra": "leave-alone"}},
+					Data: map[string]string{
+						"configmap": "value",
+					},
+					BinaryData: map[string][]byte{
+						"binconfigmap": []byte("value"),
+					},
+				}
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				if !equality.Semantic.DeepEqual(expected, actual) {
+					t.Error(JSONPatch(expected, actual))
+				}
+			},
+		},
 	}
 
 	for _, test := range tests {

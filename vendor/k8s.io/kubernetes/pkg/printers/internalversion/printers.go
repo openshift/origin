@@ -74,12 +74,9 @@ const (
 	nodeLabelRole = "kubernetes.io/role"
 )
 
-// Allow injecting additional print handlers
-var AddHandlers = AddKubeHandlers
-
 // AddHandlers adds print handlers for default Kubernetes types dealing with internal versions.
 // TODO: handle errors from Handler
-func AddKubeHandlers(h printers.PrintHandler) {
+func AddHandlers(h printers.PrintHandler) {
 	podColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
 		{Name: "Ready", Type: "string", Description: "The aggregate readiness state of this pod for accepting traffic."},

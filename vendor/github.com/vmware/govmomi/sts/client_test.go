@@ -257,6 +257,8 @@ func TestIssueActAs(t *testing.T) {
 	req = TokenRequest{
 		Lifetime:    24 * time.Hour,
 		Token:       s.Token,
+		ActAs:       true,
+		Delegatable: true,
 		Renewable:   true,
 		Certificate: solutionUserCert(),
 	}

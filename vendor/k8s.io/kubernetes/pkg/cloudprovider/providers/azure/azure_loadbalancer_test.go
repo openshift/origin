@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-07-01/network"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/api/core/v1"
@@ -366,5 +366,37 @@ func TestEnsureLoadBalancerDeleted(t *testing.T) {
 		result, err := az.LoadBalancerClient.List(context.Background(), az.Config.ResourceGroup)
 		assert.Nil(t, err, "TestCase[%d]: %s", i, c.desc)
 		assert.Equal(t, len(result), 0, "TestCase[%d]: %s", i, c.desc)
+	}
+}
+
+func TestGetPublicIPAddressResourceGroup(t *testing.T) {
+	az := getTestCloud()
+
+	for i, c := range []struct {
+		desc        string
+		annotations map[string]string
+		expected    string
+	}{
+		{
+			desc:     "no annotation",
+			expected: "rg",
+		},
+		{
+			desc:        "annoation with empty string resource group",
+			annotations: map[string]string{ServiceAnnotationLoadBalancerResourceGroup: ""},
+			expected:    "rg",
+		},
+		{
+			desc:        "annoation with non-empty resource group ",
+			annotations: map[string]string{ServiceAnnotationLoadBalancerResourceGroup: "rg2"},
+			expected:    "rg2",
+		},
+	} {
+		t.Run(c.desc, func(t *testing.T) {
+			s := &v1.Service{}
+			s.Annotations = c.annotations
+			real := az.getPublicIPAddressResourceGroup(s)
+			assert.Equal(t, c.expected, real, "TestCase[%d]: %s", i, c.desc)
+		})
 	}
 }

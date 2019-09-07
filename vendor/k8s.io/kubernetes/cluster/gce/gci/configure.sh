@@ -26,8 +26,8 @@ set -o pipefail
 ### Hardcoded constants
 DEFAULT_CNI_VERSION="v0.7.5"
 DEFAULT_CNI_SHA1="52e9d2de8a5f927307d9397308735658ee44ab8d"
-DEFAULT_NPD_VERSION="v0.6.0"
-DEFAULT_NPD_SHA1="a28e960a21bb74bc0ae09c267b6a340f30e5b3a6"
+DEFAULT_NPD_VERSION="v0.6.3"
+DEFAULT_NPD_SHA1="3a6ac56be6c121f1b94450bfd1a81ad28d532369"
 DEFAULT_CRICTL_VERSION="v1.12.0"
 DEFAULT_CRICTL_SHA1="82ef8b44849f9da0589c87e9865d4716573eec7f"
 DEFAULT_MOUNTER_TAR_SHA="8003b798cf33c7f91320cd6ee5cec4fa22244571"
@@ -124,9 +124,14 @@ function validate-hash {
 }
 
 # Get default service account credentials of the VM.
+GCE_METADATA_INTERNAL="http://metadata.google.internal/computeMetadata/v1/instance"
 function get-credentials {
-  curl "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" -H "Metadata-Flavor: Google" -s | python -c \
+  curl "${GCE_METADATA_INTERNAL}/service-accounts/default/token" -H "Metadata-Flavor: Google" -s | python -c \
     'import sys; import json; print(json.loads(sys.stdin.read())["access_token"])'
+}
+
+function valid-storage-scope {
+  curl "${GCE_METADATA_INTERNAL}/service-accounts/default/scopes" -H "Metadata-Flavor: Google" -s | grep -q "auth/devstorage"
 }
 
 # Retry a download until we get it. Takes a hash and a set of URLs.
@@ -144,7 +149,7 @@ function download-or-bust {
       rm -f "${file}"
       # if the url belongs to GCS API we should use oauth2_token in the headers
       local curl_headers=""
-      if [[ "$url" =~ ^https://storage.googleapis.com.* ]]; then
+      if [[ "$url" =~ ^https://storage.googleapis.com.* ]] && valid-storage-scope ; then
         curl_headers="Authorization: Bearer $(get-credentials)"
       fi
       if ! curl ${curl_headers:+-H "${curl_headers}"} -f --ipv4 -Lo "${file}" --connect-timeout 20 --max-time 300 --retry 6 --retry-delay 10 ${CURL_RETRY_CONNREFUSED} "${url}"; then

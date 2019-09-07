@@ -236,6 +236,20 @@ type KuryrConfig struct {
 	// The port kuryr-controller will listen for readiness and liveness requests.
 	// +optional
 	ControllerProbesPort *uint32 `json:"controllerProbesPort,omitempty"`
+
+	// openStackServiceNetwork contains the CIDR of network from which to allocate IPs for
+	// OpenStack Octavia's Amphora VMs. Please note that with Amphora driver Octavia uses
+	// two IPs from that network for each loadbalancer - one given by OpenShift and second
+	// for VRRP connections. As the first one is managed by OpenShift's and second by Neutron's
+	// IPAMs, those need to come from different pools. Therefore `openStackServiceNetwork`
+	// needs to be at least twice the size of `serviceNetwork`, and whole `serviceNetwork`
+	// must be overlapping with `openStackServiceNetwork`. cluster-network-operator will then
+	// make sure VRRP IPs are taken from the ranges inside `openStackServiceNetwork` that
+	// are not overlapping with `serviceNetwork`, effectivly preventing conflicts. If not set
+	// cluster-network-operator will use `serviceNetwork` expanded by decrementing the prefix
+	// size by 1.
+	// +optional
+	OpenStackServiceNetwork string `json:"openStackServiceNetwork,omitempty"`
 }
 
 // ovnKubernetesConfig is the proposed configuration parameters for networks

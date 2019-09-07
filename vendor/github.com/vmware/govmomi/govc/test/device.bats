@@ -317,3 +317,35 @@ load test_helper
   run govc vm.unregister "$vm"
   assert_success
 }
+
+@test "device.match" {
+  vcsim_env
+
+  vm=DC0_H0_VM0
+
+  run govc device.ls -vm $vm enoent-*
+  assert_failure
+
+  run govc device.info -vm $vm enoent-*
+  assert_failure
+
+  run govc device.info -vm $vm disk-*
+  assert_success
+
+  run govc vm.disk.create -vm $vm -name $vm/disk2.vmdk -size 10M
+  assert_success
+
+  run govc device.ls -vm $vm disk-*
+  assert_success
+
+  [ ${#lines[@]} -eq 2 ]
+
+  run govc device.remove -vm $vm enoent-*
+  assert_failure
+
+  run govc device.remove -vm $vm disk-*
+  assert_success
+
+  run govc device.ls -vm $vm disk-*
+  assert_failure
+}

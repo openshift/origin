@@ -23,18 +23,21 @@ import (
 
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/simulator/vpx"
-	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
 func TestCustomFieldsManager(t *testing.T) {
-	s := New(NewServiceInstance(vpx.ServiceContent, vpx.RootFolder))
-
-	ts := s.NewServer()
-	defer ts.Close()
-
 	ctx := context.Background()
+
+	m := VPX()
+	defer m.Remove()
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ts := m.Service.NewServer()
+	defer ts.Close()
 
 	c, err := govmomi.NewClient(ctx, ts.URL, true)
 	if err != nil {
@@ -89,19 +92,19 @@ func TestCustomFieldsManager(t *testing.T) {
 		t.Fatalf("expect field.name to be %s; got %s", "new_field_name", fields[0].Name)
 	}
 
-	folder := Map.content().RootFolder
-	err = fieldsManager.Set(ctx, folder, 1, "value")
+	vm := Map.Any("VirtualMachine").(*VirtualMachine)
+	err = fieldsManager.Set(ctx, vm.Reference(), field.Key, "value")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	values := Map.Get(folder.Reference()).(mo.Entity).Entity().CustomValue
+	values := vm.Entity().CustomValue
 	if len(values) != 1 {
 		t.Fatalf("expect CustomValue has 1 item; got %d", len(values))
 	}
 	fkey := values[0].GetCustomFieldValue().Key
-	if fkey != 1 {
-		t.Fatalf("expect value.Key to be 1; got %d", fkey)
+	if fkey != field.Key {
+		t.Fatalf("expect value.Key == field.Key; got %d != %d", fkey, field.Key)
 	}
 	value := values[0].(*types.CustomFieldStringValue).Value
 	if value != "value" {

@@ -53,12 +53,12 @@ type Conn struct {
 // such as when a connection is created during a warmup request but used while
 // servicing a user request.
 func (cn *Conn) SetContext(ctx context.Context) {
-	// This function is not required on managed VMs.
+	// This function is not required in App Engine "flexible environment".
 }
 
 // KeepAlive signals that the connection is still in use.
 // It may be called to prevent the socket being closed due to inactivity.
 func (cn *Conn) KeepAlive() error {
-	// This function is not required on managed VMs.
+	// This function is not required in App Engine "flexible environment".
 	return nil
 }

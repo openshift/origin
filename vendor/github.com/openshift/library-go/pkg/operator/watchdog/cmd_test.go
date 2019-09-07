@@ -23,6 +23,7 @@ func TestPidObserver(t *testing.T) {
 	}
 
 	watcher := &FileWatcherOptions{
+		ProcessName:     "foo",
 		findPidByNameFn: getProcessPIDByName,
 	}
 

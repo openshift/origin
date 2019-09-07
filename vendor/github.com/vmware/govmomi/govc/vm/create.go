@@ -32,6 +32,15 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 )
 
+var hardwareVersions = []struct {
+	esx, vmx string
+}{
+	{"5.5", "vmx-10"},
+	{"6.0", "vmx-11"},
+	{"6.5", "vmx-13"},
+	{"6.7", "vmx-14"},
+}
+
 type create struct {
 	*flags.ClientFlag
 	*flags.DatacenterFlag
@@ -52,6 +61,7 @@ type create struct {
 	controller string
 	annotation string
 	firmware   string
+	version    string
 
 	iso              string
 	isoDatastoreFlag *flags.DatastoreFlag
@@ -119,6 +129,12 @@ func (cmd *create) Register(ctx context.Context, f *flag.FlagSet) {
 
 	f.StringVar(&cmd.firmware, "firmware", firmwareTypes[0],
 		fmt.Sprintf("Firmware type [%s]", strings.Join(firmwareTypes, "|")))
+	var versions []string
+	for i := range hardwareVersions {
+		versions = append(versions, hardwareVersions[i].esx)
+	}
+	f.StringVar(&cmd.version, "version", "",
+		fmt.Sprintf("ESXi hardware version [%s]", strings.Join(versions, "|")))
 
 	f.StringVar(&cmd.iso, "iso", "", "ISO path")
 	cmd.isoDatastoreFlag, ctx = flags.NewCustomDatastoreFlag(ctx)
@@ -300,6 +316,15 @@ func (cmd *create) createVM(ctx context.Context) (*object.Task, error) {
 	var devices object.VirtualDeviceList
 	var err error
 
+	if cmd.version != "" {
+		for i := range hardwareVersions {
+			if hardwareVersions[i].esx == cmd.version {
+				cmd.version = hardwareVersions[i].vmx
+				break
+			}
+		}
+	}
+
 	spec := &types.VirtualMachineConfigSpec{
 		Name:       cmd.name,
 		GuestId:    cmd.guestID,
@@ -307,6 +332,7 @@ func (cmd *create) createVM(ctx context.Context) (*object.Task, error) {
 		MemoryMB:   int64(cmd.memory),
 		Annotation: cmd.annotation,
 		Firmware:   cmd.firmware,
+		Version:    cmd.version,
 	}
 
 	devices, err = cmd.addStorage(nil)

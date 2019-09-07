@@ -17,10 +17,11 @@ limitations under the License.
 package ipvs
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
-	"fmt"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	utilipvs "k8s.io/kubernetes/pkg/util/ipvs"
@@ -164,10 +165,10 @@ func (m *GracefulTerminationManager) deleteRsFunc(rsToDelete *listItem) (bool, e
 	}
 	for _, rs := range rss {
 		if rsToDelete.RealServer.Equal(rs) {
-			// Delete RS with no connections
-			// For UDP, ActiveConn is always 0
-			// For TCP, InactiveConn are connections not in ESTABLISHED state
-			if rs.ActiveConn+rs.InactiveConn != 0 {
+			// For UDP traffic, no graceful termination, we immediately delete the RS
+			//     (existing connections will be deleted on the next packet because sysctlExpireNoDestConn=1)
+			// For other protocols, don't delete until all connections have expired)
+			if strings.ToUpper(rsToDelete.VirtualServer.Protocol) != "UDP" && rs.ActiveConn+rs.InactiveConn != 0 {
 				klog.Infof("Not deleting, RS %v: %v ActiveConn, %v InactiveConn", rsToDelete.String(), rs.ActiveConn, rs.InactiveConn)
 				return false, nil
 			}
@@ -204,21 +205,5 @@ func (m *GracefulTerminationManager) MoveRSOutofGracefulDeleteList(uniqueRS stri
 
 // Run start a goroutine to try to delete rs in the graceful delete rsList with an interval 1 minute
 func (m *GracefulTerminationManager) Run() {
-	// before start, add leftover in delete rs to graceful delete rsList
-	vss, err := m.ipvs.GetVirtualServers()
-	if err != nil {
-		klog.Errorf("IPVS graceful delete manager failed to get IPVS virtualserver")
-	}
-	for _, vs := range vss {
-		rss, err := m.ipvs.GetRealServers(vs)
-		if err != nil {
-			klog.Errorf("IPVS graceful delete manager failed to get %v realserver", vs)
-			continue
-		}
-		for _, rs := range rss {
-			m.GracefulDeleteRS(vs, rs)
-		}
-	}
-
 	go wait.Until(m.tryDeleteRs, rsCheckDeleteInterval, wait.NeverStop)
 }

@@ -28,7 +28,7 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
@@ -44,7 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -824,10 +823,6 @@ func hashOnLineBreak(s string) string {
 
 // editorEnvs returns an ordered list of env vars to check for editor preferences.
 func editorEnvs() []string {
-	if openshiftpatch.IsOC {
-		return []string{"OC_EDITOR", "KUBE_EDITOR", "EDITOR"}
-	}
-
 	return []string{
 		"KUBE_EDITOR",
 		"EDITOR",

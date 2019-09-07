@@ -77,7 +77,7 @@ func (cmd *update) Run(ctx context.Context, f *flag.FlagSet) error {
 		cmd.cat.Cardinality = cardinality(*cmd.multi)
 	}
 
-	return withClient(ctx, cmd.ClientFlag, func(c *rest.Client) error {
+	return cmd.WithRestClient(ctx, func(c *rest.Client) error {
 		m := tags.NewManager(c)
 		cat, err := m.GetCategory(ctx, arg)
 		if err != nil {

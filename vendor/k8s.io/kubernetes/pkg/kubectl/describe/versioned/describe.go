@@ -29,7 +29,6 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
-	"unicode"
 
 	"github.com/fatih/camelcase"
 
@@ -303,14 +302,6 @@ func printUnstructuredContent(w PrefixWriter, level int, content map[string]inte
 }
 
 func smartLabelFor(field string) string {
-	// skip creating smart label if field name contains
-	// special characters other than '-'
-	if strings.IndexFunc(field, func(r rune) bool {
-		return !unicode.IsLetter(r) && r != '-'
-	}) != -1 {
-		return field
-	}
-
 	commonAcronyms := []string{"API", "URL", "UID", "OSB", "GUID"}
 
 	parts := camelcase.Split(field)
@@ -2096,7 +2087,7 @@ func describeCronJob(cronJob *batchv1beta1.CronJob, events *corev1.EventList) (s
 		w.Write(LEVEL_0, "Concurrency Policy:\t%s\n", cronJob.Spec.ConcurrencyPolicy)
 		w.Write(LEVEL_0, "Suspend:\t%s\n", printBoolPtr(cronJob.Spec.Suspend))
 		if cronJob.Spec.SuccessfulJobsHistoryLimit != nil {
-			w.Write(LEVEL_0, "Successful Job History Limit:\t%d\n", *cronJob.Spec.SuccessfulJobsHistoryLimit)
+			w.Write(LEVEL_0, "Successful Job History Limit:\t%d\n", cronJob.Spec.SuccessfulJobsHistoryLimit)
 		} else {
 			w.Write(LEVEL_0, "Successful Job History Limit:\t<unset>\n")
 		}

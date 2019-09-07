@@ -20,11 +20,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
+	"io"
 	"text/tabwriter"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
+	"github.com/vmware/govmomi/object"
 )
 
 type ls struct {
@@ -55,7 +56,9 @@ func (cmd *ls) Description() string {
 	return `List devices for VM.
 
 Examples:
-  govc device.ls -vm $name`
+  govc device.ls -vm $name
+  govc device.ls -vm $name disk-*
+  govc device.ls -vm $name -json | jq '.Devices[].Name'`
 }
 
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -73,6 +76,18 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
+	if f.NArg() != 0 {
+		var matches object.VirtualDeviceList
+		for _, name := range f.Args() {
+			device := match(name, devices)
+			if len(device) == 0 {
+				return fmt.Errorf("device '%s' not found", name)
+			}
+			matches = append(matches, device...)
+		}
+		devices = matches
+	}
+
 	if cmd.boot {
 		options, err := vm.BootOptions(ctx)
 		if err != nil {
@@ -82,10 +97,40 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		devices = devices.SelectBootOrder(options.BootOrder)
 	}
 
-	tw := tabwriter.NewWriter(os.Stdout, 3, 0, 2, ' ', 0)
+	res := lsResult{toLsList(devices), devices}
+	return cmd.WriteResult(&res)
+}
+
+type lsDevice struct {
+	Name    string
+	Type    string
+	Summary string
+}
+
+func toLsList(devices object.VirtualDeviceList) []lsDevice {
+	var res []lsDevice
 
 	for _, device := range devices {
-		fmt.Fprintf(tw, "%s\t%s\t%s\n", devices.Name(device), devices.TypeName(device),
+		res = append(res, lsDevice{
+			Name:    devices.Name(device),
+			Type:    devices.TypeName(device),
+			Summary: device.GetVirtualDevice().DeviceInfo.GetDescription().Summary,
+		})
+	}
+
+	return res
+}
+
+type lsResult struct {
+	Devices []lsDevice
+	list    object.VirtualDeviceList
+}
+
+func (r *lsResult) Write(w io.Writer) error {
+	tw := tabwriter.NewWriter(w, 3, 0, 2, ' ', 0)
+
+	for _, device := range r.list {
+		fmt.Fprintf(tw, "%s\t%s\t%s\n", r.list.Name(device), r.list.TypeName(device),
 			device.GetVirtualDevice().DeviceInfo.GetDescription().Summary)
 	}
 
