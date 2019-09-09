@@ -32,7 +32,6 @@ var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slo
 		jenkinsPersistentTemplatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
 		nodejsDeclarativePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "nodejs-sample-pipeline.yaml")
 		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
-		mavenSlaveGradlePipelinePath  = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
 		blueGreenPipelinePath         = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		envVarsPipelinePath           = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
 		oc                            = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
@@ -360,26 +359,6 @@ var _ = g.Describe("[Feature:Jenkins][Slow]jenkins repos e2e openshift using slo
 				err = oc.Run("delete").Args("route", "openshift-jee-sample").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("delete").Args("is", "wildfly").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("should build a gradle project and complete successfully", func() {
-				err := oc.Run("create").Args("-f", mavenSlaveGradlePipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// start the build
-				g.By("waiting for the build to complete")
-				br := &exutil.BuildResult{Oc: oc, BuildName: "gradle-1"}
-				err = exutil.WaitForBuildResult(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br)
-				if err != nil || !br.BuildSuccess {
-					exutil.DumpBuilds(oc)
-					exutil.DumpPodLogsStartingWith("maven", oc)
-				}
-				debugAnyJenkinsFailure(br, oc.Namespace()+"-gradle-pipeline", oc, true)
-				br.AssertSuccess()
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "gradle").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
