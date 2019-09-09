@@ -1470,7 +1470,7 @@ func LaunchWebserverPod(f *e2e.Framework, podName, nodeName string) (ip string) 
 				{
 					Name:  containerName,
 					Image: image.GetE2EImage(image.Agnhost),
-					Env:   []kapiv1.EnvVar{{Name: fmt.Sprintf("SERVE_PORT_%d", port), Value: "foo"}},
+					Args:  []string{"netexec", "--http-port", fmt.Sprintf("%d", port)},
 					Ports: []kapiv1.ContainerPort{{ContainerPort: int32(port)}},
 				},
 			},
