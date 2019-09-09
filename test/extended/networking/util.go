@@ -180,59 +180,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 		}
 		break
 	}
-	if err == nil {
-		return nil
-	}
-	savedErr := err
-
-	// Debug
-	debugPod := pod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("debugpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
-		pod.Spec.Containers[0].Image = "openshift/node"
-		pod.Spec.NodeName = nodeName
-		pod.Spec.HostNetwork = true
-		privileged := true
-		pod.Spec.Volumes = []corev1.Volume{
-			{
-				Name: "ovs-socket",
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Path: "/var/run/openvswitch/br0.mgmt",
-					},
-				},
-			},
-		}
-		pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
-			{
-				Name:      "ovs-socket",
-				MountPath: "/var/run/openvswitch/br0.mgmt",
-			},
-		}
-		pod.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{Privileged: &privileged}
-	})
-	defer func() {
-		err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(debugPod.Name, nil)
-		Expect(err).NotTo(HaveOccurred())
-	}()
-
-	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ovs-ofctl -O OpenFlow13 dump-flows br0")
-	if err != nil {
-		e2e.Logf("DEBUG: got error dumping OVS flows: %v", err)
-	} else {
-		e2e.Logf("DEBUG:\n%s\n", stdout)
-	}
-	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "iptables-save")
-	if err != nil {
-		e2e.Logf("DEBUG: got error dumping iptables: %v", err)
-	} else {
-		e2e.Logf("DEBUG:\n%s\n", stdout)
-	}
-	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ss -ant")
-	if err != nil {
-		e2e.Logf("DEBUG: got error dumping sockets: %v", err)
-	} else {
-		e2e.Logf("DEBUG:\n%s\n", stdout)
-	}
-	return savedErr
+	return err
 }
 
 var cachedNetworkPluginName *string
