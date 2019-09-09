@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewClusterVersionsClientWithBaseURI(baseURI string) ClusterVersionsClient {
 // subscriptionID - the customer subscription identifier
 // clusterVersion - the cluster code version
 func (client ClusterVersionsClient) Get(ctx context.Context, location string, subscriptionID string, clusterVersion string) (result ClusterCodeVersionsListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ClusterVersionsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, location, subscriptionID, clusterVersion)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ClusterVersionsClient", "Get", nil, "Failure preparing request")
@@ -90,8 +101,8 @@ func (client ClusterVersionsClient) GetPreparer(ctx context.Context, location st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -114,6 +125,16 @@ func (client ClusterVersionsClient) GetResponder(resp *http.Response) (result Cl
 // subscriptionID - the customer subscription identifier
 // clusterVersion - the cluster code version
 func (client ClusterVersionsClient) GetByEnvironment(ctx context.Context, location string, environment string, subscriptionID string, clusterVersion string) (result ClusterCodeVersionsListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ClusterVersionsClient.GetByEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetByEnvironmentPreparer(ctx, location, environment, subscriptionID, clusterVersion)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ClusterVersionsClient", "GetByEnvironment", nil, "Failure preparing request")
@@ -160,8 +181,8 @@ func (client ClusterVersionsClient) GetByEnvironmentPreparer(ctx context.Context
 // GetByEnvironmentSender sends the GetByEnvironment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) GetByEnvironmentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetByEnvironmentResponder handles the response to the GetByEnvironment request. The method always
@@ -182,6 +203,16 @@ func (client ClusterVersionsClient) GetByEnvironmentResponder(resp *http.Respons
 // location - the location for the cluster code versions, this is different from cluster location
 // subscriptionID - the customer subscription identifier
 func (client ClusterVersionsClient) List(ctx context.Context, location string, subscriptionID string) (result ClusterCodeVersionsListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ClusterVersionsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListPreparer(ctx, location, subscriptionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ClusterVersionsClient", "List", nil, "Failure preparing request")
@@ -226,8 +257,8 @@ func (client ClusterVersionsClient) ListPreparer(ctx context.Context, location s
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -249,6 +280,16 @@ func (client ClusterVersionsClient) ListResponder(resp *http.Response) (result C
 // environment - cluster operating system, the default means all
 // subscriptionID - the customer subscription identifier
 func (client ClusterVersionsClient) ListByEnvironment(ctx context.Context, location string, environment string, subscriptionID string) (result ClusterCodeVersionsListResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ClusterVersionsClient.ListByEnvironment")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListByEnvironmentPreparer(ctx, location, environment, subscriptionID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "servicefabric.ClusterVersionsClient", "ListByEnvironment", nil, "Failure preparing request")
@@ -294,8 +335,8 @@ func (client ClusterVersionsClient) ListByEnvironmentPreparer(ctx context.Contex
 // ListByEnvironmentSender sends the ListByEnvironment request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClusterVersionsClient) ListByEnvironmentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByEnvironmentResponder handles the response to the ListByEnvironment request. The method always

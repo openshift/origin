@@ -5,7 +5,6 @@
 package testlapack
 
 import (
-	"math"
 	"testing"
 
 	"golang.org/x/exp/rand"
@@ -109,13 +108,20 @@ func Dtrti2Test(t *testing.T, impl Dtrti2er) {
 				if lda == 0 {
 					lda = n
 				}
+				// Allocate n×n matrix A and fill it with random numbers.
 				a := make([]float64, n*lda)
 				for i := range a {
 					a[i] = rnd.Float64()
 				}
+				for i := 0; i < n; i++ {
+					// This keeps the matrices well conditioned.
+					a[i*lda+i] += float64(n)
+				}
 				aCopy := make([]float64, len(a))
 				copy(aCopy, a)
+				// Compute the inverse of the uplo triangle.
 				impl.Dtrti2(uplo, diag, n, a, lda)
+				// Zero out the opposite triangle.
 				if uplo == blas.Upper {
 					for i := 1; i < n; i++ {
 						for j := 0; j < i; j++ {
@@ -132,31 +138,19 @@ func Dtrti2Test(t *testing.T, impl Dtrti2er) {
 					}
 				}
 				if diag == blas.Unit {
+					// Set the diagonal of A^{-1} and A explicitly to 1.
 					for i := 0; i < n; i++ {
 						a[i*lda+i] = 1
 						aCopy[i*lda+i] = 1
 					}
 				}
+				// Compute A^{-1} * A and store the result in ans.
 				ans := make([]float64, len(a))
 				bi.Dgemm(blas.NoTrans, blas.NoTrans, n, n, n, 1, a, lda, aCopy, lda, 0, ans, lda)
-				iseye := true
-				for i := 0; i < n; i++ {
-					for j := 0; j < n; j++ {
-						if i == j {
-							if math.Abs(ans[i*lda+i]-1) > tol {
-								iseye = false
-								break
-							}
-						} else {
-							if math.Abs(ans[i*lda+j]) > tol {
-								iseye = false
-								break
-							}
-						}
-					}
-				}
-				if !iseye {
-					t.Errorf("inv(A) * A != I. Upper = %v, unit = %v, ans = %v", uplo == blas.Upper, diag == blas.Unit, ans)
+				// Check that ans is close to the identity matrix.
+				dist := distFromIdentity(n, ans, lda)
+				if dist > tol {
+					t.Errorf("|inv(A) * A - I| = %v. Upper = %v, unit = %v, ans = %v", dist, uplo == blas.Upper, diag == blas.Unit, ans)
 				}
 			}
 		}

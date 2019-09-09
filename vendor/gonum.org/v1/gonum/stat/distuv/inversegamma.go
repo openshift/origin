@@ -38,7 +38,7 @@ func (g InverseGamma) CDF(x float64) float64 {
 	// TODO(btracey): Replace this with a direct call to the upper regularized
 	// gamma function if mathext gets it.
 	//return 1 - mathext.GammaInc(g.Alpha, g.Beta/x)
-	return mathext.GammaIncComp(g.Alpha, g.Beta/x)
+	return mathext.GammaIncRegComp(g.Alpha, g.Beta/x)
 }
 
 // ExKurtosis returns the excess kurtosis of the distribution.
@@ -89,7 +89,7 @@ func (g InverseGamma) Quantile(p float64) float64 {
 	if p < 0 || 1 < p {
 		panic(badPercentile)
 	}
-	return (1 / (mathext.GammaIncCompInv(g.Alpha, p))) * g.Beta
+	return (1 / (mathext.GammaIncRegCompInv(g.Alpha, p))) * g.Beta
 }
 
 // Rand returns a random sample drawn from the distribution.
@@ -105,7 +105,7 @@ func (g InverseGamma) Survival(x float64) float64 {
 	if x < 0 {
 		return 1
 	}
-	return mathext.GammaInc(g.Alpha, g.Beta/x)
+	return mathext.GammaIncReg(g.Alpha, g.Beta/x)
 }
 
 // StdDev returns the standard deviation of the probability distribution.

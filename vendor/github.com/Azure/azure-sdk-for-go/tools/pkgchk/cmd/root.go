@@ -123,9 +123,15 @@ func loadExceptions(excepFile string) ([]string, error) {
 	}
 	defer f.Close()
 	exceps := []string{}
-	for scanner := bufio.NewScanner(f); scanner.Scan(); {
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
 		exceps = append(exceps, scanner.Text())
 	}
+	if err = scanner.Err(); err != nil {
+		return nil, err
+	}
+
 	return exceps, nil
 }
 
@@ -156,15 +162,26 @@ func getPkgs(rootDir string) ([]pkg, error) {
 				return err
 			}
 			hasSubDirs := false
+			interfacesDir := false
 			for _, f := range fi {
 				if f.IsDir() {
 					hasSubDirs = true
 					break
 				}
+				if f.Name() == "interfaces.go" {
+					interfacesDir = true
+				}
 			}
 			if !hasSubDirs {
 				fs := token.NewFileSet()
-				packages, err := parser.ParseDir(fs, path, nil, parser.PackageClauseOnly)
+				// with interfaces codegen the majority of leaf directories are now the
+				// *api packages. when this is the case parse from the parent directory.
+				if interfacesDir {
+					path = filepath.Dir(path)
+				}
+				packages, err := parser.ParseDir(fs, path, func(fi os.FileInfo) bool {
+					return fi.Name() != "interfaces.go"
+				}, parser.PackageClauseOnly)
 				if err != nil {
 					return err
 				}
@@ -230,6 +247,7 @@ func verifyDirectorySturcture(p pkg) error {
 	// /redis/mgmt/2015-08-01/redis
 	// /resources/mgmt/2017-06-01-preview/policy
 	// /preview/signalr/mgmt/2018-03-01-preview/signalr
+	// /preview/security/mgmt/v2.0/security (version scheme for composite packages)
 	if !p.isARMPkg() {
 		return nil
 	}
@@ -237,7 +255,7 @@ func verifyDirectorySturcture(p pkg) error {
 		`^(?:/preview)?`,
 		`[a-z0-9\-]+`,
 		`mgmt`,
-		`\d{4}-\d{2}-\d{2}(?:-preview)?`,
+		`(?:\d{4}-\d{2}-\d{2}(?:-preview)?)|(?:v\d{1,2}\.\d{1,2})`,
 		`[a-z0-9]+`,
 	}, "/")
 	regex := regexp.MustCompile(regexStr)

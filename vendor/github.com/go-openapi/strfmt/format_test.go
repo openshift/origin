@@ -131,15 +131,16 @@ type testStruct struct {
 	D          Date       `json:"d,omitempty"`
 	DT         DateTime   `json:"dt,omitempty"`
 	Dur        Duration   `json:"dur,omitempty"`
-	Uri        URI        `json:"uri,omitempty"`
+	URI        URI        `json:"uri,omitempty"`
 	Eml        Email      `json:"eml,omitempty"`
-	Uuid       UUID       `json:"uuid,omitempty"`
-	Uuid3      UUID3      `json:"uuid3,omitempty"`
-	Uuid4      UUID4      `json:"uuid4,omitempty"`
-	Uuid5      UUID5      `json:"uuid5,omitempty"`
+	UUID       UUID       `json:"uuid,omitempty"`
+	UUID3      UUID3      `json:"uuid3,omitempty"`
+	UUID4      UUID4      `json:"uuid4,omitempty"`
+	UUID5      UUID5      `json:"uuid5,omitempty"`
 	Hn         Hostname   `json:"hn,omitempty"`
 	Ipv4       IPv4       `json:"ipv4,omitempty"`
 	Ipv6       IPv6       `json:"ipv6,omitempty"`
+	Cidr       CIDR       `json:"cidr,omitempty"`
 	Mac        MAC        `json:"mac,omitempty"`
 	Isbn       ISBN       `json:"isbn,omitempty"`
 	Isbn10     ISBN10     `json:"isbn10,omitempty"`
@@ -167,6 +168,7 @@ func TestDecodeHook(t *testing.T) {
 		"hn":         "somewhere.com",
 		"ipv4":       "192.168.254.1",
 		"ipv6":       "::1",
+		"cidr":       "192.0.2.1/24",
 		"mac":        "01:02:03:04:05:06",
 		"isbn":       "0321751043",
 		"isbn10":     "0321751043",
@@ -187,15 +189,16 @@ func TestDecodeHook(t *testing.T) {
 		D:          Date(date),
 		DT:         dt,
 		Dur:        Duration(dur),
-		Uri:        URI("http://www.dummy.com"),
+		URI:        URI("http://www.dummy.com"),
 		Eml:        Email("dummy@dummy.com"),
-		Uuid:       UUID("a8098c1a-f86e-11da-bd1a-00112444be1e"),
-		Uuid3:      UUID3("bcd02e22-68f0-3046-a512-327cca9def8f"),
-		Uuid4:      UUID4("025b0d74-00a2-4048-bf57-227c5111bb34"),
-		Uuid5:      UUID5("886313e1-3b8a-5372-9b90-0c9aee199e5d"),
+		UUID:       UUID("a8098c1a-f86e-11da-bd1a-00112444be1e"),
+		UUID3:      UUID3("bcd02e22-68f0-3046-a512-327cca9def8f"),
+		UUID4:      UUID4("025b0d74-00a2-4048-bf57-227c5111bb34"),
+		UUID5:      UUID5("886313e1-3b8a-5372-9b90-0c9aee199e5d"),
 		Hn:         Hostname("somewhere.com"),
 		Ipv4:       IPv4("192.168.254.1"),
 		Ipv6:       IPv6("::1"),
+		Cidr:       CIDR("192.0.2.1/24"),
 		Mac:        MAC("01:02:03:04:05:06"),
 		Isbn:       ISBN("0321751043"),
 		Isbn10:     ISBN10("0321751043"),
@@ -220,4 +223,41 @@ func TestDecodeHook(t *testing.T) {
 	err = d.Decode(m)
 	assert.Nil(t, err)
 	assert.Equal(t, exp, test)
+}
+
+func TestDecodeDateTimeHook(t *testing.T) {
+	testCases := []struct {
+		Name  string
+		Input string
+	}{
+		{
+			"empty datetime",
+			"",
+		},
+		{
+			"invalid non empty datetime",
+			"2019-01-01",
+		},
+	}
+	registry := NewFormats()
+	type layout struct {
+		DateTime *DateTime `json:"datetime,omitempty"`
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			test := new(layout)
+			cfg := &mapstructure.DecoderConfig{
+				DecodeHook:       registry.MapStructureHookFunc(),
+				WeaklyTypedInput: false,
+				Result:           test,
+			}
+			d, err := mapstructure.NewDecoder(cfg)
+			assert.Nil(t, err)
+			input := make(map[string]interface{})
+			input["datetime"] = tc.Input
+			err = d.Decode(input)
+			assert.Error(t, err, "error expected got none")
+		})
+	}
 }

@@ -23,25 +23,29 @@ func DlapllTest(t *testing.T, impl Dlapller) {
 	for i, m := range []int{5, 6, 9, 300, 400, 600} {
 		n := 2
 		lda := n
+		// Allocate m×2 matrix A and fill it with random numbers.
 		a := make([]float64, m*lda)
 		for i := range a {
 			a[i] = rnd.NormFloat64()
 		}
-
+		// Store a copy of A for later comparison.
 		aCopy := make([]float64, len(a))
 		copy(aCopy, a)
 
-		got := impl.Dlapll(m, a[0:], 2, a[1:], 2)
+		// Compute the smallest singular value of A.
+		got := impl.Dlapll(m, a[0:], lda, a[1:], lda)
 
+		// Compute singular values of A independently by Dgesvd.
 		s := make([]float64, min(m, n))
 		work := make([]float64, 1)
-		impl.Dgesvd(lapack.SVDNone, lapack.SVDNone, m, n, aCopy, lda, s, nil, 0, nil, 0, work, -1)
+		impl.Dgesvd(lapack.SVDNone, lapack.SVDNone, m, n, aCopy, lda, s, nil, 1, nil, 1, work, -1)
 		work = make([]float64, int(work[0]))
-		impl.Dgesvd(lapack.SVDNone, lapack.SVDNone, m, n, aCopy, lda, s, nil, 0, nil, 0, work, len(work))
+		impl.Dgesvd(lapack.SVDNone, lapack.SVDNone, m, n, aCopy, lda, s, nil, 1, nil, 1, work, len(work))
+		// Take the smallest singular value.
 		want := s[len(s)-1]
 
 		if !floats.EqualWithinAbsOrRel(got, want, 1e-14, 1e-14) {
-			t.Errorf("unexpected ssmin for test %d: got:%f want:%f", i, got, want)
+			t.Errorf("Case %d: unexpected smallest singular value, got:%f want:%f", i, got, want)
 		}
 	}
 }

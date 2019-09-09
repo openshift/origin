@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,269 +15,93 @@
 package pubsub
 
 import (
-	"encoding/base64"
 	"fmt"
-	"net/http"
+	"math"
+	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
-	raw "google.golang.org/api/pubsub/v1"
+	gax "github.com/googleapis/gax-go/v2"
+	pb "google.golang.org/genproto/googleapis/pubsub/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// service provides an internal abstraction to isolate the generated
-// PubSub API; most of this package uses this interface instead.
-// The single implementation, *apiService, contains all the knowledge
-// of the generated PubSub API (except for that present in legacy code).
-type service interface {
-	createSubscription(ctx context.Context, topicName, subName string, ackDeadline time.Duration, pushConfig *PushConfig) error
-	getSubscriptionConfig(ctx context.Context, subName string) (*SubscriptionConfig, string, error)
-	listProjectSubscriptions(ctx context.Context, projName, pageTok string) (*stringsPage, error)
-	deleteSubscription(ctx context.Context, name string) error
-	subscriptionExists(ctx context.Context, name string) (bool, error)
-	modifyPushConfig(ctx context.Context, subName string, conf *PushConfig) error
-
-	createTopic(ctx context.Context, name string) error
-	deleteTopic(ctx context.Context, name string) error
-	topicExists(ctx context.Context, name string) (bool, error)
-	listProjectTopics(ctx context.Context, projName, pageTok string) (*stringsPage, error)
-	listTopicSubscriptions(ctx context.Context, topicName, pageTok string) (*stringsPage, error)
-
-	modifyAckDeadline(ctx context.Context, subName string, deadline time.Duration, ackIDs []string) error
-	fetchMessages(ctx context.Context, subName string, maxMessages int64) ([]*Message, error)
-	publishMessages(ctx context.Context, topicName string, msgs []*Message) ([]string, error)
-
-	// splitAckIDs divides ackIDs into
-	//  * a batch of a size which is suitable for passing to acknowledge or
-	//    modifyAckDeadline, and
-	//  * the rest.
-	splitAckIDs(ackIDs []string) ([]string, []string)
-
-	// acknowledge ACKs the IDs in ackIDs.
-	acknowledge(ctx context.Context, subName string, ackIDs []string) error
-}
-
-type apiService struct {
-	s *raw.Service
-}
-
-func newPubSubService(client *http.Client, endpoint string) (*apiService, error) {
-	s, err := raw.New(client)
-	if err != nil {
-		return nil, err
-	}
-	s.BasePath = endpoint
-
-	return &apiService{s: s}, nil
-}
-
-func (s *apiService) createSubscription(ctx context.Context, topicName, subName string, ackDeadline time.Duration, pushConfig *PushConfig) error {
-	var rawPushConfig *raw.PushConfig
-	if pushConfig != nil {
-		rawPushConfig = &raw.PushConfig{
-			Attributes:   pushConfig.Attributes,
-			PushEndpoint: pushConfig.Endpoint,
-		}
-	}
-	rawSub := &raw.Subscription{
-		AckDeadlineSeconds: int64(ackDeadline.Seconds()),
-		PushConfig:         rawPushConfig,
-		Topic:              topicName,
-	}
-	_, err := s.s.Projects.Subscriptions.Create(subName, rawSub).Context(ctx).Do()
-	return err
-}
-
-func (s *apiService) getSubscriptionConfig(ctx context.Context, subName string) (*SubscriptionConfig, string, error) {
-	rawSub, err := s.s.Projects.Subscriptions.Get(subName).Context(ctx).Do()
-	if err != nil {
-		return nil, "", err
-	}
-	sub := &SubscriptionConfig{
-		AckDeadline: time.Second * time.Duration(rawSub.AckDeadlineSeconds),
-		PushConfig: PushConfig{
-			Endpoint:   rawSub.PushConfig.PushEndpoint,
-			Attributes: rawSub.PushConfig.Attributes,
-		},
-	}
-	return sub, rawSub.Topic, err
-}
-
-// stringsPage contains a list of strings and a token for fetching the next page.
-type stringsPage struct {
-	strings []string
-	tok     string
-}
-
-func (s *apiService) listProjectSubscriptions(ctx context.Context, projName, pageTok string) (*stringsPage, error) {
-	resp, err := s.s.Projects.Subscriptions.List(projName).PageToken(pageTok).Context(ctx).Do()
-	if err != nil {
-		return nil, err
-	}
-	subs := []string{}
-	for _, sub := range resp.Subscriptions {
-		subs = append(subs, sub.Name)
-	}
-	return &stringsPage{subs, resp.NextPageToken}, nil
-}
-
-func (s *apiService) deleteSubscription(ctx context.Context, name string) error {
-	_, err := s.s.Projects.Subscriptions.Delete(name).Context(ctx).Do()
-	return err
-}
-
-func (s *apiService) subscriptionExists(ctx context.Context, name string) (bool, error) {
-	_, err := s.s.Projects.Subscriptions.Get(name).Context(ctx).Do()
-	if err == nil {
-		return true, nil
-	}
-	if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
-		return false, nil
-	}
-	return false, err
-}
-
-func (s *apiService) createTopic(ctx context.Context, name string) error {
-	// Note: The raw API expects a Topic body, but ignores it.
-	_, err := s.s.Projects.Topics.Create(name, &raw.Topic{}).
-		Context(ctx).
-		Do()
-	return err
-}
-
-func (s *apiService) listProjectTopics(ctx context.Context, projName, pageTok string) (*stringsPage, error) {
-	resp, err := s.s.Projects.Topics.List(projName).PageToken(pageTok).Context(ctx).Do()
-	if err != nil {
-		return nil, err
-	}
-	topics := []string{}
-	for _, topic := range resp.Topics {
-		topics = append(topics, topic.Name)
-	}
-	return &stringsPage{topics, resp.NextPageToken}, nil
-}
-
-func (s *apiService) deleteTopic(ctx context.Context, name string) error {
-	_, err := s.s.Projects.Topics.Delete(name).Context(ctx).Do()
-	return err
-}
-
-func (s *apiService) topicExists(ctx context.Context, name string) (bool, error) {
-	_, err := s.s.Projects.Topics.Get(name).Context(ctx).Do()
-	if err == nil {
-		return true, nil
-	}
-	if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
-		return false, nil
-	}
-	return false, err
-}
-
-func (s *apiService) listTopicSubscriptions(ctx context.Context, topicName, pageTok string) (*stringsPage, error) {
-	resp, err := s.s.Projects.Topics.Subscriptions.List(topicName).PageToken(pageTok).Context(ctx).Do()
-	if err != nil {
-		return nil, err
-	}
-	subs := []string{}
-	for _, sub := range resp.Subscriptions {
-		subs = append(subs, sub)
-	}
-	return &stringsPage{subs, resp.NextPageToken}, nil
-}
-
-func (s *apiService) modifyAckDeadline(ctx context.Context, subName string, deadline time.Duration, ackIDs []string) error {
-	req := &raw.ModifyAckDeadlineRequest{
-		AckDeadlineSeconds: int64(deadline.Seconds()),
-		AckIds:             ackIDs,
-	}
-	_, err := s.s.Projects.Subscriptions.ModifyAckDeadline(subName, req).
-		Context(ctx).
-		Do()
-	return err
-}
-
 // maxPayload is the maximum number of bytes to devote to actual ids in
-// acknowledgement or modifyAckDeadline requests.  Note that there is ~1K of
-// constant overhead, plus 3 bytes per ID (two quotes and a comma).  The total
-// payload size may not exceed 512K.
-const maxPayload = 500 * 1024
-const overheadPerID = 3 // 3 bytes of JSON
+// acknowledgement or modifyAckDeadline requests. A serialized
+// AcknowledgeRequest proto has a small constant overhead, plus the size of the
+// subscription name, plus 3 bytes per ID (a tag byte and two size bytes). A
+// ModifyAckDeadlineRequest has an additional few bytes for the deadline. We
+// don't know the subscription name here, so we just assume the size exclusive
+// of ids is 100 bytes.
+//
+// With gRPC there is no way for the client to know the server's max message size (it is
+// configurable on the server). We know from experience that it
+// it 512K.
+const (
+	maxPayload       = 512 * 1024
+	reqFixedOverhead = 100
+	overheadPerID    = 3
+	maxSendRecvBytes = 20 * 1024 * 1024 // 20M
+)
 
-// splitAckIDs splits ids into two slices, the first of which contains at most maxPayload bytes of ackID data.
-func (s *apiService) splitAckIDs(ids []string) ([]string, []string) {
-	total := 0
-	for i, id := range ids {
-		total += len(id) + overheadPerID
-		if total > maxPayload {
-			return ids[:i], ids[i:]
-		}
-	}
-	return ids, nil
-}
-
-func (s *apiService) acknowledge(ctx context.Context, subName string, ackIDs []string) error {
-	req := &raw.AcknowledgeRequest{
-		AckIds: ackIDs,
-	}
-	_, err := s.s.Projects.Subscriptions.Acknowledge(subName, req).
-		Context(ctx).
-		Do()
-	return err
-}
-
-func (s *apiService) fetchMessages(ctx context.Context, subName string, maxMessages int64) ([]*Message, error) {
-	req := &raw.PullRequest{
-		MaxMessages: maxMessages,
-	}
-	resp, err := s.s.Projects.Subscriptions.Pull(subName, req).
-		Context(ctx).
-		Do()
-
-	if err != nil {
-		return nil, err
-	}
-
-	msgs := make([]*Message, 0, len(resp.ReceivedMessages))
-	for i, m := range resp.ReceivedMessages {
+func convertMessages(rms []*pb.ReceivedMessage) ([]*Message, error) {
+	msgs := make([]*Message, 0, len(rms))
+	for i, m := range rms {
 		msg, err := toMessage(m)
 		if err != nil {
 			return nil, fmt.Errorf("pubsub: cannot decode the retrieved message at index: %d, message: %+v", i, m)
 		}
 		msgs = append(msgs, msg)
 	}
-
 	return msgs, nil
 }
 
-func (s *apiService) publishMessages(ctx context.Context, topicName string, msgs []*Message) ([]string, error) {
-	rawMsgs := make([]*raw.PubsubMessage, len(msgs))
-	for i, msg := range msgs {
-		rawMsgs[i] = &raw.PubsubMessage{
-			Data:       base64.StdEncoding.EncodeToString(msg.Data),
-			Attributes: msg.Attributes,
-		}
+func trunc32(i int64) int32 {
+	if i > math.MaxInt32 {
+		i = math.MaxInt32
 	}
-
-	req := &raw.PublishRequest{Messages: rawMsgs}
-	resp, err := s.s.Projects.Topics.Publish(topicName, req).
-		Context(ctx).
-		Do()
-
-	if err != nil {
-		return nil, err
-	}
-	return resp.MessageIds, nil
+	return int32(i)
 }
 
-func (s *apiService) modifyPushConfig(ctx context.Context, subName string, conf *PushConfig) error {
-	req := &raw.ModifyPushConfigRequest{
-		PushConfig: &raw.PushConfig{
-			Attributes:   conf.Attributes,
-			PushEndpoint: conf.Endpoint,
-		},
+type defaultRetryer struct {
+	bo gax.Backoff
+}
+
+// Logic originally from
+// https://github.com/GoogleCloudPlatform/google-cloud-java/blob/master/google-cloud-clients/google-cloud-pubsub/src/main/java/com/google/cloud/pubsub/v1/StatusUtil.java
+func (r *defaultRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
+	s, ok := status.FromError(err)
+	if !ok { // includes io.EOF, normal stream close, which causes us to reopen
+		return r.bo.Pause(), true
 	}
-	_, err := s.s.Projects.Subscriptions.ModifyPushConfig(subName, req).
-		Context(ctx).
-		Do()
-	return err
+	switch s.Code() {
+	case codes.DeadlineExceeded, codes.Internal, codes.ResourceExhausted, codes.Aborted:
+		return r.bo.Pause(), true
+	case codes.Unavailable:
+		c := strings.Contains(s.Message(), "Server shutdownNow invoked")
+		if !c {
+			return r.bo.Pause(), true
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
+}
+
+type streamingPullRetryer struct {
+	defaultRetryer gax.Retryer
+}
+
+// Does not retry ResourceExhausted. See: https://github.com/GoogleCloudPlatform/google-cloud-go/issues/1166#issuecomment-443744705
+func (r *streamingPullRetryer) Retry(err error) (pause time.Duration, shouldRetry bool) {
+	s, ok := status.FromError(err)
+	if !ok { // call defaultRetryer so that its backoff can be used
+		return r.defaultRetryer.Retry(err)
+	}
+	switch s.Code() {
+	case codes.ResourceExhausted:
+		return 0, false
+	default:
+		return r.defaultRetryer.Retry(err)
+	}
 }

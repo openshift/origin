@@ -12,6 +12,7 @@ import (
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/internal/ordered"
+	"gonum.org/v1/gonum/graph/iterator"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/mat"
 )
@@ -152,7 +153,7 @@ func TestDiffuse(t *testing.T) {
 		g := simple.NewUndirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -278,7 +279,7 @@ func TestRandomWalkLaplacian(t *testing.T) {
 		g := simple.NewDirectedGraph()
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {
@@ -304,10 +305,10 @@ type sortedNodeGraph struct {
 	graph.Graph
 }
 
-func (g sortedNodeGraph) Nodes() []graph.Node {
-	n := g.Graph.Nodes()
+func (g sortedNodeGraph) Nodes() graph.Nodes {
+	n := graph.NodesOf(g.Graph.Nodes())
 	sort.Sort(ordered.ByID(n))
-	return n
+	return iterator.NewOrderedNodes(n)
 }
 
 var diffuseToEquilibriumTests = []struct {
@@ -374,7 +375,7 @@ var diffuseToEquilibriumTests = []struct {
 		// This does not look like Page Rank because we do not
 		// do the random node hops. An alternative Laplacian
 		// value that does do that would replicate PageRank. This
-		// is left as an excercise for the reader.
+		// is left as an exercise for the reader.
 		want: map[int64]float64{
 			A: 0.227273,
 			B: 0.386364,
@@ -466,7 +467,7 @@ func TestDiffuseToEquilibrium(t *testing.T) {
 		g := test.builder
 		for u, e := range test.g {
 			// Add nodes that are not defined by an edge.
-			if !g.Has(int64(u)) {
+			if g.Node(int64(u)) == nil {
 				g.AddNode(simple.Node(u))
 			}
 			for v := range e {

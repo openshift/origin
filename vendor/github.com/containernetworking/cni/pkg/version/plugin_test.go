@@ -82,4 +82,60 @@ var _ = Describe("Decoding versions reported by a plugin", func() {
 		})
 	})
 
+	Describe("ParseVersion", func() {
+		It("parses a valid version correctly", func() {
+			major, minor, micro, err := version.ParseVersion("1.2.3")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(major).To(Equal(1))
+			Expect(minor).To(Equal(2))
+			Expect(micro).To(Equal(3))
+		})
+
+		It("returns an error for malformed versions", func() {
+			badVersions := []string{"asdfasdf", "asdf.", ".asdfas", "asdf.adsf.", "0.", "..", "1.2.3.4.5", ""}
+			for _, v := range badVersions {
+				_, _, _, err := version.ParseVersion(v)
+				Expect(err).To(HaveOccurred())
+			}
+		})
+	})
+
+	Describe("GreaterThanOrEqualTo", func() {
+		It("correctly compares versions", func() {
+			versions := [][2]string{
+				{"1.2.34", "1.2.14"},
+				{"2.5.4", "2.4.4"},
+				{"1.2.3", "0.2.3"},
+				{"0.4.0", "0.3.1"},
+			}
+			for _, v := range versions {
+				// Make sure the first is greater than the second
+				gt, err := version.GreaterThanOrEqualTo(v[0], v[1])
+				Expect(err).NotTo(HaveOccurred())
+				Expect(gt).To(Equal(true))
+
+				// And the opposite
+				gt, err = version.GreaterThanOrEqualTo(v[1], v[0])
+				Expect(err).NotTo(HaveOccurred())
+				Expect(gt).To(Equal(false))
+			}
+		})
+
+		It("returns true when versions are the same", func() {
+			gt, err := version.GreaterThanOrEqualTo("1.2.3", "1.2.3")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gt).To(Equal(true))
+		})
+
+		It("returns an error for malformed versions", func() {
+			versions := [][2]string{
+				{"1.2.34", "asdadf"},
+				{"adsfad", "2.5.4"},
+			}
+			for _, v := range versions {
+				_, err := version.GreaterThanOrEqualTo(v[0], v[1])
+				Expect(err).To(HaveOccurred())
+			}
+		})
+	})
 })

@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,6 +49,16 @@ func NewConsumerGroupsClientWithBaseURI(baseURI string, subscriptionID string) C
 // consumerGroupName - the consumer group name
 // parameters - parameters supplied to create or update a consumer group resource.
 func (client ConsumerGroupsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, consumerGroupName string, parameters ConsumerGroupCreateOrUpdateParameters) (result ConsumerGroupResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ConsumerGroupsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -115,8 +126,8 @@ func (client ConsumerGroupsClient) CreateOrUpdatePreparer(ctx context.Context, r
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConsumerGroupsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -139,6 +150,16 @@ func (client ConsumerGroupsClient) CreateOrUpdateResponder(resp *http.Response) 
 // eventHubName - the Event Hub name
 // consumerGroupName - the consumer group name
 func (client ConsumerGroupsClient) Delete(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, consumerGroupName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ConsumerGroupsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -202,8 +223,8 @@ func (client ConsumerGroupsClient) DeletePreparer(ctx context.Context, resourceG
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConsumerGroupsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -225,6 +246,16 @@ func (client ConsumerGroupsClient) DeleteResponder(resp *http.Response) (result 
 // eventHubName - the Event Hub name
 // consumerGroupName - the consumer group name
 func (client ConsumerGroupsClient) Get(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string, consumerGroupName string) (result ConsumerGroupResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ConsumerGroupsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -288,8 +319,8 @@ func (client ConsumerGroupsClient) GetPreparer(ctx context.Context, resourceGrou
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConsumerGroupsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -312,6 +343,16 @@ func (client ConsumerGroupsClient) GetResponder(resp *http.Response) (result Con
 // namespaceName - the Namespace name
 // eventHubName - the Event Hub name
 func (client ConsumerGroupsClient) ListAll(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string) (result ConsumerGroupListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ConsumerGroupsClient.ListAll")
+		defer func() {
+			sc := -1
+			if result.cglr.Response.Response != nil {
+				sc = result.cglr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -372,8 +413,8 @@ func (client ConsumerGroupsClient) ListAllPreparer(ctx context.Context, resource
 // ListAllSender sends the ListAll request. The method will close the
 // http.Response Body if it receives an error.
 func (client ConsumerGroupsClient) ListAllSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAllResponder handles the response to the ListAll request. The method always
@@ -390,8 +431,8 @@ func (client ConsumerGroupsClient) ListAllResponder(resp *http.Response) (result
 }
 
 // listAllNextResults retrieves the next set of results, if any.
-func (client ConsumerGroupsClient) listAllNextResults(lastResults ConsumerGroupListResult) (result ConsumerGroupListResult, err error) {
-	req, err := lastResults.consumerGroupListResultPreparer()
+func (client ConsumerGroupsClient) listAllNextResults(ctx context.Context, lastResults ConsumerGroupListResult) (result ConsumerGroupListResult, err error) {
+	req, err := lastResults.consumerGroupListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "eventhub.ConsumerGroupsClient", "listAllNextResults", nil, "Failure preparing next results request")
 	}
@@ -412,6 +453,16 @@ func (client ConsumerGroupsClient) listAllNextResults(lastResults ConsumerGroupL
 
 // ListAllComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ConsumerGroupsClient) ListAllComplete(ctx context.Context, resourceGroupName string, namespaceName string, eventHubName string) (result ConsumerGroupListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ConsumerGroupsClient.ListAll")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAll(ctx, resourceGroupName, namespaceName, eventHubName)
 	return
 }

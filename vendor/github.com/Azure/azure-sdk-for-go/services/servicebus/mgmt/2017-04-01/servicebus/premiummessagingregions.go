@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,6 +42,16 @@ func NewPremiumMessagingRegionsClientWithBaseURI(baseURI string, subscriptionID 
 
 // List gets the available premium messaging regions for servicebus
 func (client PremiumMessagingRegionsClient) List(ctx context.Context) (result PremiumMessagingRegionsListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PremiumMessagingRegionsClient.List")
+		defer func() {
+			sc := -1
+			if result.pmrlr.Response.Response != nil {
+				sc = result.pmrlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -85,8 +96,8 @@ func (client PremiumMessagingRegionsClient) ListPreparer(ctx context.Context) (*
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PremiumMessagingRegionsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -103,8 +114,8 @@ func (client PremiumMessagingRegionsClient) ListResponder(resp *http.Response) (
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PremiumMessagingRegionsClient) listNextResults(lastResults PremiumMessagingRegionsListResult) (result PremiumMessagingRegionsListResult, err error) {
-	req, err := lastResults.premiumMessagingRegionsListResultPreparer()
+func (client PremiumMessagingRegionsClient) listNextResults(ctx context.Context, lastResults PremiumMessagingRegionsListResult) (result PremiumMessagingRegionsListResult, err error) {
+	req, err := lastResults.premiumMessagingRegionsListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.PremiumMessagingRegionsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -125,6 +136,16 @@ func (client PremiumMessagingRegionsClient) listNextResults(lastResults PremiumM
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PremiumMessagingRegionsClient) ListComplete(ctx context.Context) (result PremiumMessagingRegionsListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PremiumMessagingRegionsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }

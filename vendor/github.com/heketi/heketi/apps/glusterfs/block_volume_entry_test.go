@@ -11,6 +11,7 @@ package glusterfs
 import (
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/boltdb/bolt"
@@ -281,8 +282,9 @@ func TestBlockVolumeEntryCreateMissingCluster(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	err = bv.Create(app.db, app.executor)
-	tests.Assert(t, err == ErrNoSpace)
-
+	tests.Assert(t, err != nil, "expected err != nil")
+	tests.Assert(t, strings.Contains(err.Error(), "No clusters"),
+		`expected strings.Contains(err.Error(), "No clusters"), got:`, err)
 }
 
 func TestBlockVolumeEntryDestroy(t *testing.T) {

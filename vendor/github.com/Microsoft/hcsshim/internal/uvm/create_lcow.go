@@ -35,6 +35,11 @@ const (
 	InitrdFile = "initrd.img"
 	// VhdFile is the default file name for a rootfs.vhd used to boot LCOW.
 	VhdFile = "rootfs.vhd"
+	// KernelFile is the default file name for a kernel used to boot LCOW.
+	KernelFile = "kernel"
+	// UncompressedKernelFile is the default file name for an uncompressed
+	// kernel used to boot LCOW with KernelDirect.
+	UncompressedKernelFile = "vmlinux"
 )
 
 // OptionsLCOW are the set of options passed to CreateLCOW() to create a utility vm.
@@ -67,6 +72,8 @@ type OptionsLCOW struct {
 // `owner` the owner of the compute system. If not passed will use the
 // executable files name.
 func NewDefaultOptionsLCOW(id, owner string) *OptionsLCOW {
+	// Use KernelDirect boot by default on all builds that support it.
+	kernelDirectSupported := osversion.Get().Build >= 18286
 	opts := &OptionsLCOW{
 		Options: &Options{
 			ID:                   id,
@@ -77,8 +84,8 @@ func NewDefaultOptionsLCOW(id, owner string) *OptionsLCOW {
 			ProcessorCount:       defaultProcessorCount(),
 		},
 		BootFilesPath:         filepath.Join(os.Getenv("ProgramFiles"), "Linux Containers"),
-		KernelFile:            "kernel",
-		KernelDirect:          osversion.Get().Build >= 18286, // Use KernelDirect boot by default on all builds that support it.
+		KernelFile:            KernelFile,
+		KernelDirect:          kernelDirectSupported,
 		RootFSFile:            InitrdFile,
 		KernelBootOptions:     "",
 		EnableGraphicsConsole: false,
@@ -101,10 +108,20 @@ func NewDefaultOptionsLCOW(id, owner string) *OptionsLCOW {
 		opts.Owner = filepath.Base(os.Args[0])
 	}
 
-	if _, err := os.Stat(filepath.Join(opts.BootFilesPath, VhdFile)); err != nil {
+	if _, err := os.Stat(filepath.Join(opts.BootFilesPath, VhdFile)); err == nil {
 		// We have a rootfs.vhd in the boot files path. Use it over an initrd.img
 		opts.RootFSFile = VhdFile
 		opts.PreferredRootFSType = PreferredRootFSTypeVHD
+	}
+
+	if kernelDirectSupported {
+		// KernelDirect supports uncompressed kernel if the kernel is present.
+		// Default to uncompressed if on box. NOTE: If `kernel` is already
+		// uncompressed and simply named 'kernel' it will still be used
+		// uncompressed automatically.
+		if _, err := os.Stat(filepath.Join(opts.BootFilesPath, UncompressedKernelFile)); err == nil {
+			opts.KernelFile = UncompressedKernelFile
+		}
 	}
 	return opts
 }

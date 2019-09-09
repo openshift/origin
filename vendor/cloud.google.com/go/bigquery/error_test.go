@@ -1,4 +1,4 @@
-// Copyright 2015 Google Inc. All Rights Reserved.
+// Copyright 2015 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ package bigquery
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 	"testing"
 
+	"cloud.google.com/go/internal/testutil"
 	bq "google.golang.org/api/bigquery/v2"
 )
 
@@ -94,7 +94,7 @@ func TestErrorFromErrorProto(t *testing.T) {
 			want: &Error{Location: "L", Message: "M", Reason: "R"},
 		},
 	} {
-		if got := errorFromErrorProto(test.in); !reflect.DeepEqual(got, test.want) {
+		if got := bqToError(test.in); !testutil.Equal(got, test.want) {
 			t.Errorf("%v: got %v, want %v", test.in, got, test.want)
 		}
 	}

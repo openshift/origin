@@ -10,25 +10,18 @@
 package kubeexec
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/lpabon/godbc"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api"
-	client "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
-	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
-	kubeletcmd "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 
 	"github.com/heketi/heketi/executors/cmdexec"
 	"github.com/heketi/heketi/pkg/kubernetes"
 	"github.com/heketi/heketi/pkg/logging"
 	rex "github.com/heketi/heketi/pkg/remoteexec"
+	"github.com/heketi/heketi/pkg/remoteexec/kube"
 )
 
 const (
@@ -39,18 +32,13 @@ type KubeExecutor struct {
 	cmdexec.CmdExecutor
 
 	// save kube configuration
-	config     *KubeConfig
-	namespace  string
-	kube       *client.Clientset
-	rest       restclient.Interface
-	kubeConfig *restclient.Config
+	config    *KubeConfig
+	namespace string
+	kconn     *kube.KubeConn
 }
 
 var (
-	logger          = logging.NewLogger("[kubeexec]", logging.LEVEL_DEBUG)
-	inClusterConfig = func() (*restclient.Config, error) {
-		return restclient.InClusterConfig()
-	}
+	logger = logging.NewLogger("[kubeexec]", logging.LEVEL_DEBUG)
 )
 
 func setWithEnvVariables(config *KubeConfig) {
@@ -108,7 +96,7 @@ func NewKubeExecutor(config *KubeConfig) (*KubeExecutor, error) {
 	// Initialize
 	k := &KubeExecutor{}
 	k.config = config
-	k.Throttlemap = make(map[string]chan bool)
+	k.CmdExecutor.Init(&config.CmdConfig)
 	k.RemoteExecutor = k
 
 	if k.config.Fstab == "" {
@@ -117,57 +105,26 @@ func NewKubeExecutor(config *KubeConfig) (*KubeExecutor, error) {
 		k.Fstab = config.Fstab
 	}
 
-	k.BackupLVM = config.BackupLVM
-
-	// Get namespace
 	var err error
-	if k.config.Namespace == "" {
-		k.config.Namespace, err = kubernetes.GetNamespace()
+	// if unset, get namespace
+	k.namespace = k.config.Namespace
+	if k.namespace == "" {
+		k.namespace, err = kubernetes.GetNamespace()
 		if err != nil {
-			return nil, logger.LogError("Namespace must be provided in configuration: %v", err)
+			return nil, fmt.Errorf("Namespace must be provided in configuration: %v", err)
 		}
 	}
-	k.namespace = k.config.Namespace
 
-	// Create a Kube client configuration
-	k.kubeConfig, err = inClusterConfig()
+	k.BackupLVM = config.BackupLVM
+	k.kconn, err = kube.NewKubeConn(logger)
 	if err != nil {
-		return nil, logger.LogError("Unable to create configuration for Kubernetes: %v", err)
-	}
-
-	// Get a raw REST client.  This is still needed for kube-exec
-	restCore, err := coreclient.NewForConfig(k.kubeConfig)
-	if err != nil {
-		return nil, logger.LogError("Unable to create a client connection: %v", err)
-	}
-	k.rest = restCore.RESTClient()
-
-	// Get a Go-client for Kubernetes
-	k.kube, err = client.NewForConfig(k.kubeConfig)
-	if err != nil {
-		logger.Err(err)
-		return nil, fmt.Errorf("Unable to create a client set")
+		return nil, err
 	}
 
 	godbc.Ensure(k != nil)
 	godbc.Ensure(k.Fstab != "")
 
 	return k, nil
-}
-
-func (k *KubeExecutor) RemoteCommandExecute(host string,
-	commands []string,
-	timeoutMinutes int) ([]string, error) {
-
-	// Throttle
-	k.AccessConnection(host)
-	defer k.FreeConnection(host)
-
-	// Execute
-	return k.ConnectAndExec(host,
-		"pods",
-		commands,
-		timeoutMinutes)
 }
 
 func (k *KubeExecutor) ExecCommands(
@@ -178,115 +135,38 @@ func (k *KubeExecutor) ExecCommands(
 	k.AccessConnection(host)
 	defer k.FreeConnection(host)
 
-	// Execute
-	return k.execCommands(host, "pods", commands, timeoutMinutes)
-}
-
-func (k *KubeExecutor) ConnectAndExec(host, resource string,
-	commands []string,
-	timeoutMinutes int) ([]string, error) {
-
-	results, err := k.execCommands(host, resource, commands, timeoutMinutes)
-	if err != nil {
-		return nil, err
-	}
-	return results.SquashErrors()
-}
-
-func (k *KubeExecutor) execCommands(
-	host, resource string, commands []string,
-	timeoutMinutes int) (rex.Results, error) {
-
-	results := make(rex.Results, len(commands))
-
-	// Get pod name
+	// Get target pod
 	var (
-		podName string
-		err     error
+		pod kube.TargetPod
+		err error
 	)
 	if k.config.UsePodNames {
-		podName = host
+		pod.Namespace = k.config.Namespace
+		pod.PodName = host
 	} else if k.config.GlusterDaemonSet {
-		podName, err = k.getPodNameFromDaemonSet(host)
+		tgt := kube.TargetDaemonSet{}
+		tgt.Namespace = k.config.Namespace
+		tgt.Host = host
+		tgt.Selector = KubeGlusterFSPodLabelKey
+		pod, err = tgt.GetTargetPod(k.kconn)
 	} else {
-		podName, err = k.getPodNameByLabel(host)
+		tgt := kube.TargetLabel{}
+		tgt.Namespace = k.config.Namespace
+		tgt.Key = KubeGlusterFSPodLabelKey
+		tgt.Value = host
+		pod, err = tgt.GetTargetPod(k.kconn)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Get container name
-	podSpec, err := k.kube.Core().Pods(k.namespace).Get(podName, v1.GetOptions{})
+	// Get target container
+	tc, err := pod.FirstContainer(k.kconn)
 	if err != nil {
-		return nil, logger.LogError("Unable to get pod spec for %v: %v",
-			podName, err)
-	}
-	containerName := podSpec.Spec.Containers[0].Name
-
-	for index, command := range commands {
-
-		// Remove any whitespace
-		command = strings.Trim(command, " ")
-
-		// SUDO is *not* supported
-
-		// Create REST command
-		req := k.rest.Post().
-			Resource(resource).
-			Name(podName).
-			Namespace(k.namespace).
-			SubResource("exec").
-			Param("container", containerName)
-		req.VersionedParams(&api.PodExecOptions{
-			Container: containerName,
-			Command:   []string{"/bin/bash", "-c", command},
-			Stdout:    true,
-			Stderr:    true,
-		}, api.ParameterCodec)
-
-		// Create SPDY connection
-		exec, err := remotecommand.NewExecutor(k.kubeConfig, "POST", req.URL())
-		if err != nil {
-			logger.Err(err)
-			return nil, fmt.Errorf("Unable to setup a session with %v", podName)
-		}
-
-		// Create a buffer to trap session output
-		var b bytes.Buffer
-		var berr bytes.Buffer
-
-		// Excute command
-		err = exec.Stream(remotecommand.StreamOptions{
-			SupportedProtocols: kubeletcmd.SupportedStreamingProtocols,
-			Stdout:             &b,
-			Stderr:             &berr,
-		})
-		r := rex.Result{
-			Completed: true,
-			Output:    b.String(),
-			ErrOutput: berr.String(),
-			Err:       err,
-		}
-		if err == nil {
-			logger.Debug(
-				"Ran command [%v] on %v: Stdout [%v]: Stderr [%v]",
-				command, podName, r.Output, r.ErrOutput)
-		} else {
-			logger.LogError(
-				"Failed to run command [%v] on %v: Err[%v]: Stdout [%v]: Stderr [%v]",
-				command, podName, err, r.Output, r.ErrOutput)
-			// TODO: extract the real error code if possible
-			r.ExitStatus = 1
-		}
-		results[index] = r
-		if r.ExitStatus != 0 {
-			// stop running commands on error
-			// TODO: make caller configurable?)
-			return results, nil
-		}
+		return nil, err
 	}
 
-	return results, nil
+	return kube.ExecCommands(k.kconn, tc, commands, timeoutMinutes)
 }
 
 func (k *KubeExecutor) RebalanceOnExpansion() bool {
@@ -295,60 +175,4 @@ func (k *KubeExecutor) RebalanceOnExpansion() bool {
 
 func (k *KubeExecutor) SnapShotLimit() int {
 	return k.config.SnapShotLimit
-}
-
-func (k *KubeExecutor) getPodNameByLabel(host string) (string, error) {
-	// Get a list of pods
-	pods, err := k.kube.Core().Pods(k.config.Namespace).List(v1.ListOptions{
-		LabelSelector: KubeGlusterFSPodLabelKey + "==" + host,
-	})
-	if err != nil {
-		logger.Err(err)
-		return "", fmt.Errorf("Failed to get list of pods")
-	}
-
-	numPods := len(pods.Items)
-	if numPods == 0 {
-		// No pods found with that label
-		err := fmt.Errorf("No pods with the label '%v=%v' were found",
-			KubeGlusterFSPodLabelKey, host)
-		logger.Critical(err.Error())
-		return "", err
-
-	} else if numPods > 1 {
-		// There are more than one pod with the same label
-		err := fmt.Errorf("Found %v pods with the sharing the same label '%v=%v'",
-			numPods, KubeGlusterFSPodLabelKey, host)
-		logger.Critical(err.Error())
-		return "", err
-	}
-
-	// Get pod name
-	return pods.Items[0].ObjectMeta.Name, nil
-}
-
-func (k *KubeExecutor) getPodNameFromDaemonSet(host string) (string, error) {
-	// Get a list of pods
-	pods, err := k.kube.Core().Pods(k.config.Namespace).List(v1.ListOptions{
-		LabelSelector: KubeGlusterFSPodLabelKey,
-	})
-	if err != nil {
-		logger.Err(err)
-		return "", logger.LogError("Failed to get list of pods")
-	}
-
-	// Go through the pods looking for the node
-	var glusterPod string
-	for _, pod := range pods.Items {
-		if pod.Spec.NodeName == host {
-			glusterPod = pod.ObjectMeta.Name
-		}
-	}
-	if glusterPod == "" {
-		return "", logger.LogError("Unable to find a GlusterFS pod on host %v "+
-			"with a label key %v", host, KubeGlusterFSPodLabelKey)
-	}
-
-	// Get pod name
-	return glusterPod, nil
 }

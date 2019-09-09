@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc. All rights reserved.
+// Copyright 2019 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,35 @@
 
 // Package poly provides access to the Poly API.
 //
-// See https://developers.google.com/poly/
+// For product documentation, see: https://developers.google.com/poly/
+//
+// Creating a client
 //
 // Usage example:
 //
 //   import "google.golang.org/api/poly/v1"
 //   ...
-//   polyService, err := poly.New(oauthHttpClient)
+//   ctx := context.Background()
+//   polyService, err := poly.NewService(ctx)
+//
+// In this example, Google Application Default Credentials are used for authentication.
+//
+// For information on how to create and obtain Application Default Credentials, see https://developers.google.com/identity/protocols/application-default-credentials.
+//
+// Other authentication options
+//
+// To use an API key for authentication (note: some APIs do not support API keys), use option.WithAPIKey:
+//
+//   polyService, err := poly.NewService(ctx, option.WithAPIKey("AIza..."))
+//
+// To use an OAuth token (e.g., a user token obtained via a three-legged OAuth flow), use option.WithTokenSource:
+//
+//   config := &oauth2.Config{...}
+//   // ...
+//   token, err := config.Exchange(ctx, ...)
+//   polyService, err := poly.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+//
+// See https://godoc.org/google.golang.org/api/option/ for details on options.
 package poly // import "google.golang.org/api/poly/v1"
 
 import (
@@ -29,6 +51,8 @@ import (
 
 	gensupport "google.golang.org/api/gensupport"
 	googleapi "google.golang.org/api/googleapi"
+	option "google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -50,6 +74,27 @@ const apiName = "poly"
 const apiVersion = "v1"
 const basePath = "https://poly.googleapis.com/"
 
+// NewService creates a new Service.
+func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
+	client, endpoint, err := htransport.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	s, err := New(client)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
+	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
@@ -324,15 +369,16 @@ func (s *AssetImportMessage) MarshalJSON() ([]byte, error) {
 // resource, or thumbnail file.
 type File struct {
 	// ContentType: The MIME content-type, such as `image/png`.
-	// For more information, see
+	// For more information,
+	// see
 	// [MIME
-	// types](//developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME
-	// _types).
+	// types](//developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of
+	// _HTTP/MIME_types).
 	ContentType string `json:"contentType,omitempty"`
 
-	// RelativePath: The path of the resource file relative to the root
-	// file.
-	// For root or thumbnail files, this is just the filename.
+	// RelativePath: The path of the resource file relative to the
+	// root file. For root or thumbnail files,
+	// this is just the filename.
 	RelativePath string `json:"relativePath,omitempty"`
 
 	// Url: The URL where the file data can be retrieved.
@@ -389,9 +435,8 @@ type Format struct {
 
 	// Root: The root of the file hierarchy. This will always be
 	// populated.
-	// For some format_types - such as `TILT`, which are self-contained
-	// -
-	// this is all of the data.
+	// For some format_types - such as `TILT`, which are
+	// self-contained - this is all of the data.
 	//
 	// Other types - such as `OBJ` - often reference other data
 	// elements.
@@ -898,9 +943,10 @@ func (s *RemixInfo) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// StartAssetImportResponse: A response message from a request to
-// startImport.
-// This is returned in the response field of the Operation.
+// StartAssetImportResponse: A response message from a request
+// to
+// startImport. This is returned in the response
+// field of the Operation.
 type StartAssetImportResponse struct {
 	// AssetId: The id of newly created asset. If this is empty when the
 	// operation is
@@ -986,7 +1032,8 @@ type AssetsGetCall struct {
 // name.
 // PRIVATE assets are returned only if
 //  the currently authenticated user (via OAuth token) is the author of
-// the asset.
+// the
+//  asset.
 func (r *AssetsService) Get(name string) *AssetsGetCall {
 	c := &AssetsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -1091,7 +1138,7 @@ func (c *AssetsGetCall) Do(opts ...googleapi.CallOption) (*Asset, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Returns detailed information about an asset given its name.\nPRIVATE assets are returned only if\n the currently authenticated user (via OAuth token) is the author of the asset.",
+	//   "description": "Returns detailed information about an asset given its name.\nPRIVATE assets are returned only if\n the currently authenticated user (via OAuth token) is the author of the\n asset.",
 	//   "flatPath": "v1/assets/{assetsId}",
 	//   "httpMethod": "GET",
 	//   "id": "poly.assets.get",
@@ -1126,8 +1173,8 @@ type AssetsListCall struct {
 }
 
 // List: Lists all public, remixable assets. These are assets with an
-// access level of
-// PUBLIC and published under the
+// access level
+// of PUBLIC and published under the
 // CC-By license.
 func (r *AssetsService) List() *AssetsListCall {
 	c := &AssetsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -1137,8 +1184,8 @@ func (r *AssetsService) List() *AssetsListCall {
 // Category sets the optional parameter "category": Filter assets based
 // on the specified category. Supported values are:
 // `animals`, `architecture`, `art`, `food`, `nature`, `objects`,
-// `people`, `scenes`,
-// `technology`, and `transport`.
+// `people`,
+// `scenes`, `technology`, and `transport`.
 func (c *AssetsListCall) Category(category string) *AssetsListCall {
 	c.urlParams_.Set("category", category)
 	return c
@@ -1208,7 +1255,8 @@ func (c *AssetsListCall) PageSize(pageSize int64) *AssetsListCall {
 // continuation token from a previous search whose results were
 // split into multiple pages. To get the next page, submit the same
 // request
-// specifying the value from next_page_token.
+// specifying the value from
+// next_page_token.
 func (c *AssetsListCall) PageToken(pageToken string) *AssetsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -1309,14 +1357,14 @@ func (c *AssetsListCall) Do(opts ...googleapi.CallOption) (*ListAssetsResponse, 
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists all public, remixable assets. These are assets with an access level of\nPUBLIC and published under the\nCC-By license.",
+	//   "description": "Lists all public, remixable assets. These are assets with an access level\nof PUBLIC and published under the\nCC-By license.",
 	//   "flatPath": "v1/assets",
 	//   "httpMethod": "GET",
 	//   "id": "poly.assets.list",
 	//   "parameterOrder": [],
 	//   "parameters": {
 	//     "category": {
-	//       "description": "Filter assets based on the specified category. Supported values are:\n`animals`, `architecture`, `art`, `food`, `nature`, `objects`, `people`, `scenes`,\n`technology`, and `transport`.",
+	//       "description": "Filter assets based on the specified category. Supported values are:\n`animals`, `architecture`, `art`, `food`, `nature`, `objects`, `people`,\n`scenes`, `technology`, and `transport`.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -1358,7 +1406,7 @@ func (c *AssetsListCall) Do(opts ...googleapi.CallOption) (*ListAssetsResponse, 
 	//       "type": "integer"
 	//     },
 	//     "pageToken": {
-	//       "description": "Specifies a continuation token from a previous search whose results were\nsplit into multiple pages. To get the next page, submit the same request\nspecifying the value from next_page_token.",
+	//       "description": "Specifies a continuation token from a previous search whose results were\nsplit into multiple pages. To get the next page, submit the same request\nspecifying the value from\nnext_page_token.",
 	//       "location": "query",
 	//       "type": "string"
 	//     }
@@ -1456,7 +1504,9 @@ func (c *UsersAssetsListCall) PageToken(pageToken string) *UsersAssetsListCall {
 
 // Visibility sets the optional parameter "visibility": The visibility
 // of the assets to be returned.
-// Defaults to VISIBILITY_UNSPECIFIED which returns all assets.
+// Defaults to
+// VISIBILITY_UNSPECIFIED
+// which returns all assets.
 //
 // Possible values:
 //   "VISIBILITY_UNSPECIFIED"
@@ -1602,7 +1652,7 @@ func (c *UsersAssetsListCall) Do(opts ...googleapi.CallOption) (*ListUserAssetsR
 	//       "type": "string"
 	//     },
 	//     "visibility": {
-	//       "description": "The visibility of the assets to be returned.\nDefaults to VISIBILITY_UNSPECIFIED which returns all assets.",
+	//       "description": "The visibility of the assets to be returned.\nDefaults to\nVISIBILITY_UNSPECIFIED\nwhich returns all assets.",
 	//       "enum": [
 	//         "VISIBILITY_UNSPECIFIED",
 	//         "PUBLISHED",

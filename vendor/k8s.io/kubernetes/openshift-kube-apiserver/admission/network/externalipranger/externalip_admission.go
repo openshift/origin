@@ -1,6 +1,7 @@
 package externalipranger
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -114,7 +115,7 @@ func (s NetworkSlice) Contains(ip net.IP) bool {
 }
 
 // Admit determines if the service should be admitted based on the configured network CIDR.
-func (r *externalIPRanger) Validate(a admission.Attributes, _ admission.ObjectInterfaces) error {
+func (r *externalIPRanger) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
 	if a.GetResource().GroupResource() != kapi.Resource("services") {
 		return nil
 	}

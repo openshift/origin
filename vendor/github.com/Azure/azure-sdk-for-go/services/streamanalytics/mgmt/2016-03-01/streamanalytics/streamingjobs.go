@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,10 +48,20 @@ func NewStreamingJobsClientWithBaseURI(baseURI string, subscriptionID string) St
 // from the Azure Resource Manager API or the portal.
 // jobName - the name of the streaming job.
 // ifMatch - the ETag of the streaming job. Omit this value to always overwrite the current record set. Specify
-// the last-seen ETag value to prevent accidentally overwritting concurrent changes.
+// the last-seen ETag value to prevent accidentally overwriting concurrent changes.
 // ifNoneMatch - set to '*' to allow a new streaming job to be created, but to prevent updating an existing
 // record set. Other values will result in a 412 Pre-condition Failed response.
 func (client StreamingJobsClient) CreateOrReplace(ctx context.Context, streamingJob StreamingJob, resourceGroupName string, jobName string, ifMatch string, ifNoneMatch string) (result StreamingJobsCreateOrReplaceFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.CreateOrReplace")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrReplacePreparer(ctx, streamingJob, resourceGroupName, jobName, ifMatch, ifNoneMatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "CreateOrReplace", nil, "Failure preparing request")
@@ -100,13 +111,9 @@ func (client StreamingJobsClient) CreateOrReplacePreparer(ctx context.Context, s
 // CreateOrReplaceSender sends the CreateOrReplace request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) CreateOrReplaceSender(req *http.Request) (future StreamingJobsCreateOrReplaceFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -133,6 +140,16 @@ func (client StreamingJobsClient) CreateOrReplaceResponder(resp *http.Response) 
 // from the Azure Resource Manager API or the portal.
 // jobName - the name of the streaming job.
 func (client StreamingJobsClient) Delete(ctx context.Context, resourceGroupName string, jobName string) (result StreamingJobsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, jobName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "Delete", nil, "Failure preparing request")
@@ -172,13 +189,9 @@ func (client StreamingJobsClient) DeletePreparer(ctx context.Context, resourceGr
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) DeleteSender(req *http.Request) (future StreamingJobsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -208,6 +221,16 @@ func (client StreamingJobsClient) DeleteResponder(resp *http.Response) (result a
 // default set is all streaming job properties other than 'inputs', 'transformation', 'outputs', and
 // 'functions'.
 func (client StreamingJobsClient) Get(ctx context.Context, resourceGroupName string, jobName string, expand string) (result StreamingJob, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, jobName, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "Get", nil, "Failure preparing request")
@@ -256,8 +279,8 @@ func (client StreamingJobsClient) GetPreparer(ctx context.Context, resourceGroup
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -280,6 +303,16 @@ func (client StreamingJobsClient) GetResponder(resp *http.Response) (result Stre
 // default set is all streaming job properties other than 'inputs', 'transformation', 'outputs', and
 // 'functions'.
 func (client StreamingJobsClient) List(ctx context.Context, expand string) (result StreamingJobListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.List")
+		defer func() {
+			sc := -1
+			if result.sjlr.Response.Response != nil {
+				sc = result.sjlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, expand)
 	if err != nil {
@@ -327,8 +360,8 @@ func (client StreamingJobsClient) ListPreparer(ctx context.Context, expand strin
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -345,8 +378,8 @@ func (client StreamingJobsClient) ListResponder(resp *http.Response) (result Str
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client StreamingJobsClient) listNextResults(lastResults StreamingJobListResult) (result StreamingJobListResult, err error) {
-	req, err := lastResults.streamingJobListResultPreparer()
+func (client StreamingJobsClient) listNextResults(ctx context.Context, lastResults StreamingJobListResult) (result StreamingJobListResult, err error) {
+	req, err := lastResults.streamingJobListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -367,6 +400,16 @@ func (client StreamingJobsClient) listNextResults(lastResults StreamingJobListRe
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client StreamingJobsClient) ListComplete(ctx context.Context, expand string) (result StreamingJobListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, expand)
 	return
 }
@@ -380,6 +423,16 @@ func (client StreamingJobsClient) ListComplete(ctx context.Context, expand strin
 // default set is all streaming job properties other than 'inputs', 'transformation', 'outputs', and
 // 'functions'.
 func (client StreamingJobsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, expand string) (result StreamingJobListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.sjlr.Response.Response != nil {
+				sc = result.sjlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, expand)
 	if err != nil {
@@ -428,8 +481,8 @@ func (client StreamingJobsClient) ListByResourceGroupPreparer(ctx context.Contex
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -446,8 +499,8 @@ func (client StreamingJobsClient) ListByResourceGroupResponder(resp *http.Respon
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client StreamingJobsClient) listByResourceGroupNextResults(lastResults StreamingJobListResult) (result StreamingJobListResult, err error) {
-	req, err := lastResults.streamingJobListResultPreparer()
+func (client StreamingJobsClient) listByResourceGroupNextResults(ctx context.Context, lastResults StreamingJobListResult) (result StreamingJobListResult, err error) {
+	req, err := lastResults.streamingJobListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -468,6 +521,16 @@ func (client StreamingJobsClient) listByResourceGroupNextResults(lastResults Str
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client StreamingJobsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, expand string) (result StreamingJobListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, expand)
 	return
 }
@@ -479,6 +542,16 @@ func (client StreamingJobsClient) ListByResourceGroupComplete(ctx context.Contex
 // jobName - the name of the streaming job.
 // startJobParameters - parameters applicable to a start streaming job operation.
 func (client StreamingJobsClient) Start(ctx context.Context, resourceGroupName string, jobName string, startJobParameters *StartStreamingJobParameters) (result StreamingJobsStartFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.Start")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StartPreparer(ctx, resourceGroupName, jobName, startJobParameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "Start", nil, "Failure preparing request")
@@ -523,13 +596,9 @@ func (client StreamingJobsClient) StartPreparer(ctx context.Context, resourceGro
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) StartSender(req *http.Request) (future StreamingJobsStartFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -556,6 +625,16 @@ func (client StreamingJobsClient) StartResponder(resp *http.Response) (result au
 // from the Azure Resource Manager API or the portal.
 // jobName - the name of the streaming job.
 func (client StreamingJobsClient) Stop(ctx context.Context, resourceGroupName string, jobName string) (result StreamingJobsStopFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.Stop")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.StopPreparer(ctx, resourceGroupName, jobName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "Stop", nil, "Failure preparing request")
@@ -595,13 +674,9 @@ func (client StreamingJobsClient) StopPreparer(ctx context.Context, resourceGrou
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) StopSender(req *http.Request) (future StreamingJobsStopFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -632,8 +707,18 @@ func (client StreamingJobsClient) StopResponder(resp *http.Response) (result aut
 // from the Azure Resource Manager API or the portal.
 // jobName - the name of the streaming job.
 // ifMatch - the ETag of the streaming job. Omit this value to always overwrite the current record set. Specify
-// the last-seen ETag value to prevent accidentally overwritting concurrent changes.
+// the last-seen ETag value to prevent accidentally overwriting concurrent changes.
 func (client StreamingJobsClient) Update(ctx context.Context, streamingJob StreamingJob, resourceGroupName string, jobName string, ifMatch string) (result StreamingJob, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/StreamingJobsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdatePreparer(ctx, streamingJob, resourceGroupName, jobName, ifMatch)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsClient", "Update", nil, "Failure preparing request")
@@ -685,8 +770,8 @@ func (client StreamingJobsClient) UpdatePreparer(ctx context.Context, streamingJ
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client StreamingJobsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always

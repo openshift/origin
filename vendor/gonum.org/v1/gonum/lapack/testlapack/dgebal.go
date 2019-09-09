@@ -16,13 +16,13 @@ import (
 )
 
 type Dgebaler interface {
-	Dgebal(job lapack.Job, n int, a []float64, lda int, scale []float64) (int, int)
+	Dgebal(job lapack.BalanceJob, n int, a []float64, lda int, scale []float64) (int, int)
 }
 
 func DgebalTest(t *testing.T, impl Dgebaler) {
 	rnd := rand.New(rand.NewSource(1))
 
-	for _, job := range []lapack.Job{lapack.None, lapack.Permute, lapack.Scale, lapack.PermuteScale} {
+	for _, job := range []lapack.BalanceJob{lapack.BalanceNone, lapack.Permute, lapack.Scale, lapack.PermuteScale} {
 		for _, n := range []int{0, 1, 2, 3, 4, 5, 6, 10, 18, 31, 53, 100} {
 			for _, extra := range []int{0, 11} {
 				for cas := 0; cas < 100; cas++ {
@@ -34,7 +34,7 @@ func DgebalTest(t *testing.T, impl Dgebaler) {
 	}
 }
 
-func testDgebal(t *testing.T, impl Dgebaler, job lapack.Job, a blas64.General) {
+func testDgebal(t *testing.T, impl Dgebaler, job lapack.BalanceJob, a blas64.General) {
 	const tol = 1e-14
 
 	n := a.Rows
@@ -65,12 +65,12 @@ func testDgebal(t *testing.T, impl Dgebaler, job lapack.Job, a blas64.General) {
 		return
 	}
 
-	if job == lapack.None {
+	if job == lapack.BalanceNone {
 		if ilo != 0 {
-			t.Errorf("%v: unexpected ilo when job=None. Want 0, got %v", prefix, ilo)
+			t.Errorf("%v: unexpected ilo when job=BalanceNone. Want 0, got %v", prefix, ilo)
 		}
 		if ihi != n-1 {
-			t.Errorf("%v: unexpected ihi when job=None. Want %v, got %v", prefix, n-1, ihi)
+			t.Errorf("%v: unexpected ihi when job=BalanceNone. Want %v, got %v", prefix, n-1, ihi)
 		}
 		k := -1
 		for i := range scale {
@@ -80,10 +80,10 @@ func testDgebal(t *testing.T, impl Dgebaler, job lapack.Job, a blas64.General) {
 			}
 		}
 		if k != -1 {
-			t.Errorf("%v: unexpected scale[%v] when job=None. Want 1, got %v", prefix, k, scale[k])
+			t.Errorf("%v: unexpected scale[%v] when job=BalanceNone. Want 1, got %v", prefix, k, scale[k])
 		}
 		if !equalApproxGeneral(a, want, 0) {
-			t.Errorf("%v: unexpected modification of A when job=None", prefix)
+			t.Errorf("%v: unexpected modification of A when job=BalanceNone", prefix)
 		}
 		return
 	}
@@ -92,12 +92,12 @@ func testDgebal(t *testing.T, impl Dgebaler, job lapack.Job, a blas64.General) {
 		t.Errorf("%v: invalid ordering of ilo=%v and ihi=%v", prefix, ilo, ihi)
 	}
 
-	if ilo >= 2 && !isUpperTriangular(blas64.General{ilo - 1, ilo - 1, a.Stride, a.Data}) {
+	if ilo >= 2 && !isUpperTriangular(blas64.General{Rows: ilo - 1, Cols: ilo - 1, Data: a.Data, Stride: a.Stride}) {
 		t.Errorf("%v: T1 is not upper triangular", prefix)
 	}
 	m := n - ihi - 1 // Order of T2.
 	k := ihi + 1
-	if m >= 2 && !isUpperTriangular(blas64.General{m, m, a.Stride, a.Data[k*a.Stride+k:]}) {
+	if m >= 2 && !isUpperTriangular(blas64.General{Rows: m, Cols: m, Data: a.Data[k*a.Stride+k:], Stride: a.Stride}) {
 		t.Errorf("%v: T2 is not upper triangular", prefix)
 	}
 
@@ -144,14 +144,12 @@ func testDgebal(t *testing.T, impl Dgebaler, job lapack.Job, a blas64.General) {
 		// Create the permutation matrix P.
 		p := eye(n, n)
 		for j := n - 1; j > ihi; j-- {
-			blas64.Swap(n,
-				blas64.Vector{p.Stride, p.Data[j:]},
-				blas64.Vector{p.Stride, p.Data[int(scale[j]):]})
+			blas64.Swap(blas64.Vector{N: n, Data: p.Data[j:], Inc: p.Stride},
+				blas64.Vector{N: n, Data: p.Data[int(scale[j]):], Inc: p.Stride})
 		}
 		for j := 0; j < ilo; j++ {
-			blas64.Swap(n,
-				blas64.Vector{p.Stride, p.Data[j:]},
-				blas64.Vector{p.Stride, p.Data[int(scale[j]):]})
+			blas64.Swap(blas64.Vector{N: n, Data: p.Data[j:], Inc: p.Stride},
+				blas64.Vector{N: n, Data: p.Data[int(scale[j]):], Inc: p.Stride})
 		}
 		// Compute P^T*A*P and store into want.
 		ap := zeros(n, n, n)

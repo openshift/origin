@@ -1,3 +1,5 @@
+// +build !providerless
+
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -18,7 +20,6 @@ package vsphere_volume
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -153,7 +154,7 @@ func (v *vsphereVolume) GetGlobalMapPath(spec *volume.Spec) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path.Join(v.plugin.host.GetVolumeDevicePluginDir(vsphereVolumePluginName), string(volumeSource.VolumePath)), nil
+	return filepath.Join(v.plugin.host.GetVolumeDevicePluginDir(vsphereVolumePluginName), string(volumeSource.VolumePath)), nil
 }
 
 func (v *vsphereVolume) GetPodDeviceMapPath() (string, string) {

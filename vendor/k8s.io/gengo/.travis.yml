@@ -9,7 +9,7 @@ jobs:
   include:
     - stage: Run tests
       script:
-        - find . -name vendor -prune -o -name Makefile -execdir make test \;
+        - find . -name vendor -prune -o -name Makefile -print | xargs -I% sh -c 'make -C $(dirname %) test'
         - go test -v ./...
     - stage: Verify examples
       script:

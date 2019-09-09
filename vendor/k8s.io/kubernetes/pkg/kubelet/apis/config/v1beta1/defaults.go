@@ -149,6 +149,9 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 		// Keep the same as default NodeStatusUpdateFrequency
 		obj.CPUManagerReconcilePeriod = metav1.Duration{Duration: 10 * time.Second}
 	}
+	if obj.TopologyManagerPolicy == "" {
+		obj.TopologyManagerPolicy = kubeletconfigv1beta1.NoneTopologyManagerPolicy
+	}
 	if obj.RuntimeRequestTimeout == zeroDuration {
 		obj.RuntimeRequestTimeout = metav1.Duration{Duration: 2 * time.Minute}
 	}
@@ -215,7 +218,7 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 		obj.ContainerLogMaxFiles = utilpointer.Int32Ptr(5)
 	}
 	if obj.ConfigMapAndSecretChangeDetectionStrategy == "" {
-		obj.ConfigMapAndSecretChangeDetectionStrategy = kubeletconfigv1beta1.TTLCacheChangeDetectionStrategy
+		obj.ConfigMapAndSecretChangeDetectionStrategy = kubeletconfigv1beta1.WatchChangeDetectionStrategy
 	}
 	if obj.EnforceNodeAllocatable == nil {
 		obj.EnforceNodeAllocatable = DefaultNodeAllocatableEnforcement

@@ -40,7 +40,7 @@ following specific meanings:
 * supported: The node or device may support data or arbiter bricks.
 * disabled: The node or device must not host arbiter bricks.
 
-Any other string will be de-facto treated the same as "disabled".
+Any other string will be de-facto treated the same as "supported".
 
 For convenience, a device that lacks a specific tag key will
 "inherit" the key and value from the node it resides on.

@@ -14,58 +14,180 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/heketi/heketi/executors"
-
 	"github.com/lpabon/godbc"
+
+	"github.com/heketi/heketi/executors"
+	"github.com/heketi/heketi/pkg/idgen"
 )
 
-// OpCounter is used to track and manage how many operations are being
+type OpClass int
+
+const (
+	TrackNormal OpClass = iota
+	TrackToken
+	TrackClean
+)
+
+// OpTracker is used to track and manage how many operations are being
 // processed by the server.
-type OpCounter struct {
+type OpTracker struct {
 	// configuration
 	Limit uint64
 
 	// internals
-	lock  sync.RWMutex
-	value uint64
+	lock      sync.RWMutex
+	normalOps map[string]bool
+	bgOps     map[string]bool
 }
 
-// Inc increments the internal operations counter.
-func (oc *OpCounter) Inc() {
-	oc.lock.Lock()
-	defer oc.lock.Unlock()
-	oc.value++
+func newOpTracker(limit uint64) *OpTracker {
+	return &OpTracker{
+		Limit:     limit,
+		normalOps: make(map[string]bool),
+		bgOps:     make(map[string]bool),
+	}
 }
 
-// Dec decrements the internal operations counter.
-func (oc *OpCounter) Dec() {
-	oc.lock.Lock()
-	defer oc.lock.Unlock()
-	godbc.Require(oc.value > 0)
-	oc.value--
+func (ot *OpTracker) insert(id string, c OpClass) {
+	godbc.Require(id != "", "id must not be empty")
+	godbc.Require(!ot.normalOps[id], "id already tracked", id)
+	godbc.Require(!ot.bgOps[id], "id already tracked", id)
+	switch c {
+	case TrackClean:
+		ot.bgOps[id] = true
+	default:
+		ot.normalOps[id] = true
+	}
 }
 
-// Get returns the current value of the internal operations counter.
-func (oc *OpCounter) Get() uint64 {
-	oc.lock.RLock()
-	defer oc.lock.RUnlock()
-	return oc.value
+// Add records a new in-flight operation.
+func (ot *OpTracker) Add(id string, c OpClass) {
+	ot.lock.Lock()
+	defer ot.lock.Unlock()
+	ot.insert(id, c)
 }
 
-// ThrottleOrInc returns true if incrementing the counter would put
-// the number of operations over the limit, otherwise it increments
-// the counter and returns false. ThrottleOrInc exists to perform
+// Remove removes an operation from tracking.
+func (ot *OpTracker) Remove(id string) {
+	ot.lock.Lock()
+	defer ot.lock.Unlock()
+	godbc.Require(id != "", "id must not be empty")
+	godbc.Require(ot.normalOps[id] || ot.bgOps[id], "id not tracked", id)
+	delete(ot.normalOps, id)
+	delete(ot.bgOps, id)
+}
+
+// Get returns the number of operations currently tracked.
+func (ot *OpTracker) Get() uint64 {
+	ot.lock.RLock()
+	defer ot.lock.RUnlock()
+	return uint64(len(ot.normalOps) + len(ot.bgOps))
+}
+
+// Tracked returns a mapping of tracked IDs to booleans.
+// Booleans are always true.
+func (ot *OpTracker) Tracked() map[string]bool {
+	ot.lock.RLock()
+	defer ot.lock.RUnlock()
+	// copy internal map to out map
+	out := map[string]bool{}
+	for k := range ot.normalOps {
+		out[k] = true
+	}
+	for k := range ot.bgOps {
+		out[k] = true
+	}
+	return out
+}
+
+// ThrottleOrAdd returns true if adding the operation would put
+// the number of operations over the limit, otherwise it adds
+// the operation and returns false. ThrottleOrAdd exists to perform
 // the check and set atomically.
-func (oc *OpCounter) ThrottleOrInc() bool {
-	oc.lock.Lock()
-	defer oc.lock.Unlock()
-	if oc.value >= oc.Limit {
+func (ot *OpTracker) ThrottleOrAdd(id string, c OpClass) bool {
+	ot.lock.Lock()
+	defer ot.lock.Unlock()
+	n := len(ot.normalOps)
+	b := len(ot.bgOps)
+	if c == TrackClean && b > 0 {
+		// only one background op allowed at a time
 		logger.Warning(
-			"operations in-flight (%v) exceeds limit (%v)", oc.value, oc.Limit)
+			"background operation already in progress")
 		return true
 	}
-	oc.value++
+	// normal limit throttles both normal and background ops
+	// background ops take real resources but we try to avoid
+	// having an pre-existing background op block new demand ops
+	if uint64(n) >= ot.Limit {
+		logger.Warning(
+			"operations in-flight (%v) exceeds limit (%v)", n, ot.Limit)
+		return true
+	}
+	ot.insert(id, c)
 	return false
+}
+
+// ThrottleOrToken exists for use cases where throttling is required
+// but a pre-existing unique identifier does not. It will return
+// true and an empty-string if the number of operations is over the limit,
+// otherwise it return false, and a unique token. This token must
+// be passed to Remove to indicate the operation has completed.
+func (ot *OpTracker) ThrottleOrToken() (bool, string) {
+	token := idgen.GenUUID()
+	if ot.ThrottleOrAdd(token, TrackToken) {
+		return true, ""
+	}
+	return false, token
+}
+
+func runOperationAfterBuild(o Operation,
+	executor executors.Executor) (err error) {
+
+	label := o.Label()
+	max_tries := o.MaxRetries() + 1
+
+	for attempt := 1; ; attempt++ {
+		logger.Info("Trying %v (attempt #%v/%v)", label, attempt, max_tries)
+
+		err = o.Exec(executor)
+		if err == nil {
+			// success, exit
+			break
+		}
+
+		logger.LogError("%v Failed: %v", label, err)
+
+		oerr, isRetryError := err.(OperationRetryError)
+		if isRetryError {
+			err = oerr.OriginalError
+		}
+
+		if rerr := o.Rollback(executor); rerr != nil {
+			logger.LogError("%v Rollback error: %v", label, rerr)
+			markFailedIfSupported(o)
+			return err
+		}
+
+		if attempt >= max_tries {
+			logger.LogError("Max tries (%v) consumed", max_tries)
+			return err
+		}
+
+		if !isRetryError {
+			logger.LogError("Operation not retryable")
+			return err
+		}
+
+		logger.Info("Retrying %v", label)
+
+		if err := o.Build(); err != nil {
+			logger.LogError("%v Build Failed: %v", label, err)
+			return err
+		}
+	}
+
+	// if we reach this, we have succeeded
+	return o.Finalize()
 }
 
 // AsyncHttpOperation runs all the steps of an operation with the long-running
@@ -80,7 +202,7 @@ func AsyncHttpOperation(app *App,
 	op Operation) error {
 
 	// check if the request needs to be rate limited
-	if app.opcounter.ThrottleOrInc() {
+	if app.optracker.ThrottleOrAdd(op.Id(), TrackNormal) {
 		return ErrTooManyOperations
 	}
 
@@ -89,35 +211,19 @@ func AsyncHttpOperation(app *App,
 		logger.LogError("%v Build Failed: %v", label, err)
 		// creating the operation db data failed. this is no longer
 		// an in-flight operation
-		app.opcounter.Dec()
+		app.optracker.Remove(op.Id())
 		return err
 	}
 
 	app.asyncManager.AsyncHttpRedirectFunc(w, r, func() (string, error) {
 		// decrement the op counter once the operation is done
 		// either success or failure
-		defer app.opcounter.Dec()
+		defer app.optracker.Remove(op.Id())
 		logger.Info("Started async operation: %v", label)
-		if err := op.Exec(app.executor); err != nil {
-			if _, ok := err.(OperationRetryError); ok && op.MaxRetries() > 0 {
-				logger.Warning("%v Exec requested retry", label)
-				err := retryOperation(op, app.executor)
-				if err != nil {
-					return "", err
-				}
-				return op.ResourceUrl(), nil
-			}
-			if rerr := op.Rollback(app.executor); rerr != nil {
-				logger.LogError("%v Rollback error: %v", label, rerr)
-			}
-			logger.LogError("%v Failed: %v", label, err)
+		if err := runOperationAfterBuild(op, app.executor); err != nil {
 			return "", err
 		}
-		if err := op.Finalize(); err != nil {
-			logger.LogError("%v Finalize failed: %v", label, err)
-			return "", err
-		}
-		logger.Info("%v succeeded", label)
+
 		return op.ResourceUrl(), nil
 	})
 	return nil
@@ -142,59 +248,48 @@ func RunOperation(o Operation,
 		logger.LogError("%v Build Failed: %v", label, err)
 		return err
 	}
-	if err := o.Exec(executor); err != nil {
-		if _, ok := err.(OperationRetryError); ok && o.MaxRetries() > 0 {
-			logger.Warning("%v Exec requested retry", label)
-			return retryOperation(o, executor)
-		}
-		if rerr := o.Rollback(executor); rerr != nil {
-			logger.LogError("%v Rollback error: %v", label, rerr)
-		}
-		logger.LogError("%v Failed: %v", label, err)
+
+	return runOperationAfterBuild(o, executor)
+}
+
+// rollbackViaClean runs a CleanableOperation's clean methods as
+// needed to perform operation rollback. Any operation that
+// implements clean methods ought to be able to use
+// rollbackViaClean as the core of its rollback action.
+func rollbackViaClean(o CleanableOperation, executor executors.Executor) error {
+	if err := o.Clean(executor); err != nil {
+		logger.LogError(
+			"error running Clean in rollback for %v: %v",
+			o.Label(), err)
 		return err
 	}
-	if err := o.Finalize(); err != nil {
+	if err := o.CleanDone(); err != nil {
+		logger.LogError(
+			"error running CleanDone in rollback for %v: %v",
+			o.Label(), err)
 		return err
 	}
 	return nil
 }
 
-func retryOperation(o Operation,
-	executor executors.Executor) (err error) {
-
-	label := o.Label()
-	max := o.MaxRetries()
-	for i := 0; i < max; i++ {
-		logger.Info("Retry %v (%v)", label, i+1)
-		if e := o.Rollback(executor); e != nil {
-			// when retrying rollback must succeed cleanly or it
-			// is not safe to retry
-			logger.LogError("%v Rollback error: %v", label, e)
-			return e
-		}
-		if e := o.Build(); e != nil {
-			logger.LogError("%v Build Failed: %v", label, e)
-			return e
-		}
-		err = o.Exec(executor)
-		if err == nil {
-			// exec succeeded. Finalize it and we're outta here.
-			return o.Finalize()
-		}
-		logger.LogError("%v Failed: %v", label, err)
-		if _, ok := err.(OperationRetryError); !ok {
-			break
-		}
+// markFailedIfSupported takes any operation and if that operation
+// supports being marked failed, it marks it as not failed.
+// An error is returned only if the operation is failable and
+// marking it failed fails.
+func markFailedIfSupported(o Operation) error {
+	logger.Debug("Operation [%v] has failed, want to mark failed", o.Id())
+	fo, ok := o.(FailableOperation)
+	if !ok {
+		logger.Debug("Operation [%v] is not a failable operation", o.Id())
+		// not a failable operation. nothing to do
+		return nil
 	}
-	if e := o.Rollback(executor); e != nil {
-		logger.LogError("%v Rollback error: %v", label, e)
+	err := fo.MarkFailed()
+	if err != nil {
+		logger.LogError("Unable to mark failed [%v]: %v",
+			fo.Id(), err)
 	}
-	// if we exceeded our retries, pull the "real" error out
-	// of the retry error so we return that
-	if ore, ok := err.(OperationRetryError); ok {
-		err = ore.OriginalError
-	}
-	return
+	return err
 }
 
 // OperationHttpErrorf writes the appropriate http error responses for

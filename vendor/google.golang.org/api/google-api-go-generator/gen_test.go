@@ -26,6 +26,8 @@ import (
 var updateGolden = flag.Bool("update_golden", false, "If true, causes TestAPIs to update golden files")
 
 func TestAPIs(t *testing.T) {
+	*copyrightYear = "YEAR"
+
 	names := []string{
 		"any",
 		"arrayofarray-1",
@@ -35,6 +37,7 @@ func TestAPIs(t *testing.T) {
 		"blogger-3",
 		"floats",
 		"getwithoutbody",
+		"http-body",
 		"json-body",
 		"mapofany",
 		"mapofarrayofobjects",

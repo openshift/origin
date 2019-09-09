@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewDomainsClientWithBaseURI(baseURI string, subscriptionID string) DomainsC
 // Parameters:
 // identifier - name of the domain.
 func (client DomainsClient) CheckAvailability(ctx context.Context, identifier NameIdentifier) (result DomainAvailablilityCheckResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.CheckAvailability")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CheckAvailabilityPreparer(ctx, identifier)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.DomainsClient", "CheckAvailability", nil, "Failure preparing request")
@@ -89,8 +100,8 @@ func (client DomainsClient) CheckAvailabilityPreparer(ctx context.Context, ident
 // CheckAvailabilitySender sends the CheckAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) CheckAvailabilitySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CheckAvailabilityResponder handles the response to the CheckAvailability request. The method always
@@ -112,6 +123,16 @@ func (client DomainsClient) CheckAvailabilityResponder(resp *http.Response) (res
 // domainName - name of the domain.
 // domain - domain registration information.
 func (client DomainsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, domainName string, domain Domain) (result DomainsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -219,13 +240,9 @@ func (client DomainsClient) CreateOrUpdatePreparer(ctx context.Context, resource
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) CreateOrUpdateSender(req *http.Request) (future DomainsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -254,6 +271,16 @@ func (client DomainsClient) CreateOrUpdateResponder(resp *http.Response) (result
 // name - name of identifier.
 // domainOwnershipIdentifier - a JSON representation of the domain ownership properties.
 func (client DomainsClient) CreateOrUpdateOwnershipIdentifier(ctx context.Context, resourceGroupName string, domainName string, name string, domainOwnershipIdentifier DomainOwnershipIdentifier) (result DomainOwnershipIdentifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.CreateOrUpdateOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -310,8 +337,8 @@ func (client DomainsClient) CreateOrUpdateOwnershipIdentifierPreparer(ctx contex
 // CreateOrUpdateOwnershipIdentifierSender sends the CreateOrUpdateOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) CreateOrUpdateOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateOwnershipIdentifierResponder handles the response to the CreateOrUpdateOwnershipIdentifier request. The method always
@@ -334,6 +361,16 @@ func (client DomainsClient) CreateOrUpdateOwnershipIdentifierResponder(resp *htt
 // forceHardDeleteDomain - specify <code>true</code> to delete the domain immediately. The default is
 // <code>false</code> which deletes the domain after 24 hours.
 func (client DomainsClient) Delete(ctx context.Context, resourceGroupName string, domainName string, forceHardDeleteDomain *bool) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -390,8 +427,8 @@ func (client DomainsClient) DeletePreparer(ctx context.Context, resourceGroupNam
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -412,6 +449,16 @@ func (client DomainsClient) DeleteResponder(resp *http.Response) (result autores
 // domainName - name of domain.
 // name - name of identifier.
 func (client DomainsClient) DeleteOwnershipIdentifier(ctx context.Context, resourceGroupName string, domainName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.DeleteOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -466,8 +513,8 @@ func (client DomainsClient) DeleteOwnershipIdentifierPreparer(ctx context.Contex
 // DeleteOwnershipIdentifierSender sends the DeleteOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) DeleteOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteOwnershipIdentifierResponder handles the response to the DeleteOwnershipIdentifier request. The method always
@@ -487,6 +534,16 @@ func (client DomainsClient) DeleteOwnershipIdentifierResponder(resp *http.Respon
 // resourceGroupName - name of the resource group to which the resource belongs.
 // domainName - name of the domain.
 func (client DomainsClient) Get(ctx context.Context, resourceGroupName string, domainName string) (result Domain, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -540,8 +597,8 @@ func (client DomainsClient) GetPreparer(ctx context.Context, resourceGroupName s
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -559,6 +616,16 @@ func (client DomainsClient) GetResponder(resp *http.Response) (result Domain, er
 
 // GetControlCenterSsoRequest generate a single sign-on request for the domain management portal.
 func (client DomainsClient) GetControlCenterSsoRequest(ctx context.Context) (result DomainControlCenterSsoRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.GetControlCenterSsoRequest")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetControlCenterSsoRequestPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "web.DomainsClient", "GetControlCenterSsoRequest", nil, "Failure preparing request")
@@ -602,8 +669,8 @@ func (client DomainsClient) GetControlCenterSsoRequestPreparer(ctx context.Conte
 // GetControlCenterSsoRequestSender sends the GetControlCenterSsoRequest request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) GetControlCenterSsoRequestSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetControlCenterSsoRequestResponder handles the response to the GetControlCenterSsoRequest request. The method always
@@ -625,6 +692,16 @@ func (client DomainsClient) GetControlCenterSsoRequestResponder(resp *http.Respo
 // domainName - name of domain.
 // name - name of identifier.
 func (client DomainsClient) GetOwnershipIdentifier(ctx context.Context, resourceGroupName string, domainName string, name string) (result DomainOwnershipIdentifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.GetOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -679,8 +756,8 @@ func (client DomainsClient) GetOwnershipIdentifierPreparer(ctx context.Context, 
 // GetOwnershipIdentifierSender sends the GetOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) GetOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetOwnershipIdentifierResponder handles the response to the GetOwnershipIdentifier request. The method always
@@ -698,6 +775,16 @@ func (client DomainsClient) GetOwnershipIdentifierResponder(resp *http.Response)
 
 // List get all domains in a subscription.
 func (client DomainsClient) List(ctx context.Context) (result DomainCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.List")
+		defer func() {
+			sc := -1
+			if result.dc.Response.Response != nil {
+				sc = result.dc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -742,8 +829,8 @@ func (client DomainsClient) ListPreparer(ctx context.Context) (*http.Request, er
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -760,8 +847,8 @@ func (client DomainsClient) ListResponder(resp *http.Response) (result DomainCol
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client DomainsClient) listNextResults(lastResults DomainCollection) (result DomainCollection, err error) {
-	req, err := lastResults.domainCollectionPreparer()
+func (client DomainsClient) listNextResults(ctx context.Context, lastResults DomainCollection) (result DomainCollection, err error) {
+	req, err := lastResults.domainCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.DomainsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -782,6 +869,16 @@ func (client DomainsClient) listNextResults(lastResults DomainCollection) (resul
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DomainsClient) ListComplete(ctx context.Context) (result DomainCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -790,6 +887,16 @@ func (client DomainsClient) ListComplete(ctx context.Context) (result DomainColl
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 func (client DomainsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result DomainCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.dc.Response.Response != nil {
+				sc = result.dc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -843,8 +950,8 @@ func (client DomainsClient) ListByResourceGroupPreparer(ctx context.Context, res
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -861,8 +968,8 @@ func (client DomainsClient) ListByResourceGroupResponder(resp *http.Response) (r
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client DomainsClient) listByResourceGroupNextResults(lastResults DomainCollection) (result DomainCollection, err error) {
-	req, err := lastResults.domainCollectionPreparer()
+func (client DomainsClient) listByResourceGroupNextResults(ctx context.Context, lastResults DomainCollection) (result DomainCollection, err error) {
+	req, err := lastResults.domainCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.DomainsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -883,6 +990,16 @@ func (client DomainsClient) listByResourceGroupNextResults(lastResults DomainCol
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DomainsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result DomainCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -892,6 +1009,16 @@ func (client DomainsClient) ListByResourceGroupComplete(ctx context.Context, res
 // resourceGroupName - name of the resource group to which the resource belongs.
 // domainName - name of domain.
 func (client DomainsClient) ListOwnershipIdentifiers(ctx context.Context, resourceGroupName string, domainName string) (result DomainOwnershipIdentifierCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.ListOwnershipIdentifiers")
+		defer func() {
+			sc := -1
+			if result.doic.Response.Response != nil {
+				sc = result.doic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -946,8 +1073,8 @@ func (client DomainsClient) ListOwnershipIdentifiersPreparer(ctx context.Context
 // ListOwnershipIdentifiersSender sends the ListOwnershipIdentifiers request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) ListOwnershipIdentifiersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListOwnershipIdentifiersResponder handles the response to the ListOwnershipIdentifiers request. The method always
@@ -964,8 +1091,8 @@ func (client DomainsClient) ListOwnershipIdentifiersResponder(resp *http.Respons
 }
 
 // listOwnershipIdentifiersNextResults retrieves the next set of results, if any.
-func (client DomainsClient) listOwnershipIdentifiersNextResults(lastResults DomainOwnershipIdentifierCollection) (result DomainOwnershipIdentifierCollection, err error) {
-	req, err := lastResults.domainOwnershipIdentifierCollectionPreparer()
+func (client DomainsClient) listOwnershipIdentifiersNextResults(ctx context.Context, lastResults DomainOwnershipIdentifierCollection) (result DomainOwnershipIdentifierCollection, err error) {
+	req, err := lastResults.domainOwnershipIdentifierCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.DomainsClient", "listOwnershipIdentifiersNextResults", nil, "Failure preparing next results request")
 	}
@@ -986,6 +1113,16 @@ func (client DomainsClient) listOwnershipIdentifiersNextResults(lastResults Doma
 
 // ListOwnershipIdentifiersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DomainsClient) ListOwnershipIdentifiersComplete(ctx context.Context, resourceGroupName string, domainName string) (result DomainOwnershipIdentifierCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.ListOwnershipIdentifiers")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListOwnershipIdentifiers(ctx, resourceGroupName, domainName)
 	return
 }
@@ -994,6 +1131,16 @@ func (client DomainsClient) ListOwnershipIdentifiersComplete(ctx context.Context
 // Parameters:
 // parameters - search parameters for domain name recommendations.
 func (client DomainsClient) ListRecommendations(ctx context.Context, parameters DomainRecommendationSearchParameters) (result NameIdentifierCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.ListRecommendations")
+		defer func() {
+			sc := -1
+			if result.nic.Response.Response != nil {
+				sc = result.nic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listRecommendationsNextResults
 	req, err := client.ListRecommendationsPreparer(ctx, parameters)
 	if err != nil {
@@ -1040,8 +1187,8 @@ func (client DomainsClient) ListRecommendationsPreparer(ctx context.Context, par
 // ListRecommendationsSender sends the ListRecommendations request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) ListRecommendationsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListRecommendationsResponder handles the response to the ListRecommendations request. The method always
@@ -1058,8 +1205,8 @@ func (client DomainsClient) ListRecommendationsResponder(resp *http.Response) (r
 }
 
 // listRecommendationsNextResults retrieves the next set of results, if any.
-func (client DomainsClient) listRecommendationsNextResults(lastResults NameIdentifierCollection) (result NameIdentifierCollection, err error) {
-	req, err := lastResults.nameIdentifierCollectionPreparer()
+func (client DomainsClient) listRecommendationsNextResults(ctx context.Context, lastResults NameIdentifierCollection) (result NameIdentifierCollection, err error) {
+	req, err := lastResults.nameIdentifierCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.DomainsClient", "listRecommendationsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1080,6 +1227,16 @@ func (client DomainsClient) listRecommendationsNextResults(lastResults NameIdent
 
 // ListRecommendationsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DomainsClient) ListRecommendationsComplete(ctx context.Context, parameters DomainRecommendationSearchParameters) (result NameIdentifierCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.ListRecommendations")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListRecommendations(ctx, parameters)
 	return
 }
@@ -1089,6 +1246,16 @@ func (client DomainsClient) ListRecommendationsComplete(ctx context.Context, par
 // resourceGroupName - name of the resource group to which the resource belongs.
 // domainName - name of the domain.
 func (client DomainsClient) Renew(ctx context.Context, resourceGroupName string, domainName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.Renew")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1142,8 +1309,8 @@ func (client DomainsClient) RenewPreparer(ctx context.Context, resourceGroupName
 // RenewSender sends the Renew request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) RenewSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RenewResponder handles the response to the Renew request. The method always
@@ -1164,6 +1331,16 @@ func (client DomainsClient) RenewResponder(resp *http.Response) (result autorest
 // domainName - name of the domain.
 // domain - domain registration information.
 func (client DomainsClient) Update(ctx context.Context, resourceGroupName string, domainName string, domain DomainPatchResource) (result Domain, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1221,8 +1398,8 @@ func (client DomainsClient) UpdatePreparer(ctx context.Context, resourceGroupNam
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -1246,6 +1423,16 @@ func (client DomainsClient) UpdateResponder(resp *http.Response) (result Domain,
 // name - name of identifier.
 // domainOwnershipIdentifier - a JSON representation of the domain ownership properties.
 func (client DomainsClient) UpdateOwnershipIdentifier(ctx context.Context, resourceGroupName string, domainName string, name string, domainOwnershipIdentifier DomainOwnershipIdentifier) (result DomainOwnershipIdentifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/DomainsClient.UpdateOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1302,8 +1489,8 @@ func (client DomainsClient) UpdateOwnershipIdentifierPreparer(ctx context.Contex
 // UpdateOwnershipIdentifierSender sends the UpdateOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client DomainsClient) UpdateOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateOwnershipIdentifierResponder handles the response to the UpdateOwnershipIdentifier request. The method always

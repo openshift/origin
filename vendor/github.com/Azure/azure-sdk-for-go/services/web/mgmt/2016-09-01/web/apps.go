@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewAppsClientWithBaseURI(baseURI string, subscriptionID string) AppsClient 
 // premierAddOnName - add-on name.
 // premierAddOn - a JSON representation of the edited premier add-on.
 func (client AppsClient) AddPremierAddOn(ctx context.Context, resourceGroupName string, name string, premierAddOnName string, premierAddOn PremierAddOn) (result PremierAddOn, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.AddPremierAddOn")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -103,8 +114,8 @@ func (client AppsClient) AddPremierAddOnPreparer(ctx context.Context, resourceGr
 // AddPremierAddOnSender sends the AddPremierAddOn request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) AddPremierAddOnSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddPremierAddOnResponder handles the response to the AddPremierAddOn request. The method always
@@ -129,6 +140,16 @@ func (client AppsClient) AddPremierAddOnResponder(resp *http.Response) (result P
 // slot - name of the deployment slot. If a slot is not specified, the API will update the named add-on for the
 // production slot.
 func (client AppsClient) AddPremierAddOnSlot(ctx context.Context, resourceGroupName string, name string, premierAddOnName string, premierAddOn PremierAddOn, slot string) (result PremierAddOn, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.AddPremierAddOnSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -186,8 +207,8 @@ func (client AppsClient) AddPremierAddOnSlotPreparer(ctx context.Context, resour
 // AddPremierAddOnSlotSender sends the AddPremierAddOnSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) AddPremierAddOnSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddPremierAddOnSlotResponder handles the response to the AddPremierAddOnSlot request. The method always
@@ -209,6 +230,16 @@ func (client AppsClient) AddPremierAddOnSlotResponder(resp *http.Response) (resu
 // name - name of web app.
 // hostName - custom hostname.
 func (client AppsClient) AnalyzeCustomHostname(ctx context.Context, resourceGroupName string, name string, hostName string) (result CustomHostnameAnalysisResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.AnalyzeCustomHostname")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -265,8 +296,8 @@ func (client AppsClient) AnalyzeCustomHostnamePreparer(ctx context.Context, reso
 // AnalyzeCustomHostnameSender sends the AnalyzeCustomHostname request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) AnalyzeCustomHostnameSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AnalyzeCustomHostnameResponder handles the response to the AnalyzeCustomHostname request. The method always
@@ -289,6 +320,16 @@ func (client AppsClient) AnalyzeCustomHostnameResponder(resp *http.Response) (re
 // slot - name of web app slot. If not specified then will default to production slot.
 // hostName - custom hostname.
 func (client AppsClient) AnalyzeCustomHostnameSlot(ctx context.Context, resourceGroupName string, name string, slot string, hostName string) (result CustomHostnameAnalysisResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.AnalyzeCustomHostnameSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -346,8 +387,8 @@ func (client AppsClient) AnalyzeCustomHostnameSlotPreparer(ctx context.Context, 
 // AnalyzeCustomHostnameSlotSender sends the AnalyzeCustomHostnameSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) AnalyzeCustomHostnameSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AnalyzeCustomHostnameSlotResponder handles the response to the AnalyzeCustomHostnameSlot request. The method always
@@ -369,6 +410,16 @@ func (client AppsClient) AnalyzeCustomHostnameSlotResponder(resp *http.Response)
 // name - name of the app.
 // slotSwapEntity - JSON object that contains the target slot name. See example.
 func (client AppsClient) ApplySlotConfigToProduction(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ApplySlotConfigToProduction")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -427,8 +478,8 @@ func (client AppsClient) ApplySlotConfigToProductionPreparer(ctx context.Context
 // ApplySlotConfigToProductionSender sends the ApplySlotConfigToProduction request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ApplySlotConfigToProductionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ApplySlotConfigToProductionResponder handles the response to the ApplySlotConfigToProduction request. The method always
@@ -450,6 +501,16 @@ func (client AppsClient) ApplySlotConfigToProductionResponder(resp *http.Respons
 // slotSwapEntity - JSON object that contains the target slot name. See example.
 // slot - name of the source slot. If a slot is not specified, the production slot is used as the source slot.
 func (client AppsClient) ApplySlotConfigurationSlot(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ApplySlotConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -509,8 +570,8 @@ func (client AppsClient) ApplySlotConfigurationSlotPreparer(ctx context.Context,
 // ApplySlotConfigurationSlotSender sends the ApplySlotConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ApplySlotConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ApplySlotConfigurationSlotResponder handles the response to the ApplySlotConfigurationSlot request. The method always
@@ -531,6 +592,16 @@ func (client AppsClient) ApplySlotConfigurationSlotResponder(resp *http.Response
 // name - name of the app.
 // request - backup configuration. You can use the JSON response from the POST action as input here.
 func (client AppsClient) Backup(ctx context.Context, resourceGroupName string, name string, request BackupRequest) (result BackupItem, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Backup")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -596,8 +667,8 @@ func (client AppsClient) BackupPreparer(ctx context.Context, resourceGroupName s
 // BackupSender sends the Backup request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) BackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // BackupResponder handles the response to the Backup request. The method always
@@ -621,6 +692,16 @@ func (client AppsClient) BackupResponder(resp *http.Response) (result BackupItem
 // slot - name of the deployment slot. If a slot is not specified, the API will create a backup for the
 // production slot.
 func (client AppsClient) BackupSlot(ctx context.Context, resourceGroupName string, name string, request BackupRequest, slot string) (result BackupItem, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.BackupSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -687,8 +768,8 @@ func (client AppsClient) BackupSlotPreparer(ctx context.Context, resourceGroupNa
 // BackupSlotSender sends the BackupSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) BackupSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // BackupSlotResponder handles the response to the BackupSlot request. The method always
@@ -711,6 +792,16 @@ func (client AppsClient) BackupSlotResponder(resp *http.Response) (result Backup
 // ID - ID of an existing deployment.
 // deployment - deployment details.
 func (client AppsClient) CreateDeployment(ctx context.Context, resourceGroupName string, name string, ID string, deployment Deployment) (result Deployment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateDeployment")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -767,8 +858,8 @@ func (client AppsClient) CreateDeploymentPreparer(ctx context.Context, resourceG
 // CreateDeploymentSender sends the CreateDeployment request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateDeploymentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateDeploymentResponder handles the response to the CreateDeployment request. The method always
@@ -793,6 +884,16 @@ func (client AppsClient) CreateDeploymentResponder(resp *http.Response) (result 
 // production slot.
 // deployment - deployment details.
 func (client AppsClient) CreateDeploymentSlot(ctx context.Context, resourceGroupName string, name string, ID string, slot string, deployment Deployment) (result Deployment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateDeploymentSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -850,8 +951,8 @@ func (client AppsClient) CreateDeploymentSlotPreparer(ctx context.Context, resou
 // CreateDeploymentSlotSender sends the CreateDeploymentSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateDeploymentSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateDeploymentSlotResponder handles the response to the CreateDeploymentSlot request. The method always
@@ -874,6 +975,16 @@ func (client AppsClient) CreateDeploymentSlotResponder(resp *http.Response) (res
 // functionName - function name.
 // functionEnvelope - function details.
 func (client AppsClient) CreateFunction(ctx context.Context, resourceGroupName string, name string, functionName string, functionEnvelope FunctionEnvelope) (result AppsCreateFunctionFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateFunction")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -924,13 +1035,9 @@ func (client AppsClient) CreateFunctionPreparer(ctx context.Context, resourceGro
 // CreateFunctionSender sends the CreateFunction request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateFunctionSender(req *http.Request) (future AppsCreateFunctionFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -960,6 +1067,16 @@ func (client AppsClient) CreateFunctionResponder(resp *http.Response) (result Fu
 // production slot.
 // functionEnvelope - function details.
 func (client AppsClient) CreateInstanceFunctionSlot(ctx context.Context, resourceGroupName string, name string, functionName string, slot string, functionEnvelope FunctionEnvelope) (result AppsCreateInstanceFunctionSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateInstanceFunctionSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1011,13 +1128,9 @@ func (client AppsClient) CreateInstanceFunctionSlotPreparer(ctx context.Context,
 // CreateInstanceFunctionSlotSender sends the CreateInstanceFunctionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateInstanceFunctionSlotSender(req *http.Request) (future AppsCreateInstanceFunctionSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -1045,6 +1158,16 @@ func (client AppsClient) CreateInstanceFunctionSlotResponder(resp *http.Response
 // instanceID - ID of web app instance.
 // mSDeploy - details of MSDeploy operation
 func (client AppsClient) CreateInstanceMSDeployOperation(ctx context.Context, resourceGroupName string, name string, instanceID string, mSDeploy MSDeploy) (result AppsCreateInstanceMSDeployOperationFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateInstanceMSDeployOperation")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1095,13 +1218,9 @@ func (client AppsClient) CreateInstanceMSDeployOperationPreparer(ctx context.Con
 // CreateInstanceMSDeployOperationSender sends the CreateInstanceMSDeployOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateInstanceMSDeployOperationSender(req *http.Request) (future AppsCreateInstanceMSDeployOperationFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -1130,6 +1249,16 @@ func (client AppsClient) CreateInstanceMSDeployOperationResponder(resp *http.Res
 // instanceID - ID of web app instance.
 // mSDeploy - details of MSDeploy operation
 func (client AppsClient) CreateInstanceMSDeployOperationSlot(ctx context.Context, resourceGroupName string, name string, slot string, instanceID string, mSDeploy MSDeploy) (result AppsCreateInstanceMSDeployOperationSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateInstanceMSDeployOperationSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1181,13 +1310,9 @@ func (client AppsClient) CreateInstanceMSDeployOperationSlotPreparer(ctx context
 // CreateInstanceMSDeployOperationSlotSender sends the CreateInstanceMSDeployOperationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateInstanceMSDeployOperationSlotSender(req *http.Request) (future AppsCreateInstanceMSDeployOperationSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -1214,6 +1339,16 @@ func (client AppsClient) CreateInstanceMSDeployOperationSlotResponder(resp *http
 // name - name of web app.
 // mSDeploy - details of MSDeploy operation
 func (client AppsClient) CreateMSDeployOperation(ctx context.Context, resourceGroupName string, name string, mSDeploy MSDeploy) (result AppsCreateMSDeployOperationFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateMSDeployOperation")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1263,13 +1398,9 @@ func (client AppsClient) CreateMSDeployOperationPreparer(ctx context.Context, re
 // CreateMSDeployOperationSender sends the CreateMSDeployOperation request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateMSDeployOperationSender(req *http.Request) (future AppsCreateMSDeployOperationFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -1297,6 +1428,16 @@ func (client AppsClient) CreateMSDeployOperationResponder(resp *http.Response) (
 // slot - name of web app slot. If not specified then will default to production slot.
 // mSDeploy - details of MSDeploy operation
 func (client AppsClient) CreateMSDeployOperationSlot(ctx context.Context, resourceGroupName string, name string, slot string, mSDeploy MSDeploy) (result AppsCreateMSDeployOperationSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateMSDeployOperationSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1347,13 +1488,9 @@ func (client AppsClient) CreateMSDeployOperationSlotPreparer(ctx context.Context
 // CreateMSDeployOperationSlotSender sends the CreateMSDeployOperationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateMSDeployOperationSlotSender(req *http.Request) (future AppsCreateMSDeployOperationSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -1381,6 +1518,16 @@ func (client AppsClient) CreateMSDeployOperationSlotResponder(resp *http.Respons
 // parameter.
 // siteEnvelope - a JSON representation of the app properties. See example.
 func (client AppsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, name string, siteEnvelope Site) (result AppsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1445,13 +1592,9 @@ func (client AppsClient) CreateOrUpdatePreparer(ctx context.Context, resourceGro
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateSender(req *http.Request) (future AppsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -1478,6 +1621,16 @@ func (client AppsClient) CreateOrUpdateResponder(resp *http.Response) (result Si
 // name - name of the app.
 // siteConfig - JSON representation of a SiteConfig object. See example.
 func (client AppsClient) CreateOrUpdateConfiguration(ctx context.Context, resourceGroupName string, name string, siteConfig SiteConfigResource) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1540,8 +1693,8 @@ func (client AppsClient) CreateOrUpdateConfigurationPreparer(ctx context.Context
 // CreateOrUpdateConfigurationSender sends the CreateOrUpdateConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateConfigurationResponder handles the response to the CreateOrUpdateConfiguration request. The method always
@@ -1565,6 +1718,16 @@ func (client AppsClient) CreateOrUpdateConfigurationResponder(resp *http.Respons
 // slot - name of the deployment slot. If a slot is not specified, the API will update configuration for the
 // production slot.
 func (client AppsClient) CreateOrUpdateConfigurationSlot(ctx context.Context, resourceGroupName string, name string, siteConfig SiteConfigResource, slot string) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1628,8 +1791,8 @@ func (client AppsClient) CreateOrUpdateConfigurationSlotPreparer(ctx context.Con
 // CreateOrUpdateConfigurationSlotSender sends the CreateOrUpdateConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateConfigurationSlotResponder handles the response to the CreateOrUpdateConfigurationSlot request. The method always
@@ -1653,6 +1816,16 @@ func (client AppsClient) CreateOrUpdateConfigurationSlotResponder(resp *http.Res
 // domainOwnershipIdentifierName - name of domain ownership identifier.
 // domainOwnershipIdentifier - a JSON representation of the domain ownership properties.
 func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifier(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string, domainOwnershipIdentifier Identifier) (result Identifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateDomainOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1709,8 +1882,8 @@ func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierPreparer(ctx con
 // CreateOrUpdateDomainOwnershipIdentifierSender sends the CreateOrUpdateDomainOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateDomainOwnershipIdentifierResponder handles the response to the CreateOrUpdateDomainOwnershipIdentifier request. The method always
@@ -1736,6 +1909,16 @@ func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierResponder(resp *
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the binding for the
 // production slot.
 func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierSlot(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string, domainOwnershipIdentifier Identifier, slot string) (result Identifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateDomainOwnershipIdentifierSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1793,8 +1976,8 @@ func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierSlotPreparer(ctx
 // CreateOrUpdateDomainOwnershipIdentifierSlotSender sends the CreateOrUpdateDomainOwnershipIdentifierSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateDomainOwnershipIdentifierSlotResponder handles the response to the CreateOrUpdateDomainOwnershipIdentifierSlot request. The method always
@@ -1817,6 +2000,16 @@ func (client AppsClient) CreateOrUpdateDomainOwnershipIdentifierSlotResponder(re
 // hostName - hostname in the hostname binding.
 // hostNameBinding - binding details. This is the JSON representation of a HostNameBinding object.
 func (client AppsClient) CreateOrUpdateHostNameBinding(ctx context.Context, resourceGroupName string, name string, hostName string, hostNameBinding HostNameBinding) (result HostNameBinding, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateHostNameBinding")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1873,8 +2066,8 @@ func (client AppsClient) CreateOrUpdateHostNameBindingPreparer(ctx context.Conte
 // CreateOrUpdateHostNameBindingSender sends the CreateOrUpdateHostNameBinding request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateHostNameBindingSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateHostNameBindingResponder handles the response to the CreateOrUpdateHostNameBinding request. The method always
@@ -1899,6 +2092,16 @@ func (client AppsClient) CreateOrUpdateHostNameBindingResponder(resp *http.Respo
 // slot - name of the deployment slot. If a slot is not specified, the API will create a binding for the
 // production slot.
 func (client AppsClient) CreateOrUpdateHostNameBindingSlot(ctx context.Context, resourceGroupName string, name string, hostName string, hostNameBinding HostNameBinding, slot string) (result HostNameBinding, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateHostNameBindingSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1956,8 +2159,8 @@ func (client AppsClient) CreateOrUpdateHostNameBindingSlotPreparer(ctx context.C
 // CreateOrUpdateHostNameBindingSlotSender sends the CreateOrUpdateHostNameBindingSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateHostNameBindingSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateHostNameBindingSlotResponder handles the response to the CreateOrUpdateHostNameBindingSlot request. The method always
@@ -1981,6 +2184,16 @@ func (client AppsClient) CreateOrUpdateHostNameBindingSlotResponder(resp *http.R
 // relayName - the relay name for this hybrid connection.
 // connectionEnvelope - the details of the hybrid connection.
 func (client AppsClient) CreateOrUpdateHybridConnection(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, connectionEnvelope HybridConnection) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateHybridConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2038,8 +2251,8 @@ func (client AppsClient) CreateOrUpdateHybridConnectionPreparer(ctx context.Cont
 // CreateOrUpdateHybridConnectionSender sends the CreateOrUpdateHybridConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateHybridConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateHybridConnectionResponder handles the response to the CreateOrUpdateHybridConnection request. The method always
@@ -2064,6 +2277,16 @@ func (client AppsClient) CreateOrUpdateHybridConnectionResponder(resp *http.Resp
 // connectionEnvelope - the details of the hybrid connection.
 // slot - the name of the slot for the web app.
 func (client AppsClient) CreateOrUpdateHybridConnectionSlot(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, connectionEnvelope HybridConnection, slot string) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateHybridConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2122,8 +2345,8 @@ func (client AppsClient) CreateOrUpdateHybridConnectionSlotPreparer(ctx context.
 // CreateOrUpdateHybridConnectionSlotSender sends the CreateOrUpdateHybridConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateHybridConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateHybridConnectionSlotResponder handles the response to the CreateOrUpdateHybridConnectionSlot request. The method always
@@ -2147,6 +2370,16 @@ func (client AppsClient) CreateOrUpdateHybridConnectionSlotResponder(resp *http.
 // publicCertificate - public certificate details. This is the JSON representation of a PublicCertificate
 // object.
 func (client AppsClient) CreateOrUpdatePublicCertificate(ctx context.Context, resourceGroupName string, name string, publicCertificateName string, publicCertificate PublicCertificate) (result PublicCertificate, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdatePublicCertificate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2203,8 +2436,8 @@ func (client AppsClient) CreateOrUpdatePublicCertificatePreparer(ctx context.Con
 // CreateOrUpdatePublicCertificateSender sends the CreateOrUpdatePublicCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdatePublicCertificateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdatePublicCertificateResponder handles the response to the CreateOrUpdatePublicCertificate request. The method always
@@ -2230,6 +2463,16 @@ func (client AppsClient) CreateOrUpdatePublicCertificateResponder(resp *http.Res
 // slot - name of the deployment slot. If a slot is not specified, the API will create a binding for the
 // production slot.
 func (client AppsClient) CreateOrUpdatePublicCertificateSlot(ctx context.Context, resourceGroupName string, name string, publicCertificateName string, publicCertificate PublicCertificate, slot string) (result PublicCertificate, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdatePublicCertificateSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2287,8 +2530,8 @@ func (client AppsClient) CreateOrUpdatePublicCertificateSlotPreparer(ctx context
 // CreateOrUpdatePublicCertificateSlotSender sends the CreateOrUpdatePublicCertificateSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdatePublicCertificateSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdatePublicCertificateSlotResponder handles the response to the CreateOrUpdatePublicCertificateSlot request. The method always
@@ -2312,6 +2555,16 @@ func (client AppsClient) CreateOrUpdatePublicCertificateSlotResponder(resp *http
 // entityName - name of the hybrid connection configuration.
 // connectionEnvelope - details of the hybrid connection configuration.
 func (client AppsClient) CreateOrUpdateRelayServiceConnection(ctx context.Context, resourceGroupName string, name string, entityName string, connectionEnvelope RelayServiceConnectionEntity) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateRelayServiceConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2368,8 +2621,8 @@ func (client AppsClient) CreateOrUpdateRelayServiceConnectionPreparer(ctx contex
 // CreateOrUpdateRelayServiceConnectionSender sends the CreateOrUpdateRelayServiceConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateRelayServiceConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateRelayServiceConnectionResponder handles the response to the CreateOrUpdateRelayServiceConnection request. The method always
@@ -2395,6 +2648,16 @@ func (client AppsClient) CreateOrUpdateRelayServiceConnectionResponder(resp *htt
 // slot - name of the deployment slot. If a slot is not specified, the API will create or update a hybrid
 // connection for the production slot.
 func (client AppsClient) CreateOrUpdateRelayServiceConnectionSlot(ctx context.Context, resourceGroupName string, name string, entityName string, connectionEnvelope RelayServiceConnectionEntity, slot string) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateRelayServiceConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2452,8 +2715,8 @@ func (client AppsClient) CreateOrUpdateRelayServiceConnectionSlotPreparer(ctx co
 // CreateOrUpdateRelayServiceConnectionSlotSender sends the CreateOrUpdateRelayServiceConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateRelayServiceConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateRelayServiceConnectionSlotResponder handles the response to the CreateOrUpdateRelayServiceConnectionSlot request. The method always
@@ -2484,6 +2747,16 @@ func (client AppsClient) CreateOrUpdateRelayServiceConnectionSlotResponder(resp 
 // forceDNSRegistration - if true, web app hostname is force registered with DNS.
 // TTLInSeconds - time to live in seconds for web app's default domain name.
 func (client AppsClient) CreateOrUpdateSlot(ctx context.Context, resourceGroupName string, name string, siteEnvelope Site, slot string, skipDNSRegistration *bool, skipCustomDomainVerification *bool, forceDNSRegistration *bool, TTLInSeconds string) (result AppsCreateOrUpdateSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2561,13 +2834,9 @@ func (client AppsClient) CreateOrUpdateSlotPreparer(ctx context.Context, resourc
 // CreateOrUpdateSlotSender sends the CreateOrUpdateSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateSlotSender(req *http.Request) (future AppsCreateOrUpdateSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -2594,6 +2863,16 @@ func (client AppsClient) CreateOrUpdateSlotResponder(resp *http.Response) (resul
 // name - name of the app.
 // siteSourceControl - JSON representation of a SiteSourceControl object. See example.
 func (client AppsClient) CreateOrUpdateSourceControl(ctx context.Context, resourceGroupName string, name string, siteSourceControl SiteSourceControl) (result AppsCreateOrUpdateSourceControlFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateSourceControl")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2643,13 +2922,9 @@ func (client AppsClient) CreateOrUpdateSourceControlPreparer(ctx context.Context
 // CreateOrUpdateSourceControlSender sends the CreateOrUpdateSourceControl request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateSourceControlSender(req *http.Request) (future AppsCreateOrUpdateSourceControlFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -2678,6 +2953,16 @@ func (client AppsClient) CreateOrUpdateSourceControlResponder(resp *http.Respons
 // slot - name of the deployment slot. If a slot is not specified, the API will update the source control
 // configuration for the production slot.
 func (client AppsClient) CreateOrUpdateSourceControlSlot(ctx context.Context, resourceGroupName string, name string, siteSourceControl SiteSourceControl, slot string) (result AppsCreateOrUpdateSourceControlSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateSourceControlSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2728,13 +3013,9 @@ func (client AppsClient) CreateOrUpdateSourceControlSlotPreparer(ctx context.Con
 // CreateOrUpdateSourceControlSlotSender sends the CreateOrUpdateSourceControlSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateSourceControlSlotSender(req *http.Request) (future AppsCreateOrUpdateSourceControlSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -2763,6 +3044,16 @@ func (client AppsClient) CreateOrUpdateSourceControlSlotResponder(resp *http.Res
 // vnetName - name of an existing Virtual Network.
 // connectionEnvelope - properties of the Virtual Network connection. See example.
 func (client AppsClient) CreateOrUpdateVnetConnection(ctx context.Context, resourceGroupName string, name string, vnetName string, connectionEnvelope VnetInfo) (result VnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateVnetConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2819,8 +3110,8 @@ func (client AppsClient) CreateOrUpdateVnetConnectionPreparer(ctx context.Contex
 // CreateOrUpdateVnetConnectionSender sends the CreateOrUpdateVnetConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateVnetConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateVnetConnectionResponder handles the response to the CreateOrUpdateVnetConnection request. The method always
@@ -2844,6 +3135,16 @@ func (client AppsClient) CreateOrUpdateVnetConnectionResponder(resp *http.Respon
 // gatewayName - name of the gateway. Currently, the only supported string is "primary".
 // connectionEnvelope - the properties to update this gateway with.
 func (client AppsClient) CreateOrUpdateVnetConnectionGateway(ctx context.Context, resourceGroupName string, name string, vnetName string, gatewayName string, connectionEnvelope VnetGateway) (result VnetGateway, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateVnetConnectionGateway")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2904,8 +3205,8 @@ func (client AppsClient) CreateOrUpdateVnetConnectionGatewayPreparer(ctx context
 // CreateOrUpdateVnetConnectionGatewaySender sends the CreateOrUpdateVnetConnectionGateway request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateVnetConnectionGatewaySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateVnetConnectionGatewayResponder handles the response to the CreateOrUpdateVnetConnectionGateway request. The method always
@@ -2931,6 +3232,16 @@ func (client AppsClient) CreateOrUpdateVnetConnectionGatewayResponder(resp *http
 // slot - name of the deployment slot. If a slot is not specified, the API will add or update a gateway for the
 // production slot's Virtual Network.
 func (client AppsClient) CreateOrUpdateVnetConnectionGatewaySlot(ctx context.Context, resourceGroupName string, name string, vnetName string, gatewayName string, connectionEnvelope VnetGateway, slot string) (result VnetGateway, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateVnetConnectionGatewaySlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2992,8 +3303,8 @@ func (client AppsClient) CreateOrUpdateVnetConnectionGatewaySlotPreparer(ctx con
 // CreateOrUpdateVnetConnectionGatewaySlotSender sends the CreateOrUpdateVnetConnectionGatewaySlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateVnetConnectionGatewaySlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateVnetConnectionGatewaySlotResponder handles the response to the CreateOrUpdateVnetConnectionGatewaySlot request. The method always
@@ -3019,6 +3330,16 @@ func (client AppsClient) CreateOrUpdateVnetConnectionGatewaySlotResponder(resp *
 // slot - name of the deployment slot. If a slot is not specified, the API will add or update connections for
 // the production slot.
 func (client AppsClient) CreateOrUpdateVnetConnectionSlot(ctx context.Context, resourceGroupName string, name string, vnetName string, connectionEnvelope VnetInfo, slot string) (result VnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.CreateOrUpdateVnetConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3076,8 +3397,8 @@ func (client AppsClient) CreateOrUpdateVnetConnectionSlotPreparer(ctx context.Co
 // CreateOrUpdateVnetConnectionSlotSender sends the CreateOrUpdateVnetConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) CreateOrUpdateVnetConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateVnetConnectionSlotResponder handles the response to the CreateOrUpdateVnetConnectionSlot request. The method always
@@ -3101,6 +3422,16 @@ func (client AppsClient) CreateOrUpdateVnetConnectionSlotResponder(resp *http.Re
 // deleteEmptyServerFarm - specify true if the App Service plan will be empty after app deletion and you want
 // to delete the empty App Service plan. By default, the empty App Service plan is not deleted.
 func (client AppsClient) Delete(ctx context.Context, resourceGroupName string, name string, deleteMetrics *bool, deleteEmptyServerFarm *bool) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3160,8 +3491,8 @@ func (client AppsClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -3182,6 +3513,16 @@ func (client AppsClient) DeleteResponder(resp *http.Response) (result autorest.R
 // name - name of the app.
 // backupID - ID of the backup.
 func (client AppsClient) DeleteBackup(ctx context.Context, resourceGroupName string, name string, backupID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteBackup")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3236,8 +3577,8 @@ func (client AppsClient) DeleteBackupPreparer(ctx context.Context, resourceGroup
 // DeleteBackupSender sends the DeleteBackup request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteBackupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteBackupResponder handles the response to the DeleteBackup request. The method always
@@ -3257,6 +3598,16 @@ func (client AppsClient) DeleteBackupResponder(resp *http.Response) (result auto
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) DeleteBackupConfiguration(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteBackupConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3310,8 +3661,8 @@ func (client AppsClient) DeleteBackupConfigurationPreparer(ctx context.Context, 
 // DeleteBackupConfigurationSender sends the DeleteBackupConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteBackupConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteBackupConfigurationResponder handles the response to the DeleteBackupConfiguration request. The method always
@@ -3333,6 +3684,16 @@ func (client AppsClient) DeleteBackupConfigurationResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the backup configuration
 // for the production slot.
 func (client AppsClient) DeleteBackupConfigurationSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteBackupConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3387,8 +3748,8 @@ func (client AppsClient) DeleteBackupConfigurationSlotPreparer(ctx context.Conte
 // DeleteBackupConfigurationSlotSender sends the DeleteBackupConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteBackupConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteBackupConfigurationSlotResponder handles the response to the DeleteBackupConfigurationSlot request. The method always
@@ -3411,6 +3772,16 @@ func (client AppsClient) DeleteBackupConfigurationSlotResponder(resp *http.Respo
 // slot - name of the deployment slot. If a slot is not specified, the API will delete a backup of the
 // production slot.
 func (client AppsClient) DeleteBackupSlot(ctx context.Context, resourceGroupName string, name string, backupID string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteBackupSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3466,8 +3837,8 @@ func (client AppsClient) DeleteBackupSlotPreparer(ctx context.Context, resourceG
 // DeleteBackupSlotSender sends the DeleteBackupSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteBackupSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteBackupSlotResponder handles the response to the DeleteBackupSlot request. The method always
@@ -3488,6 +3859,16 @@ func (client AppsClient) DeleteBackupSlotResponder(resp *http.Response) (result 
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) DeleteContinuousWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteContinuousWebJob")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3542,8 +3923,8 @@ func (client AppsClient) DeleteContinuousWebJobPreparer(ctx context.Context, res
 // DeleteContinuousWebJobSender sends the DeleteContinuousWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteContinuousWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteContinuousWebJobResponder handles the response to the DeleteContinuousWebJob request. The method always
@@ -3566,6 +3947,16 @@ func (client AppsClient) DeleteContinuousWebJobResponder(resp *http.Response) (r
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) DeleteContinuousWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteContinuousWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3621,8 +4012,8 @@ func (client AppsClient) DeleteContinuousWebJobSlotPreparer(ctx context.Context,
 // DeleteContinuousWebJobSlotSender sends the DeleteContinuousWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteContinuousWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteContinuousWebJobSlotResponder handles the response to the DeleteContinuousWebJobSlot request. The method always
@@ -3643,6 +4034,16 @@ func (client AppsClient) DeleteContinuousWebJobSlotResponder(resp *http.Response
 // name - name of the app.
 // ID - deployment ID.
 func (client AppsClient) DeleteDeployment(ctx context.Context, resourceGroupName string, name string, ID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteDeployment")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3697,8 +4098,8 @@ func (client AppsClient) DeleteDeploymentPreparer(ctx context.Context, resourceG
 // DeleteDeploymentSender sends the DeleteDeployment request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteDeploymentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteDeploymentResponder handles the response to the DeleteDeployment request. The method always
@@ -3721,6 +4122,16 @@ func (client AppsClient) DeleteDeploymentResponder(resp *http.Response) (result 
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) DeleteDeploymentSlot(ctx context.Context, resourceGroupName string, name string, ID string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteDeploymentSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3776,8 +4187,8 @@ func (client AppsClient) DeleteDeploymentSlotPreparer(ctx context.Context, resou
 // DeleteDeploymentSlotSender sends the DeleteDeploymentSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteDeploymentSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteDeploymentSlotResponder handles the response to the DeleteDeploymentSlot request. The method always
@@ -3798,6 +4209,16 @@ func (client AppsClient) DeleteDeploymentSlotResponder(resp *http.Response) (res
 // name - name of the app.
 // domainOwnershipIdentifierName - name of domain ownership identifier.
 func (client AppsClient) DeleteDomainOwnershipIdentifier(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteDomainOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3852,8 +4273,8 @@ func (client AppsClient) DeleteDomainOwnershipIdentifierPreparer(ctx context.Con
 // DeleteDomainOwnershipIdentifierSender sends the DeleteDomainOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteDomainOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteDomainOwnershipIdentifierResponder handles the response to the DeleteDomainOwnershipIdentifier request. The method always
@@ -3876,6 +4297,16 @@ func (client AppsClient) DeleteDomainOwnershipIdentifierResponder(resp *http.Res
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the binding for the
 // production slot.
 func (client AppsClient) DeleteDomainOwnershipIdentifierSlot(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteDomainOwnershipIdentifierSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3931,8 +4362,8 @@ func (client AppsClient) DeleteDomainOwnershipIdentifierSlotPreparer(ctx context
 // DeleteDomainOwnershipIdentifierSlotSender sends the DeleteDomainOwnershipIdentifierSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteDomainOwnershipIdentifierSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteDomainOwnershipIdentifierSlotResponder handles the response to the DeleteDomainOwnershipIdentifierSlot request. The method always
@@ -3953,6 +4384,16 @@ func (client AppsClient) DeleteDomainOwnershipIdentifierSlotResponder(resp *http
 // name - site name.
 // functionName - function name.
 func (client AppsClient) DeleteFunction(ctx context.Context, resourceGroupName string, name string, functionName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteFunction")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4007,8 +4448,8 @@ func (client AppsClient) DeleteFunctionPreparer(ctx context.Context, resourceGro
 // DeleteFunctionSender sends the DeleteFunction request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteFunctionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteFunctionResponder handles the response to the DeleteFunction request. The method always
@@ -4029,6 +4470,16 @@ func (client AppsClient) DeleteFunctionResponder(resp *http.Response) (result au
 // name - name of the app.
 // hostName - hostname in the hostname binding.
 func (client AppsClient) DeleteHostNameBinding(ctx context.Context, resourceGroupName string, name string, hostName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteHostNameBinding")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4083,8 +4534,8 @@ func (client AppsClient) DeleteHostNameBindingPreparer(ctx context.Context, reso
 // DeleteHostNameBindingSender sends the DeleteHostNameBinding request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteHostNameBindingSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteHostNameBindingResponder handles the response to the DeleteHostNameBinding request. The method always
@@ -4107,6 +4558,16 @@ func (client AppsClient) DeleteHostNameBindingResponder(resp *http.Response) (re
 // production slot.
 // hostName - hostname in the hostname binding.
 func (client AppsClient) DeleteHostNameBindingSlot(ctx context.Context, resourceGroupName string, name string, slot string, hostName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteHostNameBindingSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4162,8 +4623,8 @@ func (client AppsClient) DeleteHostNameBindingSlotPreparer(ctx context.Context, 
 // DeleteHostNameBindingSlotSender sends the DeleteHostNameBindingSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteHostNameBindingSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteHostNameBindingSlotResponder handles the response to the DeleteHostNameBindingSlot request. The method always
@@ -4185,6 +4646,16 @@ func (client AppsClient) DeleteHostNameBindingSlotResponder(resp *http.Response)
 // namespaceName - the namespace for this hybrid connection.
 // relayName - the relay name for this hybrid connection.
 func (client AppsClient) DeleteHybridConnection(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteHybridConnection")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4240,8 +4711,8 @@ func (client AppsClient) DeleteHybridConnectionPreparer(ctx context.Context, res
 // DeleteHybridConnectionSender sends the DeleteHybridConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteHybridConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteHybridConnectionResponder handles the response to the DeleteHybridConnection request. The method always
@@ -4264,6 +4735,16 @@ func (client AppsClient) DeleteHybridConnectionResponder(resp *http.Response) (r
 // relayName - the relay name for this hybrid connection.
 // slot - the name of the slot for the web app.
 func (client AppsClient) DeleteHybridConnectionSlot(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteHybridConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4320,8 +4801,8 @@ func (client AppsClient) DeleteHybridConnectionSlotPreparer(ctx context.Context,
 // DeleteHybridConnectionSlotSender sends the DeleteHybridConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteHybridConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteHybridConnectionSlotResponder handles the response to the DeleteHybridConnectionSlot request. The method always
@@ -4344,6 +4825,16 @@ func (client AppsClient) DeleteHybridConnectionSlotResponder(resp *http.Response
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) DeleteInstanceFunctionSlot(ctx context.Context, resourceGroupName string, name string, functionName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteInstanceFunctionSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4399,8 +4890,8 @@ func (client AppsClient) DeleteInstanceFunctionSlotPreparer(ctx context.Context,
 // DeleteInstanceFunctionSlotSender sends the DeleteInstanceFunctionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteInstanceFunctionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteInstanceFunctionSlotResponder handles the response to the DeleteInstanceFunctionSlot request. The method always
@@ -4424,6 +4915,16 @@ func (client AppsClient) DeleteInstanceFunctionSlotResponder(resp *http.Response
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) DeleteInstanceProcess(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteInstanceProcess")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4479,8 +4980,8 @@ func (client AppsClient) DeleteInstanceProcessPreparer(ctx context.Context, reso
 // DeleteInstanceProcessSender sends the DeleteInstanceProcess request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteInstanceProcessSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteInstanceProcessResponder handles the response to the DeleteInstanceProcess request. The method always
@@ -4506,6 +5007,16 @@ func (client AppsClient) DeleteInstanceProcessResponder(resp *http.Response) (re
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) DeleteInstanceProcessSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteInstanceProcessSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4562,8 +5073,8 @@ func (client AppsClient) DeleteInstanceProcessSlotPreparer(ctx context.Context, 
 // DeleteInstanceProcessSlotSender sends the DeleteInstanceProcessSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteInstanceProcessSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteInstanceProcessSlotResponder handles the response to the DeleteInstanceProcessSlot request. The method always
@@ -4584,6 +5095,16 @@ func (client AppsClient) DeleteInstanceProcessSlotResponder(resp *http.Response)
 // name - name of the app.
 // premierAddOnName - add-on name.
 func (client AppsClient) DeletePremierAddOn(ctx context.Context, resourceGroupName string, name string, premierAddOnName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeletePremierAddOn")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4638,8 +5159,8 @@ func (client AppsClient) DeletePremierAddOnPreparer(ctx context.Context, resourc
 // DeletePremierAddOnSender sends the DeletePremierAddOn request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeletePremierAddOnSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeletePremierAddOnResponder handles the response to the DeletePremierAddOn request. The method always
@@ -4662,6 +5183,16 @@ func (client AppsClient) DeletePremierAddOnResponder(resp *http.Response) (resul
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the named add-on for the
 // production slot.
 func (client AppsClient) DeletePremierAddOnSlot(ctx context.Context, resourceGroupName string, name string, premierAddOnName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeletePremierAddOnSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4717,8 +5248,8 @@ func (client AppsClient) DeletePremierAddOnSlotPreparer(ctx context.Context, res
 // DeletePremierAddOnSlotSender sends the DeletePremierAddOnSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeletePremierAddOnSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeletePremierAddOnSlotResponder handles the response to the DeletePremierAddOnSlot request. The method always
@@ -4740,6 +5271,16 @@ func (client AppsClient) DeletePremierAddOnSlotResponder(resp *http.Response) (r
 // name - site name.
 // processID - pID.
 func (client AppsClient) DeleteProcess(ctx context.Context, resourceGroupName string, name string, processID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteProcess")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4794,8 +5335,8 @@ func (client AppsClient) DeleteProcessPreparer(ctx context.Context, resourceGrou
 // DeleteProcessSender sends the DeleteProcess request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteProcessSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteProcessResponder handles the response to the DeleteProcess request. The method always
@@ -4819,6 +5360,16 @@ func (client AppsClient) DeleteProcessResponder(resp *http.Response) (result aut
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) DeleteProcessSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteProcessSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4874,8 +5425,8 @@ func (client AppsClient) DeleteProcessSlotPreparer(ctx context.Context, resource
 // DeleteProcessSlotSender sends the DeleteProcessSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteProcessSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteProcessSlotResponder handles the response to the DeleteProcessSlot request. The method always
@@ -4896,6 +5447,16 @@ func (client AppsClient) DeleteProcessSlotResponder(resp *http.Response) (result
 // name - name of the app.
 // publicCertificateName - public certificate name.
 func (client AppsClient) DeletePublicCertificate(ctx context.Context, resourceGroupName string, name string, publicCertificateName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeletePublicCertificate")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -4950,8 +5511,8 @@ func (client AppsClient) DeletePublicCertificatePreparer(ctx context.Context, re
 // DeletePublicCertificateSender sends the DeletePublicCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeletePublicCertificateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeletePublicCertificateResponder handles the response to the DeletePublicCertificate request. The method always
@@ -4974,6 +5535,16 @@ func (client AppsClient) DeletePublicCertificateResponder(resp *http.Response) (
 // production slot.
 // publicCertificateName - public certificate name.
 func (client AppsClient) DeletePublicCertificateSlot(ctx context.Context, resourceGroupName string, name string, slot string, publicCertificateName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeletePublicCertificateSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5029,8 +5600,8 @@ func (client AppsClient) DeletePublicCertificateSlotPreparer(ctx context.Context
 // DeletePublicCertificateSlotSender sends the DeletePublicCertificateSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeletePublicCertificateSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeletePublicCertificateSlotResponder handles the response to the DeletePublicCertificateSlot request. The method always
@@ -5051,6 +5622,16 @@ func (client AppsClient) DeletePublicCertificateSlotResponder(resp *http.Respons
 // name - name of the app.
 // entityName - name of the hybrid connection configuration.
 func (client AppsClient) DeleteRelayServiceConnection(ctx context.Context, resourceGroupName string, name string, entityName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteRelayServiceConnection")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5105,8 +5686,8 @@ func (client AppsClient) DeleteRelayServiceConnectionPreparer(ctx context.Contex
 // DeleteRelayServiceConnectionSender sends the DeleteRelayServiceConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteRelayServiceConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteRelayServiceConnectionResponder handles the response to the DeleteRelayServiceConnection request. The method always
@@ -5129,6 +5710,16 @@ func (client AppsClient) DeleteRelayServiceConnectionResponder(resp *http.Respon
 // slot - name of the deployment slot. If a slot is not specified, the API will delete a hybrid connection for
 // the production slot.
 func (client AppsClient) DeleteRelayServiceConnectionSlot(ctx context.Context, resourceGroupName string, name string, entityName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteRelayServiceConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5184,8 +5775,8 @@ func (client AppsClient) DeleteRelayServiceConnectionSlotPreparer(ctx context.Co
 // DeleteRelayServiceConnectionSlotSender sends the DeleteRelayServiceConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteRelayServiceConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteRelayServiceConnectionSlotResponder handles the response to the DeleteRelayServiceConnectionSlot request. The method always
@@ -5206,6 +5797,16 @@ func (client AppsClient) DeleteRelayServiceConnectionSlotResponder(resp *http.Re
 // name - site name.
 // siteExtensionID - site extension name.
 func (client AppsClient) DeleteSiteExtension(ctx context.Context, resourceGroupName string, name string, siteExtensionID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteSiteExtension")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5260,8 +5861,8 @@ func (client AppsClient) DeleteSiteExtensionPreparer(ctx context.Context, resour
 // DeleteSiteExtensionSender sends the DeleteSiteExtension request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteSiteExtensionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteSiteExtensionResponder handles the response to the DeleteSiteExtension request. The method always
@@ -5284,6 +5885,16 @@ func (client AppsClient) DeleteSiteExtensionResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) DeleteSiteExtensionSlot(ctx context.Context, resourceGroupName string, name string, siteExtensionID string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteSiteExtensionSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5339,8 +5950,8 @@ func (client AppsClient) DeleteSiteExtensionSlotPreparer(ctx context.Context, re
 // DeleteSiteExtensionSlotSender sends the DeleteSiteExtensionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteSiteExtensionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteSiteExtensionSlotResponder handles the response to the DeleteSiteExtensionSlot request. The method always
@@ -5365,6 +5976,16 @@ func (client AppsClient) DeleteSiteExtensionSlotResponder(resp *http.Response) (
 // to delete the empty App Service plan. By default, the empty App Service plan is not deleted.
 // skipDNSRegistration - if true, DNS registration is skipped.
 func (client AppsClient) DeleteSlot(ctx context.Context, resourceGroupName string, name string, slot string, deleteMetrics *bool, deleteEmptyServerFarm *bool, skipDNSRegistration *bool) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5428,8 +6049,8 @@ func (client AppsClient) DeleteSlotPreparer(ctx context.Context, resourceGroupNa
 // DeleteSlotSender sends the DeleteSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteSlotResponder handles the response to the DeleteSlot request. The method always
@@ -5449,6 +6070,16 @@ func (client AppsClient) DeleteSlotResponder(resp *http.Response) (result autore
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) DeleteSourceControl(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteSourceControl")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5502,8 +6133,8 @@ func (client AppsClient) DeleteSourceControlPreparer(ctx context.Context, resour
 // DeleteSourceControlSender sends the DeleteSourceControl request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteSourceControlSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteSourceControlResponder handles the response to the DeleteSourceControl request. The method always
@@ -5525,6 +6156,16 @@ func (client AppsClient) DeleteSourceControlResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the source control
 // configuration for the production slot.
 func (client AppsClient) DeleteSourceControlSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteSourceControlSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5579,8 +6220,8 @@ func (client AppsClient) DeleteSourceControlSlotPreparer(ctx context.Context, re
 // DeleteSourceControlSlotSender sends the DeleteSourceControlSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteSourceControlSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteSourceControlSlotResponder handles the response to the DeleteSourceControlSlot request. The method always
@@ -5601,6 +6242,16 @@ func (client AppsClient) DeleteSourceControlSlotResponder(resp *http.Response) (
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) DeleteTriggeredWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteTriggeredWebJob")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5655,8 +6306,8 @@ func (client AppsClient) DeleteTriggeredWebJobPreparer(ctx context.Context, reso
 // DeleteTriggeredWebJobSender sends the DeleteTriggeredWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteTriggeredWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteTriggeredWebJobResponder handles the response to the DeleteTriggeredWebJob request. The method always
@@ -5679,6 +6330,16 @@ func (client AppsClient) DeleteTriggeredWebJobResponder(resp *http.Response) (re
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) DeleteTriggeredWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteTriggeredWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5734,8 +6395,8 @@ func (client AppsClient) DeleteTriggeredWebJobSlotPreparer(ctx context.Context, 
 // DeleteTriggeredWebJobSlotSender sends the DeleteTriggeredWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteTriggeredWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteTriggeredWebJobSlotResponder handles the response to the DeleteTriggeredWebJobSlot request. The method always
@@ -5756,6 +6417,16 @@ func (client AppsClient) DeleteTriggeredWebJobSlotResponder(resp *http.Response)
 // name - name of the app.
 // vnetName - name of the virtual network.
 func (client AppsClient) DeleteVnetConnection(ctx context.Context, resourceGroupName string, name string, vnetName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteVnetConnection")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5810,8 +6481,8 @@ func (client AppsClient) DeleteVnetConnectionPreparer(ctx context.Context, resou
 // DeleteVnetConnectionSender sends the DeleteVnetConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteVnetConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteVnetConnectionResponder handles the response to the DeleteVnetConnection request. The method always
@@ -5834,6 +6505,16 @@ func (client AppsClient) DeleteVnetConnectionResponder(resp *http.Response) (res
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the connection for the
 // production slot.
 func (client AppsClient) DeleteVnetConnectionSlot(ctx context.Context, resourceGroupName string, name string, vnetName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DeleteVnetConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5889,8 +6570,8 @@ func (client AppsClient) DeleteVnetConnectionSlotPreparer(ctx context.Context, r
 // DeleteVnetConnectionSlotSender sends the DeleteVnetConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DeleteVnetConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteVnetConnectionSlotResponder handles the response to the DeleteVnetConnectionSlot request. The method always
@@ -5911,6 +6592,16 @@ func (client AppsClient) DeleteVnetConnectionSlotResponder(resp *http.Response) 
 // name - name of the app.
 // request - a RestoreRequest object that includes Azure storage URL and blog name for discovery of backup.
 func (client AppsClient) DiscoverRestore(ctx context.Context, resourceGroupName string, name string, request RestoreRequest) (result RestoreRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DiscoverRestore")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -5971,8 +6662,8 @@ func (client AppsClient) DiscoverRestorePreparer(ctx context.Context, resourceGr
 // DiscoverRestoreSender sends the DiscoverRestore request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DiscoverRestoreSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DiscoverRestoreResponder handles the response to the DiscoverRestore request. The method always
@@ -5996,6 +6687,16 @@ func (client AppsClient) DiscoverRestoreResponder(resp *http.Response) (result R
 // slot - name of the deployment slot. If a slot is not specified, the API will perform discovery for the
 // production slot.
 func (client AppsClient) DiscoverRestoreSlot(ctx context.Context, resourceGroupName string, name string, request RestoreRequest, slot string) (result RestoreRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.DiscoverRestoreSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6057,8 +6758,8 @@ func (client AppsClient) DiscoverRestoreSlotPreparer(ctx context.Context, resour
 // DiscoverRestoreSlotSender sends the DiscoverRestoreSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) DiscoverRestoreSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DiscoverRestoreSlotResponder handles the response to the DiscoverRestoreSlot request. The method always
@@ -6079,6 +6780,16 @@ func (client AppsClient) DiscoverRestoreSlotResponder(resp *http.Response) (resu
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) GenerateNewSitePublishingPassword(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GenerateNewSitePublishingPassword")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6132,8 +6843,8 @@ func (client AppsClient) GenerateNewSitePublishingPasswordPreparer(ctx context.C
 // GenerateNewSitePublishingPasswordSender sends the GenerateNewSitePublishingPassword request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GenerateNewSitePublishingPasswordSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GenerateNewSitePublishingPasswordResponder handles the response to the GenerateNewSitePublishingPassword request. The method always
@@ -6156,6 +6867,16 @@ func (client AppsClient) GenerateNewSitePublishingPasswordResponder(resp *http.R
 // slot - name of the deployment slot. If a slot is not specified, the API generate a new publishing password
 // for the production slot.
 func (client AppsClient) GenerateNewSitePublishingPasswordSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GenerateNewSitePublishingPasswordSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6210,8 +6931,8 @@ func (client AppsClient) GenerateNewSitePublishingPasswordSlotPreparer(ctx conte
 // GenerateNewSitePublishingPasswordSlotSender sends the GenerateNewSitePublishingPasswordSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GenerateNewSitePublishingPasswordSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GenerateNewSitePublishingPasswordSlotResponder handles the response to the GenerateNewSitePublishingPasswordSlot request. The method always
@@ -6231,6 +6952,16 @@ func (client AppsClient) GenerateNewSitePublishingPasswordSlotResponder(resp *ht
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) Get(ctx context.Context, resourceGroupName string, name string) (result Site, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6284,8 +7015,8 @@ func (client AppsClient) GetPreparer(ctx context.Context, resourceGroupName stri
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -6306,6 +7037,16 @@ func (client AppsClient) GetResponder(resp *http.Response) (result Site, err err
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) GetAuthSettings(ctx context.Context, resourceGroupName string, name string) (result SiteAuthSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetAuthSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6359,8 +7100,8 @@ func (client AppsClient) GetAuthSettingsPreparer(ctx context.Context, resourceGr
 // GetAuthSettingsSender sends the GetAuthSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetAuthSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAuthSettingsResponder handles the response to the GetAuthSettings request. The method always
@@ -6383,6 +7124,16 @@ func (client AppsClient) GetAuthSettingsResponder(resp *http.Response) (result S
 // slot - name of the deployment slot. If a slot is not specified, the API will get the settings for the
 // production slot.
 func (client AppsClient) GetAuthSettingsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteAuthSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetAuthSettingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6437,8 +7188,8 @@ func (client AppsClient) GetAuthSettingsSlotPreparer(ctx context.Context, resour
 // GetAuthSettingsSlotSender sends the GetAuthSettingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetAuthSettingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetAuthSettingsSlotResponder handles the response to the GetAuthSettingsSlot request. The method always
@@ -6459,6 +7210,16 @@ func (client AppsClient) GetAuthSettingsSlotResponder(resp *http.Response) (resu
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) GetBackupConfiguration(ctx context.Context, resourceGroupName string, name string) (result BackupRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetBackupConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6512,8 +7273,8 @@ func (client AppsClient) GetBackupConfigurationPreparer(ctx context.Context, res
 // GetBackupConfigurationSender sends the GetBackupConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetBackupConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupConfigurationResponder handles the response to the GetBackupConfiguration request. The method always
@@ -6536,6 +7297,16 @@ func (client AppsClient) GetBackupConfigurationResponder(resp *http.Response) (r
 // slot - name of the deployment slot. If a slot is not specified, the API will get the backup configuration
 // for the production slot.
 func (client AppsClient) GetBackupConfigurationSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result BackupRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetBackupConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6590,8 +7361,8 @@ func (client AppsClient) GetBackupConfigurationSlotPreparer(ctx context.Context,
 // GetBackupConfigurationSlotSender sends the GetBackupConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetBackupConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupConfigurationSlotResponder handles the response to the GetBackupConfigurationSlot request. The method always
@@ -6613,6 +7384,16 @@ func (client AppsClient) GetBackupConfigurationSlotResponder(resp *http.Response
 // name - name of the app.
 // backupID - ID of the backup.
 func (client AppsClient) GetBackupStatus(ctx context.Context, resourceGroupName string, name string, backupID string) (result BackupItem, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetBackupStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6667,8 +7448,8 @@ func (client AppsClient) GetBackupStatusPreparer(ctx context.Context, resourceGr
 // GetBackupStatusSender sends the GetBackupStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetBackupStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupStatusResponder handles the response to the GetBackupStatus request. The method always
@@ -6692,6 +7473,16 @@ func (client AppsClient) GetBackupStatusResponder(resp *http.Response) (result B
 // slot - name of the deployment slot. If a slot is not specified, the API will get a backup of the production
 // slot.
 func (client AppsClient) GetBackupStatusSlot(ctx context.Context, resourceGroupName string, name string, backupID string, slot string) (result BackupItem, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetBackupStatusSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6747,8 +7538,8 @@ func (client AppsClient) GetBackupStatusSlotPreparer(ctx context.Context, resour
 // GetBackupStatusSlotSender sends the GetBackupStatusSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetBackupStatusSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetBackupStatusSlotResponder handles the response to the GetBackupStatusSlot request. The method always
@@ -6770,6 +7561,16 @@ func (client AppsClient) GetBackupStatusSlotResponder(resp *http.Response) (resu
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) GetConfiguration(ctx context.Context, resourceGroupName string, name string) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6823,8 +7624,8 @@ func (client AppsClient) GetConfigurationPreparer(ctx context.Context, resourceG
 // GetConfigurationSender sends the GetConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetConfigurationResponder handles the response to the GetConfiguration request. The method always
@@ -6848,6 +7649,16 @@ func (client AppsClient) GetConfigurationResponder(resp *http.Response) (result 
 // slot - name of the deployment slot. If a slot is not specified, the API will return configuration for the
 // production slot.
 func (client AppsClient) GetConfigurationSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6902,8 +7713,8 @@ func (client AppsClient) GetConfigurationSlotPreparer(ctx context.Context, resou
 // GetConfigurationSlotSender sends the GetConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetConfigurationSlotResponder handles the response to the GetConfigurationSlot request. The method always
@@ -6925,6 +7736,16 @@ func (client AppsClient) GetConfigurationSlotResponder(resp *http.Response) (res
 // name - name of the app.
 // snapshotID - the ID of the snapshot to read.
 func (client AppsClient) GetConfigurationSnapshot(ctx context.Context, resourceGroupName string, name string, snapshotID string) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetConfigurationSnapshot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -6979,8 +7800,8 @@ func (client AppsClient) GetConfigurationSnapshotPreparer(ctx context.Context, r
 // GetConfigurationSnapshotSender sends the GetConfigurationSnapshot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetConfigurationSnapshotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetConfigurationSnapshotResponder handles the response to the GetConfigurationSnapshot request. The method always
@@ -7004,6 +7825,16 @@ func (client AppsClient) GetConfigurationSnapshotResponder(resp *http.Response) 
 // slot - name of the deployment slot. If a slot is not specified, the API will return configuration for the
 // production slot.
 func (client AppsClient) GetConfigurationSnapshotSlot(ctx context.Context, resourceGroupName string, name string, snapshotID string, slot string) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetConfigurationSnapshotSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7059,8 +7890,8 @@ func (client AppsClient) GetConfigurationSnapshotSlotPreparer(ctx context.Contex
 // GetConfigurationSnapshotSlotSender sends the GetConfigurationSnapshotSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetConfigurationSnapshotSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetConfigurationSnapshotSlotResponder handles the response to the GetConfigurationSnapshotSlot request. The method always
@@ -7082,6 +7913,16 @@ func (client AppsClient) GetConfigurationSnapshotSlotResponder(resp *http.Respon
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) GetContinuousWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result ContinuousWebJob, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetContinuousWebJob")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7136,8 +7977,8 @@ func (client AppsClient) GetContinuousWebJobPreparer(ctx context.Context, resour
 // GetContinuousWebJobSender sends the GetContinuousWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetContinuousWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetContinuousWebJobResponder handles the response to the GetContinuousWebJob request. The method always
@@ -7161,6 +8002,16 @@ func (client AppsClient) GetContinuousWebJobResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) GetContinuousWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result ContinuousWebJob, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetContinuousWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7216,8 +8067,8 @@ func (client AppsClient) GetContinuousWebJobSlotPreparer(ctx context.Context, re
 // GetContinuousWebJobSlotSender sends the GetContinuousWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetContinuousWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetContinuousWebJobSlotResponder handles the response to the GetContinuousWebJobSlot request. The method always
@@ -7239,6 +8090,16 @@ func (client AppsClient) GetContinuousWebJobSlotResponder(resp *http.Response) (
 // name - name of the app.
 // ID - deployment ID.
 func (client AppsClient) GetDeployment(ctx context.Context, resourceGroupName string, name string, ID string) (result Deployment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetDeployment")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7293,8 +8154,8 @@ func (client AppsClient) GetDeploymentPreparer(ctx context.Context, resourceGrou
 // GetDeploymentSender sends the GetDeployment request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetDeploymentSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeploymentResponder handles the response to the GetDeployment request. The method always
@@ -7318,6 +8179,16 @@ func (client AppsClient) GetDeploymentResponder(resp *http.Response) (result Dep
 // slot - name of the deployment slot. If a slot is not specified, the API gets a deployment for the production
 // slot.
 func (client AppsClient) GetDeploymentSlot(ctx context.Context, resourceGroupName string, name string, ID string, slot string) (result Deployment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetDeploymentSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7373,8 +8244,8 @@ func (client AppsClient) GetDeploymentSlotPreparer(ctx context.Context, resource
 // GetDeploymentSlotSender sends the GetDeploymentSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetDeploymentSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDeploymentSlotResponder handles the response to the GetDeploymentSlot request. The method always
@@ -7395,6 +8266,16 @@ func (client AppsClient) GetDeploymentSlotResponder(resp *http.Response) (result
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) GetDiagnosticLogsConfiguration(ctx context.Context, resourceGroupName string, name string) (result SiteLogsConfig, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetDiagnosticLogsConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7448,8 +8329,8 @@ func (client AppsClient) GetDiagnosticLogsConfigurationPreparer(ctx context.Cont
 // GetDiagnosticLogsConfigurationSender sends the GetDiagnosticLogsConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetDiagnosticLogsConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDiagnosticLogsConfigurationResponder handles the response to the GetDiagnosticLogsConfiguration request. The method always
@@ -7472,6 +8353,16 @@ func (client AppsClient) GetDiagnosticLogsConfigurationResponder(resp *http.Resp
 // slot - name of the deployment slot. If a slot is not specified, the API will get the logging configuration
 // for the production slot.
 func (client AppsClient) GetDiagnosticLogsConfigurationSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteLogsConfig, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetDiagnosticLogsConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7526,8 +8417,8 @@ func (client AppsClient) GetDiagnosticLogsConfigurationSlotPreparer(ctx context.
 // GetDiagnosticLogsConfigurationSlotSender sends the GetDiagnosticLogsConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetDiagnosticLogsConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDiagnosticLogsConfigurationSlotResponder handles the response to the GetDiagnosticLogsConfigurationSlot request. The method always
@@ -7549,6 +8440,16 @@ func (client AppsClient) GetDiagnosticLogsConfigurationSlotResponder(resp *http.
 // name - name of the app.
 // domainOwnershipIdentifierName - name of domain ownership identifier.
 func (client AppsClient) GetDomainOwnershipIdentifier(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string) (result Identifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetDomainOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7603,8 +8504,8 @@ func (client AppsClient) GetDomainOwnershipIdentifierPreparer(ctx context.Contex
 // GetDomainOwnershipIdentifierSender sends the GetDomainOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetDomainOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDomainOwnershipIdentifierResponder handles the response to the GetDomainOwnershipIdentifier request. The method always
@@ -7628,6 +8529,16 @@ func (client AppsClient) GetDomainOwnershipIdentifierResponder(resp *http.Respon
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the binding for the
 // production slot.
 func (client AppsClient) GetDomainOwnershipIdentifierSlot(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string, slot string) (result Identifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetDomainOwnershipIdentifierSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7683,8 +8594,8 @@ func (client AppsClient) GetDomainOwnershipIdentifierSlotPreparer(ctx context.Co
 // GetDomainOwnershipIdentifierSlotSender sends the GetDomainOwnershipIdentifierSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetDomainOwnershipIdentifierSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDomainOwnershipIdentifierSlotResponder handles the response to the GetDomainOwnershipIdentifierSlot request. The method always
@@ -7706,6 +8617,16 @@ func (client AppsClient) GetDomainOwnershipIdentifierSlotResponder(resp *http.Re
 // name - site name.
 // functionName - function name.
 func (client AppsClient) GetFunction(ctx context.Context, resourceGroupName string, name string, functionName string) (result FunctionEnvelope, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetFunction")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7760,8 +8681,8 @@ func (client AppsClient) GetFunctionPreparer(ctx context.Context, resourceGroupN
 // GetFunctionSender sends the GetFunction request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetFunctionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetFunctionResponder handles the response to the GetFunction request. The method always
@@ -7782,6 +8703,16 @@ func (client AppsClient) GetFunctionResponder(resp *http.Response) (result Funct
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetFunctionsAdminToken(ctx context.Context, resourceGroupName string, name string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetFunctionsAdminToken")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7835,8 +8766,8 @@ func (client AppsClient) GetFunctionsAdminTokenPreparer(ctx context.Context, res
 // GetFunctionsAdminTokenSender sends the GetFunctionsAdminToken request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetFunctionsAdminTokenSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetFunctionsAdminTokenResponder handles the response to the GetFunctionsAdminToken request. The method always
@@ -7858,6 +8789,16 @@ func (client AppsClient) GetFunctionsAdminTokenResponder(resp *http.Response) (r
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) GetFunctionsAdminTokenSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetFunctionsAdminTokenSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7912,8 +8853,8 @@ func (client AppsClient) GetFunctionsAdminTokenSlotPreparer(ctx context.Context,
 // GetFunctionsAdminTokenSlotSender sends the GetFunctionsAdminTokenSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetFunctionsAdminTokenSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetFunctionsAdminTokenSlotResponder handles the response to the GetFunctionsAdminTokenSlot request. The method always
@@ -7935,6 +8876,16 @@ func (client AppsClient) GetFunctionsAdminTokenSlotResponder(resp *http.Response
 // name - name of the app.
 // hostName - hostname in the hostname binding.
 func (client AppsClient) GetHostNameBinding(ctx context.Context, resourceGroupName string, name string, hostName string) (result HostNameBinding, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetHostNameBinding")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -7989,8 +8940,8 @@ func (client AppsClient) GetHostNameBindingPreparer(ctx context.Context, resourc
 // GetHostNameBindingSender sends the GetHostNameBinding request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetHostNameBindingSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetHostNameBindingResponder handles the response to the GetHostNameBinding request. The method always
@@ -8014,6 +8965,16 @@ func (client AppsClient) GetHostNameBindingResponder(resp *http.Response) (resul
 // slot.
 // hostName - hostname in the hostname binding.
 func (client AppsClient) GetHostNameBindingSlot(ctx context.Context, resourceGroupName string, name string, slot string, hostName string) (result HostNameBinding, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetHostNameBindingSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8069,8 +9030,8 @@ func (client AppsClient) GetHostNameBindingSlotPreparer(ctx context.Context, res
 // GetHostNameBindingSlotSender sends the GetHostNameBindingSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetHostNameBindingSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetHostNameBindingSlotResponder handles the response to the GetHostNameBindingSlot request. The method always
@@ -8093,6 +9054,16 @@ func (client AppsClient) GetHostNameBindingSlotResponder(resp *http.Response) (r
 // namespaceName - the namespace for this hybrid connection.
 // relayName - the relay name for this hybrid connection.
 func (client AppsClient) GetHybridConnection(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetHybridConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8148,8 +9119,8 @@ func (client AppsClient) GetHybridConnectionPreparer(ctx context.Context, resour
 // GetHybridConnectionSender sends the GetHybridConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetHybridConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetHybridConnectionResponder handles the response to the GetHybridConnection request. The method always
@@ -8173,6 +9144,16 @@ func (client AppsClient) GetHybridConnectionResponder(resp *http.Response) (resu
 // relayName - the relay name for this hybrid connection.
 // slot - the name of the slot for the web app.
 func (client AppsClient) GetHybridConnectionSlot(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, slot string) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetHybridConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8229,8 +9210,8 @@ func (client AppsClient) GetHybridConnectionSlotPreparer(ctx context.Context, re
 // GetHybridConnectionSlotSender sends the GetHybridConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetHybridConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetHybridConnectionSlotResponder handles the response to the GetHybridConnectionSlot request. The method always
@@ -8254,6 +9235,16 @@ func (client AppsClient) GetHybridConnectionSlotResponder(resp *http.Response) (
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) GetInstanceFunctionSlot(ctx context.Context, resourceGroupName string, name string, functionName string, slot string) (result FunctionEnvelope, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceFunctionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8309,8 +9300,8 @@ func (client AppsClient) GetInstanceFunctionSlotPreparer(ctx context.Context, re
 // GetInstanceFunctionSlotSender sends the GetInstanceFunctionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceFunctionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceFunctionSlotResponder handles the response to the GetInstanceFunctionSlot request. The method always
@@ -8332,6 +9323,16 @@ func (client AppsClient) GetInstanceFunctionSlotResponder(resp *http.Response) (
 // name - name of web app.
 // instanceID - ID of web app instance.
 func (client AppsClient) GetInstanceMSDeployLog(ctx context.Context, resourceGroupName string, name string, instanceID string) (result MSDeployLog, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceMSDeployLog")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8386,8 +9387,8 @@ func (client AppsClient) GetInstanceMSDeployLogPreparer(ctx context.Context, res
 // GetInstanceMSDeployLogSender sends the GetInstanceMSDeployLog request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceMSDeployLogSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceMSDeployLogResponder handles the response to the GetInstanceMSDeployLog request. The method always
@@ -8410,6 +9411,16 @@ func (client AppsClient) GetInstanceMSDeployLogResponder(resp *http.Response) (r
 // slot - name of web app slot. If not specified then will default to production slot.
 // instanceID - ID of web app instance.
 func (client AppsClient) GetInstanceMSDeployLogSlot(ctx context.Context, resourceGroupName string, name string, slot string, instanceID string) (result MSDeployLog, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceMSDeployLogSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8465,8 +9476,8 @@ func (client AppsClient) GetInstanceMSDeployLogSlotPreparer(ctx context.Context,
 // GetInstanceMSDeployLogSlotSender sends the GetInstanceMSDeployLogSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceMSDeployLogSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceMSDeployLogSlotResponder handles the response to the GetInstanceMSDeployLogSlot request. The method always
@@ -8488,6 +9499,16 @@ func (client AppsClient) GetInstanceMSDeployLogSlotResponder(resp *http.Response
 // name - name of web app.
 // instanceID - ID of web app instance.
 func (client AppsClient) GetInstanceMsDeployStatus(ctx context.Context, resourceGroupName string, name string, instanceID string) (result MSDeployStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceMsDeployStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8542,8 +9563,8 @@ func (client AppsClient) GetInstanceMsDeployStatusPreparer(ctx context.Context, 
 // GetInstanceMsDeployStatusSender sends the GetInstanceMsDeployStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceMsDeployStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceMsDeployStatusResponder handles the response to the GetInstanceMsDeployStatus request. The method always
@@ -8566,6 +9587,16 @@ func (client AppsClient) GetInstanceMsDeployStatusResponder(resp *http.Response)
 // slot - name of web app slot. If not specified then will default to production slot.
 // instanceID - ID of web app instance.
 func (client AppsClient) GetInstanceMsDeployStatusSlot(ctx context.Context, resourceGroupName string, name string, slot string, instanceID string) (result MSDeployStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceMsDeployStatusSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8621,8 +9652,8 @@ func (client AppsClient) GetInstanceMsDeployStatusSlotPreparer(ctx context.Conte
 // GetInstanceMsDeployStatusSlotSender sends the GetInstanceMsDeployStatusSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceMsDeployStatusSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceMsDeployStatusSlotResponder handles the response to the GetInstanceMsDeployStatusSlot request. The method always
@@ -8646,6 +9677,16 @@ func (client AppsClient) GetInstanceMsDeployStatusSlotResponder(resp *http.Respo
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcess(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result ProcessInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcess")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8701,8 +9742,8 @@ func (client AppsClient) GetInstanceProcessPreparer(ctx context.Context, resourc
 // GetInstanceProcessSender sends the GetInstanceProcess request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessResponder handles the response to the GetInstanceProcess request. The method always
@@ -8726,6 +9767,16 @@ func (client AppsClient) GetInstanceProcessResponder(resp *http.Response) (resul
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessDump(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessDump")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8781,8 +9832,8 @@ func (client AppsClient) GetInstanceProcessDumpPreparer(ctx context.Context, res
 // GetInstanceProcessDumpSender sends the GetInstanceProcessDump request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessDumpSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessDumpResponder handles the response to the GetInstanceProcessDump request. The method always
@@ -8808,6 +9859,16 @@ func (client AppsClient) GetInstanceProcessDumpResponder(resp *http.Response) (r
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessDumpSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessDumpSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8864,8 +9925,8 @@ func (client AppsClient) GetInstanceProcessDumpSlotPreparer(ctx context.Context,
 // GetInstanceProcessDumpSlotSender sends the GetInstanceProcessDumpSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessDumpSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessDumpSlotResponder handles the response to the GetInstanceProcessDumpSlot request. The method always
@@ -8889,6 +9950,16 @@ func (client AppsClient) GetInstanceProcessDumpSlotResponder(resp *http.Response
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessModule(ctx context.Context, resourceGroupName string, name string, processID string, baseAddress string, instanceID string) (result ProcessModuleInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessModule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -8945,8 +10016,8 @@ func (client AppsClient) GetInstanceProcessModulePreparer(ctx context.Context, r
 // GetInstanceProcessModuleSender sends the GetInstanceProcessModule request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessModuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessModuleResponder handles the response to the GetInstanceProcessModule request. The method always
@@ -8973,6 +10044,16 @@ func (client AppsClient) GetInstanceProcessModuleResponder(resp *http.Response) 
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessModuleSlot(ctx context.Context, resourceGroupName string, name string, processID string, baseAddress string, slot string, instanceID string) (result ProcessModuleInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessModuleSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9030,8 +10111,8 @@ func (client AppsClient) GetInstanceProcessModuleSlotPreparer(ctx context.Contex
 // GetInstanceProcessModuleSlotSender sends the GetInstanceProcessModuleSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessModuleSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessModuleSlotResponder handles the response to the GetInstanceProcessModuleSlot request. The method always
@@ -9057,6 +10138,16 @@ func (client AppsClient) GetInstanceProcessModuleSlotResponder(resp *http.Respon
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result ProcessInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9113,8 +10204,8 @@ func (client AppsClient) GetInstanceProcessSlotPreparer(ctx context.Context, res
 // GetInstanceProcessSlotSender sends the GetInstanceProcessSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessSlotResponder handles the response to the GetInstanceProcessSlot request. The method always
@@ -9140,6 +10231,16 @@ func (client AppsClient) GetInstanceProcessSlotResponder(resp *http.Response) (r
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessThread(ctx context.Context, resourceGroupName string, name string, processID string, threadID string, instanceID string) (result ProcessThreadInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessThread")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9196,8 +10297,8 @@ func (client AppsClient) GetInstanceProcessThreadPreparer(ctx context.Context, r
 // GetInstanceProcessThreadSender sends the GetInstanceProcessThread request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessThreadSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessThreadResponder handles the response to the GetInstanceProcessThread request. The method always
@@ -9225,6 +10326,16 @@ func (client AppsClient) GetInstanceProcessThreadResponder(resp *http.Response) 
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) GetInstanceProcessThreadSlot(ctx context.Context, resourceGroupName string, name string, processID string, threadID string, slot string, instanceID string) (result ProcessThreadInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetInstanceProcessThreadSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9282,8 +10393,8 @@ func (client AppsClient) GetInstanceProcessThreadSlotPreparer(ctx context.Contex
 // GetInstanceProcessThreadSlotSender sends the GetInstanceProcessThreadSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetInstanceProcessThreadSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetInstanceProcessThreadSlotResponder handles the response to the GetInstanceProcessThreadSlot request. The method always
@@ -9305,6 +10416,16 @@ func (client AppsClient) GetInstanceProcessThreadSlotResponder(resp *http.Respon
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetMigrateMySQLStatus(ctx context.Context, resourceGroupName string, name string) (result MigrateMySQLStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetMigrateMySQLStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9358,8 +10479,8 @@ func (client AppsClient) GetMigrateMySQLStatusPreparer(ctx context.Context, reso
 // GetMigrateMySQLStatusSender sends the GetMigrateMySQLStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetMigrateMySQLStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMigrateMySQLStatusResponder handles the response to the GetMigrateMySQLStatus request. The method always
@@ -9382,6 +10503,16 @@ func (client AppsClient) GetMigrateMySQLStatusResponder(resp *http.Response) (re
 // name - name of web app.
 // slot - name of the deployment slot.
 func (client AppsClient) GetMigrateMySQLStatusSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result MigrateMySQLStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetMigrateMySQLStatusSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9436,8 +10567,8 @@ func (client AppsClient) GetMigrateMySQLStatusSlotPreparer(ctx context.Context, 
 // GetMigrateMySQLStatusSlotSender sends the GetMigrateMySQLStatusSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetMigrateMySQLStatusSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMigrateMySQLStatusSlotResponder handles the response to the GetMigrateMySQLStatusSlot request. The method always
@@ -9458,6 +10589,16 @@ func (client AppsClient) GetMigrateMySQLStatusSlotResponder(resp *http.Response)
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetMSDeployLog(ctx context.Context, resourceGroupName string, name string) (result MSDeployLog, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetMSDeployLog")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9511,8 +10652,8 @@ func (client AppsClient) GetMSDeployLogPreparer(ctx context.Context, resourceGro
 // GetMSDeployLogSender sends the GetMSDeployLog request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetMSDeployLogSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMSDeployLogResponder handles the response to the GetMSDeployLog request. The method always
@@ -9534,6 +10675,16 @@ func (client AppsClient) GetMSDeployLogResponder(resp *http.Response) (result MS
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) GetMSDeployLogSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result MSDeployLog, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetMSDeployLogSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9588,8 +10739,8 @@ func (client AppsClient) GetMSDeployLogSlotPreparer(ctx context.Context, resourc
 // GetMSDeployLogSlotSender sends the GetMSDeployLogSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetMSDeployLogSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMSDeployLogSlotResponder handles the response to the GetMSDeployLogSlot request. The method always
@@ -9610,6 +10761,16 @@ func (client AppsClient) GetMSDeployLogSlotResponder(resp *http.Response) (resul
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetMSDeployStatus(ctx context.Context, resourceGroupName string, name string) (result MSDeployStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetMSDeployStatus")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9663,8 +10824,8 @@ func (client AppsClient) GetMSDeployStatusPreparer(ctx context.Context, resource
 // GetMSDeployStatusSender sends the GetMSDeployStatus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetMSDeployStatusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMSDeployStatusResponder handles the response to the GetMSDeployStatus request. The method always
@@ -9686,6 +10847,16 @@ func (client AppsClient) GetMSDeployStatusResponder(resp *http.Response) (result
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) GetMSDeployStatusSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result MSDeployStatus, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetMSDeployStatusSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9740,8 +10911,8 @@ func (client AppsClient) GetMSDeployStatusSlotPreparer(ctx context.Context, reso
 // GetMSDeployStatusSlotSender sends the GetMSDeployStatusSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetMSDeployStatusSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMSDeployStatusSlotResponder handles the response to the GetMSDeployStatusSlot request. The method always
@@ -9763,6 +10934,16 @@ func (client AppsClient) GetMSDeployStatusSlotResponder(resp *http.Response) (re
 // name - name of the app.
 // premierAddOnName - add-on name.
 func (client AppsClient) GetPremierAddOn(ctx context.Context, resourceGroupName string, name string, premierAddOnName string) (result PremierAddOn, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetPremierAddOn")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9817,8 +10998,8 @@ func (client AppsClient) GetPremierAddOnPreparer(ctx context.Context, resourceGr
 // GetPremierAddOnSender sends the GetPremierAddOn request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetPremierAddOnSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPremierAddOnResponder handles the response to the GetPremierAddOn request. The method always
@@ -9842,6 +11023,16 @@ func (client AppsClient) GetPremierAddOnResponder(resp *http.Response) (result P
 // slot - name of the deployment slot. If a slot is not specified, the API will get the named add-on for the
 // production slot.
 func (client AppsClient) GetPremierAddOnSlot(ctx context.Context, resourceGroupName string, name string, premierAddOnName string, slot string) (result PremierAddOn, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetPremierAddOnSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9897,8 +11088,8 @@ func (client AppsClient) GetPremierAddOnSlotPreparer(ctx context.Context, resour
 // GetPremierAddOnSlotSender sends the GetPremierAddOnSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetPremierAddOnSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPremierAddOnSlotResponder handles the response to the GetPremierAddOnSlot request. The method always
@@ -9920,6 +11111,16 @@ func (client AppsClient) GetPremierAddOnSlotResponder(resp *http.Response) (resu
 // name - site name.
 // processID - pID.
 func (client AppsClient) GetProcess(ctx context.Context, resourceGroupName string, name string, processID string) (result ProcessInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcess")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -9974,8 +11175,8 @@ func (client AppsClient) GetProcessPreparer(ctx context.Context, resourceGroupNa
 // GetProcessSender sends the GetProcess request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessResponder handles the response to the GetProcess request. The method always
@@ -9997,6 +11198,16 @@ func (client AppsClient) GetProcessResponder(resp *http.Response) (result Proces
 // name - site name.
 // processID - pID.
 func (client AppsClient) GetProcessDump(ctx context.Context, resourceGroupName string, name string, processID string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessDump")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10051,8 +11262,8 @@ func (client AppsClient) GetProcessDumpPreparer(ctx context.Context, resourceGro
 // GetProcessDumpSender sends the GetProcessDump request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessDumpSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessDumpResponder handles the response to the GetProcessDump request. The method always
@@ -10075,6 +11286,16 @@ func (client AppsClient) GetProcessDumpResponder(resp *http.Response) (result Re
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) GetProcessDumpSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessDumpSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10130,8 +11351,8 @@ func (client AppsClient) GetProcessDumpSlotPreparer(ctx context.Context, resourc
 // GetProcessDumpSlotSender sends the GetProcessDumpSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessDumpSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessDumpSlotResponder handles the response to the GetProcessDumpSlot request. The method always
@@ -10153,6 +11374,16 @@ func (client AppsClient) GetProcessDumpSlotResponder(resp *http.Response) (resul
 // processID - pID.
 // baseAddress - module base address.
 func (client AppsClient) GetProcessModule(ctx context.Context, resourceGroupName string, name string, processID string, baseAddress string) (result ProcessModuleInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessModule")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10208,8 +11439,8 @@ func (client AppsClient) GetProcessModulePreparer(ctx context.Context, resourceG
 // GetProcessModuleSender sends the GetProcessModule request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessModuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessModuleResponder handles the response to the GetProcessModule request. The method always
@@ -10234,6 +11465,16 @@ func (client AppsClient) GetProcessModuleResponder(resp *http.Response) (result 
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) GetProcessModuleSlot(ctx context.Context, resourceGroupName string, name string, processID string, baseAddress string, slot string) (result ProcessModuleInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessModuleSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10290,8 +11531,8 @@ func (client AppsClient) GetProcessModuleSlotPreparer(ctx context.Context, resou
 // GetProcessModuleSlotSender sends the GetProcessModuleSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessModuleSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessModuleSlotResponder handles the response to the GetProcessModuleSlot request. The method always
@@ -10315,6 +11556,16 @@ func (client AppsClient) GetProcessModuleSlotResponder(resp *http.Response) (res
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) GetProcessSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result ProcessInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10370,8 +11621,8 @@ func (client AppsClient) GetProcessSlotPreparer(ctx context.Context, resourceGro
 // GetProcessSlotSender sends the GetProcessSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessSlotResponder handles the response to the GetProcessSlot request. The method always
@@ -10395,6 +11646,16 @@ func (client AppsClient) GetProcessSlotResponder(resp *http.Response) (result Pr
 // processID - pID.
 // threadID - tID.
 func (client AppsClient) GetProcessThread(ctx context.Context, resourceGroupName string, name string, processID string, threadID string) (result ProcessThreadInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessThread")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10450,8 +11711,8 @@ func (client AppsClient) GetProcessThreadPreparer(ctx context.Context, resourceG
 // GetProcessThreadSender sends the GetProcessThread request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessThreadSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessThreadResponder handles the response to the GetProcessThread request. The method always
@@ -10477,6 +11738,16 @@ func (client AppsClient) GetProcessThreadResponder(resp *http.Response) (result 
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) GetProcessThreadSlot(ctx context.Context, resourceGroupName string, name string, processID string, threadID string, slot string) (result ProcessThreadInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetProcessThreadSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10533,8 +11804,8 @@ func (client AppsClient) GetProcessThreadSlotPreparer(ctx context.Context, resou
 // GetProcessThreadSlotSender sends the GetProcessThreadSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetProcessThreadSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetProcessThreadSlotResponder handles the response to the GetProcessThreadSlot request. The method always
@@ -10556,6 +11827,16 @@ func (client AppsClient) GetProcessThreadSlotResponder(resp *http.Response) (res
 // name - name of the app.
 // publicCertificateName - public certificate name.
 func (client AppsClient) GetPublicCertificate(ctx context.Context, resourceGroupName string, name string, publicCertificateName string) (result PublicCertificate, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetPublicCertificate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10610,8 +11891,8 @@ func (client AppsClient) GetPublicCertificatePreparer(ctx context.Context, resou
 // GetPublicCertificateSender sends the GetPublicCertificate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetPublicCertificateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPublicCertificateResponder handles the response to the GetPublicCertificate request. The method always
@@ -10635,6 +11916,16 @@ func (client AppsClient) GetPublicCertificateResponder(resp *http.Response) (res
 // slot.
 // publicCertificateName - public certificate name.
 func (client AppsClient) GetPublicCertificateSlot(ctx context.Context, resourceGroupName string, name string, slot string, publicCertificateName string) (result PublicCertificate, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetPublicCertificateSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10690,8 +11981,8 @@ func (client AppsClient) GetPublicCertificateSlotPreparer(ctx context.Context, r
 // GetPublicCertificateSlotSender sends the GetPublicCertificateSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetPublicCertificateSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetPublicCertificateSlotResponder handles the response to the GetPublicCertificateSlot request. The method always
@@ -10713,6 +12004,16 @@ func (client AppsClient) GetPublicCertificateSlotResponder(resp *http.Response) 
 // name - name of the app.
 // entityName - name of the hybrid connection.
 func (client AppsClient) GetRelayServiceConnection(ctx context.Context, resourceGroupName string, name string, entityName string) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetRelayServiceConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10767,8 +12068,8 @@ func (client AppsClient) GetRelayServiceConnectionPreparer(ctx context.Context, 
 // GetRelayServiceConnectionSender sends the GetRelayServiceConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetRelayServiceConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetRelayServiceConnectionResponder handles the response to the GetRelayServiceConnection request. The method always
@@ -10792,6 +12093,16 @@ func (client AppsClient) GetRelayServiceConnectionResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API will get a hybrid connection for the
 // production slot.
 func (client AppsClient) GetRelayServiceConnectionSlot(ctx context.Context, resourceGroupName string, name string, entityName string, slot string) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetRelayServiceConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10847,8 +12158,8 @@ func (client AppsClient) GetRelayServiceConnectionSlotPreparer(ctx context.Conte
 // GetRelayServiceConnectionSlotSender sends the GetRelayServiceConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetRelayServiceConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetRelayServiceConnectionSlotResponder handles the response to the GetRelayServiceConnectionSlot request. The method always
@@ -10870,6 +12181,16 @@ func (client AppsClient) GetRelayServiceConnectionSlotResponder(resp *http.Respo
 // name - site name.
 // siteExtensionID - site extension name.
 func (client AppsClient) GetSiteExtension(ctx context.Context, resourceGroupName string, name string, siteExtensionID string) (result SiteExtensionInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSiteExtension")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -10924,8 +12245,8 @@ func (client AppsClient) GetSiteExtensionPreparer(ctx context.Context, resourceG
 // GetSiteExtensionSender sends the GetSiteExtension request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSiteExtensionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSiteExtensionResponder handles the response to the GetSiteExtension request. The method always
@@ -10949,6 +12270,16 @@ func (client AppsClient) GetSiteExtensionResponder(resp *http.Response) (result 
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) GetSiteExtensionSlot(ctx context.Context, resourceGroupName string, name string, siteExtensionID string, slot string) (result SiteExtensionInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSiteExtensionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11004,8 +12335,8 @@ func (client AppsClient) GetSiteExtensionSlotPreparer(ctx context.Context, resou
 // GetSiteExtensionSlotSender sends the GetSiteExtensionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSiteExtensionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSiteExtensionSlotResponder handles the response to the GetSiteExtensionSlot request. The method always
@@ -11026,6 +12357,16 @@ func (client AppsClient) GetSiteExtensionSlotResponder(resp *http.Response) (res
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetSitePhpErrorLogFlag(ctx context.Context, resourceGroupName string, name string) (result SitePhpErrorLogFlag, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSitePhpErrorLogFlag")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11079,8 +12420,8 @@ func (client AppsClient) GetSitePhpErrorLogFlagPreparer(ctx context.Context, res
 // GetSitePhpErrorLogFlagSender sends the GetSitePhpErrorLogFlag request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSitePhpErrorLogFlagSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSitePhpErrorLogFlagResponder handles the response to the GetSitePhpErrorLogFlag request. The method always
@@ -11102,6 +12443,16 @@ func (client AppsClient) GetSitePhpErrorLogFlagResponder(resp *http.Response) (r
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) GetSitePhpErrorLogFlagSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SitePhpErrorLogFlag, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSitePhpErrorLogFlagSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11156,8 +12507,8 @@ func (client AppsClient) GetSitePhpErrorLogFlagSlotPreparer(ctx context.Context,
 // GetSitePhpErrorLogFlagSlotSender sends the GetSitePhpErrorLogFlagSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSitePhpErrorLogFlagSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSitePhpErrorLogFlagSlotResponder handles the response to the GetSitePhpErrorLogFlagSlot request. The method always
@@ -11179,6 +12530,16 @@ func (client AppsClient) GetSitePhpErrorLogFlagSlotResponder(resp *http.Response
 // name - name of the app.
 // slot - name of the deployment slot. By default, this API returns the production slot.
 func (client AppsClient) GetSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result Site, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11233,8 +12594,8 @@ func (client AppsClient) GetSlotPreparer(ctx context.Context, resourceGroupName 
 // GetSlotSender sends the GetSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSlotResponder handles the response to the GetSlot request. The method always
@@ -11255,6 +12616,16 @@ func (client AppsClient) GetSlotResponder(resp *http.Response) (result Site, err
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) GetSourceControl(ctx context.Context, resourceGroupName string, name string) (result SiteSourceControl, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSourceControl")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11308,8 +12679,8 @@ func (client AppsClient) GetSourceControlPreparer(ctx context.Context, resourceG
 // GetSourceControlSender sends the GetSourceControl request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSourceControlSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSourceControlResponder handles the response to the GetSourceControl request. The method always
@@ -11332,6 +12703,16 @@ func (client AppsClient) GetSourceControlResponder(resp *http.Response) (result 
 // slot - name of the deployment slot. If a slot is not specified, the API will get the source control
 // configuration for the production slot.
 func (client AppsClient) GetSourceControlSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteSourceControl, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetSourceControlSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11386,8 +12767,8 @@ func (client AppsClient) GetSourceControlSlotPreparer(ctx context.Context, resou
 // GetSourceControlSlotSender sends the GetSourceControlSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetSourceControlSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetSourceControlSlotResponder handles the response to the GetSourceControlSlot request. The method always
@@ -11409,6 +12790,16 @@ func (client AppsClient) GetSourceControlSlotResponder(resp *http.Response) (res
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) GetTriggeredWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result TriggeredWebJob, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetTriggeredWebJob")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11463,8 +12854,8 @@ func (client AppsClient) GetTriggeredWebJobPreparer(ctx context.Context, resourc
 // GetTriggeredWebJobSender sends the GetTriggeredWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetTriggeredWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetTriggeredWebJobResponder handles the response to the GetTriggeredWebJob request. The method always
@@ -11487,6 +12878,16 @@ func (client AppsClient) GetTriggeredWebJobResponder(resp *http.Response) (resul
 // webJobName - name of Web Job.
 // ID - history ID.
 func (client AppsClient) GetTriggeredWebJobHistory(ctx context.Context, resourceGroupName string, name string, webJobName string, ID string) (result TriggeredJobHistory, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetTriggeredWebJobHistory")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11542,8 +12943,8 @@ func (client AppsClient) GetTriggeredWebJobHistoryPreparer(ctx context.Context, 
 // GetTriggeredWebJobHistorySender sends the GetTriggeredWebJobHistory request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetTriggeredWebJobHistorySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetTriggeredWebJobHistoryResponder handles the response to the GetTriggeredWebJobHistory request. The method always
@@ -11568,6 +12969,16 @@ func (client AppsClient) GetTriggeredWebJobHistoryResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) GetTriggeredWebJobHistorySlot(ctx context.Context, resourceGroupName string, name string, webJobName string, ID string, slot string) (result TriggeredJobHistory, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetTriggeredWebJobHistorySlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11624,8 +13035,8 @@ func (client AppsClient) GetTriggeredWebJobHistorySlotPreparer(ctx context.Conte
 // GetTriggeredWebJobHistorySlotSender sends the GetTriggeredWebJobHistorySlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetTriggeredWebJobHistorySlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetTriggeredWebJobHistorySlotResponder handles the response to the GetTriggeredWebJobHistorySlot request. The method always
@@ -11649,6 +13060,16 @@ func (client AppsClient) GetTriggeredWebJobHistorySlotResponder(resp *http.Respo
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) GetTriggeredWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result TriggeredWebJob, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetTriggeredWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11704,8 +13125,8 @@ func (client AppsClient) GetTriggeredWebJobSlotPreparer(ctx context.Context, res
 // GetTriggeredWebJobSlotSender sends the GetTriggeredWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetTriggeredWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetTriggeredWebJobSlotResponder handles the response to the GetTriggeredWebJobSlot request. The method always
@@ -11727,6 +13148,16 @@ func (client AppsClient) GetTriggeredWebJobSlotResponder(resp *http.Response) (r
 // name - name of the app.
 // vnetName - name of the virtual network.
 func (client AppsClient) GetVnetConnection(ctx context.Context, resourceGroupName string, name string, vnetName string) (result VnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetVnetConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11781,8 +13212,8 @@ func (client AppsClient) GetVnetConnectionPreparer(ctx context.Context, resource
 // GetVnetConnectionSender sends the GetVnetConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetVnetConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetVnetConnectionResponder handles the response to the GetVnetConnection request. The method always
@@ -11805,6 +13236,16 @@ func (client AppsClient) GetVnetConnectionResponder(resp *http.Response) (result
 // vnetName - name of the Virtual Network.
 // gatewayName - name of the gateway. Currently, the only supported string is "primary".
 func (client AppsClient) GetVnetConnectionGateway(ctx context.Context, resourceGroupName string, name string, vnetName string, gatewayName string) (result VnetGateway, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetVnetConnectionGateway")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11860,8 +13301,8 @@ func (client AppsClient) GetVnetConnectionGatewayPreparer(ctx context.Context, r
 // GetVnetConnectionGatewaySender sends the GetVnetConnectionGateway request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetVnetConnectionGatewaySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetVnetConnectionGatewayResponder handles the response to the GetVnetConnectionGateway request. The method always
@@ -11886,6 +13327,16 @@ func (client AppsClient) GetVnetConnectionGatewayResponder(resp *http.Response) 
 // slot - name of the deployment slot. If a slot is not specified, the API will get a gateway for the
 // production slot's Virtual Network.
 func (client AppsClient) GetVnetConnectionGatewaySlot(ctx context.Context, resourceGroupName string, name string, vnetName string, gatewayName string, slot string) (result VnetGateway, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetVnetConnectionGatewaySlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -11942,8 +13393,8 @@ func (client AppsClient) GetVnetConnectionGatewaySlotPreparer(ctx context.Contex
 // GetVnetConnectionGatewaySlotSender sends the GetVnetConnectionGatewaySlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetVnetConnectionGatewaySlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetVnetConnectionGatewaySlotResponder handles the response to the GetVnetConnectionGatewaySlot request. The method always
@@ -11967,6 +13418,16 @@ func (client AppsClient) GetVnetConnectionGatewaySlotResponder(resp *http.Respon
 // slot - name of the deployment slot. If a slot is not specified, the API will get the named virtual network
 // for the production slot.
 func (client AppsClient) GetVnetConnectionSlot(ctx context.Context, resourceGroupName string, name string, vnetName string, slot string) (result VnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetVnetConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12022,8 +13483,8 @@ func (client AppsClient) GetVnetConnectionSlotPreparer(ctx context.Context, reso
 // GetVnetConnectionSlotSender sends the GetVnetConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetVnetConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetVnetConnectionSlotResponder handles the response to the GetVnetConnectionSlot request. The method always
@@ -12045,6 +13506,16 @@ func (client AppsClient) GetVnetConnectionSlotResponder(resp *http.Response) (re
 // name - site name.
 // webJobName - name of the web job.
 func (client AppsClient) GetWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result Job, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetWebJob")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12099,8 +13570,8 @@ func (client AppsClient) GetWebJobPreparer(ctx context.Context, resourceGroupNam
 // GetWebJobSender sends the GetWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWebJobResponder handles the response to the GetWebJob request. The method always
@@ -12124,6 +13595,16 @@ func (client AppsClient) GetWebJobResponder(resp *http.Response) (result Job, er
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) GetWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result Job, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12179,8 +13660,8 @@ func (client AppsClient) GetWebJobSlotPreparer(ctx context.Context, resourceGrou
 // GetWebJobSlotSender sends the GetWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWebJobSlotResponder handles the response to the GetWebJobSlot request. The method always
@@ -12201,6 +13682,16 @@ func (client AppsClient) GetWebJobSlotResponder(resp *http.Response) (result Job
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetWebSiteContainerLogs(ctx context.Context, resourceGroupName string, name string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetWebSiteContainerLogs")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12254,8 +13745,8 @@ func (client AppsClient) GetWebSiteContainerLogsPreparer(ctx context.Context, re
 // GetWebSiteContainerLogsSender sends the GetWebSiteContainerLogs request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetWebSiteContainerLogsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWebSiteContainerLogsResponder handles the response to the GetWebSiteContainerLogs request. The method always
@@ -12276,6 +13767,16 @@ func (client AppsClient) GetWebSiteContainerLogsResponder(resp *http.Response) (
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) GetWebSiteContainerLogsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetWebSiteContainerLogsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12330,8 +13831,8 @@ func (client AppsClient) GetWebSiteContainerLogsSlotPreparer(ctx context.Context
 // GetWebSiteContainerLogsSlotSender sends the GetWebSiteContainerLogsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetWebSiteContainerLogsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWebSiteContainerLogsSlotResponder handles the response to the GetWebSiteContainerLogsSlot request. The method always
@@ -12351,6 +13852,16 @@ func (client AppsClient) GetWebSiteContainerLogsSlotResponder(resp *http.Respons
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) GetWebSiteContainerLogsZip(ctx context.Context, resourceGroupName string, name string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetWebSiteContainerLogsZip")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12404,8 +13915,8 @@ func (client AppsClient) GetWebSiteContainerLogsZipPreparer(ctx context.Context,
 // GetWebSiteContainerLogsZipSender sends the GetWebSiteContainerLogsZip request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetWebSiteContainerLogsZipSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWebSiteContainerLogsZipResponder handles the response to the GetWebSiteContainerLogsZip request. The method always
@@ -12426,6 +13937,16 @@ func (client AppsClient) GetWebSiteContainerLogsZipResponder(resp *http.Response
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) GetWebSiteContainerLogsZipSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.GetWebSiteContainerLogsZipSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12480,8 +14001,8 @@ func (client AppsClient) GetWebSiteContainerLogsZipSlotPreparer(ctx context.Cont
 // GetWebSiteContainerLogsZipSlotSender sends the GetWebSiteContainerLogsZipSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) GetWebSiteContainerLogsZipSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWebSiteContainerLogsZipSlotResponder handles the response to the GetWebSiteContainerLogsZipSlot request. The method always
@@ -12502,6 +14023,16 @@ func (client AppsClient) GetWebSiteContainerLogsZipSlotResponder(resp *http.Resp
 // name - site name.
 // siteExtensionID - site extension name.
 func (client AppsClient) InstallSiteExtension(ctx context.Context, resourceGroupName string, name string, siteExtensionID string) (result AppsInstallSiteExtensionFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.InstallSiteExtension")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12550,13 +14081,9 @@ func (client AppsClient) InstallSiteExtensionPreparer(ctx context.Context, resou
 // InstallSiteExtensionSender sends the InstallSiteExtension request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) InstallSiteExtensionSender(req *http.Request) (future AppsInstallSiteExtensionFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusTooManyRequests))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -12585,6 +14112,16 @@ func (client AppsClient) InstallSiteExtensionResponder(resp *http.Response) (res
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) InstallSiteExtensionSlot(ctx context.Context, resourceGroupName string, name string, siteExtensionID string, slot string) (result AppsInstallSiteExtensionSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.InstallSiteExtensionSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12634,13 +14171,9 @@ func (client AppsClient) InstallSiteExtensionSlotPreparer(ctx context.Context, r
 // InstallSiteExtensionSlotSender sends the InstallSiteExtensionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) InstallSiteExtensionSlotSender(req *http.Request) (future AppsInstallSiteExtensionSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusTooManyRequests))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -12666,6 +14199,16 @@ func (client AppsClient) InstallSiteExtensionSlotResponder(resp *http.Response) 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) IsCloneable(ctx context.Context, resourceGroupName string, name string) (result SiteCloneability, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.IsCloneable")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12719,8 +14262,8 @@ func (client AppsClient) IsCloneablePreparer(ctx context.Context, resourceGroupN
 // IsCloneableSender sends the IsCloneable request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) IsCloneableSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // IsCloneableResponder handles the response to the IsCloneable request. The method always
@@ -12742,6 +14285,16 @@ func (client AppsClient) IsCloneableResponder(resp *http.Response) (result SiteC
 // name - name of the app.
 // slot - name of the deployment slot. By default, this API returns information on the production slot.
 func (client AppsClient) IsCloneableSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteCloneability, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.IsCloneableSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12796,8 +14349,8 @@ func (client AppsClient) IsCloneableSlotPreparer(ctx context.Context, resourceGr
 // IsCloneableSlotSender sends the IsCloneableSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) IsCloneableSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // IsCloneableSlotResponder handles the response to the IsCloneableSlot request. The method always
@@ -12815,6 +14368,16 @@ func (client AppsClient) IsCloneableSlotResponder(resp *http.Response) (result S
 
 // List get all apps for a subscription.
 func (client AppsClient) List(ctx context.Context) (result AppCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.List")
+		defer func() {
+			sc := -1
+			if result.ac.Response.Response != nil {
+				sc = result.ac.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -12859,8 +14422,8 @@ func (client AppsClient) ListPreparer(ctx context.Context) (*http.Request, error
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -12877,8 +14440,8 @@ func (client AppsClient) ListResponder(resp *http.Response) (result AppCollectio
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AppsClient) listNextResults(lastResults AppCollection) (result AppCollection, err error) {
-	req, err := lastResults.appCollectionPreparer()
+func (client AppsClient) listNextResults(ctx context.Context, lastResults AppCollection) (result AppCollection, err error) {
+	req, err := lastResults.appCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -12899,6 +14462,16 @@ func (client AppsClient) listNextResults(lastResults AppCollection) (result AppC
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListComplete(ctx context.Context) (result AppCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -12908,6 +14481,16 @@ func (client AppsClient) ListComplete(ctx context.Context) (result AppCollection
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListApplicationSettings(ctx context.Context, resourceGroupName string, name string) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListApplicationSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -12961,8 +14544,8 @@ func (client AppsClient) ListApplicationSettingsPreparer(ctx context.Context, re
 // ListApplicationSettingsSender sends the ListApplicationSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListApplicationSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListApplicationSettingsResponder handles the response to the ListApplicationSettings request. The method always
@@ -12985,6 +14568,16 @@ func (client AppsClient) ListApplicationSettingsResponder(resp *http.Response) (
 // slot - name of the deployment slot. If a slot is not specified, the API will get the application settings
 // for the production slot.
 func (client AppsClient) ListApplicationSettingsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListApplicationSettingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13039,8 +14632,8 @@ func (client AppsClient) ListApplicationSettingsSlotPreparer(ctx context.Context
 // ListApplicationSettingsSlotSender sends the ListApplicationSettingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListApplicationSettingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListApplicationSettingsSlotResponder handles the response to the ListApplicationSettingsSlot request. The method always
@@ -13061,6 +14654,16 @@ func (client AppsClient) ListApplicationSettingsSlotResponder(resp *http.Respons
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListBackups(ctx context.Context, resourceGroupName string, name string) (result BackupItemCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListBackups")
+		defer func() {
+			sc := -1
+			if result.bic.Response.Response != nil {
+				sc = result.bic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13115,8 +14718,8 @@ func (client AppsClient) ListBackupsPreparer(ctx context.Context, resourceGroupN
 // ListBackupsSender sends the ListBackups request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListBackupsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBackupsResponder handles the response to the ListBackups request. The method always
@@ -13133,8 +14736,8 @@ func (client AppsClient) ListBackupsResponder(resp *http.Response) (result Backu
 }
 
 // listBackupsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listBackupsNextResults(lastResults BackupItemCollection) (result BackupItemCollection, err error) {
-	req, err := lastResults.backupItemCollectionPreparer()
+func (client AppsClient) listBackupsNextResults(ctx context.Context, lastResults BackupItemCollection) (result BackupItemCollection, err error) {
+	req, err := lastResults.backupItemCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listBackupsNextResults", nil, "Failure preparing next results request")
 	}
@@ -13155,6 +14758,16 @@ func (client AppsClient) listBackupsNextResults(lastResults BackupItemCollection
 
 // ListBackupsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListBackupsComplete(ctx context.Context, resourceGroupName string, name string) (result BackupItemCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListBackups")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBackups(ctx, resourceGroupName, name)
 	return
 }
@@ -13166,6 +14779,16 @@ func (client AppsClient) ListBackupsComplete(ctx context.Context, resourceGroupN
 // slot - name of the deployment slot. If a slot is not specified, the API will get backups of the production
 // slot.
 func (client AppsClient) ListBackupsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result BackupItemCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListBackupsSlot")
+		defer func() {
+			sc := -1
+			if result.bic.Response.Response != nil {
+				sc = result.bic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13221,8 +14844,8 @@ func (client AppsClient) ListBackupsSlotPreparer(ctx context.Context, resourceGr
 // ListBackupsSlotSender sends the ListBackupsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListBackupsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBackupsSlotResponder handles the response to the ListBackupsSlot request. The method always
@@ -13239,8 +14862,8 @@ func (client AppsClient) ListBackupsSlotResponder(resp *http.Response) (result B
 }
 
 // listBackupsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listBackupsSlotNextResults(lastResults BackupItemCollection) (result BackupItemCollection, err error) {
-	req, err := lastResults.backupItemCollectionPreparer()
+func (client AppsClient) listBackupsSlotNextResults(ctx context.Context, lastResults BackupItemCollection) (result BackupItemCollection, err error) {
+	req, err := lastResults.backupItemCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listBackupsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -13261,6 +14884,16 @@ func (client AppsClient) listBackupsSlotNextResults(lastResults BackupItemCollec
 
 // ListBackupsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListBackupsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result BackupItemCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListBackupsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBackupsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -13274,6 +14907,16 @@ func (client AppsClient) ListBackupsSlotComplete(ctx context.Context, resourceGr
 // backupID - ID of backup.
 // request - information on backup request.
 func (client AppsClient) ListBackupStatusSecrets(ctx context.Context, resourceGroupName string, name string, backupID string, request BackupRequest) (result BackupItem, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListBackupStatusSecrets")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13340,8 +14983,8 @@ func (client AppsClient) ListBackupStatusSecretsPreparer(ctx context.Context, re
 // ListBackupStatusSecretsSender sends the ListBackupStatusSecrets request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListBackupStatusSecretsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBackupStatusSecretsResponder handles the response to the ListBackupStatusSecrets request. The method always
@@ -13367,6 +15010,16 @@ func (client AppsClient) ListBackupStatusSecretsResponder(resp *http.Response) (
 // request - information on backup request.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) ListBackupStatusSecretsSlot(ctx context.Context, resourceGroupName string, name string, backupID string, request BackupRequest, slot string) (result BackupItem, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListBackupStatusSecretsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13434,8 +15087,8 @@ func (client AppsClient) ListBackupStatusSecretsSlotPreparer(ctx context.Context
 // ListBackupStatusSecretsSlotSender sends the ListBackupStatusSecretsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListBackupStatusSecretsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListBackupStatusSecretsSlotResponder handles the response to the ListBackupStatusSecretsSlot request. The method always
@@ -13457,6 +15110,16 @@ func (client AppsClient) ListBackupStatusSecretsSlotResponder(resp *http.Respons
 // includeSlots - specify <strong>true</strong> to include deployment slots in results. The default is false,
 // which only gives you the production slot of all apps.
 func (client AppsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, includeSlots *bool) (result AppCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.ac.Response.Response != nil {
+				sc = result.ac.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13513,8 +15176,8 @@ func (client AppsClient) ListByResourceGroupPreparer(ctx context.Context, resour
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -13531,8 +15194,8 @@ func (client AppsClient) ListByResourceGroupResponder(resp *http.Response) (resu
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client AppsClient) listByResourceGroupNextResults(lastResults AppCollection) (result AppCollection, err error) {
-	req, err := lastResults.appCollectionPreparer()
+func (client AppsClient) listByResourceGroupNextResults(ctx context.Context, lastResults AppCollection) (result AppCollection, err error) {
+	req, err := lastResults.appCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -13553,6 +15216,16 @@ func (client AppsClient) listByResourceGroupNextResults(lastResults AppCollectio
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, includeSlots *bool) (result AppCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, includeSlots)
 	return
 }
@@ -13562,6 +15235,16 @@ func (client AppsClient) ListByResourceGroupComplete(ctx context.Context, resour
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListConfigurations(ctx context.Context, resourceGroupName string, name string) (result SiteConfigResourceCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurations")
+		defer func() {
+			sc := -1
+			if result.scrc.Response.Response != nil {
+				sc = result.scrc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13616,8 +15299,8 @@ func (client AppsClient) ListConfigurationsPreparer(ctx context.Context, resourc
 // ListConfigurationsSender sends the ListConfigurations request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListConfigurationsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListConfigurationsResponder handles the response to the ListConfigurations request. The method always
@@ -13634,8 +15317,8 @@ func (client AppsClient) ListConfigurationsResponder(resp *http.Response) (resul
 }
 
 // listConfigurationsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listConfigurationsNextResults(lastResults SiteConfigResourceCollection) (result SiteConfigResourceCollection, err error) {
-	req, err := lastResults.siteConfigResourceCollectionPreparer()
+func (client AppsClient) listConfigurationsNextResults(ctx context.Context, lastResults SiteConfigResourceCollection) (result SiteConfigResourceCollection, err error) {
+	req, err := lastResults.siteConfigResourceCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listConfigurationsNextResults", nil, "Failure preparing next results request")
 	}
@@ -13656,6 +15339,16 @@ func (client AppsClient) listConfigurationsNextResults(lastResults SiteConfigRes
 
 // ListConfigurationsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListConfigurationsComplete(ctx context.Context, resourceGroupName string, name string) (result SiteConfigResourceCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurations")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListConfigurations(ctx, resourceGroupName, name)
 	return
 }
@@ -13666,6 +15359,16 @@ func (client AppsClient) ListConfigurationsComplete(ctx context.Context, resourc
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListConfigurationSnapshotInfo(ctx context.Context, resourceGroupName string, name string) (result SiteConfigurationSnapshotInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurationSnapshotInfo")
+		defer func() {
+			sc := -1
+			if result.scsic.Response.Response != nil {
+				sc = result.scsic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13720,8 +15423,8 @@ func (client AppsClient) ListConfigurationSnapshotInfoPreparer(ctx context.Conte
 // ListConfigurationSnapshotInfoSender sends the ListConfigurationSnapshotInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListConfigurationSnapshotInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListConfigurationSnapshotInfoResponder handles the response to the ListConfigurationSnapshotInfo request. The method always
@@ -13738,8 +15441,8 @@ func (client AppsClient) ListConfigurationSnapshotInfoResponder(resp *http.Respo
 }
 
 // listConfigurationSnapshotInfoNextResults retrieves the next set of results, if any.
-func (client AppsClient) listConfigurationSnapshotInfoNextResults(lastResults SiteConfigurationSnapshotInfoCollection) (result SiteConfigurationSnapshotInfoCollection, err error) {
-	req, err := lastResults.siteConfigurationSnapshotInfoCollectionPreparer()
+func (client AppsClient) listConfigurationSnapshotInfoNextResults(ctx context.Context, lastResults SiteConfigurationSnapshotInfoCollection) (result SiteConfigurationSnapshotInfoCollection, err error) {
+	req, err := lastResults.siteConfigurationSnapshotInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listConfigurationSnapshotInfoNextResults", nil, "Failure preparing next results request")
 	}
@@ -13760,6 +15463,16 @@ func (client AppsClient) listConfigurationSnapshotInfoNextResults(lastResults Si
 
 // ListConfigurationSnapshotInfoComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListConfigurationSnapshotInfoComplete(ctx context.Context, resourceGroupName string, name string) (result SiteConfigurationSnapshotInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurationSnapshotInfo")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListConfigurationSnapshotInfo(ctx, resourceGroupName, name)
 	return
 }
@@ -13772,6 +15485,16 @@ func (client AppsClient) ListConfigurationSnapshotInfoComplete(ctx context.Conte
 // slot - name of the deployment slot. If a slot is not specified, the API will return configuration for the
 // production slot.
 func (client AppsClient) ListConfigurationSnapshotInfoSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteConfigurationSnapshotInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurationSnapshotInfoSlot")
+		defer func() {
+			sc := -1
+			if result.scsic.Response.Response != nil {
+				sc = result.scsic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13827,8 +15550,8 @@ func (client AppsClient) ListConfigurationSnapshotInfoSlotPreparer(ctx context.C
 // ListConfigurationSnapshotInfoSlotSender sends the ListConfigurationSnapshotInfoSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListConfigurationSnapshotInfoSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListConfigurationSnapshotInfoSlotResponder handles the response to the ListConfigurationSnapshotInfoSlot request. The method always
@@ -13845,8 +15568,8 @@ func (client AppsClient) ListConfigurationSnapshotInfoSlotResponder(resp *http.R
 }
 
 // listConfigurationSnapshotInfoSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listConfigurationSnapshotInfoSlotNextResults(lastResults SiteConfigurationSnapshotInfoCollection) (result SiteConfigurationSnapshotInfoCollection, err error) {
-	req, err := lastResults.siteConfigurationSnapshotInfoCollectionPreparer()
+func (client AppsClient) listConfigurationSnapshotInfoSlotNextResults(ctx context.Context, lastResults SiteConfigurationSnapshotInfoCollection) (result SiteConfigurationSnapshotInfoCollection, err error) {
+	req, err := lastResults.siteConfigurationSnapshotInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listConfigurationSnapshotInfoSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -13867,6 +15590,16 @@ func (client AppsClient) listConfigurationSnapshotInfoSlotNextResults(lastResult
 
 // ListConfigurationSnapshotInfoSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListConfigurationSnapshotInfoSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteConfigurationSnapshotInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurationSnapshotInfoSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListConfigurationSnapshotInfoSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -13878,6 +15611,16 @@ func (client AppsClient) ListConfigurationSnapshotInfoSlotComplete(ctx context.C
 // slot - name of the deployment slot. If a slot is not specified, the API will return configuration for the
 // production slot.
 func (client AppsClient) ListConfigurationsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteConfigResourceCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurationsSlot")
+		defer func() {
+			sc := -1
+			if result.scrc.Response.Response != nil {
+				sc = result.scrc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -13933,8 +15676,8 @@ func (client AppsClient) ListConfigurationsSlotPreparer(ctx context.Context, res
 // ListConfigurationsSlotSender sends the ListConfigurationsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListConfigurationsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListConfigurationsSlotResponder handles the response to the ListConfigurationsSlot request. The method always
@@ -13951,8 +15694,8 @@ func (client AppsClient) ListConfigurationsSlotResponder(resp *http.Response) (r
 }
 
 // listConfigurationsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listConfigurationsSlotNextResults(lastResults SiteConfigResourceCollection) (result SiteConfigResourceCollection, err error) {
-	req, err := lastResults.siteConfigResourceCollectionPreparer()
+func (client AppsClient) listConfigurationsSlotNextResults(ctx context.Context, lastResults SiteConfigResourceCollection) (result SiteConfigResourceCollection, err error) {
+	req, err := lastResults.siteConfigResourceCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listConfigurationsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -13973,6 +15716,16 @@ func (client AppsClient) listConfigurationsSlotNextResults(lastResults SiteConfi
 
 // ListConfigurationsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListConfigurationsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteConfigResourceCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConfigurationsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListConfigurationsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -13982,6 +15735,16 @@ func (client AppsClient) ListConfigurationsSlotComplete(ctx context.Context, res
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListConnectionStrings(ctx context.Context, resourceGroupName string, name string) (result ConnectionStringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConnectionStrings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14035,8 +15798,8 @@ func (client AppsClient) ListConnectionStringsPreparer(ctx context.Context, reso
 // ListConnectionStringsSender sends the ListConnectionStrings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListConnectionStringsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListConnectionStringsResponder handles the response to the ListConnectionStrings request. The method always
@@ -14059,6 +15822,16 @@ func (client AppsClient) ListConnectionStringsResponder(resp *http.Response) (re
 // slot - name of the deployment slot. If a slot is not specified, the API will get the connection settings for
 // the production slot.
 func (client AppsClient) ListConnectionStringsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ConnectionStringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListConnectionStringsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14113,8 +15886,8 @@ func (client AppsClient) ListConnectionStringsSlotPreparer(ctx context.Context, 
 // ListConnectionStringsSlotSender sends the ListConnectionStringsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListConnectionStringsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListConnectionStringsSlotResponder handles the response to the ListConnectionStringsSlot request. The method always
@@ -14135,6 +15908,16 @@ func (client AppsClient) ListConnectionStringsSlotResponder(resp *http.Response)
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 func (client AppsClient) ListContinuousWebJobs(ctx context.Context, resourceGroupName string, name string) (result ContinuousWebJobCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListContinuousWebJobs")
+		defer func() {
+			sc := -1
+			if result.cwjc.Response.Response != nil {
+				sc = result.cwjc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14189,8 +15972,8 @@ func (client AppsClient) ListContinuousWebJobsPreparer(ctx context.Context, reso
 // ListContinuousWebJobsSender sends the ListContinuousWebJobs request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListContinuousWebJobsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListContinuousWebJobsResponder handles the response to the ListContinuousWebJobs request. The method always
@@ -14207,8 +15990,8 @@ func (client AppsClient) ListContinuousWebJobsResponder(resp *http.Response) (re
 }
 
 // listContinuousWebJobsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listContinuousWebJobsNextResults(lastResults ContinuousWebJobCollection) (result ContinuousWebJobCollection, err error) {
-	req, err := lastResults.continuousWebJobCollectionPreparer()
+func (client AppsClient) listContinuousWebJobsNextResults(ctx context.Context, lastResults ContinuousWebJobCollection) (result ContinuousWebJobCollection, err error) {
+	req, err := lastResults.continuousWebJobCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listContinuousWebJobsNextResults", nil, "Failure preparing next results request")
 	}
@@ -14229,6 +16012,16 @@ func (client AppsClient) listContinuousWebJobsNextResults(lastResults Continuous
 
 // ListContinuousWebJobsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListContinuousWebJobsComplete(ctx context.Context, resourceGroupName string, name string) (result ContinuousWebJobCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListContinuousWebJobs")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListContinuousWebJobs(ctx, resourceGroupName, name)
 	return
 }
@@ -14240,6 +16033,16 @@ func (client AppsClient) ListContinuousWebJobsComplete(ctx context.Context, reso
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) ListContinuousWebJobsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ContinuousWebJobCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListContinuousWebJobsSlot")
+		defer func() {
+			sc := -1
+			if result.cwjc.Response.Response != nil {
+				sc = result.cwjc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14295,8 +16098,8 @@ func (client AppsClient) ListContinuousWebJobsSlotPreparer(ctx context.Context, 
 // ListContinuousWebJobsSlotSender sends the ListContinuousWebJobsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListContinuousWebJobsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListContinuousWebJobsSlotResponder handles the response to the ListContinuousWebJobsSlot request. The method always
@@ -14313,8 +16116,8 @@ func (client AppsClient) ListContinuousWebJobsSlotResponder(resp *http.Response)
 }
 
 // listContinuousWebJobsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listContinuousWebJobsSlotNextResults(lastResults ContinuousWebJobCollection) (result ContinuousWebJobCollection, err error) {
-	req, err := lastResults.continuousWebJobCollectionPreparer()
+func (client AppsClient) listContinuousWebJobsSlotNextResults(ctx context.Context, lastResults ContinuousWebJobCollection) (result ContinuousWebJobCollection, err error) {
+	req, err := lastResults.continuousWebJobCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listContinuousWebJobsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -14335,6 +16138,16 @@ func (client AppsClient) listContinuousWebJobsSlotNextResults(lastResults Contin
 
 // ListContinuousWebJobsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListContinuousWebJobsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result ContinuousWebJobCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListContinuousWebJobsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListContinuousWebJobsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -14346,6 +16159,16 @@ func (client AppsClient) ListContinuousWebJobsSlotComplete(ctx context.Context, 
 // ID - the ID of a specific deployment. This is the value of the name property in the JSON response from "GET
 // /api/sites/{siteName}/deployments".
 func (client AppsClient) ListDeploymentLog(ctx context.Context, resourceGroupName string, name string, ID string) (result Deployment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDeploymentLog")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14400,8 +16223,8 @@ func (client AppsClient) ListDeploymentLogPreparer(ctx context.Context, resource
 // ListDeploymentLogSender sends the ListDeploymentLog request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListDeploymentLogSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDeploymentLogResponder handles the response to the ListDeploymentLog request. The method always
@@ -14426,6 +16249,16 @@ func (client AppsClient) ListDeploymentLogResponder(resp *http.Response) (result
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) ListDeploymentLogSlot(ctx context.Context, resourceGroupName string, name string, ID string, slot string) (result Deployment, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDeploymentLogSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14481,8 +16314,8 @@ func (client AppsClient) ListDeploymentLogSlotPreparer(ctx context.Context, reso
 // ListDeploymentLogSlotSender sends the ListDeploymentLogSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListDeploymentLogSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDeploymentLogSlotResponder handles the response to the ListDeploymentLogSlot request. The method always
@@ -14503,6 +16336,16 @@ func (client AppsClient) ListDeploymentLogSlotResponder(resp *http.Response) (re
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListDeployments(ctx context.Context, resourceGroupName string, name string) (result DeploymentCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDeployments")
+		defer func() {
+			sc := -1
+			if result.dc.Response.Response != nil {
+				sc = result.dc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14557,8 +16400,8 @@ func (client AppsClient) ListDeploymentsPreparer(ctx context.Context, resourceGr
 // ListDeploymentsSender sends the ListDeployments request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListDeploymentsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDeploymentsResponder handles the response to the ListDeployments request. The method always
@@ -14575,8 +16418,8 @@ func (client AppsClient) ListDeploymentsResponder(resp *http.Response) (result D
 }
 
 // listDeploymentsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listDeploymentsNextResults(lastResults DeploymentCollection) (result DeploymentCollection, err error) {
-	req, err := lastResults.deploymentCollectionPreparer()
+func (client AppsClient) listDeploymentsNextResults(ctx context.Context, lastResults DeploymentCollection) (result DeploymentCollection, err error) {
+	req, err := lastResults.deploymentCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listDeploymentsNextResults", nil, "Failure preparing next results request")
 	}
@@ -14597,6 +16440,16 @@ func (client AppsClient) listDeploymentsNextResults(lastResults DeploymentCollec
 
 // ListDeploymentsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListDeploymentsComplete(ctx context.Context, resourceGroupName string, name string) (result DeploymentCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDeployments")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListDeployments(ctx, resourceGroupName, name)
 	return
 }
@@ -14608,6 +16461,16 @@ func (client AppsClient) ListDeploymentsComplete(ctx context.Context, resourceGr
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) ListDeploymentsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result DeploymentCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDeploymentsSlot")
+		defer func() {
+			sc := -1
+			if result.dc.Response.Response != nil {
+				sc = result.dc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14663,8 +16526,8 @@ func (client AppsClient) ListDeploymentsSlotPreparer(ctx context.Context, resour
 // ListDeploymentsSlotSender sends the ListDeploymentsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListDeploymentsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDeploymentsSlotResponder handles the response to the ListDeploymentsSlot request. The method always
@@ -14681,8 +16544,8 @@ func (client AppsClient) ListDeploymentsSlotResponder(resp *http.Response) (resu
 }
 
 // listDeploymentsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listDeploymentsSlotNextResults(lastResults DeploymentCollection) (result DeploymentCollection, err error) {
-	req, err := lastResults.deploymentCollectionPreparer()
+func (client AppsClient) listDeploymentsSlotNextResults(ctx context.Context, lastResults DeploymentCollection) (result DeploymentCollection, err error) {
+	req, err := lastResults.deploymentCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listDeploymentsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -14703,6 +16566,16 @@ func (client AppsClient) listDeploymentsSlotNextResults(lastResults DeploymentCo
 
 // ListDeploymentsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListDeploymentsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result DeploymentCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDeploymentsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListDeploymentsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -14712,6 +16585,16 @@ func (client AppsClient) ListDeploymentsSlotComplete(ctx context.Context, resour
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListDomainOwnershipIdentifiers(ctx context.Context, resourceGroupName string, name string) (result IdentifierCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDomainOwnershipIdentifiers")
+		defer func() {
+			sc := -1
+			if result.ic.Response.Response != nil {
+				sc = result.ic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14766,8 +16649,8 @@ func (client AppsClient) ListDomainOwnershipIdentifiersPreparer(ctx context.Cont
 // ListDomainOwnershipIdentifiersSender sends the ListDomainOwnershipIdentifiers request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListDomainOwnershipIdentifiersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDomainOwnershipIdentifiersResponder handles the response to the ListDomainOwnershipIdentifiers request. The method always
@@ -14784,8 +16667,8 @@ func (client AppsClient) ListDomainOwnershipIdentifiersResponder(resp *http.Resp
 }
 
 // listDomainOwnershipIdentifiersNextResults retrieves the next set of results, if any.
-func (client AppsClient) listDomainOwnershipIdentifiersNextResults(lastResults IdentifierCollection) (result IdentifierCollection, err error) {
-	req, err := lastResults.identifierCollectionPreparer()
+func (client AppsClient) listDomainOwnershipIdentifiersNextResults(ctx context.Context, lastResults IdentifierCollection) (result IdentifierCollection, err error) {
+	req, err := lastResults.identifierCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listDomainOwnershipIdentifiersNextResults", nil, "Failure preparing next results request")
 	}
@@ -14806,6 +16689,16 @@ func (client AppsClient) listDomainOwnershipIdentifiersNextResults(lastResults I
 
 // ListDomainOwnershipIdentifiersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListDomainOwnershipIdentifiersComplete(ctx context.Context, resourceGroupName string, name string) (result IdentifierCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDomainOwnershipIdentifiers")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListDomainOwnershipIdentifiers(ctx, resourceGroupName, name)
 	return
 }
@@ -14817,6 +16710,16 @@ func (client AppsClient) ListDomainOwnershipIdentifiersComplete(ctx context.Cont
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the binding for the
 // production slot.
 func (client AppsClient) ListDomainOwnershipIdentifiersSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result IdentifierCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDomainOwnershipIdentifiersSlot")
+		defer func() {
+			sc := -1
+			if result.ic.Response.Response != nil {
+				sc = result.ic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14872,8 +16775,8 @@ func (client AppsClient) ListDomainOwnershipIdentifiersSlotPreparer(ctx context.
 // ListDomainOwnershipIdentifiersSlotSender sends the ListDomainOwnershipIdentifiersSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListDomainOwnershipIdentifiersSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDomainOwnershipIdentifiersSlotResponder handles the response to the ListDomainOwnershipIdentifiersSlot request. The method always
@@ -14890,8 +16793,8 @@ func (client AppsClient) ListDomainOwnershipIdentifiersSlotResponder(resp *http.
 }
 
 // listDomainOwnershipIdentifiersSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listDomainOwnershipIdentifiersSlotNextResults(lastResults IdentifierCollection) (result IdentifierCollection, err error) {
-	req, err := lastResults.identifierCollectionPreparer()
+func (client AppsClient) listDomainOwnershipIdentifiersSlotNextResults(ctx context.Context, lastResults IdentifierCollection) (result IdentifierCollection, err error) {
+	req, err := lastResults.identifierCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listDomainOwnershipIdentifiersSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -14912,6 +16815,16 @@ func (client AppsClient) listDomainOwnershipIdentifiersSlotNextResults(lastResul
 
 // ListDomainOwnershipIdentifiersSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListDomainOwnershipIdentifiersSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result IdentifierCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListDomainOwnershipIdentifiersSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListDomainOwnershipIdentifiersSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -14921,6 +16834,16 @@ func (client AppsClient) ListDomainOwnershipIdentifiersSlotComplete(ctx context.
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 func (client AppsClient) ListFunctions(ctx context.Context, resourceGroupName string, name string) (result FunctionEnvelopeCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListFunctions")
+		defer func() {
+			sc := -1
+			if result.fec.Response.Response != nil {
+				sc = result.fec.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -14975,8 +16898,8 @@ func (client AppsClient) ListFunctionsPreparer(ctx context.Context, resourceGrou
 // ListFunctionsSender sends the ListFunctions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListFunctionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListFunctionsResponder handles the response to the ListFunctions request. The method always
@@ -14993,8 +16916,8 @@ func (client AppsClient) ListFunctionsResponder(resp *http.Response) (result Fun
 }
 
 // listFunctionsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listFunctionsNextResults(lastResults FunctionEnvelopeCollection) (result FunctionEnvelopeCollection, err error) {
-	req, err := lastResults.functionEnvelopeCollectionPreparer()
+func (client AppsClient) listFunctionsNextResults(ctx context.Context, lastResults FunctionEnvelopeCollection) (result FunctionEnvelopeCollection, err error) {
+	req, err := lastResults.functionEnvelopeCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listFunctionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -15015,6 +16938,16 @@ func (client AppsClient) listFunctionsNextResults(lastResults FunctionEnvelopeCo
 
 // ListFunctionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListFunctionsComplete(ctx context.Context, resourceGroupName string, name string) (result FunctionEnvelopeCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListFunctions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListFunctions(ctx, resourceGroupName, name)
 	return
 }
@@ -15025,6 +16958,16 @@ func (client AppsClient) ListFunctionsComplete(ctx context.Context, resourceGrou
 // name - site name.
 // functionName - function name.
 func (client AppsClient) ListFunctionSecrets(ctx context.Context, resourceGroupName string, name string, functionName string) (result FunctionSecrets, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListFunctionSecrets")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15079,8 +17022,8 @@ func (client AppsClient) ListFunctionSecretsPreparer(ctx context.Context, resour
 // ListFunctionSecretsSender sends the ListFunctionSecrets request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListFunctionSecretsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListFunctionSecretsResponder handles the response to the ListFunctionSecrets request. The method always
@@ -15104,6 +17047,16 @@ func (client AppsClient) ListFunctionSecretsResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) ListFunctionSecretsSlot(ctx context.Context, resourceGroupName string, name string, functionName string, slot string) (result FunctionSecrets, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListFunctionSecretsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15159,8 +17112,8 @@ func (client AppsClient) ListFunctionSecretsSlotPreparer(ctx context.Context, re
 // ListFunctionSecretsSlotSender sends the ListFunctionSecretsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListFunctionSecretsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListFunctionSecretsSlotResponder handles the response to the ListFunctionSecretsSlot request. The method always
@@ -15181,6 +17134,16 @@ func (client AppsClient) ListFunctionSecretsSlotResponder(resp *http.Response) (
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListHostNameBindings(ctx context.Context, resourceGroupName string, name string) (result HostNameBindingCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHostNameBindings")
+		defer func() {
+			sc := -1
+			if result.hnbc.Response.Response != nil {
+				sc = result.hnbc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15235,8 +17198,8 @@ func (client AppsClient) ListHostNameBindingsPreparer(ctx context.Context, resou
 // ListHostNameBindingsSender sends the ListHostNameBindings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListHostNameBindingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHostNameBindingsResponder handles the response to the ListHostNameBindings request. The method always
@@ -15253,8 +17216,8 @@ func (client AppsClient) ListHostNameBindingsResponder(resp *http.Response) (res
 }
 
 // listHostNameBindingsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listHostNameBindingsNextResults(lastResults HostNameBindingCollection) (result HostNameBindingCollection, err error) {
-	req, err := lastResults.hostNameBindingCollectionPreparer()
+func (client AppsClient) listHostNameBindingsNextResults(ctx context.Context, lastResults HostNameBindingCollection) (result HostNameBindingCollection, err error) {
+	req, err := lastResults.hostNameBindingCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listHostNameBindingsNextResults", nil, "Failure preparing next results request")
 	}
@@ -15275,6 +17238,16 @@ func (client AppsClient) listHostNameBindingsNextResults(lastResults HostNameBin
 
 // ListHostNameBindingsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListHostNameBindingsComplete(ctx context.Context, resourceGroupName string, name string) (result HostNameBindingCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHostNameBindings")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListHostNameBindings(ctx, resourceGroupName, name)
 	return
 }
@@ -15286,6 +17259,16 @@ func (client AppsClient) ListHostNameBindingsComplete(ctx context.Context, resou
 // slot - name of the deployment slot. If a slot is not specified, the API gets hostname bindings for the
 // production slot.
 func (client AppsClient) ListHostNameBindingsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result HostNameBindingCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHostNameBindingsSlot")
+		defer func() {
+			sc := -1
+			if result.hnbc.Response.Response != nil {
+				sc = result.hnbc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15341,8 +17324,8 @@ func (client AppsClient) ListHostNameBindingsSlotPreparer(ctx context.Context, r
 // ListHostNameBindingsSlotSender sends the ListHostNameBindingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListHostNameBindingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHostNameBindingsSlotResponder handles the response to the ListHostNameBindingsSlot request. The method always
@@ -15359,8 +17342,8 @@ func (client AppsClient) ListHostNameBindingsSlotResponder(resp *http.Response) 
 }
 
 // listHostNameBindingsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listHostNameBindingsSlotNextResults(lastResults HostNameBindingCollection) (result HostNameBindingCollection, err error) {
-	req, err := lastResults.hostNameBindingCollectionPreparer()
+func (client AppsClient) listHostNameBindingsSlotNextResults(ctx context.Context, lastResults HostNameBindingCollection) (result HostNameBindingCollection, err error) {
+	req, err := lastResults.hostNameBindingCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listHostNameBindingsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -15381,6 +17364,16 @@ func (client AppsClient) listHostNameBindingsSlotNextResults(lastResults HostNam
 
 // ListHostNameBindingsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListHostNameBindingsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result HostNameBindingCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHostNameBindingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListHostNameBindingsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -15392,6 +17385,16 @@ func (client AppsClient) ListHostNameBindingsSlotComplete(ctx context.Context, r
 // namespaceName - the namespace for this hybrid connection.
 // relayName - the relay name for this hybrid connection.
 func (client AppsClient) ListHybridConnectionKeys(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string) (result HybridConnectionKey, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHybridConnectionKeys")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15447,8 +17450,8 @@ func (client AppsClient) ListHybridConnectionKeysPreparer(ctx context.Context, r
 // ListHybridConnectionKeysSender sends the ListHybridConnectionKeys request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListHybridConnectionKeysSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHybridConnectionKeysResponder handles the response to the ListHybridConnectionKeys request. The method always
@@ -15472,6 +17475,16 @@ func (client AppsClient) ListHybridConnectionKeysResponder(resp *http.Response) 
 // relayName - the relay name for this hybrid connection.
 // slot - the name of the slot for the web app.
 func (client AppsClient) ListHybridConnectionKeysSlot(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, slot string) (result HybridConnectionKey, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHybridConnectionKeysSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15528,8 +17541,8 @@ func (client AppsClient) ListHybridConnectionKeysSlotPreparer(ctx context.Contex
 // ListHybridConnectionKeysSlotSender sends the ListHybridConnectionKeysSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListHybridConnectionKeysSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHybridConnectionKeysSlotResponder handles the response to the ListHybridConnectionKeysSlot request. The method always
@@ -15550,6 +17563,16 @@ func (client AppsClient) ListHybridConnectionKeysSlotResponder(resp *http.Respon
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - the name of the web app.
 func (client AppsClient) ListHybridConnections(ctx context.Context, resourceGroupName string, name string) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHybridConnections")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15603,8 +17626,8 @@ func (client AppsClient) ListHybridConnectionsPreparer(ctx context.Context, reso
 // ListHybridConnectionsSender sends the ListHybridConnections request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListHybridConnectionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHybridConnectionsResponder handles the response to the ListHybridConnections request. The method always
@@ -15626,6 +17649,16 @@ func (client AppsClient) ListHybridConnectionsResponder(resp *http.Response) (re
 // name - the name of the web app.
 // slot - the name of the slot for the web app.
 func (client AppsClient) ListHybridConnectionsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListHybridConnectionsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15680,8 +17713,8 @@ func (client AppsClient) ListHybridConnectionsSlotPreparer(ctx context.Context, 
 // ListHybridConnectionsSlotSender sends the ListHybridConnectionsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListHybridConnectionsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListHybridConnectionsSlotResponder handles the response to the ListHybridConnectionsSlot request. The method always
@@ -15704,6 +17737,16 @@ func (client AppsClient) ListHybridConnectionsSlotResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) ListInstanceFunctionsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result FunctionEnvelopeCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceFunctionsSlot")
+		defer func() {
+			sc := -1
+			if result.fec.Response.Response != nil {
+				sc = result.fec.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15759,8 +17802,8 @@ func (client AppsClient) ListInstanceFunctionsSlotPreparer(ctx context.Context, 
 // ListInstanceFunctionsSlotSender sends the ListInstanceFunctionsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceFunctionsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceFunctionsSlotResponder handles the response to the ListInstanceFunctionsSlot request. The method always
@@ -15777,8 +17820,8 @@ func (client AppsClient) ListInstanceFunctionsSlotResponder(resp *http.Response)
 }
 
 // listInstanceFunctionsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceFunctionsSlotNextResults(lastResults FunctionEnvelopeCollection) (result FunctionEnvelopeCollection, err error) {
-	req, err := lastResults.functionEnvelopeCollectionPreparer()
+func (client AppsClient) listInstanceFunctionsSlotNextResults(ctx context.Context, lastResults FunctionEnvelopeCollection) (result FunctionEnvelopeCollection, err error) {
+	req, err := lastResults.functionEnvelopeCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceFunctionsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -15799,6 +17842,16 @@ func (client AppsClient) listInstanceFunctionsSlotNextResults(lastResults Functi
 
 // ListInstanceFunctionsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceFunctionsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result FunctionEnvelopeCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceFunctionsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceFunctionsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -15808,6 +17861,16 @@ func (client AppsClient) ListInstanceFunctionsSlotComplete(ctx context.Context, 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListInstanceIdentifiers(ctx context.Context, resourceGroupName string, name string) (result AppInstanceCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceIdentifiers")
+		defer func() {
+			sc := -1
+			if result.aic.Response.Response != nil {
+				sc = result.aic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15862,8 +17925,8 @@ func (client AppsClient) ListInstanceIdentifiersPreparer(ctx context.Context, re
 // ListInstanceIdentifiersSender sends the ListInstanceIdentifiers request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceIdentifiersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceIdentifiersResponder handles the response to the ListInstanceIdentifiers request. The method always
@@ -15880,8 +17943,8 @@ func (client AppsClient) ListInstanceIdentifiersResponder(resp *http.Response) (
 }
 
 // listInstanceIdentifiersNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceIdentifiersNextResults(lastResults AppInstanceCollection) (result AppInstanceCollection, err error) {
-	req, err := lastResults.appInstanceCollectionPreparer()
+func (client AppsClient) listInstanceIdentifiersNextResults(ctx context.Context, lastResults AppInstanceCollection) (result AppInstanceCollection, err error) {
+	req, err := lastResults.appInstanceCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceIdentifiersNextResults", nil, "Failure preparing next results request")
 	}
@@ -15902,6 +17965,16 @@ func (client AppsClient) listInstanceIdentifiersNextResults(lastResults AppInsta
 
 // ListInstanceIdentifiersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceIdentifiersComplete(ctx context.Context, resourceGroupName string, name string) (result AppInstanceCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceIdentifiers")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceIdentifiers(ctx, resourceGroupName, name)
 	return
 }
@@ -15912,6 +17985,16 @@ func (client AppsClient) ListInstanceIdentifiersComplete(ctx context.Context, re
 // name - name of the app.
 // slot - name of the deployment slot. If a slot is not specified, the API gets the production slot instances.
 func (client AppsClient) ListInstanceIdentifiersSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result AppInstanceCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceIdentifiersSlot")
+		defer func() {
+			sc := -1
+			if result.aic.Response.Response != nil {
+				sc = result.aic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -15967,8 +18050,8 @@ func (client AppsClient) ListInstanceIdentifiersSlotPreparer(ctx context.Context
 // ListInstanceIdentifiersSlotSender sends the ListInstanceIdentifiersSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceIdentifiersSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceIdentifiersSlotResponder handles the response to the ListInstanceIdentifiersSlot request. The method always
@@ -15985,8 +18068,8 @@ func (client AppsClient) ListInstanceIdentifiersSlotResponder(resp *http.Respons
 }
 
 // listInstanceIdentifiersSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceIdentifiersSlotNextResults(lastResults AppInstanceCollection) (result AppInstanceCollection, err error) {
-	req, err := lastResults.appInstanceCollectionPreparer()
+func (client AppsClient) listInstanceIdentifiersSlotNextResults(ctx context.Context, lastResults AppInstanceCollection) (result AppInstanceCollection, err error) {
+	req, err := lastResults.appInstanceCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceIdentifiersSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -16007,6 +18090,16 @@ func (client AppsClient) listInstanceIdentifiersSlotNextResults(lastResults AppI
 
 // ListInstanceIdentifiersSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceIdentifiersSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result AppInstanceCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceIdentifiersSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceIdentifiersSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -16019,6 +18112,16 @@ func (client AppsClient) ListInstanceIdentifiersSlotComplete(ctx context.Context
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) ListInstanceProcesses(ctx context.Context, resourceGroupName string, name string, instanceID string) (result ProcessInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcesses")
+		defer func() {
+			sc := -1
+			if result.pic.Response.Response != nil {
+				sc = result.pic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16074,8 +18177,8 @@ func (client AppsClient) ListInstanceProcessesPreparer(ctx context.Context, reso
 // ListInstanceProcessesSender sends the ListInstanceProcesses request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceProcessesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceProcessesResponder handles the response to the ListInstanceProcesses request. The method always
@@ -16092,8 +18195,8 @@ func (client AppsClient) ListInstanceProcessesResponder(resp *http.Response) (re
 }
 
 // listInstanceProcessesNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceProcessesNextResults(lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
-	req, err := lastResults.processInfoCollectionPreparer()
+func (client AppsClient) listInstanceProcessesNextResults(ctx context.Context, lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
+	req, err := lastResults.processInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceProcessesNextResults", nil, "Failure preparing next results request")
 	}
@@ -16114,6 +18217,16 @@ func (client AppsClient) listInstanceProcessesNextResults(lastResults ProcessInf
 
 // ListInstanceProcessesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceProcessesComplete(ctx context.Context, resourceGroupName string, name string, instanceID string) (result ProcessInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcesses")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceProcesses(ctx, resourceGroupName, name, instanceID)
 	return
 }
@@ -16128,6 +18241,16 @@ func (client AppsClient) ListInstanceProcessesComplete(ctx context.Context, reso
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) ListInstanceProcessesSlot(ctx context.Context, resourceGroupName string, name string, slot string, instanceID string) (result ProcessInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessesSlot")
+		defer func() {
+			sc := -1
+			if result.pic.Response.Response != nil {
+				sc = result.pic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16184,8 +18307,8 @@ func (client AppsClient) ListInstanceProcessesSlotPreparer(ctx context.Context, 
 // ListInstanceProcessesSlotSender sends the ListInstanceProcessesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceProcessesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceProcessesSlotResponder handles the response to the ListInstanceProcessesSlot request. The method always
@@ -16202,8 +18325,8 @@ func (client AppsClient) ListInstanceProcessesSlotResponder(resp *http.Response)
 }
 
 // listInstanceProcessesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceProcessesSlotNextResults(lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
-	req, err := lastResults.processInfoCollectionPreparer()
+func (client AppsClient) listInstanceProcessesSlotNextResults(ctx context.Context, lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
+	req, err := lastResults.processInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceProcessesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -16224,6 +18347,16 @@ func (client AppsClient) listInstanceProcessesSlotNextResults(lastResults Proces
 
 // ListInstanceProcessesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceProcessesSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string, instanceID string) (result ProcessInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceProcessesSlot(ctx, resourceGroupName, name, slot, instanceID)
 	return
 }
@@ -16237,6 +18370,16 @@ func (client AppsClient) ListInstanceProcessesSlotComplete(ctx context.Context, 
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) ListInstanceProcessModules(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result ProcessModuleInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessModules")
+		defer func() {
+			sc := -1
+			if result.pmic.Response.Response != nil {
+				sc = result.pmic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16293,8 +18436,8 @@ func (client AppsClient) ListInstanceProcessModulesPreparer(ctx context.Context,
 // ListInstanceProcessModulesSender sends the ListInstanceProcessModules request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceProcessModulesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceProcessModulesResponder handles the response to the ListInstanceProcessModules request. The method always
@@ -16311,8 +18454,8 @@ func (client AppsClient) ListInstanceProcessModulesResponder(resp *http.Response
 }
 
 // listInstanceProcessModulesNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceProcessModulesNextResults(lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
-	req, err := lastResults.processModuleInfoCollectionPreparer()
+func (client AppsClient) listInstanceProcessModulesNextResults(ctx context.Context, lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
+	req, err := lastResults.processModuleInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceProcessModulesNextResults", nil, "Failure preparing next results request")
 	}
@@ -16333,6 +18476,16 @@ func (client AppsClient) listInstanceProcessModulesNextResults(lastResults Proce
 
 // ListInstanceProcessModulesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceProcessModulesComplete(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result ProcessModuleInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessModules")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceProcessModules(ctx, resourceGroupName, name, processID, instanceID)
 	return
 }
@@ -16348,6 +18501,16 @@ func (client AppsClient) ListInstanceProcessModulesComplete(ctx context.Context,
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) ListInstanceProcessModulesSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result ProcessModuleInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessModulesSlot")
+		defer func() {
+			sc := -1
+			if result.pmic.Response.Response != nil {
+				sc = result.pmic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16405,8 +18568,8 @@ func (client AppsClient) ListInstanceProcessModulesSlotPreparer(ctx context.Cont
 // ListInstanceProcessModulesSlotSender sends the ListInstanceProcessModulesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceProcessModulesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceProcessModulesSlotResponder handles the response to the ListInstanceProcessModulesSlot request. The method always
@@ -16423,8 +18586,8 @@ func (client AppsClient) ListInstanceProcessModulesSlotResponder(resp *http.Resp
 }
 
 // listInstanceProcessModulesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceProcessModulesSlotNextResults(lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
-	req, err := lastResults.processModuleInfoCollectionPreparer()
+func (client AppsClient) listInstanceProcessModulesSlotNextResults(ctx context.Context, lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
+	req, err := lastResults.processModuleInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceProcessModulesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -16445,6 +18608,16 @@ func (client AppsClient) listInstanceProcessModulesSlotNextResults(lastResults P
 
 // ListInstanceProcessModulesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceProcessModulesSlotComplete(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result ProcessModuleInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessModulesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceProcessModulesSlot(ctx, resourceGroupName, name, processID, slot, instanceID)
 	return
 }
@@ -16457,6 +18630,16 @@ func (client AppsClient) ListInstanceProcessModulesSlotComplete(ctx context.Cont
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) ListInstanceProcessThreads(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result ProcessThreadInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessThreads")
+		defer func() {
+			sc := -1
+			if result.ptic.Response.Response != nil {
+				sc = result.ptic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16513,8 +18696,8 @@ func (client AppsClient) ListInstanceProcessThreadsPreparer(ctx context.Context,
 // ListInstanceProcessThreadsSender sends the ListInstanceProcessThreads request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceProcessThreadsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceProcessThreadsResponder handles the response to the ListInstanceProcessThreads request. The method always
@@ -16531,8 +18714,8 @@ func (client AppsClient) ListInstanceProcessThreadsResponder(resp *http.Response
 }
 
 // listInstanceProcessThreadsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceProcessThreadsNextResults(lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
-	req, err := lastResults.processThreadInfoCollectionPreparer()
+func (client AppsClient) listInstanceProcessThreadsNextResults(ctx context.Context, lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
+	req, err := lastResults.processThreadInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceProcessThreadsNextResults", nil, "Failure preparing next results request")
 	}
@@ -16553,6 +18736,16 @@ func (client AppsClient) listInstanceProcessThreadsNextResults(lastResults Proce
 
 // ListInstanceProcessThreadsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceProcessThreadsComplete(ctx context.Context, resourceGroupName string, name string, processID string, instanceID string) (result ProcessThreadInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessThreads")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceProcessThreads(ctx, resourceGroupName, name, processID, instanceID)
 	return
 }
@@ -16568,6 +18761,16 @@ func (client AppsClient) ListInstanceProcessThreadsComplete(ctx context.Context,
 // instanceID - ID of a specific scaled-out instance. This is the value of the name property in the JSON
 // response from "GET api/sites/{siteName}/instances".
 func (client AppsClient) ListInstanceProcessThreadsSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result ProcessThreadInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessThreadsSlot")
+		defer func() {
+			sc := -1
+			if result.ptic.Response.Response != nil {
+				sc = result.ptic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16625,8 +18828,8 @@ func (client AppsClient) ListInstanceProcessThreadsSlotPreparer(ctx context.Cont
 // ListInstanceProcessThreadsSlotSender sends the ListInstanceProcessThreadsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListInstanceProcessThreadsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInstanceProcessThreadsSlotResponder handles the response to the ListInstanceProcessThreadsSlot request. The method always
@@ -16643,8 +18846,8 @@ func (client AppsClient) ListInstanceProcessThreadsSlotResponder(resp *http.Resp
 }
 
 // listInstanceProcessThreadsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listInstanceProcessThreadsSlotNextResults(lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
-	req, err := lastResults.processThreadInfoCollectionPreparer()
+func (client AppsClient) listInstanceProcessThreadsSlotNextResults(ctx context.Context, lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
+	req, err := lastResults.processThreadInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listInstanceProcessThreadsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -16665,6 +18868,16 @@ func (client AppsClient) listInstanceProcessThreadsSlotNextResults(lastResults P
 
 // ListInstanceProcessThreadsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListInstanceProcessThreadsSlotComplete(ctx context.Context, resourceGroupName string, name string, processID string, slot string, instanceID string) (result ProcessThreadInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListInstanceProcessThreadsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListInstanceProcessThreadsSlot(ctx, resourceGroupName, name, processID, slot, instanceID)
 	return
 }
@@ -16674,6 +18887,16 @@ func (client AppsClient) ListInstanceProcessThreadsSlotComplete(ctx context.Cont
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListMetadata(ctx context.Context, resourceGroupName string, name string) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetadata")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16727,8 +18950,8 @@ func (client AppsClient) ListMetadataPreparer(ctx context.Context, resourceGroup
 // ListMetadataSender sends the ListMetadata request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListMetadataSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetadataResponder handles the response to the ListMetadata request. The method always
@@ -16751,6 +18974,16 @@ func (client AppsClient) ListMetadataResponder(resp *http.Response) (result Stri
 // slot - name of the deployment slot. If a slot is not specified, the API will get the metadata for the
 // production slot.
 func (client AppsClient) ListMetadataSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetadataSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16805,8 +19038,8 @@ func (client AppsClient) ListMetadataSlotPreparer(ctx context.Context, resourceG
 // ListMetadataSlotSender sends the ListMetadataSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListMetadataSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetadataSlotResponder handles the response to the ListMetadataSlot request. The method always
@@ -16827,6 +19060,16 @@ func (client AppsClient) ListMetadataSlotResponder(resp *http.Response) (result 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListMetricDefinitions(ctx context.Context, resourceGroupName string, name string) (result ResourceMetricDefinitionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.rmdc.Response.Response != nil {
+				sc = result.rmdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16881,8 +19124,8 @@ func (client AppsClient) ListMetricDefinitionsPreparer(ctx context.Context, reso
 // ListMetricDefinitionsSender sends the ListMetricDefinitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricDefinitionsResponder handles the response to the ListMetricDefinitions request. The method always
@@ -16899,8 +19142,8 @@ func (client AppsClient) ListMetricDefinitionsResponder(resp *http.Response) (re
 }
 
 // listMetricDefinitionsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listMetricDefinitionsNextResults(lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
-	req, err := lastResults.resourceMetricDefinitionCollectionPreparer()
+func (client AppsClient) listMetricDefinitionsNextResults(ctx context.Context, lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
+	req, err := lastResults.resourceMetricDefinitionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listMetricDefinitionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -16921,6 +19164,16 @@ func (client AppsClient) listMetricDefinitionsNextResults(lastResults ResourceMe
 
 // ListMetricDefinitionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListMetricDefinitionsComplete(ctx context.Context, resourceGroupName string, name string) (result ResourceMetricDefinitionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMetricDefinitions(ctx, resourceGroupName, name)
 	return
 }
@@ -16932,6 +19185,16 @@ func (client AppsClient) ListMetricDefinitionsComplete(ctx context.Context, reso
 // slot - name of the deployment slot. If a slot is not specified, the API will get metric definitions of the
 // production slot.
 func (client AppsClient) ListMetricDefinitionsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ResourceMetricDefinitionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetricDefinitionsSlot")
+		defer func() {
+			sc := -1
+			if result.rmdc.Response.Response != nil {
+				sc = result.rmdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -16987,8 +19250,8 @@ func (client AppsClient) ListMetricDefinitionsSlotPreparer(ctx context.Context, 
 // ListMetricDefinitionsSlotSender sends the ListMetricDefinitionsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListMetricDefinitionsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricDefinitionsSlotResponder handles the response to the ListMetricDefinitionsSlot request. The method always
@@ -17005,8 +19268,8 @@ func (client AppsClient) ListMetricDefinitionsSlotResponder(resp *http.Response)
 }
 
 // listMetricDefinitionsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listMetricDefinitionsSlotNextResults(lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
-	req, err := lastResults.resourceMetricDefinitionCollectionPreparer()
+func (client AppsClient) listMetricDefinitionsSlotNextResults(ctx context.Context, lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
+	req, err := lastResults.resourceMetricDefinitionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listMetricDefinitionsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -17027,6 +19290,16 @@ func (client AppsClient) listMetricDefinitionsSlotNextResults(lastResults Resour
 
 // ListMetricDefinitionsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListMetricDefinitionsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result ResourceMetricDefinitionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetricDefinitionsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMetricDefinitionsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -17040,6 +19313,16 @@ func (client AppsClient) ListMetricDefinitionsSlotComplete(ctx context.Context, 
 // eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and endTime eq
 // '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppsClient) ListMetrics(ctx context.Context, resourceGroupName string, name string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetrics")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17100,8 +19383,8 @@ func (client AppsClient) ListMetricsPreparer(ctx context.Context, resourceGroupN
 // ListMetricsSender sends the ListMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricsResponder handles the response to the ListMetrics request. The method always
@@ -17118,8 +19401,8 @@ func (client AppsClient) ListMetricsResponder(resp *http.Response) (result Resou
 }
 
 // listMetricsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listMetricsNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppsClient) listMetricsNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -17140,6 +19423,16 @@ func (client AppsClient) listMetricsNextResults(lastResults ResourceMetricCollec
 
 // ListMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListMetricsComplete(ctx context.Context, resourceGroupName string, name string, details *bool, filter string) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMetrics(ctx, resourceGroupName, name, details, filter)
 	return
 }
@@ -17155,6 +19448,16 @@ func (client AppsClient) ListMetricsComplete(ctx context.Context, resourceGroupN
 // eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and endTime eq
 // '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppsClient) ListMetricsSlot(ctx context.Context, resourceGroupName string, name string, slot string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetricsSlot")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17216,8 +19519,8 @@ func (client AppsClient) ListMetricsSlotPreparer(ctx context.Context, resourceGr
 // ListMetricsSlotSender sends the ListMetricsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListMetricsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricsSlotResponder handles the response to the ListMetricsSlot request. The method always
@@ -17234,8 +19537,8 @@ func (client AppsClient) ListMetricsSlotResponder(resp *http.Response) (result R
 }
 
 // listMetricsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listMetricsSlotNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppsClient) listMetricsSlotNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listMetricsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -17256,6 +19559,16 @@ func (client AppsClient) listMetricsSlotNextResults(lastResults ResourceMetricCo
 
 // ListMetricsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListMetricsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string, details *bool, filter string) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListMetricsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMetricsSlot(ctx, resourceGroupName, name, slot, details, filter)
 	return
 }
@@ -17266,6 +19579,16 @@ func (client AppsClient) ListMetricsSlotComplete(ctx context.Context, resourceGr
 // name - name of the app.
 // view - the type of view. This can either be "summary" or "detailed".
 func (client AppsClient) ListNetworkFeatures(ctx context.Context, resourceGroupName string, name string, view string) (result NetworkFeatures, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListNetworkFeatures")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17320,8 +19643,8 @@ func (client AppsClient) ListNetworkFeaturesPreparer(ctx context.Context, resour
 // ListNetworkFeaturesSender sends the ListNetworkFeatures request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListNetworkFeaturesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListNetworkFeaturesResponder handles the response to the ListNetworkFeatures request. The method always
@@ -17345,6 +19668,16 @@ func (client AppsClient) ListNetworkFeaturesResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API will get network features for the
 // production slot.
 func (client AppsClient) ListNetworkFeaturesSlot(ctx context.Context, resourceGroupName string, name string, view string, slot string) (result NetworkFeatures, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListNetworkFeaturesSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17400,8 +19733,8 @@ func (client AppsClient) ListNetworkFeaturesSlotPreparer(ctx context.Context, re
 // ListNetworkFeaturesSlotSender sends the ListNetworkFeaturesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListNetworkFeaturesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListNetworkFeaturesSlotResponder handles the response to the ListNetworkFeaturesSlot request. The method always
@@ -17425,6 +19758,16 @@ func (client AppsClient) ListNetworkFeaturesSlotResponder(resp *http.Response) (
 // $filter=(startTime eq '2014-01-01T00:00:00Z' and endTime eq '2014-12-31T23:59:59Z' and timeGrain eq
 // duration'[Hour|Minute|Day]'.
 func (client AppsClient) ListPerfMonCounters(ctx context.Context, resourceGroupName string, name string, filter string) (result PerfMonCounterCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPerfMonCounters")
+		defer func() {
+			sc := -1
+			if result.pmcc.Response.Response != nil {
+				sc = result.pmcc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17482,8 +19825,8 @@ func (client AppsClient) ListPerfMonCountersPreparer(ctx context.Context, resour
 // ListPerfMonCountersSender sends the ListPerfMonCounters request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPerfMonCountersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPerfMonCountersResponder handles the response to the ListPerfMonCounters request. The method always
@@ -17500,8 +19843,8 @@ func (client AppsClient) ListPerfMonCountersResponder(resp *http.Response) (resu
 }
 
 // listPerfMonCountersNextResults retrieves the next set of results, if any.
-func (client AppsClient) listPerfMonCountersNextResults(lastResults PerfMonCounterCollection) (result PerfMonCounterCollection, err error) {
-	req, err := lastResults.perfMonCounterCollectionPreparer()
+func (client AppsClient) listPerfMonCountersNextResults(ctx context.Context, lastResults PerfMonCounterCollection) (result PerfMonCounterCollection, err error) {
+	req, err := lastResults.perfMonCounterCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listPerfMonCountersNextResults", nil, "Failure preparing next results request")
 	}
@@ -17522,6 +19865,16 @@ func (client AppsClient) listPerfMonCountersNextResults(lastResults PerfMonCount
 
 // ListPerfMonCountersComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListPerfMonCountersComplete(ctx context.Context, resourceGroupName string, name string, filter string) (result PerfMonCounterCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPerfMonCounters")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListPerfMonCounters(ctx, resourceGroupName, name, filter)
 	return
 }
@@ -17535,6 +19888,16 @@ func (client AppsClient) ListPerfMonCountersComplete(ctx context.Context, resour
 // $filter=(startTime eq '2014-01-01T00:00:00Z' and endTime eq '2014-12-31T23:59:59Z' and timeGrain eq
 // duration'[Hour|Minute|Day]'.
 func (client AppsClient) ListPerfMonCountersSlot(ctx context.Context, resourceGroupName string, name string, slot string, filter string) (result PerfMonCounterCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPerfMonCountersSlot")
+		defer func() {
+			sc := -1
+			if result.pmcc.Response.Response != nil {
+				sc = result.pmcc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17593,8 +19956,8 @@ func (client AppsClient) ListPerfMonCountersSlotPreparer(ctx context.Context, re
 // ListPerfMonCountersSlotSender sends the ListPerfMonCountersSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPerfMonCountersSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPerfMonCountersSlotResponder handles the response to the ListPerfMonCountersSlot request. The method always
@@ -17611,8 +19974,8 @@ func (client AppsClient) ListPerfMonCountersSlotResponder(resp *http.Response) (
 }
 
 // listPerfMonCountersSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listPerfMonCountersSlotNextResults(lastResults PerfMonCounterCollection) (result PerfMonCounterCollection, err error) {
-	req, err := lastResults.perfMonCounterCollectionPreparer()
+func (client AppsClient) listPerfMonCountersSlotNextResults(ctx context.Context, lastResults PerfMonCounterCollection) (result PerfMonCounterCollection, err error) {
+	req, err := lastResults.perfMonCounterCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listPerfMonCountersSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -17633,6 +19996,16 @@ func (client AppsClient) listPerfMonCountersSlotNextResults(lastResults PerfMonC
 
 // ListPerfMonCountersSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListPerfMonCountersSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string, filter string) (result PerfMonCounterCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPerfMonCountersSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListPerfMonCountersSlot(ctx, resourceGroupName, name, slot, filter)
 	return
 }
@@ -17642,6 +20015,16 @@ func (client AppsClient) ListPerfMonCountersSlotComplete(ctx context.Context, re
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListPremierAddOns(ctx context.Context, resourceGroupName string, name string) (result PremierAddOn, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPremierAddOns")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17695,8 +20078,8 @@ func (client AppsClient) ListPremierAddOnsPreparer(ctx context.Context, resource
 // ListPremierAddOnsSender sends the ListPremierAddOns request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPremierAddOnsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPremierAddOnsResponder handles the response to the ListPremierAddOns request. The method always
@@ -17719,6 +20102,16 @@ func (client AppsClient) ListPremierAddOnsResponder(resp *http.Response) (result
 // slot - name of the deployment slot. If a slot is not specified, the API will get the premier add-ons for the
 // production slot.
 func (client AppsClient) ListPremierAddOnsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result PremierAddOn, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPremierAddOnsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17773,8 +20166,8 @@ func (client AppsClient) ListPremierAddOnsSlotPreparer(ctx context.Context, reso
 // ListPremierAddOnsSlotSender sends the ListPremierAddOnsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPremierAddOnsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPremierAddOnsSlotResponder handles the response to the ListPremierAddOnsSlot request. The method always
@@ -17796,6 +20189,16 @@ func (client AppsClient) ListPremierAddOnsSlotResponder(resp *http.Response) (re
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 func (client AppsClient) ListProcesses(ctx context.Context, resourceGroupName string, name string) (result ProcessInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcesses")
+		defer func() {
+			sc := -1
+			if result.pic.Response.Response != nil {
+				sc = result.pic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17850,8 +20253,8 @@ func (client AppsClient) ListProcessesPreparer(ctx context.Context, resourceGrou
 // ListProcessesSender sends the ListProcesses request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListProcessesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListProcessesResponder handles the response to the ListProcesses request. The method always
@@ -17868,8 +20271,8 @@ func (client AppsClient) ListProcessesResponder(resp *http.Response) (result Pro
 }
 
 // listProcessesNextResults retrieves the next set of results, if any.
-func (client AppsClient) listProcessesNextResults(lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
-	req, err := lastResults.processInfoCollectionPreparer()
+func (client AppsClient) listProcessesNextResults(ctx context.Context, lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
+	req, err := lastResults.processInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listProcessesNextResults", nil, "Failure preparing next results request")
 	}
@@ -17890,6 +20293,16 @@ func (client AppsClient) listProcessesNextResults(lastResults ProcessInfoCollect
 
 // ListProcessesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListProcessesComplete(ctx context.Context, resourceGroupName string, name string) (result ProcessInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcesses")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListProcesses(ctx, resourceGroupName, name)
 	return
 }
@@ -17902,6 +20315,16 @@ func (client AppsClient) ListProcessesComplete(ctx context.Context, resourceGrou
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) ListProcessesSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ProcessInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessesSlot")
+		defer func() {
+			sc := -1
+			if result.pic.Response.Response != nil {
+				sc = result.pic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -17957,8 +20380,8 @@ func (client AppsClient) ListProcessesSlotPreparer(ctx context.Context, resource
 // ListProcessesSlotSender sends the ListProcessesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListProcessesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListProcessesSlotResponder handles the response to the ListProcessesSlot request. The method always
@@ -17975,8 +20398,8 @@ func (client AppsClient) ListProcessesSlotResponder(resp *http.Response) (result
 }
 
 // listProcessesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listProcessesSlotNextResults(lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
-	req, err := lastResults.processInfoCollectionPreparer()
+func (client AppsClient) listProcessesSlotNextResults(ctx context.Context, lastResults ProcessInfoCollection) (result ProcessInfoCollection, err error) {
+	req, err := lastResults.processInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listProcessesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -17997,6 +20420,16 @@ func (client AppsClient) listProcessesSlotNextResults(lastResults ProcessInfoCol
 
 // ListProcessesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListProcessesSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result ProcessInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListProcessesSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -18007,6 +20440,16 @@ func (client AppsClient) ListProcessesSlotComplete(ctx context.Context, resource
 // name - site name.
 // processID - pID.
 func (client AppsClient) ListProcessModules(ctx context.Context, resourceGroupName string, name string, processID string) (result ProcessModuleInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessModules")
+		defer func() {
+			sc := -1
+			if result.pmic.Response.Response != nil {
+				sc = result.pmic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18062,8 +20505,8 @@ func (client AppsClient) ListProcessModulesPreparer(ctx context.Context, resourc
 // ListProcessModulesSender sends the ListProcessModules request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListProcessModulesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListProcessModulesResponder handles the response to the ListProcessModules request. The method always
@@ -18080,8 +20523,8 @@ func (client AppsClient) ListProcessModulesResponder(resp *http.Response) (resul
 }
 
 // listProcessModulesNextResults retrieves the next set of results, if any.
-func (client AppsClient) listProcessModulesNextResults(lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
-	req, err := lastResults.processModuleInfoCollectionPreparer()
+func (client AppsClient) listProcessModulesNextResults(ctx context.Context, lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
+	req, err := lastResults.processModuleInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listProcessModulesNextResults", nil, "Failure preparing next results request")
 	}
@@ -18102,6 +20545,16 @@ func (client AppsClient) listProcessModulesNextResults(lastResults ProcessModule
 
 // ListProcessModulesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListProcessModulesComplete(ctx context.Context, resourceGroupName string, name string, processID string) (result ProcessModuleInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessModules")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListProcessModules(ctx, resourceGroupName, name, processID)
 	return
 }
@@ -18115,6 +20568,16 @@ func (client AppsClient) ListProcessModulesComplete(ctx context.Context, resourc
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) ListProcessModulesSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result ProcessModuleInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessModulesSlot")
+		defer func() {
+			sc := -1
+			if result.pmic.Response.Response != nil {
+				sc = result.pmic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18171,8 +20634,8 @@ func (client AppsClient) ListProcessModulesSlotPreparer(ctx context.Context, res
 // ListProcessModulesSlotSender sends the ListProcessModulesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListProcessModulesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListProcessModulesSlotResponder handles the response to the ListProcessModulesSlot request. The method always
@@ -18189,8 +20652,8 @@ func (client AppsClient) ListProcessModulesSlotResponder(resp *http.Response) (r
 }
 
 // listProcessModulesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listProcessModulesSlotNextResults(lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
-	req, err := lastResults.processModuleInfoCollectionPreparer()
+func (client AppsClient) listProcessModulesSlotNextResults(ctx context.Context, lastResults ProcessModuleInfoCollection) (result ProcessModuleInfoCollection, err error) {
+	req, err := lastResults.processModuleInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listProcessModulesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -18211,6 +20674,16 @@ func (client AppsClient) listProcessModulesSlotNextResults(lastResults ProcessMo
 
 // ListProcessModulesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListProcessModulesSlotComplete(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result ProcessModuleInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessModulesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListProcessModulesSlot(ctx, resourceGroupName, name, processID, slot)
 	return
 }
@@ -18221,6 +20694,16 @@ func (client AppsClient) ListProcessModulesSlotComplete(ctx context.Context, res
 // name - site name.
 // processID - pID.
 func (client AppsClient) ListProcessThreads(ctx context.Context, resourceGroupName string, name string, processID string) (result ProcessThreadInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessThreads")
+		defer func() {
+			sc := -1
+			if result.ptic.Response.Response != nil {
+				sc = result.ptic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18276,8 +20759,8 @@ func (client AppsClient) ListProcessThreadsPreparer(ctx context.Context, resourc
 // ListProcessThreadsSender sends the ListProcessThreads request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListProcessThreadsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListProcessThreadsResponder handles the response to the ListProcessThreads request. The method always
@@ -18294,8 +20777,8 @@ func (client AppsClient) ListProcessThreadsResponder(resp *http.Response) (resul
 }
 
 // listProcessThreadsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listProcessThreadsNextResults(lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
-	req, err := lastResults.processThreadInfoCollectionPreparer()
+func (client AppsClient) listProcessThreadsNextResults(ctx context.Context, lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
+	req, err := lastResults.processThreadInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listProcessThreadsNextResults", nil, "Failure preparing next results request")
 	}
@@ -18316,6 +20799,16 @@ func (client AppsClient) listProcessThreadsNextResults(lastResults ProcessThread
 
 // ListProcessThreadsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListProcessThreadsComplete(ctx context.Context, resourceGroupName string, name string, processID string) (result ProcessThreadInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessThreads")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListProcessThreads(ctx, resourceGroupName, name, processID)
 	return
 }
@@ -18328,6 +20821,16 @@ func (client AppsClient) ListProcessThreadsComplete(ctx context.Context, resourc
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) ListProcessThreadsSlot(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result ProcessThreadInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessThreadsSlot")
+		defer func() {
+			sc := -1
+			if result.ptic.Response.Response != nil {
+				sc = result.ptic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18384,8 +20887,8 @@ func (client AppsClient) ListProcessThreadsSlotPreparer(ctx context.Context, res
 // ListProcessThreadsSlotSender sends the ListProcessThreadsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListProcessThreadsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListProcessThreadsSlotResponder handles the response to the ListProcessThreadsSlot request. The method always
@@ -18402,8 +20905,8 @@ func (client AppsClient) ListProcessThreadsSlotResponder(resp *http.Response) (r
 }
 
 // listProcessThreadsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listProcessThreadsSlotNextResults(lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
-	req, err := lastResults.processThreadInfoCollectionPreparer()
+func (client AppsClient) listProcessThreadsSlotNextResults(ctx context.Context, lastResults ProcessThreadInfoCollection) (result ProcessThreadInfoCollection, err error) {
+	req, err := lastResults.processThreadInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listProcessThreadsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -18424,6 +20927,16 @@ func (client AppsClient) listProcessThreadsSlotNextResults(lastResults ProcessTh
 
 // ListProcessThreadsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListProcessThreadsSlotComplete(ctx context.Context, resourceGroupName string, name string, processID string, slot string) (result ProcessThreadInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListProcessThreadsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListProcessThreadsSlot(ctx, resourceGroupName, name, processID, slot)
 	return
 }
@@ -18433,6 +20946,16 @@ func (client AppsClient) ListProcessThreadsSlotComplete(ctx context.Context, res
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListPublicCertificates(ctx context.Context, resourceGroupName string, name string) (result PublicCertificateCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublicCertificates")
+		defer func() {
+			sc := -1
+			if result.pcc.Response.Response != nil {
+				sc = result.pcc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18487,8 +21010,8 @@ func (client AppsClient) ListPublicCertificatesPreparer(ctx context.Context, res
 // ListPublicCertificatesSender sends the ListPublicCertificates request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPublicCertificatesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPublicCertificatesResponder handles the response to the ListPublicCertificates request. The method always
@@ -18505,8 +21028,8 @@ func (client AppsClient) ListPublicCertificatesResponder(resp *http.Response) (r
 }
 
 // listPublicCertificatesNextResults retrieves the next set of results, if any.
-func (client AppsClient) listPublicCertificatesNextResults(lastResults PublicCertificateCollection) (result PublicCertificateCollection, err error) {
-	req, err := lastResults.publicCertificateCollectionPreparer()
+func (client AppsClient) listPublicCertificatesNextResults(ctx context.Context, lastResults PublicCertificateCollection) (result PublicCertificateCollection, err error) {
+	req, err := lastResults.publicCertificateCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listPublicCertificatesNextResults", nil, "Failure preparing next results request")
 	}
@@ -18527,6 +21050,16 @@ func (client AppsClient) listPublicCertificatesNextResults(lastResults PublicCer
 
 // ListPublicCertificatesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListPublicCertificatesComplete(ctx context.Context, resourceGroupName string, name string) (result PublicCertificateCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublicCertificates")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListPublicCertificates(ctx, resourceGroupName, name)
 	return
 }
@@ -18538,6 +21071,16 @@ func (client AppsClient) ListPublicCertificatesComplete(ctx context.Context, res
 // slot - name of the deployment slot. If a slot is not specified, the API gets hostname bindings for the
 // production slot.
 func (client AppsClient) ListPublicCertificatesSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result PublicCertificateCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublicCertificatesSlot")
+		defer func() {
+			sc := -1
+			if result.pcc.Response.Response != nil {
+				sc = result.pcc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18593,8 +21136,8 @@ func (client AppsClient) ListPublicCertificatesSlotPreparer(ctx context.Context,
 // ListPublicCertificatesSlotSender sends the ListPublicCertificatesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPublicCertificatesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPublicCertificatesSlotResponder handles the response to the ListPublicCertificatesSlot request. The method always
@@ -18611,8 +21154,8 @@ func (client AppsClient) ListPublicCertificatesSlotResponder(resp *http.Response
 }
 
 // listPublicCertificatesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listPublicCertificatesSlotNextResults(lastResults PublicCertificateCollection) (result PublicCertificateCollection, err error) {
-	req, err := lastResults.publicCertificateCollectionPreparer()
+func (client AppsClient) listPublicCertificatesSlotNextResults(ctx context.Context, lastResults PublicCertificateCollection) (result PublicCertificateCollection, err error) {
+	req, err := lastResults.publicCertificateCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listPublicCertificatesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -18633,6 +21176,16 @@ func (client AppsClient) listPublicCertificatesSlotNextResults(lastResults Publi
 
 // ListPublicCertificatesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListPublicCertificatesSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result PublicCertificateCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublicCertificatesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListPublicCertificatesSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -18642,6 +21195,16 @@ func (client AppsClient) ListPublicCertificatesSlotComplete(ctx context.Context,
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListPublishingCredentials(ctx context.Context, resourceGroupName string, name string) (result AppsListPublishingCredentialsFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublishingCredentials")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18689,13 +21252,9 @@ func (client AppsClient) ListPublishingCredentialsPreparer(ctx context.Context, 
 // ListPublishingCredentialsSender sends the ListPublishingCredentials request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPublishingCredentialsSender(req *http.Request) (future AppsListPublishingCredentialsFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -18723,6 +21282,16 @@ func (client AppsClient) ListPublishingCredentialsResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API will get the publishing credentials
 // for the production slot.
 func (client AppsClient) ListPublishingCredentialsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result AppsListPublishingCredentialsSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublishingCredentialsSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18771,13 +21340,9 @@ func (client AppsClient) ListPublishingCredentialsSlotPreparer(ctx context.Conte
 // ListPublishingCredentialsSlotSender sends the ListPublishingCredentialsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPublishingCredentialsSlotSender(req *http.Request) (future AppsListPublishingCredentialsSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -18805,6 +21370,16 @@ func (client AppsClient) ListPublishingCredentialsSlotResponder(resp *http.Respo
 // publishingProfileOptions - specifies publishingProfileOptions for publishing profile. For example, use
 // {"format": "FileZilla3"} to get a FileZilla publishing profile.
 func (client AppsClient) ListPublishingProfileXMLWithSecrets(ctx context.Context, resourceGroupName string, name string, publishingProfileOptions CsmPublishingProfileOptions) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublishingProfileXMLWithSecrets")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18860,8 +21435,8 @@ func (client AppsClient) ListPublishingProfileXMLWithSecretsPreparer(ctx context
 // ListPublishingProfileXMLWithSecretsSender sends the ListPublishingProfileXMLWithSecrets request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPublishingProfileXMLWithSecretsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPublishingProfileXMLWithSecretsResponder handles the response to the ListPublishingProfileXMLWithSecrets request. The method always
@@ -18885,6 +21460,16 @@ func (client AppsClient) ListPublishingProfileXMLWithSecretsResponder(resp *http
 // slot - name of the deployment slot. If a slot is not specified, the API will get the publishing profile for
 // the production slot.
 func (client AppsClient) ListPublishingProfileXMLWithSecretsSlot(ctx context.Context, resourceGroupName string, name string, publishingProfileOptions CsmPublishingProfileOptions, slot string) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListPublishingProfileXMLWithSecretsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -18941,8 +21526,8 @@ func (client AppsClient) ListPublishingProfileXMLWithSecretsSlotPreparer(ctx con
 // ListPublishingProfileXMLWithSecretsSlotSender sends the ListPublishingProfileXMLWithSecretsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListPublishingProfileXMLWithSecretsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListPublishingProfileXMLWithSecretsSlotResponder handles the response to the ListPublishingProfileXMLWithSecretsSlot request. The method always
@@ -18962,6 +21547,16 @@ func (client AppsClient) ListPublishingProfileXMLWithSecretsSlotResponder(resp *
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListRelayServiceConnections(ctx context.Context, resourceGroupName string, name string) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListRelayServiceConnections")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19015,8 +21610,8 @@ func (client AppsClient) ListRelayServiceConnectionsPreparer(ctx context.Context
 // ListRelayServiceConnectionsSender sends the ListRelayServiceConnections request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListRelayServiceConnectionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListRelayServiceConnectionsResponder handles the response to the ListRelayServiceConnections request. The method always
@@ -19039,6 +21634,16 @@ func (client AppsClient) ListRelayServiceConnectionsResponder(resp *http.Respons
 // slot - name of the deployment slot. If a slot is not specified, the API will get hybrid connections for the
 // production slot.
 func (client AppsClient) ListRelayServiceConnectionsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListRelayServiceConnectionsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19093,8 +21698,8 @@ func (client AppsClient) ListRelayServiceConnectionsSlotPreparer(ctx context.Con
 // ListRelayServiceConnectionsSlotSender sends the ListRelayServiceConnectionsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListRelayServiceConnectionsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListRelayServiceConnectionsSlotResponder handles the response to the ListRelayServiceConnectionsSlot request. The method always
@@ -19110,11 +21715,21 @@ func (client AppsClient) ListRelayServiceConnectionsSlotResponder(resp *http.Res
 	return
 }
 
-// ListSiteExtensions get list of siteextensions for a web site, or a deployment slot.
+// ListSiteExtensions get list of site extensions for a web site, or a deployment slot.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 func (client AppsClient) ListSiteExtensions(ctx context.Context, resourceGroupName string, name string) (result SiteExtensionInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSiteExtensions")
+		defer func() {
+			sc := -1
+			if result.seic.Response.Response != nil {
+				sc = result.seic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19169,8 +21784,8 @@ func (client AppsClient) ListSiteExtensionsPreparer(ctx context.Context, resourc
 // ListSiteExtensionsSender sends the ListSiteExtensions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSiteExtensionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSiteExtensionsResponder handles the response to the ListSiteExtensions request. The method always
@@ -19187,8 +21802,8 @@ func (client AppsClient) ListSiteExtensionsResponder(resp *http.Response) (resul
 }
 
 // listSiteExtensionsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSiteExtensionsNextResults(lastResults SiteExtensionInfoCollection) (result SiteExtensionInfoCollection, err error) {
-	req, err := lastResults.siteExtensionInfoCollectionPreparer()
+func (client AppsClient) listSiteExtensionsNextResults(ctx context.Context, lastResults SiteExtensionInfoCollection) (result SiteExtensionInfoCollection, err error) {
+	req, err := lastResults.siteExtensionInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSiteExtensionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -19209,17 +21824,37 @@ func (client AppsClient) listSiteExtensionsNextResults(lastResults SiteExtension
 
 // ListSiteExtensionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSiteExtensionsComplete(ctx context.Context, resourceGroupName string, name string) (result SiteExtensionInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSiteExtensions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSiteExtensions(ctx, resourceGroupName, name)
 	return
 }
 
-// ListSiteExtensionsSlot get list of siteextensions for a web site, or a deployment slot.
+// ListSiteExtensionsSlot get list of site extensions for a web site, or a deployment slot.
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) ListSiteExtensionsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteExtensionInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSiteExtensionsSlot")
+		defer func() {
+			sc := -1
+			if result.seic.Response.Response != nil {
+				sc = result.seic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19275,8 +21910,8 @@ func (client AppsClient) ListSiteExtensionsSlotPreparer(ctx context.Context, res
 // ListSiteExtensionsSlotSender sends the ListSiteExtensionsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSiteExtensionsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSiteExtensionsSlotResponder handles the response to the ListSiteExtensionsSlot request. The method always
@@ -19293,8 +21928,8 @@ func (client AppsClient) ListSiteExtensionsSlotResponder(resp *http.Response) (r
 }
 
 // listSiteExtensionsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSiteExtensionsSlotNextResults(lastResults SiteExtensionInfoCollection) (result SiteExtensionInfoCollection, err error) {
-	req, err := lastResults.siteExtensionInfoCollectionPreparer()
+func (client AppsClient) listSiteExtensionsSlotNextResults(ctx context.Context, lastResults SiteExtensionInfoCollection) (result SiteExtensionInfoCollection, err error) {
+	req, err := lastResults.siteExtensionInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSiteExtensionsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -19315,6 +21950,16 @@ func (client AppsClient) listSiteExtensionsSlotNextResults(lastResults SiteExten
 
 // ListSiteExtensionsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSiteExtensionsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result SiteExtensionInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSiteExtensionsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSiteExtensionsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -19324,6 +21969,16 @@ func (client AppsClient) ListSiteExtensionsSlotComplete(ctx context.Context, res
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) ListSitePushSettings(ctx context.Context, resourceGroupName string, name string) (result PushSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSitePushSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19377,8 +22032,8 @@ func (client AppsClient) ListSitePushSettingsPreparer(ctx context.Context, resou
 // ListSitePushSettingsSender sends the ListSitePushSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSitePushSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSitePushSettingsResponder handles the response to the ListSitePushSettings request. The method always
@@ -19400,6 +22055,16 @@ func (client AppsClient) ListSitePushSettingsResponder(resp *http.Response) (res
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) ListSitePushSettingsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result PushSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSitePushSettingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19454,8 +22119,8 @@ func (client AppsClient) ListSitePushSettingsSlotPreparer(ctx context.Context, r
 // ListSitePushSettingsSlotSender sends the ListSitePushSettingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSitePushSettingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSitePushSettingsSlotResponder handles the response to the ListSitePushSettingsSlot request. The method always
@@ -19477,6 +22142,16 @@ func (client AppsClient) ListSitePushSettingsSlotResponder(resp *http.Response) 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListSlotConfigurationNames(ctx context.Context, resourceGroupName string, name string) (result SlotConfigNamesResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlotConfigurationNames")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19530,8 +22205,8 @@ func (client AppsClient) ListSlotConfigurationNamesPreparer(ctx context.Context,
 // ListSlotConfigurationNamesSender sends the ListSlotConfigurationNames request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSlotConfigurationNamesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSlotConfigurationNamesResponder handles the response to the ListSlotConfigurationNames request. The method always
@@ -19553,6 +22228,16 @@ func (client AppsClient) ListSlotConfigurationNamesResponder(resp *http.Response
 // name - name of the app.
 // slotSwapEntity - JSON object that contains the target slot name. See example.
 func (client AppsClient) ListSlotDifferencesFromProduction(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity) (result SlotDifferenceCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlotDifferencesFromProduction")
+		defer func() {
+			sc := -1
+			if result.sdc.Response.Response != nil {
+				sc = result.sdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19612,8 +22297,8 @@ func (client AppsClient) ListSlotDifferencesFromProductionPreparer(ctx context.C
 // ListSlotDifferencesFromProductionSender sends the ListSlotDifferencesFromProduction request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSlotDifferencesFromProductionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSlotDifferencesFromProductionResponder handles the response to the ListSlotDifferencesFromProduction request. The method always
@@ -19630,8 +22315,8 @@ func (client AppsClient) ListSlotDifferencesFromProductionResponder(resp *http.R
 }
 
 // listSlotDifferencesFromProductionNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSlotDifferencesFromProductionNextResults(lastResults SlotDifferenceCollection) (result SlotDifferenceCollection, err error) {
-	req, err := lastResults.slotDifferenceCollectionPreparer()
+func (client AppsClient) listSlotDifferencesFromProductionNextResults(ctx context.Context, lastResults SlotDifferenceCollection) (result SlotDifferenceCollection, err error) {
+	req, err := lastResults.slotDifferenceCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSlotDifferencesFromProductionNextResults", nil, "Failure preparing next results request")
 	}
@@ -19652,6 +22337,16 @@ func (client AppsClient) listSlotDifferencesFromProductionNextResults(lastResult
 
 // ListSlotDifferencesFromProductionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSlotDifferencesFromProductionComplete(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity) (result SlotDifferenceCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlotDifferencesFromProduction")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSlotDifferencesFromProduction(ctx, resourceGroupName, name, slotSwapEntity)
 	return
 }
@@ -19663,6 +22358,16 @@ func (client AppsClient) ListSlotDifferencesFromProductionComplete(ctx context.C
 // slotSwapEntity - JSON object that contains the target slot name. See example.
 // slot - name of the source slot. If a slot is not specified, the production slot is used as the source slot.
 func (client AppsClient) ListSlotDifferencesSlot(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity, slot string) (result SlotDifferenceCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlotDifferencesSlot")
+		defer func() {
+			sc := -1
+			if result.sdc.Response.Response != nil {
+				sc = result.sdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19723,8 +22428,8 @@ func (client AppsClient) ListSlotDifferencesSlotPreparer(ctx context.Context, re
 // ListSlotDifferencesSlotSender sends the ListSlotDifferencesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSlotDifferencesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSlotDifferencesSlotResponder handles the response to the ListSlotDifferencesSlot request. The method always
@@ -19741,8 +22446,8 @@ func (client AppsClient) ListSlotDifferencesSlotResponder(resp *http.Response) (
 }
 
 // listSlotDifferencesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSlotDifferencesSlotNextResults(lastResults SlotDifferenceCollection) (result SlotDifferenceCollection, err error) {
-	req, err := lastResults.slotDifferenceCollectionPreparer()
+func (client AppsClient) listSlotDifferencesSlotNextResults(ctx context.Context, lastResults SlotDifferenceCollection) (result SlotDifferenceCollection, err error) {
+	req, err := lastResults.slotDifferenceCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSlotDifferencesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -19763,6 +22468,16 @@ func (client AppsClient) listSlotDifferencesSlotNextResults(lastResults SlotDiff
 
 // ListSlotDifferencesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSlotDifferencesSlotComplete(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity, slot string) (result SlotDifferenceCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlotDifferencesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSlotDifferencesSlot(ctx, resourceGroupName, name, slotSwapEntity, slot)
 	return
 }
@@ -19772,6 +22487,16 @@ func (client AppsClient) ListSlotDifferencesSlotComplete(ctx context.Context, re
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListSlots(ctx context.Context, resourceGroupName string, name string) (result AppCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlots")
+		defer func() {
+			sc := -1
+			if result.ac.Response.Response != nil {
+				sc = result.ac.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19826,8 +22551,8 @@ func (client AppsClient) ListSlotsPreparer(ctx context.Context, resourceGroupNam
 // ListSlotsSender sends the ListSlots request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSlotsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSlotsResponder handles the response to the ListSlots request. The method always
@@ -19844,8 +22569,8 @@ func (client AppsClient) ListSlotsResponder(resp *http.Response) (result AppColl
 }
 
 // listSlotsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSlotsNextResults(lastResults AppCollection) (result AppCollection, err error) {
-	req, err := lastResults.appCollectionPreparer()
+func (client AppsClient) listSlotsNextResults(ctx context.Context, lastResults AppCollection) (result AppCollection, err error) {
+	req, err := lastResults.appCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSlotsNextResults", nil, "Failure preparing next results request")
 	}
@@ -19866,6 +22591,16 @@ func (client AppsClient) listSlotsNextResults(lastResults AppCollection) (result
 
 // ListSlotsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSlotsComplete(ctx context.Context, resourceGroupName string, name string) (result AppCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSlots")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSlots(ctx, resourceGroupName, name)
 	return
 }
@@ -19875,6 +22610,16 @@ func (client AppsClient) ListSlotsComplete(ctx context.Context, resourceGroupNam
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - website Name.
 func (client AppsClient) ListSnapshots(ctx context.Context, resourceGroupName string, name string) (result SnapshotCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSnapshots")
+		defer func() {
+			sc := -1
+			if result.sc.Response.Response != nil {
+				sc = result.sc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -19929,8 +22674,8 @@ func (client AppsClient) ListSnapshotsPreparer(ctx context.Context, resourceGrou
 // ListSnapshotsSender sends the ListSnapshots request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSnapshotsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSnapshotsResponder handles the response to the ListSnapshots request. The method always
@@ -19947,8 +22692,8 @@ func (client AppsClient) ListSnapshotsResponder(resp *http.Response) (result Sna
 }
 
 // listSnapshotsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSnapshotsNextResults(lastResults SnapshotCollection) (result SnapshotCollection, err error) {
-	req, err := lastResults.snapshotCollectionPreparer()
+func (client AppsClient) listSnapshotsNextResults(ctx context.Context, lastResults SnapshotCollection) (result SnapshotCollection, err error) {
+	req, err := lastResults.snapshotCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSnapshotsNextResults", nil, "Failure preparing next results request")
 	}
@@ -19969,6 +22714,16 @@ func (client AppsClient) listSnapshotsNextResults(lastResults SnapshotCollection
 
 // ListSnapshotsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSnapshotsComplete(ctx context.Context, resourceGroupName string, name string) (result SnapshotCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSnapshots")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSnapshots(ctx, resourceGroupName, name)
 	return
 }
@@ -19979,6 +22734,16 @@ func (client AppsClient) ListSnapshotsComplete(ctx context.Context, resourceGrou
 // name - website Name.
 // slot - website Slot.
 func (client AppsClient) ListSnapshotsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result SnapshotCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSnapshotsSlot")
+		defer func() {
+			sc := -1
+			if result.sc.Response.Response != nil {
+				sc = result.sc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20034,8 +22799,8 @@ func (client AppsClient) ListSnapshotsSlotPreparer(ctx context.Context, resource
 // ListSnapshotsSlotSender sends the ListSnapshotsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSnapshotsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSnapshotsSlotResponder handles the response to the ListSnapshotsSlot request. The method always
@@ -20052,8 +22817,8 @@ func (client AppsClient) ListSnapshotsSlotResponder(resp *http.Response) (result
 }
 
 // listSnapshotsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listSnapshotsSlotNextResults(lastResults SnapshotCollection) (result SnapshotCollection, err error) {
-	req, err := lastResults.snapshotCollectionPreparer()
+func (client AppsClient) listSnapshotsSlotNextResults(ctx context.Context, lastResults SnapshotCollection) (result SnapshotCollection, err error) {
+	req, err := lastResults.snapshotCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listSnapshotsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -20074,6 +22839,16 @@ func (client AppsClient) listSnapshotsSlotNextResults(lastResults SnapshotCollec
 
 // ListSnapshotsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListSnapshotsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result SnapshotCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSnapshotsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListSnapshotsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -20083,6 +22858,16 @@ func (client AppsClient) ListSnapshotsSlotComplete(ctx context.Context, resource
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListSyncFunctionTriggers(ctx context.Context, resourceGroupName string, name string) (result FunctionSecrets, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSyncFunctionTriggers")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20136,8 +22921,8 @@ func (client AppsClient) ListSyncFunctionTriggersPreparer(ctx context.Context, r
 // ListSyncFunctionTriggersSender sends the ListSyncFunctionTriggers request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSyncFunctionTriggersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSyncFunctionTriggersResponder handles the response to the ListSyncFunctionTriggers request. The method always
@@ -20160,6 +22945,16 @@ func (client AppsClient) ListSyncFunctionTriggersResponder(resp *http.Response) 
 // slot - name of the deployment slot. If a slot is not specified, the API will restore a backup of the
 // production slot.
 func (client AppsClient) ListSyncFunctionTriggersSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result FunctionSecrets, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListSyncFunctionTriggersSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20214,8 +23009,8 @@ func (client AppsClient) ListSyncFunctionTriggersSlotPreparer(ctx context.Contex
 // ListSyncFunctionTriggersSlotSender sends the ListSyncFunctionTriggersSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListSyncFunctionTriggersSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListSyncFunctionTriggersSlotResponder handles the response to the ListSyncFunctionTriggersSlot request. The method always
@@ -20237,6 +23032,16 @@ func (client AppsClient) ListSyncFunctionTriggersSlotResponder(resp *http.Respon
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) ListTriggeredWebJobHistory(ctx context.Context, resourceGroupName string, name string, webJobName string) (result TriggeredJobHistoryCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobHistory")
+		defer func() {
+			sc := -1
+			if result.tjhc.Response.Response != nil {
+				sc = result.tjhc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20292,8 +23097,8 @@ func (client AppsClient) ListTriggeredWebJobHistoryPreparer(ctx context.Context,
 // ListTriggeredWebJobHistorySender sends the ListTriggeredWebJobHistory request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListTriggeredWebJobHistorySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListTriggeredWebJobHistoryResponder handles the response to the ListTriggeredWebJobHistory request. The method always
@@ -20310,8 +23115,8 @@ func (client AppsClient) ListTriggeredWebJobHistoryResponder(resp *http.Response
 }
 
 // listTriggeredWebJobHistoryNextResults retrieves the next set of results, if any.
-func (client AppsClient) listTriggeredWebJobHistoryNextResults(lastResults TriggeredJobHistoryCollection) (result TriggeredJobHistoryCollection, err error) {
-	req, err := lastResults.triggeredJobHistoryCollectionPreparer()
+func (client AppsClient) listTriggeredWebJobHistoryNextResults(ctx context.Context, lastResults TriggeredJobHistoryCollection) (result TriggeredJobHistoryCollection, err error) {
+	req, err := lastResults.triggeredJobHistoryCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listTriggeredWebJobHistoryNextResults", nil, "Failure preparing next results request")
 	}
@@ -20332,6 +23137,16 @@ func (client AppsClient) listTriggeredWebJobHistoryNextResults(lastResults Trigg
 
 // ListTriggeredWebJobHistoryComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListTriggeredWebJobHistoryComplete(ctx context.Context, resourceGroupName string, name string, webJobName string) (result TriggeredJobHistoryCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobHistory")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListTriggeredWebJobHistory(ctx, resourceGroupName, name, webJobName)
 	return
 }
@@ -20344,6 +23159,16 @@ func (client AppsClient) ListTriggeredWebJobHistoryComplete(ctx context.Context,
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) ListTriggeredWebJobHistorySlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result TriggeredJobHistoryCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobHistorySlot")
+		defer func() {
+			sc := -1
+			if result.tjhc.Response.Response != nil {
+				sc = result.tjhc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20400,8 +23225,8 @@ func (client AppsClient) ListTriggeredWebJobHistorySlotPreparer(ctx context.Cont
 // ListTriggeredWebJobHistorySlotSender sends the ListTriggeredWebJobHistorySlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListTriggeredWebJobHistorySlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListTriggeredWebJobHistorySlotResponder handles the response to the ListTriggeredWebJobHistorySlot request. The method always
@@ -20418,8 +23243,8 @@ func (client AppsClient) ListTriggeredWebJobHistorySlotResponder(resp *http.Resp
 }
 
 // listTriggeredWebJobHistorySlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listTriggeredWebJobHistorySlotNextResults(lastResults TriggeredJobHistoryCollection) (result TriggeredJobHistoryCollection, err error) {
-	req, err := lastResults.triggeredJobHistoryCollectionPreparer()
+func (client AppsClient) listTriggeredWebJobHistorySlotNextResults(ctx context.Context, lastResults TriggeredJobHistoryCollection) (result TriggeredJobHistoryCollection, err error) {
+	req, err := lastResults.triggeredJobHistoryCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listTriggeredWebJobHistorySlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -20440,6 +23265,16 @@ func (client AppsClient) listTriggeredWebJobHistorySlotNextResults(lastResults T
 
 // ListTriggeredWebJobHistorySlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListTriggeredWebJobHistorySlotComplete(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result TriggeredJobHistoryCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobHistorySlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListTriggeredWebJobHistorySlot(ctx, resourceGroupName, name, webJobName, slot)
 	return
 }
@@ -20449,6 +23284,16 @@ func (client AppsClient) ListTriggeredWebJobHistorySlotComplete(ctx context.Cont
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 func (client AppsClient) ListTriggeredWebJobs(ctx context.Context, resourceGroupName string, name string) (result TriggeredWebJobCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobs")
+		defer func() {
+			sc := -1
+			if result.twjc.Response.Response != nil {
+				sc = result.twjc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20503,8 +23348,8 @@ func (client AppsClient) ListTriggeredWebJobsPreparer(ctx context.Context, resou
 // ListTriggeredWebJobsSender sends the ListTriggeredWebJobs request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListTriggeredWebJobsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListTriggeredWebJobsResponder handles the response to the ListTriggeredWebJobs request. The method always
@@ -20521,8 +23366,8 @@ func (client AppsClient) ListTriggeredWebJobsResponder(resp *http.Response) (res
 }
 
 // listTriggeredWebJobsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listTriggeredWebJobsNextResults(lastResults TriggeredWebJobCollection) (result TriggeredWebJobCollection, err error) {
-	req, err := lastResults.triggeredWebJobCollectionPreparer()
+func (client AppsClient) listTriggeredWebJobsNextResults(ctx context.Context, lastResults TriggeredWebJobCollection) (result TriggeredWebJobCollection, err error) {
+	req, err := lastResults.triggeredWebJobCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listTriggeredWebJobsNextResults", nil, "Failure preparing next results request")
 	}
@@ -20543,6 +23388,16 @@ func (client AppsClient) listTriggeredWebJobsNextResults(lastResults TriggeredWe
 
 // ListTriggeredWebJobsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListTriggeredWebJobsComplete(ctx context.Context, resourceGroupName string, name string) (result TriggeredWebJobCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobs")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListTriggeredWebJobs(ctx, resourceGroupName, name)
 	return
 }
@@ -20554,6 +23409,16 @@ func (client AppsClient) ListTriggeredWebJobsComplete(ctx context.Context, resou
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) ListTriggeredWebJobsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result TriggeredWebJobCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobsSlot")
+		defer func() {
+			sc := -1
+			if result.twjc.Response.Response != nil {
+				sc = result.twjc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20609,8 +23474,8 @@ func (client AppsClient) ListTriggeredWebJobsSlotPreparer(ctx context.Context, r
 // ListTriggeredWebJobsSlotSender sends the ListTriggeredWebJobsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListTriggeredWebJobsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListTriggeredWebJobsSlotResponder handles the response to the ListTriggeredWebJobsSlot request. The method always
@@ -20627,8 +23492,8 @@ func (client AppsClient) ListTriggeredWebJobsSlotResponder(resp *http.Response) 
 }
 
 // listTriggeredWebJobsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listTriggeredWebJobsSlotNextResults(lastResults TriggeredWebJobCollection) (result TriggeredWebJobCollection, err error) {
-	req, err := lastResults.triggeredWebJobCollectionPreparer()
+func (client AppsClient) listTriggeredWebJobsSlotNextResults(ctx context.Context, lastResults TriggeredWebJobCollection) (result TriggeredWebJobCollection, err error) {
+	req, err := lastResults.triggeredWebJobCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listTriggeredWebJobsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -20649,6 +23514,16 @@ func (client AppsClient) listTriggeredWebJobsSlotNextResults(lastResults Trigger
 
 // ListTriggeredWebJobsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListTriggeredWebJobsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result TriggeredWebJobCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListTriggeredWebJobsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListTriggeredWebJobsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -20661,6 +23536,16 @@ func (client AppsClient) ListTriggeredWebJobsSlotComplete(ctx context.Context, r
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppsClient) ListUsages(ctx context.Context, resourceGroupName string, name string, filter string) (result CsmUsageQuotaCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListUsages")
+		defer func() {
+			sc := -1
+			if result.cuqc.Response.Response != nil {
+				sc = result.cuqc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20718,8 +23603,8 @@ func (client AppsClient) ListUsagesPreparer(ctx context.Context, resourceGroupNa
 // ListUsagesSender sends the ListUsages request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListUsagesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListUsagesResponder handles the response to the ListUsages request. The method always
@@ -20736,8 +23621,8 @@ func (client AppsClient) ListUsagesResponder(resp *http.Response) (result CsmUsa
 }
 
 // listUsagesNextResults retrieves the next set of results, if any.
-func (client AppsClient) listUsagesNextResults(lastResults CsmUsageQuotaCollection) (result CsmUsageQuotaCollection, err error) {
-	req, err := lastResults.csmUsageQuotaCollectionPreparer()
+func (client AppsClient) listUsagesNextResults(ctx context.Context, lastResults CsmUsageQuotaCollection) (result CsmUsageQuotaCollection, err error) {
+	req, err := lastResults.csmUsageQuotaCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listUsagesNextResults", nil, "Failure preparing next results request")
 	}
@@ -20758,6 +23643,16 @@ func (client AppsClient) listUsagesNextResults(lastResults CsmUsageQuotaCollecti
 
 // ListUsagesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListUsagesComplete(ctx context.Context, resourceGroupName string, name string, filter string) (result CsmUsageQuotaCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListUsages")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListUsages(ctx, resourceGroupName, name, filter)
 	return
 }
@@ -20772,6 +23667,16 @@ func (client AppsClient) ListUsagesComplete(ctx context.Context, resourceGroupNa
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppsClient) ListUsagesSlot(ctx context.Context, resourceGroupName string, name string, slot string, filter string) (result CsmUsageQuotaCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListUsagesSlot")
+		defer func() {
+			sc := -1
+			if result.cuqc.Response.Response != nil {
+				sc = result.cuqc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20830,8 +23735,8 @@ func (client AppsClient) ListUsagesSlotPreparer(ctx context.Context, resourceGro
 // ListUsagesSlotSender sends the ListUsagesSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListUsagesSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListUsagesSlotResponder handles the response to the ListUsagesSlot request. The method always
@@ -20848,8 +23753,8 @@ func (client AppsClient) ListUsagesSlotResponder(resp *http.Response) (result Cs
 }
 
 // listUsagesSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listUsagesSlotNextResults(lastResults CsmUsageQuotaCollection) (result CsmUsageQuotaCollection, err error) {
-	req, err := lastResults.csmUsageQuotaCollectionPreparer()
+func (client AppsClient) listUsagesSlotNextResults(ctx context.Context, lastResults CsmUsageQuotaCollection) (result CsmUsageQuotaCollection, err error) {
+	req, err := lastResults.csmUsageQuotaCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listUsagesSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -20870,6 +23775,16 @@ func (client AppsClient) listUsagesSlotNextResults(lastResults CsmUsageQuotaColl
 
 // ListUsagesSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListUsagesSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string, filter string) (result CsmUsageQuotaCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListUsagesSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListUsagesSlot(ctx, resourceGroupName, name, slot, filter)
 	return
 }
@@ -20879,6 +23794,16 @@ func (client AppsClient) ListUsagesSlotComplete(ctx context.Context, resourceGro
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ListVnetConnections(ctx context.Context, resourceGroupName string, name string) (result ListVnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListVnetConnections")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -20932,8 +23857,8 @@ func (client AppsClient) ListVnetConnectionsPreparer(ctx context.Context, resour
 // ListVnetConnectionsSender sends the ListVnetConnections request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListVnetConnectionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListVnetConnectionsResponder handles the response to the ListVnetConnections request. The method always
@@ -20956,6 +23881,16 @@ func (client AppsClient) ListVnetConnectionsResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API will get virtual network connections
 // for the production slot.
 func (client AppsClient) ListVnetConnectionsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result ListVnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListVnetConnectionsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21010,8 +23945,8 @@ func (client AppsClient) ListVnetConnectionsSlotPreparer(ctx context.Context, re
 // ListVnetConnectionsSlotSender sends the ListVnetConnectionsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListVnetConnectionsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListVnetConnectionsSlotResponder handles the response to the ListVnetConnectionsSlot request. The method always
@@ -21032,6 +23967,16 @@ func (client AppsClient) ListVnetConnectionsSlotResponder(resp *http.Response) (
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - site name.
 func (client AppsClient) ListWebJobs(ctx context.Context, resourceGroupName string, name string) (result JobCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListWebJobs")
+		defer func() {
+			sc := -1
+			if result.jc.Response.Response != nil {
+				sc = result.jc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21086,8 +24031,8 @@ func (client AppsClient) ListWebJobsPreparer(ctx context.Context, resourceGroupN
 // ListWebJobsSender sends the ListWebJobs request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListWebJobsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWebJobsResponder handles the response to the ListWebJobs request. The method always
@@ -21104,8 +24049,8 @@ func (client AppsClient) ListWebJobsResponder(resp *http.Response) (result JobCo
 }
 
 // listWebJobsNextResults retrieves the next set of results, if any.
-func (client AppsClient) listWebJobsNextResults(lastResults JobCollection) (result JobCollection, err error) {
-	req, err := lastResults.jobCollectionPreparer()
+func (client AppsClient) listWebJobsNextResults(ctx context.Context, lastResults JobCollection) (result JobCollection, err error) {
+	req, err := lastResults.jobCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listWebJobsNextResults", nil, "Failure preparing next results request")
 	}
@@ -21126,6 +24071,16 @@ func (client AppsClient) listWebJobsNextResults(lastResults JobCollection) (resu
 
 // ListWebJobsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListWebJobsComplete(ctx context.Context, resourceGroupName string, name string) (result JobCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListWebJobs")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWebJobs(ctx, resourceGroupName, name)
 	return
 }
@@ -21137,6 +24092,16 @@ func (client AppsClient) ListWebJobsComplete(ctx context.Context, resourceGroupN
 // slot - name of the deployment slot. If a slot is not specified, the API returns deployments for the
 // production slot.
 func (client AppsClient) ListWebJobsSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result JobCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListWebJobsSlot")
+		defer func() {
+			sc := -1
+			if result.jc.Response.Response != nil {
+				sc = result.jc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21192,8 +24157,8 @@ func (client AppsClient) ListWebJobsSlotPreparer(ctx context.Context, resourceGr
 // ListWebJobsSlotSender sends the ListWebJobsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ListWebJobsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWebJobsSlotResponder handles the response to the ListWebJobsSlot request. The method always
@@ -21210,8 +24175,8 @@ func (client AppsClient) ListWebJobsSlotResponder(resp *http.Response) (result J
 }
 
 // listWebJobsSlotNextResults retrieves the next set of results, if any.
-func (client AppsClient) listWebJobsSlotNextResults(lastResults JobCollection) (result JobCollection, err error) {
-	req, err := lastResults.jobCollectionPreparer()
+func (client AppsClient) listWebJobsSlotNextResults(ctx context.Context, lastResults JobCollection) (result JobCollection, err error) {
+	req, err := lastResults.jobCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppsClient", "listWebJobsSlotNextResults", nil, "Failure preparing next results request")
 	}
@@ -21232,6 +24197,16 @@ func (client AppsClient) listWebJobsSlotNextResults(lastResults JobCollection) (
 
 // ListWebJobsSlotComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppsClient) ListWebJobsSlotComplete(ctx context.Context, resourceGroupName string, name string, slot string) (result JobCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ListWebJobsSlot")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWebJobsSlot(ctx, resourceGroupName, name, slot)
 	return
 }
@@ -21242,6 +24217,16 @@ func (client AppsClient) ListWebJobsSlotComplete(ctx context.Context, resourceGr
 // name - name of web app.
 // migrationRequestEnvelope - mySql migration options.
 func (client AppsClient) MigrateMySQL(ctx context.Context, resourceGroupName string, name string, migrationRequestEnvelope MigrateMySQLRequest) (result AppsMigrateMySQLFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.MigrateMySQL")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21294,13 +24279,9 @@ func (client AppsClient) MigrateMySQLPreparer(ctx context.Context, resourceGroup
 // MigrateMySQLSender sends the MigrateMySQL request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) MigrateMySQLSender(req *http.Request) (future AppsMigrateMySQLFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -21328,6 +24309,16 @@ func (client AppsClient) MigrateMySQLResponder(resp *http.Response) (result Oper
 // name - name of web app.
 // migrationOptions - migration migrationOptions.
 func (client AppsClient) MigrateStorage(ctx context.Context, subscriptionName string, resourceGroupName string, name string, migrationOptions StorageMigrationOptions) (result AppsMigrateStorageFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.MigrateStorage")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21383,13 +24374,9 @@ func (client AppsClient) MigrateStoragePreparer(ctx context.Context, subscriptio
 // MigrateStorageSender sends the MigrateStorage request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) MigrateStorageSender(req *http.Request) (future AppsMigrateStorageFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -21417,6 +24404,16 @@ func (client AppsClient) MigrateStorageResponder(resp *http.Response) (result St
 // recoveryEntity - snapshot data used for web app recovery. Snapshot information can be obtained by calling
 // GetDeletedSites or GetSiteSnapshots API.
 func (client AppsClient) Recover(ctx context.Context, resourceGroupName string, name string, recoveryEntity SnapshotRecoveryRequest) (result AppsRecoverFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Recover")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21469,13 +24466,9 @@ func (client AppsClient) RecoverPreparer(ctx context.Context, resourceGroupName 
 // RecoverSender sends the Recover request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RecoverSender(req *http.Request) (future AppsRecoverFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -21501,6 +24494,16 @@ func (client AppsClient) RecoverResponder(resp *http.Response) (result autorest.
 // name - name of the app.
 // snapshotID - the ID of the snapshot to read.
 func (client AppsClient) RecoverSiteConfigurationSnapshot(ctx context.Context, resourceGroupName string, name string, snapshotID string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RecoverSiteConfigurationSnapshot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21555,8 +24558,8 @@ func (client AppsClient) RecoverSiteConfigurationSnapshotPreparer(ctx context.Co
 // RecoverSiteConfigurationSnapshotSender sends the RecoverSiteConfigurationSnapshot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RecoverSiteConfigurationSnapshotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RecoverSiteConfigurationSnapshotResponder handles the response to the RecoverSiteConfigurationSnapshot request. The method always
@@ -21579,6 +24582,16 @@ func (client AppsClient) RecoverSiteConfigurationSnapshotResponder(resp *http.Re
 // slot - name of the deployment slot. If a slot is not specified, the API will return configuration for the
 // production slot.
 func (client AppsClient) RecoverSiteConfigurationSnapshotSlot(ctx context.Context, resourceGroupName string, name string, snapshotID string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RecoverSiteConfigurationSnapshotSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21634,8 +24647,8 @@ func (client AppsClient) RecoverSiteConfigurationSnapshotSlotPreparer(ctx contex
 // RecoverSiteConfigurationSnapshotSlotSender sends the RecoverSiteConfigurationSnapshotSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RecoverSiteConfigurationSnapshotSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RecoverSiteConfigurationSnapshotSlotResponder handles the response to the RecoverSiteConfigurationSnapshotSlot request. The method always
@@ -21658,6 +24671,16 @@ func (client AppsClient) RecoverSiteConfigurationSnapshotSlotResponder(resp *htt
 // GetDeletedSites or GetSiteSnapshots API.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) RecoverSlot(ctx context.Context, resourceGroupName string, name string, recoveryEntity SnapshotRecoveryRequest, slot string) (result AppsRecoverSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RecoverSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21711,13 +24734,9 @@ func (client AppsClient) RecoverSlotPreparer(ctx context.Context, resourceGroupN
 // RecoverSlotSender sends the RecoverSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RecoverSlotSender(req *http.Request) (future AppsRecoverSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -21743,6 +24762,16 @@ func (client AppsClient) RecoverSlotResponder(resp *http.Response) (result autor
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) ResetProductionSlotConfig(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ResetProductionSlotConfig")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21796,8 +24825,8 @@ func (client AppsClient) ResetProductionSlotConfigPreparer(ctx context.Context, 
 // ResetProductionSlotConfigSender sends the ResetProductionSlotConfig request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ResetProductionSlotConfigSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResetProductionSlotConfigResponder handles the response to the ResetProductionSlotConfig request. The method always
@@ -21820,6 +24849,16 @@ func (client AppsClient) ResetProductionSlotConfigResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API resets configuration settings for
 // the production slot.
 func (client AppsClient) ResetSlotConfigurationSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.ResetSlotConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21874,8 +24913,8 @@ func (client AppsClient) ResetSlotConfigurationSlotPreparer(ctx context.Context,
 // ResetSlotConfigurationSlotSender sends the ResetSlotConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) ResetSlotConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ResetSlotConfigurationSlotResponder handles the response to the ResetSlotConfigurationSlot request. The method always
@@ -21899,6 +24938,16 @@ func (client AppsClient) ResetSlotConfigurationSlotResponder(resp *http.Response
 // synchronous - specify true to block until the app is restarted. By default, it is set to false, and the API
 // responds immediately (asynchronous).
 func (client AppsClient) Restart(ctx context.Context, resourceGroupName string, name string, softRestart *bool, synchronous *bool) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Restart")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -21958,8 +25007,8 @@ func (client AppsClient) RestartPreparer(ctx context.Context, resourceGroupName 
 // RestartSender sends the Restart request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RestartSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestartResponder handles the response to the Restart request. The method always
@@ -21984,6 +25033,16 @@ func (client AppsClient) RestartResponder(resp *http.Response) (result autorest.
 // synchronous - specify true to block until the app is restarted. By default, it is set to false, and the API
 // responds immediately (asynchronous).
 func (client AppsClient) RestartSlot(ctx context.Context, resourceGroupName string, name string, slot string, softRestart *bool, synchronous *bool) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RestartSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22044,8 +25103,8 @@ func (client AppsClient) RestartSlotPreparer(ctx context.Context, resourceGroupN
 // RestartSlotSender sends the RestartSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RestartSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestartSlotResponder handles the response to the RestartSlot request. The method always
@@ -22067,6 +25126,16 @@ func (client AppsClient) RestartSlotResponder(resp *http.Response) (result autor
 // backupID - ID of the backup.
 // request - information on restore request .
 func (client AppsClient) Restore(ctx context.Context, resourceGroupName string, name string, backupID string, request RestoreRequest) (result AppsRestoreFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Restore")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22122,13 +25191,9 @@ func (client AppsClient) RestorePreparer(ctx context.Context, resourceGroupName 
 // RestoreSender sends the Restore request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RestoreSender(req *http.Request) (future AppsRestoreFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -22158,6 +25223,16 @@ func (client AppsClient) RestoreResponder(resp *http.Response) (result RestoreRe
 // slot - name of the deployment slot. If a slot is not specified, the API will restore a backup of the
 // production slot.
 func (client AppsClient) RestoreSlot(ctx context.Context, resourceGroupName string, name string, backupID string, request RestoreRequest, slot string) (result AppsRestoreSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RestoreSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22214,13 +25289,9 @@ func (client AppsClient) RestoreSlotPreparer(ctx context.Context, resourceGroupN
 // RestoreSlotSender sends the RestoreSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RestoreSlotSender(req *http.Request) (future AppsRestoreSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -22247,6 +25318,16 @@ func (client AppsClient) RestoreSlotResponder(resp *http.Response) (result Resto
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) RunTriggeredWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RunTriggeredWebJob")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22301,8 +25382,8 @@ func (client AppsClient) RunTriggeredWebJobPreparer(ctx context.Context, resourc
 // RunTriggeredWebJobSender sends the RunTriggeredWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RunTriggeredWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RunTriggeredWebJobResponder handles the response to the RunTriggeredWebJob request. The method always
@@ -22325,6 +25406,16 @@ func (client AppsClient) RunTriggeredWebJobResponder(resp *http.Response) (resul
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) RunTriggeredWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.RunTriggeredWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22380,8 +25471,8 @@ func (client AppsClient) RunTriggeredWebJobSlotPreparer(ctx context.Context, res
 // RunTriggeredWebJobSlotSender sends the RunTriggeredWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) RunTriggeredWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RunTriggeredWebJobSlotResponder handles the response to the RunTriggeredWebJobSlot request. The method always
@@ -22401,6 +25492,16 @@ func (client AppsClient) RunTriggeredWebJobSlotResponder(resp *http.Response) (r
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) Start(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Start")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22454,8 +25555,8 @@ func (client AppsClient) StartPreparer(ctx context.Context, resourceGroupName st
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StartSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartResponder handles the response to the Start request. The method always
@@ -22476,6 +25577,16 @@ func (client AppsClient) StartResponder(resp *http.Response) (result autorest.Re
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) StartContinuousWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StartContinuousWebJob")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22530,8 +25641,8 @@ func (client AppsClient) StartContinuousWebJobPreparer(ctx context.Context, reso
 // StartContinuousWebJobSender sends the StartContinuousWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StartContinuousWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartContinuousWebJobResponder handles the response to the StartContinuousWebJob request. The method always
@@ -22554,6 +25665,16 @@ func (client AppsClient) StartContinuousWebJobResponder(resp *http.Response) (re
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) StartContinuousWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StartContinuousWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22609,8 +25730,8 @@ func (client AppsClient) StartContinuousWebJobSlotPreparer(ctx context.Context, 
 // StartContinuousWebJobSlotSender sends the StartContinuousWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StartContinuousWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartContinuousWebJobSlotResponder handles the response to the StartContinuousWebJobSlot request. The method always
@@ -22631,6 +25752,16 @@ func (client AppsClient) StartContinuousWebJobSlotResponder(resp *http.Response)
 // name - name of the app.
 // slot - name of the deployment slot. If a slot is not specified, the API will start the production slot.
 func (client AppsClient) StartSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StartSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22685,8 +25816,8 @@ func (client AppsClient) StartSlotPreparer(ctx context.Context, resourceGroupNam
 // StartSlotSender sends the StartSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StartSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartSlotResponder handles the response to the StartSlot request. The method always
@@ -22709,6 +25840,16 @@ func (client AppsClient) StartSlotResponder(resp *http.Response) (result autores
 // maxFrameLength - the maximum frame length in bytes (Optional).
 // sasURL - the Blob URL to store capture file.
 func (client AppsClient) StartWebSiteNetworkTrace(ctx context.Context, resourceGroupName string, name string, durationInSeconds *int32, maxFrameLength *int32, sasURL string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StartWebSiteNetworkTrace")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22771,8 +25912,8 @@ func (client AppsClient) StartWebSiteNetworkTracePreparer(ctx context.Context, r
 // StartWebSiteNetworkTraceSender sends the StartWebSiteNetworkTrace request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StartWebSiteNetworkTraceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartWebSiteNetworkTraceResponder handles the response to the StartWebSiteNetworkTrace request. The method always
@@ -22797,6 +25938,16 @@ func (client AppsClient) StartWebSiteNetworkTraceResponder(resp *http.Response) 
 // maxFrameLength - the maximum frame length in bytes (Optional).
 // sasURL - the Blob URL to store capture file.
 func (client AppsClient) StartWebSiteNetworkTraceSlot(ctx context.Context, resourceGroupName string, name string, slot string, durationInSeconds *int32, maxFrameLength *int32, sasURL string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StartWebSiteNetworkTraceSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22860,8 +26011,8 @@ func (client AppsClient) StartWebSiteNetworkTraceSlotPreparer(ctx context.Contex
 // StartWebSiteNetworkTraceSlotSender sends the StartWebSiteNetworkTraceSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StartWebSiteNetworkTraceSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StartWebSiteNetworkTraceSlotResponder handles the response to the StartWebSiteNetworkTraceSlot request. The method always
@@ -22882,6 +26033,16 @@ func (client AppsClient) StartWebSiteNetworkTraceSlotResponder(resp *http.Respon
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) Stop(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Stop")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -22935,8 +26096,8 @@ func (client AppsClient) StopPreparer(ctx context.Context, resourceGroupName str
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StopSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopResponder handles the response to the Stop request. The method always
@@ -22957,6 +26118,16 @@ func (client AppsClient) StopResponder(resp *http.Response) (result autorest.Res
 // name - site name.
 // webJobName - name of Web Job.
 func (client AppsClient) StopContinuousWebJob(ctx context.Context, resourceGroupName string, name string, webJobName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StopContinuousWebJob")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23011,8 +26182,8 @@ func (client AppsClient) StopContinuousWebJobPreparer(ctx context.Context, resou
 // StopContinuousWebJobSender sends the StopContinuousWebJob request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StopContinuousWebJobSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopContinuousWebJobResponder handles the response to the StopContinuousWebJob request. The method always
@@ -23035,6 +26206,16 @@ func (client AppsClient) StopContinuousWebJobResponder(resp *http.Response) (res
 // slot - name of the deployment slot. If a slot is not specified, the API deletes a deployment for the
 // production slot.
 func (client AppsClient) StopContinuousWebJobSlot(ctx context.Context, resourceGroupName string, name string, webJobName string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StopContinuousWebJobSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23090,8 +26271,8 @@ func (client AppsClient) StopContinuousWebJobSlotPreparer(ctx context.Context, r
 // StopContinuousWebJobSlotSender sends the StopContinuousWebJobSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StopContinuousWebJobSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopContinuousWebJobSlotResponder handles the response to the StopContinuousWebJobSlot request. The method always
@@ -23112,6 +26293,16 @@ func (client AppsClient) StopContinuousWebJobSlotResponder(resp *http.Response) 
 // name - name of the app.
 // slot - name of the deployment slot. If a slot is not specified, the API will stop the production slot.
 func (client AppsClient) StopSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StopSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23166,8 +26357,8 @@ func (client AppsClient) StopSlotPreparer(ctx context.Context, resourceGroupName
 // StopSlotSender sends the StopSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StopSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopSlotResponder handles the response to the StopSlot request. The method always
@@ -23187,6 +26378,16 @@ func (client AppsClient) StopSlotResponder(resp *http.Response) (result autorest
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - the name of the web app.
 func (client AppsClient) StopWebSiteNetworkTrace(ctx context.Context, resourceGroupName string, name string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StopWebSiteNetworkTrace")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23240,8 +26441,8 @@ func (client AppsClient) StopWebSiteNetworkTracePreparer(ctx context.Context, re
 // StopWebSiteNetworkTraceSender sends the StopWebSiteNetworkTrace request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StopWebSiteNetworkTraceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopWebSiteNetworkTraceResponder handles the response to the StopWebSiteNetworkTrace request. The method always
@@ -23263,6 +26464,16 @@ func (client AppsClient) StopWebSiteNetworkTraceResponder(resp *http.Response) (
 // name - the name of the web app.
 // slot - the name of the slot for this web app.
 func (client AppsClient) StopWebSiteNetworkTraceSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result String, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.StopWebSiteNetworkTraceSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23317,8 +26528,8 @@ func (client AppsClient) StopWebSiteNetworkTraceSlotPreparer(ctx context.Context
 // StopWebSiteNetworkTraceSlotSender sends the StopWebSiteNetworkTraceSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) StopWebSiteNetworkTraceSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // StopWebSiteNetworkTraceSlotResponder handles the response to the StopWebSiteNetworkTraceSlot request. The method always
@@ -23341,6 +26552,16 @@ func (client AppsClient) StopWebSiteNetworkTraceSlotResponder(resp *http.Respons
 // slotSwapEntity - JSON object that contains the target slot name. See example.
 // slot - name of the source slot. If a slot is not specified, the production slot is used as the source slot.
 func (client AppsClient) SwapSlotSlot(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity, slot string) (result AppsSwapSlotSlotFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.SwapSlotSlot")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23394,13 +26615,9 @@ func (client AppsClient) SwapSlotSlotPreparer(ctx context.Context, resourceGroup
 // SwapSlotSlotSender sends the SwapSlotSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) SwapSlotSlotSender(req *http.Request) (future AppsSwapSlotSlotFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -23426,6 +26643,16 @@ func (client AppsClient) SwapSlotSlotResponder(resp *http.Response) (result auto
 // name - name of the app.
 // slotSwapEntity - JSON object that contains the target slot name. See example.
 func (client AppsClient) SwapSlotWithProduction(ctx context.Context, resourceGroupName string, name string, slotSwapEntity CsmSlotEntity) (result AppsSwapSlotWithProductionFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.SwapSlotWithProduction")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23478,13 +26705,9 @@ func (client AppsClient) SwapSlotWithProductionPreparer(ctx context.Context, res
 // SwapSlotWithProductionSender sends the SwapSlotWithProduction request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) SwapSlotWithProductionSender(req *http.Request) (future AppsSwapSlotWithProductionFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -23509,6 +26732,16 @@ func (client AppsClient) SwapSlotWithProductionResponder(resp *http.Response) (r
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the app.
 func (client AppsClient) SyncFunctionTriggers(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.SyncFunctionTriggers")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23562,8 +26795,8 @@ func (client AppsClient) SyncFunctionTriggersPreparer(ctx context.Context, resou
 // SyncFunctionTriggersSender sends the SyncFunctionTriggers request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) SyncFunctionTriggersSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SyncFunctionTriggersResponder handles the response to the SyncFunctionTriggers request. The method always
@@ -23585,6 +26818,16 @@ func (client AppsClient) SyncFunctionTriggersResponder(resp *http.Response) (res
 // slot - name of the deployment slot. If a slot is not specified, the API will restore a backup of the
 // production slot.
 func (client AppsClient) SyncFunctionTriggersSlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.SyncFunctionTriggersSlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23639,8 +26882,8 @@ func (client AppsClient) SyncFunctionTriggersSlotPreparer(ctx context.Context, r
 // SyncFunctionTriggersSlotSender sends the SyncFunctionTriggersSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) SyncFunctionTriggersSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SyncFunctionTriggersSlotResponder handles the response to the SyncFunctionTriggersSlot request. The method always
@@ -23660,6 +26903,16 @@ func (client AppsClient) SyncFunctionTriggersSlotResponder(resp *http.Response) 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of web app.
 func (client AppsClient) SyncRepository(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.SyncRepository")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23713,8 +26966,8 @@ func (client AppsClient) SyncRepositoryPreparer(ctx context.Context, resourceGro
 // SyncRepositorySender sends the SyncRepository request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) SyncRepositorySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SyncRepositoryResponder handles the response to the SyncRepository request. The method always
@@ -23735,6 +26988,16 @@ func (client AppsClient) SyncRepositoryResponder(resp *http.Response) (result au
 // name - name of web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) SyncRepositorySlot(ctx context.Context, resourceGroupName string, name string, slot string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.SyncRepositorySlot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23789,8 +27052,8 @@ func (client AppsClient) SyncRepositorySlotPreparer(ctx context.Context, resourc
 // SyncRepositorySlotSender sends the SyncRepositorySlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) SyncRepositorySlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // SyncRepositorySlotResponder handles the response to the SyncRepositorySlot request. The method always
@@ -23812,6 +27075,16 @@ func (client AppsClient) SyncRepositorySlotResponder(resp *http.Response) (resul
 // parameter.
 // siteEnvelope - a JSON representation of the app properties. See example.
 func (client AppsClient) Update(ctx context.Context, resourceGroupName string, name string, siteEnvelope SitePatchResource) (result Site, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23867,8 +27140,8 @@ func (client AppsClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -23890,6 +27163,16 @@ func (client AppsClient) UpdateResponder(resp *http.Response) (result Site, err 
 // name - name of the app.
 // appSettings - application settings of the app.
 func (client AppsClient) UpdateApplicationSettings(ctx context.Context, resourceGroupName string, name string, appSettings StringDictionary) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateApplicationSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -23945,8 +27228,8 @@ func (client AppsClient) UpdateApplicationSettingsPreparer(ctx context.Context, 
 // UpdateApplicationSettingsSender sends the UpdateApplicationSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateApplicationSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateApplicationSettingsResponder handles the response to the UpdateApplicationSettings request. The method always
@@ -23970,6 +27253,16 @@ func (client AppsClient) UpdateApplicationSettingsResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API will update the application settings
 // for the production slot.
 func (client AppsClient) UpdateApplicationSettingsSlot(ctx context.Context, resourceGroupName string, name string, appSettings StringDictionary, slot string) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateApplicationSettingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24026,8 +27319,8 @@ func (client AppsClient) UpdateApplicationSettingsSlotPreparer(ctx context.Conte
 // UpdateApplicationSettingsSlotSender sends the UpdateApplicationSettingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateApplicationSettingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateApplicationSettingsSlotResponder handles the response to the UpdateApplicationSettingsSlot request. The method always
@@ -24049,6 +27342,16 @@ func (client AppsClient) UpdateApplicationSettingsSlotResponder(resp *http.Respo
 // name - name of web app.
 // siteAuthSettings - auth settings associated with web app.
 func (client AppsClient) UpdateAuthSettings(ctx context.Context, resourceGroupName string, name string, siteAuthSettings SiteAuthSettings) (result SiteAuthSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateAuthSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24104,8 +27407,8 @@ func (client AppsClient) UpdateAuthSettingsPreparer(ctx context.Context, resourc
 // UpdateAuthSettingsSender sends the UpdateAuthSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateAuthSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateAuthSettingsResponder handles the response to the UpdateAuthSettings request. The method always
@@ -24128,6 +27431,16 @@ func (client AppsClient) UpdateAuthSettingsResponder(resp *http.Response) (resul
 // siteAuthSettings - auth settings associated with web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) UpdateAuthSettingsSlot(ctx context.Context, resourceGroupName string, name string, siteAuthSettings SiteAuthSettings, slot string) (result SiteAuthSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateAuthSettingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24184,8 +27497,8 @@ func (client AppsClient) UpdateAuthSettingsSlotPreparer(ctx context.Context, res
 // UpdateAuthSettingsSlotSender sends the UpdateAuthSettingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateAuthSettingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateAuthSettingsSlotResponder handles the response to the UpdateAuthSettingsSlot request. The method always
@@ -24207,6 +27520,16 @@ func (client AppsClient) UpdateAuthSettingsSlotResponder(resp *http.Response) (r
 // name - name of the app.
 // request - edited backup configuration.
 func (client AppsClient) UpdateBackupConfiguration(ctx context.Context, resourceGroupName string, name string, request BackupRequest) (result BackupRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateBackupConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24272,8 +27595,8 @@ func (client AppsClient) UpdateBackupConfigurationPreparer(ctx context.Context, 
 // UpdateBackupConfigurationSender sends the UpdateBackupConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateBackupConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateBackupConfigurationResponder handles the response to the UpdateBackupConfiguration request. The method always
@@ -24297,6 +27620,16 @@ func (client AppsClient) UpdateBackupConfigurationResponder(resp *http.Response)
 // slot - name of the deployment slot. If a slot is not specified, the API will update the backup configuration
 // for the production slot.
 func (client AppsClient) UpdateBackupConfigurationSlot(ctx context.Context, resourceGroupName string, name string, request BackupRequest, slot string) (result BackupRequest, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateBackupConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24363,8 +27696,8 @@ func (client AppsClient) UpdateBackupConfigurationSlotPreparer(ctx context.Conte
 // UpdateBackupConfigurationSlotSender sends the UpdateBackupConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateBackupConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateBackupConfigurationSlotResponder handles the response to the UpdateBackupConfigurationSlot request. The method always
@@ -24386,6 +27719,16 @@ func (client AppsClient) UpdateBackupConfigurationSlotResponder(resp *http.Respo
 // name - name of the app.
 // siteConfig - JSON representation of a SiteConfig object. See example.
 func (client AppsClient) UpdateConfiguration(ctx context.Context, resourceGroupName string, name string, siteConfig SiteConfigResource) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateConfiguration")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24441,8 +27784,8 @@ func (client AppsClient) UpdateConfigurationPreparer(ctx context.Context, resour
 // UpdateConfigurationSender sends the UpdateConfiguration request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateConfigurationSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateConfigurationResponder handles the response to the UpdateConfiguration request. The method always
@@ -24466,6 +27809,16 @@ func (client AppsClient) UpdateConfigurationResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API will update configuration for the
 // production slot.
 func (client AppsClient) UpdateConfigurationSlot(ctx context.Context, resourceGroupName string, name string, siteConfig SiteConfigResource, slot string) (result SiteConfigResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateConfigurationSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24522,8 +27875,8 @@ func (client AppsClient) UpdateConfigurationSlotPreparer(ctx context.Context, re
 // UpdateConfigurationSlotSender sends the UpdateConfigurationSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateConfigurationSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateConfigurationSlotResponder handles the response to the UpdateConfigurationSlot request. The method always
@@ -24545,6 +27898,16 @@ func (client AppsClient) UpdateConfigurationSlotResponder(resp *http.Response) (
 // name - name of the app.
 // connectionStrings - connection strings of the app or deployment slot. See example.
 func (client AppsClient) UpdateConnectionStrings(ctx context.Context, resourceGroupName string, name string, connectionStrings ConnectionStringDictionary) (result ConnectionStringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateConnectionStrings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24600,8 +27963,8 @@ func (client AppsClient) UpdateConnectionStringsPreparer(ctx context.Context, re
 // UpdateConnectionStringsSender sends the UpdateConnectionStrings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateConnectionStringsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateConnectionStringsResponder handles the response to the UpdateConnectionStrings request. The method always
@@ -24625,6 +27988,16 @@ func (client AppsClient) UpdateConnectionStringsResponder(resp *http.Response) (
 // slot - name of the deployment slot. If a slot is not specified, the API will update the connection settings
 // for the production slot.
 func (client AppsClient) UpdateConnectionStringsSlot(ctx context.Context, resourceGroupName string, name string, connectionStrings ConnectionStringDictionary, slot string) (result ConnectionStringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateConnectionStringsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24681,8 +28054,8 @@ func (client AppsClient) UpdateConnectionStringsSlotPreparer(ctx context.Context
 // UpdateConnectionStringsSlotSender sends the UpdateConnectionStringsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateConnectionStringsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateConnectionStringsSlotResponder handles the response to the UpdateConnectionStringsSlot request. The method always
@@ -24705,6 +28078,16 @@ func (client AppsClient) UpdateConnectionStringsSlotResponder(resp *http.Respons
 // siteLogsConfig - a SiteLogsConfig JSON object that contains the logging configuration to change in the
 // "properties" property.
 func (client AppsClient) UpdateDiagnosticLogsConfig(ctx context.Context, resourceGroupName string, name string, siteLogsConfig SiteLogsConfig) (result SiteLogsConfig, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateDiagnosticLogsConfig")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24775,8 +28158,8 @@ func (client AppsClient) UpdateDiagnosticLogsConfigPreparer(ctx context.Context,
 // UpdateDiagnosticLogsConfigSender sends the UpdateDiagnosticLogsConfig request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateDiagnosticLogsConfigSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateDiagnosticLogsConfigResponder handles the response to the UpdateDiagnosticLogsConfig request. The method always
@@ -24801,6 +28184,16 @@ func (client AppsClient) UpdateDiagnosticLogsConfigResponder(resp *http.Response
 // slot - name of the deployment slot. If a slot is not specified, the API will update the logging
 // configuration for the production slot.
 func (client AppsClient) UpdateDiagnosticLogsConfigSlot(ctx context.Context, resourceGroupName string, name string, siteLogsConfig SiteLogsConfig, slot string) (result SiteLogsConfig, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateDiagnosticLogsConfigSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24872,8 +28265,8 @@ func (client AppsClient) UpdateDiagnosticLogsConfigSlotPreparer(ctx context.Cont
 // UpdateDiagnosticLogsConfigSlotSender sends the UpdateDiagnosticLogsConfigSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateDiagnosticLogsConfigSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateDiagnosticLogsConfigSlotResponder handles the response to the UpdateDiagnosticLogsConfigSlot request. The method always
@@ -24897,6 +28290,16 @@ func (client AppsClient) UpdateDiagnosticLogsConfigSlotResponder(resp *http.Resp
 // domainOwnershipIdentifierName - name of domain ownership identifier.
 // domainOwnershipIdentifier - a JSON representation of the domain ownership properties.
 func (client AppsClient) UpdateDomainOwnershipIdentifier(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string, domainOwnershipIdentifier Identifier) (result Identifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateDomainOwnershipIdentifier")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -24953,8 +28356,8 @@ func (client AppsClient) UpdateDomainOwnershipIdentifierPreparer(ctx context.Con
 // UpdateDomainOwnershipIdentifierSender sends the UpdateDomainOwnershipIdentifier request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateDomainOwnershipIdentifierSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateDomainOwnershipIdentifierResponder handles the response to the UpdateDomainOwnershipIdentifier request. The method always
@@ -24980,6 +28383,16 @@ func (client AppsClient) UpdateDomainOwnershipIdentifierResponder(resp *http.Res
 // slot - name of the deployment slot. If a slot is not specified, the API will delete the binding for the
 // production slot.
 func (client AppsClient) UpdateDomainOwnershipIdentifierSlot(ctx context.Context, resourceGroupName string, name string, domainOwnershipIdentifierName string, domainOwnershipIdentifier Identifier, slot string) (result Identifier, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateDomainOwnershipIdentifierSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25037,8 +28450,8 @@ func (client AppsClient) UpdateDomainOwnershipIdentifierSlotPreparer(ctx context
 // UpdateDomainOwnershipIdentifierSlotSender sends the UpdateDomainOwnershipIdentifierSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateDomainOwnershipIdentifierSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateDomainOwnershipIdentifierSlotResponder handles the response to the UpdateDomainOwnershipIdentifierSlot request. The method always
@@ -25062,6 +28475,16 @@ func (client AppsClient) UpdateDomainOwnershipIdentifierSlotResponder(resp *http
 // relayName - the relay name for this hybrid connection.
 // connectionEnvelope - the details of the hybrid connection.
 func (client AppsClient) UpdateHybridConnection(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, connectionEnvelope HybridConnection) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateHybridConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25119,8 +28542,8 @@ func (client AppsClient) UpdateHybridConnectionPreparer(ctx context.Context, res
 // UpdateHybridConnectionSender sends the UpdateHybridConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateHybridConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateHybridConnectionResponder handles the response to the UpdateHybridConnection request. The method always
@@ -25145,6 +28568,16 @@ func (client AppsClient) UpdateHybridConnectionResponder(resp *http.Response) (r
 // connectionEnvelope - the details of the hybrid connection.
 // slot - the name of the slot for the web app.
 func (client AppsClient) UpdateHybridConnectionSlot(ctx context.Context, resourceGroupName string, name string, namespaceName string, relayName string, connectionEnvelope HybridConnection, slot string) (result HybridConnection, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateHybridConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25203,8 +28636,8 @@ func (client AppsClient) UpdateHybridConnectionSlotPreparer(ctx context.Context,
 // UpdateHybridConnectionSlotSender sends the UpdateHybridConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateHybridConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateHybridConnectionSlotResponder handles the response to the UpdateHybridConnectionSlot request. The method always
@@ -25226,6 +28659,16 @@ func (client AppsClient) UpdateHybridConnectionSlotResponder(resp *http.Response
 // name - name of the app.
 // metadata - edited metadata of the app or deployment slot. See example.
 func (client AppsClient) UpdateMetadata(ctx context.Context, resourceGroupName string, name string, metadata StringDictionary) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateMetadata")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25281,8 +28724,8 @@ func (client AppsClient) UpdateMetadataPreparer(ctx context.Context, resourceGro
 // UpdateMetadataSender sends the UpdateMetadata request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateMetadataSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateMetadataResponder handles the response to the UpdateMetadata request. The method always
@@ -25306,6 +28749,16 @@ func (client AppsClient) UpdateMetadataResponder(resp *http.Response) (result St
 // slot - name of the deployment slot. If a slot is not specified, the API will update the metadata for the
 // production slot.
 func (client AppsClient) UpdateMetadataSlot(ctx context.Context, resourceGroupName string, name string, metadata StringDictionary, slot string) (result StringDictionary, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateMetadataSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25362,8 +28815,8 @@ func (client AppsClient) UpdateMetadataSlotPreparer(ctx context.Context, resourc
 // UpdateMetadataSlotSender sends the UpdateMetadataSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateMetadataSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateMetadataSlotResponder handles the response to the UpdateMetadataSlot request. The method always
@@ -25387,6 +28840,16 @@ func (client AppsClient) UpdateMetadataSlotResponder(resp *http.Response) (resul
 // entityName - name of the hybrid connection configuration.
 // connectionEnvelope - details of the hybrid connection configuration.
 func (client AppsClient) UpdateRelayServiceConnection(ctx context.Context, resourceGroupName string, name string, entityName string, connectionEnvelope RelayServiceConnectionEntity) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateRelayServiceConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25443,8 +28906,8 @@ func (client AppsClient) UpdateRelayServiceConnectionPreparer(ctx context.Contex
 // UpdateRelayServiceConnectionSender sends the UpdateRelayServiceConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateRelayServiceConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateRelayServiceConnectionResponder handles the response to the UpdateRelayServiceConnection request. The method always
@@ -25470,6 +28933,16 @@ func (client AppsClient) UpdateRelayServiceConnectionResponder(resp *http.Respon
 // slot - name of the deployment slot. If a slot is not specified, the API will create or update a hybrid
 // connection for the production slot.
 func (client AppsClient) UpdateRelayServiceConnectionSlot(ctx context.Context, resourceGroupName string, name string, entityName string, connectionEnvelope RelayServiceConnectionEntity, slot string) (result RelayServiceConnectionEntity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateRelayServiceConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25527,8 +29000,8 @@ func (client AppsClient) UpdateRelayServiceConnectionSlotPreparer(ctx context.Co
 // UpdateRelayServiceConnectionSlotSender sends the UpdateRelayServiceConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateRelayServiceConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateRelayServiceConnectionSlotResponder handles the response to the UpdateRelayServiceConnectionSlot request. The method always
@@ -25550,6 +29023,16 @@ func (client AppsClient) UpdateRelayServiceConnectionSlotResponder(resp *http.Re
 // name - name of web app.
 // pushSettings - push settings associated with web app.
 func (client AppsClient) UpdateSitePushSettings(ctx context.Context, resourceGroupName string, name string, pushSettings PushSettings) (result PushSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateSitePushSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25608,8 +29091,8 @@ func (client AppsClient) UpdateSitePushSettingsPreparer(ctx context.Context, res
 // UpdateSitePushSettingsSender sends the UpdateSitePushSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSitePushSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateSitePushSettingsResponder handles the response to the UpdateSitePushSettings request. The method always
@@ -25632,6 +29115,16 @@ func (client AppsClient) UpdateSitePushSettingsResponder(resp *http.Response) (r
 // pushSettings - push settings associated with web app.
 // slot - name of web app slot. If not specified then will default to production slot.
 func (client AppsClient) UpdateSitePushSettingsSlot(ctx context.Context, resourceGroupName string, name string, pushSettings PushSettings, slot string) (result PushSettings, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateSitePushSettingsSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25691,8 +29184,8 @@ func (client AppsClient) UpdateSitePushSettingsSlotPreparer(ctx context.Context,
 // UpdateSitePushSettingsSlotSender sends the UpdateSitePushSettingsSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSitePushSettingsSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateSitePushSettingsSlotResponder handles the response to the UpdateSitePushSettingsSlot request. The method always
@@ -25723,6 +29216,16 @@ func (client AppsClient) UpdateSitePushSettingsSlotResponder(resp *http.Response
 // forceDNSRegistration - if true, web app hostname is force registered with DNS.
 // TTLInSeconds - time to live in seconds for web app's default domain name.
 func (client AppsClient) UpdateSlot(ctx context.Context, resourceGroupName string, name string, siteEnvelope SitePatchResource, slot string, skipDNSRegistration *bool, skipCustomDomainVerification *bool, forceDNSRegistration *bool, TTLInSeconds string) (result Site, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25791,8 +29294,8 @@ func (client AppsClient) UpdateSlotPreparer(ctx context.Context, resourceGroupNa
 // UpdateSlotSender sends the UpdateSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateSlotResponder handles the response to the UpdateSlot request. The method always
@@ -25815,6 +29318,16 @@ func (client AppsClient) UpdateSlotResponder(resp *http.Response) (result Site, 
 // name - name of the app.
 // slotConfigNames - names of application settings and connection strings. See example.
 func (client AppsClient) UpdateSlotConfigurationNames(ctx context.Context, resourceGroupName string, name string, slotConfigNames SlotConfigNamesResource) (result SlotConfigNamesResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateSlotConfigurationNames")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25870,8 +29383,8 @@ func (client AppsClient) UpdateSlotConfigurationNamesPreparer(ctx context.Contex
 // UpdateSlotConfigurationNamesSender sends the UpdateSlotConfigurationNames request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSlotConfigurationNamesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateSlotConfigurationNamesResponder handles the response to the UpdateSlotConfigurationNames request. The method always
@@ -25893,6 +29406,16 @@ func (client AppsClient) UpdateSlotConfigurationNamesResponder(resp *http.Respon
 // name - name of the app.
 // siteSourceControl - JSON representation of a SiteSourceControl object. See example.
 func (client AppsClient) UpdateSourceControl(ctx context.Context, resourceGroupName string, name string, siteSourceControl SiteSourceControl) (result SiteSourceControl, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateSourceControl")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -25948,8 +29471,8 @@ func (client AppsClient) UpdateSourceControlPreparer(ctx context.Context, resour
 // UpdateSourceControlSender sends the UpdateSourceControl request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSourceControlSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateSourceControlResponder handles the response to the UpdateSourceControl request. The method always
@@ -25973,6 +29496,16 @@ func (client AppsClient) UpdateSourceControlResponder(resp *http.Response) (resu
 // slot - name of the deployment slot. If a slot is not specified, the API will update the source control
 // configuration for the production slot.
 func (client AppsClient) UpdateSourceControlSlot(ctx context.Context, resourceGroupName string, name string, siteSourceControl SiteSourceControl, slot string) (result SiteSourceControl, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateSourceControlSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -26029,8 +29562,8 @@ func (client AppsClient) UpdateSourceControlSlotPreparer(ctx context.Context, re
 // UpdateSourceControlSlotSender sends the UpdateSourceControlSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateSourceControlSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateSourceControlSlotResponder handles the response to the UpdateSourceControlSlot request. The method always
@@ -26054,6 +29587,16 @@ func (client AppsClient) UpdateSourceControlSlotResponder(resp *http.Response) (
 // vnetName - name of an existing Virtual Network.
 // connectionEnvelope - properties of the Virtual Network connection. See example.
 func (client AppsClient) UpdateVnetConnection(ctx context.Context, resourceGroupName string, name string, vnetName string, connectionEnvelope VnetInfo) (result VnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateVnetConnection")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -26110,8 +29653,8 @@ func (client AppsClient) UpdateVnetConnectionPreparer(ctx context.Context, resou
 // UpdateVnetConnectionSender sends the UpdateVnetConnection request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateVnetConnectionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateVnetConnectionResponder handles the response to the UpdateVnetConnection request. The method always
@@ -26135,6 +29678,16 @@ func (client AppsClient) UpdateVnetConnectionResponder(resp *http.Response) (res
 // gatewayName - name of the gateway. Currently, the only supported string is "primary".
 // connectionEnvelope - the properties to update this gateway with.
 func (client AppsClient) UpdateVnetConnectionGateway(ctx context.Context, resourceGroupName string, name string, vnetName string, gatewayName string, connectionEnvelope VnetGateway) (result VnetGateway, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateVnetConnectionGateway")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -26192,8 +29745,8 @@ func (client AppsClient) UpdateVnetConnectionGatewayPreparer(ctx context.Context
 // UpdateVnetConnectionGatewaySender sends the UpdateVnetConnectionGateway request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateVnetConnectionGatewaySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateVnetConnectionGatewayResponder handles the response to the UpdateVnetConnectionGateway request. The method always
@@ -26219,6 +29772,16 @@ func (client AppsClient) UpdateVnetConnectionGatewayResponder(resp *http.Respons
 // slot - name of the deployment slot. If a slot is not specified, the API will add or update a gateway for the
 // production slot's Virtual Network.
 func (client AppsClient) UpdateVnetConnectionGatewaySlot(ctx context.Context, resourceGroupName string, name string, vnetName string, gatewayName string, connectionEnvelope VnetGateway, slot string) (result VnetGateway, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateVnetConnectionGatewaySlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -26277,8 +29840,8 @@ func (client AppsClient) UpdateVnetConnectionGatewaySlotPreparer(ctx context.Con
 // UpdateVnetConnectionGatewaySlotSender sends the UpdateVnetConnectionGatewaySlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateVnetConnectionGatewaySlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateVnetConnectionGatewaySlotResponder handles the response to the UpdateVnetConnectionGatewaySlot request. The method always
@@ -26304,6 +29867,16 @@ func (client AppsClient) UpdateVnetConnectionGatewaySlotResponder(resp *http.Res
 // slot - name of the deployment slot. If a slot is not specified, the API will add or update connections for
 // the production slot.
 func (client AppsClient) UpdateVnetConnectionSlot(ctx context.Context, resourceGroupName string, name string, vnetName string, connectionEnvelope VnetInfo, slot string) (result VnetInfo, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppsClient.UpdateVnetConnectionSlot")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -26361,8 +29934,8 @@ func (client AppsClient) UpdateVnetConnectionSlotPreparer(ctx context.Context, r
 // UpdateVnetConnectionSlotSender sends the UpdateVnetConnectionSlot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppsClient) UpdateVnetConnectionSlotSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateVnetConnectionSlotResponder handles the response to the UpdateVnetConnectionSlot request. The method always

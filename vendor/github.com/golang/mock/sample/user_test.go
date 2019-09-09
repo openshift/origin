@@ -63,6 +63,64 @@ func TestRemember(t *testing.T) {
 	user.Remember(mockIndex, []string{"nil-key"}, []interface{}{nil})
 }
 
+func TestVariadicFunction(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockIndex := mock_user.NewMockIndex(ctrl)
+	mockIndex.EXPECT().Ellip("%d", 5, 6, 7, 8).Do(func(format string, nums ...int) {
+		sum := 0
+		for _, value := range nums {
+			sum += value
+		}
+		if sum != 26 {
+			t.Errorf("Expected 7, got %d", sum)
+		}
+	})
+	mockIndex.EXPECT().Ellip("%d", gomock.Any()).Do(func(format string, nums ...int) {
+		sum := 0
+		for _, value := range nums {
+			sum += value
+		}
+		if sum != 10 {
+			t.Errorf("Expected 7, got %d", sum)
+		}
+	})
+	mockIndex.EXPECT().Ellip("%d", gomock.Any()).Do(func(format string, nums ...int) {
+		sum := 0
+		for _, value := range nums {
+			sum += value
+		}
+		if sum != 0 {
+			t.Errorf("Expected 0, got %d", sum)
+		}
+	})
+	mockIndex.EXPECT().Ellip("%d", gomock.Any()).Do(func(format string, nums ...int) {
+		sum := 0
+		for _, value := range nums {
+			sum += value
+		}
+		if sum != 0 {
+			t.Errorf("Expected 0, got %d", sum)
+		}
+	})
+	mockIndex.EXPECT().Ellip("%d").Do(func(format string, nums ...int) {
+		sum := 0
+		for _, value := range nums {
+			sum += value
+		}
+		if sum != 0 {
+			t.Errorf("Expected 0, got %d", sum)
+		}
+	})
+
+	mockIndex.Ellip("%d", 1, 2, 3, 4) // Match second matcher.
+	mockIndex.Ellip("%d", 5, 6, 7, 8) // Match first matcher.
+	mockIndex.Ellip("%d", 0)
+	mockIndex.Ellip("%d")
+	mockIndex.Ellip("%d")
+}
+
 func TestGrabPointer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

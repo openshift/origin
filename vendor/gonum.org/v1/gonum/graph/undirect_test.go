@@ -121,9 +121,10 @@ func TestUndirect(t *testing.T) {
 		}
 
 		src := graph.Undirect{G: g}
-		dst := simple.NewUndirectedMatrixFrom(src.Nodes(), 0, 0, 0)
-		for _, u := range src.Nodes() {
-			for _, v := range src.From(u.ID()) {
+		nodes := graph.NodesOf(src.Nodes())
+		dst := simple.NewUndirectedMatrixFrom(nodes, 0, 0, 0)
+		for _, u := range nodes {
+			for _, v := range graph.NodesOf(src.From(u.ID())) {
 				dst.SetEdge(src.Edge(u.ID(), v.ID()))
 			}
 		}
@@ -146,9 +147,10 @@ func TestUndirectWeighted(t *testing.T) {
 		}
 
 		src := graph.UndirectWeighted{G: g, Absent: test.absent, Merge: test.merge}
-		dst := simple.NewUndirectedMatrixFrom(src.Nodes(), 0, 0, 0)
-		for _, u := range src.Nodes() {
-			for _, v := range src.From(u.ID()) {
+		nodes := graph.NodesOf(src.Nodes())
+		dst := simple.NewUndirectedMatrixFrom(nodes, 0, 0, 0)
+		for _, u := range nodes {
+			for _, v := range graph.NodesOf(src.From(u.ID())) {
 				dst.SetWeightedEdge(src.WeightedEdge(u.ID(), v.ID()))
 			}
 		}

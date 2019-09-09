@@ -21,7 +21,7 @@ import (
 	"sort"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 )
@@ -48,22 +48,16 @@ var (
 		v1.NamespaceDeletionDiscoveryFailure,
 		v1.NamespaceDeletionGVParsingFailure,
 		v1.NamespaceDeletionContentFailure,
-		v1.NamespaceContentRemaining,
-		v1.NamespaceFinalizersRemaining,
 	}
 	okMessages = map[v1.NamespaceConditionType]string{
 		v1.NamespaceDeletionDiscoveryFailure: "All resources successfully discovered",
 		v1.NamespaceDeletionGVParsingFailure: "All legacy kube types successfully parsed",
-		v1.NamespaceDeletionContentFailure:   "All content successfully deleted, may be waiting on finalization",
-		v1.NamespaceContentRemaining:         "All content successfully removed",
-		v1.NamespaceFinalizersRemaining:      "All content-preserving finalizers finished",
+		v1.NamespaceDeletionContentFailure:   "All content successfully deleted",
 	}
 	okReasons = map[v1.NamespaceConditionType]string{
 		v1.NamespaceDeletionDiscoveryFailure: "ResourcesDiscovered",
 		v1.NamespaceDeletionGVParsingFailure: "ParsedGroupVersions",
 		v1.NamespaceDeletionContentFailure:   "ContentDeleted",
-		v1.NamespaceContentRemaining:         "ContentRemoved",
-		v1.NamespaceFinalizersRemaining:      "ContentHasNoFinalizers",
 	}
 )
 
@@ -96,47 +90,6 @@ func (u *namespaceConditionUpdater) ProcessDiscoverResourcesErr(err error) {
 	}
 	u.newConditions = append(u.newConditions, d)
 
-}
-
-// ProcessContentTotals may create conditions for NamespaceContentRemaining and NamespaceFinalizersRemaining.
-func (u *namespaceConditionUpdater) ProcessContentTotals(contentTotals allGVRDeletionMetadata) {
-	if len(contentTotals.gvrToNumRemaining) != 0 {
-		remainingResources := []string{}
-		for gvr, numRemaining := range contentTotals.gvrToNumRemaining {
-			if numRemaining == 0 {
-				continue
-			}
-			remainingResources = append(remainingResources, fmt.Sprintf("%s.%s has %d resource instances", gvr.Resource, gvr.Group, numRemaining))
-		}
-		// sort for stable updates
-		sort.Strings(remainingResources)
-		u.newConditions = append(u.newConditions, v1.NamespaceCondition{
-			Type:               v1.NamespaceContentRemaining,
-			Status:             v1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "SomeResourcesRemain",
-			Message:            fmt.Sprintf("Some resources are remaining: %s", strings.Join(remainingResources, ", ")),
-		})
-	}
-
-	if len(contentTotals.finalizersToNumRemaining) != 0 {
-		remainingByFinalizer := []string{}
-		for finalizer, numRemaining := range contentTotals.finalizersToNumRemaining {
-			if numRemaining == 0 {
-				continue
-			}
-			remainingByFinalizer = append(remainingByFinalizer, fmt.Sprintf("%s in %d resource instances", finalizer, numRemaining))
-		}
-		// sort for stable updates
-		sort.Strings(remainingByFinalizer)
-		u.newConditions = append(u.newConditions, v1.NamespaceCondition{
-			Type:               v1.NamespaceFinalizersRemaining,
-			Status:             v1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "SomeFinalizersRemain",
-			Message:            fmt.Sprintf("Some content in the namespace has finalizers remaining: %s", strings.Join(remainingByFinalizer, ", ")),
-		})
-	}
 }
 
 // ProcessDeleteContentErr creates error condition from multiple delete content errors.
@@ -175,18 +128,25 @@ func makeDeleteContentCondition(err []error) *v1.NamespaceCondition {
 func updateConditions(status *v1.NamespaceStatus, newConditions []v1.NamespaceCondition) (hasChanged bool) {
 	for _, conditionType := range conditionTypes {
 		newCondition := getCondition(newConditions, conditionType)
-		// if we weren't failing, then this returned nil.  We should set the "ok" variant of the condition
-		if newCondition == nil {
-			newCondition = newSuccessfulCondition(conditionType)
-		}
 		oldCondition := getCondition(status.Conditions, conditionType)
-
-		// only new condition of this type exists, add to the list
+		if newCondition == nil && oldCondition == nil {
+			// both are nil, no update necessary
+			continue
+		}
 		if oldCondition == nil {
+			// only new condition of this type exists, add to the list
 			status.Conditions = append(status.Conditions, *newCondition)
 			hasChanged = true
-
-		} else if oldCondition.Status != newCondition.Status || oldCondition.Message != newCondition.Message || oldCondition.Reason != newCondition.Reason {
+		} else if newCondition == nil {
+			// only old condition of this type exists, set status to false
+			if oldCondition.Status != v1.ConditionFalse {
+				oldCondition.Status = v1.ConditionFalse
+				oldCondition.Message = okMessages[conditionType]
+				oldCondition.Reason = okReasons[conditionType]
+				oldCondition.LastTransitionTime = metav1.Now()
+				hasChanged = true
+			}
+		} else if oldCondition.Message != newCondition.Message {
 			// old condition needs to be updated
 			if oldCondition.Status != newCondition.Status {
 				oldCondition.LastTransitionTime = metav1.Now()
@@ -199,16 +159,6 @@ func updateConditions(status *v1.NamespaceStatus, newConditions []v1.NamespaceCo
 		}
 	}
 	return
-}
-
-func newSuccessfulCondition(conditionType v1.NamespaceConditionType) *v1.NamespaceCondition {
-	return &v1.NamespaceCondition{
-		Type:               conditionType,
-		Status:             v1.ConditionFalse,
-		LastTransitionTime: metav1.Now(),
-		Reason:             okReasons[conditionType],
-		Message:            okMessages[conditionType],
-	}
 }
 
 func getCondition(conditions []v1.NamespaceCondition, conditionType v1.NamespaceConditionType) *v1.NamespaceCondition {

@@ -31,6 +31,14 @@ var (
 	// ErrLinesearcherBound signifies that a Linesearcher reached a step that
 	// lies out of allowed bounds.
 	ErrLinesearcherBound = errors.New("linesearch: step out of bounds")
+
+	// ErrMissingGrad signifies that a Method requires a Gradient function that
+	// is not supplied by Problem.
+	ErrMissingGrad = errors.New("optimize: problem does not provide needed Grad function")
+
+	// ErrMissingHess signifies that a Method requires a Hessian function that
+	// is not supplied by Problem.
+	ErrMissingHess = errors.New("optimize: problem does not provide needed Hess function")
 )
 
 // ErrFunc is returned when an initial function value is invalid. The error

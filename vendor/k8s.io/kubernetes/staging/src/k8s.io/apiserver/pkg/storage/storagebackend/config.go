@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/server/egressselector"
 	"k8s.io/apiserver/pkg/storage/value"
 )
 
@@ -38,6 +39,8 @@ type TransportConfig struct {
 	KeyFile  string
 	CertFile string
 	CAFile   string
+	// function to determine the egress dialer. (i.e. konnectivity server dialer)
+	EgressLookup egressselector.Lookup
 }
 
 // Config is configuration for creating a storage backend.
@@ -48,8 +51,6 @@ type Config struct {
 	Prefix string
 	// Transport holds all connection related info, i.e. equal TransportConfig means equal servers we talk to.
 	Transport TransportConfig
-	// Quorum indicates that whether read operations should be quorum-level consistent.
-	Quorum bool
 	// Paging indicates whether the server implementation should allow paging (if it is
 	// supported). This is generally configured by feature gating, or by a specific
 	// resource type not wishing to allow paging, and is not intended for end users to
@@ -74,6 +75,7 @@ type Config struct {
 
 func NewDefaultConfig(prefix string, codec runtime.Codec) *Config {
 	return &Config{
+		Paging:             true,
 		Prefix:             prefix,
 		Codec:              codec,
 		CompactionInterval: DefaultCompactInterval,

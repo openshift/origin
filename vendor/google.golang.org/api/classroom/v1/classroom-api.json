@@ -55,6 +55,12 @@
         },
         "https://www.googleapis.com/auth/classroom.student-submissions.students.readonly": {
           "description": "View course work and grades for students in the Google Classroom classes you teach or administer"
+        },
+        "https://www.googleapis.com/auth/classroom.topics": {
+          "description": "See, create, and edit topics in Google Classroom"
+        },
+        "https://www.googleapis.com/auth/classroom.topics.readonly": {
+          "description": "View topics in Google Classroom"
         }
       }
     }
@@ -861,7 +867,7 @@
                   "type": "string"
                 },
                 "updateMask": {
-                  "description": "Mask that identifies which fields on the course work to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified. If a field supports empty values, it can be cleared\nby specifying it in the update mask and not in the CourseWork object. If a\nfield that does not support empty values is included in the update mask and\nnot set in the CourseWork object, an `INVALID_ARGUMENT` error will be\nreturned.\n\nThe following fields may be specified by teachers:\n\n* `title`\n* `description`\n* `state`\n* `due_date`\n* `due_time`\n* `max_points`\n* `scheduled_time`\n* `submission_modification_mode`",
+                  "description": "Mask that identifies which fields on the course work to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified. If a field supports empty values, it can be cleared\nby specifying it in the update mask and not in the CourseWork object. If a\nfield that does not support empty values is included in the update mask and\nnot set in the CourseWork object, an `INVALID_ARGUMENT` error will be\nreturned.\n\nThe following fields may be specified by teachers:\n\n* `title`\n* `description`\n* `state`\n* `due_date`\n* `due_time`\n* `max_points`\n* `scheduled_time`\n* `submission_modification_mode`\n* `topic_id`",
                   "format": "google-fieldmask",
                   "location": "query",
                   "type": "string"
@@ -1494,6 +1500,176 @@
               ]
             }
           }
+        },
+        "topics": {
+          "methods": {
+            "create": {
+              "description": "Creates a topic.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course, create a topic in the requested course,\nor for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course does not exist.",
+              "flatPath": "v1/courses/{courseId}/topics",
+              "httpMethod": "POST",
+              "id": "classroom.courses.topics.create",
+              "parameterOrder": [
+                "courseId"
+              ],
+              "parameters": {
+                "courseId": {
+                  "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                }
+              },
+              "path": "v1/courses/{courseId}/topics",
+              "request": {
+                "$ref": "Topic"
+              },
+              "response": {
+                "$ref": "Topic"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/classroom.topics"
+              ]
+            },
+            "delete": {
+              "description": "Deletes a topic.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not allowed to delete the\nrequested topic or for access errors.\n* `FAILED_PRECONDITION` if the requested topic has already been\ndeleted.\n* `NOT_FOUND` if no course or topic exists with the requested ID.",
+              "flatPath": "v1/courses/{courseId}/topics/{id}",
+              "httpMethod": "DELETE",
+              "id": "classroom.courses.topics.delete",
+              "parameterOrder": [
+                "courseId",
+                "id"
+              ],
+              "parameters": {
+                "courseId": {
+                  "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Identifier of the topic to delete.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                }
+              },
+              "path": "v1/courses/{courseId}/topics/{id}",
+              "response": {
+                "$ref": "Empty"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/classroom.topics"
+              ]
+            },
+            "get": {
+              "description": "Returns a topic.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access the\nrequested course or topic, or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course or topic does not exist.",
+              "flatPath": "v1/courses/{courseId}/topics/{id}",
+              "httpMethod": "GET",
+              "id": "classroom.courses.topics.get",
+              "parameterOrder": [
+                "courseId",
+                "id"
+              ],
+              "parameters": {
+                "courseId": {
+                  "description": "Identifier of the course.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Identifier of the topic.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                }
+              },
+              "path": "v1/courses/{courseId}/topics/{id}",
+              "response": {
+                "$ref": "Topic"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/classroom.topics",
+                "https://www.googleapis.com/auth/classroom.topics.readonly"
+              ]
+            },
+            "list": {
+              "description": "Returns the list of topics that the requester is permitted to view.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting user is not permitted to access\nthe requested course or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course does not exist.",
+              "flatPath": "v1/courses/{courseId}/topics",
+              "httpMethod": "GET",
+              "id": "classroom.courses.topics.list",
+              "parameterOrder": [
+                "courseId"
+              ],
+              "parameters": {
+                "courseId": {
+                  "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                },
+                "pageSize": {
+                  "description": "Maximum number of items to return. Zero or unspecified indicates that the\nserver may assign a maximum.\n\nThe server may return fewer than the specified number of results.",
+                  "format": "int32",
+                  "location": "query",
+                  "type": "integer"
+                },
+                "pageToken": {
+                  "description": "nextPageToken\nvalue returned from a previous\nlist call,\nindicating that the subsequent page of results should be returned.\n\nThe list request\nmust be otherwise identical to the one that resulted in this token.",
+                  "location": "query",
+                  "type": "string"
+                }
+              },
+              "path": "v1/courses/{courseId}/topics",
+              "response": {
+                "$ref": "ListTopicResponse"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/classroom.topics",
+                "https://www.googleapis.com/auth/classroom.topics.readonly"
+              ]
+            },
+            "patch": {
+              "description": "Updates one or more fields of a topic.\n\nThis method returns the following error codes:\n\n* `PERMISSION_DENIED` if the requesting developer project did not create\nthe corresponding topic or for access errors.\n* `INVALID_ARGUMENT` if the request is malformed.\n* `NOT_FOUND` if the requested course or topic does not exist",
+              "flatPath": "v1/courses/{courseId}/topics/{id}",
+              "httpMethod": "PATCH",
+              "id": "classroom.courses.topics.patch",
+              "parameterOrder": [
+                "courseId",
+                "id"
+              ],
+              "parameters": {
+                "courseId": {
+                  "description": "Identifier of the course.\nThis identifier can be either the Classroom-assigned identifier or an\nalias.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Identifier of the topic.",
+                  "location": "path",
+                  "required": true,
+                  "type": "string"
+                },
+                "updateMask": {
+                  "description": "Mask that identifies which fields on the topic to update.\nThis field is required to do an update. The update fails if invalid\nfields are specified. If a field supports empty values, it can be cleared\nby specifying it in the update mask and not in the Topic object. If a\nfield that does not support empty values is included in the update mask and\nnot set in the Topic object, an `INVALID_ARGUMENT` error will be\nreturned.\n\nThe following fields may be specified:\n\n* `name`",
+                  "format": "google-fieldmask",
+                  "location": "query",
+                  "type": "string"
+                }
+              },
+              "path": "v1/courses/{courseId}/topics/{id}",
+              "request": {
+                "$ref": "Topic"
+              },
+              "response": {
+                "$ref": "Topic"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/classroom.topics"
+              ]
+            }
+          }
         }
       }
     },
@@ -1975,7 +2151,7 @@
       }
     }
   },
-  "revision": "20181127",
+  "revision": "20190503",
   "rootUrl": "https://classroom.googleapis.com/",
   "schemas": {
     "Announcement": {
@@ -2019,7 +2195,7 @@
         },
         "individualStudentsOptions": {
           "$ref": "IndividualStudentsOptions",
-          "description": "Identifiers of students with access to the announcement.\nThis field is set only if `assigneeMode` is `INDIVIDUAL_STUDENTS`.\nIf the `assigneeMode` is `INDIVIDUAL_STUDENTS`, then only students specified in this\nfield will be able to see the announcement."
+          "description": "Identifiers of students with access to the announcement.\nThis field is set only if `assigneeMode` is `INDIVIDUAL_STUDENTS`.\nIf the `assigneeMode` is `INDIVIDUAL_STUDENTS`, then only students\nspecified in this field will be able to see the announcement."
         },
         "materials": {
           "description": "Additional materials.\n\nAnnouncements must have no more than 20 material items.",
@@ -2206,7 +2382,7 @@
         },
         "teacherFolder": {
           "$ref": "DriveFolder",
-          "description": "Information about a Drive Folder that is shared with all teachers of the\ncourse.\n\nThis field will only be set for teachers of the course and domain administrators.\n\nRead-only."
+          "description": "Information about a Drive Folder that is shared with all teachers of the\ncourse.\n\nThis field will only be set for teachers of the course and domain\nadministrators.\n\nRead-only."
         },
         "teacherGroupEmail": {
           "description": "The email address of a Google group containing all teachers of the course.\nThis group does not accept email and can only be used for permissions.\n\nRead-only.",
@@ -2399,6 +2575,10 @@
         },
         "title": {
           "description": "Title of this course work.\nThe title must be a valid UTF-8 string containing between 1 and 3000\ncharacters.",
+          "type": "string"
+        },
+        "topicId": {
+          "description": "Identifier for the topic that this coursework is associated with.\nMust match an existing topic in the course.",
           "type": "string"
         },
         "updateTime": {
@@ -2930,6 +3110,24 @@
       },
       "type": "object"
     },
+    "ListTopicResponse": {
+      "description": "Response when listing topics.",
+      "id": "ListTopicResponse",
+      "properties": {
+        "nextPageToken": {
+          "description": "Token identifying the next page of results to return. If empty, no further\nresults are available.",
+          "type": "string"
+        },
+        "topic": {
+          "description": "Topic items that match the request.",
+          "items": {
+            "$ref": "Topic"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "Material": {
       "description": "Material attached to course work.\n\nWhen creating attachments, setting the `form` field is not supported.",
       "id": "Material",
@@ -3382,6 +3580,30 @@
           "description": "Seconds of minutes of the time. Must normally be from 0 to 59. An API may\nallow the value 60 if it allows leap-seconds.",
           "format": "int32",
           "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "Topic": {
+      "description": "Topic created by a teacher for the course",
+      "id": "Topic",
+      "properties": {
+        "courseId": {
+          "description": "Identifier of the course.\n\nRead-only.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The name of the topic, generated by the user.\nLeading and trailing whitespaces, if any, will be trimmed. Also, multiple\nconsecutive whitespaces will be collapsed into one inside the name. The\nresult must be a non-empty string. Topic names are case sensitive, and must\nbe no longer than 100 characters.",
+          "type": "string"
+        },
+        "topicId": {
+          "description": "Unique identifier for the topic.\n\nRead-only.",
+          "type": "string"
+        },
+        "updateTime": {
+          "description": "The time the topic was last updated by the system.\n\nRead-only.",
+          "format": "google-datetime",
+          "type": "string"
         }
       },
       "type": "object"

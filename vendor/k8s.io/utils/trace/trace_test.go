@@ -18,6 +18,7 @@ package trace
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -36,7 +37,7 @@ func TestStep(t *testing.T) {
 			inputString: "",
 			expectedTrace: &Trace{
 				steps: []traceStep{
-					{time.Now(), ""},
+					{stepTime: time.Now(), msg: ""},
 				},
 			},
 		},
@@ -45,7 +46,7 @@ func TestStep(t *testing.T) {
 			inputString: "test2",
 			expectedTrace: &Trace{
 				steps: []traceStep{
-					{time.Now(), "test2"},
+					{stepTime: time.Now(), msg: "test2"},
 				},
 			},
 		},
@@ -82,35 +83,69 @@ func TestTotalTime(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
-	test := struct {
+	tests := []struct {
 		name             string
+		msg              string
+		fields           []Field
 		expectedMessages []string
 		sampleTrace      *Trace
 	}{
-		name: "Check the log dump with 3 msg",
-		expectedMessages: []string{
-			"msg1", "msg2", "msg3",
-		},
-		sampleTrace: &Trace{
-			name: "Sample Trace",
-			steps: []traceStep{
-				{time.Now(), "msg1"},
-				{time.Now(), "msg2"},
-				{time.Now(), "msg3"},
+		{
+			name: "Check the log dump with 3 msg",
+			expectedMessages: []string{
+				"msg1", "msg2", "msg3",
 			},
+			sampleTrace: &Trace{
+				name: "Sample Trace",
+				steps: []traceStep{
+					{stepTime: time.Now(), msg: "msg1"},
+					{stepTime: time.Now(), msg: "msg2"},
+					{stepTime: time.Now(), msg: "msg3"},
+				},
+			},
+		},
+		{
+			name: "Check formatting",
+			expectedMessages: []string{
+				"URL:/api,count:3", "msg1 str:text,int:2,bool:false", "msg2 x:1",
+			},
+			sampleTrace: &Trace{
+				name:   "Sample Trace",
+				fields: []Field{{"URL", "/api"}, {"count", 3}},
+				steps: []traceStep{
+					{stepTime: time.Now(), msg: "msg1", fields: []Field{{"str", "text"}, {"int", 2}, {"bool", false}}},
+					{stepTime: time.Now(), msg: "msg2", fields: []Field{{"x", "1"}}},
+				},
+			},
+		},
+		{
+			name: "Check fixture formatted",
+			expectedMessages: []string{
+				"URL:/api,count:3", "msg1 str:text,int:2,bool:false", "msg2 x:1",
+			},
+			sampleTrace: fieldsTraceFixture(),
 		},
 	}
 
-	t.Run(test.name, func(t *testing.T) {
-		var buf bytes.Buffer
-		klog.SetOutput(&buf)
-		test.sampleTrace.Log()
-		for _, msg := range test.expectedMessages {
-			if !strings.Contains(buf.String(), msg) {
-				t.Errorf("\nMsg %q not found in log: \n%v\n", msg, buf.String())
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			klog.SetOutput(&buf)
+			test.sampleTrace.Log()
+			for _, msg := range test.expectedMessages {
+				if !strings.Contains(buf.String(), msg) {
+					t.Errorf("\nMsg %q not found in log: \n%v\n", msg, buf.String())
+				}
 			}
-		}
-	})
+		})
+	}
+}
+
+func fieldsTraceFixture() *Trace {
+	trace := New("Sample Trace", Field{"URL", "/api"}, Field{"count", 3})
+	trace.Step("msg1", Field{"str", "text"}, Field{"int", 2}, Field{"bool", false})
+	trace.Step("msg2", Field{"x", "1"})
+	return trace
 }
 
 func TestLogIfLong(t *testing.T) {
@@ -197,4 +232,17 @@ func TestLogIfLong(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleTrace_Step() {
+	t := New("frobber")
+
+	time.Sleep(5 * time.Millisecond)
+	t.Step("reticulated splines") // took 5ms
+
+	time.Sleep(10 * time.Millisecond)
+	t.Step("sequenced particles") // took 10ms
+
+	klog.SetOutput(os.Stdout) // change output from stderr to stdout
+	t.Log()
 }

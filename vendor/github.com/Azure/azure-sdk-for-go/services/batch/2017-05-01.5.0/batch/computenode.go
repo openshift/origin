@@ -23,6 +23,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"github.com/satori/go.uuid"
 	"net/http"
 )
@@ -55,6 +56,16 @@ func NewComputeNodeClientWithBaseURI(baseURI string) ComputeNodeClient {
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) AddUser(ctx context.Context, poolID string, nodeID string, userParameter ComputeNodeUser, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.AddUser")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: userParameter,
 			Constraints: []validation.Constraint{{Target: "userParameter.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -127,8 +138,8 @@ func (client ComputeNodeClient) AddUserPreparer(ctx context.Context, poolID stri
 // AddUserSender sends the AddUser request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) AddUserSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // AddUserResponder handles the response to the AddUser request. The method always
@@ -156,6 +167,16 @@ func (client ComputeNodeClient) AddUserResponder(resp *http.Response) (result au
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) DeleteUser(ctx context.Context, poolID string, nodeID string, userName string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.DeleteUser")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteUserPreparer(ctx, poolID, nodeID, userName, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "DeleteUser", nil, "Failure preparing request")
@@ -221,8 +242,8 @@ func (client ComputeNodeClient) DeleteUserPreparer(ctx context.Context, poolID s
 // DeleteUserSender sends the DeleteUser request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) DeleteUserSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteUserResponder handles the response to the DeleteUser request. The method always
@@ -250,6 +271,16 @@ func (client ComputeNodeClient) DeleteUserResponder(resp *http.Response) (result
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) DisableScheduling(ctx context.Context, poolID string, nodeID string, nodeDisableSchedulingParameter *NodeDisableSchedulingParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.DisableScheduling")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DisableSchedulingPreparer(ctx, poolID, nodeID, nodeDisableSchedulingParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "DisableScheduling", nil, "Failure preparing request")
@@ -319,8 +350,8 @@ func (client ComputeNodeClient) DisableSchedulingPreparer(ctx context.Context, p
 // DisableSchedulingSender sends the DisableScheduling request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) DisableSchedulingSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DisableSchedulingResponder handles the response to the DisableScheduling request. The method always
@@ -347,6 +378,16 @@ func (client ComputeNodeClient) DisableSchedulingResponder(resp *http.Response) 
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) EnableScheduling(ctx context.Context, poolID string, nodeID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.EnableScheduling")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.EnableSchedulingPreparer(ctx, poolID, nodeID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "EnableScheduling", nil, "Failure preparing request")
@@ -411,8 +452,8 @@ func (client ComputeNodeClient) EnableSchedulingPreparer(ctx context.Context, po
 // EnableSchedulingSender sends the EnableScheduling request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) EnableSchedulingSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // EnableSchedulingResponder handles the response to the EnableScheduling request. The method always
@@ -440,6 +481,16 @@ func (client ComputeNodeClient) EnableSchedulingResponder(resp *http.Response) (
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) Get(ctx context.Context, poolID string, nodeID string, selectParameter string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNode, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, poolID, nodeID, selectParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "Get", nil, "Failure preparing request")
@@ -507,8 +558,8 @@ func (client ComputeNodeClient) GetPreparer(ctx context.Context, poolID string, 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -537,6 +588,16 @@ func (client ComputeNodeClient) GetResponder(resp *http.Response) (result Comput
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) GetRemoteDesktop(ctx context.Context, poolID string, nodeID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ReadCloser, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.GetRemoteDesktop")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetRemoteDesktopPreparer(ctx, poolID, nodeID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "GetRemoteDesktop", nil, "Failure preparing request")
@@ -601,8 +662,8 @@ func (client ComputeNodeClient) GetRemoteDesktopPreparer(ctx context.Context, po
 // GetRemoteDesktopSender sends the GetRemoteDesktop request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) GetRemoteDesktopSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetRemoteDesktopResponder handles the response to the GetRemoteDesktop request. The method always
@@ -631,6 +692,16 @@ func (client ComputeNodeClient) GetRemoteDesktopResponder(resp *http.Response) (
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) GetRemoteLoginSettings(ctx context.Context, poolID string, nodeID string, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNodeGetRemoteLoginSettingsResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.GetRemoteLoginSettings")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetRemoteLoginSettingsPreparer(ctx, poolID, nodeID, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "GetRemoteLoginSettings", nil, "Failure preparing request")
@@ -695,8 +766,8 @@ func (client ComputeNodeClient) GetRemoteLoginSettingsPreparer(ctx context.Conte
 // GetRemoteLoginSettingsSender sends the GetRemoteLoginSettings request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) GetRemoteLoginSettingsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetRemoteLoginSettingsResponder handles the response to the GetRemoteLoginSettings request. The method always
@@ -726,6 +797,16 @@ func (client ComputeNodeClient) GetRemoteLoginSettingsResponder(resp *http.Respo
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) List(ctx context.Context, poolID string, filter string, selectParameter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNodeListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.List")
+		defer func() {
+			sc := -1
+			if result.cnlr.Response.Response != nil {
+				sc = result.cnlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
@@ -810,8 +891,8 @@ func (client ComputeNodeClient) ListPreparer(ctx context.Context, poolID string,
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -828,8 +909,8 @@ func (client ComputeNodeClient) ListResponder(resp *http.Response) (result Compu
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ComputeNodeClient) listNextResults(lastResults ComputeNodeListResult) (result ComputeNodeListResult, err error) {
-	req, err := lastResults.computeNodeListResultPreparer()
+func (client ComputeNodeClient) listNextResults(ctx context.Context, lastResults ComputeNodeListResult) (result ComputeNodeListResult, err error) {
+	req, err := lastResults.computeNodeListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -850,6 +931,16 @@ func (client ComputeNodeClient) listNextResults(lastResults ComputeNodeListResul
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ComputeNodeClient) ListComplete(ctx context.Context, poolID string, filter string, selectParameter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result ComputeNodeListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, poolID, filter, selectParameter, maxResults, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	return
 }
@@ -867,6 +958,16 @@ func (client ComputeNodeClient) ListComplete(ctx context.Context, poolID string,
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) Reboot(ctx context.Context, poolID string, nodeID string, nodeRebootParameter *NodeRebootParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.Reboot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.RebootPreparer(ctx, poolID, nodeID, nodeRebootParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "Reboot", nil, "Failure preparing request")
@@ -936,8 +1037,8 @@ func (client ComputeNodeClient) RebootPreparer(ctx context.Context, poolID strin
 // RebootSender sends the Reboot request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) RebootSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RebootResponder handles the response to the Reboot request. The method always
@@ -966,6 +1067,16 @@ func (client ComputeNodeClient) RebootResponder(resp *http.Response) (result aut
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) Reimage(ctx context.Context, poolID string, nodeID string, nodeReimageParameter *NodeReimageParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.Reimage")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ReimagePreparer(ctx, poolID, nodeID, nodeReimageParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "Reimage", nil, "Failure preparing request")
@@ -1035,8 +1146,8 @@ func (client ComputeNodeClient) ReimagePreparer(ctx context.Context, poolID stri
 // ReimageSender sends the Reimage request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) ReimageSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ReimageResponder handles the response to the Reimage request. The method always
@@ -1051,7 +1162,7 @@ func (client ComputeNodeClient) ReimageResponder(resp *http.Response) (result au
 	return
 }
 
-// UpdateUser this operation replaces of all the updateable properties of the account. For example, if the expiryTime
+// UpdateUser this operation replaces of all the updatable properties of the account. For example, if the expiryTime
 // element is not specified, the current value is replaced with the default value, not left unmodified. You can update
 // a user account on a node only when it is in the idle or running state.
 // Parameters:
@@ -1067,6 +1178,16 @@ func (client ComputeNodeClient) ReimageResponder(resp *http.Response) (result au
 // ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
 // time; set it explicitly if you are calling the REST API directly.
 func (client ComputeNodeClient) UpdateUser(ctx context.Context, poolID string, nodeID string, userName string, nodeUpdateUserParameter NodeUpdateUserParameter, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ComputeNodeClient.UpdateUser")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UpdateUserPreparer(ctx, poolID, nodeID, userName, nodeUpdateUserParameter, timeout, clientRequestID, returnClientRequestID, ocpDate)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "batch.ComputeNodeClient", "UpdateUser", nil, "Failure preparing request")
@@ -1134,8 +1255,8 @@ func (client ComputeNodeClient) UpdateUserPreparer(ctx context.Context, poolID s
 // UpdateUserSender sends the UpdateUser request. The method will close the
 // http.Response Body if it receives an error.
 func (client ComputeNodeClient) UpdateUserSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateUserResponder handles the response to the UpdateUser request. The method always

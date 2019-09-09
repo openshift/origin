@@ -21,6 +21,7 @@ go_library(
         "//staging/src/k8s.io/client-go/kubernetes/typed/core/v1:go_default_library",
         "//vendor/github.com/coreos/etcd/clientv3:go_default_library",
         "//vendor/github.com/coreos/etcd/pkg/transport:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
     ],
 )
 
@@ -45,8 +46,10 @@ filegroup(
         "//test/integration/daemonset:all-srcs",
         "//test/integration/defaulttolerationseconds:all-srcs",
         "//test/integration/deployment:all-srcs",
+        "//test/integration/disruption:all-srcs",
         "//test/integration/dryrun:all-srcs",
         "//test/integration/etcd:all-srcs",
+        "//test/integration/events:all-srcs",
         "//test/integration/evictions:all-srcs",
         "//test/integration/examples:all-srcs",
         "//test/integration/framework:all-srcs",
@@ -55,7 +58,6 @@ filegroup(
         "//test/integration/kubelet:all-srcs",
         "//test/integration/master:all-srcs",
         "//test/integration/metrics:all-srcs",
-        "//test/integration/namespace:all-srcs",
         "//test/integration/objectmeta:all-srcs",
         "//test/integration/openshift:all-srcs",
         "//test/integration/pods:all-srcs",
@@ -74,6 +76,7 @@ filegroup(
         "//test/integration/ttlcontroller:all-srcs",
         "//test/integration/util:all-srcs",
         "//test/integration/volume:all-srcs",
+        "//test/integration/volumescheduling:all-srcs",
     ],
     tags = ["automanaged"],
 )

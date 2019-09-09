@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewPolicyClientWithBaseURI(baseURI string, subscriptionID string) PolicyCli
 // policySetName - the name of the policy set.
 // name - the name of the policy.
 func (client PolicyClient) CreateOrUpdateResource(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string, policy Policy) (result Policy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyClient.CreateOrUpdateResource")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdateResourcePreparer(ctx, resourceGroupName, labName, policySetName, name, policy)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PolicyClient", "CreateOrUpdateResource", nil, "Failure preparing request")
@@ -95,8 +106,8 @@ func (client PolicyClient) CreateOrUpdateResourcePreparer(ctx context.Context, r
 // CreateOrUpdateResourceSender sends the CreateOrUpdateResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyClient) CreateOrUpdateResourceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CreateOrUpdateResourceResponder handles the response to the CreateOrUpdateResource request. The method always
@@ -119,6 +130,16 @@ func (client PolicyClient) CreateOrUpdateResourceResponder(resp *http.Response) 
 // policySetName - the name of the policy set.
 // name - the name of the policy.
 func (client PolicyClient) DeleteResource(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyClient.DeleteResource")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeleteResourcePreparer(ctx, resourceGroupName, labName, policySetName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PolicyClient", "DeleteResource", nil, "Failure preparing request")
@@ -166,8 +187,8 @@ func (client PolicyClient) DeleteResourcePreparer(ctx context.Context, resourceG
 // DeleteResourceSender sends the DeleteResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyClient) DeleteResourceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResourceResponder handles the response to the DeleteResource request. The method always
@@ -189,6 +210,16 @@ func (client PolicyClient) DeleteResourceResponder(resp *http.Response) (result 
 // policySetName - the name of the policy set.
 // name - the name of the policy.
 func (client PolicyClient) GetResource(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string) (result Policy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyClient.GetResource")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetResourcePreparer(ctx, resourceGroupName, labName, policySetName, name)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PolicyClient", "GetResource", nil, "Failure preparing request")
@@ -236,8 +267,8 @@ func (client PolicyClient) GetResourcePreparer(ctx context.Context, resourceGrou
 // GetResourceSender sends the GetResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyClient) GetResourceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResourceResponder handles the response to the GetResource request. The method always
@@ -260,6 +291,16 @@ func (client PolicyClient) GetResourceResponder(resp *http.Response) (result Pol
 // policySetName - the name of the policy set.
 // filter - the filter to apply on the operation.
 func (client PolicyClient) List(ctx context.Context, resourceGroupName string, labName string, policySetName string, filter string, top *int32, orderBy string) (result ResponseWithContinuationPolicyPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyClient.List")
+		defer func() {
+			sc := -1
+			if result.rwcp.Response.Response != nil {
+				sc = result.rwcp.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, policySetName, filter, top, orderBy)
 	if err != nil {
@@ -316,8 +357,8 @@ func (client PolicyClient) ListPreparer(ctx context.Context, resourceGroupName s
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -334,8 +375,8 @@ func (client PolicyClient) ListResponder(resp *http.Response) (result ResponseWi
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client PolicyClient) listNextResults(lastResults ResponseWithContinuationPolicy) (result ResponseWithContinuationPolicy, err error) {
-	req, err := lastResults.responseWithContinuationPolicyPreparer()
+func (client PolicyClient) listNextResults(ctx context.Context, lastResults ResponseWithContinuationPolicy) (result ResponseWithContinuationPolicy, err error) {
+	req, err := lastResults.responseWithContinuationPolicyPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "dtl.PolicyClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -356,6 +397,16 @@ func (client PolicyClient) listNextResults(lastResults ResponseWithContinuationP
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client PolicyClient) ListComplete(ctx context.Context, resourceGroupName string, labName string, policySetName string, filter string, top *int32, orderBy string) (result ResponseWithContinuationPolicyIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, resourceGroupName, labName, policySetName, filter, top, orderBy)
 	return
 }
@@ -367,6 +418,16 @@ func (client PolicyClient) ListComplete(ctx context.Context, resourceGroupName s
 // policySetName - the name of the policy set.
 // name - the name of the policy.
 func (client PolicyClient) PatchResource(ctx context.Context, resourceGroupName string, labName string, policySetName string, name string, policy Policy) (result Policy, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/PolicyClient.PatchResource")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.PatchResourcePreparer(ctx, resourceGroupName, labName, policySetName, name, policy)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "dtl.PolicyClient", "PatchResource", nil, "Failure preparing request")
@@ -416,8 +477,8 @@ func (client PolicyClient) PatchResourcePreparer(ctx context.Context, resourceGr
 // PatchResourceSender sends the PatchResource request. The method will close the
 // http.Response Body if it receives an error.
 func (client PolicyClient) PatchResourceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // PatchResourceResponder handles the response to the PatchResource request. The method always

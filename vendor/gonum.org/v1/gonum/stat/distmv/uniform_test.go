@@ -7,6 +7,8 @@ package distmv
 import (
 	"math"
 	"testing"
+
+	"gonum.org/v1/gonum/bound"
 )
 
 func TestUniformEntropy(t *testing.T) {
@@ -15,11 +17,11 @@ func TestUniformEntropy(t *testing.T) {
 		Entropy float64
 	}{
 		{
-			NewUniform([]Bound{{0, 1}, {0, 1}}, nil),
+			NewUniform([]bound.Bound{{0, 1}, {0, 1}}, nil),
 			0,
 		},
 		{
-			NewUniform([]Bound{{-1, 3}, {2, 8}, {-5, -3}}, nil),
+			NewUniform([]bound.Bound{{-1, 3}, {2, 8}, {-5, -3}}, nil),
 			math.Log(48),
 		},
 	} {

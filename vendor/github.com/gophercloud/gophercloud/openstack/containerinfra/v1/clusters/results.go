@@ -39,6 +39,11 @@ type UpdateResult struct {
 	commonResult
 }
 
+// ResizeResult is the response of a Resize operations.
+type ResizeResult struct {
+	commonResult
+}
+
 func (r CreateResult) Extract() (string, error) {
 	var s struct {
 		UUID string

@@ -30,7 +30,7 @@ func TestSshExecPeerProbe(t *testing.T) {
 
 		tests.Assert(t, host == "host:22", host)
 		tests.Assert(t, len(commands) == 1)
-		tests.Assert(t, commands[0] == "gluster peer probe newnode", commands)
+		tests.Assert(t, commands[0] == "gluster --mode=script --timeout=42 peer probe newnode", commands)
 
 		return nil, nil
 	}
@@ -56,12 +56,12 @@ func TestSshExecPeerProbe(t *testing.T) {
 		case 0:
 			tests.Assert(t, host == "host:22", host)
 			tests.Assert(t, len(commands) == 1)
-			tests.Assert(t, commands[0] == "gluster peer probe newnode", commands)
+			tests.Assert(t, commands[0] == "gluster --mode=script --timeout=42 peer probe newnode", commands)
 
 		case 1:
 			tests.Assert(t, host == "host:22", host)
 			tests.Assert(t, len(commands) == 1)
-			tests.Assert(t, commands[0] == "gluster --mode=script snapshot config snap-max-hard-limit 14", commands)
+			tests.Assert(t, commands[0] == "gluster --mode=script --timeout=42 snapshot config snap-max-hard-limit 14", commands)
 
 		default:
 			tests.Assert(t, false, "Should not be reached")

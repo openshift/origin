@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-openapi/strfmt"
 )
 
 func TestDateTimeValue(t *testing.T) {

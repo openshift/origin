@@ -16,14 +16,14 @@ import (
 
 type pollingObserver struct {
 	interval time.Duration
-	reactors map[string][]ReactorFn
+	reactors map[string][]reactorFn
 	files    map[string]string
 
 	reactorsMutex sync.RWMutex
 }
 
 // AddReactor will add new reactor to this observer.
-func (o *pollingObserver) AddReactor(reaction ReactorFn, startingFileContent map[string][]byte, files ...string) Observer {
+func (o *pollingObserver) AddReactor(reaction reactorFn, startingFileContent map[string][]byte, files ...string) Observer {
 	o.reactorsMutex.Lock()
 	defer o.reactorsMutex.Unlock()
 	for _, f := range files {

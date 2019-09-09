@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -47,6 +48,16 @@ func NewActivityClientWithBaseURI(baseURI string, subscriptionID string) Activit
 // moduleName - the name of module.
 // activityName - the name of activity.
 func (client ActivityClient) Get(ctx context.Context, resourceGroupName string, automationAccountName string, moduleName string, activityName string) (result Activity, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ActivityClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -102,8 +113,8 @@ func (client ActivityClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client ActivityClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -125,6 +136,16 @@ func (client ActivityClient) GetResponder(resp *http.Response) (result Activity,
 // automationAccountName - the name of the automation account.
 // moduleName - the name of module.
 func (client ActivityClient) ListByModule(ctx context.Context, resourceGroupName string, automationAccountName string, moduleName string) (result ActivityListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ActivityClient.ListByModule")
+		defer func() {
+			sc := -1
+			if result.alr.Response.Response != nil {
+				sc = result.alr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -180,8 +201,8 @@ func (client ActivityClient) ListByModulePreparer(ctx context.Context, resourceG
 // ListByModuleSender sends the ListByModule request. The method will close the
 // http.Response Body if it receives an error.
 func (client ActivityClient) ListByModuleSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByModuleResponder handles the response to the ListByModule request. The method always
@@ -198,8 +219,8 @@ func (client ActivityClient) ListByModuleResponder(resp *http.Response) (result 
 }
 
 // listByModuleNextResults retrieves the next set of results, if any.
-func (client ActivityClient) listByModuleNextResults(lastResults ActivityListResult) (result ActivityListResult, err error) {
-	req, err := lastResults.activityListResultPreparer()
+func (client ActivityClient) listByModuleNextResults(ctx context.Context, lastResults ActivityListResult) (result ActivityListResult, err error) {
+	req, err := lastResults.activityListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "automation.ActivityClient", "listByModuleNextResults", nil, "Failure preparing next results request")
 	}
@@ -220,6 +241,16 @@ func (client ActivityClient) listByModuleNextResults(lastResults ActivityListRes
 
 // ListByModuleComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ActivityClient) ListByModuleComplete(ctx context.Context, resourceGroupName string, automationAccountName string, moduleName string) (result ActivityListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ActivityClient.ListByModule")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByModule(ctx, resourceGroupName, automationAccountName, moduleName)
 	return
 }

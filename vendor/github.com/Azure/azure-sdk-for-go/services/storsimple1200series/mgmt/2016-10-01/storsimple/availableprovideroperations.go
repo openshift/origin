@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -42,6 +43,16 @@ func NewAvailableProviderOperationsClientWithBaseURI(baseURI string, subscriptio
 
 // List list of AvailableProviderOperations
 func (client AvailableProviderOperationsClient) List(ctx context.Context) (result AvailableProviderOperationsPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableProviderOperationsClient.List")
+		defer func() {
+			sc := -1
+			if result.apo.Response.Response != nil {
+				sc = result.apo.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -82,8 +93,8 @@ func (client AvailableProviderOperationsClient) ListPreparer(ctx context.Context
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AvailableProviderOperationsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -100,8 +111,8 @@ func (client AvailableProviderOperationsClient) ListResponder(resp *http.Respons
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AvailableProviderOperationsClient) listNextResults(lastResults AvailableProviderOperations) (result AvailableProviderOperations, err error) {
-	req, err := lastResults.availableProviderOperationsPreparer()
+func (client AvailableProviderOperationsClient) listNextResults(ctx context.Context, lastResults AvailableProviderOperations) (result AvailableProviderOperations, err error) {
+	req, err := lastResults.availableProviderOperationsPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storsimple.AvailableProviderOperationsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -122,6 +133,16 @@ func (client AvailableProviderOperationsClient) listNextResults(lastResults Avai
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AvailableProviderOperationsClient) ListComplete(ctx context.Context) (result AvailableProviderOperationsIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AvailableProviderOperationsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }

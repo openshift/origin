@@ -18,7 +18,7 @@ package pkiutil
 
 import (
 	"crypto"
-	"crypto/rand"
+	"crypto/ecdsa"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -54,26 +54,25 @@ const (
 	// RSAPrivateKeyBlockType is a possible value for pem.Block.Type.
 	RSAPrivateKeyBlockType = "RSA PRIVATE KEY"
 	rsaKeySize             = 2048
-	duration365d           = time.Hour * 24 * 365
 )
 
 // NewCertificateAuthority creates new certificate and private key for the certificate authority
-func NewCertificateAuthority(config *certutil.Config) (*x509.Certificate, *rsa.PrivateKey, error) {
+func NewCertificateAuthority(config *certutil.Config) (*x509.Certificate, crypto.Signer, error) {
 	key, err := NewPrivateKey()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to create private key")
+		return nil, nil, errors.Wrap(err, "unable to create private key while generating CA certificate")
 	}
 
 	cert, err := certutil.NewSelfSignedCACert(*config, key)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unable to create self-signed certificate")
+		return nil, nil, errors.Wrap(err, "unable to create self-signed CA certificate")
 	}
 
 	return cert, key, nil
 }
 
 // NewCertAndKey creates new certificate and key by passing the certificate authority certificate and key
-func NewCertAndKey(caCert *x509.Certificate, caKey *rsa.PrivateKey, config *certutil.Config) (*x509.Certificate, *rsa.PrivateKey, error) {
+func NewCertAndKey(caCert *x509.Certificate, caKey crypto.Signer, config *certutil.Config) (*x509.Certificate, crypto.Signer, error) {
 	key, err := NewPrivateKey()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unable to create private key")
@@ -88,7 +87,7 @@ func NewCertAndKey(caCert *x509.Certificate, caKey *rsa.PrivateKey, config *cert
 }
 
 // NewCSRAndKey generates a new key and CSR and that could be signed to create the given certificate
-func NewCSRAndKey(config *certutil.Config) (*x509.CertificateRequest, *rsa.PrivateKey, error) {
+func NewCSRAndKey(config *certutil.Config) (*x509.CertificateRequest, crypto.Signer, error) {
 	key, err := NewPrivateKey()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unable to create private key")
@@ -113,7 +112,7 @@ func HasServerAuth(cert *x509.Certificate) bool {
 }
 
 // WriteCertAndKey stores certificate and key at the specified location
-func WriteCertAndKey(pkiPath string, name string, cert *x509.Certificate, key *rsa.PrivateKey) error {
+func WriteCertAndKey(pkiPath string, name string, cert *x509.Certificate, key crypto.Signer) error {
 	if err := WriteKey(pkiPath, name, key); err != nil {
 		return errors.Wrap(err, "couldn't write key")
 	}
@@ -136,7 +135,7 @@ func WriteCert(pkiPath, name string, cert *x509.Certificate) error {
 }
 
 // WriteKey stores the given key at the given location
-func WriteKey(pkiPath, name string, key *rsa.PrivateKey) error {
+func WriteKey(pkiPath, name string, key crypto.Signer) error {
 	if key == nil {
 		return errors.New("private key cannot be nil when writing to file")
 	}
@@ -154,20 +153,20 @@ func WriteKey(pkiPath, name string, key *rsa.PrivateKey) error {
 }
 
 // WriteCSR writes the pem-encoded CSR data to csrPath.
-// The CSR file will be created with file mode 0644.
+// The CSR file will be created with file mode 0600.
 // If the CSR file already exists, it will be overwritten.
-// The parent directory of the csrPath will be created as needed with file mode 0755.
+// The parent directory of the csrPath will be created as needed with file mode 0700.
 func WriteCSR(csrDir, name string, csr *x509.CertificateRequest) error {
 	if csr == nil {
 		return errors.New("certificate request cannot be nil when writing to file")
 	}
 
 	csrPath := pathForCSR(csrDir, name)
-	if err := os.MkdirAll(filepath.Dir(csrPath), os.FileMode(0755)); err != nil {
+	if err := os.MkdirAll(filepath.Dir(csrPath), os.FileMode(0700)); err != nil {
 		return errors.Wrapf(err, "failed to make directory %s", filepath.Dir(csrPath))
 	}
 
-	if err := ioutil.WriteFile(csrPath, EncodeCSRPEM(csr), os.FileMode(0644)); err != nil {
+	if err := ioutil.WriteFile(csrPath, EncodeCSRPEM(csr), os.FileMode(0600)); err != nil {
 		return errors.Wrapf(err, "unable to write CSR to file %s", csrPath)
 	}
 
@@ -175,7 +174,7 @@ func WriteCSR(csrDir, name string, csr *x509.CertificateRequest) error {
 }
 
 // WritePublicKey stores the given public key at the given location
-func WritePublicKey(pkiPath, name string, key *rsa.PublicKey) error {
+func WritePublicKey(pkiPath, name string, key crypto.PublicKey) error {
 	if key == nil {
 		return errors.New("public key cannot be nil when writing to file")
 	}
@@ -199,7 +198,7 @@ func CertOrKeyExist(pkiPath, name string) bool {
 	_, certErr := os.Stat(certificatePath)
 	_, keyErr := os.Stat(privateKeyPath)
 	if os.IsNotExist(certErr) && os.IsNotExist(keyErr) {
-		// The cert or the key did not exist
+		// The cert and the key do not exist
 		return false
 	}
 
@@ -219,7 +218,7 @@ func CSROrKeyExist(csrDir, name string) bool {
 }
 
 // TryLoadCertAndKeyFromDisk tries to load a cert and a key from the disk and validates that they are valid
-func TryLoadCertAndKeyFromDisk(pkiPath, name string) (*x509.Certificate, *rsa.PrivateKey, error) {
+func TryLoadCertAndKeyFromDisk(pkiPath, name string) (*x509.Certificate, crypto.Signer, error) {
 	cert, err := TryLoadCertFromDisk(pkiPath, name)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to load certificate")
@@ -259,7 +258,7 @@ func TryLoadCertFromDisk(pkiPath, name string) (*x509.Certificate, error) {
 }
 
 // TryLoadKeyFromDisk tries to load the key from the disk and validates that it is valid
-func TryLoadKeyFromDisk(pkiPath, name string) (*rsa.PrivateKey, error) {
+func TryLoadKeyFromDisk(pkiPath, name string) (crypto.Signer, error) {
 	privateKeyPath := pathForKey(pkiPath, name)
 
 	// Parse the private key from a file
@@ -268,20 +267,22 @@ func TryLoadKeyFromDisk(pkiPath, name string) (*rsa.PrivateKey, error) {
 		return nil, errors.Wrapf(err, "couldn't load the private key file %s", privateKeyPath)
 	}
 
-	// Allow RSA format only
-	var key *rsa.PrivateKey
+	// Allow RSA and ECDSA formats only
+	var key crypto.Signer
 	switch k := privKey.(type) {
 	case *rsa.PrivateKey:
 		key = k
+	case *ecdsa.PrivateKey:
+		key = k
 	default:
-		return nil, errors.Errorf("the private key file %s isn't in RSA format", privateKeyPath)
+		return nil, errors.Errorf("the private key file %s is neither in RSA nor ECDSA format", privateKeyPath)
 	}
 
 	return key, nil
 }
 
 // TryLoadCSRAndKeyFromDisk tries to load the CSR and key from the disk
-func TryLoadCSRAndKeyFromDisk(pkiPath, name string) (*x509.CertificateRequest, *rsa.PrivateKey, error) {
+func TryLoadCSRAndKeyFromDisk(pkiPath, name string) (*x509.CertificateRequest, crypto.Signer, error) {
 	csrPath := pathForCSR(pkiPath, name)
 
 	csr, err := CertificateRequestFromFile(csrPath)
@@ -404,29 +405,18 @@ func GetAPIServerAltNames(cfg *kubeadmapi.InitConfiguration) (*certutil.AltNames
 // `advertise address` and localhost are included in the SAN since this is the interfaces the etcd static pod listens on.
 // The user can override the listen address with `Etcd.ExtraArgs` and add SANs with `Etcd.ServerCertSANs`.
 func GetEtcdAltNames(cfg *kubeadmapi.InitConfiguration) (*certutil.AltNames, error) {
-	// advertise address
-	advertiseAddress := net.ParseIP(cfg.LocalAPIEndpoint.AdvertiseAddress)
-	if advertiseAddress == nil {
-		return nil, errors.Errorf("error parsing LocalAPIEndpoint AdvertiseAddress %q: is not a valid textual representation of an IP address", cfg.LocalAPIEndpoint.AdvertiseAddress)
-	}
-
-	// create AltNames with defaults DNSNames/IPs
-	altNames := &certutil.AltNames{
-		DNSNames: []string{cfg.NodeRegistration.Name, "localhost"},
-		IPs:      []net.IP{advertiseAddress, net.IPv4(127, 0, 0, 1), net.IPv6loopback},
-	}
-
-	if cfg.Etcd.Local != nil {
-		appendSANsToAltNames(altNames, cfg.Etcd.Local.ServerCertSANs, kubeadmconstants.EtcdServerCertName)
-	}
-
-	return altNames, nil
+	return getAltNames(cfg, kubeadmconstants.EtcdServerCertName)
 }
 
 // GetEtcdPeerAltNames builds an AltNames object for generating the etcd peer certificate.
 // Hostname and `API.AdvertiseAddress` are included if the user chooses to promote the single node etcd cluster into a multi-node one (stacked etcd).
 // The user can override the listen address with `Etcd.ExtraArgs` and add SANs with `Etcd.PeerCertSANs`.
 func GetEtcdPeerAltNames(cfg *kubeadmapi.InitConfiguration) (*certutil.AltNames, error) {
+	return getAltNames(cfg, kubeadmconstants.EtcdPeerCertName)
+}
+
+// getAltNames builds an AltNames object with the cfg and certName.
+func getAltNames(cfg *kubeadmapi.InitConfiguration, certName string) (*certutil.AltNames, error) {
 	// advertise address
 	advertiseAddress := net.ParseIP(cfg.LocalAPIEndpoint.AdvertiseAddress)
 	if advertiseAddress == nil {
@@ -441,9 +431,12 @@ func GetEtcdPeerAltNames(cfg *kubeadmapi.InitConfiguration) (*certutil.AltNames,
 	}
 
 	if cfg.Etcd.Local != nil {
-		appendSANsToAltNames(altNames, cfg.Etcd.Local.PeerCertSANs, kubeadmconstants.EtcdPeerCertName)
+		if certName == kubeadmconstants.EtcdServerCertName {
+			appendSANsToAltNames(altNames, cfg.Etcd.Local.ServerCertSANs, kubeadmconstants.EtcdServerCertName)
+		} else if certName == kubeadmconstants.EtcdPeerCertName {
+			appendSANsToAltNames(altNames, cfg.Etcd.Local.PeerCertSANs, kubeadmconstants.EtcdPeerCertName)
+		}
 	}
-
 	return altNames, nil
 }
 
@@ -451,12 +444,15 @@ func GetEtcdPeerAltNames(cfg *kubeadmapi.InitConfiguration) (*certutil.AltNames,
 // altNames is passed in with a pointer, and the struct is modified
 // valid IP address strings are parsed and added to altNames.IPs as net.IP's
 // RFC-1123 compliant DNS strings are added to altNames.DNSNames as strings
+// RFC-1123 compliant wildcard DNS strings are added to altNames.DNSNames as strings
 // certNames is used to print user facing warnings and should be the name of the cert the altNames will be used for
 func appendSANsToAltNames(altNames *certutil.AltNames, SANs []string, certName string) {
 	for _, altname := range SANs {
 		if ip := net.ParseIP(altname); ip != nil {
 			altNames.IPs = append(altNames.IPs, ip)
 		} else if len(validation.IsDNS1123Subdomain(altname)) == 0 {
+			altNames.DNSNames = append(altNames.DNSNames, altname)
+		} else if len(validation.IsWildcardDNS1123Subdomain(altname)) == 0 {
 			altNames.DNSNames = append(altNames.DNSNames, altname)
 		} else {
 			fmt.Printf(
@@ -484,8 +480,7 @@ func parseCSRPEM(pemCSR []byte) (*x509.CertificateRequest, error) {
 	}
 
 	if block.Type != certutil.CertificateRequestBlockType {
-		var block *pem.Block
-		return nil, errors.Errorf("expected block type %q, but PEM had type %v", certutil.CertificateRequestBlockType, block.Type)
+		return nil, errors.Errorf("expected block type %q, but PEM had type %q", certutil.CertificateRequestBlockType, block.Type)
 	}
 
 	return x509.ParseCertificateRequest(block.Bytes)
@@ -536,7 +531,7 @@ func EncodeCertPEM(cert *x509.Certificate) []byte {
 }
 
 // EncodePublicKeyPEM returns PEM-encoded public data
-func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
+func EncodePublicKeyPEM(key crypto.PublicKey) ([]byte, error) {
 	der, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
 		return []byte{}, err
@@ -549,13 +544,13 @@ func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
 }
 
 // NewPrivateKey creates an RSA private key
-func NewPrivateKey() (*rsa.PrivateKey, error) {
+func NewPrivateKey() (crypto.Signer, error) {
 	return rsa.GenerateKey(cryptorand.Reader, rsaKeySize)
 }
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key
 func NewSignedCert(cfg *certutil.Config, key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer) (*x509.Certificate, error) {
-	serial, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
 		return nil, err
 	}
@@ -575,7 +570,7 @@ func NewSignedCert(cfg *certutil.Config, key crypto.Signer, caCert *x509.Certifi
 		IPAddresses:  cfg.AltNames.IPs,
 		SerialNumber: serial,
 		NotBefore:    caCert.NotBefore,
-		NotAfter:     time.Now().Add(duration365d).UTC(),
+		NotAfter:     time.Now().Add(kubeadmconstants.CertificateValidity).UTC(),
 		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  cfg.Usages,
 	}

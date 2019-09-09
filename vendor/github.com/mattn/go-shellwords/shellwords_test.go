@@ -93,6 +93,15 @@ func TestBacktick(t *testing.T) {
 		t.Fatalf("Expected %#v, but %#v:", expected, args)
 	}
 
+	args, err = parser.Parse(`echo bar=$(echo 200)cm`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected = []string{"echo", "bar=200cm"}
+	if !reflect.DeepEqual(args, expected) {
+		t.Fatalf("Expected %#v, but %#v:", expected, args)
+	}
+
 	parser.ParseBacktick = false
 	args, err = parser.Parse(`echo $(echo "foo")`)
 	expected = []string{"echo", `$(echo "foo")`}
@@ -116,11 +125,15 @@ func TestBacktickError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Should be an error")
 	}
-	expected := "exit status 2:go: unknown subcommand \"Version\"\nRun 'go help' for usage.\n"
+	expected := "exit status 2:go Version: unknown command\nRun 'go help' for usage.\n"
 	if expected != err.Error() {
 		t.Fatalf("Expected %q, but %q", expected, err.Error())
 	}
 	_, err = parser.Parse(`echo $(echo1)`)
+	if err == nil {
+		t.Fatal("Should be an error")
+	}
+	_, err = parser.Parse(`echo FOO=$(echo1)`)
 	if err == nil {
 		t.Fatal("Should be an error")
 	}
@@ -152,6 +165,20 @@ func TestEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 	expected := []string{"echo", "bar"}
+	if !reflect.DeepEqual(args, expected) {
+		t.Fatalf("Expected %#v, but %#v:", expected, args)
+	}
+}
+
+func TestCustomEnv(t *testing.T) {
+	parser := NewParser()
+	parser.ParseEnv = true
+	parser.Getenv = func(k string) string { return map[string]string{"FOO": "baz"}[k] }
+	args, err := parser.Parse("echo $FOO")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []string{"echo", "baz"}
 	if !reflect.DeepEqual(args, expected) {
 		t.Fatalf("Expected %#v, but %#v:", expected, args)
 	}

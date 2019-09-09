@@ -20,6 +20,8 @@ import (
 	"k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	"github.com/onsi/ginkgo"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -73,13 +75,13 @@ func (t *PersistentVolumeUpgradeTest) Test(f *framework.Framework, done <-chan s
 func (t *PersistentVolumeUpgradeTest) Teardown(f *framework.Framework) {
 	errs := framework.PVPVCCleanup(f.ClientSet, f.Namespace.Name, nil, t.pvc)
 	if len(errs) > 0 {
-		framework.Failf("Failed to delete 1 or more PVs/PVCs. Errors: %v", utilerrors.NewAggregate(errs))
+		e2elog.Failf("Failed to delete 1 or more PVs/PVCs. Errors: %v", utilerrors.NewAggregate(errs))
 	}
 }
 
 // testPod creates a pod that consumes a pv and prints it out. The output is then verified.
 func (t *PersistentVolumeUpgradeTest) testPod(f *framework.Framework, cmd string) {
-	pod := framework.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{t.pvc}, false, cmd)
+	pod := e2epod.MakePod(f.Namespace.Name, nil, []*v1.PersistentVolumeClaim{t.pvc}, false, cmd)
 	expectedOutput := []string{pvTestData}
 	f.TestContainerOutput("pod consumes pv", pod, 0, expectedOutput)
 }

@@ -284,7 +284,7 @@ func (in *RangeAllocation) DeepCopyObject() runtime.Object {
 func (in *RangeAllocationList) DeepCopyInto(out *RangeAllocationList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]RangeAllocation, len(*in))
@@ -464,7 +464,7 @@ func (in *SecurityContextConstraints) DeepCopyObject() runtime.Object {
 func (in *SecurityContextConstraintsList) DeepCopyInto(out *SecurityContextConstraintsList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]SecurityContextConstraints, len(*in))

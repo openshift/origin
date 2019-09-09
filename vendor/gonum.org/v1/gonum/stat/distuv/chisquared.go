@@ -30,7 +30,7 @@ type ChiSquared struct {
 
 // CDF computes the value of the cumulative density function at x.
 func (c ChiSquared) CDF(x float64) float64 {
-	return mathext.GammaInc(c.K/2, x/2)
+	return mathext.GammaIncReg(c.K/2, x/2)
 }
 
 // ExKurtosis returns the excess kurtosis of the distribution.
@@ -78,7 +78,7 @@ func (c ChiSquared) Quantile(p float64) float64 {
 	if p < 0 || p > 1 {
 		panic(badPercentile)
 	}
-	return mathext.GammaIncInv(0.5*c.K, p) * 2
+	return mathext.GammaIncRegInv(0.5*c.K, p) * 2
 }
 
 // StdDev returns the standard deviation of the probability distribution.
@@ -91,7 +91,7 @@ func (c ChiSquared) Survival(x float64) float64 {
 	if x < 0 {
 		return 1
 	}
-	return mathext.GammaIncComp(0.5*c.K, 0.5*x)
+	return mathext.GammaIncRegComp(0.5*c.K, 0.5*x)
 }
 
 // Variance returns the variance of the probability distribution.

@@ -103,12 +103,12 @@ Note: Any OPTIONAL field MAY also be set to null, which is equivalent to being a
 - **architecture** *string*, REQUIRED
 
   The CPU architecture which the binaries in this image are built to run on.
-  Configurations SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.arch`][runtime-platform].
+  Configurations SHOULD use, and implementations SHOULD understand, values listed in the Go Language document for [`GOARCH`][go-environment].
 
 - **os** *string*, REQUIRED
 
   The name of the operating system which the image is built to run on.
-  Configurations SHOULD use, and implementations SHOULD understand, values [supported by runtime-spec's `platform.os`][runtime-platform].
+  Configurations SHOULD use, and implementations SHOULD understand, values listed in the Go Language document for [`GOOS`][go-environment].
 
 - **config** *object*, OPTIONAL
 
@@ -148,8 +148,7 @@ Note: Any OPTIONAL field MAY also be set to null, which is equivalent to being a
 
    - **Volumes** *object*, OPTIONAL
 
-     A set of directories which SHOULD be created as data volumes in a container running this image.
-     If a file or folder exists within the image with the same path as a data volume, that file or folder will be replaced by the data volume and never be merged.
+     A set of directories describing where the process is likely write data specific to a container instance.
      **NOTE:** This JSON structure value is unusual because it is a direct JSON serialization of the Go type `map[string]struct{}` and is represented in JSON as an object mapping its keys to an empty object.
 
    - **WorkingDir** *string*, OPTIONAL
@@ -271,5 +270,5 @@ Here is an example image configuration JSON document:
 ```
 
 [rfc3339-s5.6]: https://tools.ietf.org/html/rfc3339#section-5.6
-[runtime-platform]: https://github.com/opencontainers/runtime-spec/blob/v1.0.0-rc3/config.md#platform
+[go-environment]: https://golang.org/doc/install/source#environment
 [tar-split]: https://github.com/vbatts/tar-split

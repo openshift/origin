@@ -6,6 +6,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This repository is no longer maintained.
+// Development has moved to https://github.com/gonum/gonum.
+//
 // Package math32 provides float32 versions of standard library math package
 // routines used by gonum/blas/native.
 package math32

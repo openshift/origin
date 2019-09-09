@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -41,11 +42,21 @@ func NewRolloutsClientWithBaseURI(baseURI string, subscriptionID string) Rollout
 	return RolloutsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Cancel a rollout can be canceled only if it is in running state.
+// Cancel only running rollouts can be canceled.
 // Parameters:
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // rolloutName - the rollout name.
 func (client RolloutsClient) Cancel(ctx context.Context, resourceGroupName string, rolloutName string) (result Rollout, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RolloutsClient.Cancel")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -99,8 +110,8 @@ func (client RolloutsClient) CancelPreparer(ctx context.Context, resourceGroupNa
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client RolloutsClient) CancelSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // CancelResponder handles the response to the Cancel request. The method always
@@ -123,6 +134,16 @@ func (client RolloutsClient) CancelResponder(resp *http.Response) (result Rollou
 // rolloutName - the rollout name.
 // rolloutRequest - source rollout request object that defines the rollout.
 func (client RolloutsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, rolloutName string, rolloutRequest *RolloutRequest) (result RolloutsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RolloutsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -187,13 +208,9 @@ func (client RolloutsClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client RolloutsClient) CreateOrUpdateSender(req *http.Request) (future RolloutsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -214,11 +231,21 @@ func (client RolloutsClient) CreateOrUpdateResponder(resp *http.Response) (resul
 	return
 }
 
-// Delete a rollout can only be deleted if it is in a terminal state.
+// Delete only rollouts in terminal state can be deleted.
 // Parameters:
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // rolloutName - the rollout name.
 func (client RolloutsClient) Delete(ctx context.Context, resourceGroupName string, rolloutName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RolloutsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -272,8 +299,8 @@ func (client RolloutsClient) DeletePreparer(ctx context.Context, resourceGroupNa
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client RolloutsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -295,6 +322,16 @@ func (client RolloutsClient) DeleteResponder(resp *http.Response) (result autore
 // retryAttempt - rollout retry attempt ordinal to get the result of. If not specified, result of the latest
 // attempt will be returned.
 func (client RolloutsClient) Get(ctx context.Context, resourceGroupName string, rolloutName string, retryAttempt *int32) (result Rollout, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RolloutsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -351,8 +388,8 @@ func (client RolloutsClient) GetPreparer(ctx context.Context, resourceGroupName 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client RolloutsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -368,7 +405,7 @@ func (client RolloutsClient) GetResponder(resp *http.Response) (result Rollout, 
 	return
 }
 
-// Restart a rollout can be restarted only if is in a terminal state and failed.
+// Restart only failed rollouts can be restarted.
 // Parameters:
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // rolloutName - the rollout name.
@@ -376,6 +413,16 @@ func (client RolloutsClient) GetResponder(resp *http.Response) (result Rollout, 
 // entire rollout again regardless of the current state of individual resources. Defaults to false if not
 // specified.
 func (client RolloutsClient) Restart(ctx context.Context, resourceGroupName string, rolloutName string, skipSucceeded *bool) (result Rollout, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/RolloutsClient.Restart")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -432,8 +479,8 @@ func (client RolloutsClient) RestartPreparer(ctx context.Context, resourceGroupN
 // RestartSender sends the Restart request. The method will close the
 // http.Response Body if it receives an error.
 func (client RolloutsClient) RestartSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RestartResponder handles the response to the Restart request. The method always

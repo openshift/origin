@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -44,6 +45,16 @@ func NewSupportPlanTypesClientWithBaseURI(baseURI string, subscriptionID string)
 // providerName - the support plan type. For now the only valid type is "canonical".
 // planTypeName - the Canonical support plan type.
 func (client SupportPlanTypesClient) CreateOrUpdate(ctx context.Context, providerName string, planTypeName PlanTypeName) (result SupportPlanTypesCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SupportPlanTypesClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.CreateOrUpdatePreparer(ctx, providerName, planTypeName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "addons.SupportPlanTypesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -83,13 +94,9 @@ func (client SupportPlanTypesClient) CreateOrUpdatePreparer(ctx context.Context,
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client SupportPlanTypesClient) CreateOrUpdateSender(req *http.Request) (future SupportPlanTypesCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusNotFound))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -115,6 +122,16 @@ func (client SupportPlanTypesClient) CreateOrUpdateResponder(resp *http.Response
 // providerName - the support plan type. For now the only valid type is "canonical".
 // planTypeName - the Canonical support plan type.
 func (client SupportPlanTypesClient) Delete(ctx context.Context, providerName string, planTypeName PlanTypeName) (result SupportPlanTypesDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SupportPlanTypesClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, providerName, planTypeName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "addons.SupportPlanTypesClient", "Delete", nil, "Failure preparing request")
@@ -154,13 +171,9 @@ func (client SupportPlanTypesClient) DeletePreparer(ctx context.Context, provide
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client SupportPlanTypesClient) DeleteSender(req *http.Request) (future SupportPlanTypesDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -186,6 +199,16 @@ func (client SupportPlanTypesClient) DeleteResponder(resp *http.Response) (resul
 // providerName - the support plan type. For now the only valid type is "canonical".
 // planTypeName - the Canonical support plan type.
 func (client SupportPlanTypesClient) Get(ctx context.Context, providerName string, planTypeName PlanTypeName) (result CanonicalSupportPlanResponseEnvelope, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SupportPlanTypesClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, providerName, planTypeName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "addons.SupportPlanTypesClient", "Get", nil, "Failure preparing request")
@@ -231,8 +254,8 @@ func (client SupportPlanTypesClient) GetPreparer(ctx context.Context, providerNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client SupportPlanTypesClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -250,6 +273,16 @@ func (client SupportPlanTypesClient) GetResponder(resp *http.Response) (result C
 
 // ListInfo returns the canonical support plan information for all types for the subscription.
 func (client SupportPlanTypesClient) ListInfo(ctx context.Context) (result ListCanonicalSupportPlanInfoDefinition, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/SupportPlanTypesClient.ListInfo")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.ListInfoPreparer(ctx)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "addons.SupportPlanTypesClient", "ListInfo", nil, "Failure preparing request")
@@ -293,8 +326,8 @@ func (client SupportPlanTypesClient) ListInfoPreparer(ctx context.Context) (*htt
 // ListInfoSender sends the ListInfo request. The method will close the
 // http.Response Body if it receives an error.
 func (client SupportPlanTypesClient) ListInfoSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListInfoResponder handles the response to the ListInfo request. The method always

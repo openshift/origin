@@ -1,7 +1,6 @@
 package resourceapply
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -169,19 +168,9 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 			modifiedKeys = append(modifiedKeys, "data."+existingCopyKey)
 		}
 	}
-	for existingCopyKey, existingCopyBinValue := range existingCopy.BinaryData {
-		if requiredBinValue, ok := required.BinaryData[existingCopyKey]; !ok || !bytes.Equal(existingCopyBinValue, requiredBinValue) {
-			modifiedKeys = append(modifiedKeys, "binaryData."+existingCopyKey)
-		}
-	}
 	for requiredKey := range required.Data {
 		if _, ok := existingCopy.Data[requiredKey]; !ok {
 			modifiedKeys = append(modifiedKeys, "data."+requiredKey)
-		}
-	}
-	for requiredBinKey := range required.BinaryData {
-		if _, ok := existingCopy.BinaryData[requiredBinKey]; !ok {
-			modifiedKeys = append(modifiedKeys, "binaryData."+requiredBinKey)
 		}
 	}
 
@@ -190,7 +179,6 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 		return existingCopy, false, nil
 	}
 	existingCopy.Data = required.Data
-	existingCopy.BinaryData = required.BinaryData
 
 	actual, err := client.ConfigMaps(required.Namespace).Update(existingCopy)
 

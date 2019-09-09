@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Google Inc. All Rights Reserved.
+Copyright 2016 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,19 +16,19 @@ limitations under the License.
 package bttest_test
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"cloud.google.com/go/bigtable"
 	"cloud.google.com/go/bigtable/bttest"
-	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 )
 
 func ExampleNewServer() {
 
-	srv, err := bttest.NewServer("127.0.0.1:0")
+	srv, err := bttest.NewServer("localhost:0")
 
 	if err != nil {
 		log.Fatalln(err)

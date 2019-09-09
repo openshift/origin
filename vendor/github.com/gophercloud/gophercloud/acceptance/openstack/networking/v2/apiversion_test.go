@@ -39,7 +39,7 @@ func TestAPIResourcesList(t *testing.T) {
 
 	allPages, err := apiversions.ListVersionResources(client, "v2.0").AllPages()
 	if err != nil {
-		t.Fatalf("Unable to list api version reosources: %v", err)
+		t.Fatalf("Unable to list api version resources: %v", err)
 	}
 
 	allVersionResources, err := apiversions.ExtractVersionResources(allPages)

@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,6 +47,16 @@ func NewAppServiceEnvironmentsClientWithBaseURI(baseURI string, subscriptionID s
 // name - name of the App Service Environment.
 // hostingEnvironmentEnvelope - configuration details of the App Service Environment.
 func (client AppServiceEnvironmentsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, name string, hostingEnvironmentEnvelope AppServiceEnvironmentResource) (result AppServiceEnvironmentsCreateOrUpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -102,13 +113,9 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdatePreparer(ctx context.Co
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateSender(req *http.Request) (future AppServiceEnvironmentsCreateOrUpdateFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -135,6 +142,16 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateResponder(resp *http.Re
 // name - name of the App Service Environment.
 // multiRolePoolEnvelope - properties of the multi-role pool.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePool(ctx context.Context, resourceGroupName string, name string, multiRolePoolEnvelope WorkerPoolResource) (result AppServiceEnvironmentsCreateOrUpdateMultiRolePoolFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.CreateOrUpdateMultiRolePool")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -184,13 +201,9 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolPreparer(c
 // CreateOrUpdateMultiRolePoolSender sends the CreateOrUpdateMultiRolePool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolSender(req *http.Request) (future AppServiceEnvironmentsCreateOrUpdateMultiRolePoolFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -218,6 +231,16 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolResponder(
 // workerPoolName - name of the worker pool.
 // workerPoolEnvelope - properties of the worker pool.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPool(ctx context.Context, resourceGroupName string, name string, workerPoolName string, workerPoolEnvelope WorkerPoolResource) (result AppServiceEnvironmentsCreateOrUpdateWorkerPoolFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.CreateOrUpdateWorkerPool")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -268,13 +291,9 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolPreparer(ctx 
 // CreateOrUpdateWorkerPoolSender sends the CreateOrUpdateWorkerPool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolSender(req *http.Request) (future AppServiceEnvironmentsCreateOrUpdateWorkerPoolFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -302,6 +321,16 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolResponder(res
 // forceDelete - specify <code>true</code> to force the deletion even if the App Service Environment contains
 // resources. The default is <code>false</code>.
 func (client AppServiceEnvironmentsClient) Delete(ctx context.Context, resourceGroupName string, name string, forceDelete *bool) (result AppServiceEnvironmentsDeleteFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -352,13 +381,9 @@ func (client AppServiceEnvironmentsClient) DeletePreparer(ctx context.Context, r
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) DeleteSender(req *http.Request) (future AppServiceEnvironmentsDeleteFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -383,6 +408,16 @@ func (client AppServiceEnvironmentsClient) DeleteResponder(resp *http.Response) 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Get(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -436,8 +471,8 @@ func (client AppServiceEnvironmentsClient) GetPreparer(ctx context.Context, reso
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -459,6 +494,16 @@ func (client AppServiceEnvironmentsClient) GetResponder(resp *http.Response) (re
 // name - name of the App Service Environment.
 // diagnosticsName - name of the diagnostics item.
 func (client AppServiceEnvironmentsClient) GetDiagnosticsItem(ctx context.Context, resourceGroupName string, name string, diagnosticsName string) (result HostingEnvironmentDiagnostics, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.GetDiagnosticsItem")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -513,8 +558,8 @@ func (client AppServiceEnvironmentsClient) GetDiagnosticsItemPreparer(ctx contex
 // GetDiagnosticsItemSender sends the GetDiagnosticsItem request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) GetDiagnosticsItemSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetDiagnosticsItemResponder handles the response to the GetDiagnosticsItem request. The method always
@@ -535,6 +580,16 @@ func (client AppServiceEnvironmentsClient) GetDiagnosticsItemResponder(resp *htt
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) GetMultiRolePool(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.GetMultiRolePool")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -588,8 +643,8 @@ func (client AppServiceEnvironmentsClient) GetMultiRolePoolPreparer(ctx context.
 // GetMultiRolePoolSender sends the GetMultiRolePool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) GetMultiRolePoolSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetMultiRolePoolResponder handles the response to the GetMultiRolePool request. The method always
@@ -611,6 +666,16 @@ func (client AppServiceEnvironmentsClient) GetMultiRolePoolResponder(resp *http.
 // name - name of the App Service Environment.
 // workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) GetWorkerPool(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result WorkerPoolResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.GetWorkerPool")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -665,8 +730,8 @@ func (client AppServiceEnvironmentsClient) GetWorkerPoolPreparer(ctx context.Con
 // GetWorkerPoolSender sends the GetWorkerPool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) GetWorkerPoolSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // GetWorkerPoolResponder handles the response to the GetWorkerPool request. The method always
@@ -684,6 +749,16 @@ func (client AppServiceEnvironmentsClient) GetWorkerPoolResponder(resp *http.Res
 
 // List get all App Service Environments for a subscription.
 func (client AppServiceEnvironmentsClient) List(ctx context.Context) (result AppServiceEnvironmentCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.List")
+		defer func() {
+			sc := -1
+			if result.asec.Response.Response != nil {
+				sc = result.asec.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx)
 	if err != nil {
@@ -728,8 +803,8 @@ func (client AppServiceEnvironmentsClient) ListPreparer(ctx context.Context) (*h
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -746,8 +821,8 @@ func (client AppServiceEnvironmentsClient) ListResponder(resp *http.Response) (r
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listNextResults(lastResults AppServiceEnvironmentCollection) (result AppServiceEnvironmentCollection, err error) {
-	req, err := lastResults.appServiceEnvironmentCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listNextResults(ctx context.Context, lastResults AppServiceEnvironmentCollection) (result AppServiceEnvironmentCollection, err error) {
+	req, err := lastResults.appServiceEnvironmentCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -768,6 +843,16 @@ func (client AppServiceEnvironmentsClient) listNextResults(lastResults AppServic
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListComplete(ctx context.Context) (result AppServiceEnvironmentCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx)
 	return
 }
@@ -777,6 +862,16 @@ func (client AppServiceEnvironmentsClient) ListComplete(ctx context.Context) (re
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListAppServicePlans(ctx context.Context, resourceGroupName string, name string) (result AppServicePlanCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListAppServicePlans")
+		defer func() {
+			sc := -1
+			if result.aspc.Response.Response != nil {
+				sc = result.aspc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -831,8 +926,8 @@ func (client AppServiceEnvironmentsClient) ListAppServicePlansPreparer(ctx conte
 // ListAppServicePlansSender sends the ListAppServicePlans request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListAppServicePlansSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListAppServicePlansResponder handles the response to the ListAppServicePlans request. The method always
@@ -849,8 +944,8 @@ func (client AppServiceEnvironmentsClient) ListAppServicePlansResponder(resp *ht
 }
 
 // listAppServicePlansNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listAppServicePlansNextResults(lastResults AppServicePlanCollection) (result AppServicePlanCollection, err error) {
-	req, err := lastResults.appServicePlanCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listAppServicePlansNextResults(ctx context.Context, lastResults AppServicePlanCollection) (result AppServicePlanCollection, err error) {
+	req, err := lastResults.appServicePlanCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listAppServicePlansNextResults", nil, "Failure preparing next results request")
 	}
@@ -871,6 +966,16 @@ func (client AppServiceEnvironmentsClient) listAppServicePlansNextResults(lastRe
 
 // ListAppServicePlansComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListAppServicePlansComplete(ctx context.Context, resourceGroupName string, name string) (result AppServicePlanCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListAppServicePlans")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListAppServicePlans(ctx, resourceGroupName, name)
 	return
 }
@@ -879,6 +984,16 @@ func (client AppServiceEnvironmentsClient) ListAppServicePlansComplete(ctx conte
 // Parameters:
 // resourceGroupName - name of the resource group to which the resource belongs.
 func (client AppServiceEnvironmentsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result AppServiceEnvironmentCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.asec.Response.Response != nil {
+				sc = result.asec.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -932,8 +1047,8 @@ func (client AppServiceEnvironmentsClient) ListByResourceGroupPreparer(ctx conte
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -950,8 +1065,8 @@ func (client AppServiceEnvironmentsClient) ListByResourceGroupResponder(resp *ht
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listByResourceGroupNextResults(lastResults AppServiceEnvironmentCollection) (result AppServiceEnvironmentCollection, err error) {
-	req, err := lastResults.appServiceEnvironmentCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listByResourceGroupNextResults(ctx context.Context, lastResults AppServiceEnvironmentCollection) (result AppServiceEnvironmentCollection, err error) {
+	req, err := lastResults.appServiceEnvironmentCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -972,6 +1087,16 @@ func (client AppServiceEnvironmentsClient) listByResourceGroupNextResults(lastRe
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string) (result AppServiceEnvironmentCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName)
 	return
 }
@@ -981,6 +1106,16 @@ func (client AppServiceEnvironmentsClient) ListByResourceGroupComplete(ctx conte
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListCapacities(ctx context.Context, resourceGroupName string, name string) (result StampCapacityCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListCapacities")
+		defer func() {
+			sc := -1
+			if result.scc.Response.Response != nil {
+				sc = result.scc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1035,8 +1170,8 @@ func (client AppServiceEnvironmentsClient) ListCapacitiesPreparer(ctx context.Co
 // ListCapacitiesSender sends the ListCapacities request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListCapacitiesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListCapacitiesResponder handles the response to the ListCapacities request. The method always
@@ -1053,8 +1188,8 @@ func (client AppServiceEnvironmentsClient) ListCapacitiesResponder(resp *http.Re
 }
 
 // listCapacitiesNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listCapacitiesNextResults(lastResults StampCapacityCollection) (result StampCapacityCollection, err error) {
-	req, err := lastResults.stampCapacityCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listCapacitiesNextResults(ctx context.Context, lastResults StampCapacityCollection) (result StampCapacityCollection, err error) {
+	req, err := lastResults.stampCapacityCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listCapacitiesNextResults", nil, "Failure preparing next results request")
 	}
@@ -1075,6 +1210,16 @@ func (client AppServiceEnvironmentsClient) listCapacitiesNextResults(lastResults
 
 // ListCapacitiesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListCapacitiesComplete(ctx context.Context, resourceGroupName string, name string) (result StampCapacityCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListCapacities")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListCapacities(ctx, resourceGroupName, name)
 	return
 }
@@ -1084,6 +1229,16 @@ func (client AppServiceEnvironmentsClient) ListCapacitiesComplete(ctx context.Co
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListDiagnostics(ctx context.Context, resourceGroupName string, name string) (result ListHostingEnvironmentDiagnostics, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListDiagnostics")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1137,8 +1292,8 @@ func (client AppServiceEnvironmentsClient) ListDiagnosticsPreparer(ctx context.C
 // ListDiagnosticsSender sends the ListDiagnostics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListDiagnosticsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListDiagnosticsResponder handles the response to the ListDiagnostics request. The method always
@@ -1159,6 +1314,16 @@ func (client AppServiceEnvironmentsClient) ListDiagnosticsResponder(resp *http.R
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMetricDefinitions(ctx context.Context, resourceGroupName string, name string) (result MetricDefinition, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1212,8 +1377,8 @@ func (client AppServiceEnvironmentsClient) ListMetricDefinitionsPreparer(ctx con
 // ListMetricDefinitionsSender sends the ListMetricDefinitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricDefinitionsResponder handles the response to the ListMetricDefinitions request. The method always
@@ -1238,6 +1403,16 @@ func (client AppServiceEnvironmentsClient) ListMetricDefinitionsResponder(resp *
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListMetrics(ctx context.Context, resourceGroupName string, name string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMetrics")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1298,8 +1473,8 @@ func (client AppServiceEnvironmentsClient) ListMetricsPreparer(ctx context.Conte
 // ListMetricsSender sends the ListMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMetricsResponder handles the response to the ListMetrics request. The method always
@@ -1316,8 +1491,8 @@ func (client AppServiceEnvironmentsClient) ListMetricsResponder(resp *http.Respo
 }
 
 // listMetricsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMetricsNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMetricsNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1338,6 +1513,16 @@ func (client AppServiceEnvironmentsClient) listMetricsNextResults(lastResults Re
 
 // ListMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMetricsComplete(ctx context.Context, resourceGroupName string, name string, details *bool, filter string) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMetrics(ctx, resourceGroupName, name, details, filter)
 	return
 }
@@ -1347,6 +1532,16 @@ func (client AppServiceEnvironmentsClient) ListMetricsComplete(ctx context.Conte
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitions(ctx context.Context, resourceGroupName string, name string) (result ResourceMetricDefinitionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRoleMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.rmdc.Response.Response != nil {
+				sc = result.rmdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1401,8 +1596,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsPrepare
 // ListMultiRoleMetricDefinitionsSender sends the ListMultiRoleMetricDefinitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRoleMetricDefinitionsResponder handles the response to the ListMultiRoleMetricDefinitions request. The method always
@@ -1419,8 +1614,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsRespond
 }
 
 // listMultiRoleMetricDefinitionsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRoleMetricDefinitionsNextResults(lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
-	req, err := lastResults.resourceMetricDefinitionCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRoleMetricDefinitionsNextResults(ctx context.Context, lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
+	req, err := lastResults.resourceMetricDefinitionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRoleMetricDefinitionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1441,6 +1636,16 @@ func (client AppServiceEnvironmentsClient) listMultiRoleMetricDefinitionsNextRes
 
 // ListMultiRoleMetricDefinitionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsComplete(ctx context.Context, resourceGroupName string, name string) (result ResourceMetricDefinitionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRoleMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRoleMetricDefinitions(ctx, resourceGroupName, name)
 	return
 }
@@ -1457,6 +1662,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsComplet
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetrics(ctx context.Context, resourceGroupName string, name string, startTime string, endTime string, timeGrain string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRoleMetrics")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1526,8 +1741,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricsPreparer(ctx cont
 // ListMultiRoleMetricsSender sends the ListMultiRoleMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRoleMetricsResponder handles the response to the ListMultiRoleMetrics request. The method always
@@ -1544,8 +1759,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricsResponder(resp *h
 }
 
 // listMultiRoleMetricsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRoleMetricsNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRoleMetricsNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRoleMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1566,6 +1781,16 @@ func (client AppServiceEnvironmentsClient) listMultiRoleMetricsNextResults(lastR
 
 // ListMultiRoleMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetricsComplete(ctx context.Context, resourceGroupName string, name string, startTime string, endTime string, timeGrain string, details *bool, filter string) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRoleMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRoleMetrics(ctx, resourceGroupName, name, startTime, endTime, timeGrain, details, filter)
 	return
 }
@@ -1577,6 +1802,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricsComplete(ctx cont
 // name - name of the App Service Environment.
 // instance - name of the instance in the multi-role pool.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefinitions(ctx context.Context, resourceGroupName string, name string, instance string) (result ResourceMetricDefinitionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePoolInstanceMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.rmdc.Response.Response != nil {
+				sc = result.rmdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1632,8 +1867,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefini
 // ListMultiRolePoolInstanceMetricDefinitionsSender sends the ListMultiRolePoolInstanceMetricDefinitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRolePoolInstanceMetricDefinitionsResponder handles the response to the ListMultiRolePoolInstanceMetricDefinitions request. The method always
@@ -1650,8 +1885,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefini
 }
 
 // listMultiRolePoolInstanceMetricDefinitionsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRolePoolInstanceMetricDefinitionsNextResults(lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
-	req, err := lastResults.resourceMetricDefinitionCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRolePoolInstanceMetricDefinitionsNextResults(ctx context.Context, lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
+	req, err := lastResults.resourceMetricDefinitionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRolePoolInstanceMetricDefinitionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1672,6 +1907,16 @@ func (client AppServiceEnvironmentsClient) listMultiRolePoolInstanceMetricDefini
 
 // ListMultiRolePoolInstanceMetricDefinitionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefinitionsComplete(ctx context.Context, resourceGroupName string, name string, instance string) (result ResourceMetricDefinitionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePoolInstanceMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRolePoolInstanceMetricDefinitions(ctx, resourceGroupName, name, instance)
 	return
 }
@@ -1684,6 +1929,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefini
 // instance - name of the instance in the multi-role pool.
 // details - specify <code>true</code> to include instance details. The default is <code>false</code>.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetrics(ctx context.Context, resourceGroupName string, name string, instance string, details *bool) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePoolInstanceMetrics")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1742,8 +1997,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsPrepa
 // ListMultiRolePoolInstanceMetricsSender sends the ListMultiRolePoolInstanceMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRolePoolInstanceMetricsResponder handles the response to the ListMultiRolePoolInstanceMetrics request. The method always
@@ -1760,8 +2015,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsRespo
 }
 
 // listMultiRolePoolInstanceMetricsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRolePoolInstanceMetricsNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRolePoolInstanceMetricsNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRolePoolInstanceMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1782,6 +2037,16 @@ func (client AppServiceEnvironmentsClient) listMultiRolePoolInstanceMetricsNextR
 
 // ListMultiRolePoolInstanceMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsComplete(ctx context.Context, resourceGroupName string, name string, instance string, details *bool) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePoolInstanceMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRolePoolInstanceMetrics(ctx, resourceGroupName, name, instance, details)
 	return
 }
@@ -1791,6 +2056,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsCompl
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRolePools(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePools")
+		defer func() {
+			sc := -1
+			if result.wpc.Response.Response != nil {
+				sc = result.wpc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1845,8 +2120,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolsPreparer(ctx contex
 // ListMultiRolePoolsSender sends the ListMultiRolePools request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRolePoolsResponder handles the response to the ListMultiRolePools request. The method always
@@ -1863,8 +2138,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolsResponder(resp *htt
 }
 
 // listMultiRolePoolsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRolePoolsNextResults(lastResults WorkerPoolCollection) (result WorkerPoolCollection, err error) {
-	req, err := lastResults.workerPoolCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRolePoolsNextResults(ctx context.Context, lastResults WorkerPoolCollection) (result WorkerPoolCollection, err error) {
+	req, err := lastResults.workerPoolCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRolePoolsNextResults", nil, "Failure preparing next results request")
 	}
@@ -1885,6 +2160,16 @@ func (client AppServiceEnvironmentsClient) listMultiRolePoolsNextResults(lastRes
 
 // ListMultiRolePoolsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolsComplete(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePools")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRolePools(ctx, resourceGroupName, name)
 	return
 }
@@ -1894,6 +2179,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolsComplete(ctx contex
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkus(ctx context.Context, resourceGroupName string, name string) (result SkuInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePoolSkus")
+		defer func() {
+			sc := -1
+			if result.sic.Response.Response != nil {
+				sc = result.sic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1948,8 +2243,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkusPreparer(ctx con
 // ListMultiRolePoolSkusSender sends the ListMultiRolePoolSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRolePoolSkusResponder handles the response to the ListMultiRolePoolSkus request. The method always
@@ -1966,8 +2261,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkusResponder(resp *
 }
 
 // listMultiRolePoolSkusNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRolePoolSkusNextResults(lastResults SkuInfoCollection) (result SkuInfoCollection, err error) {
-	req, err := lastResults.skuInfoCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRolePoolSkusNextResults(ctx context.Context, lastResults SkuInfoCollection) (result SkuInfoCollection, err error) {
+	req, err := lastResults.skuInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRolePoolSkusNextResults", nil, "Failure preparing next results request")
 	}
@@ -1988,6 +2283,16 @@ func (client AppServiceEnvironmentsClient) listMultiRolePoolSkusNextResults(last
 
 // ListMultiRolePoolSkusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkusComplete(ctx context.Context, resourceGroupName string, name string) (result SkuInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRolePoolSkus")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRolePoolSkus(ctx, resourceGroupName, name)
 	return
 }
@@ -1997,6 +2302,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkusComplete(ctx con
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRoleUsages(ctx context.Context, resourceGroupName string, name string) (result UsageCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRoleUsages")
+		defer func() {
+			sc := -1
+			if result.uc.Response.Response != nil {
+				sc = result.uc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2051,8 +2366,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleUsagesPreparer(ctx conte
 // ListMultiRoleUsagesSender sends the ListMultiRoleUsages request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListMultiRoleUsagesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListMultiRoleUsagesResponder handles the response to the ListMultiRoleUsages request. The method always
@@ -2069,8 +2384,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleUsagesResponder(resp *ht
 }
 
 // listMultiRoleUsagesNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listMultiRoleUsagesNextResults(lastResults UsageCollection) (result UsageCollection, err error) {
-	req, err := lastResults.usageCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listMultiRoleUsagesNextResults(ctx context.Context, lastResults UsageCollection) (result UsageCollection, err error) {
+	req, err := lastResults.usageCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listMultiRoleUsagesNextResults", nil, "Failure preparing next results request")
 	}
@@ -2091,6 +2406,16 @@ func (client AppServiceEnvironmentsClient) listMultiRoleUsagesNextResults(lastRe
 
 // ListMultiRoleUsagesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListMultiRoleUsagesComplete(ctx context.Context, resourceGroupName string, name string) (result UsageCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListMultiRoleUsages")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListMultiRoleUsages(ctx, resourceGroupName, name)
 	return
 }
@@ -2100,6 +2425,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleUsagesComplete(ctx conte
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListOperations(ctx context.Context, resourceGroupName string, name string) (result ListOperation, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListOperations")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2153,8 +2488,8 @@ func (client AppServiceEnvironmentsClient) ListOperationsPreparer(ctx context.Co
 // ListOperationsSender sends the ListOperations request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListOperationsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListOperationsResponder handles the response to the ListOperations request. The method always
@@ -2178,6 +2513,16 @@ func (client AppServiceEnvironmentsClient) ListOperationsResponder(resp *http.Re
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListUsages(ctx context.Context, resourceGroupName string, name string, filter string) (result CsmUsageQuotaCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListUsages")
+		defer func() {
+			sc := -1
+			if result.cuqc.Response.Response != nil {
+				sc = result.cuqc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2235,8 +2580,8 @@ func (client AppServiceEnvironmentsClient) ListUsagesPreparer(ctx context.Contex
 // ListUsagesSender sends the ListUsages request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListUsagesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListUsagesResponder handles the response to the ListUsages request. The method always
@@ -2253,8 +2598,8 @@ func (client AppServiceEnvironmentsClient) ListUsagesResponder(resp *http.Respon
 }
 
 // listUsagesNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listUsagesNextResults(lastResults CsmUsageQuotaCollection) (result CsmUsageQuotaCollection, err error) {
-	req, err := lastResults.csmUsageQuotaCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listUsagesNextResults(ctx context.Context, lastResults CsmUsageQuotaCollection) (result CsmUsageQuotaCollection, err error) {
+	req, err := lastResults.csmUsageQuotaCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listUsagesNextResults", nil, "Failure preparing next results request")
 	}
@@ -2275,6 +2620,16 @@ func (client AppServiceEnvironmentsClient) listUsagesNextResults(lastResults Csm
 
 // ListUsagesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListUsagesComplete(ctx context.Context, resourceGroupName string, name string, filter string) (result CsmUsageQuotaCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListUsages")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListUsages(ctx, resourceGroupName, name, filter)
 	return
 }
@@ -2284,6 +2639,16 @@ func (client AppServiceEnvironmentsClient) ListUsagesComplete(ctx context.Contex
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListVips(ctx context.Context, resourceGroupName string, name string) (result AddressResponse, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListVips")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2337,8 +2702,8 @@ func (client AppServiceEnvironmentsClient) ListVipsPreparer(ctx context.Context,
 // ListVipsSender sends the ListVips request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListVipsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListVipsResponder handles the response to the ListVips request. The method always
@@ -2360,6 +2725,16 @@ func (client AppServiceEnvironmentsClient) ListVipsResponder(resp *http.Response
 // name - name of the App Service Environment.
 // propertiesToInclude - comma separated list of app properties to include.
 func (client AppServiceEnvironmentsClient) ListWebApps(ctx context.Context, resourceGroupName string, name string, propertiesToInclude string) (result AppCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebApps")
+		defer func() {
+			sc := -1
+			if result.ac.Response.Response != nil {
+				sc = result.ac.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2417,8 +2792,8 @@ func (client AppServiceEnvironmentsClient) ListWebAppsPreparer(ctx context.Conte
 // ListWebAppsSender sends the ListWebApps request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWebAppsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWebAppsResponder handles the response to the ListWebApps request. The method always
@@ -2435,8 +2810,8 @@ func (client AppServiceEnvironmentsClient) ListWebAppsResponder(resp *http.Respo
 }
 
 // listWebAppsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWebAppsNextResults(lastResults AppCollection) (result AppCollection, err error) {
-	req, err := lastResults.appCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWebAppsNextResults(ctx context.Context, lastResults AppCollection) (result AppCollection, err error) {
+	req, err := lastResults.appCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWebAppsNextResults", nil, "Failure preparing next results request")
 	}
@@ -2457,6 +2832,16 @@ func (client AppServiceEnvironmentsClient) listWebAppsNextResults(lastResults Ap
 
 // ListWebAppsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWebAppsComplete(ctx context.Context, resourceGroupName string, name string, propertiesToInclude string) (result AppCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebApps")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWebApps(ctx, resourceGroupName, name, propertiesToInclude)
 	return
 }
@@ -2467,6 +2852,16 @@ func (client AppServiceEnvironmentsClient) ListWebAppsComplete(ctx context.Conte
 // name - name of the App Service Environment.
 // workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitions(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result ResourceMetricDefinitionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebWorkerMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.rmdc.Response.Response != nil {
+				sc = result.rmdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2522,8 +2917,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsPrepare
 // ListWebWorkerMetricDefinitionsSender sends the ListWebWorkerMetricDefinitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWebWorkerMetricDefinitionsResponder handles the response to the ListWebWorkerMetricDefinitions request. The method always
@@ -2540,8 +2935,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsRespond
 }
 
 // listWebWorkerMetricDefinitionsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWebWorkerMetricDefinitionsNextResults(lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
-	req, err := lastResults.resourceMetricDefinitionCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWebWorkerMetricDefinitionsNextResults(ctx context.Context, lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
+	req, err := lastResults.resourceMetricDefinitionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWebWorkerMetricDefinitionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -2562,6 +2957,16 @@ func (client AppServiceEnvironmentsClient) listWebWorkerMetricDefinitionsNextRes
 
 // ListWebWorkerMetricDefinitionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsComplete(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result ResourceMetricDefinitionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebWorkerMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWebWorkerMetricDefinitions(ctx, resourceGroupName, name, workerPoolName)
 	return
 }
@@ -2576,6 +2981,16 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsComplet
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetrics(ctx context.Context, resourceGroupName string, name string, workerPoolName string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebWorkerMetrics")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2637,8 +3052,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricsPreparer(ctx cont
 // ListWebWorkerMetricsSender sends the ListWebWorkerMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWebWorkerMetricsResponder handles the response to the ListWebWorkerMetrics request. The method always
@@ -2655,8 +3070,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricsResponder(resp *h
 }
 
 // listWebWorkerMetricsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWebWorkerMetricsNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWebWorkerMetricsNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWebWorkerMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -2677,6 +3092,16 @@ func (client AppServiceEnvironmentsClient) listWebWorkerMetricsNextResults(lastR
 
 // ListWebWorkerMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetricsComplete(ctx context.Context, resourceGroupName string, name string, workerPoolName string, details *bool, filter string) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebWorkerMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWebWorkerMetrics(ctx, resourceGroupName, name, workerPoolName, details, filter)
 	return
 }
@@ -2687,6 +3112,16 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricsComplete(ctx cont
 // name - name of the App Service Environment.
 // workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) ListWebWorkerUsages(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result UsageCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebWorkerUsages")
+		defer func() {
+			sc := -1
+			if result.uc.Response.Response != nil {
+				sc = result.uc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2742,8 +3177,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerUsagesPreparer(ctx conte
 // ListWebWorkerUsagesSender sends the ListWebWorkerUsages request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWebWorkerUsagesSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWebWorkerUsagesResponder handles the response to the ListWebWorkerUsages request. The method always
@@ -2760,8 +3195,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerUsagesResponder(resp *ht
 }
 
 // listWebWorkerUsagesNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWebWorkerUsagesNextResults(lastResults UsageCollection) (result UsageCollection, err error) {
-	req, err := lastResults.usageCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWebWorkerUsagesNextResults(ctx context.Context, lastResults UsageCollection) (result UsageCollection, err error) {
+	req, err := lastResults.usageCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWebWorkerUsagesNextResults", nil, "Failure preparing next results request")
 	}
@@ -2782,6 +3217,16 @@ func (client AppServiceEnvironmentsClient) listWebWorkerUsagesNextResults(lastRe
 
 // ListWebWorkerUsagesComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWebWorkerUsagesComplete(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result UsageCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWebWorkerUsages")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWebWorkerUsages(ctx, resourceGroupName, name, workerPoolName)
 	return
 }
@@ -2794,6 +3239,16 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerUsagesComplete(ctx conte
 // workerPoolName - name of the worker pool.
 // instance - name of the instance in the worker pool.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitions(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string) (result ResourceMetricDefinitionCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPoolInstanceMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.rmdc.Response.Response != nil {
+				sc = result.rmdc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2850,8 +3305,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitio
 // ListWorkerPoolInstanceMetricDefinitionsSender sends the ListWorkerPoolInstanceMetricDefinitions request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitionsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWorkerPoolInstanceMetricDefinitionsResponder handles the response to the ListWorkerPoolInstanceMetricDefinitions request. The method always
@@ -2868,8 +3323,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitio
 }
 
 // listWorkerPoolInstanceMetricDefinitionsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWorkerPoolInstanceMetricDefinitionsNextResults(lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
-	req, err := lastResults.resourceMetricDefinitionCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWorkerPoolInstanceMetricDefinitionsNextResults(ctx context.Context, lastResults ResourceMetricDefinitionCollection) (result ResourceMetricDefinitionCollection, err error) {
+	req, err := lastResults.resourceMetricDefinitionCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWorkerPoolInstanceMetricDefinitionsNextResults", nil, "Failure preparing next results request")
 	}
@@ -2890,6 +3345,16 @@ func (client AppServiceEnvironmentsClient) listWorkerPoolInstanceMetricDefinitio
 
 // ListWorkerPoolInstanceMetricDefinitionsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitionsComplete(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string) (result ResourceMetricDefinitionCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPoolInstanceMetricDefinitions")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWorkerPoolInstanceMetricDefinitions(ctx, resourceGroupName, name, workerPoolName, instance)
 	return
 }
@@ -2905,6 +3370,16 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitio
 // $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
 // endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetrics(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPoolInstanceMetrics")
+		defer func() {
+			sc := -1
+			if result.rmc.Response.Response != nil {
+				sc = result.rmc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -2967,8 +3442,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsPreparer
 // ListWorkerPoolInstanceMetricsSender sends the ListWorkerPoolInstanceMetrics request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWorkerPoolInstanceMetricsResponder handles the response to the ListWorkerPoolInstanceMetrics request. The method always
@@ -2985,8 +3460,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsResponde
 }
 
 // listWorkerPoolInstanceMetricsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWorkerPoolInstanceMetricsNextResults(lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
-	req, err := lastResults.resourceMetricCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWorkerPoolInstanceMetricsNextResults(ctx context.Context, lastResults ResourceMetricCollection) (result ResourceMetricCollection, err error) {
+	req, err := lastResults.resourceMetricCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWorkerPoolInstanceMetricsNextResults", nil, "Failure preparing next results request")
 	}
@@ -3007,6 +3482,16 @@ func (client AppServiceEnvironmentsClient) listWorkerPoolInstanceMetricsNextResu
 
 // ListWorkerPoolInstanceMetricsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsComplete(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string, details *bool, filter string) (result ResourceMetricCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPoolInstanceMetrics")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWorkerPoolInstanceMetrics(ctx, resourceGroupName, name, workerPoolName, instance, details, filter)
 	return
 }
@@ -3016,6 +3501,16 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsComplete
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListWorkerPools(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPools")
+		defer func() {
+			sc := -1
+			if result.wpc.Response.Response != nil {
+				sc = result.wpc.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3070,8 +3565,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolsPreparer(ctx context.C
 // ListWorkerPoolsSender sends the ListWorkerPools request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolsSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWorkerPoolsResponder handles the response to the ListWorkerPools request. The method always
@@ -3088,8 +3583,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolsResponder(resp *http.R
 }
 
 // listWorkerPoolsNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWorkerPoolsNextResults(lastResults WorkerPoolCollection) (result WorkerPoolCollection, err error) {
-	req, err := lastResults.workerPoolCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWorkerPoolsNextResults(ctx context.Context, lastResults WorkerPoolCollection) (result WorkerPoolCollection, err error) {
+	req, err := lastResults.workerPoolCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWorkerPoolsNextResults", nil, "Failure preparing next results request")
 	}
@@ -3110,6 +3605,16 @@ func (client AppServiceEnvironmentsClient) listWorkerPoolsNextResults(lastResult
 
 // ListWorkerPoolsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolsComplete(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPools")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWorkerPools(ctx, resourceGroupName, name)
 	return
 }
@@ -3120,6 +3625,16 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolsComplete(ctx context.C
 // name - name of the App Service Environment.
 // workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolSkus(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result SkuInfoCollectionPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPoolSkus")
+		defer func() {
+			sc := -1
+			if result.sic.Response.Response != nil {
+				sc = result.sic.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3175,8 +3690,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolSkusPreparer(ctx contex
 // ListWorkerPoolSkusSender sends the ListWorkerPoolSkus request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolSkusSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // ListWorkerPoolSkusResponder handles the response to the ListWorkerPoolSkus request. The method always
@@ -3193,8 +3708,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolSkusResponder(resp *htt
 }
 
 // listWorkerPoolSkusNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) listWorkerPoolSkusNextResults(lastResults SkuInfoCollection) (result SkuInfoCollection, err error) {
-	req, err := lastResults.skuInfoCollectionPreparer()
+func (client AppServiceEnvironmentsClient) listWorkerPoolSkusNextResults(ctx context.Context, lastResults SkuInfoCollection) (result SkuInfoCollection, err error) {
+	req, err := lastResults.skuInfoCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "listWorkerPoolSkusNextResults", nil, "Failure preparing next results request")
 	}
@@ -3215,6 +3730,16 @@ func (client AppServiceEnvironmentsClient) listWorkerPoolSkusNextResults(lastRes
 
 // ListWorkerPoolSkusComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolSkusComplete(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result SkuInfoCollectionIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.ListWorkerPoolSkus")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListWorkerPoolSkus(ctx, resourceGroupName, name, workerPoolName)
 	return
 }
@@ -3224,6 +3749,16 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolSkusComplete(ctx contex
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Reboot(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Reboot")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3277,8 +3812,8 @@ func (client AppServiceEnvironmentsClient) RebootPreparer(ctx context.Context, r
 // RebootSender sends the Reboot request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) RebootSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // RebootResponder handles the response to the Reboot request. The method always
@@ -3298,6 +3833,16 @@ func (client AppServiceEnvironmentsClient) RebootResponder(resp *http.Response) 
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Resume(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentsResumeFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Resume")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3345,13 +3890,9 @@ func (client AppServiceEnvironmentsClient) ResumePreparer(ctx context.Context, r
 // ResumeSender sends the Resume request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ResumeSender(req *http.Request) (future AppServiceEnvironmentsResumeFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -3379,8 +3920,8 @@ func (client AppServiceEnvironmentsClient) resumeResponder(resp *http.Response) 
 }
 
 // resumeNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) resumeNextResults(lastResults AppCollection) (result AppCollection, err error) {
-	req, err := lastResults.appCollectionPreparer()
+func (client AppServiceEnvironmentsClient) resumeNextResults(ctx context.Context, lastResults AppCollection) (result AppCollection, err error) {
+	req, err := lastResults.appCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "resumeNextResults", nil, "Failure preparing next results request")
 	}
@@ -3398,6 +3939,16 @@ func (client AppServiceEnvironmentsClient) resumeNextResults(lastResults AppColl
 
 // ResumeComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) ResumeComplete(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentsResumeAllFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Resume")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	var future AppServiceEnvironmentsResumeFuture
 	future, err = client.Resume(ctx, resourceGroupName, name)
 	result.Future = future.Future
@@ -3409,6 +3960,16 @@ func (client AppServiceEnvironmentsClient) ResumeComplete(ctx context.Context, r
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Suspend(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentsSuspendFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Suspend")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3456,13 +4017,9 @@ func (client AppServiceEnvironmentsClient) SuspendPreparer(ctx context.Context, 
 // SuspendSender sends the Suspend request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) SuspendSender(req *http.Request) (future AppServiceEnvironmentsSuspendFuture, err error) {
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = autorest.SendWithSender(client, req, sd...)
 	if err != nil {
 		return
 	}
@@ -3490,8 +4047,8 @@ func (client AppServiceEnvironmentsClient) suspendResponder(resp *http.Response)
 }
 
 // suspendNextResults retrieves the next set of results, if any.
-func (client AppServiceEnvironmentsClient) suspendNextResults(lastResults AppCollection) (result AppCollection, err error) {
-	req, err := lastResults.appCollectionPreparer()
+func (client AppServiceEnvironmentsClient) suspendNextResults(ctx context.Context, lastResults AppCollection) (result AppCollection, err error) {
+	req, err := lastResults.appCollectionPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "web.AppServiceEnvironmentsClient", "suspendNextResults", nil, "Failure preparing next results request")
 	}
@@ -3509,6 +4066,16 @@ func (client AppServiceEnvironmentsClient) suspendNextResults(lastResults AppCol
 
 // SuspendComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AppServiceEnvironmentsClient) SuspendComplete(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentsSuspendAllFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Suspend")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	var future AppServiceEnvironmentsSuspendFuture
 	future, err = client.Suspend(ctx, resourceGroupName, name)
 	result.Future = future.Future
@@ -3521,6 +4088,16 @@ func (client AppServiceEnvironmentsClient) SuspendComplete(ctx context.Context, 
 // name - name of the App Service Environment.
 // hostingEnvironmentEnvelope - configuration details of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Update(ctx context.Context, resourceGroupName string, name string, hostingEnvironmentEnvelope AppServiceEnvironmentPatchResource) (result AppServiceEnvironmentResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3576,8 +4153,8 @@ func (client AppServiceEnvironmentsClient) UpdatePreparer(ctx context.Context, r
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -3599,6 +4176,16 @@ func (client AppServiceEnvironmentsClient) UpdateResponder(resp *http.Response) 
 // name - name of the App Service Environment.
 // multiRolePoolEnvelope - properties of the multi-role pool.
 func (client AppServiceEnvironmentsClient) UpdateMultiRolePool(ctx context.Context, resourceGroupName string, name string, multiRolePoolEnvelope WorkerPoolResource) (result WorkerPoolResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.UpdateMultiRolePool")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3654,8 +4241,8 @@ func (client AppServiceEnvironmentsClient) UpdateMultiRolePoolPreparer(ctx conte
 // UpdateMultiRolePoolSender sends the UpdateMultiRolePool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) UpdateMultiRolePoolSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateMultiRolePoolResponder handles the response to the UpdateMultiRolePool request. The method always
@@ -3678,6 +4265,16 @@ func (client AppServiceEnvironmentsClient) UpdateMultiRolePoolResponder(resp *ht
 // workerPoolName - name of the worker pool.
 // workerPoolEnvelope - properties of the worker pool.
 func (client AppServiceEnvironmentsClient) UpdateWorkerPool(ctx context.Context, resourceGroupName string, name string, workerPoolName string, workerPoolEnvelope WorkerPoolResource) (result WorkerPoolResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/AppServiceEnvironmentsClient.UpdateWorkerPool")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -3734,8 +4331,8 @@ func (client AppServiceEnvironmentsClient) UpdateWorkerPoolPreparer(ctx context.
 // UpdateWorkerPoolSender sends the UpdateWorkerPool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) UpdateWorkerPoolSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
+	return autorest.SendWithSender(client, req, sd...)
 }
 
 // UpdateWorkerPoolResponder handles the response to the UpdateWorkerPool request. The method always

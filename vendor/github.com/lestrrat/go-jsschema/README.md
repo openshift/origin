@@ -1,8 +1,8 @@
 # go-jsschema
 
-[![Build Status](https://travis-ci.org/lestrrat/go-jsschema.svg?branch=master)](https://travis-ci.org/lestrrat/go-jsschema)
+[![Build Status](https://travis-ci.org/lestrrat-go/jsschema.svg?branch=master)](https://travis-ci.org/lestrrat-go/jsschema)
 
-[![GoDoc](https://godoc.org/github.com/lestrrat/go-jsschema?status.svg)](https://godoc.org/github.com/lestrrat/go-jsschema)
+[![GoDoc](https://godoc.org/github.com/lestrrat-go/jsschema?status.svg)](https://godoc.org/github.com/lestrrat-go/jsschema)
 
 JSON Schema for Go
 
@@ -14,8 +14,8 @@ package schema_test
 import (
   "log"
 
-  "github.com/lestrrat/go-jsschema"
-  "github.com/lestrrat/go-jsschema/validator"
+  "github.com/lestrrat-go/jsschema"
+  "github.com/lestrrat-go/jsschema/validator"
 )
 
 func Example() {
@@ -47,13 +47,13 @@ This packages parses a JSON Schema file, and allows you to inspect, modify
 the schema, but does nothing more.
 
 If you want to validate using the JSON Schema that you read using this package,
-look at [go-jsval](https://github.com/lestrrat/go-jsval), which allows you to
+look at [go-jsval](https://github.com/lestrrat-go/jsval), which allows you to
 generate validators, so that you don't have to dynamically read in the JSON schema
 for each instance of your program.
 
 In the same lines, this package does not really care about loading external
 schemas from various locations (it's just easier to just gather all the schemas
-in your local system). It *is* possible to do this via [go-jsref](https://github.com/lestrrat/go-jsref)
+in your local system). It *is* possible to do this via [go-jsref](https://github.com/lestrrat-go/jsref)
 if you really want to do it.
 
 # BENCHMARKS
@@ -86,7 +86,7 @@ PASS
 
 | Name                                                     | Notes                            |
 |:--------------------------------------------------------:|:---------------------------------|
-| [go-jsval](https://github.com/lestrrat/go-jsval)         | Validator generator              |
-| [go-jshschema](https://github.com/lestrrat/go-jshschema) | JSON Hyper Schema implementation |
-| [go-jsref](https://github.com/lestrrat/go-jsref)         | JSON Reference implementation    |
-| [go-jspointer](https://github.com/lestrrat/go-jspointer) | JSON Pointer implementations     |
+| [go-jsval](https://github.com/lestrrat-go/jsval)         | Validator generator              |
+| [go-jshschema](https://github.com/lestrrat-go/jshschema) | JSON Hyper Schema implementation |
+| [go-jsref](https://github.com/lestrrat-go/jsref)         | JSON Reference implementation    |
+| [go-jspointer](https://github.com/lestrrat-go/jspointer) | JSON Pointer implementations     |

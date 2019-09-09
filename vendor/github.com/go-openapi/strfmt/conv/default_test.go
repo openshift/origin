@@ -3,8 +3,9 @@ package conv
 import (
 	"testing"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-openapi/strfmt"
 )
 
 func TestBase64Value(t *testing.T) {
@@ -41,6 +42,12 @@ func TestIPv6Value(t *testing.T) {
 	assert.Equal(t, strfmt.IPv6(""), IPv6Value(nil))
 	value := strfmt.IPv6("foo")
 	assert.Equal(t, value, IPv6Value(&value))
+}
+
+func TestCIDRValue(t *testing.T) {
+	assert.Equal(t, strfmt.CIDR(""), CIDRValue(nil))
+	value := strfmt.CIDR("foo")
+	assert.Equal(t, value, CIDRValue(&value))
 }
 
 func TestMACValue(t *testing.T) {
